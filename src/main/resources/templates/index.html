@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script type="text/javascript" src="/js/acceptCookies.min.js" defer></script>
+  <script type="text/javascript" src="/js/acceptCookies.min.js" defer></script>
+
+  <script type="text/javascript">
+    window.acceptCookies = {
+      content: 'Използваме аналитични и маркетингови Cookies, за да подобрим изживяването ви при сърфиране на нашия уебсайт и да анализираме трафика. Прочетете повече в <a href="https://www.bg.nationalsample.com/homepage/gdpr" target="_blank">Условия за членство</a>.',
+      accept: "Приеми",
+      reject: "Отхвърляне",
+      manageCookies: "Управление на бисквитките",
+      cookieName: "accept_cookies",
+      showAnswered: function () {
+        return true;
+      },
+      onAccept: function () {
+        window.location.reload();
+      },
+      afterAction: function (value) {
+        document.querySelector('input[name=cookieConsent]').value = value === 'accepted' ? '1' : '';
+      }
+    };
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmolyanVote - Гласът на Смолян</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/acceptCookies.css">
+
+  <style>
+    .hero h1, .hero p {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Hero секция -->
+<section class="hero" style="/* бел overlay с 70% прозрачност */background: rgba(255, 255, 255, 0.7) url('/images/web/indexBackground1.jpg') no-repeat center;
+">
+  <div class="container">
+    <h1 class="display-4 fw-bold">Гласът на Смолян</h1>
+    <p class="lead">Вашият глас. Вашият град. Вашето мнение.</p>
+    <a href="/mainEvents" class="btn btn-light btn-lg mt-3">Участвай сега</a>
+  </div>
+</section >
+
+<!-- Функции -->
+<section class="py-5" >
+  <div th:replace="~{fragments/features :: platform-features}"></div>
+</section>
+
+<!-- Футър -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<input type="hidden" name="cookieConsent" value="" />
+</body>
+</html>

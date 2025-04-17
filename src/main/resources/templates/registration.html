@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmolyanVote - Регистрация</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/register.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+
+
+  <style>
+    .hero h1, .hero p {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Hero секция с форма за регистрация -->
+<section class="hero">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card shadow p-4">
+          <h2 class="card-title text-center mb-4">Регистрация</h2>
+
+          <form method="post"
+                th:action="@{/user/registration}"
+                th:object="${userFields}" >
+            <div class="mb-3">
+              <label for="username" class="form-label">Потребителско име</label>
+              <input type="text" th:field="*{username}" class="form-control" id="username" placeholder="Въведете потребителско име" required>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Имейл адрес</label>
+              <input type="email" th:field="*{email}" class="form-control" id="email" placeholder="Въведете имейл" required>
+            </div>
+            <div class="mb-3">
+              <label for="regPassword" class="form-label">Парола</label>
+              <input type="password" th:field="*{regPassword}" class="form-control" id="regPassword" placeholder="Създайте парола" required>
+            </div>
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Повторете паролата</label>
+              <input type="password" th:field="*{confirmPassword}" class="form-control" id="confirmPassword" placeholder="Повторете паролата" required>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success">Регистрирай се</button>
+            </div>
+          </form>
+          <div class="text-center mt-3">
+            <a href="/login" class="small">Вече имаш акаунт? Вход</a>
+          </div>
+
+          <div>
+            <div th:if="${error}" class="error-message">
+              <p th:text="${error}" class="error-text" style="color: #dc3838;"></p>
+            </div>
+            <div th:if="${successMessage}" class="success-message">
+              <p th:text="${successMessage}" class="success-text" style="color: #00ab46; font-size: 16px;"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Функции -->
+<section class="py-5">
+  <div th:replace="~{fragments/features :: platform-features}"></div>
+</section>
+
+<!-- Футър -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

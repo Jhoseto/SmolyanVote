@@ -1,0 +1,72 @@
+#acceptCookies {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    width: 340px;
+    background-color: #003b3b;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    z-index: 9999;
+    font-family: 'Poppins', sans-serif;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#acceptCookies .acceptCookies-content {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+#acceptCookies .acceptCookies-content a {
+    color: #66e0e0;
+    text-decoration: underline;
+}
+
+#acceptCookies .acceptCookies-control {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+#acceptCookies button {
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.acceptCookies-accept {
+    background-color: #00b3b3;
+    color: white;
+}
+
+.acceptCookies-accept:hover {
+    background-color: #009090;
+}
+
+.acceptCookies-reject {
+    background-color: white;
+    color: #003b3b;
+    border: 2px solid #00b3b3;
+}
+
+.acceptCookies-reject:hover {
+    background-color: #f1f1f1;
+}

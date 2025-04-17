@@ -1,0 +1,49 @@
+<!-- fragments/simpleEventView.html -->
+<!-- @thymesVar id="event" type="smolyanVote.smolyanVote.viewsAndDTO.EventView" -->
+
+<div th:fragment="simple-event" class="event-container">
+  <div class="event-card">
+    <!-- Изображение на събитието -->
+    <img th:if="${event.imageUrls != null and !event.imageUrls.isEmpty()}"
+         th:src="${event.imageUrls[0]}"
+         alt="Снимка на събитието" class="img-fluid rounded-top">
+    <img th:if="${event.imageUrls == null or event.imageUrls.isEmpty()}"
+         src="/images/logo1.png"
+         style="width: 30px; height: 30px; object-fit: cover;"
+         alt="Снимка на събитието" class="img-fluid rounded-top">
+
+    <!-- Тяло на картата -->
+    <div class="card-body event-info">
+      <!-- Заглавие -->
+      <h5 class="card-title" th:text="${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
+
+      <!-- Блок за автора -->
+      <div class="d-flex align-items-center mb-2">
+        <img th:if="${event.creatorImage != null}"
+             th:src="${event.creatorImage}"
+             alt="Автор"
+             class="author-avatar rounded-circle me-2">
+        <small class="text-muted" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+      </div>
+
+      <!-- Дата -->
+      <div class="mb-2">
+        <small class="text-muted">
+          Създадено на:
+          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
+        </small>
+      </div>
+
+      <!-- Гласове -->
+      <div class="mb-3">
+        <small class="text-muted">
+          Гласували:
+          <span th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</span> души
+        </small>
+      </div>
+
+      <!-- Линк -->
+      <a th:href="@{/event/{id}(id=${event.id})}" class="btn btn-custom">Виж повече</a>
+    </div>
+  </div>
+</div>

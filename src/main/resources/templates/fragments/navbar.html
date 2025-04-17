@@ -1,0 +1,68 @@
+<!-- fragments/navbar.html -->
+<div th:fragment="navbar"
+     xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm custom-navbar">
+        <div class="container px-4">
+            <a class="navbar-brand d-flex align-items-center" href="index">
+                <img src="/images/logo1.png" alt="SmolyanVote Logo" width="40" height="40" class="me-2">
+                <span class="fw-bold text-dark">SmolyanVote</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav" aria-controls="navbarNav"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="index">Начало</a></li>
+                    <li class="nav-item"><a class="nav-link" href="mainEvents">Vote</a></li>
+                    <li class="nav-item"><a class="nav-link" href="news">Новини</a></li>
+                    <li class="nav-item"><a class="nav-link" href="about">За нас</a></li>
+                    <li class="nav-item"><a class="nav-link" href="contacts">Контакти</a></li>
+
+                    <!-- Нелогнати потребители -->
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" href="login">Вход</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="nav-link" href="/register">Регистрация</a>
+                    </li>
+
+                    <!-- Логнати потребители -->
+                    <li class="nav-item dropdown profile-dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- Показване на профилна снимка или началната буква от името, ако няма снимка -->
+                            <span th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
+                                  class="avatar-placeholder rounded-circle d-flex justify-content-center align-items-center"
+                                  style="width: 40px; height: 40px; background-color: #6c757d; color: white; font-size: 18px;">
+                                <span th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 1).toUpperCase()}">A</span>
+                            </span>
+                            <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() != null}"
+                                 th:src="${@userServiceImpl.getCurrentUser().getImageUrl()}"
+                                 onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2230%22%20height=%2230%22%20viewBox=%220%200%2030%2030%22%3E%3Ccircle%20cx=%2215%22%20cy=%2215%22%20r=%2214%22%20fill=%22%23ccc%22/%3E%3Ctext%20x=%2215%22%20y=%2220%22%20font-size=%2212%22%20font-family=%22Arial%22%20text-anchor=%22middle%22%20fill=%22%23fff%22%3E%E2%9C%94%3C/text%3E%3C/svg%3E'"
+                                 alt="User Image" class="rounded-circle profile-image me-2">
+
+                            <!-- Ако няма изображение, показваме първите две букви от името на потребителя -->
+                            <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
+                                 th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 2)}"
+                                 class="rounded-circle profile-image me-2"
+                                 th:style="'background-color: ' + ${randomColor} + '; color: #fff; text-align: center; font-size: 14px; width: 30px; height: 30px;'" alt="" src="">
+
+                            <span class="fw-medium" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">Профил</a></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item">Изход</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+</div>

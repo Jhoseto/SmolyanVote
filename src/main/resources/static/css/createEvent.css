@@ -1,0 +1,125 @@
+/* Основен стил */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    color: #000;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+
+/* Hero секция */
+.hero {
+    padding: 60px 20px;
+    background-blend-mode: overlay;
+    background-color: rgba(0, 0, 0, 0.5); /* затъмняване */
+    color: #fff;
+    text-align: center;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #40e0d0;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-size: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    color: #e8f8f5;
+}
+
+/* Контейнер */
+.container {
+    max-width: 900px;
+    padding: 0 15px;
+    margin: 0 auto;
+}
+
+/* Карта на формата */
+.event-form-card {
+    background: #f8fafa;
+    border: 1px solid #e1e1e1;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.event-form-card h2 {
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #0e6251;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* Елементи от формата */
+.form-label {
+    font-weight: 500;
+    color: #0e6251;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #00a86b;
+    box-shadow: 0 0 5px rgba(0, 168, 107, 0.4);
+}
+
+/* Качване на изображения */
+input[type="file"] {
+    padding: 8px;
+}
+
+.preview-image {
+    max-width: 90px;
+    max-height: 90px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 2px solid #00a86b;
+    transition: transform 0.3s ease;
+}
+
+.preview-image:hover {
+    transform: scale(1.05);
+}
+
+/* Бутон */
+.btn-custom {
+    background-color: #00a86b;
+    color: #fff;
+    font-weight: 500;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 20px;
+    transition: all 0.3s ease-in-out;
+}
+
+.btn-custom:hover {
+    background-color: #0e6251;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(64, 224, 208, 0.4);
+}
+
+/* Мобилна респонсивност */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 0.95rem;
+    }
+
+    .event-form-card {
+        padding: 20px;
+    }
+}
