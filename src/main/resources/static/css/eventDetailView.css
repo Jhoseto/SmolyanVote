@@ -1,0 +1,230 @@
+/* Основни стилове */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* Фон за основния контейнер */
+.background {
+    background-size: cover;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Карта за събитието */
+.event-card {
+    background: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 1200px;
+    padding: 30px;
+    text-align: center;
+    animation: fadeIn 1s ease-in-out;
+}
+
+/* Заглавие */
+.header {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #5c6bc0;
+    padding-bottom: 10px;
+}
+
+/* Автор на събитието */
+.creator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.creator-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 15px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.creator-name {
+    font-size: 1.2rem;
+    color: #5c6bc0;
+}
+
+/* Галерия */
+.gallery {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.gallery img {
+    max-width: 300px;
+    margin: 10px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.gallery img:hover {
+    transform: scale(1.05);
+}
+
+/* Описание */
+.description {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 20px;
+
+    max-height: 15em; /* ~10 реда */
+    overflow-y: auto;
+    padding-right: 10px; /* място за скролера */
+    line-height: 1.5em;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #fdfdfd;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+
+/* Допълнителни детайли */
+.details {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.details strong {
+    color: #333;
+}
+
+/* Гласуване */
+.voting {
+    margin-top: 40px;
+    text-align: left;
+}
+
+.vote-bar-wrapper {
+    margin-bottom: 25px;
+}
+
+/* Текст над бара */
+.vote-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+/* Бар контейнер */
+.vote-bar {
+    height: 12px; /* Тънък бар */
+    border-radius: 10px;
+    background-color: #e0e0e0;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+/* Цветна част на бара */
+.vote-bar .bar {
+    position: relative;
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* Текст вътре в бара */
+.bar-text {
+    color: black;
+    z-index: 2;
+    position: relative;
+}
+
+
+/* Отделните цветове */
+.vote-bar .for {
+    background: linear-gradient(to right, #66bb6a, #388e3c);
+}
+.vote-bar .against {
+    background: linear-gradient(to right, #ef5350, #d32f2f);
+}
+.vote-bar .abstain {
+    background: linear-gradient(to right, #ffeb3b, #fbc02d);
+}
+
+
+
+/* Бутоните за гласуване */
+.vote-section {
+    margin-top: 50px;
+}
+
+.vote-buttons form {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.vote-btn {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.vote-btn.yes {
+    background-color: #66bb6a;
+    color: white;
+}
+
+.vote-btn.yes:hover {
+    background-color: #388e3c;
+}
+
+.vote-btn.no {
+    background-color: #ef5350;
+    color: white;
+}
+
+.vote-btn.no:hover {
+    background-color: #d32f2f;
+}
+
+.vote-btn.neutral {
+    background-color: #ffeb3b;
+    color: #555;
+}
+
+.vote-btn.neutral:hover {
+    background-color: #fbc02d;
+}
+
+/* Анимация при зареждане на страницата */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
