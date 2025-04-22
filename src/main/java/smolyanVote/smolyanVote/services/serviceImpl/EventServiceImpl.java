@@ -6,7 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
+import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repository.EventRepository;
+import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.Mappers.EventMapper;
 import smolyanVote.smolyanVote.services.UserService;
@@ -15,6 +17,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,16 +25,19 @@ import java.util.stream.Collectors;
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
+    private final UserRepository userRepository;
     private final EventMapper eventMapper;
     private final UserService userService;
     private final ImageStorageServiceImpl imageStorageService;
 
     @Autowired
     public EventServiceImpl(EventRepository eventRepository,
+                            UserRepository userRepository,
                             EventMapper eventMapper,
                             UserService userService,
                             ImageStorageServiceImpl imageStorageService) {
         this.eventRepository = eventRepository;
+        this.userRepository = userRepository;
         this.eventMapper = eventMapper;
         this.userService = userService;
         this.imageStorageService = imageStorageService;
@@ -41,7 +47,9 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public List<EventView> getAllEvents() {
         List<EventEntity> events = eventRepository.findAll();
+
         return events.stream()
+                .sorted(Comparator.comparing(EventEntity::getCreatedAt).reversed()) // Сортиране по дата
                 .map(eventMapper::mapToView) // Използваме метода от EventMapper
                 .collect(Collectors.toList());
     }
@@ -57,14 +65,18 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<String> createEvent(CreateEventView dto, MultipartFile[] files) {
         EventEntity eventEntity = new EventEntity();
+        UserEntity user = userService.getCurrentUser();
+
         eventEntity.setTitle(dto.getTitle());
         eventEntity.setDescription(dto.getDescription());
         eventEntity.setCreatorName(userService.getCurrentUser().getUsername());
         eventEntity.setCreatorImage(userService.getCurrentUser().getImageUrl());
         eventEntity.setCreatedAt(Instant.now());
+        user.setUserEventsCount(user.getUserEventsCount()+1);
 
         // Записваме събитието и получаваме ID
         eventRepository.saveAndFlush(eventEntity);
+        userRepository.save(user);
         long eventId = eventEntity.getId();
 
         List<EventImageEntity> imageEntities = new ArrayList<>();

@@ -36,9 +36,22 @@ public class EventsController {
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
         EventView eventDetailView = eventService.getEventById(id);
+
+        int totalVotes = eventDetailView.getTotalVotes();
+        if (totalVotes > 0) {
+            eventDetailView.setYesPercent(eventDetailView.getYesVotes() * 100 / totalVotes);
+            eventDetailView.setNoPercent(eventDetailView.getNoVotes() * 100 / totalVotes);
+            eventDetailView.setNeutralPercent(eventDetailView.getNeutralVotes() * 100 / totalVotes);
+        } else {
+            eventDetailView.setYesPercent(0);
+            eventDetailView.setNoPercent(0);
+            eventDetailView.setNeutralPercent(0);
+        }
+
         model.addAttribute("eventDetail", eventDetailView);
-        return "eventDetail"; // Тази страница ще показва детайлите на събитието
+        return "eventDetailView";
     }
+
 
     @GetMapping("/createNewEvent")
     public String showCreateEvent(Model model) {

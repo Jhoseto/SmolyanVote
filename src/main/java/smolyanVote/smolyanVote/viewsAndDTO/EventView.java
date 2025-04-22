@@ -17,6 +17,10 @@ public class EventView {
     private int noVotes;
     private int neutralVotes;
     private int totalVotes;
+    private int yesPercent;
+    private int noPercent;
+    private int neutralPercent;
+
 
 
     // --- Гетъри и сетъри ---
@@ -108,21 +112,15 @@ public class EventView {
         return yesVotes + noVotes + neutralVotes;
     }
 
+    public int getYesPercent() {return yesPercent;}
 
-    @Override
-    public String toString() {
-        return "EventView{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", description='" + description + '\'' +
-                ", creatorName='" + creatorName + '\'' +
-                ", creatorImage='" + creatorImage + '\'' +
-                ", imageUrls=" + imageUrls +
-                ", createdAt=" + createdAt +
-                ", yesVotes=" + yesVotes +
-                ", noVotes=" + noVotes +
-                ", neutralVotes=" + neutralVotes +
-                ", totalVotes=" + totalVotes +
-                '}';
-    }
+    public void setYesPercent(int yesPercent) {this.yesPercent = yesPercent;}
+
+    public int getNoPercent() {return noPercent;}
+
+    public void setNoPercent(int noPercent) {this.noPercent = noPercent;}
+
+    public int getNeutralPercent() {return neutralPercent;}
+
+    public void setNeutralPercent(int neutralPercent) {this.neutralPercent = neutralPercent;}
 }

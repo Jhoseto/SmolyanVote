@@ -20,19 +20,19 @@ public class WebConfig implements WebMvcConfigurer {
 //http://localhost:8080
 //http://213.91.128.33:2662
 
-//TODO ВАЖНО !!!
-// Изключване на кеширането на статичните ресурси в тази директория за
-// да може да се актуализират профилните снимки от потребителите.
-// Единствения вариант за сега...
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/images/usersImg/**")
-                .addResourceLocations("file:/D:/MyProjectsJAVA/SamarBG/SamarBg/src/main/resources/static/images/usersImg/")
-                .setCachePeriod(0); // изключва кеширането
-
-        registry.addResourceHandler("/images/offerImg/**")
-                .addResourceLocations("file:/D:/MyProjectsJAVA/SamarBG/SamarBg/src/main/resources/static/images/offerImg/")
-                .setCachePeriod(0); // изключва кеширането
-    }
+////TODO ВАЖНО !!!
+//// Изключване на кеширането на статичните ресурси в тази директория за
+//// да може да се актуализират профилните снимки от потребителите.
+//// Единствения вариант за сега...
+//    @Override
+//    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+//        registry.addResourceHandler("/images/usersImg/**")
+//                .addResourceLocations("file:/D:/MyProjectsJAVA/SamarBG/SamarBg/src/main/resources/static/images/usersImg/")
+//                .setCachePeriod(0); // изключва кеширането
+//
+//        registry.addResourceHandler("/images/offerImg/**")
+//                .addResourceLocations("file:/D:/MyProjectsJAVA/SamarBG/SamarBg/src/main/resources/static/images/offerImg/")
+//                .setCachePeriod(0); // изключва кеширането
+//    }
 }
 

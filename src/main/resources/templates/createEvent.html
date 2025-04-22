@@ -10,20 +10,21 @@
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/createEvent.css">
 </head>
-<body>
+<body style="background: url('/images/web/vote1.png') no-repeat center -120px;">
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- Hero секция -->
-<section class="hero" style="background: url('/images/web/createEventBackground1.png') center/cover no-repeat;">
+<section class="hero" >
     <div class="container">
         <h1>Създай своето събитие</h1>
-        <p>Сподели идея, инициатива или предложение с общността. Създай своята форма с ясно формулиран въпрос в графата "заглавие". Заглавието трябва да насочва гласуващите недвусмислено възможноста им да гласуват с ЗА, ПРОТИВ или ВЪЗДЪРЖАЛ СЕ.</p>
+        <p>Сподели идея, инициатива или предложение с общността. Създай своята форма с ясно формулиран въпрос в графата "заглавие".
+            Заглавието трябва да насочва гласуващите недвусмислено за възможноста им да гласуват с ЗА, ПРОТИВ или ВЪЗДЪРЖАЛ СЕ.</p>
     </div>
 </section>
 
 <!-- Форма за събитие -->
-<div class="container my-5">
+<div class="container my-5" >
     <!-- Съобщения за успех и грешка -->
     <div class="container mt-3">
         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
@@ -37,7 +38,7 @@
         </div>
     </div>
 
-    <div class="event-form-card p-4">
+    <div class="event-form-card p-4" >
         <h2 class="text-center mb-4">Форма за ново събитие</h2>
         <form th:action="@{/create}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
@@ -51,24 +52,25 @@
             </div>
 
             <!-- Преглед на снимките -->
-            <div class="mb-3">
-                <label for="image1" class="form-label">Снимка 1</label>
-                <input type="file" class="form-control" id="image1" name="image1" accept="image/*">
-                <img id="preview1" class="preview-image mt-2"/>
-            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="image1" class="form-label">Снимка 1</label>
+                    <input type="file" class="form-control" id="image1" name="image1" accept="image/*">
+                    <img id="preview1" class="preview-image mt-2"/>
+                </div>
 
-            <div class="mb-3">
-                <label for="image2" class="form-label">Снимка 2</label>
-                <input type="file" class="form-control" id="image2" name="image2" accept="image/*">
-                <img id="preview2" class="preview-image mt-2"/>
-            </div>
+                <div class="col-md-4 mb-3">
+                    <label for="image2" class="form-label">Снимка 2</label>
+                    <input type="file" class="form-control" id="image2" name="image2" accept="image/*">
+                    <img id="preview2" class="preview-image mt-2"/>
+                </div>
 
-            <div class="mb-3">
-                <label for="image3" class="form-label">Снимка 3</label>
-                <input type="file" class="form-control" id="image3" name="image3" accept="image/*">
-                <img id="preview3" class="preview-image mt-2"/>
+                <div class="col-md-4 mb-3">
+                    <label for="image3" class="form-label">Снимка 3</label>
+                    <input type="file" class="form-control" id="image3" name="image3" accept="image/*">
+                    <img id="preview3" class="preview-image mt-2"/>
+                </div>
             </div>
-
             <div class="text-center">
                 <button type="submit" class="btn-custom mt-3">Публикувай събитието</button>
             </div>

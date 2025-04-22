@@ -7,12 +7,47 @@ body {
 }
 
 .hero {
-  background: linear-gradient(rgb(1, 82, 49), rgba(0,0,0,0.6)), center/cover no-repeat;
-  color: white;
-  padding: 120px 0;
+  background-size: cover;
+  min-height: 50vh; /* прави секцията цял екран */
+  display: flex;
+  align-items: flex-end; /* избутва съдържанието надолу */
+  justify-content: center;
+  padding-bottom: 3rem; /* разстояние от долния край */
   text-align: center;
-  border-bottom: 4px solid #198754;
 }
+
+
+.hero .display-4 {
+  font-size: 2rem;        /* по-малък размер */
+  font-weight: 500;       /* по-елегантно, не твърде дебело */
+  font-family: 'Helvetica Neue', sans-serif;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.hero .lead {
+  font-size: 1rem;        /* по-малък и стилен */
+  font-weight: 300;
+  color: #bbbbbb;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.hero .btn {
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border-radius: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.56); /* леко прозрачен бял фон */
+  color: #333;
+  border: 1px solid #ccc;
+  transition: all 0.3s ease;
+}
+
+.hero .btn:hover {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
 
 .feature-card {
   border: none;

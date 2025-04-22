@@ -10,9 +10,9 @@ body {
 
 /* Hero секция */
 .hero {
-    padding: 60px 20px;
+    padding: 150px 20px;
     background-blend-mode: overlay;
-    background-color: rgba(0, 0, 0, 0.5); /* затъмняване */
+    background-color: rgba(0, 0, 0, 0.58); /* затъмняване */
     color: #fff;
     text-align: center;
 }

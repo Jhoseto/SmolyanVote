@@ -11,5 +11,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/images/eventImages/**")
                 .addResourceLocations("file:D:/MyProjectsJAVA/SmolyanVote/imageStorage/eventImages/");
+
+        registry.addResourceHandler("/images/userImages/**")
+                .addResourceLocations("file:D:/MyProjectsJAVA/SmolyanVote/imageStorage/userImages/");
     }
 }
