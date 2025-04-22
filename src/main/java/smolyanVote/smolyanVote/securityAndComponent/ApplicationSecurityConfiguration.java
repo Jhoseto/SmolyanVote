@@ -63,7 +63,8 @@ public class ApplicationSecurityConfiguration {
                                 "/mainEvents",
                                 "/mainEventPage",
                                 "/event/{id}",
-                                "/eventDetailView"
+                                "/eventDetailView",
+                                "/news"
                         ).permitAll()
                         .requestMatchers(
                                 "/create",
