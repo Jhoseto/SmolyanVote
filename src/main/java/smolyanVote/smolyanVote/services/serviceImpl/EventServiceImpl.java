@@ -1,13 +1,17 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repository.EventRepository;
 import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.services.EventService;
@@ -43,6 +47,22 @@ public class EventServiceImpl implements EventService {
         this.userService = userService;
         this.imageStorageService = imageStorageService;
     }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public Page<EventView> getPaginatedEvents(int page, int size) {
+        // Създаване на Pageable обект
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
+
+        // Вземаме пагинирани събития от репозитория
+        Page<EventEntity> eventPage = eventRepository.findAll(pageable);
+
+        // Преобразуваме в EventView
+        return eventPage.map(eventMapper::mapToView);
+    }
+
+
 
     @Override
     @Transactional(readOnly = true)

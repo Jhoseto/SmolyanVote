@@ -159,3 +159,53 @@ footer p {
     -webkit-line-clamp: 2; /* само първите 2 реда */
     -webkit-box-orient: vertical;
 }
+
+/* Пагинация */
+.pagination {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pagination ul {
+    list-style: none;
+    display: flex;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+}
+
+.pagination ul li {
+    display: inline-block;
+}
+
+.pagination ul li a {
+    display: inline-block;
+    padding: 8px 14px;
+    color: #198754;
+    border: 1px solid #198754;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-weight: 500;
+}
+
+.pagination ul li a:hover {
+    background-color: #198754;
+    color: #fff;
+}
+
+.pagination ul li.active a {
+    background-color: #198754;
+    color: #fff;
+    pointer-events: none;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pagination ul li a.arrow {
+    font-size: 1.2rem;
+    padding: 8px 12px;
+}
+

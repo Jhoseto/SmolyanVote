@@ -30,12 +30,35 @@
 
     <div class="row">
       <!-- Динамични събития от бекенда -->
-      <div class="col-md-4 mb-4" th:each="event : ${events}">
+      <div class="col-md-4 mb-4" th:each="event : ${events.content}">
         <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
       </div>
     </div>
+
+    <!-- Пагинация -->
+    <div class="pagination">
+      <ul>
+        <li th:if="${currentPage > 0}">
+          <a class="arrow" th:href="@{/mainEvents(page=0, size=${size})}">&#171;</a>
+        </li>
+        <li th:if="${currentPage > 0}">
+          <a class="arrow" th:href="@{/mainEvents(page=${currentPage - 1}, size=${size})}">&#8249;</a>
+        </li>
+        <li th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}" th:class="${pageNumber == currentPage ? 'active' : ''}">
+          <a th:href="@{/mainEvents(page=${pageNumber}, size=${size})}" th:text="${pageNumber + 1}"></a>
+        </li>
+        <li th:if="${currentPage < totalPages - 1}">
+          <a class="arrow" th:href="@{/mainEvents(page=${currentPage + 1}, size=${size})}">&#8250;</a>
+        </li>
+        <li th:if="${currentPage < totalPages - 1}">
+          <a class="arrow" th:href="@{/mainEvents(page=${totalPages - 1}, size=${size})}">&#187;</a>
+        </li>
+      </ul>
+    </div>
+
   </div>
 </section>
+
 
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>

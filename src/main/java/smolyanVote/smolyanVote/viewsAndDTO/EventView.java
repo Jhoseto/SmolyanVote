@@ -27,6 +27,7 @@ public class EventView {
 
 
 
+
     // --- Гетъри и сетъри ---
     public Long getId() {
         return id;

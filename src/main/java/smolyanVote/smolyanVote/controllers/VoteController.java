@@ -11,13 +11,10 @@ import smolyanVote.smolyanVote.services.VoteService;
 public class VoteController {
 
     private final VoteService voteService;
-    private final EventsController eventsController;
 
     @Autowired
-    public VoteController(VoteService voteService,
-                          EventsController eventsController) {
+    public VoteController(VoteService voteService) {
         this.voteService = voteService;
-        this.eventsController = eventsController;
     }
 
     @PostMapping("/vote")

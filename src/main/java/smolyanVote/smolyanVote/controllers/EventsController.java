@@ -1,12 +1,10 @@
 package smolyanVote.smolyanVote.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.enums.Locations;
@@ -28,11 +26,18 @@ public class EventsController {
 
 
     @GetMapping("/mainEvents")
-    public String showMainEvent(Model model) {
-        List<EventView> eventViews = eventService.getAllEvents();
-        model.addAttribute("events", eventViews != null ? eventViews : List.of());
+    public String getEventsPage(@RequestParam(defaultValue = "0") int page,
+                                @RequestParam(defaultValue = "6") int size,
+                                Model model) {
+        Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
+        model.addAttribute("events", eventPage);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", eventPage.getTotalPages());
+        model.addAttribute("size", size);
         return "mainEventPage";
     }
+
+
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
