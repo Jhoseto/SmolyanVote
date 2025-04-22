@@ -44,6 +44,9 @@
                 <strong>Дата на създаване:</strong>
                 <span th:text="${#dates.format(eventDetail.createdAt, 'dd.MM.yyyy HH:mm')}">2025-04-18</span>
             </p>
+            <p><strong>Локация:</strong>
+                <span th:text="${eventDetail.location != null ? eventDetail.location.toBG() : 'няма локация'}">няма локация</span>
+            </p>
             <p><strong>ID:</strong> <span th:text="${eventDetail.id}">#12345</span></p>
             <p><strong>Общо гласове:</strong> <span th:text="${eventDetail.totalVotes}">0</span></p>
         </div>

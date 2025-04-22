@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
@@ -55,6 +56,8 @@ public class EventsController {
 
     @GetMapping("/createNewEvent")
     public String showCreateEvent(Model model) {
+        model.addAttribute("locations", Locations.values()); // enum стойности
+
         return "createEvent";
     }
 

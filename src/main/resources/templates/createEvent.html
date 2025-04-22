@@ -51,6 +51,15 @@
                 <textarea class="form-control link-aware" id="description" name="description" rows="6" placeholder="Въведете подробности за събитието..." required maxlength="1000"></textarea>
             </div>
 
+            <label for="location"></label>
+            <select class="form-select" id="location" name="location" required>
+                <option th:value="NONE">Избери локация</option>
+                <option th:each="loc : ${locations}"
+                        th:value="${loc.name()}"
+                        th:text="${loc.toBG()}">
+                </option>
+            </select>
+
             <!-- Преглед на снимките -->
             <div class="row">
                 <div class="col-md-4 mb-3">

@@ -3,8 +3,7 @@ package smolyanVote.smolyanVote.viewsAndDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
+import smolyanVote.smolyanVote.models.enums.Locations;
 
 public class CreateEventView {
 
@@ -15,6 +14,8 @@ public class CreateEventView {
     @NotBlank
     @Size(max = 1000)
     private String description;
+
+    private Locations location;
     private String creatorName;
     private String creatorImage;
     private MultipartFile image1;
@@ -38,6 +39,10 @@ public class CreateEventView {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public Locations getLocation() {return location;}
+
+    public void setLocation(Locations location) {this.location = location;}
 
     public String getCreatorName() {
         return creatorName;

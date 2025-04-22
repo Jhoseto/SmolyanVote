@@ -1,5 +1,7 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
+import smolyanVote.smolyanVote.models.enums.Locations;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -9,6 +11,8 @@ public class EventView {
     private Long id;
     private String title;
     private String description;
+
+    private Locations location;
     private String creatorName;
     private String creatorImage;
     private List<String> imageUrls; // 🔁 Списък с до 3 линка към снимки
@@ -43,6 +47,10 @@ public class EventView {
     public String getDescription() {
         return description;
     }
+
+    public Locations getLocation() {return location;}
+
+    public void setLocation(Locations location) {this.location = location;}
 
     public void setDescription(String description) {
         this.description = description;

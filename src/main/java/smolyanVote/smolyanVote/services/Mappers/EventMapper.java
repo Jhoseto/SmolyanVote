@@ -26,6 +26,7 @@ public class EventMapper {
         view.setId(event.getId());
         view.setTitle(event.getTitle());
         view.setDescription(event.getDescription());
+        view.setLocation(event.getLocation());
 
         // Автор
         if (event.getCreatorName() != null) {

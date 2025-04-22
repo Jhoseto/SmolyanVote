@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repository.EventRepository;
 import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.services.EventService;
@@ -50,7 +51,7 @@ public class EventServiceImpl implements EventService {
 
         return events.stream()
                 .sorted(Comparator.comparing(EventEntity::getCreatedAt).reversed()) // Сортиране по дата
-                .map(eventMapper::mapToView) // Използваме метода от EventMapper
+                .map(eventMapper::mapToView) //  метода от EventMapper
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +73,7 @@ public class EventServiceImpl implements EventService {
         eventEntity.setCreatorName(userService.getCurrentUser().getUsername());
         eventEntity.setCreatorImage(userService.getCurrentUser().getImageUrl());
         eventEntity.setCreatedAt(Instant.now());
+        eventEntity.setLocation(dto.getLocation());
         user.setUserEventsCount(user.getUserEventsCount()+1);
 
         // Записваме събитието и получаваме ID
@@ -112,11 +114,6 @@ public class EventServiceImpl implements EventService {
 
         return imagePaths;
     }
-
-
-
-
-
 
 
     @Override

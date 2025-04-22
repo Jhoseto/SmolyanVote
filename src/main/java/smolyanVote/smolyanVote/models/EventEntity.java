@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -18,6 +19,9 @@ public class EventEntity {
 
     @Column(length = 2000)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    private Locations location;
 
     private Instant createdAt;
     private String creatorName;
@@ -61,9 +65,11 @@ public class EventEntity {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public void setDescription(String description) {this.description = description;}
+
+    public Locations getLocation() {return location;}
+
+    public void setLocation(Locations location) {this.location = location;}
 
     public Instant getCreatedAt() {
         return createdAt;
