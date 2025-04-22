@@ -85,20 +85,21 @@
             </div>
         </div>
 
-
-
-
         <!-- Бутон за гласуване -->
         <div class="vote-section">
             <h3>Гласувай:</h3>
             <div class="vote-buttons">
                 <form th:action="@{/vote}" method="post">
                     <input type="hidden" name="eventId" th:value="${eventDetail.id}" />
-                    <button name="vote" value="yes" class="vote-btn yes" type="submit">За</button>
-                    <button name="vote" value="no" class="vote-btn no" type="submit">Против</button>
-                    <button name="vote" value="neutral" class="vote-btn neutral" type="submit">Въздържал се</button>
+                    <button name="vote" value="1" class="vote-btn yes" type="submit">За</button>
+                    <button name="vote" value="2" class="vote-btn no" type="submit">Против</button>
+                    <button name="vote" value="3" class="vote-btn neutral" type="submit">Въздържал се</button>
                 </form>
             </div>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" role="alert">
+            <span th:text="${successMessage}"></span>
         </div>
 
     </div>

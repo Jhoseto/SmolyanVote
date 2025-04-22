@@ -67,6 +67,7 @@ public class ApplicationSecurityConfiguration {
                                 "/news"
                         ).permitAll()
                         .requestMatchers(
+                                "/vote",
                                 "/create",
                                 "/createEvent",
                                 "/createNewEvent",
