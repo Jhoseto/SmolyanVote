@@ -13,6 +13,7 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.serviceImpl.CommentsServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
@@ -24,10 +25,12 @@ public class EventsController {
     private final EventService eventService;
     private final CommentsService commentsService;
     private final UserService userService;
+    ;
 
     @Autowired
     public EventsController(EventService eventService,
-                            CommentsService commentsService, UserService userService) {
+                            CommentsService commentsService,
+                            UserService userService) {
         this.eventService = eventService;
         this.commentsService = commentsService;
         this.userService = userService;
@@ -38,6 +41,11 @@ public class EventsController {
     public String getEventsPage(@RequestParam(defaultValue = "0") int page,
                                 @RequestParam(defaultValue = "6") int size,
                                 Model model) {
+
+        //TODO Delete All Comments
+        //commentsService.deleteAllComments();
+
+
         Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);

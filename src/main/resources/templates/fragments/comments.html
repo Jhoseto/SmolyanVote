@@ -8,7 +8,7 @@
         <h3>Коментари</h3>
 
         <!-- Основна форма -->
-        <form id="comment-form" th:action="@{/comments}" method="post">
+        <form id="comment-form" action="javascript:void(0);" method="post">
             <input type="hidden" name="eventId" th:value="${eventId}" />
             <input type="hidden" name="author" th:value="${currentUser.getUsername()}" /> <!-- Скритото поле за автор -->
 
@@ -50,18 +50,14 @@
                 </form>
 
                 <!-- Подкоментари -->
-                <div class="replies ms-4 mt-3" id="replies-container-${comment.id}">
+                <div class="replies ms-4 mt-3" th:id="'replies-container-' + ${comment.id}">
                     <div th:each="reply : ${comment.replies}" class="border-start ps-3 mb-2">
                         <strong th:text="${reply.author}">Автор</strong>
                         <p th:utext="${reply.text}">Текст</p>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
-
-    <!-- Външен JS -->
-    <script src="/js/comments.js"></script>
 </div>
 

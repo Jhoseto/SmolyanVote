@@ -45,4 +45,9 @@ public class CommentsServiceImpl implements CommentsService {
         commentsRepository.save(comment);
         return comment;
     }
+
+    @Override
+    public void deleteAllComments() {
+        commentsRepository.deleteAll();
+    }
 }

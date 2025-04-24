@@ -43,12 +43,6 @@ public class CommentRestController {
                                                          @RequestParam String author,
                                                          @RequestParam String text,
                                                          @RequestParam Long parentId) {
-        // 🔍 Логване на входните параметри
-        System.out.println("🔽 Получен отговор:");
-        System.out.println("eventId: " + eventId);
-        System.out.println("author: " + author);
-        System.out.println("text: " + text);
-        System.out.println("parentId: " + parentId);
 
         // Добавяне на отговор в базата данни
         CommentsEntity reply = commentService.addComment(eventId, author, text, parentId);
