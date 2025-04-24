@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,12 @@ public class CommentsEntity {
     private Long id;
 
     private String author;
+    private String authorImage;
 
     @Column(length = 2000)
     private String text;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt;
 
     @ManyToOne
     @JoinColumn(name = "event_id")
@@ -51,6 +53,14 @@ public class CommentsEntity {
         this.author = author;
     }
 
+    public String getAuthorImage() {
+        return authorImage;
+    }
+
+    public void setAuthorImage(String authorImage) {
+        this.authorImage = authorImage;
+    }
+
     public String getText() {
         return text;
     }
@@ -59,11 +69,11 @@ public class CommentsEntity {
         this.text = text;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 

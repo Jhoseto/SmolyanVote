@@ -1,24 +1,24 @@
-<!-- fragments/comments.html -->
+<!-- @thymesVar id="eventId" type="java.lang.Long" -->
+<!-- @thymesVar id="comments" type="java.util.List<smolyanVote.smolyanVote.models.CommentsEntity>" -->
+<!-- @thymesVar id="currentUser" type="smolyanVote.smolyanVote.models.UserEntity" -->
 <!-- @thymesVar id="comment" type="smolyanVote.smolyanVote.models.CommentsEntity" -->
-<!-- fragments/comments.html -->
-
+<!-- @thymesVar id="reply" type="smolyanVote.smolyanVote.models.CommentsEntity" -->
 
 <div th:fragment="comments(eventId, comments, currentUser)">
     <div class="container mt-5" id="comments-section" th:data-event-id="${eventId}">
-        <h3>Коментари</h3>
+        <h3 class="mb-4">Коментари</h3>
 
-        <!-- Основна форма -->
+        <!-- Основна форма за коментар -->
         <form id="comment-form" action="javascript:void(0);" method="post">
             <input type="hidden" name="eventId" th:value="${eventId}" />
-            <input type="hidden" name="author" th:value="${currentUser.getUsername()}" /> <!-- Скритото поле за автор -->
+            <input type="hidden" name="author" th:value="${currentUser.getUsername()}" />
 
-            <!-- Показване на снимка на потребителя и името му -->
-            <div class="mb-3 d-flex align-items-center">
-                <img th:src="${currentUser.getImageUrl()}" alt="Снимка на потребителя" class="user-img rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" />
-                <span th:text="${currentUser.getUsername()}" class="user-name">Потребител</span>
+            <div class="mb-3 d-flex align-items-center comment-header">
+                <img th:src="${currentUser.getImageUrl()}" alt="Снимка на потребителя"
+                     class="user-img rounded-circle me-3" />
+                <div class="comment-author" th:text="${currentUser.getUsername()}">Потребител</div>
             </div>
 
-            <!-- Поле за коментар -->
             <div class="mb-3">
                 <textarea name="text" placeholder="Вашият коментар" class="form-control" required></textarea>
             </div>
@@ -30,18 +30,24 @@
 
         <!-- Списък с коментари -->
         <div id="comment-list">
-            <div th:each="comment : ${comments}" class="mb-3 p-3 bg-light rounded" th:id="'comment-' + ${comment.id}">
-                <p th:utext="${comment.text}">Текст</p>
+            <div th:each="comment : ${comments}" th:id="'comment-' + ${comment.id}" class="comment-box">
+                <div class="comment-header mb-2">
+                    <img th:src="${comment.getAuthorImage()}" alt="Снимка"
+                         class="rounded-circle me-3 comment-img">
+                    <div class="comment-author" th:text="${comment.author}">Автор</div>
+                    <span th:text="${comment.getCreatedAt() != null ? #dates.format(comment.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
+
+                </div>
+                <div class="comment-text" th:utext="${comment.text}">Текст</div>
 
                 <!-- Бутон за отговор -->
-                <button class="btn btn-sm btn-outline-secondary reply-btn" th:data-id="${comment.id}">Отговор</button>
+                <button class="btn btn-sm btn-outline-secondary reply-btn" th:data-id="${comment.id}">Напиши отговор</button>
 
                 <!-- Форма за отговор -->
-                <form class="reply-form mt-2 d-none"
-                      th:id="'reply-form-' + ${comment.id}">
+                <form class="reply-form mt-2 d-none" th:id="'reply-form-' + ${comment.id}" data-bound="false">
                     <input type="hidden" name="eventId" th:value="${eventId}" />
                     <input type="hidden" name="parentId" th:value="${comment.id}" />
-                    <input type="hidden" name="author" th:value="${#authentication.name}" />
+                    <input type="hidden" name="author" th:value="${currentUser.getUsername()}" />
 
                     <div class="mb-2">
                         <textarea name="text" placeholder="Отговор..." class="form-control form-control-sm" rows="2" required></textarea>
@@ -51,9 +57,15 @@
 
                 <!-- Подкоментари -->
                 <div class="replies ms-4 mt-3" th:id="'replies-container-' + ${comment.id}">
-                    <div th:each="reply : ${comment.replies}" class="border-start ps-3 mb-2">
-                        <strong th:text="${reply.author}">Автор</strong>
-                        <p th:utext="${reply.text}">Текст</p>
+                    <div th:each="reply : ${comment.replies}" class="reply-box">
+                        <img th:src="${reply.getAuthorImage()}" alt="Снимка"
+                             class="rounded-circle me-2 mt-1 reply-img">
+                        <div>
+                            <div class="comment-author" th:text="${reply.author}">Автор</div>
+                            <div class="reply-text" th:utext="${reply.text}">Текст</div>
+                        </div>
+                        <span th:text="${reply.getCreatedAt() != null ? #dates.format(reply.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
+
                     </div>
                 </div>
             </div>

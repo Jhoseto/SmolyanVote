@@ -7,7 +7,9 @@ import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.repository.CommentsRepository;
 import smolyanVote.smolyanVote.repository.EventRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
+import smolyanVote.smolyanVote.services.UserService;
 
+import java.time.Instant;
 import java.util.List;
 
 
@@ -15,11 +17,15 @@ import java.util.List;
 public class CommentsServiceImpl implements CommentsService {
     private final CommentsRepository commentsRepository;
     private final EventRepository eventRepository;
+    private final UserService userService;
 
     @Autowired
-    public CommentsServiceImpl(CommentsRepository commentRepository, EventRepository eventRepository) {
+    public CommentsServiceImpl(CommentsRepository commentRepository,
+                               EventRepository eventRepository,
+                               UserService userService) {
         this.commentsRepository = commentRepository;
         this.eventRepository = eventRepository;
+        this.userService = userService;
     }
 
 
@@ -33,7 +39,9 @@ public class CommentsServiceImpl implements CommentsService {
     public CommentsEntity addComment(Long eventId, String author, String text, Long parentId) {
         EventEntity event = eventRepository.findById(eventId).orElseThrow();
         CommentsEntity comment = new CommentsEntity();
-        comment.setAuthor(author);
+        comment.setAuthor(userService.getCurrentUser().getUsername());
+        comment.setAuthorImage(userService.getCurrentUser().getImageUrl());
+        comment.setCreatedAt(Instant.now());
         comment.setText(text);
         comment.setEvent(event);
 
