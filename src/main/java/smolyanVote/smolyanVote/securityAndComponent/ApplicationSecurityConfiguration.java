@@ -67,6 +67,9 @@ public class ApplicationSecurityConfiguration {
                                 "/news"
                         ).permitAll()
                         .requestMatchers(
+                                "/reply",
+                                "/api/comments",
+                                "/api/comments/reply",
                                 "/vote",
                                 "/create",
                                 "/createEvent",

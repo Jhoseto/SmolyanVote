@@ -52,13 +52,12 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     @Override
     public Page<EventView> getPaginatedEvents(int page, int size) {
-        // Създаване на Pageable обект
+        // Pageable обект
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
 
-        // Вземаме пагинирани събития от репозитория
+        //  пагинирани събития от репозитория
         Page<EventEntity> eventPage = eventRepository.findAll(pageable);
 
-        // Преобразуваме в EventView
         return eventPage.map(eventMapper::mapToView);
     }
 

@@ -7,8 +7,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
+import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
@@ -18,10 +22,15 @@ import java.util.List;
 public class EventsController {
 
     private final EventService eventService;
+    private final CommentsService commentsService;
+    private final UserService userService;
 
     @Autowired
-    public EventsController(EventService eventService) {
+    public EventsController(EventService eventService,
+                            CommentsService commentsService, UserService userService) {
         this.eventService = eventService;
+        this.commentsService = commentsService;
+        this.userService = userService;
     }
 
 
@@ -41,8 +50,11 @@ public class EventsController {
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
+        // Получаваме детайлите за събитието
         EventView eventDetailView = eventService.getEventById(id);
+        UserEntity user = userService.getCurrentUser();
 
+        // Изчисляваме процента на гласовете
         int totalVotes = eventDetailView.getTotalVotes();
         if (totalVotes > 0) {
             eventDetailView.setYesPercent(eventDetailView.getYesVotes() * 100 / totalVotes);
@@ -54,9 +66,18 @@ public class EventsController {
             eventDetailView.setNeutralPercent(0);
         }
 
+        // Зареждаме коментарите за събитието
+        List<CommentsEntity> comments = commentsService.getCommentsForEvent(id);
+
+        // Добавяме коментарите в модела
         model.addAttribute("eventDetail", eventDetailView);
+        model.addAttribute("currentUser", user);
+        model.addAttribute("comments", comments);
+
+        // Връщаме изгледа за събитието с коментарите
         return "eventDetailView";
     }
+
 
 
     @GetMapping("/createNewEvent")
