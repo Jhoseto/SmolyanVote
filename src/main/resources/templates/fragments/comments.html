@@ -12,6 +12,7 @@
         <form id="comment-form" action="javascript:void(0);" method="post">
             <input type="hidden" name="eventId" th:value="${eventId}" />
             <input type="hidden" name="author" th:value="${currentUser.getUsername()}" />
+            <input type="hidden" name="text" id="comment-hidden" />
 
             <div class="mb-3 d-flex align-items-center comment-header">
                 <img th:src="${currentUser.getImageUrl()}" alt="Снимка на потребителя"
@@ -20,14 +21,14 @@
             </div>
 
             <div class="mb-3">
-                <textarea name="text" placeholder="Вашият коментар" class="form-control" required></textarea>
+                <!-- Quill редакторът -->
+                <div id="editor-container" style="height: 150px;"></div>
             </div>
 
             <button type="submit" class="btn btn-primary">Публикувай</button>
         </form>
 
         <hr/>
-
         <!-- Списък с коментари -->
         <div id="comment-list">
             <div th:each="comment : ${comments}" th:id="'comment-' + ${comment.id}" class="comment-box">
@@ -36,7 +37,6 @@
                          class="rounded-circle me-3 comment-img">
                     <div class="comment-author" th:text="${comment.author}">Автор</div>
                     <span th:text="${comment.getCreatedAt() != null ? #dates.format(comment.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
-
                 </div>
                 <div class="comment-text" th:utext="${comment.text}">Текст</div>
 
@@ -57,19 +57,34 @@
 
                 <!-- Подкоментари -->
                 <div class="replies ms-4 mt-3" th:id="'replies-container-' + ${comment.id}">
-                    <div th:each="reply : ${comment.replies}" class="reply-box">
-                        <img th:src="${reply.getAuthorImage()}" alt="Снимка"
-                             class="rounded-circle me-2 mt-1 reply-img">
-                        <div>
-                            <div class="comment-author" th:text="${reply.author}">Автор</div>
-                            <div class="reply-text" th:utext="${reply.text}">Текст</div>
+                    <!-- Първоначално скриваме всички подкоментари -->
+                    <div class="replies-list" style="display: none;">
+                        <div th:each="reply, iterStat : ${comment.replies}" class="reply-box">
+                            <img th:src="${reply.getAuthorImage()}" alt="Снимка"
+                                 class="rounded-circle me-2 mt-1 reply-img">
+                            <div>
+                                <div class="comment-author" th:text="${reply.author}">Автор</div>
+                                <div class="reply-text" th:utext="${reply.text}">Текст</div>
+                            </div>
+                            <span th:text="${reply.getCreatedAt() != null ? #dates.format(reply.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
                         </div>
-                        <span th:text="${reply.getCreatedAt() != null ? #dates.format(reply.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
-
                     </div>
+                    <!-- Бутон за разширяване на отговорите -->
+                    <div style="text-align: center; margin: 1px;">
+                        <button
+                                th:if="${#lists.size(comment.replies) > 0}"
+                                th:text="'Покажи всички ( ' + ${#lists.size(comment.replies)} + ' ) отговори'"
+                                class="show-replies-btn"
+                                style="display: none; background: none; border: none; color: #4d4d4d; padding: 0; font-size: 0.9rem; cursor: pointer; text-decoration: underline;">
+                            Покажи всички отговори
+                        </button>
+                    </div>
+
+
                 </div>
+
+
             </div>
         </div>
     </div>
 </div>
-
