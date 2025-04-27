@@ -20,13 +20,11 @@
                 <div class="comment-author" th:text="${currentUser.getUsername()}">Потребител</div>
             </div>
 
-            <div class="mb-3">
-                <!-- Quill редакторът -->
-                <div id="editor-container" style="height: 150px;"></div>
-            </div>
-
             <button type="submit" class="btn btn-primary">Публикувай</button>
+
         </form>
+        <!-- Quill редакторът -->
+        <div id="editor-container" style="height: 150px;"></div>
 
         <hr/>
         <!-- Списък с коментари -->
@@ -42,6 +40,17 @@
 
                 <!-- Бутон за отговор -->
                 <button class="btn btn-sm btn-outline-secondary reply-btn" th:data-id="${comment.id}">Напиши отговор</button>
+
+                <!-- Like/Dislike секция -->
+                <div class="mt-2 d-flex align-items-center gap-3">
+                    <button class="btn btn-sm like-btn" th:data-id="${comment.id}" data-type="like">
+                        👍 <span th:text="${comment.getLikeCount()}">0</span>
+                    </button>
+                    <button class="btn btn-sm dislike-btn" th:data-id="${comment.id}" data-type="dislike">
+                        👎 <span th:text="${comment.getUnlikeCount()}">0</span>
+                    </button>
+                </div>
+
 
                 <!-- Форма за отговор -->
                 <form class="reply-form mt-2 d-none" th:id="'reply-form-' + ${comment.id}" data-bound="false">
@@ -67,6 +76,15 @@
                                 <div class="reply-text" th:utext="${reply.text}">Текст</div>
                             </div>
                             <span th:text="${reply.getCreatedAt() != null ? #dates.format(reply.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
+                            <div class="mt-1 d-flex align-items-center gap-2 ms-4">
+                                <button class="btn btn-sm like-btn" th:data-id="${reply.id}" data-type="like">
+                                    👍 <span th:text="${reply.getLikeCount()}">0</span>
+                                </button>
+                                <button class="btn btn-sm dislike-btn" th:data-id="${reply.id}" data-type="dislike">
+                                    👎 <span th:text="${reply.getUnlikeCount()}">0</span>
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                     <!-- Бутон за разширяване на отговорите -->

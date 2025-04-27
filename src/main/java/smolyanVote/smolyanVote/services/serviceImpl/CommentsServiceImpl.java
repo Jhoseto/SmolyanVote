@@ -10,7 +10,9 @@ import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.UserService;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -18,6 +20,11 @@ public class CommentsServiceImpl implements CommentsService {
     private final CommentsRepository commentsRepository;
     private final EventRepository eventRepository;
     private final UserService userService;
+
+    // 👇 Използва хеш за да ограничи един глас на потребител
+    private final Map<String, Map<Long, String>> voteCache = new HashMap<>();
+
+
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentRepository,
@@ -58,4 +65,46 @@ public class CommentsServiceImpl implements CommentsService {
     public void deleteAllComments() {
         commentsRepository.deleteAll();
     }
+
+
+
+    @Override
+    public CommentsEntity commentReaction(Long commentId, String type, String username) {
+        CommentsEntity comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Коментар не е намерен"));
+
+        // Показваме кешираните гласове за потребителя
+        Map<Long, String> userVotes = voteCache.computeIfAbsent(username, k -> new HashMap<>());
+        String currentVote = userVotes.get(commentId); // текущия глас на потребителя за коментара
+
+        // Ако гласуването е "like"
+        if ("like".equals(type)) {
+            if ("like".equals(currentVote)) {
+                return comment; // Ако вече е даден like, не правим нищо
+            }
+            if ("unlike".equals(currentVote)) {
+                // Намаляваме броя на dislike, ако потребителят е променил гласа си от "unlike" на "like"
+                comment.setUnlikeCount(comment.getUnlikeCount() - 1);
+            }
+            comment.setLikeCount(comment.getLikeCount() + 1); // Увеличаваме like
+            userVotes.put(commentId, "like"); // Записваме новия глас в кеша
+        }
+
+        // Ако гласуването е "unlike"
+        else if ("unlike".equals(type)) {
+            if ("unlike".equals(currentVote)) {
+                return comment; // Ако вече е даден unlike, не правим нищо
+            }
+            if ("like".equals(currentVote)) {
+                // Намаляваме броя на like, ако потребителят е променил гласа си от "like" на "unlike"
+                comment.setLikeCount(comment.getLikeCount() - 1);
+            }
+            comment.setUnlikeCount(comment.getUnlikeCount() + 1); // Увеличаваме unlike
+            userVotes.put(commentId, "unlike"); // Записваме новия глас в кеша
+        }
+
+        // Записваме актуализирания коментар в базата данни
+        return commentsRepository.save(comment);
+    }
+
 }

@@ -11,4 +11,6 @@ public interface CommentsService {
     CommentsEntity addComment(Long eventId, String author, String text, Long parentId);
 
     void deleteAllComments();
+
+    CommentsEntity commentReaction(Long commentId, String type, String username);
 }

@@ -34,6 +34,10 @@ public class CommentsEntity {
     @OrderBy("createdAt ASC")
     private List<CommentsEntity> replies = new ArrayList<>();
 
+    private int likeCount;
+
+    private int unlikeCount;
+
 
 
 
@@ -99,5 +103,21 @@ public class CommentsEntity {
 
     public void setReplies(List<CommentsEntity> replies) {
         this.replies = replies;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(int likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public int getUnlikeCount() {
+        return unlikeCount;
+    }
+
+    public void setUnlikeCount(int unlikeCount) {
+        this.unlikeCount = unlikeCount;
     }
 }

@@ -221,12 +221,53 @@ textarea.form-control {
     padding: 10px;
 }
 
-/* Стилизиране на менюто с емотикони, за да бъде подредено */
-#emoji-picker .emoji {
-    cursor: pointer;
-    padding: 5px;
-    font-size: 20px;
+
+.like-btn, .dislike-btn {
+    border: none;
+    background: transparent;
+    color: #555;
 }
+.like-btn.btn-primary, .dislike-btn.btn-primary {
+    color: white;
+    background-color: #0d6efd;
+}
+
+
+     /* 📌 Гарантираме, че се прилагат стиловете */
+ .ql-emoji-picker .ql-emoji {
+     font-size: 28px !important;
+     margin: 2px !important;
+     padding: 2px !important;
+     line-height: 1 !important;
+ }
+
+/* 📌 Самото меню с емотикони */
+.ql-emoji-picker {
+    padding: 6px !important;
+    max-width: 300px;
+    position: absolute !important;
+    z-index: 9999 !important;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* 📌 Прави редактора с фиксирана височина и скрол */
+#editor-container .ql-editor {
+    min-height: 60px !important;
+    max-height: 60px !important;
+    overflow-y: auto !important;
+    padding: 6px 10px !important;
+    font-size: 16px;
+}
+
+/* 📌 Премахва фон от toolbar бутоните */
+.ql-toolbar button {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
 
 
 

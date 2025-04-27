@@ -3,14 +3,12 @@ package smolyanVote.smolyanVote.controllers;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.UserService;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,6 +63,25 @@ public class CommentRestController {
         response.put("authorImage", reply.getAuthorImage());
         response.put("text", text);
         return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/{id}/reaction/{type}")
+    public ResponseEntity<Map<String, Integer>> reactToComment(
+            @PathVariable Long id,
+            @PathVariable String type,
+            Principal principal
+    ) {
+        String username = principal.getName();
+        CommentsEntity updated = commentService.commentReaction(id, type, username);
+
+        Map<String, Integer> result = Map.of(
+                "likes", updated.getLikeCount(),
+                "unlikes", updated.getUnlikeCount()
+        );
+
+        return ResponseEntity.ok(result);
     }
 
 

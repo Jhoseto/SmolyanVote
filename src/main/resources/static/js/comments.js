@@ -22,6 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
             "emoji-shortname": true     // пишеш :smile: и ти го дава
         }
     });
+    document.addEventListener("click", function () {
+        const picker = document.querySelector(".ql-emoji-picker");
+        if (picker) {
+            picker.style.zIndex = "9999";
+        }
+    });
+
 
 
     // 🟢 Основна форма за коментар
@@ -97,8 +104,47 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
-
     attachReplyEvents();
+
+    //like & unlike
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".like-btn, .dislike-btn");
+        if (!btn) return;
+
+        const commentId = btn.dataset.id;
+        const type = btn.dataset.type;
+
+        fetch(`/api/comments/${commentId}/reaction/${type}`, {
+            method: "POST",
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                // Обнови броячите
+                const commentBox = btn.closest(".comment-box, .reply-box");
+                const likeBtn = commentBox.querySelector(".like-btn");
+                const dislikeBtn = commentBox.querySelector(".dislike-btn");
+
+                likeBtn.querySelector("span").textContent = data.likes;
+                dislikeBtn.querySelector("span").textContent = data.dislikes;
+
+                // Стилизиране – само избраният бутон да е активен
+                likeBtn.classList.remove("btn-primary");
+                dislikeBtn.classList.remove("btn-primary");
+
+                if (type === "like") {
+                    likeBtn.classList.add("btn-primary");
+                } else {
+                    dislikeBtn.classList.add("btn-primary");
+                }
+            })
+            .catch(err => console.error("Грешка при глас:", err));
+    });
+
+
+
 
     // 🟢 Скриване на подкоментари по подразбиране
     document.querySelectorAll('.replies').forEach(repliesContainer => {
