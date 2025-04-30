@@ -1,0 +1,15 @@
+/* Footer */
+footer {
+    background-color: #2d3748;
+    color: #fff;
+    padding: 2rem;
+    text-align: center;
+    margin-top: auto;
+}
+footer a {
+    color: #edf2f7;
+    transition: color 0.3s;
+}
+footer a:hover {
+    color: #38b2ac;
+}

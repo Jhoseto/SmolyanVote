@@ -1,0 +1,179 @@
+/* Модал - фон с ефект на замъгляване */
+.modal-dialog {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    margin-top: 210px;
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.77);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 128, 128, 0.3); /* Тъмен тюркоаз за бордюра */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    animation: modalFadeIn 0.5s ease forwards;
+}
+
+/* Анимация при появяване */
+@keyframes modalFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Хедър */
+.modal-header {
+    border-bottom: none;
+    padding-bottom: 0;
+    background-color: rgba(213, 213, 213, 0.45); /* Светъл тюркоаз */
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.modal-title {
+    padding-left: 75px;
+    font-weight: 600; /* Леко по-тънко от "bold" */
+    color: #777777;
+    font-size: 1rem; /* Увеличаване на размера за по-изразителен ефект */
+    letter-spacing: 2px; /* Разстояние между буквите за по-модерен вид */
+    text-align: center; /* Центриране на текста */
+    text-transform: uppercase; /* Преобразуване на текста в главни букви за по-стилен вид */
+    font-family: 'Poppins', sans-serif; /* Шрифт "Poppins" за по-естетичен вид */
+    margin: 0 auto; /* Центриране по хоризонтала */
+    padding-bottom: 20px; /* Отстояние от съдържанието на модала */
+}
+
+/* Затварящ бутон */
+.btn-close {
+    background: none;
+    border: none;
+    opacity: 0.7;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.btn-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+/* Полета за вход */
+.modal-body .form-control {
+    background: #f1f1f1;
+    border: 1px solid #198754; /* Среден тюркоаз */
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.modal-body .form-control:focus {
+    background: #ffffff;
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(0, 128, 128, 0.5);
+    border-color: #008080;
+}
+
+/* Етикети */
+.modal-body .form-label {
+    font-weight: 500;
+    color: #008080;
+}
+
+/* Чекбокс */
+.form-check-input {
+    border-radius: 0.25rem;
+    transition: background-color 0.3s ease;
+}
+
+.form-check-input:checked {
+    background-color: #008080;
+    border-color: #008080;
+}
+
+/* Линкове */
+.modal-body a {
+    color: #008080;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.modal-body a:hover {
+    color: #004d4d;
+    text-decoration: underline;
+}
+
+/* Бутон */
+.modal-footer .btn {
+    background-color: #7a807b;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 10px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    color: #2a2a2a;
+}
+
+.modal-footer .btn:hover {
+    background-color: #008080;
+    transform: translateY(-2px) scale(1.02);
+    color: #fff;
+}
+
+.modal-backdrop.show {
+    background-color: rgba(0, 0, 0, 0.62); /* Леко тъмен фон */
+    backdrop-filter: blur(5px); /* Замъгляване */
+    -webkit-backdrop-filter: blur(6px); /* За Safari */
+}
+
+
+/* Анимация при затваряне */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: translate(0, -25px);
+    opacity: 0;
+}
+
+.modal.show .modal-dialog {
+    transform: translate(0, 0);
+    opacity: 1;
+}
+
+/* Анимация за затваряне */
+@keyframes modalFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+.modal.modal-closing .modal-dialog {
+    animation: modalFadeOut 0.3s forwards;
+}
+
+/* Анимиран alert */
+.modal-body .alert {
+    animation: shake 0.5s;
+    border-radius: 10px;
+}
+
+/* Разклащане */
+@keyframes shake {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+}
