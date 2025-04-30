@@ -62,9 +62,12 @@ public class ApplicationSecurityConfiguration {
                                 "/confirm",
                                 "/mainEvents",
                                 "/mainEventPage",
-                                "/event/{id}",
+                                "/event/**",
                                 "/eventDetailView",
-                                "/news"
+                                "/news",
+                                "/error",
+                                "/favicon.ico",
+                                "/robots.txt"
                         ).permitAll()
                         .requestMatchers(
                                 "/comments/**",
@@ -73,7 +76,6 @@ public class ApplicationSecurityConfiguration {
                                 "/create",
                                 "/createEvent",
                                 "/createNewEvent",
-                                "/mainEventPage",
                                 "/user/logout",
                                 "/user/profile/**",
                                 "/user/dashboard/**")
@@ -96,7 +98,7 @@ public class ApplicationSecurityConfiguration {
 
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout")
+                        .logoutSuccessUrl("/index")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID", "remember-me")
                         .permitAll()
@@ -116,6 +118,7 @@ public class ApplicationSecurityConfiguration {
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             String msg = URLEncoder.encode("Съдържанието е достъпно само за Администратори !", StandardCharsets.UTF_8);
                             response.sendRedirect("/login?error=" + msg);
+
                         })
                         .authenticationEntryPoint((request, response, authException) -> {
                             String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);

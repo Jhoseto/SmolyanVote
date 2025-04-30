@@ -42,8 +42,23 @@
         </small>
       </div>
 
-      <!-- Линк -->
-      <a th:href="@{/event/{id}(id=${event.id})}" class="btn btn-custom">Виж повече</a>
+      <!-- Ако потребителят е логнат -->
+      <a th:if="${#authorization.expression('isAuthenticated()')}"
+         th:href="@{/event/{id}(id=${event.id})}"
+         class="btn btn-custom">
+        Виж повече
+      </a>
+
+      <!-- Ако потребителят НЕ е логнат -->
+      <a th:if="${#authorization.expression('!isAuthenticated()')}"
+         href="javascript:void(0);"
+         onclick="showLoginWarning()"
+         class="btn btn-custom">
+        Виж повече
+      </a>
+
     </div>
   </div>
 </div>
+
+

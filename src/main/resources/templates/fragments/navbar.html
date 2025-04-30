@@ -1,5 +1,4 @@
 <!-- fragments/navbar.html -->
-<link rel="stylesheet" href="/css/navbar.css">
 
 <div th:fragment="navbar"
      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
@@ -74,13 +73,11 @@
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-
                 <form th:action="@{/login}" method="post" autocomplete="on">
                     <div class="modal-header">
                         <h5 class="modal-title" id="loginModalLabel">Вход в системата</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
                     </div>
-
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="emailModal" class="form-label">Имейл</label>
@@ -98,16 +95,13 @@
                             <a href="/forgotten_password" class="small text-decoration-none">Забравена парола?</a>
                         </div>
                     </div>
-
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success w-100">Вход</button>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>
-
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {

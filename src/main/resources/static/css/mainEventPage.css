@@ -2,7 +2,7 @@
 
 /* Основен фон и текст */
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
     background-color: #f8f9fa;
     color: #212529;
 }
@@ -13,11 +13,24 @@ body {
     color: white;
     padding: 120px 0;
     text-align: center;
-    border-bottom: 4px solid #198754;
+    border-bottom: 4px solid #25afb4;
 }
 
 .hero h1, .hero p {
     font-family: 'Poppins', sans-serif;
+}
+.hero .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+    border-radius: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.56); /* леко прозрачен бял фон */
+    color: #333;
+    border: 1px solid #ccc;
+    transition: all 0.3s ease;
+}
+.hero .btn:hover {
+    background-color: #f0f0f0;
+    color: #000;
 }
 
 /* Събития */
@@ -63,7 +76,7 @@ body {
 }
 
 .btn-custom {
-    background-color: #198754;
+    background-color: #25afb4;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -72,56 +85,7 @@ body {
 }
 
 .btn-custom:hover {
-    background-color: #155d47;
-}
-
-footer {
-    background-color: #212529;
-    color: #ffffff;
-    padding: 20px 0;
-    margin-top: 40px;
-}
-
-footer p {
-    margin-bottom: 0;
-}
-
-/* Navbar adjustments */
-.navbar {
-    transition: background-color 0.3s ease;
-}
-
-.navbar-brand img {
-    transition: transform 0.3s ease;
-}
-
-.navbar-brand:hover img {
-    transform: rotate(-5deg) scale(1.05);
-}
-
-.nav-link {
-    color: #212529;
-    transition: color 0.2s ease, border-bottom 0.2s ease;
-    position: relative;
-}
-
-.nav-link:hover {
-    color: #198754;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    width: 0%;
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background-color: #198754;
-    transition: width 0.3s ease;
-}
-
-.nav-link:hover::after {
-    width: 100%;
+    background-color: #1a7d80;
 }
 
 /* Много малка аватарка до името на автора */
@@ -182,8 +146,8 @@ footer p {
 .pagination ul li a {
     display: inline-block;
     padding: 8px 14px;
-    color: #198754;
-    border: 1px solid #198754;
+    color: #25afb4;
+    border: 1px solid #25afb4;
     border-radius: 6px;
     text-decoration: none;
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -191,12 +155,12 @@ footer p {
 }
 
 .pagination ul li a:hover {
-    background-color: #198754;
+    background-color: #1a8081;
     color: #fff;
 }
 
 .pagination ul li.active a {
-    background-color: #198754;
+    background-color: #2cd9e0;
     color: #fff;
     pointer-events: none;
     font-weight: 600;
