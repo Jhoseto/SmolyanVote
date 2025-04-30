@@ -1,6 +1,9 @@
 <!-- fragments/navbar.html -->
+<link rel="stylesheet" href="/css/navbar.css">
+
 <div th:fragment="navbar"
      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
     <nav class="navbar navbar-expand-lg bg-white shadow-sm custom-navbar">
         <div class="container px-4">
             <a class="navbar-brand d-flex align-items-center" href="index">
@@ -12,6 +15,7 @@
                     aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="index">Начало</a></li>
@@ -22,7 +26,7 @@
 
                     <!-- Нелогнати потребители -->
                     <li class="nav-item" sec:authorize="!isAuthenticated()">
-                        <a class="nav-link" href="login">Вход</a>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal" sec:authorize="!isAuthenticated()">Вход</a>
                     </li>
                     <li class="nav-item" sec:authorize="!isAuthenticated()">
                         <a class="nav-link" href="/register">Регистрация</a>
@@ -65,4 +69,56 @@
             </div>
         </div>
     </nav>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <form th:action="@{/login}" method="post" autocomplete="on">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="loginModalLabel">Вход в системата</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="emailModal" class="form-label">Имейл</label>
+                            <input type="email" name="email" class="form-control" id="emailModal" placeholder="Въведете имейл" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="passwordModal" class="form-label">Парола</label>
+                            <input type="password" name="password" class="form-control" id="passwordModal" placeholder="Въведете парола" required>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberMeModal" name="remember-me">
+                                <label class="form-check-label" for="rememberMeModal">Запомни ме</label>
+                            </div>
+                            <a href="/forgotten_password" class="small text-decoration-none">Забравена парола?</a>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success w-100">Вход</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('yourModalId'); // <-- смени с ID на твоя модал
+        if (modal) {
+            modal.addEventListener('hide.bs.modal', (e) => {
+                modal.classList.add('modal-closing');
+                setTimeout(() => {
+                    modal.classList.remove('modal-closing');
+                }, 300); // Трябва да е същото като продължителността на modalFadeOut
+            });
+        }
+    });
+</script>

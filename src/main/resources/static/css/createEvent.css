@@ -1,11 +1,8 @@
 /* Основен стил */
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #ffffff;
-    color: #000;
-    margin: 0;
-    padding: 0;
-    line-height: 1.5;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+    color: #212529;
 }
 
 /* Hero секция */
@@ -109,17 +106,3 @@ input[type="file"] {
     box-shadow: 0 0 10px rgba(64, 224, 208, 0.4);
 }
 
-/* Мобилна респонсивност */
-@media (max-width: 768px) {
-    .hero h1 {
-        font-size: 2rem;
-    }
-
-    .hero p {
-        font-size: 0.95rem;
-    }
-
-    .event-form-card {
-        padding: 20px;
-    }
-}
