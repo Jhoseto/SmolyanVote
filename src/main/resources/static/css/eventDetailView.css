@@ -228,3 +228,9 @@ body {
         transform: translateY(0);
     }
 }
+
+.modal-backdrop.show {
+    backdrop-filter: blur(5px);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+

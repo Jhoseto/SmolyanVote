@@ -23,8 +23,18 @@
              th:src="${event.creatorImage}"
              alt="Автор"
              class="author-avatar rounded-circle me-2">
-        <small class="text-muted" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+
+        <div>
+          <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+          <div class="d-flex align-items-center">
+      <span th:classappend="${event.creatorOnline == 1} ? 'bg-success' : 'bg-danger'"
+            class="status-dot rounded-circle me-1"></span>
+            <small th:text="${event.creatorOnline == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
+          </div>
+        </div>
       </div>
+
+
 
       <!-- Дата -->
       <div class="mb-2">

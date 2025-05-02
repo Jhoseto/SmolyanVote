@@ -28,7 +28,7 @@ public class UserProfileViewModel {
     private String realName;
     private String profileImageUrl;
     private String email;
-    private List<EventViewModel> userOffers;
+    private List<EventView> userEvents;
     private Instant lastOnline;
     private int onlineStatus;
     private Instant created;
@@ -90,12 +90,12 @@ public class UserProfileViewModel {
         return this;
     }
 
-    public List<EventViewModel> getUserOffers() {
-        return userOffers;
+    public List<EventView> getUserEvents() {
+        return userEvents;
     }
 
-    public UserProfileViewModel setUserOffers(List<EventViewModel> userOffers) {
-        this.userOffers = userOffers;
+    public UserProfileViewModel setUserEvents(List<EventView> userEvents) {
+        this.userEvents = userEvents;
         return this;
     }
 

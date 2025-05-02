@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import smolyanVote.smolyanVote.components.CustomLogoutSuccessHandler;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.services.UserService;
@@ -26,16 +27,20 @@ public class ApplicationSecurityConfiguration {
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+
 
     @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
                                             PasswordEncoder passwordEncoder,
                                             UserService userService,
-                                            UserRepository userRepository) {
+                                            UserRepository userRepository,
+                                            CustomLogoutSuccessHandler customLogoutSuccessHandler) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.customLogoutSuccessHandler = customLogoutSuccessHandler;
     }
 
     @Bean
@@ -62,7 +67,7 @@ public class ApplicationSecurityConfiguration {
                                 "/confirm",
                                 "/mainEvents",
                                 "/mainEventPage",
-                                "/event/**",
+                                "/event",
                                 "/eventDetailView",
                                 "/news",
                                 "/error",
@@ -74,6 +79,7 @@ public class ApplicationSecurityConfiguration {
                                 "/api/comments/**",
                                 "/vote",
                                 "/create",
+                                "/event/**",
                                 "/createEvent",
                                 "/createNewEvent",
                                 "/user/logout",
@@ -89,7 +95,7 @@ public class ApplicationSecurityConfiguration {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .usernameParameter("email") // 👈 Email като потребителско име
+                        .usernameParameter("email")
                         .passwordParameter("password")
                         .defaultSuccessUrl("/index", true)
                         .failureUrl("/login?error=true")
@@ -98,7 +104,7 @@ public class ApplicationSecurityConfiguration {
 
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/index")
+                        .logoutSuccessHandler(customLogoutSuccessHandler)
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID", "remember-me")
                         .permitAll()

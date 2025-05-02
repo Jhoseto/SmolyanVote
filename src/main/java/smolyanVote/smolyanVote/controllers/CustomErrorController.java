@@ -18,7 +18,7 @@ public class CustomErrorController implements ErrorController {
             if (statusCode == 404) {
                 return "error/404";
             }
-            // Можеш да добавиш други: 403, 500 и т.н.
+            // Може други: 403, 500 и т.н.
         }
 
         return "error/general"; // резервна грешка, ако искаш

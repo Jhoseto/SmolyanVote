@@ -4,24 +4,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
+import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repository.EventImageRepository;
+import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class EventMapper {
 
     private final EventImageRepository imageRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public EventMapper(EventImageRepository imageRepository) {
+    public EventMapper(EventImageRepository imageRepository,
+                       UserRepository userRepository) {
         this.imageRepository = imageRepository;
+        this.userRepository = userRepository;
     }
 
     public EventView mapToView(EventEntity event) {
+        Optional<UserEntity> user = userRepository.findByUsername(event.getCreatorName());
         EventView view = new EventView();
         view.setId(event.getId());
         view.setTitle(event.getTitle());
@@ -32,6 +39,14 @@ public class EventMapper {
         if (event.getCreatorName() != null) {
             view.setCreatorName(event.getCreatorName());
             view.setCreatorImage(event.getCreatorImage());
+            if (event.getCreatorName() != null) {
+                view.setCreatorName(event.getCreatorName());
+                view.setCreatorImage(event.getCreatorImage());
+
+                userRepository.findByUsername(event.getCreatorName())
+                        .ifPresent(u -> view.setCreatorOnline(u.getOnlineStatus()));
+            }
+
         }
 
         // Снимки

@@ -126,4 +126,5 @@ public class EventEntity {
     public void setTotalVotes(int totalVotes) {
         this.totalVotes = totalVotes;
     }
+
 }

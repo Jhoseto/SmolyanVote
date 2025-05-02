@@ -24,6 +24,7 @@ public class EventView {
     private int yesPercent;
     private int noPercent;
     private int neutralPercent;
+    private int creatorOnline;
 
 
 
@@ -132,4 +133,8 @@ public class EventView {
     public int getNeutralPercent() {return neutralPercent;}
 
     public void setNeutralPercent(int neutralPercent) {this.neutralPercent = neutralPercent;}
+
+    public int getCreatorOnline() {return creatorOnline;}
+
+    public void setCreatorOnline(int creatorOnline) {this.creatorOnline = creatorOnline;}
 }
