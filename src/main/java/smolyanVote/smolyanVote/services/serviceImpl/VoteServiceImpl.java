@@ -38,10 +38,10 @@ public class VoteServiceImpl implements VoteService {
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
 
 
-        // Проверка дали вече е гласувал
-        if (voteRepository.existsByUserAndEvent(user, event)) {
-            throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
-        }
+        //TODO Проверка дали вече е гласувал
+//        if (voteRepository.existsByUserAndEvent(user, event)) {
+//            throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
+//        }
 
 
         VoteEntity vote = new VoteEntity();

@@ -6,6 +6,10 @@ package smolyanVote.smolyanVote.models.enums;
 public enum Locations {
     NONE("-"),
     SMOLYAN("Смолян"),
+    MADAN("Мадан"),
+    RUDOZEM("Рудозем"),
+    CHEPELEARE("Чепеларе"),
+    PAMPOROVO("Пампорово"),
     АLIGOVSKA("Алиговска"),
     ARDA("Арда"),
     BELEV_DOL("Белев дол"),

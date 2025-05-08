@@ -12,7 +12,7 @@ public class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    protected long id;
+    protected Long id;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant created;

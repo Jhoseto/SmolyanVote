@@ -7,6 +7,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
@@ -32,6 +33,7 @@ public class UserController {
         UserEntity currentUser = userService.getCurrentUser();
         List<EventView> userEvents = eventService.getUserEvents(currentUser.getEmail());
 
+        model.addAttribute("locations", Locations.values());
         model.addAttribute("user", currentUser);
         model.addAttribute("userEvents", userEvents);
 

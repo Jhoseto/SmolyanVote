@@ -9,9 +9,9 @@ body {
 
 /* Контейнер */
 .profile-container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: auto;
-    background-color: #fff;
+    background: linear-gradient(to right, #5d987c, #1e7868);
     box-shadow: 0 0 10px rgba(0,0,0,0.05);
     border-radius: 10px;
     overflow: hidden;
@@ -21,7 +21,7 @@ body {
 
 /* Корица */
 .cover-photo {
-    background: linear-gradient(to right, #5c6bc0, #3949ab);
+    background: linear-gradient(to right, #5d987c, #1e7868);
     height: 180px;
 }
 
@@ -30,7 +30,7 @@ body {
     display: flex;
     padding: 20px 30px;
     border-bottom: 1px solid #e0e0e0;
-    background-color: #fff;
+    background: linear-gradient(to right, #5d987c, #1e7868);
     position: relative;
     top: -50px;
 }
@@ -49,30 +49,43 @@ body {
     flex: 1;
 }
 
+/* Текстове с два нюанса */
 .username {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: bold;
     margin-bottom: 5px;
-    color: #333;
+    background: linear-gradient(to right, #ffffff, #ffffff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .location {
-    font-size: 1rem;
-    color: #777;
+    font-size: 1.2rem;
     margin-bottom: 10px;
+    background: linear-gradient(to right, #000000, #000000);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .bio {
     font-style: italic;
-    color: #555;
     margin-bottom: 15px;
+    background: linear-gradient(to right, #000000, #000000);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .stats {
     display: flex;
     gap: 20px;
-    font-size: 0.95rem;
-    color: #555;
+    font-size: 1rem;
+    background: linear-gradient(to right, #1e7868, #5d987c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 /* Секции */
@@ -81,14 +94,18 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 40px;
-    background-color: #fafafa;
+    background: linear-gradient(to right, #f9f9f9, #e0e0e0); /* Сив фон за секциите */
 }
 
 .section h3 {
     margin-bottom: 10px;
-    font-size: 1.2rem;
-    color: #5c6bc0;
-    border-bottom: 2px solid #5c6bc0;
+    font-size: 1.4rem;
+    font-weight: bold;
+    background: linear-gradient(to right, #1e7868, #5d987c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    border-bottom: 3px solid #fff;
     padding-bottom: 5px;
 }
 
@@ -100,37 +117,64 @@ body {
 
 .section ul li {
     padding: 5px 0;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    color: #333;
+    transition: color 0.3s ease;
+}
+
+.section ul li:hover {
+    color: #5d987c; /* Поставяне на цветен ефект при задържане на курсора */
 }
 
 /* Събития */
 .user-events {
     padding: 30px;
-    background-color: #fff;
+    background: linear-gradient(to right, #f9f9f9, #e0e0e0); /* Бел фон със сив нюанс */
     border-top: 1px solid #eee;
 }
 
 .user-events h3 {
     margin-bottom: 20px;
-    font-size: 1.4rem;
-    color: #333;
-    border-left: 4px solid #5c6bc0;
+    font-size: 1.6rem;
+    font-weight: bold;
+    background: linear-gradient(to right, #1e7868, #5d987c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    border-left: 4px solid #fff;
     padding-left: 10px;
 }
 
+/* Редове за събития */
 .events-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 на ред */
+    gap: 20px;
+    padding: 0 20px;
+    grid-auto-rows: 1fr; /* Изравняване на височината на редовете */
+    grid-template-rows: auto; /* Това ще разреши всяка клетка да има еднаква височина */
+}
+
+/* Кутии със събития */
+.events-list .event-container {
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 200px; /* Минимална височина, за да се изравнят */
+    transition: transform 0.3s ease;
+    flex-grow: 1; /* Осигурява еднаква височина за контейнерите */
 }
 
-/* Малка анимация */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+.events-list .event-container:hover {
+    transform: translateY(-10px); /* Лека анимация при задържане на курсора */
 }
 
-/* Медийна отзивчивост */
+/* Мобилна поддръжка */
 @media (max-width: 768px) {
     .profile-info {
         flex-direction: column;
@@ -144,12 +188,24 @@ body {
     }
 
     .profile-sections {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* 1 на ред за малки екрани */
+    }
+
+    .events-list {
+        grid-template-columns: 1fr 1fr; /* 2 на ред за по-малки екрани */
     }
 }
+
+/* Малка анимация */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Бутон за редактиране на профила */
 .edit-profile-btn {
     margin-left: auto;
-    background-color: #5c6bc0;
+    background: linear-gradient(to right, rgba(93, 152, 124, 0.66), rgba(30, 120, 104, 0.68));
     color: white;
     border: none;
     padding: 10px 20px;
@@ -160,7 +216,12 @@ body {
 }
 
 .edit-profile-btn:hover {
-    background-color: #3949ab;
+    background: linear-gradient(to right, #1e7868, #5d987c);
+}
+
+.edit-profile-btn:focus {
+    outline: 2px solid #5d987c; /* Добавяне на контур при фокусиране */
+    outline-offset: 2px;
 }
 
 /* Модал */
@@ -178,7 +239,7 @@ body {
 }
 
 .modal-content {
-    background-color: #fff;
+    background: linear-gradient(to right, #5d987c, #1e7868);
     margin: 8% auto;
     padding: 30px;
     border-radius: 10px;
@@ -190,7 +251,7 @@ body {
 
 .modal-content h3 {
     margin-top: 0;
-    color: #333;
+    color: #fff;
 }
 
 .modal-content input,
@@ -206,7 +267,7 @@ body {
 .modal-content .save-btn {
     margin-top: 20px;
     padding: 10px 20px;
-    background-color: #5c6bc0;
+    background: linear-gradient(to right, #5d987c, #1a8081);
     color: white;
     border: none;
     border-radius: 25px;
@@ -214,7 +275,7 @@ body {
 }
 
 .modal-content .save-btn:hover {
-    background-color: #3949ab;
+    background: linear-gradient(to right, #1e7868, #5d987c);
 }
 
 .close {

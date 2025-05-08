@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Профил на потребителя</title>
+    <!-- ✅ Favicon -->
+    <link rel="icon" type="image/x-icon" href="/images/logo1.png">
     <link rel="stylesheet" href="/css/userProfile.css">
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/footer.css">
@@ -29,11 +31,10 @@
         </div>
         <div class="profile-details">
             <h2 class="username" th:text="${user.username}">Име на потребителя</h2>
-            <p class="location" th:text="${user.location}">📍 София, България</p>
             <p class="bio" th:text="${user.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия.“</p>
             <div class="stats">
-                <span><strong th:text="${user.userEventsCount}">15</strong> събития</span>
-                <span><strong th:text="${totalVotes}">120</strong> гласа</span>
+                <span><strong th:text="${user.userEventsCount}"></strong> събития</span>
+                <span><strong th:text="${user.totalVotes}"></strong> гласа</span>
             </div>
         </div>
         <!-- Бутон за редактиране -->
@@ -52,10 +53,14 @@
                     <label>Потребителско име:</label>
                     <input type="text" name="username" th:value="${user.username}"><br><br>
 
-                    <label>Локация:</label>
-                    <input type="text" name="location" th:value="${user.location}"><br><br>
+                    <!-- Локация с dropdown -->
+                    <label for="location">Локация:</label>
+                    <select class="form-select" id="location" name="location" required>
+                        <option value="NONE">Избери локация</option>
+                        <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
+                    </select><br><br>
 
-                    <label>Биография:</label>
+                    <label>Био:</label>
                     <textarea name="bio" th:text="${user.bio}"></textarea><br><br>
 
                     <button type="submit" class="save-btn">Запази</button>
@@ -71,14 +76,15 @@
         <div class="section">
             <h3>Информация</h3>
             <ul>
-                <li><strong>Имейл:</strong> user@example.com</li>
-                <li><strong>Присъединил се:</strong> март 2024</li>
+                <li>Имейл: <strong th:text="${user.email}"></strong></li>
+                <li>Локация: <strong th:text="${user.location != null ? user.location : 'Неизвестна'}"></strong></li>
+                <li>Присъединил се: <strong th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
             </ul>
         </div>
 
         <div class="section">
-            <h3>Интереси</h3>
-            <p>Политика, референдуми, гласуване, обществени каузи</p>
+            <h3>Рейтинг</h3>
+            <p>Име на рейтинга + икона</p>
         </div>
 
     </div>
@@ -89,14 +95,11 @@
         <div class="events-list">
 
             <!-- Thymeleaf фрагмент или динамичен изход тук -->
-            <div th:each="event : ${userEvents}" th:insert="fragments/simpleEventView :: simple-event"></div>
+            <div th:each="event : ${userEvents}" th:insert="~{fragments/simpleEventView :: simple-event}"></div>
 
         </div>
     </div>
-    <!-- Функции -->
-    <section class="py-5" >
-        <div th:replace="~{fragments/features :: platform-features}"></div>
-    </section>
+
 </div>
 
 <script>
