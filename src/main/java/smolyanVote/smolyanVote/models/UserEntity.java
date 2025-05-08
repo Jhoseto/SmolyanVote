@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import java.time.Instant;
 import java.util.HashSet;
@@ -13,14 +14,20 @@ public class UserEntity extends BaseEntity {
 
     private String username;
     private String realName;
+
+    @Enumerated(EnumType.STRING)
+    private Locations location;
+
     private String password;
+
     @Column(unique = true, nullable = false)
     private String email;
+
     private boolean isActive;
     private String imageUrl;
     private String userConfirmationCode;
+    private String bio;
     private int userEventsCount;
-
 
     @Enumerated(EnumType.STRING)
     private UserRole role;
@@ -33,6 +40,7 @@ public class UserEntity extends BaseEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @Column
     private List<Long> notification;
+    private int totalVotes;
 
 
     public String getUsername() {
@@ -51,6 +59,14 @@ public class UserEntity extends BaseEntity {
     public UserEntity setRealName(String realName) {
         this.realName = realName;
         return this;
+    }
+
+    public Locations getLocation() {
+        return location;
+    }
+
+    public void setLocation(Locations location) {
+        this.location = location;
     }
 
     public String getPassword() {
@@ -107,6 +123,14 @@ public class UserEntity extends BaseEntity {
         return this;
     }
 
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
     public UserRole getRole() {
         return role;
     }
@@ -141,5 +165,13 @@ public class UserEntity extends BaseEntity {
     public UserEntity setNotification(List<Long> notification) {
         this.notification = notification;
         return this;
+    }
+
+    public int getTotalVotes() {
+        return totalVotes;
+    }
+
+    public void setTotalVotes(int totalVotes) {
+        this.totalVotes = totalVotes;
     }
 }

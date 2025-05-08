@@ -75,6 +75,7 @@ public class ApplicationSecurityConfiguration {
                                 "/robots.txt"
                         ).permitAll()
                         .requestMatchers(
+                                "/profile",
                                 "/comments/**",
                                 "/api/comments/**",
                                 "/vote",

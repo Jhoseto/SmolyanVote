@@ -21,9 +21,10 @@ public class VoteController {
     public String processVote(
             @RequestParam("eventId") Long eventId,
             @RequestParam("vote") String voteValue,
+            @RequestParam("userEmail") String userEmail,
             RedirectAttributes redirectAttributes
     ) {
-        voteService.recordVote(eventId, voteValue);
+        voteService.recordVote(eventId, voteValue, userEmail);
 
         String voteLabel;
         switch (voteValue) {

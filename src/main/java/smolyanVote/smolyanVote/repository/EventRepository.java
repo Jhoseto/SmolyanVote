@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.UserEntity;
 
 import java.util.List;
 
@@ -16,5 +17,8 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
     List<EventEntity> findByTitleContaining(String title);
 
     Page<EventEntity> findAll(Pageable pageable);
+
+    List<EventEntity> findAllByCreatorName(String creatorName);
+
 
 }

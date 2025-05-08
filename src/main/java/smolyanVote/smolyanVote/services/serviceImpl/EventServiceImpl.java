@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,6 +83,7 @@ public class EventServiceImpl implements EventService {
         return eventMapper.mapToView(event);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<String> createEvent(CreateEventView dto, MultipartFile[] files) {
         EventEntity eventEntity = new EventEntity();
@@ -133,6 +135,25 @@ public class EventServiceImpl implements EventService {
 
         return imagePaths;
     }
+
+
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<EventView> getUserEvents(String email) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
+
+        List<EventEntity> events = eventRepository.findAllByCreatorName(user.getUsername());
+
+        return events.stream()
+                .map(eventMapper::mapToView)
+                .collect(Collectors.toList());
+    }
+
+
+
 
 
     @Override

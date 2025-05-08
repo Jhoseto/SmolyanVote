@@ -13,7 +13,6 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.UserService;
-import smolyanVote.smolyanVote.services.serviceImpl.CommentsServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
