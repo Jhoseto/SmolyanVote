@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Профил на потребителя</title>
+    <!-- ✅ Favicon -->
+    <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+    <link rel="stylesheet" href="/css/userProfile.css">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/mainEventPage.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+
+<div class="profile-container">
+
+    <!-- Горна секция с корица -->
+    <div class="cover-photo">
+        <!-- по избор, може да добавиш динамично изображение -->
+    </div>
+
+    <!-- Основна потребителска информация -->
+    <div class="profile-info">
+        <div class="profile-img">
+            <img th:src="${user.getImageUrl()}" alt="Профилна снимка">
+        </div>
+        <div class="profile-details">
+            <h2 class="username" th:text="${user.username}">Име на потребителя</h2>
+            <p class="bio" th:text="${user.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия.“</p>
+            <div class="stats">
+                <span><strong th:text="${user.userEventsCount}"></strong> събития</span>
+                <span><strong th:text="${user.totalVotes}"></strong> гласа</span>
+            </div>
+        </div>
+        <!-- Бутон за редактиране -->
+        <button class="edit-profile-btn" onclick="openEditModal()">Редактирай профил</button>
+
+    </div>
+
+    <!-- Секции с допълнителна информация -->
+    <div class="profile-sections">
+
+        <div class="section">
+            <h3>Информация</h3>
+            <ul>
+                <li>Имейл: <strong th:text="${user.email}"></strong></li>
+                <li>Локация: <strong th:text="${user.location != null ? user.location.toBG() : 'Неизвестна'}"></strong></li>
+                <li>Присъединил се: <strong th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>Рейтинг</h3>
+            <p>Име на рейтинга + икона</p>
+        </div>
+
+    </div>
+
+    <!-- Секция със събития -->
+    <div class="user-events">
+        <h3>Събития, създадени от потребителя</h3>
+        <div class="events-list">
+
+            <!-- Thymeleaf фрагмент или динамичен изход тук -->
+            <div th:each="event : ${userEvents}" th:insert="~{fragments/simpleEventView :: simple-event}"></div>
+
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

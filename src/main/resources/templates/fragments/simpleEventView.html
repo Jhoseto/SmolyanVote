@@ -19,13 +19,21 @@
 
       <!-- Блок за автора -->
       <div class="d-flex align-items-center mb-2">
-        <img th:if="${event.creatorImage != null}"
-             th:src="${event.creatorImage}"
-             alt="Автор"
-             class="author-avatar rounded-circle me-2">
+
+        <!-- Снимка на автора като линк -->
+        <a th:if="${event.creatorImage != null}"
+           th:href="@{/user/{username}(username=${event.creatorName})}">
+          <img th:src="${event.creatorImage}"
+               alt="Автор"
+               class="author-avatar rounded-circle me-2">
+        </a>
 
         <div>
-          <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+          <!-- Име на автора като линк -->
+          <a th:href="@{/user/{username}(username=${event.creatorName})}" class="text-decoration-none">
+            <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+          </a>
+
           <div class="d-flex align-items-center">
       <span th:classappend="${event.creatorOnline == 1} ? 'bg-success' : 'bg-danger'"
             class="status-dot rounded-circle me-1"></span>
@@ -33,6 +41,7 @@
           </div>
         </div>
       </div>
+
 
 
 

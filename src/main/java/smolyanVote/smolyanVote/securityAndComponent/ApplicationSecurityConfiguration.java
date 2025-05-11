@@ -25,21 +25,15 @@ public class ApplicationSecurityConfiguration {
 
     private final UserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
-    private final UserService userService;
-    private final UserRepository userRepository;
     private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
 
 
     @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
                                             PasswordEncoder passwordEncoder,
-                                            UserService userService,
-                                            UserRepository userRepository,
                                             CustomLogoutSuccessHandler customLogoutSuccessHandler) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
-        this.userService = userService;
-        this.userRepository = userRepository;
         this.customLogoutSuccessHandler = customLogoutSuccessHandler;
     }
 
@@ -75,6 +69,7 @@ public class ApplicationSecurityConfiguration {
                                 "/robots.txt"
                         ).permitAll()
                         .requestMatchers(
+                                "/user/**",
                                 "/profile/update",
                                 "/profile",
                                 "/userProfile",

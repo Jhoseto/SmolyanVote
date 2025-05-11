@@ -55,6 +55,7 @@ public class RegisterController {
 
         StringBuilder errorMessages = new StringBuilder();
 
+
         if (result.hasErrors()) {
 
             for (FieldError error : result.getFieldErrors()) {

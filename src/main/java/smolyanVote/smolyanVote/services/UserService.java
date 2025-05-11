@@ -38,4 +38,5 @@ public interface UserService {
     UserProfileViewModel getUserByUsername(String userName);
 
     void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException;
+
 }
