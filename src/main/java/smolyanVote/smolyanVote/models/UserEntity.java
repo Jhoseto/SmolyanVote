@@ -16,6 +16,7 @@ public class UserEntity extends BaseEntity {
     private String realName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "location")
     private Locations location;
 
     private String password;

@@ -75,7 +75,9 @@ public class ApplicationSecurityConfiguration {
                                 "/robots.txt"
                         ).permitAll()
                         .requestMatchers(
+                                "/profile/update",
                                 "/profile",
+                                "/userProfile",
                                 "/comments/**",
                                 "/api/comments/**",
                                 "/vote",
@@ -133,8 +135,10 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
 
+
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+
                 );
 
         return http.build();

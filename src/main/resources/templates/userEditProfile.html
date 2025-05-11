@@ -46,12 +46,12 @@
                 <span class="close" onclick="closeEditModal()">&times;</span>
                 <h3>Редакция на профила</h3>
                 <!-- Форма за редакция -->
-                <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}">
+                <form method="post"
+                      enctype="multipart/form-data"
+                      th:action="@{/profile/update}">
                     <label>Профилна снимка:</label>
                     <input type="file" name="profileImage"><br><br>
-
-                    <label>Потребителско име:</label>
-                    <input type="text" name="username" th:value="${user.username}"><br><br>
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
                     <!-- Локация с dropdown -->
                     <label for="location">Локация:</label>
@@ -77,7 +77,7 @@
             <h3>Информация</h3>
             <ul>
                 <li>Имейл: <strong th:text="${user.email}"></strong></li>
-                <li>Локация: <strong th:text="${user.location != null ? user.location : 'Неизвестна'}"></strong></li>
+                <li>Локация: <strong th:text="${user.location != null ? user.location.toBG() : 'Неизвестна'}"></strong></li>
                 <li>Присъединил се: <strong th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
             </ul>
         </div>

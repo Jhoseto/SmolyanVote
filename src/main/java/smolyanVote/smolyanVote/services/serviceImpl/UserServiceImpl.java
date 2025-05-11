@@ -9,16 +9,24 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repository.UserRepository;
 import smolyanVote.smolyanVote.services.Mappers.UsersMapper;
 import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Implementation of the UserService interface.
@@ -30,6 +38,9 @@ public class UserServiceImpl implements UserService {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final UsersMapper usersMapper;
+
+
+    private final Path imageRootPath = Paths.get("D:\\MyProjectsJAVA\\SmolyanVote\\imageStorage\\userImages");
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -214,5 +225,54 @@ public class UserServiceImpl implements UserService {
             userProfileViewModel = usersMapper.mapUserToProfileViewModel(currentUser);
         }
         return userProfileViewModel;
+    }
+
+
+    @Override
+    public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
+
+        if (bio != null && !bio.equals(user.getBio())) {
+            user.setBio(bio);
+        }
+
+        if (location != null && !location.equals(user.getLocation())) {
+            user.setLocation(location);
+        }
+
+        if (newImage != null && !newImage.isEmpty()) {
+            Path userFolder = imageRootPath.resolve(user.getUsername());
+
+            if (!Files.exists(userFolder)) {
+                Files.createDirectories(userFolder);
+            }
+
+            // Изтриване на старата снимка, ако съществува
+            if (!user.getImageUrl().isEmpty()) {
+                Path oldImagePath = userFolder.resolve(Paths.get(user.getImageUrl()).getFileName().toString());
+
+                if (Files.exists(oldImagePath)) {
+                    Files.delete(oldImagePath);
+
+                    // Генериране на ново уникално име за изображението
+                    String extension = Optional.ofNullable(newImage.getOriginalFilename())
+                            .filter(name -> name.contains("."))
+                            .map(name -> name.substring(name.lastIndexOf(".")))
+                            .orElse("");
+                    String filename = UUID.randomUUID() + extension;
+
+                    Path newImagePath = userFolder.resolve(filename);
+                    Files.copy(newImage.getInputStream(), newImagePath, StandardCopyOption.REPLACE_EXISTING);
+
+                    String publicImagePath = "/images/usersImg/" + user.getUsername() + "/" + filename;
+                    user.setImageUrl(publicImagePath);
+
+                }
+
+                userRepository.save(user);
+                System.out.println("✅ Профилът е обновен успешно");
+            }
+        }
     }
 }
