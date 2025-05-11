@@ -5,6 +5,7 @@
     <title>Профил на потребителя</title>
     <!-- ✅ Favicon -->
     <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+
     <link rel="stylesheet" href="/css/userProfile.css">
     <link rel="stylesheet" href="/css/navbar.css">
     <link rel="stylesheet" href="/css/footer.css">
@@ -13,6 +14,7 @@
 
 </head>
 <body>
+
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
@@ -37,9 +39,6 @@
                 <span><strong th:text="${user.totalVotes}"></strong> гласа</span>
             </div>
         </div>
-        <!-- Бутон за редактиране -->
-        <button class="edit-profile-btn" onclick="openEditModal()">Редактирай профил</button>
-
     </div>
 
     <!-- Секции с допълнителна информация -->
@@ -47,11 +46,27 @@
 
         <div class="section">
             <h3>Информация</h3>
-            <ul>
-                <li>Имейл: <strong th:text="${user.email}"></strong></li>
-                <li>Локация: <strong th:text="${user.location != null ? user.location.toBG() : 'Неизвестна'}"></strong></li>
-                <li>Присъединил се: <strong th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
+            <ul class="list-unstyled">
+                <li class="mb-2 d-flex align-items-center">
+                    <!-- 📧 Икона за имейл -->
+                    <span style="margin-right: 10px;">📧</span>
+                    <span th:text="${user.email}"></span>
+                </li>
+                <li class="mb-2 d-flex align-items-center">
+                    <!-- 📍 Икона за локация -->
+                    <span style="margin-right: 10px;">📍  </span>
+                    <span th:text="${user.location != null ? user.location.toBG() : 'Неизвестна'}"></span>
+                </li>
+                <li class="mb-2 d-flex align-items-center">
+                    <!-- 📅 Икона за дата на присъединяване -->
+                    <span style="margin-right: 10px;">📅</span>
+                    <span th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></span>
+                </li>
             </ul>
+
+
+
+
         </div>
 
         <div class="section">

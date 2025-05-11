@@ -36,17 +36,12 @@ public class EventMapper {
         view.setLocation(event.getLocation());
 
         // Автор
-        if (event.getCreatorName() != null) {
-            view.setCreatorName(event.getCreatorName());
-            view.setCreatorImage(event.getCreatorImage());
-            if (event.getCreatorName() != null) {
-                view.setCreatorName(event.getCreatorName());
-                view.setCreatorImage(event.getCreatorImage());
+        if (user.isPresent()) {
+            view.setCreatorName(user.get().getUsername());
+            view.setCreatorImage(user.get().getImageUrl());
 
-                userRepository.findByUsername(event.getCreatorName())
-                        .ifPresent(u -> view.setCreatorOnline(u.getOnlineStatus()));
-            }
-
+            userRepository.findByUsername(event.getCreatorName())
+                    .ifPresent(u -> view.setCreatorOnline(u.getOnlineStatus()));
         }
 
         // Снимки
