@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.repository.UserRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {

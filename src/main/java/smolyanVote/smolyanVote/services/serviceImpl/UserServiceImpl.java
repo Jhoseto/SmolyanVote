@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
-import smolyanVote.smolyanVote.repository.UserRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.Mappers.UsersMapper;
 import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;

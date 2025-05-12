@@ -14,11 +14,15 @@ public class BaseEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     protected Long id;
 
+
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant created;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant modified;
+
+
+
 
     public long getId() {
         return id;
@@ -44,12 +48,5 @@ public class BaseEntity {
         this.modified = modified;
     }
 
-    @Override
-    public String toString() {
-        return "BaseEntity{" +
-                "id=" + id +
-                ", created=" + created +
-                ", modified=" + modified +
-                '}';
-    }
+
 }

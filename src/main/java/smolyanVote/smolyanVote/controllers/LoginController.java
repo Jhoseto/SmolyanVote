@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.repository.UserRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserLoginViewModel;
 

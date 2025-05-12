@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.EventEntity;
-import smolyanVote.smolyanVote.repository.CommentsRepository;
-import smolyanVote.smolyanVote.repository.EventRepository;
+import smolyanVote.smolyanVote.repositories.CommentsRepository;
+import smolyanVote.smolyanVote.repositories.EventRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.UserService;
 

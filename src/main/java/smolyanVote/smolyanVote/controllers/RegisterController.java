@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserRole;
-import smolyanVote.smolyanVote.repository.UserRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
 import smolyanVote.smolyanVote.services.EmailService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;

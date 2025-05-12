@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.VoteEntity;
-import smolyanVote.smolyanVote.repository.EventRepository;
-import smolyanVote.smolyanVote.repository.UserRepository;
-import smolyanVote.smolyanVote.repository.VoteRepository;
+import smolyanVote.smolyanVote.repositories.EventRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.repositories.VoteRepository;
 import smolyanVote.smolyanVote.services.VoteService;
 
 
@@ -39,9 +39,9 @@ public class VoteServiceImpl implements VoteService {
 
 
         //TODO Проверка дали вече е гласувал
-//        if (voteRepository.existsByUserAndEvent(user, event)) {
-//            throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
-//        }
+        if (voteRepository.existsByUserAndEvent(user, event)) {
+            throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
+        }
 
 
         VoteEntity vote = new VoteEntity();
@@ -73,5 +73,12 @@ public class VoteServiceImpl implements VoteService {
 
         user.setTotalVotes(user.getTotalVotes() + 1);
         userRepository.save(user);
+    }
+
+
+
+    @Override
+    public VoteEntity findByUserIdAndEventId(Long userId, Long eventId) {
+        return voteRepository.findByUserIdAndEventId(userId, eventId).orElse(null);
     }
 }

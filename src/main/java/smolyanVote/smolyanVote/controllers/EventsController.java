@@ -9,10 +9,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.VoteEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
@@ -24,15 +26,18 @@ public class EventsController {
     private final EventService eventService;
     private final CommentsService commentsService;
     private final UserService userService;
-    ;
+    private final VoteService voteService;
+
 
     @Autowired
     public EventsController(EventService eventService,
                             CommentsService commentsService,
-                            UserService userService) {
+                            UserService userService,
+                            VoteService voteService) {
         this.eventService = eventService;
         this.commentsService = commentsService;
         this.userService = userService;
+        this.voteService = voteService;
     }
 
 
@@ -57,11 +62,9 @@ public class EventsController {
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
-        // Получаваме детайлите за събитието
         EventView eventDetailView = eventService.getEventById(id);
         UserEntity user = userService.getCurrentUser();
 
-        // Изчисляваме процента на гласовете
         int totalVotes = eventDetailView.getTotalVotes();
         if (totalVotes > 0) {
             eventDetailView.setYesPercent(eventDetailView.getYesVotes() * 100 / totalVotes);
@@ -73,17 +76,19 @@ public class EventsController {
             eventDetailView.setNeutralPercent(0);
         }
 
-        // Зареждаме коментарите за събитието
+        // проверка дали потребителят е гласувал
+        VoteEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
+
         List<CommentsEntity> comments = commentsService.getCommentsForEvent(id);
 
-        // Добавяме коментарите в модела
+        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("eventDetail", eventDetailView);
         model.addAttribute("currentUser", user);
         model.addAttribute("comments", comments);
 
-        // Връщаме изгледа за събитието с коментарите
         return "eventDetailView";
     }
+
 
 
 

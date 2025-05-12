@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.EventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.repository.EventImageRepository;
-import smolyanVote.smolyanVote.repository.UserRepository;
+import smolyanVote.smolyanVote.repositories.EventImageRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.util.ArrayList;
