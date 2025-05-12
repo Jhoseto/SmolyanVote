@@ -75,6 +75,7 @@ html, body {
 }
 
 .text-center {
+    margin-top: 50px;
     text-align: center;
 }
 
@@ -88,50 +89,6 @@ html, body {
 .feature-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-}
-
-/* Navbar adjustments */
-.navbar {
-    transition: background-color 0.3s ease;
-}
-
-.navbar-brand img {
-    transition: transform 0.3s ease;
-}
-
-.navbar-brand:hover img {
-    transform: rotate(-5deg) scale(1.05);
-}
-
-.nav-link {
-    color: #212529;
-    transition: color 0.2s ease, border-bottom 0.2s ease;
-    position: relative;
-}
-
-.nav-link:hover {
-    color: #198754;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    width: 0%;
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background-color: #198754;
-    transition: width 0.3s ease;
-}
-
-.nav-link:hover::after {
-    width: 100%;
-}
-.feature-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
 }
 
 .card-body {

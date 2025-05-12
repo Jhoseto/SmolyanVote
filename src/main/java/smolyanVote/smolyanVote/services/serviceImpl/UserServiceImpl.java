@@ -270,9 +270,8 @@ public class UserServiceImpl implements UserService {
 
                 }
 
-                userRepository.save(user);
-                System.out.println("✅ Профилът е обновен успешно");
             }
         }
+        userRepository.save(user);
     }
 }

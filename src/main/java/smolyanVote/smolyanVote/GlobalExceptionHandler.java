@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -15,6 +16,12 @@ public class GlobalExceptionHandler {
         // Добавяне на съобщението за грешка
         redirectAttributes.addFlashAttribute("errorMessage", "Глобална грешка: " + ex.getMessage());
         return "redirect:/login"; // Може да е всяка друга страница в зависимост от контекста
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public void handleIllegalState(HttpServletRequest request, Exception ex) {
+        System.err.println("IllegalStateException caught at " + request.getRequestURI());
+        ex.printStackTrace();
     }
 
     // Обработва грешки, възникнали при валидация (например от @Valid)
