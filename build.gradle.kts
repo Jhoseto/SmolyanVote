@@ -43,7 +43,7 @@ dependencies {
 	// Springdoc OpenAPI (замяна на Springfox)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 
-	// Тестови зависимости
+	// Test
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
 	}
