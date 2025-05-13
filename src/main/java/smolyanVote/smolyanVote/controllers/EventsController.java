@@ -100,6 +100,9 @@ public class EventsController {
 
     @PostMapping("/create")
     public String createEvent(@ModelAttribute CreateEventView createEventDto,
+                              @RequestParam String positiveLabel,
+                              @RequestParam String negativeLabel,
+                              @RequestParam String neutralLabel,
                               RedirectAttributes redirectAttributes) {
 
         try {
@@ -107,7 +110,7 @@ public class EventsController {
             MultipartFile[] files = {createEventDto.getImage1(), createEventDto.getImage2(), createEventDto.getImage3()};
 
             // Логика за създаване на събитието и съхранение на изображенията
-            List<String> imagePaths = eventService.createEvent(createEventDto, files);
+            List<String> imagePaths = eventService.createEvent(createEventDto, files, positiveLabel, negativeLabel, neutralLabel);
 
             // Ако всичко е успешно, добавяме съобщение за успех
             redirectAttributes.addFlashAttribute("successMessage", "Събитието беше създадено успешно!");

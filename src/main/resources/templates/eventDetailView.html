@@ -51,7 +51,7 @@
 
         <!-- Описание -->
         <div class="description">
-            <p th:text="${eventDetail.description}">Тук е описанието на събитието.</p>
+            <p th:utext="${eventDetail.description.replace('\n', '<br/>')}">Тук е описанието на събитието.</p>
         </div>
 
         <!-- Допълнителни детайли -->
@@ -72,7 +72,7 @@
 
             <!-- За -->
             <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="'За – ' + ${eventDetail.yesVotes} + ' гласа'">За</div>
+                <div class="vote-label" th:text="${eventDetail.positiveLabel} + ' – ' + ${eventDetail.yesVotes} + ' гласа'">За</div>
                 <div class="vote-bar">
                     <div class="bar for" th:style="'width:' + ${eventDetail.yesPercent} + '%'">
                         <span class="bar-text" th:text="${eventDetail.yesPercent} + '%'">0%</span>
@@ -82,7 +82,7 @@
 
             <!-- Против -->
             <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="'Против – ' + ${eventDetail.noVotes} + ' гласа'">Против – 0 гласа</div>
+                <div class="vote-label" th:text="${eventDetail.negativeLabel} + ' – ' + ${eventDetail.noVotes} + ' гласа'">Против – 0 гласа</div>
                 <div class="vote-bar">
                     <div class="bar against" th:style="'width:' + ${eventDetail.noPercent} + '%'">
                         <span class="bar-text" th:text="${eventDetail.noPercent} + '%'">0%</span>
@@ -92,7 +92,7 @@
 
             <!-- Въздържал се -->
             <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="'Въздържал се – ' + ${eventDetail.neutralVotes} + ' гласа'">Въздържал се – 0 гласа</div>
+                <div class="vote-label" th:text="${eventDetail.neutralLabel} + ' – ' + ${eventDetail.neutralVotes} + ' гласа'">Въздържал се – 0 гласа</div>
                 <div class="vote-bar">
                     <div class="bar abstain" th:style="'width:' + ${eventDetail.neutralPercent} + '%'">
                         <span class="bar-text" th:text="${eventDetail.neutralPercent} + '%'">0%</span>
@@ -111,22 +111,22 @@
                           method="post">
                         <input type="hidden" name="eventId" th:value="${eventDetail.id}" />
                         <input type="hidden" name="userEmail" th:value="${currentUser.getEmail()}" />
-                        <button name="vote" value="1" class="vote-btn yes" type="submit">За</button>
-                        <button name="vote" value="2" class="vote-btn no" type="submit">Против</button>
-                        <button name="vote" value="3" class="vote-btn neutral" type="submit">Въздържал се</button>
+                        <button name="vote" value="1" class="vote-btn yes" type="submit" th:text="${eventDetail.positiveLabel}">За</button>
+                        <button name="vote" value="2" class="vote-btn no" type="submit" th:text="${eventDetail.negativeLabel}">Против</button>
+                        <button name="vote" value="3" class="vote-btn neutral" type="submit" th:text="${eventDetail.neutralLabel}">Въздържал се</button>
                     </form>
                 </div>
             </div>
 
             <!-- Ако потребителят вече е гласувал -->
             <div th:if="${userVote != null}" class="alert alert-info mt-3">
-                <p><strong>Вече сте гласували по този въпрос.</strong></p>
+                <p><strong>Вече гласувахте по този въпрос.</strong></p>
                 <p>Вашият глас е отчетен като:
                     <span th:switch="${userVote}">
-                <strong th:case="'1'">"За ✅"</strong>
-                <strong th:case="'2'">"Против ❌"</strong>
-                <strong th:case="'3'">"Въздържал се ⚖️"</strong>
-            </span>
+                        <strong th:case="'1'" th:text="${eventDetail.positiveLabel + ' ✅'}">За ✅</strong>
+                        <strong th:case="'2'" th:text="${eventDetail.negativeLabel + ' ❌'}">Против ❌</strong>
+                        <strong th:case="'3'" th:text="${eventDetail.neutralLabel + ' ⚖️'}">Въздържал се ⚖️</strong>
+                    </span>
                 </p>
             </div>
         </div>

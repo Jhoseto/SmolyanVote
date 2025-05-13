@@ -3,8 +3,6 @@ package smolyanVote.smolyanVote.services;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import smolyanVote.smolyanVote.models.EventEntity;
-import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
@@ -19,7 +17,11 @@ public interface EventService {
 
     EventView getEventById(Long id);
 
-    List<String> createEvent(CreateEventView dto, MultipartFile[] files);
+    List<String> createEvent(CreateEventView dto,
+                             MultipartFile[] files,
+                             String positiveLabel,
+                             String negativeLabel,
+                             String neutralLabel);
 
     void deleteEvent(Long id);
 

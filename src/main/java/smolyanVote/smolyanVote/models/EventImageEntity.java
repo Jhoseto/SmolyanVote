@@ -14,12 +14,12 @@ public class EventImageEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
-    private EventEntity event;
+    private SimpleEventEntity event;
 
     public EventImageEntity() {
     }
 
-    public EventImageEntity(String imageUrl, EventEntity event) {
+    public EventImageEntity(String imageUrl, SimpleEventEntity event) {
         this.imageUrl = imageUrl;
         this.event = event;
     }
@@ -36,11 +36,11 @@ public class EventImageEntity {
         this.imageUrl = imageUrl;
     }
 
-    public EventEntity getEvent() {
+    public SimpleEventEntity getEvent() {
         return event;
     }
 
-    public void setEvent(EventEntity event) {
+    public void setEvent(SimpleEventEntity event) {
         this.event = event;
     }
 }

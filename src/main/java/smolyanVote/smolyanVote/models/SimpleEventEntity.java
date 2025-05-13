@@ -4,13 +4,12 @@ import jakarta.persistence.*;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "events")
-public class EventEntity {
+public class SimpleEventEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +33,11 @@ public class EventEntity {
     private int noVotes;
     private int neutralVotes;
     private int totalVotes;
+
+    private String positiveLabel;
+    private String negativeLabel;
+    private String neutralLabel;
+
 
 
 
@@ -126,5 +130,17 @@ public class EventEntity {
     public void setTotalVotes(int totalVotes) {
         this.totalVotes = totalVotes;
     }
+
+    public String getPositiveLabel() {return positiveLabel;}
+
+    public void setPositiveLabel(String positiveLabel) {this.positiveLabel = positiveLabel;}
+
+    public String getNegativeLabel() {return negativeLabel;}
+
+    public void setNegativeLabel(String negativeLabel) {this.negativeLabel = negativeLabel;}
+
+    public String getNeutralLabel() {return neutralLabel;}
+
+    public void setNeutralLabel(String neutralLabel) {this.neutralLabel = neutralLabel;}
 
 }

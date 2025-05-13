@@ -21,6 +21,9 @@ public class CreateEventView {
     private MultipartFile image1;
     private MultipartFile image2;
     private MultipartFile image3;
+    private String positiveLabel;
+    private String negativeLabel;
+    private String neutralLabel;
 
 
     // Getters and Setters
@@ -83,4 +86,16 @@ public class CreateEventView {
     public void setImage3(MultipartFile image3) {
         this.image3 = image3;
     }
+
+    public String getPositiveLabel() {return positiveLabel;}
+
+    public void setPositiveLabel(String positiveLabel) {this.positiveLabel = positiveLabel;}
+
+    public String getNegativeLabel() {return negativeLabel;}
+
+    public void setNegativeLabel(String negativeLabel) {this.negativeLabel = negativeLabel;}
+
+    public String getNeutralLabel() {return neutralLabel;}
+
+    public void setNeutralLabel(String neutralLabel) {this.neutralLabel = neutralLabel;}
 }

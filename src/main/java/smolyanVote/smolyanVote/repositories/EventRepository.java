@@ -5,19 +5,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 
 import java.util.List;
 
 @Repository
-public interface EventRepository extends JpaRepository<EventEntity, Long> {
+public interface EventRepository extends JpaRepository<SimpleEventEntity, Long> {
 
     @EntityGraph(attributePaths = "images")
-    List<EventEntity> findByTitleContaining(String title);
+    List<SimpleEventEntity> findByTitleContaining(String title);
 
-    Page<EventEntity> findAll(Pageable pageable);
+    Page<SimpleEventEntity> findAll(Pageable pageable);
 
-    List<EventEntity> findAllByCreatorName(String creatorName);
+    List<SimpleEventEntity> findAllByCreatorName(String creatorName);
 
 
 }

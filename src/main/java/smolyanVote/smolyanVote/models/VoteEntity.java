@@ -18,7 +18,7 @@ public class VoteEntity {
     private UserEntity user;
 
     @ManyToOne(optional = false)
-    private EventEntity event;
+    private SimpleEventEntity event;
 
     @Column(nullable = false)
     private String voteValue; // "1", "2", "3"
@@ -37,9 +37,9 @@ public class VoteEntity {
 
     public void setUser(UserEntity user) {this.user = user;}
 
-    public EventEntity getEvent() {return event;}
+    public SimpleEventEntity getEvent() {return event;}
 
-    public void setEvent(EventEntity event) {this.event = event;}
+    public void setEvent(SimpleEventEntity event) {this.event = event;}
 
     public String getVoteValue() {return voteValue;}
 

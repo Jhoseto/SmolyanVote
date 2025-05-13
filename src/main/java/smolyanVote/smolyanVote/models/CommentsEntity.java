@@ -3,7 +3,6 @@ package smolyanVote.smolyanVote.models;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +23,7 @@ public class CommentsEntity {
 
     @ManyToOne
     @JoinColumn(name = "event_id")
-    private EventEntity event;
+    private SimpleEventEntity event;
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
@@ -81,11 +80,11 @@ public class CommentsEntity {
         this.createdAt = createdAt;
     }
 
-    public EventEntity getEvent() {
+    public SimpleEventEntity getEvent() {
         return event;
     }
 
-    public void setEvent(EventEntity event) {
+    public void setEvent(SimpleEventEntity event) {
         this.event = event;
     }
 

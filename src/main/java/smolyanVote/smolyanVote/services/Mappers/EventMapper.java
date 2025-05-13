@@ -2,7 +2,7 @@ package smolyanVote.smolyanVote.services.Mappers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.EventImageRepository;
@@ -26,7 +26,7 @@ public class EventMapper {
         this.userRepository = userRepository;
     }
 
-    public EventView mapToView(EventEntity event) {
+    public EventView mapToView(SimpleEventEntity event) {
         Optional<UserEntity> user = userRepository.findByUsername(event.getCreatorName());
         EventView view = new EventView();
         view.setId(event.getId());
@@ -61,6 +61,9 @@ public class EventMapper {
         view.setNoVotes(event.getNoVotes());
         view.setNeutralVotes(event.getNeutralVotes());
         view.setTotalVotes(event.getTotalVotes());
+        view.setPositiveLabel(event.getPositiveLabel());
+        view.setNegativeLabel(event.getNegativeLabel());
+        view.setNeutralLabel(event.getNeutralLabel());
 
         return view;
     }

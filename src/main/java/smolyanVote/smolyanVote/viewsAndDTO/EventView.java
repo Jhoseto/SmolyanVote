@@ -25,6 +25,10 @@ public class EventView {
     private int noPercent;
     private int neutralPercent;
     private int creatorOnline;
+    private String positiveLabel;
+    private String negativeLabel;
+    private String neutralLabel;
+
 
 
 
@@ -137,4 +141,18 @@ public class EventView {
     public int getCreatorOnline() {return creatorOnline;}
 
     public void setCreatorOnline(int creatorOnline) {this.creatorOnline = creatorOnline;}
+
+    public String getPositiveLabel() {return positiveLabel;}
+
+    public void setPositiveLabel(String positiveLabel) {this.positiveLabel = positiveLabel;}
+
+    public String getNegativeLabel() {return negativeLabel;}
+
+    public void setNegativeLabel(String negativeLabel) {this.negativeLabel = negativeLabel;}
+
+    public String getNeutralLabel() {return neutralLabel;}
+
+    public void setNeutralLabel(String neutralLabel) {this.neutralLabel = neutralLabel;}
+
+
 }

@@ -3,7 +3,7 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.VoteEntity;
 import smolyanVote.smolyanVote.repositories.EventRepository;
@@ -32,7 +32,7 @@ public class VoteServiceImpl implements VoteService {
     @Transactional
     @Override
     public void recordVote(Long eventId, String voteValue, String userEmail) {
-        EventEntity event = eventRepository.findById(eventId)
+        SimpleEventEntity event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Събитие не е намерено"));
         UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));

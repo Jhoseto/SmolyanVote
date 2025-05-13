@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.EventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.EventRepository;
@@ -57,7 +57,7 @@ public class EventServiceImpl implements EventService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
 
         //  пагинирани събития от репозитория
-        Page<EventEntity> eventPage = eventRepository.findAll(pageable);
+        Page<SimpleEventEntity> eventPage = eventRepository.findAll(pageable);
 
         return eventPage.map(eventMapper::mapToView);
     }
@@ -67,10 +67,10 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public List<EventView> getAllEvents() {
-        List<EventEntity> events = eventRepository.findAll();
+        List<SimpleEventEntity> events = eventRepository.findAll();
 
         return events.stream()
-                .sorted(Comparator.comparing(EventEntity::getCreatedAt).reversed()) // Сортиране по дата
+                .sorted(Comparator.comparing(SimpleEventEntity::getCreatedAt).reversed()) // Сортиране по дата
                 .map(eventMapper::mapToView) //  метода от EventMapper
                 .collect(Collectors.toList());
     }
@@ -78,63 +78,69 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventView getEventById(Long id) {
 
-        EventEntity event = eventRepository.findById(id)
+        SimpleEventEntity event = eventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
         return eventMapper.mapToView(event);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
-    public List<String> createEvent(CreateEventView dto, MultipartFile[] files) {
-        EventEntity eventEntity = new EventEntity();
+    public List<String> createEvent(CreateEventView dto,
+                                    MultipartFile[] files,
+                                    String positiveLabel,
+                                    String negativeLabel,
+                                    String neutralLabel) {
+        SimpleEventEntity simpleEventEntity = new SimpleEventEntity();
         UserEntity user = userService.getCurrentUser();
 
-        eventEntity.setTitle(dto.getTitle());
-        eventEntity.setDescription(dto.getDescription());
-        eventEntity.setCreatorName(userService.getCurrentUser().getUsername());
-        eventEntity.setCreatorImage(userService.getCurrentUser().getImageUrl());
-        eventEntity.setCreatedAt(Instant.now());
-        eventEntity.setLocation(dto.getLocation());
-        user.setUserEventsCount(user.getUserEventsCount()+1);
+        simpleEventEntity.setTitle(dto.getTitle());
+        simpleEventEntity.setDescription(dto.getDescription());
+        simpleEventEntity.setCreatorName(user.getUsername());
+        simpleEventEntity.setCreatorImage(user.getImageUrl());
+        simpleEventEntity.setCreatedAt(Instant.now());
+        simpleEventEntity.setLocation(dto.getLocation());
+        simpleEventEntity.setPositiveLabel(positiveLabel);
+        simpleEventEntity.setNegativeLabel(negativeLabel);
+        simpleEventEntity.setNeutralLabel(neutralLabel);
+        user.setUserEventsCount(user.getUserEventsCount() + 1);
 
-        // Записваме събитието и получаваме ID
-        eventRepository.saveAndFlush(eventEntity);
-        userRepository.save(user);
-        long eventId = eventEntity.getId();
-
-        List<EventImageEntity> imageEntities = new ArrayList<>();
         List<String> imagePaths = new ArrayList<>();
+
+        // Инициализиране на изображенията, ако колекцията е null
+        if (simpleEventEntity.getImages() == null) {
+            simpleEventEntity.setImages(new ArrayList<>());
+        }
 
         // Записване на изображенията
         if (files != null && files.length > 0) {
-            // Обработваме всеки файл
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
-                    String imagePath = imageStorageService.saveSingleImage(file, eventId);
+                    String imagePath = imageStorageService.saveSingleImage(file, 0L);
                     imagePaths.add(imagePath);
 
-                    // Създаване на EventImageEntity за всяко изображение
                     EventImageEntity imageEntity = new EventImageEntity();
                     imageEntity.setImageUrl(imagePath);
-                    imageEntity.setEvent(eventEntity);
-                    imageEntities.add(imageEntity);
+                    imageEntity.setEvent(simpleEventEntity);
+                    simpleEventEntity.getImages().add(imageEntity);  // Добавяне директно към списъка
                 }
             }
         }
 
         // Ако няма качени изображения, добавяме default
-        if (imageEntities.isEmpty()) {
+        if (simpleEventEntity.getImages().isEmpty()) {
             EventImageEntity defaultImage = new EventImageEntity();
             defaultImage.setImageUrl("/images/eventImages/defaultEvent.png");
-            defaultImage.setEvent(eventEntity);
-            imageEntities.add(defaultImage);
+            defaultImage.setEvent(simpleEventEntity);
+            simpleEventEntity.getImages().add(defaultImage);
         }
 
-        eventEntity.setImages(imageEntities);
-        eventRepository.save(eventEntity);  // Обновяваме събитието със снимките
+        // Записване на събитието заедно с изображенията
+        eventRepository.saveAndFlush(simpleEventEntity);
+        userRepository.save(user);
 
         return imagePaths;
     }
+
 
 
 
@@ -145,7 +151,7 @@ public class EventServiceImpl implements EventService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
 
-        List<EventEntity> events = eventRepository.findAllByCreatorName(user.getUsername());
+        List<SimpleEventEntity> events = eventRepository.findAllByCreatorName(user.getUsername());
 
         return events.stream()
                 .map(eventMapper::mapToView)

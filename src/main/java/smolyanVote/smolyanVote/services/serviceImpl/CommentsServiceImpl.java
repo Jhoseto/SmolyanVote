@@ -3,7 +3,7 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.EventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.EventRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
@@ -44,7 +44,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     public CommentsEntity addComment(Long eventId, String author, String text, Long parentId) {
-        EventEntity event = eventRepository.findById(eventId).orElseThrow();
+        SimpleEventEntity event = eventRepository.findById(eventId).orElseThrow();
         CommentsEntity comment = new CommentsEntity();
         comment.setAuthor(userService.getCurrentUser().getUsername());
         comment.setAuthorImage(userService.getCurrentUser().getImageUrl());

@@ -15,7 +15,7 @@ public class VoteIpEntity {
     private Long id;
 
     @ManyToOne(optional = false)
-    private EventEntity event;
+    private SimpleEventEntity event;
 
     @Column(nullable = false)
     private String ipAddress;  // IP адрес на потребителя
@@ -30,9 +30,9 @@ public class VoteIpEntity {
 
     public void setId(Long id) {this.id = id;}
 
-    public EventEntity getEvent() {return event;}
+    public SimpleEventEntity getEvent() {return event;}
 
-    public void setEvent(EventEntity event) {this.event = event;}
+    public void setEvent(SimpleEventEntity event) {this.event = event;}
 
     public String getIpAddress() {return ipAddress;}
 
