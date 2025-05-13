@@ -17,7 +17,7 @@ public class VoteController {
         this.voteService = voteService;
     }
 
-    @PostMapping("/vote")
+    @PostMapping("/simpleVote")
     public String processVote(
             @RequestParam("eventId") Long eventId,
             @RequestParam("vote") String voteValue,

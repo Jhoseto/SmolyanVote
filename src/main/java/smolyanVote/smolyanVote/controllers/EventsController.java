@@ -60,6 +60,7 @@ public class EventsController {
 
 
 
+    //TODO problem s redirekta ot tuk
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
         EventView eventDetailView = eventService.getEventById(id);
@@ -88,8 +89,6 @@ public class EventsController {
 
         return "eventDetailView";
     }
-
-
 
 
     @GetMapping("/createNewEvent")

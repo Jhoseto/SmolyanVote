@@ -72,7 +72,7 @@ public class ApplicationSecurityConfiguration {
                                 "/userProfile",
                                 "/comments/**",
                                 "/api/comments/**",
-                                "/vote",
+                                "/simpleVote",
                                 "/create",
                                 "/event/**",
                                 "/createEvent",

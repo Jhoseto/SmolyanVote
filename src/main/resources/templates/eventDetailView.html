@@ -107,7 +107,8 @@
             <div th:if="${userVote == null}">
                 <h3>Гласувай:</h3>
                 <div class="vote-buttons">
-                    <form th:action="@{/vote}" method="post">
+                    <form th:action="@{/simpleVote}"
+                          method="post">
                         <input type="hidden" name="eventId" th:value="${eventDetail.id}" />
                         <input type="hidden" name="userEmail" th:value="${currentUser.getEmail()}" />
                         <button name="vote" value="1" class="vote-btn yes" type="submit">За</button>

@@ -1,5 +1,5 @@
 plugins {
-	java
+	id("java")
 	id("org.springframework.boot") version "3.4.4"
 	id("io.spring.dependency-management") version "1.0.11.RELEASE"
 }
@@ -21,14 +21,14 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-validation") // включва Jakarta Validation + Hibernate Validator
+	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 	implementation("org.springframework.boot:spring-boot-starter-mail")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-devtools")
 
-	// Допълнителни библиотеки
-	implementation("org.springframework.security:spring-security-crypto:5.5.2")
+	// Advanced
+	implementation("org.springframework.security:spring-security-crypto:6.4.5")
 	implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
 	implementation("com.mysql:mysql-connector-j:9.2.0")
 	implementation("org.modelmapper:modelmapper:2.4.4")
@@ -38,15 +38,34 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-configuration-processor")
 	implementation("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
-	implementation("io.springfox:springfox-boot-starter:3.0.0")
 	implementation("org.owasp.encoder:encoder:1.2.3")
 
-	// Тестови зависимости
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.springframework.security:spring-security-test")
-}
+	// Springdoc OpenAPI (замяна на Springfox)
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 
+	// Тестови зависимости
+	testImplementation("org.springframework.boot:spring-boot-starter-test") {
+		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+	}
+	testImplementation("org.springframework.security:spring-security-test")
+	testImplementation("io.rest-assured:rest-assured:5.3.0")
+}
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+// Фиксиране на SLF4J конфликта
+configurations {
+	all {
+		resolutionStrategy.eachDependency {
+			if (requested.group == "org.slf4j") {
+				useVersion("2.0.17")
+			}
+		}
+	}
+}
+
+tasks.withType<JavaCompile> {
+	options.compilerArgs.add("-Xlint:unchecked")
 }
