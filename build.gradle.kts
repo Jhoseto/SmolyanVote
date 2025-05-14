@@ -39,6 +39,7 @@ dependencies {
 	implementation("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	implementation("org.owasp.encoder:encoder:1.2.3")
+	implementation("org.apache.tika:tika-core:3.1.0")
 
 	// Springdoc OpenAPI (замяна на Springfox)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")

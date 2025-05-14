@@ -27,7 +27,7 @@ public class SimpleEventEntity {
     private String creatorImage;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EventImageEntity> images = new ArrayList<>();
+    private List<SimpleEventImageEntity> images = new ArrayList<>();
 
     private int yesVotes;
     private int noVotes;
@@ -41,11 +41,11 @@ public class SimpleEventEntity {
 
 
 
-    public List<EventImageEntity> getImages() {
+    public List<SimpleEventImageEntity> getImages() {
         return images;
     }
 
-    public void setImages(List<EventImageEntity> images) {
+    public void setImages(List<SimpleEventImageEntity> images) {
         this.images = images;
     }
 

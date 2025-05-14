@@ -25,21 +25,40 @@
     <p class="lead">Вижте всички текущи събития или добавете ново <br> Вашето мнение е важно!</p>
 
     <!-- Ако потребителят е логнат -->
-    <a th:if="${#authorization.expression('isAuthenticated()')}"
-       th:href="@{/createNewEvent}"
-       class="btn btn-light btn-lg mt-3">
-      Създайте събитие
-    </a>
+    <div th:if="${#authorization.expression('isAuthenticated()')}">
+      <a th:href="@{/createNewEvent}" class="btn btn-light btn-lg mt-3 me-2">
+        Създайте опростен вид събитие
+      </a>
+      <a th:href="@{/referendum}" class="btn btn-outline-light btn-lg mt-3 me-2">
+        Създай референдум
+      </a>
+      <a th:href="@{/createSimplePollPage}" class="btn btn-light btn-lg mt-3 me-2">
+        Създай опростена анкета
+      </a>
+      <a th:href="@{/createPollPage}" class="btn btn-outline-light btn-lg mt-3">
+        Създай анкета
+      </a>
+    </div>
 
     <!-- Ако потребителят НЕ е логнат -->
-    <a th:if="${#authorization.expression('!isAuthenticated()')}"
-       href="javascript:void(0);"
-       onclick="showLoginWarning()"
-       class="btn btn-light btn-lg mt-3">
-      Създайте събитие
-    </a>
+    <div th:if="${#authorization.expression('!isAuthenticated()')}">
+      <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-light btn-lg mt-3 me-2">
+        Създайте опростен вид събитие
+      </a>
+      <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-outline-light btn-lg mt-3 me-2">
+        Създай референдум
+      </a>
+      <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-light btn-lg mt-3 me-2">
+        Създай опростена анкета
+      </a>
+      <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-outline-light btn-lg mt-3">
+        Създай анкета
+      </a>
+    </div>
   </div>
 </section>
+
+
 
 <!-- Събития -->
 <section class="event-container py-5">

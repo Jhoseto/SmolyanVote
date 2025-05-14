@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "event_images")
-public class EventImageEntity {
+public class SimpleEventImageEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,10 +16,10 @@ public class EventImageEntity {
     @JoinColumn(name = "event_id")
     private SimpleEventEntity event;
 
-    public EventImageEntity() {
+    public SimpleEventImageEntity() {
     }
 
-    public EventImageEntity(String imageUrl, SimpleEventEntity event) {
+    public SimpleEventImageEntity(String imageUrl, SimpleEventEntity event) {
         this.imageUrl = imageUrl;
         this.event = event;
     }

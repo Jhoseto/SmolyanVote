@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.services.ImageStorageService;
 
@@ -9,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -17,6 +18,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     // Задаваме новото място за записване на изображенията
     private final Path rootLocation = Paths.get("D:\\MyProjectsJAVA\\SmolyanVote\\imageStorage\\eventImages");
+    private final Path rootReferendumLocation = Paths.get("D:\\MyProjectsJAVA\\SmolyanVote\\imageStorage\\referendumImages");
 
     public ImageStorageServiceImpl() {
         try {
@@ -52,4 +54,35 @@ public class ImageStorageServiceImpl implements ImageStorageService {
             throw new RuntimeException("Неуспешно запазване на файл за събитие с ID: " + eventId, e);
         }
     }
+
+
+    @Override
+    public String saveSingleReferendumImage(MultipartFile file, Long referendumId) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        try {
+            // Създаваме директорията за референдума
+            Path referendumDir = rootReferendumLocation.resolve("referendum_" + referendumId);
+            Files.createDirectories(referendumDir);
+
+            // Генерираме уникално име за файла
+            String originalFilename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+
+            String extension = originalFilename.contains(".") ?
+                    originalFilename.substring(originalFilename.lastIndexOf(".")) : "";
+
+            String uniqueName = UUID.randomUUID().toString() + extension;
+            Path destinationFile = referendumDir.resolve(uniqueName).normalize();
+
+            // Копираме файла
+            Files.copy(file.getInputStream(), destinationFile, StandardCopyOption.REPLACE_EXISTING);
+
+            // Връщаме правилен относителен URL
+            return "/images/referendumImages/referendum_" + referendumId + "/" + uniqueName;
+        } catch (IOException e) {
+            throw new RuntimeException("Неуспешно запазване на файл за референдум с ID: " + referendumId, e);
+        }
+    }
+
 }

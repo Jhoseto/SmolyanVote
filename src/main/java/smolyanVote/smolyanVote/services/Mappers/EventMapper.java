@@ -3,7 +3,7 @@ package smolyanVote.smolyanVote.services.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
-import smolyanVote.smolyanVote.models.EventImageEntity;
+import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.EventImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -44,11 +44,11 @@ public class EventMapper {
         }
 
         // Снимки
-        List<EventImageEntity> images = imageRepository.findByEventId(event.getId());
+        List<SimpleEventImageEntity> images = imageRepository.findByEventId(event.getId());
 
         if (images != null && !images.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
-            for (EventImageEntity image : images) {
+            for (SimpleEventImageEntity image : images) {
                 imageUrls.add(image.getImageUrl()); // Get the image URL
             }
             view.setImageUrls(imageUrls);

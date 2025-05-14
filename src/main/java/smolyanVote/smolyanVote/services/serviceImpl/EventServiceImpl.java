@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
-import smolyanVote.smolyanVote.models.EventImageEntity;
+import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.EventRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -118,7 +118,7 @@ public class EventServiceImpl implements EventService {
                     String imagePath = imageStorageService.saveSingleImage(file, 0L);
                     imagePaths.add(imagePath);
 
-                    EventImageEntity imageEntity = new EventImageEntity();
+                    SimpleEventImageEntity imageEntity = new SimpleEventImageEntity();
                     imageEntity.setImageUrl(imagePath);
                     imageEntity.setEvent(simpleEventEntity);
                     simpleEventEntity.getImages().add(imageEntity);  // Добавяне директно към списъка
@@ -128,7 +128,7 @@ public class EventServiceImpl implements EventService {
 
         // Ако няма качени изображения, добавяме default
         if (simpleEventEntity.getImages().isEmpty()) {
-            EventImageEntity defaultImage = new EventImageEntity();
+            SimpleEventImageEntity defaultImage = new SimpleEventImageEntity();
             defaultImage.setImageUrl("/images/eventImages/defaultEvent.png");
             defaultImage.setEvent(simpleEventEntity);
             simpleEventEntity.getImages().add(defaultImage);
