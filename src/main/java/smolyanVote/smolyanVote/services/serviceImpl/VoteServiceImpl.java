@@ -81,4 +81,20 @@ public class VoteServiceImpl implements VoteService {
     public VoteEntity findByUserIdAndEventId(Long userId, Long eventId) {
         return voteRepository.findByUserIdAndEventId(userId, eventId).orElse(null);
     }
+
+
+
+    @Override
+    public Integer findVoteByReferendumIdAndUserEmail(Long referendumId, String userEmail) {
+        return voteRepository.findByEventIdAndUserEmail(referendumId, userEmail)
+                .map(vote -> {
+                    try {
+                        return Integer.parseInt(vote.getVoteValue());
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                })
+                .orElse(null);
+    }
+
 }

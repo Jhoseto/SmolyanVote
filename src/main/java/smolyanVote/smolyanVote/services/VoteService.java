@@ -9,4 +9,6 @@ public interface VoteService {
     void recordVote(Long eventId, String voteValue, String userEmail);
 
     VoteEntity findByUserIdAndEventId(Long userId, Long eventId);
+
+    Integer findVoteByReferendumIdAndUserEmail(Long referendumId, String userEmail);
 }

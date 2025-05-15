@@ -12,7 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("http://213.91.128.33:2662")
+                .allowedOriginPatterns("http://165.232.69.250:2662")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true)
                 .maxAge(3600);
@@ -33,6 +33,10 @@ public class WebConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/images/eventImg/**")
                 .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/eventImages/")
+                .setCachePeriod(0); // Disable caching
+
+        registry.addResourceHandler("/images/referendumImages/**")
+                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/referendumImages/")
                 .setCachePeriod(0); // Disable caching
     }
 }

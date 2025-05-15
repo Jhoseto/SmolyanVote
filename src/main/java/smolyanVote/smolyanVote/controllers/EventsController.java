@@ -46,10 +46,8 @@ public class EventsController {
                                 @RequestParam(defaultValue = "6") int size,
                                 Model model) {
 
-        //TODO Delete All Comments
-        //commentsService.deleteAllComments();
 
-
+        //eventService.getAllEvents();
         Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);

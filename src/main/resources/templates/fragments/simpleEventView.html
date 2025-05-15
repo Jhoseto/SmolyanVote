@@ -49,7 +49,7 @@
       <div class="mb-2">
         <small class="text-muted">
           Създадено на:
-          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">01.01.2025</span>
+          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата</span>
         </small>
       </div>
 
@@ -62,11 +62,19 @@
       </div>
 
       <!-- Ако потребителят е логнат -->
-      <a th:if="${#authorization.expression('isAuthenticated()')}"
-         th:href="@{/event/{id}(id=${event.id})}"
-         class="btn btn-custom">
-        Виж повече
-      </a>
+      <div th:if="${#authorization.expression('isAuthenticated()')}">
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
+           th:href="@{/event/{id}(id=${event.id})}"
+           class="btn btn-custom">
+          Виж повече
+        </a>
+
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
+           th:href="@{/referendum/{id}(id=${event.id})}"
+           class="btn btn-custom">
+          Виж повече
+        </a>
+      </div>
 
       <!-- Ако потребителят НЕ е логнат -->
       <a th:if="${#authorization.expression('!isAuthenticated()')}"

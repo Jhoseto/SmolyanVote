@@ -2,18 +2,18 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.EventRepository;
+import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.Mappers.EventMapper;
@@ -35,45 +35,69 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final UserService userService;
     private final ImageStorageServiceImpl imageStorageService;
+    private final ReferendumRepository referendumRepository;
 
     @Autowired
     public EventServiceImpl(EventRepository eventRepository,
                             UserRepository userRepository,
                             EventMapper eventMapper,
                             UserService userService,
-                            ImageStorageServiceImpl imageStorageService) {
+                            ImageStorageServiceImpl imageStorageService,
+                            ReferendumRepository referendumRepository) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
         this.eventMapper = eventMapper;
         this.userService = userService;
         this.imageStorageService = imageStorageService;
+        this.referendumRepository = referendumRepository;
     }
 
 
     @Transactional(readOnly = true)
     @Override
     public Page<EventView> getPaginatedEvents(int page, int size) {
-        // Pageable обект
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
+        // Взимане на всички SimpleEventEntity и ReferendumEntity
+        List<SimpleEventEntity> simpleEvents = eventRepository.findAll();
+        List<ReferendumEntity> referendums = referendumRepository.findAll();
 
-        //  пагинирани събития от репозитория
-        Page<SimpleEventEntity> eventPage = eventRepository.findAll(pageable);
+        // Мапваме към общия EventView (или създай подходящ метод)
+        List<EventView> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapToView).toList());
+        allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
 
-        return eventPage.map(eventMapper::mapToView);
+        // Сортиране по дата
+        allEvents.sort(Comparator.comparing(EventView::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        // Ръчна пагинация
+        int start = page * size;
+        int end = Math.min(start + size, allEvents.size());
+        List<EventView> paginated = allEvents.subList(start, end);
+
+        return new PageImpl<>(paginated, PageRequest.of(page, size), allEvents.size());
     }
 
 
 
+
     @Override
-    @Transactional(readOnly = true)
+    @Transactional()
     public List<EventView> getAllEvents() {
         List<SimpleEventEntity> events = eventRepository.findAll();
+
+//        //TODO type
+//        for (SimpleEventEntity event : events) {
+//            event.setEventType(EventType.SIMPLEEVENT);
+//            eventRepository.save(event);
+//        }
 
         return events.stream()
                 .sorted(Comparator.comparing(SimpleEventEntity::getCreatedAt).reversed()) // Сортиране по дата
                 .map(eventMapper::mapToView) //  метода от EventMapper
                 .collect(Collectors.toList());
     }
+
+
 
     @Override
     public EventView getEventById(Long id) {

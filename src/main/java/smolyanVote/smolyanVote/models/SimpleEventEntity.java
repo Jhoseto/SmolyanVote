@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
@@ -9,11 +10,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "events")
-public class SimpleEventEntity {
+public class SimpleEventEntity extends BaseEventEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Enumerated(EnumType.STRING)
+    private final EventType eventType = EventType.SIMPLEEVENT;
+
     private String title;
 
     @Column(length = 2000)
@@ -49,13 +50,7 @@ public class SimpleEventEntity {
         this.images = images;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public EventType getEventType() {return eventType;}
 
     public String getTitle() {
         return title;

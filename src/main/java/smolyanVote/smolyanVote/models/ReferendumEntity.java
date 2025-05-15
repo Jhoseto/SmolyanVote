@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
@@ -13,6 +14,11 @@ public class ReferendumEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private final EventType eventType = EventType.REFERENDUM;
+
     private String title;
 
     @Column(length = 2000)
@@ -23,6 +29,7 @@ public class ReferendumEntity {
 
     private Instant createdAt;
     private String creatorName;
+
 
     @OneToMany(mappedBy = "referendum", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReferendumImageEntity> images = new ArrayList<>();
@@ -55,6 +62,8 @@ public class ReferendumEntity {
     public Long getId() { return id; }
 
     public void setId(Long id) { this.id = id; }
+
+    public EventType getEventType() {return eventType;}
 
     public String getTitle() { return title; }
 

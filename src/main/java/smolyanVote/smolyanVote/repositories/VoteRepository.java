@@ -14,11 +14,7 @@ import java.util.Optional;
 public interface VoteRepository extends JpaRepository<VoteEntity, Long> {
     boolean existsByUserAndEvent(UserEntity user, SimpleEventEntity event);
 
-    long countByEvent(SimpleEventEntity event);
-
-    boolean existsByUserIdAndEventId(long id, Long id1);
-
-    List<VoteEntity> findAllByEventId(Long id);
+    Optional<VoteEntity> findByEventIdAndUserEmail(Long eventId, String userEmail);
 
     Optional<VoteEntity> findByUserIdAndEventId(Long userId, Long eventId);
 }

@@ -4,11 +4,8 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "referendum_images")
-public class ReferendumImageEntity {
+public class ReferendumImageEntity extends BaseEventEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     private String imageUrl;
 
@@ -23,15 +20,6 @@ public class ReferendumImageEntity {
         this.id = id;
         this.imageUrl = imageUrl;
         this.referendum = referendum;
-    }
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getImageUrl() {

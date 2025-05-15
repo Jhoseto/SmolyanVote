@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
@@ -9,6 +10,7 @@ import java.util.List;
 public class EventView {
 
     private Long id;
+    private EventType eventType;
     private String title;
     private String description;
 
@@ -41,6 +43,10 @@ public class EventView {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public EventType getEventType() {return eventType;}
+
+    public void setEventType(EventType eventType) {this.eventType = eventType;}
 
     public String getTitle() {
         return title;

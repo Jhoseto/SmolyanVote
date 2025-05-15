@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "smolyanVote"
-version = "0.0.1-SNAPSHOT"
+version = "1"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
@@ -40,6 +40,8 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok")
 	implementation("org.owasp.encoder:encoder:1.2.3")
 	implementation("org.apache.tika:tika-core:3.1.0")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
+
 
 	// Springdoc OpenAPI (замяна на Springfox)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
@@ -70,3 +72,4 @@ configurations {
 tasks.withType<JavaCompile> {
 	options.compilerArgs.add("-Xlint:unchecked")
 }
+
