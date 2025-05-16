@@ -53,9 +53,11 @@ public class ApplicationSecurityConfiguration {
                                 "/registration",
                                 "/register",
                                 "/about",
-                                "/user/login",
                                 "/login",
-                                "/confirm",
+                                "/logout",
+                                "/user/login",
+                                "/user/logout",
+                                "/confirm/**",
                                 "/mainEvents",
                                 "/mainEventPage",
                                 "/event",
@@ -88,16 +90,6 @@ public class ApplicationSecurityConfiguration {
                         .anyRequest().denyAll()
                 )
 
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login")
-                        .usernameParameter("email")
-                        .passwordParameter("password")
-                        .defaultSuccessUrl("/index", true)
-                        .failureUrl("/login?error=true")
-                        .permitAll()
-                )
-
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler)
@@ -126,6 +118,7 @@ public class ApplicationSecurityConfiguration {
                             String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
                             response.sendRedirect("/login?authError=" + msg);
                         })
+
                 )
 
 

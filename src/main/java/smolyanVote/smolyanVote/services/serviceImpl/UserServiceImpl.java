@@ -98,6 +98,11 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
+    @Override
+    public boolean checkPassword(UserEntity user, String rawPassword) {
+        return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -243,7 +248,6 @@ public class UserServiceImpl implements UserService {
         UserRole userRole = UserRole.USER;
         UserEntity newUser = new UserEntity();
         String confirmationCode = generateConfirmationCode();
-        String confirmationLink = confirmationLinkService.generateConfirmationLink(newUser);
         String defaultUserImage = "https://res.cloudinary.com/dgescxzjk/image/upload/v1747385586/default_user_vtabqo.jpg";
 
         newUser.setUsername(userRegistrationViewModel.getUsername())
@@ -255,7 +259,8 @@ public class UserServiceImpl implements UserService {
                 .setRole(userRole);
         setCurrentTimeStamps(newUser);
         userRepository.save(newUser);
-        emailService.sendConfirmationEmail(newUser.getEmail(), confirmationLink + newUser.getUserConfirmationCode());
+
+        emailService.sendConfirmationEmail(newUser.getEmail());
 
         System.out.println("Email sent to " + newUser.getEmail());
     }

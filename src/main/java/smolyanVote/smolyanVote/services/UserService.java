@@ -23,6 +23,8 @@ public interface UserService {
 
     Optional<UserEntity> findUserByUsername(String username);
 
+    boolean checkPassword(UserEntity user, String rawPassword);
+
     List<UserProfileViewModel> getAllUsers();
 
     UserEntity getCurrentUser();

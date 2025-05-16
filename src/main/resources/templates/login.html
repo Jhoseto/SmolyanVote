@@ -18,19 +18,18 @@
     }
   </style>
 </head>
-<body>
+<body >
 
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <main>
 
-  <section class="hero">
+  <section class="hero" style="background-image: url('/images/web/login.webp'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh;">
     <div class="container">
-      <h2 class="text-center mb-4">Вход в системата</h2>
-
 
       <form th:action="@{/login}" method="post" autocomplete="on" class="mx-auto" style="max-width: 400px;">
+        <h2 class="text-center mb-4">Вход в системата</h2>
         <div class="mb-3">
           <label for="email" class="form-label">Имейл</label>
           <input type="email" name="email" class="form-control" id="email" placeholder="Въведете имейл" required>
@@ -49,18 +48,14 @@
         <button type="submit" class="btn btn-success w-100">Вход</button>
 
         <!-- Грешки -->
-        <div th:if="${param.error}" class="alert alert-danger mt-3" role="alert">
-          Невалиден имейл или парола.
+        <div th:if="${error}" class="error-message">
+          <p th:text="${error}"></p>
         </div>
-        <div th:if="${param.logout}" class="alert alert-success mt-3" role="alert">
-          Успешно излязохте от системата.
-        </div>
-        <div th:if="${param.authError}" class="alert alert-warning mt-3" role="alert"
-             th:text="${param.authError}">
-          Моля влезте в профила си или се регистрирайте за да продължите!
-        </div>
-      </form>
+        <!-- Успешно потвърждение -->
+        <div th:if="${message}" class="alert alert-success mt-3" role="alert" th:text="${message}"></div>
+        <div th:if="${param.authError}" class="alert alert-warning mt-3" role="alert" th:text="${param.authError}"></div>
 
+      </form>
     </div>
   </section>
 </main>

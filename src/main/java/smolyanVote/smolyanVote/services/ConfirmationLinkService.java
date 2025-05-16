@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.UserEntity;
 
@@ -9,17 +10,12 @@ import smolyanVote.smolyanVote.models.UserEntity;
  */
 @Service
 public class ConfirmationLinkService {
-    public String generateConfirmationLink(UserEntity user) {
 
-        /**
-         * Generates a confirmation link for a given user.
-         *
-         * @param user The user object for which the link is generated
-         * @return Confirmation link to the user account
-         */
-        String confirmationLink = "http://165.232.69.250:2662/confirm?userId="+ "&code=";
+    private String serverUrl = "http://165.232.69.250:2662";
 
-        return confirmationLink;
+    public String generateConfirmationLink(Long userId, String code) {
+        // Създаване на линк за потвърждение с userId и код
+        return serverUrl + "/confirm?userId=" + userId + "&code=" + code;
     }
 }
 //https://213.91.128.33:2662
