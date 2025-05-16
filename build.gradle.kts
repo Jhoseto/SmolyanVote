@@ -42,11 +42,13 @@ dependencies {
 	implementation("org.apache.tika:tika-core:3.1.0")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+	//Cloudinary Images
 	implementation("com.cloudinary:cloudinary-http5:2.0.0")
 	implementation("com.cloudinary:cloudinary-taglib:2.0.0")
 	implementation("io.github.cdimascio:dotenv-java:2.2.4")
 
-
+	//email
+	implementation("com.mailjet:mailjet-client:5.2.6")
 	// Springdoc OpenAPI (замяна на Springfox)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 
