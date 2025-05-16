@@ -50,37 +50,45 @@ public class LoginController {
 
         Optional<UserEntity> userOptional = userService.findUserByEmail(userModel.getEmail());
 
-        if (userOptional.isPresent()) {
-            UserEntity user = userOptional.get();
-
-            if (user.isActive()) {
-                Authentication authentication = userService.authenticateUser(userModel.getEmail(), userModel.getPassword());
-
-                if (authentication != null) {
-                    // Актуализиране на последното време за активност
-                    user.setLastOnline(Instant.now());
-                    userRepository.save(user);
-
-                    // Ако е избрана опцията "Запомни ме", се записва в cookies
-                    if (userModel.isRememberMe()) {
-                        rememberMeServices.loginSuccess(request, response, authentication);
-                    }
-
-                    return "redirect:/mainEvents";
-                } else {
-                    // Грешна парола
-                    redirectAttributes.addFlashAttribute("error", "Грешна парола!");
-                    return "redirect:/login";
-                }
-            } else {
-                // Потребителят не е активиран
-                redirectAttributes.addFlashAttribute("error", "Вашият акаунт не е активен. За да го активирате, кликнете на изпратения от нас ЛИНК за активация.");
-                return "redirect:/login";
-            }
-        } else {
-            // Потребител с този имейл не е намерен
-            redirectAttributes.addFlashAttribute("error", "Потребител с Имейл -> " + userModel.getEmail() + " не е намерен в системата!");
+        if (userOptional.isEmpty()) {
+            // Потребителят не е намерен по имейл
+            redirectAttributes.addFlashAttribute("error", "Невалиден имейл адрес: " + userModel.getEmail());
             return "redirect:/login";
         }
+
+        UserEntity user = userOptional.get();
+
+        if (!user.isActive()) {
+            // Акаунтът не е активиран
+            redirectAttributes.addFlashAttribute("error", "Вашият акаунт не е активен. Моля, активирайте го чрез изпратения имейл.");
+            return "redirect:/login";
+        }
+
+        // Проверка на паролата
+        if (!userService.checkPassword(user, userModel.getPassword())) {
+            redirectAttributes.addFlashAttribute("error", "Грешна парола!");
+            return "redirect:/login";
+        }
+
+        // Всичко е наред – автентикация
+        Authentication authentication = userService.authenticateUser(userModel.getEmail(), userModel.getPassword());
+
+        if (authentication != null) {
+            // Обновяване на последно влизане
+            user.setLastOnline(Instant.now());
+            userRepository.save(user);
+
+            // Remember Me логика
+            if (userModel.isRememberMe()) {
+                rememberMeServices.loginSuccess(request, response, authentication);
+            }
+
+            return "redirect:/index";
+        }
+
+        // Резервен fallback – не трябва да се стига дотук
+        redirectAttributes.addFlashAttribute("error", "Възникна неочаквана грешка. Моля, опитайте отново.");
+        return "redirect:/login";
     }
+
 }

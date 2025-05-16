@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 
 import java.io.IOException;
+import java.time.Instant;
 
 @Component
 public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
@@ -28,6 +29,7 @@ public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
             String email = ((org.springframework.security.core.userdetails.User) authentication.getPrincipal()).getUsername();
             UserEntity user = userRepository.findByEmail(email).orElse(null);
             if (user != null) {
+                user.setLastOnline(Instant.now());
                 user.setOnlineStatus(0);
                 userRepository.save(user);
             }
