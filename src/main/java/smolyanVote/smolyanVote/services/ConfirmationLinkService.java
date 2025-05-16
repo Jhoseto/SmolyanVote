@@ -17,7 +17,7 @@ public class ConfirmationLinkService {
          * @param user The user object for which the link is generated
          * @return Confirmation link to the user account
          */
-        String confirmationLink = "http://213.91.128.33:2662/confirm?userId="+ "&code=";
+        String confirmationLink = "http://165.232.69.250:2662/confirm?userId="+ "&code=";
 
         return confirmationLink;
     }

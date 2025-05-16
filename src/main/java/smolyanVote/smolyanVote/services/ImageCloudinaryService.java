@@ -2,9 +2,9 @@ package smolyanVote.smolyanVote.services;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+public interface ImageCloudinaryService {
 
-public interface ImageStorageService {
+    String saveUserImage(MultipartFile file, String username);
 
     String saveSingleImage(MultipartFile file, Long eventId);
 

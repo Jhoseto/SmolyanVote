@@ -48,8 +48,8 @@ public class EmailService {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
 
         mailMessage.setTo(recipientEmail);
-        mailMessage.setSubject("SmolyanVote.bg - Потвърждение на регистрация");
-        mailMessage.setText("Кликнете на линка за да потвърдите вашият Email адрес.\n"+confirmationLink);
+        mailMessage.setSubject("SmolyanVote.bg - Забравена парола");
+        mailMessage.setText("Кликнете на линка за да потвърдите,че искате да запаметите нова парола.\n"+confirmationLink);
 
         emailSender.send(mailMessage);
     }

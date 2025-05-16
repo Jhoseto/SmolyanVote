@@ -10,19 +10,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.ConfirmationLinkService;
+import smolyanVote.smolyanVote.services.EmailService;
 import smolyanVote.smolyanVote.services.Mappers.UsersMapper;
 import smolyanVote.smolyanVote.services.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
+import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,19 +39,25 @@ public class UserServiceImpl implements UserService {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final UsersMapper usersMapper;
-
-
-    private final Path imageRootPath = Paths.get("D:\\MyProjectsJAVA\\SmolyanVote\\imageStorage\\userImages");
+    private final ImageCloudinaryServiceImpl imageStorageService;
+    private final ConfirmationLinkService confirmationLinkService;
+    private final EmailService emailService;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            UserDetailsService userDetailsService,
-                           UsersMapper usersMapper) {
+                           UsersMapper usersMapper,
+                           ImageCloudinaryServiceImpl imageStorageService,
+                           ConfirmationLinkService confirmationLinkService,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userDetailsService = userDetailsService;
         this.usersMapper = usersMapper;
+        this.imageStorageService = imageStorageService;
+        this.confirmationLinkService = confirmationLinkService;
+        this.emailService = emailService;
     }
 
     /**
@@ -228,50 +235,72 @@ public class UserServiceImpl implements UserService {
     }
 
 
+
+    //CREATE NEW USER
+    @Override
+    public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
+
+        UserRole userRole = UserRole.USER;
+        UserEntity newUser = new UserEntity();
+        String confirmationCode = generateConfirmationCode();
+        String confirmationLink = confirmationLinkService.generateConfirmationLink(newUser);
+        String defaultUserImage = "http://res.cloudinary.com/dgescxzjk/image/upload/v1747377635/smolyanVote/default_images/default_user.jpg";
+
+        newUser.setUsername(userRegistrationViewModel.getUsername())
+                .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
+                .setEmail(userRegistrationViewModel.getEmail())
+                .setActive(false)
+                .setImageUrl(defaultUserImage)
+                .setUserConfirmationCode(confirmationCode)
+                .setRole(userRole);
+        setCurrentTimeStamps(newUser);
+        userRepository.save(newUser);
+        emailService.sendConfirmationEmail(newUser.getEmail(), confirmationLink + newUser.getUserConfirmationCode());
+
+        System.out.println("Email sent to " + newUser.getEmail());
+    }
+    // Функция за поставяне на времеви печати
+    private static void setCurrentTimeStamps(BaseEntity baseEntity) {
+        baseEntity.setCreated(Instant.now());
+        baseEntity.setModified(Instant.now());
+    }
+    // Генериране на уникален код за потвърждение
+    private String generateConfirmationCode() {
+        return UUID.randomUUID().toString();
+    }
+
+
+
+
     @Override
     public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
 
+        // Обновяване на биографията
         if (bio != null && !bio.equals(user.getBio())) {
             user.setBio(bio);
         }
 
-        if (location != null && !location.equals(user.getLocation())) {
+        // Обновяване на местоположението
+        if (location != null && location != Locations.NONE && !location.equals(user.getLocation())) {
             user.setLocation(location);
         }
 
+        // Обработка на ново изображение
         if (newImage != null && !newImage.isEmpty()) {
-            Path userFolder = imageRootPath.resolve(user.getUsername());
-
-            if (!Files.exists(userFolder)) {
-                Files.createDirectories(userFolder);
+            // Изтриване на старата снимка от Cloudinary, ако съществува
+            if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+                imageStorageService.deleteImage(user.getImageUrl());
             }
 
-            // Изтриване на старата снимка, ако съществува
-            if (!user.getImageUrl().isEmpty()) {
-                Path oldImagePath = userFolder.resolve(Paths.get(user.getImageUrl()).getFileName().toString());
-
-                if (Files.exists(oldImagePath)) {
-                    Files.delete(oldImagePath);
-
-                    // Генериране на ново уникално име за изображението
-                    String extension = Optional.ofNullable(newImage.getOriginalFilename())
-                            .filter(name -> name.contains("."))
-                            .map(name -> name.substring(name.lastIndexOf(".")))
-                            .orElse("");
-                    String filename = UUID.randomUUID() + extension;
-
-                    Path newImagePath = userFolder.resolve(filename);
-                    Files.copy(newImage.getInputStream(), newImagePath, StandardCopyOption.REPLACE_EXISTING);
-
-                    String publicImagePath = "/images/usersImg/" + user.getUsername() + "/" + filename;
-                    user.setImageUrl(publicImagePath);
-
-                }
-
-            }
+            // Качване на новата снимка
+            String imageUrl = imageStorageService.saveUserImage(newImage, user.getUsername());
+            user.setImageUrl(imageUrl);
         }
+
+        // Запазване на обновените данни
         userRepository.save(user);
     }
+
 }

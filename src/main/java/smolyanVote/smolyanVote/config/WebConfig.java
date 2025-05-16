@@ -25,19 +25,19 @@ public class WebConfig implements WebMvcConfigurer {
 //// Изключване на кеширането на статичните ресурси в тази директория за
 //// да може да се актуализират профилните снимки от потребителите.
 //// Единствения вариант за сега...
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/images/usersImg/**")
-                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/userImages/")
-                .setCachePeriod(0); // Disable caching
-
-        registry.addResourceHandler("/images/eventImg/**")
-                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/eventImages/")
-                .setCachePeriod(0); // Disable caching
-
-        registry.addResourceHandler("/images/referendumImages/**")
-                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/referendumImages/")
-                .setCachePeriod(0); // Disable caching
-    }
+//    @Override
+//    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+//        registry.addResourceHandler("/images/usersImg/**")
+//                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/userImages/")
+//                .setCachePeriod(0); // Disable caching
+//
+//        registry.addResourceHandler("/images/eventImg/**")
+//                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/eventImages/")
+//                .setCachePeriod(0); // Disable caching
+//
+//        registry.addResourceHandler("/images/referendumImages/**")
+//                .addResourceLocations("file:/D:/MyProjectsJAVA/SmolyanVote/imageStorage/referendumImages/")
+//                .setCachePeriod(0); // Disable caching
+//    }
 }
 

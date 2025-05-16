@@ -5,6 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
+import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +37,9 @@ public interface UserService {
 
 
     UserProfileViewModel getUserByUsername(String userName);
+
+    //CREATE NEW USER
+    void createNewUser(UserRegistrationViewModel userRegistrationViewModel);
 
     void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException;
 

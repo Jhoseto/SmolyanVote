@@ -24,14 +24,14 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     private final ReferendumRepository referendumRepository;
     private final ReferendumImageRepository imageRepository;
-    private final ImageStorageServiceImpl imageStorageService;
+    private final ImageCloudinaryServiceImpl imageStorageService;
     private final UserRepository userRepository;
     private final CommentsServiceImpl commentsService;
     private final VoteServiceImpl referendumVoteService;
 
     public ReferendumServiceImpl(ReferendumRepository referendumRepository,
                                  ReferendumImageRepository imageRepository,
-                                 ImageStorageServiceImpl imageStorageService,
+                                 ImageCloudinaryServiceImpl imageStorageService,
                                  UserRepository userRepository,
                                  CommentsServiceImpl commentsService,
                                  VoteServiceImpl referendumVoteService) {

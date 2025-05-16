@@ -45,7 +45,7 @@
         <form th:action="@{/create}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
                 <label for="title" class="form-label">Заглавие</label>
-                <input type="text" class="form-control" id="title" name="title" required maxlength="100">
+                <input type="text" class="form-control" id="title" name="title" required maxlength="150">
             </div>
 
             <div class="mb-3">
@@ -85,17 +85,17 @@
 
             <div class="mb-3">
                 <label for="positiveLabel" class="form-label">Дума за положителен вот (ЗА)</label>
-                <input type="text" class="form-control" id="positiveLabel" name="positiveLabel" required maxlength="20" placeholder="Напр. Подкрепям">
+                <input type="text" class="form-control" id="positiveLabel" name="positiveLabel" required maxlength="80" placeholder="Напр. Подкрепям">
             </div>
 
             <div class="mb-3">
                 <label for="negativeLabel" class="form-label">Дума за отрицателен вот (ПРОТИВ)</label>
-                <input type="text" class="form-control" id="negativeLabel" name="negativeLabel" required maxlength="20" placeholder="Напр. Против съм">
+                <input type="text" class="form-control" id="negativeLabel" name="negativeLabel" required maxlength="80" placeholder="Напр. Против съм">
             </div>
 
             <div class="mb-3">
                 <label for="neutralLabel" class="form-label">Дума за неутрален вот (ВЪЗДЪРЖАЛ СЕ)</label>
-                <input type="text" class="form-control" id="neutralLabel" name="neutralLabel" required maxlength="20" placeholder="Напр. Без мнение">
+                <input type="text" class="form-control" id="neutralLabel" name="neutralLabel" required maxlength="80" placeholder="Напр. Без мнение">
             </div>
 
             <div class="text-center">

@@ -11,7 +11,6 @@ import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.EventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -34,7 +33,7 @@ public class EventServiceImpl implements EventService {
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
     private final UserService userService;
-    private final ImageStorageServiceImpl imageStorageService;
+    private final ImageCloudinaryServiceImpl imageStorageService;
     private final ReferendumRepository referendumRepository;
 
     @Autowired
@@ -42,7 +41,7 @@ public class EventServiceImpl implements EventService {
                             UserRepository userRepository,
                             EventMapper eventMapper,
                             UserService userService,
-                            ImageStorageServiceImpl imageStorageService,
+                            ImageCloudinaryServiceImpl imageStorageService,
                             ReferendumRepository referendumRepository) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
@@ -85,11 +84,6 @@ public class EventServiceImpl implements EventService {
     public List<EventView> getAllEvents() {
         List<SimpleEventEntity> events = eventRepository.findAll();
 
-//        //TODO type
-//        for (SimpleEventEntity event : events) {
-//            event.setEventType(EventType.SIMPLEEVENT);
-//            eventRepository.save(event);
-//        }
 
         return events.stream()
                 .sorted(Comparator.comparing(SimpleEventEntity::getCreatedAt).reversed()) // Сортиране по дата
@@ -139,13 +133,15 @@ public class EventServiceImpl implements EventService {
         if (files != null && files.length > 0) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
-                    String imagePath = imageStorageService.saveSingleImage(file, 0L);
+                    // Взимаме ID на събитието след запазване в базата
+                    SimpleEventEntity savedEvent = eventRepository.save(simpleEventEntity);
+                    String imagePath = imageStorageService.saveSingleImage(file, savedEvent.getId());
                     imagePaths.add(imagePath);
 
                     SimpleEventImageEntity imageEntity = new SimpleEventImageEntity();
                     imageEntity.setImageUrl(imagePath);
-                    imageEntity.setEvent(simpleEventEntity);
-                    simpleEventEntity.getImages().add(imageEntity);  // Добавяне директно към списъка
+                    imageEntity.setEvent(savedEvent);
+                    savedEvent.getImages().add(imageEntity);
                 }
             }
         }
@@ -166,9 +162,6 @@ public class EventServiceImpl implements EventService {
     }
 
 
-
-
-
     @Transactional(readOnly = true)
     @Override
     public List<EventView> getUserEvents(String email) {
@@ -181,9 +174,6 @@ public class EventServiceImpl implements EventService {
                 .map(eventMapper::mapToView)
                 .collect(Collectors.toList());
     }
-
-
-
 
 
     @Override

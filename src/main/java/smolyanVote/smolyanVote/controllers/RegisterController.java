@@ -16,6 +16,7 @@ import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
 import smolyanVote.smolyanVote.services.EmailService;
+import smolyanVote.smolyanVote.services.serviceImpl.UserServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 
 import java.time.Instant;
@@ -24,20 +25,14 @@ import java.util.*;
 @Controller
 public class RegisterController {
 
-    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final ConfirmationLinkService confirmationLinkService;
-    private final EmailService emailService;
+    private final UserServiceImpl userService;
 
     @Autowired
-    public RegisterController(PasswordEncoder passwordEncoder,
-                              UserRepository userRepository,
-                              ConfirmationLinkService confirmationLinkService,
-                              EmailService emailService) {
-        this.passwordEncoder = passwordEncoder;
+    public RegisterController(UserRepository userRepository,
+                              UserServiceImpl userService) {
         this.userRepository = userRepository;
-        this.confirmationLinkService = confirmationLinkService;
-        this.emailService = emailService;
+        this.userService = userService;
     }
 
     // Показване на регистрационната форма
@@ -91,43 +86,10 @@ public class RegisterController {
                     "Регистрацията е успешна!\nМоля проверете вашия Имейл за да активирате вашия профил.");
 
 
-            intUsers(userRegistrationViewModel);
+            userService.createNewUser(userRegistrationViewModel);
 
         }
         return "redirect:/register";
     }
 
-
-
-    private void intUsers(UserRegistrationViewModel userRegistrationViewModel) {
-
-        UserRole userRole = UserRole.USER;
-        UserEntity newUser = new UserEntity();
-        String confirmationCode = generateConfirmationCode();
-        String confirmationLink = confirmationLinkService.generateConfirmationLink(newUser);
-
-        newUser.setUsername(userRegistrationViewModel.getUsername())
-                .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
-                .setEmail(userRegistrationViewModel.getEmail())
-                .setActive(false)
-                .setImageUrl(null)
-                .setUserConfirmationCode(confirmationCode)
-                .setRole(userRole);
-        setCurrentTimeStamps(newUser);
-        userRepository.save(newUser);
-        emailService.sendConfirmationEmail(newUser.getEmail(), confirmationLink + newUser.getUserConfirmationCode());
-
-        System.out.println("Email sent to " + newUser.getEmail());
-    }
-
-    // Функция за поставяне на времеви печати
-    public static void setCurrentTimeStamps(BaseEntity baseEntity) {
-        baseEntity.setCreated(Instant.now());
-        baseEntity.setModified(Instant.now());
-    }
-
-    // Генериране на уникален код за потвърждение
-    private String generateConfirmationCode() {
-        return UUID.randomUUID().toString();
-    }
 }

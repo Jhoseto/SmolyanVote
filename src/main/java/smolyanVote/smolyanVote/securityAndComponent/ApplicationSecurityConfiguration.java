@@ -78,8 +78,7 @@ public class ApplicationSecurityConfiguration {
                                 "/create",
                                 "/event/**",
                                 "/createEvent",
-                                "/createNewEvent",
-                                "/user/logout",
+                                "/createNewEvent", "/user/logout",
                                 "/user/profile/**",
                                 "/user/dashboard/**")
                         .authenticated()
