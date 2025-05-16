@@ -98,6 +98,7 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
+
     @Override
     public boolean checkPassword(UserEntity user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPassword());
