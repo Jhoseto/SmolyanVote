@@ -25,15 +25,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не беше намерен"));
-
-        if (!user.isActive()) {
-            throw new DisabledException("Вашият акаунт не е активиран. Проверете имейла си за потвърждение.");
-        }
-
         user.setOnlineStatus(1);
         userRepository.save(user);
 
-        return new CustomUserDetails(user.getEmail(), user.getPassword(), user);
+        // Връщаме потребителя, като използваме имейла и паролата
+        return User.withUsername(user.getEmail())
+                .password(user.getPassword()) // паролата е вече хеширана в базата данни
+                .roles(user.getRole().name()) // роли на потребителя
+                .build();
     }
 
 

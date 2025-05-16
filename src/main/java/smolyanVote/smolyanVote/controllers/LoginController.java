@@ -5,7 +5,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,7 +53,6 @@ public class LoginController {
         Optional<UserEntity> userOptional = userService.findUserByEmail(userModel.getEmail());
 
         if (userOptional.isEmpty()) {
-            // Потребителят не е намерен по имейл
             redirectAttributes.addFlashAttribute("error", "Невалиден имейл адрес: " + userModel.getEmail());
             return "redirect:/login";
         }
@@ -59,26 +60,31 @@ public class LoginController {
         UserEntity user = userOptional.get();
 
         if (!user.isActive()) {
-            // Акаунтът не е активиран
             redirectAttributes.addFlashAttribute("error", "Вашият акаунт не е активен. Моля, активирайте го чрез изпратения имейл.");
             return "redirect:/login";
         }
 
-        // Проверка на паролата
         if (!userService.checkPassword(user, userModel.getPassword())) {
             redirectAttributes.addFlashAttribute("error", "Грешна парола!");
             return "redirect:/login";
         }
 
-        // Всичко е наред – автентикация
         Authentication authentication = userService.authenticateUser(userModel.getEmail(), userModel.getPassword());
 
         if (authentication != null) {
-            // Обновяване на последно влизане
+            // 1. Set в SecurityContextHolder
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            request.getSession().setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+            );
+
+            // 3. Обновяване на последно влизане
             user.setLastOnline(Instant.now());
             userRepository.save(user);
 
-            // Remember Me логика
+            // 4. Remember Me
             if (userModel.isRememberMe()) {
                 rememberMeServices.loginSuccess(request, response, authentication);
             }
@@ -86,9 +92,9 @@ public class LoginController {
             return "redirect:/index";
         }
 
-        // Резервен fallback – не трябва да се стига дотук
         redirectAttributes.addFlashAttribute("error", "Възникна неочаквана грешка. Моля, опитайте отново.");
         return "redirect:/login";
     }
+
 
 }
