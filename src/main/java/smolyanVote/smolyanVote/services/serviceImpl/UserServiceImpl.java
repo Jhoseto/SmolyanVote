@@ -244,7 +244,7 @@ public class UserServiceImpl implements UserService {
         UserEntity newUser = new UserEntity();
         String confirmationCode = generateConfirmationCode();
         String confirmationLink = confirmationLinkService.generateConfirmationLink(newUser);
-        String defaultUserImage = "http://res.cloudinary.com/dgescxzjk/image/upload/v1747377635/smolyanVote/default_images/default_user.jpg";
+        String defaultUserImage = "https://res.cloudinary.com/dgescxzjk/image/upload/v1747385586/default_user_vtabqo.jpg";
 
         newUser.setUsername(userRegistrationViewModel.getUsername())
                 .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))

@@ -1,56 +1,77 @@
 package smolyanVote.smolyanVote.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import com.mailjet.client.ClientOptions;
+import com.mailjet.client.MailjetClient;
+import com.mailjet.client.MailjetRequest;
+import com.mailjet.client.MailjetResponse;
+import com.mailjet.client.resource.Emailv31;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
-/**
- * Service responsible for sending emails for user-related actions.
- */
 @Service
 public class EmailService {
-    private final JavaMailSender emailSender;
 
+    private final MailjetClient client;
+    private final TemplateEngine templateEngine;
 
-    @Autowired
-    public EmailService(JavaMailSender emailSender) {
-        this.emailSender = emailSender;
+    @Value("${mailjet.sender.email}")
+    private String senderEmail;
+
+    @Value("${mailjet.sender.name}")
+    private String senderName;
+
+    public EmailService(@Value("${mailjet.api.key}") String apiKey,
+                        @Value("${mailjet.api.secret}") String apiSecret,
+                        TemplateEngine templateEngine) {
+        ClientOptions options = ClientOptions.builder()
+                .apiKey(apiKey)
+                .apiSecretKey(apiSecret)
+                .build();
+
+        this.client = new MailjetClient(options);
+        this.templateEngine = templateEngine;
     }
 
-    /**
-     * Sends a confirmation email with a provided confirmation link to the recipient.
-     *
-     * @param recipientEmail   The email address of the recipient
-     * @param confirmationLink  The confirmation link to include in the email
-     * @throws MailException   If an error occurs during email sending
-     */
-    public void sendConfirmationEmail(String recipientEmail, String confirmationLink) throws MailException {
-        SimpleMailMessage mailMessage = new SimpleMailMessage();
+    public void sendConfirmationEmail(String recipientEmail, String confirmationLink) {
+        try {
+            Context context = new Context();
+            context.setVariable("confirmationLink", confirmationLink);
 
-        mailMessage.setTo(recipientEmail);
-        mailMessage.setSubject("SmolyanVote.bg - Потвърждение на регистрация");
-        mailMessage.setText("Кликнете на линка за да потвърдите вашият Email адрес.\n"+confirmationLink);
+            String htmlContent = templateEngine.process("emailConfirmTemplate", context);
 
-        emailSender.send(mailMessage);
+            MailjetRequest request = new MailjetRequest(Emailv31.resource)
+                    .property(Emailv31.MESSAGES, new JSONArray()
+                            .put(new JSONObject()
+                                    .put(Emailv31.Message.FROM, new JSONObject()
+                                            .put("Email", senderEmail)
+                                            .put("Name", senderName))
+                                    .put(Emailv31.Message.TO, new JSONArray()
+                                            .put(new JSONObject()
+                                                    .put("Email", recipientEmail)))
+                                    .put(Emailv31.Message.SUBJECT, "SmolyanVote.com - Потвърждение на регистрация")
+                                    .put(Emailv31.Message.HTMLPART, htmlContent)
+                                    .put(Emailv31.Message.TEXTPART,
+                                            "Благодарим ви, че се регистрирахте в нашата платформа. " +
+                                                    "За да активирате своя акаунт, моля, кликнете на линка, " +
+                                                    "за да потвърдите вашият Email адрес: " + confirmationLink)));
+
+            MailjetResponse response = client.post(request);
+
+            if (response.getStatus() != 200) {
+                throw new RuntimeException("Failed to send email via Mailjet. Status: " + response.getStatus());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error sending email via Mailjet: " + e.getMessage(), e);
+        }
     }
 
-    /**
-     * Sends a forgotten password email with a provided confirmation link to the recipient.
-     *
-     * @param recipientEmail   The email address of the recipient
-     * @param confirmationLink  The link for password reset to include in the email
-     * @throws MailException   If an error occurs during email sending
-     */
-    //TODO forgotten password email
-    public void sendForgottenPasswordEmail(String recipientEmail, String confirmationLink) throws MailException {
-        SimpleMailMessage mailMessage = new SimpleMailMessage();
-
-        mailMessage.setTo(recipientEmail);
-        mailMessage.setSubject("SmolyanVote.bg - Забравена парола");
-        mailMessage.setText("Кликнете на линка за да потвърдите,че искате да запаметите нова парола.\n"+confirmationLink);
-
-        emailSender.send(mailMessage);
+    // TODO: implement forgotten password email
+    public void sendForgottenPasswordEmail(String recipientEmail, String confirmationLink) {
+        // Implementation pending
     }
 }

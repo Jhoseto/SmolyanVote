@@ -1,12 +1,35 @@
-/* Стил за фокусирани полета */
-main {
-    flex: 1;
-}
+/* Основни настройки на html и body */
 html, body {
     height: 100%;
-    margin: 0;
+    margin: 0;               /* махаме големите margin-и */
     display: flex;
     flex-direction: column;
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+}
+
+
+/* Hero секция - центрирана форма с отстояние отгоре */
+.hero {
+    margin-top: 100px;
+    padding-top: 20px;
+    padding-bottom: 50px;
+    flex: 1 0 auto;   /* да расте по височина */
+    display: flex;
+    justify-content: center; /* хоризонтално центриране */
+    align-items: flex-start; /* вертикално подравняване в началото */
+    min-height: calc(100vh - 100px); /* поне цял екран минус футър/хедър */
+}
+
+/* Карта с формата */
+.hero .card {
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 30px;
+    background-color: white;
 }
 
 /* Стил за фокусирани полета */
@@ -51,11 +74,6 @@ html, body {
     text-decoration: underline;
 }
 
-/* Добавяне на малко отстъп отгоре на формата */
-.hero {
-    padding-top: 50px;
-}
-
 /* Обработване на полетата в формата */
 .form-control {
     font-size: 1rem;
@@ -78,4 +96,3 @@ html, body {
 .text-center {
     text-align: center;
 }
-

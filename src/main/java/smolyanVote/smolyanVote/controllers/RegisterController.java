@@ -83,7 +83,8 @@ public class RegisterController {
             }
 
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Регистрацията е успешна!\nМоля проверете вашия Имейл за да активирате вашия профил.");
+                    "Регистрацията е успешна!\nМоля проверете вашия Имейл за да активирате вашия профил.\n" +
+                            "Проверете папката за спам във вашата поща ако не виждате съобщение за регистрация от нас !");
 
 
             userService.createNewUser(userRegistrationViewModel);
