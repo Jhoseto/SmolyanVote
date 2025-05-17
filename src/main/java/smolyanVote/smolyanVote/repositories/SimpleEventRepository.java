@@ -10,7 +10,7 @@ import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import java.util.List;
 
 @Repository
-public interface EventRepository extends JpaRepository<SimpleEventEntity, Long> {
+public interface SimpleEventRepository extends JpaRepository<SimpleEventEntity, Long> {
 
     @EntityGraph(attributePaths = "images")
     List<SimpleEventEntity> findByTitleContaining(String title);
@@ -18,6 +18,5 @@ public interface EventRepository extends JpaRepository<SimpleEventEntity, Long> 
     Page<SimpleEventEntity> findAll(Pageable pageable);
 
     List<SimpleEventEntity> findAllByCreatorName(String creatorName);
-
 
 }

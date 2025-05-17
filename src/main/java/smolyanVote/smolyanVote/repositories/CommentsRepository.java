@@ -12,5 +12,6 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Query("SELECT c FROM CommentsEntity c LEFT JOIN FETCH c.replies WHERE c.event.id = :eventId AND c.parent IS NULL ORDER BY c.createdAt DESC")
     List<CommentsEntity> findRootCommentsWithRepliesByEventId(Long eventId);
 
+    List<CommentsEntity> findRootCommentsWithRepliesByReferendumId(Long referendumId);
 }
 

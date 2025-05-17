@@ -1,11 +1,15 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
-import smolyanVote.smolyanVote.repositories.EventRepository;
+import smolyanVote.smolyanVote.repositories.ReferendumRepository;
+import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.UserService;
 
@@ -14,97 +18,106 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 @Service
 public class CommentsServiceImpl implements CommentsService {
+
     private final CommentsRepository commentsRepository;
-    private final EventRepository eventRepository;
+    private final SimpleEventRepository simpleEventRepository;
+    private final ReferendumRepository referendumRepository;
     private final UserService userService;
 
-    // 👇 Използва хеш за да ограничи един глас на потребител
     private final Map<String, Map<Long, String>> voteCache = new HashMap<>();
-
-
+    private final SimpleEventRepository eventRepository;
 
     @Autowired
-    public CommentsServiceImpl(CommentsRepository commentRepository,
-                               EventRepository eventRepository,
-                               UserService userService) {
-        this.commentsRepository = commentRepository;
-        this.eventRepository = eventRepository;
+    public CommentsServiceImpl(CommentsRepository commentsRepository,
+                               SimpleEventRepository simpleEventRepository,
+                               ReferendumRepository referendumRepository,
+                               UserService userService,
+                               SimpleEventRepository eventRepository) {
+        this.commentsRepository = commentsRepository;
+        this.simpleEventRepository = simpleEventRepository;
+        this.referendumRepository = referendumRepository;
         this.userService = userService;
+        this.eventRepository = eventRepository;
     }
 
 
     @Override
-    public List<CommentsEntity> getCommentsForEvent(Long eventId) {
-        return commentsRepository.findRootCommentsWithRepliesByEventId((eventId));
-    }
-
-
-    @Override
-    public CommentsEntity addComment(Long eventId, String author, String text, Long parentId) {
-        SimpleEventEntity event = eventRepository.findById(eventId).orElseThrow();
+    public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
         CommentsEntity comment = new CommentsEntity();
         comment.setAuthor(userService.getCurrentUser().getUsername());
         comment.setAuthorImage(userService.getCurrentUser().getImageUrl());
         comment.setCreatedAt(Instant.now());
         comment.setText(text);
-        comment.setEvent(event);
+
+        if (targetType.equals(EventType.REFERENDUM)) {
+            ReferendumEntity referendum = referendumRepository.findById(targetId).orElseThrow();
+            comment.setReferendum(referendum);
+        } else if (targetType.equals(EventType.SIMPLEEVENT)) {
+            SimpleEventEntity event = simpleEventRepository.findById(targetId).orElseThrow();
+            comment.setEvent(event);
+        }
 
         if (parentId != null) {
             CommentsEntity parent = commentsRepository.findById(parentId).orElseThrow();
             comment.setParent(parent);
         }
 
-        commentsRepository.save(comment);
-        return comment;
+        return commentsRepository.save(comment);
     }
-
-    @Override
-    public void deleteAllComments() {
-        commentsRepository.deleteAll();
-    }
-
 
 
     @Override
     public CommentsEntity commentReaction(Long commentId, String type, String username) {
         CommentsEntity comment = commentsRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Коментар не е намерен"));
+                .orElseThrow(() -> new RuntimeException("Коментарът не е намерен"));
 
-        // Показваме кешираните гласове за потребителя
         Map<Long, String> userVotes = voteCache.computeIfAbsent(username, k -> new HashMap<>());
-        String currentVote = userVotes.get(commentId); // текущия глас на потребителя за коментара
+        String currentVote = userVotes.get(commentId);
 
-        // Ако гласуването е "like"
         if ("like".equals(type)) {
-            if ("like".equals(currentVote)) {
-                return comment; // Ако вече е даден like, не правим нищо
-            }
-            if ("unlike".equals(currentVote)) {
-                // Намаляваме броя на dislike, ако потребителят е променил гласа си от "unlike" на "like"
+            if ("like".equals(currentVote)) return comment;
+            if ("dislikes".equals(currentVote)) {
                 comment.setUnlikeCount(comment.getUnlikeCount() - 1);
             }
-            comment.setLikeCount(comment.getLikeCount() + 1); // Увеличаваме like
-            userVotes.put(commentId, "like"); // Записваме новия глас в кеша
-        }
-
-        // Ако гласуването е "unlike"
-        else if ("unlike".equals(type)) {
-            if ("unlike".equals(currentVote)) {
-                return comment; // Ако вече е даден unlike, не правим нищо
-            }
+            comment.setLikeCount(comment.getLikeCount() + 1);
+            userVotes.put(commentId, "like");
+        } else if ("dislikes".equals(type)) {
+            if ("dislikes".equals(currentVote)) return comment;
             if ("like".equals(currentVote)) {
-                // Намаляваме броя на like, ако потребителят е променил гласа си от "like" на "unlike"
                 comment.setLikeCount(comment.getLikeCount() - 1);
             }
-            comment.setUnlikeCount(comment.getUnlikeCount() + 1); // Увеличаваме unlike
-            userVotes.put(commentId, "unlike"); // Записваме новия глас в кеша
+            comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+            userVotes.put(commentId, "dislikes");
         }
 
-        // Записваме актуализирания коментар в базата данни
         return commentsRepository.save(comment);
     }
+
+
+    @Override
+    public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
+        return switch (targetType) {
+            case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
+            case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
+            default -> throw new UnsupportedOperationException("Неподдържан тип за коментари: " + targetType);
+        };
+    }
+
+
+    @Override
+    public EventType getTargetType(Long id) {
+        if (eventRepository.existsById(id)) {
+            return EventType.SIMPLEEVENT;
+        } else if (referendumRepository.existsById(id)) {
+            return EventType.REFERENDUM;
+        }
+
+
+        throw new IllegalArgumentException("No known target with ID: " + id);
+    }
+
+
 
 }

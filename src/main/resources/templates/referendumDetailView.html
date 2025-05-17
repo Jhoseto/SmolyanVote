@@ -85,11 +85,13 @@
 
         <!-- Гласуване -->
         <div class="vote-section mt-4">
-            <div th:if="${referendumDetail.userVote == null}">
+            <div th:if="${userVote == null}">
                 <h4>Гласувай:</h4>
-                <form th:action="@{/referendumVote}" method="post" class="d-flex flex-column">
+                <form th:action="@{/referendumVote}"
+                      method="post"
+                      class="d-flex flex-column">
                     <input type="hidden" name="referendumId" th:value="${referendum.id}" />
-                    <input type="hidden" name="userEmail" th:value="${user.email}" />
+                    <input type="hidden" name="userEmail" th:value="${currentUser.email}" />
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div th:each="opt, iterStat : ${referendumDetail.options}" class="my-1">
                         <button type="submit" class="btn btn-outline-primary w-100"
@@ -105,8 +107,9 @@
             </div>
         </div>
 
-        <!-- Съобщение за успех -->
+        <!-- Съобщение -->
         <div th:if="${successMessage}" class="alert alert-success mt-3" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger mt-3" th:text="${errorMessage}"></div>
 
     </div>
 </div>
@@ -124,8 +127,8 @@
     </div>
 </div>
 
-<!-- Коментари -->
-<div th:replace="~{fragments/comments :: comments(${referendum.id}, ${comments}, ${user})}"></div>
+<!-- Коментари за референдума -->
+<div th:replace="~{fragments/comments :: comments(${referendum.id}, ${comments}, ${currentUser})}"></div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>

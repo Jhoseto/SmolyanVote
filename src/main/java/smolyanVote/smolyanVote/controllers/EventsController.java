@@ -9,7 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.VoteEntity;
+import smolyanVote.smolyanVote.models.VoteSimpleEventEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
@@ -76,9 +77,9 @@ public class EventsController {
         }
 
         // проверка дали потребителят е гласувал
-        VoteEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
+        VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
 
-        List<CommentsEntity> comments = commentsService.getCommentsForEvent(id);
+        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
 
         model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("eventDetail", eventDetailView);
