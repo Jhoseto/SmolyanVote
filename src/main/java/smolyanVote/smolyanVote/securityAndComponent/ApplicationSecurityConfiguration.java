@@ -69,6 +69,7 @@ public class ApplicationSecurityConfiguration {
                                 "/robots.txt"
                         ).permitAll()
                         .requestMatchers(
+                                "/referendumVote",
                                 "/referendum/**",
                                 "/referendum",
                                 "/user/**",

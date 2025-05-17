@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.UserService;
 
@@ -16,73 +18,61 @@ import java.util.Map;
 @RequestMapping("/api/comments")
 public class CommentRestController {
 
-    private final CommentsService commentService;
+    private final CommentsService commentsService;
     private final UserService userService;
 
     @Autowired
-    public CommentRestController(CommentsService commentService,
-                                 UserService userService) {
-        this.commentService = commentService;
+    public CommentRestController(CommentsService commentsService, UserService userService) {
+        this.commentsService = commentsService;
         this.userService = userService;
     }
 
 
 
-    // Метод за създаване на основен коментар
+
     @PostMapping
-    public ResponseEntity<Map<String, String>> postMainComment(@RequestParam Long eventId,
+    public ResponseEntity<Map<String, String>> postMainComment(@RequestParam Long targetId,
                                                                @RequestParam String author,
                                                                @RequestParam String text) {
-        // Добавяне на основен коментар в базата данни
-        CommentsEntity comment = commentService.addComment(eventId, author, text, null);  // parentId е null за основен коментар
-        // Връщане на отговор със съответните данни
-        return getMapResponseEntity(text, comment);
+
+        EventType targetType = commentsService.getTargetType(targetId);
+        CommentsEntity comment = commentsService.addComment(targetId, author, text, null, targetType);
+        return buildCommentResponse(comment, text);
     }
 
-
-
     @PostMapping("/reply")
-    public ResponseEntity<Map<String, String>> postReply(@RequestParam Long eventId,
+    public ResponseEntity<Map<String, String>> postReply(@RequestParam Long targetId,
                                                          @RequestParam String author,
                                                          @RequestParam String text,
                                                          @RequestParam Long parentId) {
-        // Добавяне на отговор в базата данни
-        CommentsEntity reply = commentService.addComment(eventId, author, text, parentId);
-        // Връщане на отговор със съответните данни
-        return getMapResponseEntity(text, reply);
+
+        EventType targetType = commentsService.getTargetType(targetId);
+        CommentsEntity reply = commentsService.addComment(targetId, author, text, parentId, targetType);
+        return buildCommentResponse(reply, text);
     }
-
-
-
-
-    @NotNull
-    private ResponseEntity<Map<String, String>> getMapResponseEntity(@RequestParam String text, CommentsEntity reply) {
-        Map<String, String> response = new HashMap<>();
-        response.put("id", String.valueOf(reply.getId()));
-        response.put("author", reply.getAuthor());
-        response.put("authorImage", reply.getAuthorImage());
-        response.put("text", text);
-        return ResponseEntity.ok(response);
-    }
-
-
 
     @PostMapping("/{id}/reaction/{type}")
-    public ResponseEntity<Map<String, Integer>> reactToComment(
-            @PathVariable Long id,
-            @PathVariable String type,
-            Principal principal
-    ) {
-        String username = principal.getName();
-        CommentsEntity updated = commentService.commentReaction(id, type, username);
+    public ResponseEntity<Map<String, Integer>> reactToComment(@PathVariable Long id,
+                                                               @PathVariable String type) {
+
+        UserEntity currentUser = userService.getCurrentUser();
+        CommentsEntity updated = commentsService.commentReaction(id, type, currentUser.getUsername());
 
         Map<String, Integer> result = Map.of(
                 "likes", updated.getLikeCount(),
-                "unlikes", updated.getUnlikeCount()
+                "dislikes", updated.getUnlikeCount()
         );
 
         return ResponseEntity.ok(result);
     }
 
-
+    @NotNull
+    private ResponseEntity<Map<String, String>> buildCommentResponse(CommentsEntity comment, String text) {
+        Map<String, String> response = new HashMap<>();
+        response.put("id", String.valueOf(comment.getId()));
+        response.put("author", comment.getAuthor());
+        response.put("authorImage", comment.getAuthorImage());
+        response.put("text", text);
+        return ResponseEntity.ok(response);
+    }
 }

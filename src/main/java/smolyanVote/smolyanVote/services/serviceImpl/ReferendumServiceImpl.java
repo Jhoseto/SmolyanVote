@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.ReferendumImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
@@ -142,12 +143,13 @@ public class ReferendumServiceImpl implements ReferendumService {
         int totalVotes = referendum.getTotalVotes();
 
         List<Integer> votePercentages = votes.stream()
-                .map(v -> totalVotes == 0 ? 0 : (int) ((v * 100.0f) / totalVotes))
+                .map(v -> totalVotes == 0 ? 0 : (int) Math.round((v * 100.0) / totalVotes))
                 .toList();
+
 
         Integer userVote = referendumVoteService.findVoteByReferendumIdAndUserEmail(referendumId, username);
 
-        List<CommentsEntity> comments = commentsService.getCommentsForEvent(referendumId);
+        List<CommentsEntity> comments = commentsService.getCommentsForTarget(referendumId, EventType.REFERENDUM);
 
         return new ReferendumDetailDTO(referendum, user.orElse(null),
                 imageUrls,

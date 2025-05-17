@@ -10,10 +10,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "referendum")
-public class ReferendumEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ReferendumEntity extends BaseEventEntity{
+
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -59,9 +58,6 @@ public class ReferendumEntity {
 
 
 
-    public Long getId() { return id; }
-
-    public void setId(Long id) { this.id = id; }
 
     public EventType getEventType() {return eventType;}
 

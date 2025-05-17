@@ -10,14 +10,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.ReferendumEntity;
-import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.ReferendumService;
 import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
 
 import java.util.List;
@@ -31,15 +31,21 @@ public class ReferendumController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final CommentsService commentsService;
+    private final ReferendumRepository referendumRepository;
+    private final VoteService voteService;
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
                                 UserService userService, UserRepository userRepository,
-                                CommentsService commentsService) {
+                                CommentsService commentsService,
+                                ReferendumRepository referendumRepository,
+                                VoteService voteService) {
         this.referendumService = referendumService;
         this.userService = userService;
         this.userRepository = userRepository;
         this.commentsService = commentsService;
+        this.referendumRepository = referendumRepository;
+        this.voteService = voteService;
     }
 
     @GetMapping("/referendum")
@@ -133,17 +139,23 @@ public class ReferendumController {
         }
 
         UserEntity user = userOpt.get();
+        UserEntity currentUser = userService.getCurrentUser();
         ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getUsername());
+
+        //check current VOTE for current user
+        VoteReferendumEntity vote = voteService.findByUserIdAndReferendumId(userService.getCurrentUser().getId(), id);
 
         if (referendumDetail == null) {
             return "redirect:/404";
         }
 
+
+        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
+        model.addAttribute("currentUser", currentUser);
         model.addAttribute("user", user);
         model.addAttribute("referendum", referendum);
         model.addAttribute("referendumDetail", referendumDetail);
         model.addAttribute("comments", referendumDetail.getComments());
-        model.addAttribute("locations", Locations.values());
 
         return "referendumDetailView";
     }

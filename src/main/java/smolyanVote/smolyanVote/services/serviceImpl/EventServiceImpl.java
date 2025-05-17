@@ -11,7 +11,7 @@ import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.repositories.EventRepository;
+import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.EventService;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Service
 public class EventServiceImpl implements EventService {
 
-    private final EventRepository eventRepository;
+    private final SimpleEventRepository simpleEventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
     private final UserService userService;
@@ -37,13 +37,13 @@ public class EventServiceImpl implements EventService {
     private final ReferendumRepository referendumRepository;
 
     @Autowired
-    public EventServiceImpl(EventRepository eventRepository,
+    public EventServiceImpl(SimpleEventRepository simpleEventRepository,
                             UserRepository userRepository,
                             EventMapper eventMapper,
                             UserService userService,
                             ImageCloudinaryServiceImpl imageStorageService,
                             ReferendumRepository referendumRepository) {
-        this.eventRepository = eventRepository;
+        this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.eventMapper = eventMapper;
         this.userService = userService;
@@ -56,7 +56,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public Page<EventView> getPaginatedEvents(int page, int size) {
         // Взимане на всички SimpleEventEntity и ReferendumEntity
-        List<SimpleEventEntity> simpleEvents = eventRepository.findAll();
+        List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAll();
         List<ReferendumEntity> referendums = referendumRepository.findAll();
 
         // Мапваме към общия EventView (или създай подходящ метод)
@@ -82,7 +82,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional()
     public List<EventView> getAllEvents() {
-        List<SimpleEventEntity> events = eventRepository.findAll();
+        List<SimpleEventEntity> events = simpleEventRepository.findAll();
 
 
         return events.stream()
@@ -96,7 +96,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventView getEventById(Long id) {
 
-        SimpleEventEntity event = eventRepository.findById(id)
+        SimpleEventEntity event = simpleEventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
         return eventMapper.mapToView(event);
     }
@@ -134,7 +134,7 @@ public class EventServiceImpl implements EventService {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
                     // Взимаме ID на събитието след запазване в базата
-                    SimpleEventEntity savedEvent = eventRepository.save(simpleEventEntity);
+                    SimpleEventEntity savedEvent = simpleEventRepository.save(simpleEventEntity);
                     String imagePath = imageStorageService.saveSingleImage(file, savedEvent.getId());
                     imagePaths.add(imagePath);
 
@@ -155,7 +155,7 @@ public class EventServiceImpl implements EventService {
         }
 
         // Записване на събитието заедно с изображенията
-        eventRepository.saveAndFlush(simpleEventEntity);
+        simpleEventRepository.saveAndFlush(simpleEventEntity);
         userRepository.save(user);
 
         return imagePaths;
@@ -168,7 +168,7 @@ public class EventServiceImpl implements EventService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
 
-        List<SimpleEventEntity> events = eventRepository.findAllByCreatorName(user.getUsername());
+        List<SimpleEventEntity> events = simpleEventRepository.findAllByCreatorName(user.getUsername());
 
         return events.stream()
                 .map(eventMapper::mapToView)
@@ -178,7 +178,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public void deleteEvent(Long id) {
-        eventRepository.deleteById(id);
+        simpleEventRepository.deleteById(id);
     }
 
 }

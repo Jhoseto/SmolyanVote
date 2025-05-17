@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class CommentsEntity {
     private String authorImage;
 
     @Column(length = 2000)
+    @NotBlank
     private String text;
 
     private Instant createdAt;
@@ -24,6 +26,10 @@ public class CommentsEntity {
     @ManyToOne
     @JoinColumn(name = "event_id")
     private SimpleEventEntity event;
+
+    @ManyToOne
+    @JoinColumn(name = "referendum_id")
+    private ReferendumEntity referendum;
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
@@ -87,6 +93,10 @@ public class CommentsEntity {
     public void setEvent(SimpleEventEntity event) {
         this.event = event;
     }
+
+    public ReferendumEntity getReferendum() {return referendum;}
+
+    public void setReferendum(ReferendumEntity referendum) {this.referendum = referendum;}
 
     public CommentsEntity getParent() {
         return parent;

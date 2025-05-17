@@ -5,20 +5,23 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "votes", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "event_id"}) // Един потребител може да гласува само веднъж на събитие
+@Table(name = "referendum_votes", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "referendum_id"}) // Един потребител може да гласува само веднъж на събитие
 })
-public class VoteEntity {
+public class VoteReferendumEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @ManyToOne(optional = false)
-    private SimpleEventEntity event;
+    @JoinColumn(name = "referendum_id")
+    private ReferendumEntity referendum;
+
 
     @Column(nullable = false)
     private String voteValue; // "1", "2", "3"
@@ -37,9 +40,9 @@ public class VoteEntity {
 
     public void setUser(UserEntity user) {this.user = user;}
 
-    public SimpleEventEntity getEvent() {return event;}
+    public ReferendumEntity getReferendum() {return referendum;}
 
-    public void setEvent(SimpleEventEntity event) {this.event = event;}
+    public void setReferendum(ReferendumEntity referendum) {this.referendum = referendum;}
 
     public String getVoteValue() {return voteValue;}
 
