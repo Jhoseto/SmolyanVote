@@ -18,6 +18,8 @@ public class ReferendumDetailDTO {
     private Integer userVote;
     private List<CommentsEntity> comments;
 
+
+
     public ReferendumDetailDTO(ReferendumEntity referendum, UserEntity creator, List<String> imageUrls,
                                List<String> options, List<Integer> votes, List<Integer> votePercentages,
                                int totalVotes, Integer userVote, List<CommentsEntity> comments) {

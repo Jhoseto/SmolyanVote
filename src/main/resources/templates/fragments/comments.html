@@ -5,7 +5,7 @@
 <!-- @thymesVar id="reply" type="smolyanVote.smolyanVote.models.CommentsEntity" -->
 
 <div th:fragment="comments(targetId, comments, currentUser)">
-    <div class="container mt-5" id="comments-section" th:data-event-id="${targetId}">
+    <div class="container mt-5" id="comments-section" th:attr="data-target-id=${targetId}">
         <h3 class="mb-4">Коментари</h3>
 
         <!-- Форма за нов коментар -->

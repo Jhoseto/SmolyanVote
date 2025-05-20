@@ -12,6 +12,7 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.ReferendumService;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
 
@@ -27,7 +28,7 @@ public class ReferendumServiceImpl implements ReferendumService {
     private final ReferendumImageRepository imageRepository;
     private final ImageCloudinaryServiceImpl imageStorageService;
     private final UserRepository userRepository;
-    private final CommentsServiceImpl commentsService;
+    private final CommentsService commentsService;
     private final VoteServiceImpl referendumVoteService;
 
     public ReferendumServiceImpl(ReferendumRepository referendumRepository,

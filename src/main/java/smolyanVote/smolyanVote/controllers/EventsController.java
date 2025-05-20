@@ -48,7 +48,10 @@ public class EventsController {
                                 Model model) {
 
 
-        //eventService.getAllEvents();
+        //TODO
+        //turkane na vsichki komentari
+        //commentsService.deleteAllComments();
+
         Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);
@@ -59,7 +62,6 @@ public class EventsController {
 
 
 
-    //TODO problem s redirekta ot tuk
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
         EventView eventDetailView = eventService.getEventById(id);

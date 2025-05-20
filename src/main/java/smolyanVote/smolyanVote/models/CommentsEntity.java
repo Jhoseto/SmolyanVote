@@ -24,11 +24,11 @@ public class CommentsEntity {
     private Instant createdAt;
 
     @ManyToOne
-    @JoinColumn(name = "event_id")
+    @JoinColumn(name = "event_id", nullable = true)
     private SimpleEventEntity event;
 
     @ManyToOne
-    @JoinColumn(name = "referendum_id")
+    @JoinColumn(name = "referendum_id", nullable = true)
     private ReferendumEntity referendum;
 
     @ManyToOne

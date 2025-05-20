@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
     const commentForm = document.getElementById("comment-form");
-    const eventId = document.getElementById("comments-section")?.dataset.eventId;
+    const targetId = document.getElementById("comments-section")?.dataset.targetId;
     const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
     const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
 
-    if (!commentForm || !eventId) return;
+    if (!commentForm || !targetId) return;
 
     // 🟢 Инициализация на Quill редактор
     const quill = new Quill('#editor-container', {
@@ -17,19 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 ['link'],
                 ['emoji']  // ← бутон за емотикони
             ],
-            "emoji-toolbar": true,      // бутона в toolbar
+            "emoji-toolbar": true,      // бутон в toolbar
             "emoji-textarea": false,    // няма нужда от отделно поле
             "emoji-shortname": true     // пишеш :smile: и ти го дава
         }
     });
-    document.addEventListener("click", function () {
+
+    document.addEventListener("click", () => {
         const picker = document.querySelector(".ql-emoji-picker");
         if (picker) {
             picker.style.zIndex = "9999";
         }
     });
-
-
 
     // 🟢 Основна форма за коментар
     commentForm.addEventListener("submit", function (e) {
@@ -40,6 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('comment-hidden').value = content;
 
         const formData = new FormData(this);
+
+        // Добавяме targetId в formData, ако го няма в HTML формата
+        if (!formData.has('targetId')) {
+            formData.append('targetId', targetId);
+        }
 
         fetch("/api/comments", {
             method: "POST",
@@ -106,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     attachReplyEvents();
 
-    //like & unlike
+    // like & unlike
     document.addEventListener("click", function (e) {
         const btn = e.target.closest(".like-btn, .dislike-btn");
         if (!btn) return;
@@ -142,9 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(err => console.error("Грешка при глас:", err));
     });
-
-
-
 
     // 🟢 Скриване на подкоментари по подразбиране
     document.querySelectorAll('.replies').forEach(repliesContainer => {
