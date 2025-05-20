@@ -1,7 +1,7 @@
 # 🗳️ SmolyanVote
 
 ![Java](https://img.shields.io/badge/Java-17-blue?logo=java) 
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-2.7.4-brightgreen?logo=springboot) 
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.4-brightgreen?logo=springboot) 
 ![Thymeleaf](https://img.shields.io/badge/Thymeleaf-HTML-orange?logo=thymeleaf) 
 ![License](https://img.shields.io/badge/License-MIT-green) 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
