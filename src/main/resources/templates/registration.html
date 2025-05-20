@@ -35,6 +35,12 @@
           <form method="post"
                 th:action="@{/user/registration}"
                 th:object="${userFields}" >
+            <!-- Honeypot поле (ботовете го попълват, хората - не) -->
+            <input type="text" name="middleName" style="display: none;" tabindex="-1" autocomplete="off">
+
+            <!-- Timestamp - момент на визуализиране на формата -->
+            <input type="hidden" name="formRenderedAt" th:value="${T(java.time.Instant).now().toEpochMilli()}">
+
             <div class="mb-3">
               <label for="username" class="form-label">Потребителско име</label>
               <input type="text" th:field="*{username}" class="form-control" id="username" placeholder="Въведете потребителско име" required>

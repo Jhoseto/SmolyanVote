@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -149,13 +150,14 @@ public class ReferendumController {
             return "redirect:/404";
         }
 
+        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
 
         model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("user", user);
         model.addAttribute("referendum", referendum);
         model.addAttribute("referendumDetail", referendumDetail);
-        model.addAttribute("comments", referendumDetail.getComments());
+        model.addAttribute("comments", comments);
 
         return "referendumDetailView";
     }

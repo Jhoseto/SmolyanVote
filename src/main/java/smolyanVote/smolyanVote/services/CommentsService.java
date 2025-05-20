@@ -16,4 +16,6 @@ public interface CommentsService {
     List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType);
 
     EventType getTargetType(Long id);
+
+    void deleteAllComments();
 }

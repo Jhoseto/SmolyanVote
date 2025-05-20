@@ -49,8 +49,14 @@ dependencies {
 
 	//email
 	implementation("com.mailjet:mailjet-client:5.2.6")
+
 	// Springdoc OpenAPI (замяна на Springfox)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
+
+	//rate limiting for registration Form
+	implementation ("com.github.vladimir-bukhtoyarov:bucket4j-core:8.0.1")
+
+
 
 	// Test
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {

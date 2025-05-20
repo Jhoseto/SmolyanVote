@@ -34,22 +34,39 @@ public class CommentRestController {
     public ResponseEntity<Map<String, String>> postMainComment(@RequestParam Long targetId,
                                                                @RequestParam String author,
                                                                @RequestParam String text) {
+        System.out.println("postMainComment called with targetId=" + targetId + ", author=" + author + ", text=" + text);
 
         EventType targetType = commentsService.getTargetType(targetId);
-        CommentsEntity comment = commentsService.addComment(targetId, author, text, null, targetType);
-        return buildCommentResponse(comment, text);
+        System.out.println("Determined targetType: " + targetType);
+
+        try {
+            CommentsEntity comment = commentsService.addComment(targetId, author, text, null, targetType);
+            return buildCommentResponse(comment, text);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
+
 
     @PostMapping("/reply")
-    public ResponseEntity<Map<String, String>> postReply(@RequestParam Long targetId,
-                                                         @RequestParam String author,
-                                                         @RequestParam String text,
-                                                         @RequestParam Long parentId) {
-
-        EventType targetType = commentsService.getTargetType(targetId);
-        CommentsEntity reply = commentsService.addComment(targetId, author, text, parentId, targetType);
-        return buildCommentResponse(reply, text);
+    public ResponseEntity<?> postReply(@RequestParam Long targetId,
+                                       @RequestParam String author,
+                                       @RequestParam String text,
+                                       @RequestParam Long parentId) {
+        try {
+            EventType targetType = commentsService.getTargetType(targetId);
+            CommentsEntity reply = commentsService.addComment(targetId, author, text, parentId, targetType);
+            return buildCommentResponse(reply, text);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Unexpected server error: " + e.getMessage()));
+        }
     }
+
 
     @PostMapping("/{id}/reaction/{type}")
     public ResponseEntity<Map<String, Integer>> reactToComment(@PathVariable Long id,

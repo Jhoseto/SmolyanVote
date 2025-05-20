@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
@@ -54,6 +53,7 @@ public class CommentsServiceImpl implements CommentsService {
         if (targetType.equals(EventType.REFERENDUM)) {
             ReferendumEntity referendum = referendumRepository.findById(targetId).orElseThrow();
             comment.setReferendum(referendum);
+
         } else if (targetType.equals(EventType.SIMPLEEVENT)) {
             SimpleEventEntity event = simpleEventRepository.findById(targetId).orElseThrow();
             comment.setEvent(event);
@@ -106,18 +106,29 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
-    @Override
-    public EventType getTargetType(Long id) {
-        if (eventRepository.existsById(id)) {
-            return EventType.SIMPLEEVENT;
-        } else if (referendumRepository.existsById(id)) {
+
+
+    public EventType getTargetType(Long targetId) {
+        boolean isReferendum = referendumRepository.existsById(targetId);
+        boolean isEvent = simpleEventRepository.existsById(targetId);
+        System.out.println("getTargetType: targetId=" + targetId + ", isReferendum=" + isReferendum + ", isEvent=" + isEvent);
+        if (isReferendum && isEvent) {
+            throw new IllegalStateException("Conflict: targetId exists in both event and referendum");
+        } else if (isReferendum) {
             return EventType.REFERENDUM;
+        } else if (isEvent) {
+            return EventType.SIMPLEEVENT;
+        } else {
+            throw new IllegalArgumentException("Target ID not found");
         }
-
-
-        throw new IllegalArgumentException("No known target with ID: " + id);
     }
 
 
+
+
+    @Override
+    public void deleteAllComments() {
+        commentsRepository.deleteAll();
+    }
 
 }
