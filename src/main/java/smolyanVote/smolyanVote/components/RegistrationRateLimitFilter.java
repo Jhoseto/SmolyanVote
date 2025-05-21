@@ -21,7 +21,6 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
     private final Map<String, Bucket> ipBuckets = new ConcurrentHashMap<>();
 
     private Bucket createBucket() {
-        // Позволи 5 заявки на 10 минути
         Bandwidth limit = Bandwidth.classic(5, Refill.intervally(3, Duration.ofMinutes(10)));
         return Bucket.builder()
                 .addLimit(limit)
@@ -45,11 +44,20 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
             if (bucket.tryConsume(1)) {
                 filterChain.doFilter(request, response);
             } else {
-                request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
-                response.sendRedirect("/register");
+                System.out.println("Rate limit triggered for IP: " + ip);
+                System.out.println("Is response committed? " + response.isCommitted());
+
+                if (!response.isCommitted()) {
+                    request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
+                    response.sendRedirect("/register");
+                } else {
+                    System.out.println("Response already committed, cannot redirect.");
+                }
             }
         } else {
             filterChain.doFilter(request, response);
         }
     }
+
 }
+

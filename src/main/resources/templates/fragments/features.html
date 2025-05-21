@@ -1,94 +1,76 @@
-<div th:fragment="platform-features">
+<!-- HTML Fragment: platform-features-carousel -->
+<div th:fragment="platform-features-carousel">
     <section class="py-5 feature-section">
-        <div class="container">
-
-            <!-- Ред 1 -->
-            <div class="row mb-5">
-                <!-- Елемент 1 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/secure-vote.png" alt="Сигурно гласуване" class="img-fluid feature-image">
-                        </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">🔒 Сигурно гласуване</h3>
-                            <p class="feature-text">Използваме криптирана система за защита на вашия вот.</p>
+        <div class="carousel-container">
+            <div class="carousel" id="featureCarousel">
+                <div class="carousel-item active">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/secure-vote.png" alt="Сигурно гласуване" />
+                        <div class="card-content">
+                            <h3>🔒 Сигурно гласуване</h3>
+                            <p>Използваме криптирана система за защита на вашите лични данни<br>
+                                (И-Мейл и парола) както и <br>
+                                на вашия вот.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Елемент 2 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/graph_result.jpg" alt="Реални резултати" class="img-fluid feature-image">
-                        </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">📊 Реални резултати</h3>
-                            <p class="feature-text">Резултатите се обновяват в реално време. Следим за манипулативно подаване на гласове.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ред 2 -->
-            <div class="row mb-5">
-                <!-- Елемент 3 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/transparency.png" alt="Прозрачност" class="img-fluid feature-image">
-                        </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">🧾 Прозрачност</h3>
-                            <p class="feature-text">Резултатите от всички анкети са публично достъпни за наблюдение.</p>
+                <div class="carousel-item">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/graph_result.jpg" alt="Реални резултати" />
+                        <div class="card-content">
+                            <h3>📊 Реални резултати</h3>
+                            <p>Резултатите се обновяват в реално време, като следим за манипулативно подаване на гласове.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Елемент 4 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/peopels12.png" alt="Обединение на общността" class="img-fluid feature-image">
-                        </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">👥 Обединение на общността</h3>
-                            <p class="feature-text">Платформата обединява гражданите около важни теми за града и региона.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ред 3 -->
-            <div class="row mb-5">
-                <!-- Елемент 5 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/background111.png" alt="Инициативи от хората" class="img-fluid feature-image">
-                        </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">🌱 Инициативи от хората</h3>
-                            <p class="feature-text">Всеки потребител може да създаде анкета или референдум по важна тема.</p>
+                <div class="carousel-item">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/Image2.jpg" alt="Прозрачност" />
+                        <div class="card-content">
+                            <h3>🧾 Прозрачност</h3>
+                            <p>Резултатите от всички анкети са публично достъпни за наблюдение.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Елемент 6 -->
-                <div class="col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-img-container">
-                            <img src="/images/web/social.png" alt="Доверие чрез откритост" class="img-fluid feature-image">
+                <div class="carousel-item">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/Image4.jpg" alt="Обединение на общността" />
+                        <div class="card-content">
+                            <h3>👥 Обединение на общността</h3>
+                            <p>Платформата обединява гражданите около важни теми за града и региона.</p>
                         </div>
-                        <div class="feature-text-container">
-                            <h3 class="feature-title">🔍 Доверие чрез откритост</h3>
-                            <p class="feature-text">Всички гласове се отчитат по прозрачен начин без да нарушават личните данни.</p>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/Image1.jpg" alt="Инициативи от хората" />
+                        <div class="card-content">
+                            <h3>🌱 Инициативи от хората</h3>
+                            <p>Всеки потребител може да създаде анкета или референдум по важна тема.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <div class="card">
+                        <div class="shine-overlay"></div>
+                        <img src="/images/web/Image3.jpg" alt="Доверие чрез откритост" />
+                        <div class="card-content">
+                            <h3>🔍 Доверие чрез откритост</h3>
+                            <p>Всички гласове се отчитат по прозрачен начин без да нарушават личните данни.</p>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     </section>
 </div>
