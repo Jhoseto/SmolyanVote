@@ -8,7 +8,7 @@ body {
 
 .hero {
   background-size: cover;
-  min-height: 50vh; /* прави секцията цял екран */
+  min-height: 53vh; /* прави секцията цял екран */
   display: flex;
   align-items: flex-end; /* избутва съдържанието надолу */
   justify-content: center;
@@ -47,17 +47,223 @@ body {
   background-color: #f0f0f0;
   color: #000;
 }
+.title-section {
+  display: flex;
+  justify-content: center; /* Хоризонтално центриране */
+  align-items: center;     /* Вертикално центриране */
+  text-align: center;
+  height: 50px;           /* Може да коригираш височината според нуждите */
+  position: relative;
+  margin-top: 20px;
+}
 
+.title-text {
+  line-height: 1.3;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 700;
+  color: #015231;
+  font-family: 'Helvetica Neue', sans-serif;
+  border-bottom: 3px solid #4b9f3e;
+  display: inline-block;
+  padding-bottom: 0;
+  margin-bottom: 20px;
+}
 
-footer {
-  background-color: #212529;
-  color: #ffffff;
-  padding: 20px 0;
+/* --- Секция с Функции (Карусел) --- */
+.py-5 {
+  padding-top: 3rem!important;
+  padding-bottom: 3rem !important;
+}
+.features-section {
+  padding-top: 2rem;
+  background-color: #f9f9f9;
+}
+
+.features-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 0;
+}
+
+.title-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-top: 40px;
+  min-height: 60px;
 }
 
-footer p {
-  margin-bottom: 0;
+.title-text {
+  display: flex;
+  align-items: center;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 700;
+  font-family: 'Helvetica Neue', sans-serif;
+  color: #015231;
+  gap: 6px;
 }
 
+.dynamic-text-box {
+  font-family: 'Helvetica Neue', sans-serif;
+  position: relative;
+  display: inline-block;
+  height: 1.4em;
+  overflow: hidden;
+  vertical-align: baseline;
+  line-height: 1.3;
+  min-width: 280px;
+}
+
+.dynamic-text {
+  font-family: 'Helvetica Neue', sans-serif;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transform: translateY(90%);
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  white-space: nowrap;
+  color: #015231;
+  line-height: 1.3;
+}
+
+
+.dynamic-text.active {
+  font-family: 'Helvetica Neue', sans-serif;
+  opacity: 1;
+  transform: translateY(0%);
+}
+
+
+/* --- Адаптивност / MOBILE RESPONSIVE --- */
+
+@media (max-width: 992px) {
+  .hero {
+    padding: 100px 15px 60px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.8rem, 6vw, 3rem);
+  }
+
+  .hero p.lead {
+    font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 80px 10px 50px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+  }
+
+  .hero p.lead {
+    font-size: clamp(0.85rem, 3vw, 1rem);
+  }
+
+  .hero .btn {
+    padding: 10px 28px;
+    font-size: 1rem;
+  }
+
+  .features-wrapper {
+    padding: 0 10px;
+  }
+
+  .features-section {
+    padding: 20px 0;
+  }
+
+  .title-section {
+    margin: 20px auto 10px;
+  }
+
+  .title-text {
+    font-size: clamp(1.1rem, 4vw, 1.6rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 60px 10px 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.3rem, 8vw, 2rem);
+  }
+
+  .hero p.lead {
+    font-size: clamp(0.75rem, 3.5vw, 0.95rem);
+  }
+
+  .hero .btn {
+    padding: 8px 24px;
+    font-size: 0.9rem;
+  }
+
+  .title-text {
+    font-size: clamp(1rem, 5vw, 1.4rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .title-text {
+    display: flex;
+    flex-direction: column; /* вертикално подреждане */
+    align-items: center;    /* центриране хоризонтално */
+    gap: 6px;               /* разстояние между редовете */
+    font-size: 1rem;        /* по-малък размер на текста */
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  /* Първата част "Какво е SmolyanVote?" оставаме като блок на първия ред */
+  .title-text::before {
+    content: "Какво е SmolyanVote?";
+    display: block;
+    font-weight: 700;
+    color: #015231;
+    border-bottom: 3px solid #4b9f3e;
+    padding-bottom: 0.2em;
+    margin-bottom: 0.5em;
+  }
+
+  /* Скриваме оригиналния текст в .title-text (за да не се дублира) */
+  .title-text > :not(.dynamic-text-box) {
+    display: none;
+  }
+
+  .dynamic-text-box {
+    min-width: auto;
+    height: auto;  /* вместо фиксирана височина */
+    overflow: visible; /* позволи видимост на съдържанието */
+    display: flex;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #015231;
+    padding: 0 5px;
+  }
+
+
+  .dynamic-text {
+
+    position: relative; /* няма absolute */
+    opacity: 0;
+    transform: translateY(20%);
+    transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    white-space: normal; /* позволява пренасяне на текст */
+    padding: 15px; /* малко разстояние от краищата */
+  }
+
+
+  .dynamic-text.active {
+    opacity: 1;
+    transform: translateY(0%);
+    position: relative;
+  }
+}
 

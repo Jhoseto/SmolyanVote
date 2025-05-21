@@ -12,11 +12,12 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("http://165.232.69.250:2662")
+                .allowedOriginPatterns("https://smolyanvote.com")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
+    //https://smolyanvote.com
     //http://134.122.75.151:2662
 //http://localhost:8080
 //http://213.91.128.33:2662

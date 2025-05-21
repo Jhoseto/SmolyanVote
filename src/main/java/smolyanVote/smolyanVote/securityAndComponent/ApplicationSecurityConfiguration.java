@@ -38,6 +38,7 @@ public class ApplicationSecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
                                 "/webjars/**",
@@ -125,15 +126,9 @@ public class ApplicationSecurityConfiguration {
                         })
 
                 )
-
-
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-
-
                 );
-
-
         return http.build();
     }
 
