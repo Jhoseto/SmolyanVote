@@ -18,20 +18,21 @@ body {
 
 
 .hero .display-4 {
-  font-size: 2rem;        /* по-малък размер */
+  font-size: 40px;        /* по-малък размер */
   font-weight: 500;       /* по-елегантно, не твърде дебело */
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   color: #ffffff;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.1rem;
 }
 
 .hero .lead {
-  font-size: 1rem;        /* по-малък и стилен */
+  font-size: 19px;        /* по-малък и стилен */
   font-weight: 300;
-  color: #bbbbbb;
+  color: #ffffff;
   font-style: italic;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.3rem;
 }
+
 
 .hero .btn {
   font-size: 0.85rem;
@@ -107,7 +108,7 @@ body {
   font-family: 'Helvetica Neue', sans-serif;
   position: relative;
   display: inline-block;
-  height: 1.4em;
+  height: 1.31em;
   overflow: hidden;
   vertical-align: baseline;
   line-height: 1.3;
@@ -238,7 +239,7 @@ body {
 
   .dynamic-text-box {
     min-width: auto;
-    height: auto;  /* вместо фиксирана височина */
+    height: 1.21rem;
     overflow: visible; /* позволи видимост на съдържанието */
     display: flex;
     justify-content: center;

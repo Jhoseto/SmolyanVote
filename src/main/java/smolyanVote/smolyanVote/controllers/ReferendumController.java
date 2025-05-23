@@ -142,6 +142,8 @@ public class ReferendumController {
         UserEntity user = userOpt.get();
         UserEntity currentUser = userService.getCurrentUser();
         ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getUsername());
+        referendum.setViewCounter(referendum.getViewCounter() + 1);
+        referendumRepository.save(referendum);
 
         //check current VOTE for current user
         VoteReferendumEntity vote = voteService.findByUserIdAndReferendumId(userService.getCurrentUser().getId(), id);

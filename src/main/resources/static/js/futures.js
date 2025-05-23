@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!isDragging) return;
 
         const deltaX = e.clientX - dragStartX;
-        const dragSensitivity = 0.005;
+        const dragSensitivity = 0.001;
         rotation = dragRotationStart - deltaX * dragSensitivity;
         updatePositions();
     });
