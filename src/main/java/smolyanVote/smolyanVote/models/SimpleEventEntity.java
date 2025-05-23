@@ -23,6 +23,7 @@ public class SimpleEventEntity extends BaseEventEntity {
     @Enumerated(EnumType.STRING)
     private Locations location;
 
+    private int viewCounter;
     private Instant createdAt;
     private String creatorName;
     private String creatorImage;
@@ -69,6 +70,10 @@ public class SimpleEventEntity extends BaseEventEntity {
     public Locations getLocation() {return location;}
 
     public void setLocation(Locations location) {this.location = location;}
+
+    public int getViewCounter() {return viewCounter;}
+
+    public void setViewCounter(int viewCounter) {this.viewCounter = viewCounter;}
 
     public Instant getCreatedAt() {
         return createdAt;

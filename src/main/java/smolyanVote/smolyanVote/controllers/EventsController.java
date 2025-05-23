@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.VoteSimpleEventEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.CommentsService;
 import smolyanVote.smolyanVote.services.EventService;
 import smolyanVote.smolyanVote.services.UserService;
@@ -28,17 +30,19 @@ public class EventsController {
     private final CommentsService commentsService;
     private final UserService userService;
     private final VoteService voteService;
+    private final SimpleEventRepository simpleEventRepository;
 
 
     @Autowired
     public EventsController(EventService eventService,
                             CommentsService commentsService,
                             UserService userService,
-                            VoteService voteService) {
+                            VoteService voteService, SimpleEventRepository simpleEventRepository) {
         this.eventService = eventService;
         this.commentsService = commentsService;
         this.userService = userService;
         this.voteService = voteService;
+        this.simpleEventRepository = simpleEventRepository;
     }
 
 
@@ -67,6 +71,11 @@ public class EventsController {
         EventView eventDetailView = eventService.getEventById(id);
         UserEntity user = userService.getCurrentUser();
 
+        SimpleEventEntity currentEvent = simpleEventRepository.getReferenceById(id);
+        currentEvent.setViewCounter(currentEvent.getViewCounter() + 1);
+        simpleEventRepository.save(currentEvent);
+
+
         int totalVotes = eventDetailView.getTotalVotes();
         if (totalVotes > 0) {
             eventDetailView.setYesPercent(eventDetailView.getYesVotes() * 100 / totalVotes);
@@ -80,8 +89,9 @@ public class EventsController {
 
         // проверка дали потребителят е гласувал
         VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
-
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
+
+
 
         model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("eventDetail", eventDetailView);

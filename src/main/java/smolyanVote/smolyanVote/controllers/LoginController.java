@@ -36,7 +36,7 @@ public class LoginController {
         this.rememberMeServices = rememberMeServices;
     }
 
-    @GetMapping("/login")
+    @GetMapping("/viewLogin")
     public String showLogin(Model model) {
         if (!model.containsAttribute("userModel")) {
             model.addAttribute("userModel", new UserLoginViewModel());
@@ -54,19 +54,19 @@ public class LoginController {
 
         if (userOptional.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Невалиден имейл адрес: " + userModel.getEmail());
-            return "redirect:/login";
+            return "redirect:/viewLogin";
         }
 
         UserEntity user = userOptional.get();
 
         if (!user.isActive()) {
             redirectAttributes.addFlashAttribute("error", "Вашият акаунт не е активен. Моля, активирайте го чрез изпратения имейл.");
-            return "redirect:/login";
+            return "redirect:/viewLogin";
         }
 
         if (!userService.checkPassword(user, userModel.getPassword())) {
             redirectAttributes.addFlashAttribute("error", "Грешна парола!");
-            return "redirect:/login";
+            return "redirect:/viewLogin";
         }
 
         Authentication authentication = userService.authenticateUser(userModel.getEmail(), userModel.getPassword());
@@ -82,6 +82,7 @@ public class LoginController {
 
             // 3. Обновяване на последно влизане
             user.setLastOnline(Instant.now());
+            user.setOnlineStatus(1);
             userRepository.save(user);
 
             // 4. Remember Me
@@ -93,7 +94,7 @@ public class LoginController {
         }
 
         redirectAttributes.addFlashAttribute("error", "Възникна неочаквана грешка. Моля, опитайте отново.");
-        return "redirect:/login";
+        return "redirect:/viewLogin";
     }
 
 
