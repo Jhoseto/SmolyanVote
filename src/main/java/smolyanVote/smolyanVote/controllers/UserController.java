@@ -35,12 +35,15 @@ public class UserController {
 
 
     @GetMapping("/profile")
-    public String redirectToUserProfile(Model model) {
+    public String redirectToUserProfile(@RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "6") int size,
+                                        Model model) {
+
         UserEntity currentUser = userService.getCurrentUser();
         List<EventView> userEvents = eventService.getUserEvents(currentUser.getEmail());
 
         model.addAttribute("locations", Locations.values());
-        model.addAttribute("user", currentUser);
+        model.addAttribute("currentUser", currentUser);
         model.addAttribute("userEvents", userEvents);
         return "userEditProfile";
     }
@@ -50,10 +53,12 @@ public class UserController {
     public String showUserProfile(@PathVariable String username, Model model) {
         UserEntity user = userService.findUserByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
+        UserEntity currentUser = userService.getCurrentUser();
 
         List<EventView> userEvents = eventService.getUserEvents(user.getEmail());
 
         model.addAttribute("user", user);
+        model.addAttribute("currentUser", currentUser);
         model.addAttribute("userEvents", userEvents);
         return "userProfile";
     }

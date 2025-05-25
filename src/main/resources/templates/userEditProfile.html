@@ -27,14 +27,14 @@
     <!-- Основна потребителска информация -->
     <div class="profile-info">
         <div class="profile-img">
-            <img th:src="${user.getImageUrl()}" alt="Профилна снимка">
+            <img th:src="${currentUser.getImageUrl()}" alt="Профилна снимка">
         </div>
         <div class="profile-details">
-            <h2 class="username" th:text="${user.username}">Име на потребителя</h2>
-            <p class="bio" th:text="${user.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия.“</p>
+            <h2 class="username" th:text="${currentUser.username}">Име на потребителя</h2>
+            <p class="bio" th:text="${currentUser.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия.“</p>
             <div class="stats">
-                <span><strong th:text="${user.userEventsCount}"></strong> събития</span>
-                <span><strong th:text="${user.totalVotes}"></strong> гласа</span>
+                <span><strong th:text="${currentUser.userEventsCount}"></strong> събития</span>
+                <span><strong th:text="${currentUser.totalVotes}"></strong> гласа</span>
             </div>
         </div>
         <!-- Бутон за редактиране -->
@@ -61,7 +61,7 @@
                     </select><br><br>
 
                     <label>Био:</label>
-                    <textarea name="bio" th:text="${user.bio}"></textarea><br><br>
+                    <textarea name="bio" th:text="${currentUser.bio}"></textarea><br><br>
 
                     <button type="submit" class="save-btn">Запази</button>
                 </form>
@@ -76,9 +76,9 @@
         <div class="section">
             <h3>Информация</h3>
             <ul>
-                <li>Имейл: <strong th:text="${user.email}"></strong></li>
-                <li>Локация: <strong th:text="${user.location != null ? user.location.toBG() : 'Неизвестна'}"></strong></li>
-                <li>Присъединил се: <strong th:text="${user.created != null ? #dates.format(user.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
+                <li>Имейл: <strong th:text="${currentUser.email}"></strong></li>
+                <li>Локация: <strong th:text="${currentUser.location != null ? currentUser.location.toBG() : 'Неизвестна'}"></strong></li>
+                <li>Присъединил се: <strong th:text="${currentUser.created != null ? #dates.format(currentUser.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
             </ul>
         </div>
 
@@ -91,7 +91,7 @@
 
     <!-- Секция със събития -->
     <div class="user-events">
-        <h3>Събития, създадени от потребителя</h3>
+        <h3>Моите Събития</h3>
         <div class="events-list">
 
             <!-- Thymeleaf фрагмент или динамичен изход тук -->
@@ -117,6 +117,19 @@
             closeEditModal();
         }
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.event-card .card-title').forEach(title => {
+            const maxHeight = 60; // напр. максимум 60px височина
+            let fontSize = parseFloat(getComputedStyle(title).fontSize);
+
+            while (title.scrollHeight > maxHeight && fontSize > 10) {
+                fontSize -= 1;
+                title.style.fontSize = fontSize + 'px';
+            }
+        });
+    });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

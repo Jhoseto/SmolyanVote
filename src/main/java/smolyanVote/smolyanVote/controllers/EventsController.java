@@ -51,13 +51,14 @@ public class EventsController {
     public String getEventsPage(@RequestParam(defaultValue = "0") int page,
                                 @RequestParam(defaultValue = "6") int size,
                                 Model model) {
-
+        UserEntity currentUser = userService.getCurrentUser();
 
         //TODO
         //turkane na vsichki komentari
         //commentsService.deleteAllComments();
 
         Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
+        model.addAttribute("currentUser", currentUser);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", eventPage.getTotalPages());

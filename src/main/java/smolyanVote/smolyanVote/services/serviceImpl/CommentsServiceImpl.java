@@ -26,19 +26,16 @@ public class CommentsServiceImpl implements CommentsService {
     private final UserService userService;
 
     private final Map<String, Map<Long, String>> voteCache = new HashMap<>();
-    private final SimpleEventRepository eventRepository;
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
                                ReferendumRepository referendumRepository,
-                               UserService userService,
-                               SimpleEventRepository eventRepository) {
+                               UserService userService) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.userService = userService;
-        this.eventRepository = eventRepository;
     }
 
 
