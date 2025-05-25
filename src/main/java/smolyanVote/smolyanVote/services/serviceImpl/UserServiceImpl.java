@@ -17,8 +17,8 @@ import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
 import smolyanVote.smolyanVote.services.EmailService;
-import smolyanVote.smolyanVote.services.Mappers.UsersMapper;
-import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.mappers.UsersMapper;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 

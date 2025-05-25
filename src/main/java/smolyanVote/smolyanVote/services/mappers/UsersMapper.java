@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services.Mappers;
+package smolyanVote.smolyanVote.services.mappers;
 
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.UserEntity;

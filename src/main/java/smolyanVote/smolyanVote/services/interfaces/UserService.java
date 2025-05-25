@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services;
+package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;

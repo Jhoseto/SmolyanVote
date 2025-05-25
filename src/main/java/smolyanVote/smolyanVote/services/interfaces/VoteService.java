@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services;
+package smolyanVote.smolyanVote.services.interfaces;
 
 import jakarta.transaction.Transactional;
 import smolyanVote.smolyanVote.models.VoteReferendumEntity;

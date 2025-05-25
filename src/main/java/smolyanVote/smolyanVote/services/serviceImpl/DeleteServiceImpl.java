@@ -7,8 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.*;
-import smolyanVote.smolyanVote.services.DeleteService;
-import smolyanVote.smolyanVote.services.ImageCloudinaryService;
+import smolyanVote.smolyanVote.services.interfaces.DeleteService;
+import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 
 import java.util.List;
 

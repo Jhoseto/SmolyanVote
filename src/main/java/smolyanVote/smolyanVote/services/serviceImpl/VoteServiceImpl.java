@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.*;
-import smolyanVote.smolyanVote.services.VoteService;
+import smolyanVote.smolyanVote.services.interfaces.VoteService;
 
 
 @Service

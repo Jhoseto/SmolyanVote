@@ -14,9 +14,9 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.services.EventService;
-import smolyanVote.smolyanVote.services.Mappers.EventMapper;
-import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.interfaces.EventService;
+import smolyanVote.smolyanVote.services.mappers.EventMapper;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 

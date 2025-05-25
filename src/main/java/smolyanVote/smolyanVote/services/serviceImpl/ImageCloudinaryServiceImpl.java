@@ -6,7 +6,7 @@ import com.cloudinary.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import smolyanVote.smolyanVote.services.ImageCloudinaryService;
+import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 
 import java.io.IOException;
 import java.util.Map;

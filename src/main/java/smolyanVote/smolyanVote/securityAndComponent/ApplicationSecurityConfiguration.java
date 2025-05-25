@@ -14,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import smolyanVote.smolyanVote.components.CustomLogoutSuccessHandler;
+import smolyanVote.smolyanVote.services.KeyGenerator;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

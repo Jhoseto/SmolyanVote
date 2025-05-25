@@ -7,10 +7,9 @@ import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.services.CommentsService;
-import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.interfaces.CommentsService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 
-import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
