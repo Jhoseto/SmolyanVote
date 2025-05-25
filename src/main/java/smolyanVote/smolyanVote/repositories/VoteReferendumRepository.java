@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
 
 import java.util.Optional;
@@ -14,4 +15,8 @@ public interface VoteReferendumRepository extends JpaRepository<VoteReferendumEn
     Optional<VoteReferendumEntity> findByReferendum_Id(Long referendumId);
 
     Optional<VoteReferendumEntity> findByUserIdAndReferendum_Id(Long userId, Long referendumId);
+
+    @Transactional
+    void deleteAllByReferendumId(Long referendumId);
+
 }

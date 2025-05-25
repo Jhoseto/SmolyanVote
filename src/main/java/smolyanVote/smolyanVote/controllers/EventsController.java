@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -14,14 +15,12 @@ import smolyanVote.smolyanVote.models.VoteSimpleEventEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
-import smolyanVote.smolyanVote.services.CommentsService;
-import smolyanVote.smolyanVote.services.EventService;
-import smolyanVote.smolyanVote.services.UserService;
-import smolyanVote.smolyanVote.services.VoteService;
+import smolyanVote.smolyanVote.services.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class EventsController {
@@ -31,18 +30,20 @@ public class EventsController {
     private final UserService userService;
     private final VoteService voteService;
     private final SimpleEventRepository simpleEventRepository;
+    private final DeleteService deleteService;
 
 
     @Autowired
     public EventsController(EventService eventService,
                             CommentsService commentsService,
                             UserService userService,
-                            VoteService voteService, SimpleEventRepository simpleEventRepository) {
+                            VoteService voteService, SimpleEventRepository simpleEventRepository, DeleteService deleteService) {
         this.eventService = eventService;
         this.commentsService = commentsService;
         this.userService = userService;
         this.voteService = voteService;
         this.simpleEventRepository = simpleEventRepository;
+        this.deleteService = deleteService;
     }
 
 
@@ -71,9 +72,16 @@ public class EventsController {
         EventView eventDetailView = eventService.getEventById(id);
         UserEntity user = userService.getCurrentUser();
 
-        SimpleEventEntity currentEvent = simpleEventRepository.getReferenceById(id);
-        currentEvent.setViewCounter(currentEvent.getViewCounter() + 1);
-        simpleEventRepository.save(currentEvent);
+
+        Optional<SimpleEventEntity> optionalEvent = simpleEventRepository.findById(id);
+        if (optionalEvent.isPresent()) {
+            SimpleEventEntity currentEvent = optionalEvent.get();
+            currentEvent.setViewCounter(currentEvent.getViewCounter() + 1);
+            simpleEventRepository.save(currentEvent);
+        } else {
+
+            return "error/404";
+        }
 
 
         int totalVotes = eventDetailView.getTotalVotes();
@@ -135,6 +143,14 @@ public class EventsController {
     }
 
 
+
+    @PostMapping("/event/{id}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String deleteEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        deleteService.deleteEvent(id);
+        redirectAttributes.addFlashAttribute("successMessage", "Събитието беше изтрито успешно.");
+        return "redirect:/mainEvents";
+    }
 
 
 

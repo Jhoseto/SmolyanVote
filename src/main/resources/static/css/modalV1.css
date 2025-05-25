@@ -1,0 +1,78 @@
+/* Основен стил за модалното съдържание */
+.modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    background: #fff;
+    animation: fadeInScale 0.3s ease-in-out;
+}
+
+/* Анимация за по-плавна поява */
+@keyframes fadeInScale {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Хедър на модала */
+.modal-header {
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
+/* Тяло на модала */
+.modal-body {
+    padding: 1.5rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Футър на модала */
+.modal-footer {
+    border-top: none;
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Стилове за бутони */
+.modal-footer .btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    transition: background-color 0.2s ease;
+}
+
+.modal-footer .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.modal-footer .btn-danger {
+    background-color: #dc3545;
+    border: none;
+    transition: background-color 0.2s ease;
+}
+
+.modal-footer .btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Бутона за затваряне */
+.btn-close {
+    filter: grayscale(1);
+    transition: filter 0.2s ease;
+}
+.btn-close:hover {
+    filter: none;
+}

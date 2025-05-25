@@ -3,6 +3,43 @@
 
 <div th:fragment="simple-event" class="event-container">
   <div class="event-card">
+
+    <!-- Бутон за изтриване -->
+    <div th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
+         style="position: absolute; top: 10px; right: 10px; z-index: 5;">
+      <button type="button"
+              class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
+              style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"
+              data-bs-toggle="modal"
+              th:attr="data-bs-target='#deleteModal__' + ${event.id}">
+        ✖
+      </button>
+    </div>
+
+    <!-- Модал за потвърждение на изтриването -->
+    <div th:id="'deleteModal__' + ${event.id}" class="modal fade" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form th:action="@{/event/{id}/delete(id=${event.id})}" method="post" class="modal-content">
+          <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+
+          <div class="modal-header">
+            <h5 class="modal-title">Потвърди изтриване</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+          </div>
+
+          <div class="modal-body">
+            <p>Сигурен ли си, че искаш да изтриеш събитието: <strong th:text="${event.title}">Заглавие</strong>?</p>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-danger">Изтрий</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
     <!-- Изображение на събитието -->
     <img th:if="${event.imageUrls != null and !event.imageUrls.isEmpty()}"
          th:src="${event.imageUrls[0]}"
@@ -14,6 +51,7 @@
 
     <!-- Тяло на картата -->
     <div class="card-body event-info">
+
       <!-- Заглавие -->
       <h5 class="card-title" th:text="${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
 

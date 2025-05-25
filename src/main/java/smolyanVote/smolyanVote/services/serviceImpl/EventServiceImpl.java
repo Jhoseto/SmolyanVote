@@ -93,6 +93,7 @@ public class EventServiceImpl implements EventService {
 
 
 
+    @Transactional
     @Override
     public EventView getEventById(Long id) {
 
@@ -173,12 +174,6 @@ public class EventServiceImpl implements EventService {
         return events.stream()
                 .map(eventMapper::mapToView)
                 .collect(Collectors.toList());
-    }
-
-
-    @Override
-    public void deleteEvent(Long id) {
-        simpleEventRepository.deleteById(id);
     }
 
 }

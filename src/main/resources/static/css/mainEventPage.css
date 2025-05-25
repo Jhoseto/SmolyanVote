@@ -177,3 +177,9 @@ body {
     display: inline-block;
 }
 
+.modal-open .event-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+

@@ -23,7 +23,5 @@ public interface EventService {
                              String negativeLabel,
                              String neutralLabel);
 
-    void deleteEvent(Long id);
-
     List<EventView> getUserEvents(String currentUser);
 }
