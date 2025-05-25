@@ -9,8 +9,8 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
-import smolyanVote.smolyanVote.services.CommentsService;
-import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.interfaces.CommentsService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 
 import java.time.Instant;
 import java.util.HashMap;

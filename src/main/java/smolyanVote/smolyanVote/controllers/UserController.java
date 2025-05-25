@@ -12,13 +12,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.services.EventService;
-import smolyanVote.smolyanVote.services.UserService;
+import smolyanVote.smolyanVote.services.interfaces.EventService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 public class UserController {

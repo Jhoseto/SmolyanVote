@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services;
+package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;

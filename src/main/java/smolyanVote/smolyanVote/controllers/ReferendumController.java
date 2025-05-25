@@ -15,10 +15,10 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.services.CommentsService;
-import smolyanVote.smolyanVote.services.ReferendumService;
-import smolyanVote.smolyanVote.services.UserService;
-import smolyanVote.smolyanVote.services.VoteService;
+import smolyanVote.smolyanVote.services.interfaces.CommentsService;
+import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
 
 import java.util.List;

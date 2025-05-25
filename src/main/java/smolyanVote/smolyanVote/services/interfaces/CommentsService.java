@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services;
+package smolyanVote.smolyanVote.services.interfaces;
 
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;

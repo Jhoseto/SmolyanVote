@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.services;
+package smolyanVote.smolyanVote.services.interfaces;
 
 public interface DeleteService {
 

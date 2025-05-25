@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.securityAndComponent;
+package smolyanVote.smolyanVote.services;
 
 import java.security.SecureRandom;
 import java.util.Base64;

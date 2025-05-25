@@ -6,12 +6,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
-import smolyanVote.smolyanVote.services.ReferendumService;
-import smolyanVote.smolyanVote.services.VoteService;
-import smolyanVote.smolyanVote.services.serviceImpl.ReferendumServiceImpl;
+import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
+import smolyanVote.smolyanVote.services.interfaces.VoteService;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Controller
