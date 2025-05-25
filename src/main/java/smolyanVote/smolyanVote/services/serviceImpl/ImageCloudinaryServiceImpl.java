@@ -80,27 +80,57 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         }
     }
 
-    // 🌟 Метод за изтриване на изображение от Cloudinary
+    @Override
     public void deleteImage(String imageUrl) {
+        // Ако искаш, можеш да запазиш този метод, но за изтриване на папка няма да го ползваме
+    }
+
+
+
+    @Override
+    public void deleteFolder(String folderPath) {
         try {
-            String publicId = extractPublicIdFromUrl(imageUrl);
-            if (publicId != null) {
-                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            }
-        } catch (IOException e) {
-            System.err.println("Неуспешно изтриване на изображение от Cloudinary: " + e.getMessage());
+            // Изтриваме всички ресурси с дадения префикс
+            cloudinary.api().deleteResourcesByPrefix(folderPath, ObjectUtils.emptyMap());
+
+            // Изтриваме самата папка (подава се втори аргумент)
+            cloudinary.api().deleteFolder(folderPath, ObjectUtils.emptyMap());
+        } catch (Exception e) {
+            System.err.println("Грешка при изтриване на папка от Cloudinary: " + e.getMessage());
         }
     }
+
+
 
     // 🌟 Извличане на public_id от URL на Cloudinary
     public String extractPublicIdFromUrl(String url) {
         try {
-            int start = url.lastIndexOf("/") + 1;
-            int end = url.lastIndexOf(".");
-            return url.substring(start, end);
+            // Примерен URL част: .../upload/v1234567890/events/event_123/abcdefg.jpg
+            int uploadIndex = url.indexOf("/upload/");
+            if (uploadIndex == -1) return null;
+
+            // Взимаме частта след "/upload/"
+            String pathAfterUpload = url.substring(uploadIndex + 8); // +8 = length("/upload/")
+
+            // Премахваме версията, ако има (пример: v1234567890/)
+            if (pathAfterUpload.startsWith("v")) {
+                int slashAfterVersion = pathAfterUpload.indexOf("/");
+                if (slashAfterVersion != -1) {
+                    pathAfterUpload = pathAfterUpload.substring(slashAfterVersion + 1);
+                }
+            }
+
+            // Премахваме разширението (.jpg, .png и т.н.)
+            int dotIndex = pathAfterUpload.lastIndexOf('.');
+            if (dotIndex != -1) {
+                pathAfterUpload = pathAfterUpload.substring(0, dotIndex);
+            }
+
+            return pathAfterUpload;
         } catch (Exception e) {
             System.err.println("Неуспешно извличане на public_id от URL: " + e.getMessage());
             return null;
         }
     }
+
 }

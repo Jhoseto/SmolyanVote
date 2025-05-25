@@ -3,7 +3,10 @@ package smolyanVote.smolyanVote.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.enums.EventType;
+
 import java.util.List;
 
 @Repository
@@ -13,5 +16,12 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     List<CommentsEntity> findRootCommentsWithRepliesByEventId(Long eventId);
 
     List<CommentsEntity> findRootCommentsWithRepliesByReferendumId(Long referendumId);
+
+    @Transactional
+    void deleteAllByEvent_Id(Long eventId);
+
+    @Transactional
+    void deleteAllByReferendum_Id(Long referendumId);
+
 }
 

@@ -9,4 +9,9 @@ public interface ImageCloudinaryService {
     String saveSingleImage(MultipartFile file, Long eventId);
 
     String saveSingleReferendumImage(MultipartFile file, Long eventId);
+
+    void deleteImage(String imageUrl);
+
+    // Нов метод за изтриване на цяла папка по префикс
+    void deleteFolder(String folderPath);
 }

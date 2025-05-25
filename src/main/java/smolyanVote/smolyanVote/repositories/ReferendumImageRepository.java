@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.ReferendumImageEntity;
 
 import java.util.List;
@@ -13,5 +14,8 @@ import java.util.List;
 public interface ReferendumImageRepository extends JpaRepository<ReferendumImageEntity, Long> {
 
     List<ReferendumImageEntity> findByReferendumId(Long referendumId);
+
+    @Transactional
+    void deleteAllByReferendumId(Long referendumId);
 
 }

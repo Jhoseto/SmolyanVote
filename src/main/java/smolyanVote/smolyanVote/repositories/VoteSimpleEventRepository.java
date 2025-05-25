@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -17,4 +18,8 @@ public interface VoteSimpleEventRepository extends JpaRepository<VoteSimpleEvent
     Optional<VoteSimpleEventEntity> findByEventIdAndUserEmail(Long eventId, String userEmail);
 
     Optional<VoteSimpleEventEntity> findByUserIdAndEventId(Long userId, Long eventId);
+
+    @Transactional
+    void deleteAllByEventId(Long eventId);
+
 }
