@@ -37,6 +37,7 @@ public class EventMapper {
         view.setDescription(event.getDescription());
         view.setLocation(event.getLocation());
         view.setEventType(event.getEventType());
+        view.setViewCounter(event.getViewCounter());
 
         // Автор
         if (user.isPresent()) {

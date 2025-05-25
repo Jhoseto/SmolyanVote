@@ -169,11 +169,14 @@ public class EventServiceImpl implements EventService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
 
-        List<SimpleEventEntity> events = simpleEventRepository.findAllByCreatorName(user.getUsername());
+        List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAllByCreatorName(user.getUsername());
+        List<ReferendumEntity> referendums = referendumRepository.findAllByCreatorName(user.getUsername());
 
-        return events.stream()
-                .map(eventMapper::mapToView)
-                .collect(Collectors.toList());
+        List<EventView> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapToView).toList());
+        allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
+
+        return allEvents;
     }
 
 }

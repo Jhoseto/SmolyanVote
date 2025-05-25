@@ -89,7 +89,19 @@
     </div>
 
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.event-card .card-title').forEach(title => {
+            const maxHeight = 60; // напр. максимум 60px височина
+            let fontSize = parseFloat(getComputedStyle(title).fontSize);
 
+            while (title.scrollHeight > maxHeight && fontSize > 10) {
+                fontSize -= 1;
+                title.style.fontSize = fontSize + 'px';
+            }
+        });
+    });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>

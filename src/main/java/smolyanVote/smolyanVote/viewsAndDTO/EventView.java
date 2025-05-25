@@ -15,6 +15,7 @@ public class EventView {
     private String description;
 
     private Locations location;
+    private int viewCounter;
     private String creatorName;
     private String creatorImage;
     private List<String> imageUrls; // 🔁 Списък с до 3 линка към снимки
@@ -63,6 +64,10 @@ public class EventView {
     public Locations getLocation() {return location;}
 
     public void setLocation(Locations location) {this.location = location;}
+
+    public int getViewCounter() {return viewCounter;}
+
+    public void setViewCounter(int viewCounter) {this.viewCounter = viewCounter;}
 
     public void setDescription(String description) {
         this.description = description;

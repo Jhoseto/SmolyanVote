@@ -49,6 +49,7 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
     }
 
     // 🌟 Общ метод за качване на изображение в Cloudinary
+    @SuppressWarnings("unchecked")
     private String uploadImage(MultipartFile file, String publicId, String folder, boolean addWatermark) {
         try {
             // Основна трансформация

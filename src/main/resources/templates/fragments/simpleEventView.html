@@ -1,11 +1,26 @@
 <!-- fragments/simpleEventView.html -->
+<!-- @thymesVar id="currentUser" type="smolyanVote.smolyanVote.models.UserEntity" -->
 <!-- @thymesVar id="event" type="smolyanVote.smolyanVote.viewsAndDTO.EventView" -->
 
 <div th:fragment="simple-event" class="event-container">
-  <div class="event-card">
+  <div class="event-card"
+       th:classappend="
+       ${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT} ? ' border-simpleevent' :
+       (${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM} ? ' border-referendum' : '')">
+
+    <!-- Надпис в рамката -->
+    <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
+         class="type-label type-label-simpleevent">
+      Опростен вид събитие
+    </div>
+
+    <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
+         class="type-label type-label-referendum">
+      Референдум
+    </div>
 
     <!-- Бутон за изтриване -->
-    <div th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
+    <div th:if="${#authorization.expression('hasRole(''ADMIN'')') || event.creatorName == currentUser.username}"
          style="position: absolute; top: 10px; right: 10px; z-index: 5;">
       <button type="button"
               class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
@@ -81,23 +96,23 @@
       </div>
 
 
-
-
-      <!-- Дата -->
-      <div class="mb-2">
-        <small class="text-muted">
+      <!-- блок2 -->
+      <div class="mb-2 text-muted small">
+        <div>
           Създадено на:
-          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата</span>
-        </small>
-      </div>
-
-      <!-- Гласове -->
-      <div class="mb-3">
-        <small class="text-muted">
+          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата
+    </span>
+        </div>
+        <div>
           Гласували:
           <span th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</span> души
-        </small>
+        </div>
+        <div>
+          Преглеждания:
+          <span th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</span> души
+        </div>
       </div>
+
 
       <!-- Ако потребителят е логнат -->
       <div th:if="${#authorization.expression('isAuthenticated()')}">
@@ -125,5 +140,18 @@
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.event-card .card-title').forEach(title => {
+      const containerHeight = title.parentElement.clientHeight * 0.25; // максимум 25% от височината на родителя
+      let fontSize = parseFloat(getComputedStyle(title).fontSize);
+
+      while (title.scrollHeight > containerHeight && fontSize > 0.6) {
+        fontSize -= 0.05;
+        title.style.fontSize = fontSize + 'rem';
+      }
+    });
+  });
+</script>
 
 
