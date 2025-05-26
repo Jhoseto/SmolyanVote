@@ -20,15 +20,17 @@
     </div>
 
     <!-- Бутон за изтриване -->
-    <div th:if="${#authorization.expression('hasRole(''ADMIN'')') || event.creatorName == currentUser.username}"
-         style="position: absolute; top: 10px; right: 10px; z-index: 5;">
-      <button type="button"
-              class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
-              style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"
-              data-bs-toggle="modal"
-              th:attr="data-bs-target='#deleteModal__' + ${event.id}">
-        ✖
-      </button>
+    <div th:if="${#authorization.expression('isAuthenticated()')}">
+      <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or event.creatorName == currentUser.username}"
+           style="position: absolute; top: 10px; right: 10px; z-index: 5;">
+        <button type="button"
+                class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
+                style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"
+                data-bs-toggle="modal"
+                th:attr="data-bs-target='#deleteModal__' + ${event.id}">
+          ✖
+        </button>
+      </div>
     </div>
 
     <!-- Модал за потвърждение на изтриването -->
@@ -73,17 +75,35 @@
       <!-- Блок за автора -->
       <div class="d-flex align-items-center mb-2">
 
-        <!-- Снимка на автора като линк -->
-        <a th:if="${event.creatorImage != null}"
+        <!-- Ако има снимка и потребителят е логнат -->
+        <a th:if="${event.creatorImage != null and #authorization.expression('isAuthenticated()')}"
            th:href="@{/user/{username}(username=${event.creatorName})}">
+          <img th:src="${event.creatorImage}"
+               alt="Автор"
+               class="author-avatar rounded-circle me-2">
+        </a>
+        <!-- Ако има снимка и потребителят НЕ е логнат -->
+        <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
+           href="javascript:void(0);"
+           onclick="showLoginWarning()">
           <img th:src="${event.creatorImage}"
                alt="Автор"
                class="author-avatar rounded-circle me-2">
         </a>
 
         <div>
-          <!-- Име на автора като линк -->
-          <a th:href="@{/user/{username}(username=${event.creatorName})}" class="text-decoration-none">
+          <!-- Име на автора -->
+          <!-- Ако е логнат потребителят -->
+          <a th:if="${#authorization.expression('isAuthenticated()')}"
+             th:href="@{/user/{username}(username=${event.creatorName})}"
+             class="text-decoration-none">
+            <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+          </a>
+          <!-- Ако НЕ е логнат -->
+          <a th:if="${!#authorization.expression('isAuthenticated()')}"
+             href="javascript:void(0);"
+             onclick="showLoginWarning()"
+             class="text-decoration-none">
             <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
           </a>
 
@@ -94,7 +114,6 @@
           </div>
         </div>
       </div>
-
 
       <!-- блок2 -->
       <div class="mb-2 text-muted small">

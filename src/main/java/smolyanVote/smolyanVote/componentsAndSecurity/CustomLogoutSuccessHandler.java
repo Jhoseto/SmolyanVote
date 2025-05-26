@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.components;
+package smolyanVote.smolyanVote.componentsAndSecurity;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
