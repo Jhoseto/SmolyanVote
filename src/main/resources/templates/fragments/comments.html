@@ -14,15 +14,12 @@
             <input type="hidden" name="author" th:value="${currentUser.getUsername()}" />
             <input type="hidden" name="text" id="comment-hidden" />
 
-
             <div class="mb-3 d-flex align-items-center comment-header">
                 <img th:src="${currentUser.getImageUrl()}" alt="Снимка на потребителя" class="user-img rounded-circle me-3" />
                 <div class="comment-author" th:text="${currentUser.getUsername()}">Потребител</div>
             </div>
 
-            <!-- Quill редактор -->
             <div id="editor-container" style="height: 150px;"></div>
-
             <button type="submit" class="btn btn-primary mt-2">Публикувай</button>
         </form>
 
@@ -39,12 +36,36 @@
                     </div>
                 </div>
 
+                <!-- Оригинален текст -->
                 <div class="comment-text" th:utext="${comment.text}">Текст</div>
 
-                <!-- Бутон за отговор -->
-                <button class="btn btn-sm btn-outline-secondary reply-btn mt-2" th:data-id="${comment.id}">Напиши отговор</button>
+                <!-- Quill редактор (скрит по начало) -->
+                <div class="edit-container mt-2 d-none">
+                    <div class="quill-editor" style="height: 150px;"></div>
+                    <button class="btn btn-sm btn-success save-edit-btn mt-2">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn btn-sm btn-secondary cancel-edit-btn mt-2">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
 
-                <!-- Like/Dislike -->
+                <!-- Бутони за редактиране и изтриване - само за автора -->
+                <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or comment.author == currentUser.username}" class="mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-warning edit-btn" th:data-id="${comment.id}" title="Редактирай">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" th:data-id="${comment.id}" title="Изтрий">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+
+                <!-- Бутон за отговор -->
+                <button class="btn btn-sm btn-outline-secondary reply-btn mt-2" th:data-id="${comment.id}">
+                    <i class="bi bi-reply-fill"></i> Отговор
+                </button>
+
+                <!-- Like / Dislike -->
                 <div class="mt-2 d-flex align-items-center gap-3">
                     <button class="btn btn-sm like-btn" th:data-id="${comment.id}" data-type="like">
                         👍 <span th:text="${comment.getLikeCount()}">0</span>
@@ -59,7 +80,6 @@
                     <input type="hidden" name="targetId" th:value="${targetId}" />
                     <input type="hidden" name="parentId" th:value="${comment.id}" />
                     <input type="hidden" name="author" th:value="${currentUser.username}" />
-
                     <textarea name="text" placeholder="Отговор..." class="form-control form-control-sm mb-2" rows="2" required></textarea>
                     <button type="submit" class="btn btn-sm btn-primary">Изпрати</button>
                 </form>
@@ -72,9 +92,32 @@
                                 <img th:src="${reply.getAuthorImage()}" alt="Снимка" class="rounded-circle me-2 reply-img mt-1" />
                                 <div>
                                     <div class="comment-author fw-bold" th:text="${reply.author}">Автор</div>
+
                                     <div class="reply-text" th:utext="${reply.text}">Текст</div>
+
+                                    <!-- Quill за отговори (ако добавиш in-place редакция и там) -->
+                                    <div class="edit-container mt-2 d-none">
+                                        <div class="quill-editor" style="height: 150px;"></div>
+                                        <button class="btn btn-sm btn-success save-edit-btn mt-2">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary cancel-edit-btn mt-2">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+
                                     <small th:text="${reply.getCreatedAt() != null ? #dates.format(reply.getCreatedAt(), 'dd.MM.yyyy / HH:mm') : 'Неизвестна дата'}">Дата</small>
+
                                     <div class="mt-1 d-flex align-items-center gap-2">
+                                        <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or reply.author == currentUser.username}" class="mt-1 d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-warning edit-btn" th:data-id="${reply.id}" title="Редактирай">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-btn" th:data-id="${reply.id}" title="Изтрий">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+
                                         <button class="btn btn-sm like-btn" th:data-id="${reply.id}" data-type="like">
                                             👍 <span th:text="${reply.getLikeCount()}">0</span>
                                         </button>

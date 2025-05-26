@@ -18,8 +18,10 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Query("SELECT c FROM CommentsEntity c LEFT JOIN FETCH c.replies WHERE c.referendum.id = :referendumId AND c.parent IS NULL ORDER BY c.createdAt DESC")
     List<CommentsEntity> findRootCommentsWithRepliesByReferendumId(Long referendumId);
 
+
     @Transactional
     void deleteAllByEvent_Id(Long eventId);
+
 
     @Transactional
     void deleteAllByReferendum_Id(Long referendumId);

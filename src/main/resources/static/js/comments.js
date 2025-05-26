@@ -182,4 +182,90 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     });
+
+
+
+
+
+
+    // Изтриване на коментар
+    document.addEventListener("click", function (e) {
+        const delBtn = e.target.closest(".delete-btn");
+        if (!delBtn) return;
+
+        const id = delBtn.dataset.id;
+        if (!confirm("Сигурни ли сте, че искате да изтриете този коментар?")) return;
+
+        fetch(`/api/comments/${id}`, {
+            method: "DELETE",
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        })
+            .then(res => {
+                if (!res.ok) return res.json().then(data => Promise.reject(data.error));
+                document.getElementById(`comment-${id}`)?.remove();
+            })
+            .catch(err => alert("Грешка при изтриване: " + err));
+    });
+
+// Редактиране на коментар
+
+    let activeEditor = null;
+    let activeCommentId = null;
+
+    $(document).on('click', '.edit-btn', function () {
+        const commentBox = $(this).closest('.comment-box');
+        const commentId = $(this).data('id');
+        const originalTextEl = commentBox.find('.comment-text');
+        const editContainer = commentBox.find('.edit-container');
+        const quillDiv = editContainer.find('.quill-editor');
+
+        // Създай нов Quill само веднъж
+        if (!quillDiv.data('quill')) {
+            const quill = new Quill(quillDiv[0], {
+                theme: 'snow'
+            });
+            quillDiv.data('quill', quill);
+        }
+
+        const quill = quillDiv.data('quill');
+        quill.root.innerHTML = originalTextEl.html();
+
+        originalTextEl.addClass('d-none');
+        editContainer.removeClass('d-none');
+
+        activeEditor = quill;
+        activeCommentId = commentId;
+    });
+
+    $(document).on('click', '.cancel-edit-btn', function () {
+        const commentBox = $(this).closest('.comment-box');
+        commentBox.find('.edit-container').addClass('d-none');
+        commentBox.find('.comment-text').removeClass('d-none');
+        activeEditor = null;
+        activeCommentId = null;
+    });
+
+    $(document).on('click', '.save-edit-btn', function () {
+        const commentBox = $(this).closest('.comment-box');
+        const newText = activeEditor.root.innerHTML;
+
+        $.ajax({
+            url: '/api/comments/' + activeCommentId,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ text: newText }),
+            success: function (res) {
+                commentBox.find('.comment-text').html(res.text).removeClass('d-none');
+                commentBox.find('.edit-container').addClass('d-none');
+            },
+            error: function () {
+                alert('Грешка при редактиране на коментара');
+            }
+        });
+
+        activeEditor = null;
+        activeCommentId = null;
+    });
 });

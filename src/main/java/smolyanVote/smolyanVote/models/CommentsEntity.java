@@ -23,6 +23,13 @@ public class CommentsEntity {
 
     private Instant createdAt;
 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CommentVoteEntity> votes = new ArrayList<>();
+
+
+    @Column(name = "is_edited")
+    private boolean edited;
+
     @ManyToOne
     @JoinColumn(name = "event_id", nullable = true)
     private SimpleEventEntity event;
@@ -85,6 +92,10 @@ public class CommentsEntity {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
+    public boolean isEdited() {return edited;}
+
+    public void setEdited(boolean edited) {this.edited = edited;}
 
     public SimpleEventEntity getEvent() {
         return event;
