@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
@@ -46,6 +47,7 @@ public class CommentsServiceImpl implements CommentsService {
 
 
 
+    @Transactional
     @Override
     public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
         UserEntity user = userService.getCurrentUser();
@@ -80,7 +82,7 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
-
+    @Transactional
     @Override
     public CommentsEntity commentReaction(Long commentId, String type, String username) {
         CommentsEntity comment = commentsRepository.findById(commentId)
@@ -136,7 +138,7 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
-
+    @Transactional
     @Override
     public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
         return switch (targetType) {
@@ -147,6 +149,7 @@ public class CommentsServiceImpl implements CommentsService {
         };
     }
 
+    @Transactional
     @Override
     public EventType getTargetType(Long targetId) {
         boolean isReferendum = referendumRepository.existsById(targetId);
@@ -165,6 +168,7 @@ public class CommentsServiceImpl implements CommentsService {
         }
     }
 
+    @Transactional
     @Override
     public void deleteAllComments() {
         commentsRepository.deleteAll();
