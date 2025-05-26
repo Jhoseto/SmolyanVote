@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.viewsAndDTO;
+package smolyanVote.smolyanVote.viewsAndDTO.commentsDTO;
 
 public class CommentResponseDto {
     private Long id;
