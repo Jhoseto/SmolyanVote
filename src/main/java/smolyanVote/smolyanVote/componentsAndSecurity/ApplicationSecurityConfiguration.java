@@ -57,6 +57,7 @@ public class ApplicationSecurityConfiguration {
                                 "/register",
                                 "/about",
                                 "/login",
+                                "/viewLogin",
                                 "/logout",
                                 "/user/login",
                                 "/user/logout",
@@ -116,15 +117,16 @@ public class ApplicationSecurityConfiguration {
                 )
 
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            String ajaxHeader = request.getHeader("X-Requested-With");
-                            if ("XMLHttpRequest".equals(ajaxHeader)) {
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Моля влезте в профила си или се регистрирайте за да продължите !");
-                            } else {
-                                String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
-                                response.sendRedirect("/login?authError=" + msg);
-                            }
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            String msg = URLEncoder.encode("Съдържанието е достъпно само за Администратори !", StandardCharsets.UTF_8);
+                            response.sendRedirect("/login?error=" + msg);
+
                         })
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
+                            response.sendRedirect("/login?authError=" + msg);
+                        })
+
                 )
 
                 .csrf(csrf -> csrf

@@ -98,5 +98,43 @@ public class CommentRestController {
             return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
         }
     }
+
+
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> editComment(@PathVariable Long id,
+                                         @RequestParam String text) {
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            CommentsEntity updatedComment = commentsService.editComment(id, text, currentUser);
+
+            return ResponseEntity.ok(new CommentResponseDto(
+                    updatedComment.getId(),
+                    updatedComment.getAuthor(),
+                    updatedComment.getAuthorImage(),
+                    updatedComment.getText()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(new ErrorDto("Нямате права за редактиране."));
+        } catch (Exception e) {
+            logger.error("Грешка при редактиране: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(new ErrorDto("Сървърна грешка."));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteComment(@PathVariable Long id) {
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            commentsService.deleteComment(id, currentUser);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(new ErrorDto("Нямате права за изтриване."));
+        } catch (Exception e) {
+            logger.error("Грешка при изтриване: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(new ErrorDto("Сървърна грешка."));
+        }
+    }
+
 }
 

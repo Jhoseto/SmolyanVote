@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
@@ -173,4 +174,41 @@ public class CommentsServiceImpl implements CommentsService {
     public void deleteAllComments() {
         commentsRepository.deleteAll();
     }
+
+
+
+    @Transactional
+    @Override
+    public CommentsEntity editComment(Long commentId, String newText, UserEntity user) {
+        CommentsEntity comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
+
+        if (!cannotModifyComment(comment, user)) {
+            throw new SecurityException("Нямате права за редактиране.");
+        }
+
+        comment.setText(newText);
+        comment.setEdited(true);
+        return commentsRepository.save(comment);
+    }
+
+    @Transactional
+    @Override
+    public void deleteComment(Long commentId, UserEntity user) {
+        CommentsEntity comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
+
+        if (cannotModifyComment(comment, user)) {
+            throw new SecurityException("Нямате права.");
+        }
+
+        commentsRepository.delete(comment);
+    }
+
+    private boolean cannotModifyComment(CommentsEntity comment, UserEntity user) {
+        return !comment.getAuthor().equals(user.getUsername()) &&
+                !user.getRole().equals(UserRole.ADMIN);
+    }
+
+
 }
