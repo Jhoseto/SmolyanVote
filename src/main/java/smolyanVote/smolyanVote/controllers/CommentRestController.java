@@ -1,21 +1,23 @@
 package smolyanVote.smolyanVote.controllers;
 
-import jakarta.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
-
-import java.util.HashMap;
-import java.util.Map;
+import smolyanVote.smolyanVote.viewsAndDTO.CommentResponseDto;
 
 @RestController
 @RequestMapping("/api/comments")
 public class CommentRestController {
+
+    private static final Logger logger = LoggerFactory.getLogger(CommentRestController.class);
 
     private final CommentsService commentsService;
     private final UserService userService;
@@ -26,69 +28,80 @@ public class CommentRestController {
         this.userService = userService;
     }
 
-
-
-
     @PostMapping
-    public ResponseEntity<Map<String, String>> postMainComment(@RequestParam Long targetId,
-                                                               @RequestParam String author,
-                                                               @RequestParam String text) {
-        System.out.println("postMainComment called with targetId=" + targetId + ", author=" + author + ", text=" + text);
-
-        EventType targetType = commentsService.getTargetType(targetId);
-        System.out.println("Determined targetType: " + targetType);
-
-        try {
-            CommentsEntity comment = commentsService.addComment(targetId, author, text, null, targetType);
-            return buildCommentResponse(comment, text);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<?> postMainComment(@RequestParam Long targetId,
+                                             @RequestParam String text) {
+        return handleCommentSubmission(targetId, text, null);
     }
-
 
     @PostMapping("/reply")
     public ResponseEntity<?> postReply(@RequestParam Long targetId,
-                                       @RequestParam String author,
                                        @RequestParam String text,
                                        @RequestParam Long parentId) {
+        return handleCommentSubmission(targetId, text, parentId);
+    }
+
+    @PostMapping("/{id}/reaction/{type}")
+    public ResponseEntity<?> reactToComment(@PathVariable Long id,
+                                            @PathVariable CommentReactionType type) {
         try {
-            EventType targetType = commentsService.getTargetType(targetId);
-            CommentsEntity reply = commentsService.addComment(targetId, author, text, parentId, targetType);
-            return buildCommentResponse(reply, text);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            UserEntity currentUser = userService.getCurrentUser();
+            CommentsEntity updated = commentsService.commentReaction(id, type.name(), currentUser.getUsername());
+
+            return ResponseEntity.ok(new ReactionCountDto(updated.getLikeCount(), updated.getUnlikeCount()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Unexpected server error: " + e.getMessage()));
+            logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage());
+            return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
         }
     }
 
+    private ResponseEntity<?> handleCommentSubmission(Long targetId, String text, Long parentId) {
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            EventType targetType = commentsService.getTargetType(targetId);
 
-    @PostMapping("/{id}/reaction/{type}")
-    public ResponseEntity<Map<String, Integer>> reactToComment(@PathVariable Long id,
-                                                               @PathVariable String type) {
+            logger.info("Submitting comment for targetId={}, type={}, parentId={}, user={}",
+                    targetId, targetType, parentId, currentUser.getUsername());
 
-        UserEntity currentUser = userService.getCurrentUser();
-        CommentsEntity updated = commentsService.commentReaction(id, type, currentUser.getUsername());
+            CommentsEntity comment = commentsService.addComment(
+                    targetId, currentUser.getUsername(), text, parentId, targetType
+            );
 
-        Map<String, Integer> result = Map.of(
-                "likes", updated.getLikeCount(),
-                "dislikes", updated.getUnlikeCount()
-        );
+            CommentResponseDto responseDto = new CommentResponseDto(
+                    comment.getId(),
+                    comment.getAuthor(),
+                    comment.getAuthorImage(),
+                    text
+            );
 
-        return ResponseEntity.ok(result);
+            return ResponseEntity.ok(responseDto);
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(new ErrorDto(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(new ErrorDto(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error while submitting comment: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
+        }
     }
 
-    @NotNull
-    private ResponseEntity<Map<String, String>> buildCommentResponse(CommentsEntity comment, String text) {
-        Map<String, String> response = new HashMap<>();
-        response.put("id", String.valueOf(comment.getId()));
-        response.put("author", comment.getAuthor());
-        response.put("authorImage", comment.getAuthorImage());
-        response.put("text", text);
-        return ResponseEntity.ok(response);
+    // TODO DTO класове (може да се премести в отделен пакет, напр. `web.dto`)
+    public static class ReactionCountDto {
+        public int likes;
+        public int dislikes;
+
+        public ReactionCountDto(int likes, int dislikes) {
+            this.likes = likes;
+            this.dislikes = dislikes;
+        }
+    }
+
+    public static class ErrorDto {
+        public String error;
+
+        public ErrorDto(String error) {
+            this.error = error;
+        }
     }
 }

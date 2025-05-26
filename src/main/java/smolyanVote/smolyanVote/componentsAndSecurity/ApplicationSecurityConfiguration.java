@@ -1,5 +1,6 @@
-package smolyanVote.smolyanVote.securityAndComponent;
+package smolyanVote.smolyanVote.componentsAndSecurity;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import smolyanVote.smolyanVote.components.CustomLogoutSuccessHandler;
 import smolyanVote.smolyanVote.services.KeyGenerator;
 
 import java.net.URLEncoder;
@@ -116,17 +116,17 @@ public class ApplicationSecurityConfiguration {
                 )
 
                 .exceptionHandling(ex -> ex
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            String msg = URLEncoder.encode("Съдържанието е достъпно само за Администратори !", StandardCharsets.UTF_8);
-                            response.sendRedirect("/login?error=" + msg);
-
-                        })
                         .authenticationEntryPoint((request, response, authException) -> {
-                            String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
-                            response.sendRedirect("/login?authError=" + msg);
+                            String ajaxHeader = request.getHeader("X-Requested-With");
+                            if ("XMLHttpRequest".equals(ajaxHeader)) {
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Моля влезте в профила си или се регистрирайте за да продължите !");
+                            } else {
+                                String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
+                                response.sendRedirect("/login?authError=" + msg);
+                            }
                         })
-
                 )
+
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 );

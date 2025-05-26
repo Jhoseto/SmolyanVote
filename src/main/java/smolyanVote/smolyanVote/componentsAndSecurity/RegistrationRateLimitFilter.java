@@ -1,4 +1,4 @@
-package smolyanVote.smolyanVote.components;
+package smolyanVote.smolyanVote.componentsAndSecurity;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;

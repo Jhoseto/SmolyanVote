@@ -1,11 +1,13 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.ReferendumEntity;
-import smolyanVote.smolyanVote.models.SimpleEventEntity;
+import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
+import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
@@ -13,51 +15,64 @@ import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class CommentsServiceImpl implements CommentsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CommentsServiceImpl.class);
 
     private final CommentsRepository commentsRepository;
     private final SimpleEventRepository simpleEventRepository;
     private final ReferendumRepository referendumRepository;
     private final UserService userService;
+    private final CommentVoteRepository commentVoteRepository;
+    ;
 
-    private final Map<String, Map<Long, String>> voteCache = new HashMap<>();
+
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
                                ReferendumRepository referendumRepository,
-                               UserService userService) {
+                               UserService userService,
+                               CommentVoteRepository commentVoteRepository) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.userService = userService;
+        this.commentVoteRepository = commentVoteRepository;
     }
+
 
 
     @Override
     public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
+        UserEntity user = userService.getCurrentUser();
+
         CommentsEntity comment = new CommentsEntity();
-        comment.setAuthor(userService.getCurrentUser().getUsername());
-        comment.setAuthorImage(userService.getCurrentUser().getImageUrl());
-        comment.setCreatedAt(Instant.now());
+        comment.setAuthor(user.getUsername());
+        comment.setAuthorImage(user.getImageUrl());
         comment.setText(text);
+        comment.setCreatedAt(Instant.now());
 
-        if (targetType.equals(EventType.REFERENDUM)) {
-            ReferendumEntity referendum = referendumRepository.findById(targetId).orElseThrow();
-            comment.setReferendum(referendum);
-
-        } else if (targetType.equals(EventType.SIMPLEEVENT)) {
-            SimpleEventEntity event = simpleEventRepository.findById(targetId).orElseThrow();
-            comment.setEvent(event);
+        switch (targetType) {
+            case REFERENDUM -> {
+                ReferendumEntity referendum = referendumRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("Referendum not found with ID: " + targetId));
+                comment.setReferendum(referendum);
+            }
+            case SIMPLEEVENT -> {
+                SimpleEventEntity event = simpleEventRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with ID: " + targetId));
+                comment.setEvent(event);
+            }
+            default -> throw new UnsupportedOperationException("Unsupported target type: " + targetType);
         }
 
         if (parentId != null) {
-            CommentsEntity parent = commentsRepository.findById(parentId).orElseThrow();
+            CommentsEntity parent = commentsRepository.findById(parentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Parent comment not found"));
             comment.setParent(parent);
         }
 
@@ -65,32 +80,61 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
+
     @Override
     public CommentsEntity commentReaction(Long commentId, String type, String username) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Коментарът не е намерен"));
 
-        Map<Long, String> userVotes = voteCache.computeIfAbsent(username, k -> new HashMap<>());
-        String currentVote = userVotes.get(commentId);
+        CommentReactionType newReaction = "like".equalsIgnoreCase(type)
+                ? CommentReactionType.LIKE
+                : CommentReactionType.DISLIKE;
 
-        if ("like".equals(type)) {
-            if ("like".equals(currentVote)) return comment;
-            if ("dislikes".equals(currentVote)) {
-                comment.setUnlikeCount(comment.getUnlikeCount() - 1);
+        commentVoteRepository.findByCommentIdAndUsername(commentId, username).ifPresentOrElse(existingVote -> {
+            if (existingVote.getReaction() == newReaction) {
+                // Няма промяна
+                return;
             }
-            comment.setLikeCount(comment.getLikeCount() + 1);
-            userVotes.put(commentId, "like");
-        } else if ("dislikes".equals(type)) {
-            if ("dislikes".equals(currentVote)) return comment;
-            if ("like".equals(currentVote)) {
-                comment.setLikeCount(comment.getLikeCount() - 1);
+
+            // Отмени предишния вот
+            if (existingVote.getReaction() == CommentReactionType.LIKE) {
+                if (comment.getLikeCount() > 0) {
+                    comment.setLikeCount(comment.getLikeCount() - 1);
+                }
+            } else {
+                if (comment.getUnlikeCount() > 0) {
+                    comment.setUnlikeCount(comment.getUnlikeCount() - 1);
+                }
             }
-            comment.setUnlikeCount(comment.getUnlikeCount() + 1);
-            userVotes.put(commentId, "dislikes");
-        }
+
+            // Приложи новия вот
+            if (newReaction == CommentReactionType.LIKE) {
+                comment.setLikeCount(comment.getLikeCount() + 1);
+            } else {
+                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+            }
+
+            existingVote.setReaction(newReaction);
+            commentVoteRepository.save(existingVote);
+
+        }, () -> {
+            // Първи вот от този потребител
+            if (newReaction == CommentReactionType.LIKE) {
+                comment.setLikeCount(comment.getLikeCount() + 1);
+            } else {
+                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+            }
+
+            CommentVoteEntity vote = new CommentVoteEntity();
+            vote.setComment(comment);
+            vote.setUsername(username);
+            vote.setReaction(newReaction);
+            commentVoteRepository.save(vote);
+        });
 
         return commentsRepository.save(comment);
     }
+
 
 
     @Override
@@ -98,34 +142,31 @@ public class CommentsServiceImpl implements CommentsService {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
-            default -> throw new UnsupportedOperationException("Неподдържан тип за коментари: " + targetType);
+            case SIMPLEPOLL -> null;
+            case POLL -> null;
         };
     }
 
-
-
-
+    @Override
     public EventType getTargetType(Long targetId) {
         boolean isReferendum = referendumRepository.existsById(targetId);
         boolean isEvent = simpleEventRepository.existsById(targetId);
-        System.out.println("getTargetType: targetId=" + targetId + ", isReferendum=" + isReferendum + ", isEvent=" + isEvent);
+
+        logger.debug("Checking target type for ID {}: referendum={}, event={}", targetId, isReferendum, isEvent);
+
         if (isReferendum && isEvent) {
-            throw new IllegalStateException("Conflict: targetId exists in both event and referendum");
+            throw new IllegalStateException("Conflict: ID съществува и като събитие, и като референдум");
         } else if (isReferendum) {
             return EventType.REFERENDUM;
         } else if (isEvent) {
             return EventType.SIMPLEEVENT;
         } else {
-            throw new IllegalArgumentException("Target ID not found");
+            throw new IllegalArgumentException("Target ID not found: " + targetId);
         }
     }
-
-
-
 
     @Override
     public void deleteAllComments() {
         commentsRepository.deleteAll();
     }
-
 }
