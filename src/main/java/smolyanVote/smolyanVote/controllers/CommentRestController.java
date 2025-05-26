@@ -11,7 +11,9 @@ import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
-import smolyanVote.smolyanVote.viewsAndDTO.CommentResponseDto;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.CommentResponseDto;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ErrorDto;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 @RestController
 @RequestMapping("/api/comments")
@@ -28,12 +30,14 @@ public class CommentRestController {
         this.userService = userService;
     }
 
+    // Добавяне на главен коментар
     @PostMapping
     public ResponseEntity<?> postMainComment(@RequestParam Long targetId,
                                              @RequestParam String text) {
         return handleCommentSubmission(targetId, text, null);
     }
 
+    // Добавяне на отговор (reply)
     @PostMapping("/reply")
     public ResponseEntity<?> postReply(@RequestParam Long targetId,
                                        @RequestParam String text,
@@ -41,16 +45,25 @@ public class CommentRestController {
         return handleCommentSubmission(targetId, text, parentId);
     }
 
+    // Гласуване (like / dislike) върху коментар
     @PostMapping("/{id}/reaction/{type}")
     public ResponseEntity<?> reactToComment(@PathVariable Long id,
-                                            @PathVariable CommentReactionType type) {
+                                            @PathVariable String type) {
+        CommentReactionType reactionType;
+        try {
+            reactionType = CommentReactionType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid reaction type '{}' for comment {}", type, id);
+            return ResponseEntity.badRequest().body(new ErrorDto("Invalid reaction type: " + type));
+        }
+
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updated = commentsService.commentReaction(id, type.name(), currentUser.getUsername());
+            CommentsEntity updated = commentsService.commentReaction(id, reactionType.name(), currentUser.getUsername());
 
             return ResponseEntity.ok(new ReactionCountDto(updated.getLikeCount(), updated.getUnlikeCount()));
         } catch (Exception e) {
-            logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage());
+            logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage(), e);
             return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
         }
     }
@@ -71,7 +84,7 @@ public class CommentRestController {
                     comment.getId(),
                     comment.getAuthor(),
                     comment.getAuthorImage(),
-                    text
+                    comment.getText()
             );
 
             return ResponseEntity.ok(responseDto);
@@ -81,27 +94,9 @@ public class CommentRestController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(404).body(new ErrorDto(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Unexpected error while submitting comment: {}", e.getMessage());
+            logger.error("Unexpected error while submitting comment: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
         }
     }
-
-    // TODO DTO класове (може да се премести в отделен пакет, напр. `web.dto`)
-    public static class ReactionCountDto {
-        public int likes;
-        public int dislikes;
-
-        public ReactionCountDto(int likes, int dislikes) {
-            this.likes = likes;
-            this.dislikes = dislikes;
-        }
-    }
-
-    public static class ErrorDto {
-        public String error;
-
-        public ErrorDto(String error) {
-            this.error = error;
-        }
-    }
 }
+
