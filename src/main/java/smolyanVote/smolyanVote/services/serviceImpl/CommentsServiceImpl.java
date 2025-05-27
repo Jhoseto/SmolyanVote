@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
+    public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, @NotNull EventType targetType) {
         UserEntity user = userService.getCurrentUser();
 
         CommentsEntity comment = new CommentsEntity();
@@ -141,7 +142,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
+    public List<CommentsEntity> getCommentsForTarget(Long targetId, @NotNull EventType targetType) {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
@@ -183,7 +184,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
 
-        if (!cannotModifyComment(comment, user)) {
+        if (!canModifyComment(comment, user)) {
             throw new SecurityException("Нямате права за редактиране.");
         }
 
@@ -198,16 +199,16 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
 
-        if (cannotModifyComment(comment, user)) {
+        if (!canModifyComment(comment, user)) {
             throw new SecurityException("Нямате права.");
         }
 
         commentsRepository.delete(comment);
     }
 
-    private boolean cannotModifyComment(CommentsEntity comment, UserEntity user) {
-        return !comment.getAuthor().equals(user.getUsername()) &&
-                !user.getRole().equals(UserRole.ADMIN);
+    private boolean canModifyComment(@NotNull CommentsEntity comment, @NotNull UserEntity user) {
+        return comment.getAuthor().equals(user.getUsername()) ||
+                user.getRole().equals(UserRole.ADMIN);
     }
 
 

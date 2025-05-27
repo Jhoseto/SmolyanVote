@@ -12,6 +12,7 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.CommentResponseDto;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.EditCommentRequestDto;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ErrorDto;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
@@ -103,10 +104,10 @@ public class CommentRestController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> editComment(@PathVariable Long id,
-                                         @RequestParam String text) {
+                                         @RequestBody EditCommentRequestDto request) {
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updatedComment = commentsService.editComment(id, text, currentUser);
+            CommentsEntity updatedComment = commentsService.editComment(id, request.getText(), currentUser);
 
             return ResponseEntity.ok(new CommentResponseDto(
                     updatedComment.getId(),
@@ -121,6 +122,7 @@ public class CommentRestController {
             return ResponseEntity.status(500).body(new ErrorDto("Сървърна грешка."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteComment(@PathVariable Long id) {
