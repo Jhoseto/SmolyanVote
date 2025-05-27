@@ -1,16 +1,15 @@
-<!-- resources/templates/error/404.html -->
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
 <head>
-    <title>Страницата не е намерена</title>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/error-style.css">
+    <title>Страницата не е намерена</title>
 </head>
 <body>
-<div class="container text-center" style="padding: 100px 20px;">
-    <h1>404 - Страницата не съществува</h1>
-    <p>Упс! Търсената страница не може да бъде намерена.</p>
-    <a href="/index" class="btn btn-primary mt-3">Начало</a>
+<div>
+    <h1>❌ 404 - Страницата не съществува</h1>
+    <p>Може би адресът е сгрешен или страницата е премахната.</p>
+    <a th:href="@{/}">Начало</a>
 </div>
 </body>
 </html>

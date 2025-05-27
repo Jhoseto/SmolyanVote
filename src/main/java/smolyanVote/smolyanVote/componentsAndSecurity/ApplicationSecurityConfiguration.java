@@ -67,7 +67,7 @@ public class ApplicationSecurityConfiguration {
                                 "/event",
                                 "/eventDetailView",
                                 "/news",
-                                "/error",
+                                "/error/**",
                                 "/favicon.ico",
                                 "/robots.txt"
                         ).permitAll()
@@ -118,15 +118,13 @@ public class ApplicationSecurityConfiguration {
 
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            String msg = URLEncoder.encode("Съдържанието е достъпно само за Администратори !", StandardCharsets.UTF_8);
-                            response.sendRedirect("/login?error=" + msg);
-
+                            request.setAttribute("errorMessage", "❌ Нямате достъп до тази страница! Само администратори.");
+                            request.getRequestDispatcher("/error/general").forward(request, response);
                         })
                         .authenticationEntryPoint((request, response, authException) -> {
-                            String msg = URLEncoder.encode("Моля влезте в профила си или се регистрирайте за да продължите !", StandardCharsets.UTF_8);
-                            response.sendRedirect("/login?authError=" + msg);
+                            request.setAttribute("errorMessage", "🔒 Моля, влезте в профила си, за да продължите.");
+                            request.getRequestDispatcher("/error/general").forward(request, response);
                         })
-
                 )
 
                 .csrf(csrf -> csrf

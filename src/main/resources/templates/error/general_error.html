@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <title>Грешка!</title>
+    <link rel="stylesheet" href="/css/error-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+</head>
+<body>
+<!-- Частици за фон -->
+<div id="particles-js"></div>
+
+<div class="error-container">
+    <h1 class="glitch error-title">⚠️ ГРЕШКА</h1>
+    <p class="error-message" th:text="${errorMessage} ?: 'Възникна неочаквана грешка. Моля, опитайте по-късно.'"></p>
+    <a href="/" class="back-button">⬅️ Обратно към началото</a>
+</div>
+
+<!-- Инициализация на частиците -->
+<script>
+    particlesJS("particles-js", {
+        "particles": {
+            "number": { "value": 80 },
+            "color": { "value": "#000000" }, // <-- черни частици
+            "shape": { "type": "circle" },
+            "opacity": { "value": 0.5 },
+            "size": { "value": 3 },
+            "line_linked": {
+                "enable": true,
+                "distance": 150,
+                "color": "#3f3f3f", // <-- черни линии
+                "opacity": 0.4,
+                "width": 1
+            },
+            "move": { "enable": true, "speed": 3 }
+        },
+        "interactivity": {
+            "events": {
+                "onhover": { "enable": true, "mode": "repulse" },
+                "onclick": { "enable": true, "mode": "push" }
+            }
+        },
+        "retina_detect": true
+    });
+</script>
+
+</body>
+</html>
