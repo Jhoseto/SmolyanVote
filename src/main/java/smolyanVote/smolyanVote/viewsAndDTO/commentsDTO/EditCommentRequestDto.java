@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.viewsAndDTO.commentsDTO;
 public class EditCommentRequestDto {
     private String text;
 
+
     public String getText() {
         return text;
     }

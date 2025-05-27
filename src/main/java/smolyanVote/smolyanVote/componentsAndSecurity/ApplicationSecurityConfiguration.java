@@ -118,7 +118,7 @@ public class ApplicationSecurityConfiguration {
 
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            request.setAttribute("errorMessage", "❌ Нямате достъп до тази страница! Само администратори.");
+                            request.setAttribute("errorMessage", "❌ Нямате достъп до това съдържание! Само администратори.");
                             request.getRequestDispatcher("/error/general").forward(request, response);
                         })
                         .authenticationEntryPoint((request, response, authException) -> {
