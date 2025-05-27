@@ -5,126 +5,76 @@ document.addEventListener("DOMContentLoaded", () => {
     const csrfToken = document.querySelector("meta[name='_csrf']")?.getAttribute("content");
     const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.getAttribute("content");
 
+    let activeEditorBox = null;
+    let lastEditButton = null;
+
+
     if (!commentForm || !targetId) return;
 
-    // Инициализация на Quill редактор с емоджита
-    const quill = new Quill('#editor-container', {
-        theme: 'snow',
-        placeholder: 'Вашият коментар...',
-        modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                ['link'],
-                ['emoji']  // бутон за емотикони
-            ],
-            "emoji-toolbar": true,
-            "emoji-textarea": false,
-            "emoji-shortname": true
-        }
-    });
-
-    // Задаване на висок z-index на emoji picker при клик, за да не бъде скрит
-    document.addEventListener("click", () => {
-        const picker = document.querySelector(".ql-emoji-picker");
-        if (picker) {
-            picker.style.zIndex = "9999";
-        }
-    });
-
-    // Основна форма за добавяне на коментар
+    // Добавяне на коментар
     commentForm.addEventListener("submit", function (e) {
         e.preventDefault();
 
-        // Вземаме съдържанието от Quill (HTML)
-        const content = quill.root.innerHTML;
-        document.getElementById('comment-hidden').value = content;
-
         const formData = new FormData(this);
-
-        // Добавяме targetId, ако липсва
         if (!formData.has('targetId')) {
             formData.append('targetId', targetId);
         }
 
         fetch("/api/comments", {
             method: "POST",
-            headers: {
-                [csrfHeader]: csrfToken
-            },
+            headers: { [csrfHeader]: csrfToken },
             body: formData
         })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(data => Promise.reject(data.error || "Грешка при изпращане"));
-                }
-                return res.json();
-            })
+            .then(res => res.ok ? res.json() : res.json().then(err => Promise.reject(err.error)))
             .then(() => window.location.reload())
             .catch(err => alert("Грешка: " + err));
     });
 
-    // Функция за закачане на събития за reply бутони и форми
+    // Отговор на коментар
     function attachReplyEvents(scope = document) {
         scope.querySelectorAll(".reply-btn").forEach(btn => {
             btn.addEventListener("click", () => {
                 const id = btn.dataset.id;
                 const form = document.getElementById(`reply-form-${id}`);
-                if (form) {
-                    form.classList.toggle("d-none");
-                }
+                if (form) form.classList.toggle("d-none");
             });
         });
 
         scope.querySelectorAll(".reply-form").forEach(form => {
-            if (form.getAttribute("data-bound") === "true") return;
-            form.setAttribute("data-bound", "true");
+            if (form.dataset.bound === "true") return;
+            form.dataset.bound = "true";
 
             form.addEventListener("submit", function (e) {
                 e.preventDefault();
-                const formData = new FormData(this);
-                const parentId = formData.get("parentId");
-                const targetId = formData.get("targetId");
 
+                const formData = new FormData(this);
                 fetch("/api/comments/reply", {
                     method: "POST",
-                    headers: {
-                        [csrfHeader]: csrfToken
-                    },
+                    headers: { [csrfHeader]: csrfToken },
                     body: formData
                 })
-                    .then(res => {
-                        if (!res.ok) {
-                            return res.json().then(data => Promise.reject(data.error || "Грешка при изпращане на отговор"));
-                        }
-                        return res.json();
-                    })
+                    .then(res => res.ok ? res.json() : res.json().then(err => Promise.reject(err.error)))
                     .then(data => {
                         const replyHTML = `
                         <div class="border-start ps-3 mb-2 ms-4 mt-2 reply-box" id="reply-${data.id}">
                             <div class="d-flex align-items-start">
-                                <img src="${data.authorImage}" class="rounded-circle me-2 mt-1" style="width: 30px; height: 30px; object-fit: cover;" alt="Потребителска снимка">
-                                <div>
-                                    <strong>${data.author}</strong>
-                                    <p>${data.text}</p>
-                                </div>
+                                <img src="${data.authorImage}" class="rounded-circle me-2 mt-1" style="width: 30px; height: 30px;">
+                                <div><strong>${data.author}</strong><p>${data.text}</p></div>
                             </div>
                         </div>`;
-                        const repliesContainer = document.getElementById(`replies-container-${parentId}`);
-                        if (repliesContainer) {
-                            repliesContainer.insertAdjacentHTML("beforeend", replyHTML);
-                            attachReplyEvents(repliesContainer); // Закачаме събития и за новия reply, ако има такива бутони
-                        }
+                        document.getElementById(`replies-container-${data.parentId}`)
+                            ?.insertAdjacentHTML("beforeend", replyHTML);
                         this.reset();
                         this.classList.add("d-none");
                     })
+                    .then(() => window.location.reload())
                     .catch(err => alert("Грешка: " + err));
             });
         });
     }
     attachReplyEvents();
 
-    // like & dislike бутоните - гласуване
+    // Гласуване (like/dislike)
     document.addEventListener("click", function (e) {
         const btn = e.target.closest(".like-btn, .dislike-btn");
         if (!btn) return;
@@ -168,107 +118,192 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => alert("Грешка при гласуване: " + err));
     });
 
-    // Скриване на подкоментари по подразбиране, с бутон за показване
-    document.querySelectorAll('.replies').forEach(repliesContainer => {
-        const repliesList = repliesContainer.querySelector('.replies-list');
-        const showRepliesBtn = repliesContainer.querySelector('.show-replies-btn');
+    // Скриване на отговорите
+    document.querySelectorAll('.replies').forEach(container => {
+        const list = container.querySelector('.replies-list');
+        const btn = container.querySelector('.show-replies-btn');
 
-        if (repliesList) repliesList.style.display = 'none';
-        if (showRepliesBtn) {
-            showRepliesBtn.style.display = 'inline-block';
-            showRepliesBtn.addEventListener('click', () => {
-                repliesList.style.display = 'block';
-                showRepliesBtn.style.display = 'none';
+        if (list) list.style.display = 'none';
+        if (btn) {
+            btn.style.display = 'inline-block';
+            btn.addEventListener('click', () => {
+                list.style.display = 'block';
+                btn.style.display = 'none';
             });
         }
     });
 
-
-
-
-
-
-    // Изтриване на коментар
+    // Изтриване
     document.addEventListener("click", function (e) {
-        const delBtn = e.target.closest(".delete-btn");
-        if (!delBtn) return;
+        const btn = e.target.closest(".delete-btn");
+        if (!btn) return;
 
-        const id = delBtn.dataset.id;
+        const id = btn.dataset.id;
         if (!confirm("Сигурни ли сте, че искате да изтриете този коментар?")) return;
 
         fetch(`/api/comments/${id}`, {
             method: "DELETE",
-            headers: {
-                [csrfHeader]: csrfToken
-            }
+            headers: { [csrfHeader]: csrfToken }
         })
-            .then(res => {
-                if (!res.ok) return res.json().then(data => Promise.reject(data.error));
-                document.getElementById(`comment-${id}`)?.remove();
-            })
+            .then(res => res.ok ? document.getElementById(`comment-${id}`)?.remove() : res.json().then(err => Promise.reject(err.error)))
             .catch(err => alert("Грешка при изтриване: " + err));
     });
 
-// Редактиране на коментар
 
-    $(document).ready(function () {
-        let activeEditor = null;
-        let activeCommentId = null;
 
-        $(document).on('click', '.edit-btn', function () {
-            const commentBox = $(this).closest('.comment-box');
-            const commentId = $(this).data('id');
-            const originalTextEl = commentBox.find('.comment-text');
-            const editContainer = commentBox.find('.edit-container');
-            const quillDiv = editContainer.find('.quill-editor');
+    // РЕДАКЦИЯ
 
-            if (!quillDiv.data('quill')) {
-                const quill = new Quill(quillDiv[0], { theme: 'snow' });
-                quillDiv.data('quill', quill);
-            }
 
-            const quill = quillDiv.data('quill');
-            quill.root.innerHTML = originalTextEl.html();
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.edit-btn');
+        if (!btn) return;
 
-            originalTextEl.addClass('d-none');
-            editContainer.removeClass('d-none');
+        const commentBox = btn.closest('.comment-box, .reply-box');
+        const commentId = btn.dataset.id;
+        const originalTextEl = commentBox.querySelector('.comment-text, .reply-text');
+        const editContainer = commentBox.querySelector('.edit-container');
 
-            activeEditor = quill;
-            activeCommentId = commentId;
-        });
+        // Ако има отворен редактор - затвори го
+        if (activeEditorBox && activeEditorBox !== commentBox) {
+            const activeOriginalText = activeEditorBox.querySelector('.comment-text, .reply-text');
+            const activeEditContainer = activeEditorBox.querySelector('.edit-container');
+            const prevEditBtn = activeEditorBox.querySelector('.edit-btn');
 
-        $(document).on('click', '.cancel-edit-btn', function () {
-            const commentBox = $(this).closest('.comment-box');
-            commentBox.find('.edit-container').addClass('d-none');
-            commentBox.find('.comment-text').removeClass('d-none');
-            activeEditor = null;
-            activeCommentId = null;
-        });
+            activeEditContainer.classList.add('d-none');
+            activeEditContainer.innerHTML = '';
+            activeOriginalText.classList.remove('d-none');
+            if (prevEditBtn) prevEditBtn.classList.remove('d-none');
+        }
 
-        $(document).on('click', '.save-edit-btn', function () {
-            const commentBox = $(this).closest('.comment-box');
-            const newText = activeEditor.root.innerHTML;
+        // Задай нов активен редактор
+        activeEditorBox = commentBox;
+        lastEditButton = btn;
 
-            $.ajax({
-                url: '/api/comments/' + activeCommentId,
-                method: 'PUT',
-                contentType: 'application/json',
-                headers: {
-                    [csrfHeader]: csrfToken
-                },
-                data: JSON.stringify({ text: newText }),
-                success: function (res) {
-                    commentBox.find('.comment-text').html(res.text).removeClass('d-none');
-                    commentBox.find('.edit-container').addClass('d-none');
-                },
-                error: function () {
-                    alert('Грешка при редактиране на коментара');
+        // Скрий бутона "Редактирай"
+        btn.classList.add('d-none');
+
+        // Покажи textarea с текущия текст
+        const currentText = originalTextEl.innerText.trim();
+        editContainer.innerHTML = `
+        <textarea class="form-control" rows="4">${currentText}</textarea>
+        <button class="btn btn-sm btn-success save-edit-btn mt-2" data-id="${commentId}">✔ Запази</button>
+        <button class="btn btn-sm btn-secondary cancel-edit-btn mt-2" data-id="${commentId}">✖ Отказ</button>
+    `;
+        originalTextEl.classList.add('d-none');
+        editContainer.classList.remove('d-none');
+    });
+
+// Натискане на "Отказ"
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.cancel-edit-btn');
+        if (!btn) return;
+
+        const commentBox = btn.closest('.comment-box, .reply-box');
+        const editContainer = commentBox.querySelector('.edit-container');
+        const originalTextEl = commentBox.querySelector('.comment-text, .reply-text');
+        const editBtn = commentBox.querySelector('.edit-btn');
+
+        editContainer.classList.add('d-none');
+        editContainer.innerHTML = '';
+        originalTextEl.classList.remove('d-none');
+        if (editBtn) editBtn.classList.remove('d-none');
+
+        activeEditorBox = null;
+        lastEditButton = null;
+    });
+
+// Натискане на "Запази"
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.save-edit-btn');
+        if (!btn) return;
+
+        const commentId = btn.dataset.id;
+        const commentBox = btn.closest('.comment-box, .reply-box');
+        const textarea = commentBox.querySelector('textarea');
+        const newText = textarea.value.trim();
+
+        fetch(`/api/comments/${commentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify({ text: newText })
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        try {
+                            const json = JSON.parse(text);
+                            throw new Error(json.error || "Грешка при редактиране.");
+                        } catch {
+                            throw new Error("Невалиден отговор от сървъра.");
+                        }
+                    });
                 }
-            });
+                return res.json();
+            })
+            .then(data => {
+                const originalTextEl = commentBox.querySelector('.comment-text, .reply-text');
+                const editContainer = commentBox.querySelector('.edit-container');
+                const editBtn = commentBox.querySelector('.edit-btn');
 
-            activeEditor = null;
-            activeCommentId = null;
-        });
+                originalTextEl.innerHTML = data.text;
+                originalTextEl.classList.remove('d-none');
+                editContainer.classList.add('d-none');
+                editContainer.innerHTML = '';
+                if (editBtn) editBtn.classList.remove('d-none');
+
+                activeEditorBox = null;
+                lastEditButton = null;
+            })
+            .catch(err => alert("Грешка при редактиране: " + err.message));
     });
 
 });
+//EMOJI
+document.addEventListener('DOMContentLoaded', () => {
+    const emojiBtn = document.getElementById('emoji-btn');
+    const emojiPicker = document.getElementById('emoji-picker');
+    const textarea = document.getElementById('main-editor');
+
+    // Зареждаме емоджитата динамично в emojiPicker
+    emojiPicker.innerHTML = '';
+    emojis.forEach(emoji => {
+        const span = document.createElement('span');
+        span.classList.add('emoji');
+        span.textContent = emoji;
+        span.style.cursor = 'pointer';
+        span.style.fontSize = '15px';
+        span.style.margin = '0';
+        emojiPicker.appendChild(span);
+    });
+
+    // Показване/скриване на emoji picker при клик на бутона
+    emojiBtn.addEventListener('click', () => {
+        console.log('Emoji button clicked!');
+        if (!emojiPicker) return;
+        emojiPicker.style.display = (emojiPicker.style.display === 'block') ? 'none' : 'block';
+    });
+
+    // Добавяне на emoji към textarea при клик върху emoji
+    emojiPicker.addEventListener('click', (e) => {
+        if (e.target.classList.contains('emoji')) {
+            textarea.value += e.target.textContent;
+            textarea.focus();
+            emojiPicker.style.display = 'none'; // Скриваме picker след избор
+        }
+    });
+
+    // Скриване на emoji picker ако кликнеш извън него или бутона
+    document.addEventListener('click', (e) => {
+        const isClickInsidePicker = emojiPicker.contains(e.target);
+        const isClickOnButton = emojiBtn.contains(e.target);
+        if (!isClickInsidePicker && !isClickOnButton) {
+            emojiPicker.style.display = 'none';
+        }
+    });
+});
+
+
+
