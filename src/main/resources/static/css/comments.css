@@ -11,22 +11,34 @@
     overflow-y: auto; /* добавяне на скрол */
 }
 
-/* 🧱 Основен коментар */
+/* 🧱 Основен коментар - оградена рамка и padding */
 .comment-box {
     border: 1px solid #bec3c7;
     background: #fdfdfd;
     border-radius: 12px;
-    padding: 0.6rem 0.9rem;
-    margin-bottom: 0.5rem;
+    padding: 12px 16px;
+    margin-bottom: 0.75rem;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-/* 👤 Автор и снимка */
+/* 👤 Хедър на коментара: потребител и действия (редакция, изтриване) на един ред */
 .comment-header {
+    color: #777777;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Лява част - потребител и дата */
+.comment-header > div:first-child {
+    color: #777777;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 10px;
 }
 
 .comment-img,
@@ -38,48 +50,121 @@
     border: 2px solid #dee2e6;
 }
 
+/* Име на автора */
 .comment-author {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: #40bd97;
 }
 
-/* 💬 Самият текст на коментара */
+/* Дата до името */
+.comment-header small {
+    font-size: 0.75rem;
+    color: #777;
+}
+
+/* Дясна част - бутоните за редакция и изтриване */
+.comment-header > div.actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Стил за бутоните за редакция и изтриване */
+.edit-btn,
+.delete-btn {
+    font-size: 0.8rem;
+    padding: 0 3px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* 💬 Текстът на коментара */
 .comment-text {
-    margin-left: 44px;
     background: #f1f3f5;
     border-radius: 10px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
     color: #333;
-    margin-bottom: 0.4rem;
-    line-height: 1.35;
+    line-height: 1.4;
+    white-space: pre-wrap; /* за нови редове */
 }
 
-/* 🔁 Отговори */
+/* Контейнер за действия (отговор, лайк, дизлайк) - под текста */
+.comment-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+}
+
+/* Бутон за отговор */
+.reply-btn {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.reply-btn:hover {
+    background-color: #e9ecef;
+}
+
+/* Бутоните за лайк и дизлайк - стил, подравнени в края */
+.like-btn, .dislike-btn {
+    border: none;
+    background: transparent;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+/* Списък на броя лайкове и дизлайкове */
+.like-btn span, .dislike-btn span {
+    font-size: 0.85rem;
+}
+
+/* Форма за отговор - под коментар */
+.reply-form {
+    margin-top: 0.6rem;
+    padding-left: 46px; /* подравняване спрямо коментара */
+}
+
+/* 🔁 Отговори - контейнер */
 .replies {
-    padding-left: 50px;
-    margin-left: 50px; /* по-надясно от главния коментар */
-    margin-top: 0.15rem;
+    margin-left: 40px; /* изместване вдясно спрямо основния коментар */
+    margin-top: 0.3rem;
+    border-left: 2px solid #40bd97;
+    padding-left: 12px;
 }
 
+/* Подкоментар с рамка и padding */
 .reply-box {
     background: #ffffff;
     border: 1px solid #dee2e6;
-    border-left: 4px solid #40bd97;
     border-radius: 10px;
-    padding: 0.3rem 0.35rem;
+    padding: 8px 12px;
     margin-bottom: 0.5rem;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 0.85rem;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.reply-box:hover {
-    transform: translateX(3px);
+/* Подкоментар хедър - същата структура като коментар */
+.reply-box > .reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
+/* Лява част - снимка и име */
 .reply-img {
     width: 28px;
     height: 28px;
@@ -88,72 +173,88 @@
     border: 1px solid #ced4da;
 }
 
-/* 🔵 Стил за текстовете на отговорите с контур отляво и отгоре */
-.reply-text {
-    font-size: 0.8rem;
-    color: #444;
-    line-height: 1.3;
-    border-top: 1px solid #b2b2b2;  /* контур отгоре */
-    padding-left: 10px; /* малко разстояние от контурa */
-    padding-right: 10px;
+.reply-header > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+.reply-header .comment-author {
+    font-size: 0.85rem;
+    color: #40bd97;
+}
 
-/* ✍️ Форми */
-#comment-form textarea,
-.reply-form textarea {
+.reply-header small {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+/* Дясна част - бутони за редакция и изтриване */
+.reply-header > div.actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* Текст на подкоментар */
+.reply-text {
+    font-size: 0.82rem;
+    color: #444;
+    line-height: 1.3;
+    padding: 6px 10px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    white-space: pre-wrap;
+}
+
+/* Действия под текста на подкоментар */
+.reply-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.8rem;
+}
+
+/* Форми и бутон за отговор */
+textarea.form-control {
     resize: none;
     border-radius: 8px;
     border: 1px solid #ced4da;
     padding: 0.5rem;
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
+    width: 100%;
+    font-family: inherit;
 }
 
+/* Стил на бутоните Публикувай и Изпрати */
 #comment-form button,
 .reply-form button {
     border-radius: 8px;
-    padding: 8px 18px;
+    padding: 5px 11px;
     font-size: 0.9rem;
     font-weight: 600;
-    background: linear-gradient(135deg, #40bd97, #00b8d4); /* цветен градиент */
-    color: white;
-    border: none;
+    background: linear-gradient(135deg, rgba(64, 189, 151, 0), rgba(204, 204, 204, 0.18));
+    color: #989898;
+    border-color: #b9b9b9;
     outline: none;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     cursor: pointer;
-    transition: all 0.3s ease; /* плавни преходи */
+    transition: all 0.3s ease;
 }
 
-/* 🟢 Ефект при преминаване на курсора върху бутона */
 #comment-form button:hover,
 .reply-form button:hover {
-    background: linear-gradient(135deg, #00b8d4, #40bd97); /* обратен градиент */
-    transform: translateY(-2px); /* малко повдигане на бутона */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* по-силен ефект на сянката */
+    background: linear-gradient(135deg, #c8c9c9, rgba(182, 189, 187, 0.56));
+    transform: translateY(-2px);
 }
 
-/* 🟢 Ефект при натискане на бутона */
 #comment-form button:active,
 .reply-form button:active {
-    transform: translateY(0); /* възстановяване на позицията */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* нормализиране на сянката */
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 🔘 Бутон за отговор */
-.reply-btn {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-    margin-left: 45px;
-    border-radius: 5px;
-    transition: background-color 0.2s ease;
-}
-
-.reply-btn:hover {
-    background-color: #e9ecef;
-}
-
-/* 📏 Минимални разстояния за стегнатост */
+/* Минимални разстояния */
 form,
 hr,
 .comment-box,
@@ -161,121 +262,39 @@ hr,
     margin-bottom: 0.5rem !important;
 }
 
-#comment-text {
-    width: 100%;
-    margin-top: 10px;
+/*EMOJI*/
+.emoji-container {
+    position: relative;
 }
 
-/* Основен стил за коментарите */
-textarea.form-control {
-    font-size: 1rem;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    width: 100%;
-    height: 100px;
-}
-
-/* Стил за Публикувай бутона */
-.btn-primary {
-    margin-top: 10px;
-}
-
-/*quill */
-.ql-toolbar.ql-snow button {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 4px 6px;
-    transition: background 0.2s ease;
-}
-
-.ql-toolbar.ql-snow button:hover {
-    background: rgba(0, 0, 0, 0.05) !important;
-    border-radius: 4px;
-}
-
-#editor-container {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    max-height: 100px; /* лимит на височина */
-    overflow-y: auto;
-    position: relative; /* За да можем да позиционираме елементите относително към него */
-    min-height: 50px;
-}
-
-.ql-editor {
-    min-height: 50px; /* два реда височина */
-    padding: 8px 12px;
-    font-size: 14px;
-    line-height: 1.4;
-}
-/* Скриване на панела с емотикони по подразбиране */
-#emoji-picker {
+.emoji-picker {
+    display: none;
+    padding: 7px;
+    max-width: 0;
+    background: rgba(255, 255, 255, 0);
     position: absolute;
-    display: none; /* Показва се, когато е необходимо */
-    z-index: 1000;  /* Ще бъде най-отгоре */
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 10px;
+    left: 24%;
+    top: 0;
+    z-index: 1000;
+    white-space: nowrap;
 }
-
-
-.like-btn, .dislike-btn {
-    border: none;
-    background: transparent;
-    color: #555;
+.emoji-btn{
+    background: rgb(255, 255, 255); !important;
 }
-.like-btn.btn-primary, .dislike-btn.btn-primary {
-    color: white;
-    background-color: #0d6efd;
-}
-
-
-     /* 📌 Гарантираме, че се прилагат стиловете */
- .ql-emoji-picker .ql-emoji {
-     font-size: 28px !important;
-     margin: 2px !important;
-     padding: 2px !important;
-     line-height: 1 !important;
- }
-
-/* 📌 Самото меню с емотикони */
-.ql-emoji-picker {
-    padding: 6px !important;
-    max-width: 300px;
-    position: absolute !important;
-    z-index: 9999 !important;
-    background: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-/* 📌 Прави редактора с фиксирана височина и скрол */
-#editor-container .ql-editor {
-    min-height: 60px !important;
-    max-height: 60px !important;
-    overflow-y: auto !important;
-    padding: 6px 10px !important;
-    font-size: 16px;
-}
-
-/* 📌 Премахва фон от toolbar бутоните */
-.ql-toolbar button {
-    background: none !important;
-    border: none !important;
-    box-shadow: none !important;
+.emoji {
+    cursor: pointer;
+    font-size: 15px;
+    margin: 0;
 }
 
 
 
 
-/* 📱 Мобилен изглед */
+/* Мобилен изглед */
 @media (max-width: 576px) {
     #comments-section {
-        padding: 0.75rem;
-        height: 300px; /* по-малка височина за мобилни устройства */
+        padding: 1rem;
+        height: 400px;
     }
 
     .comment-img,
@@ -285,24 +304,29 @@ textarea.form-control {
     }
 
     .comment-author {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    .comment-header small {
+        font-size: 0.65rem;
     }
 
     .comment-text {
         font-size: 0.8rem;
-        margin-left: 38px;
-    }
-
-    .replies {
-        margin-left: 2.5rem;
-    }
-
-    .reply-box {
         padding: 0.5rem;
-        gap: 6px;
+    }
+
+    .reply-btn {
+        padding: 3px 8px;
+        font-size: 0.7rem;
+    }
+
+    .reply-img {
+        width: 22px;
+        height: 22px;
     }
 
     .reply-text {
-        font-size: 0.78rem;
+        font-size: 0.75rem;
     }
 }

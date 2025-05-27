@@ -206,6 +206,7 @@ public class CommentsServiceImpl implements CommentsService {
         commentsRepository.delete(comment);
     }
 
+    //It's OK!!!
     private boolean canModifyComment(@NotNull CommentsEntity comment, @NotNull UserEntity user) {
         return comment.getAuthor().equals(user.getUsername()) ||
                 user.getRole().equals(UserRole.ADMIN);
