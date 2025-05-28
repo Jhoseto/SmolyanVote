@@ -79,8 +79,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const btn = e.target.closest(".like-btn, .dislike-btn");
         if (!btn) return;
 
+        const commentBox = btn.closest(".comment-box, .reply-box");
+        if (!commentBox) return;
+
+        const likeBtn = commentBox.querySelector(".like-btn");
+        const dislikeBtn = commentBox.querySelector(".dislike-btn");
         const commentId = btn.dataset.id;
         const type = btn.dataset.type;
+
+        likeBtn.disabled = true;
+        dislikeBtn.disabled = true;
 
         fetch(`/api/comments/${commentId}/reaction/${type}`, {
             method: "POST",
@@ -95,28 +103,45 @@ document.addEventListener("DOMContentLoaded", () => {
                 return res.json();
             })
             .then(data => {
-                const commentBox = btn.closest(".comment-box, .reply-box");
-                if (!commentBox) return;
+                // Обновяване на броя
+                const likeCount = likeBtn.querySelector("span");
+                const dislikeCount = dislikeBtn.querySelector("span");
 
-                const likeBtn = commentBox.querySelector(".like-btn");
-                const dislikeBtn = commentBox.querySelector(".dislike-btn");
+                animateCountChange(likeCount, data.likes);
+                animateCountChange(dislikeCount, data.dislikes);
 
-                if (likeBtn && dislikeBtn) {
-                    likeBtn.querySelector("span").textContent = data.likes;
-                    dislikeBtn.querySelector("span").textContent = data.dislikes;
+                // Премахване на предишни състояния
+                [likeBtn, dislikeBtn].forEach(btn => {
+                    btn.classList.remove("active-vote");
+                    btn.removeAttribute("title");
+                });
 
-                    likeBtn.classList.remove("btn-primary");
-                    dislikeBtn.classList.remove("btn-primary");
-
-                    if (type === "like") {
-                        likeBtn.classList.add("btn-primary");
-                    } else {
-                        dislikeBtn.classList.add("btn-primary");
-                    }
+                // Добавяне на визуално подчертаване и tooltip
+                if (data.userVote === "LIKE") {
+                    likeBtn.classList.add("active-vote");
+                    likeBtn.title = "Гласували сте с ДА";
+                } else if (data.userVote === "DISLIKE") {
+                    dislikeBtn.classList.add("active-vote");
+                    dislikeBtn.title = "Гласували сте с НЕ";
                 }
             })
-            .catch(err => alert("Грешка при гласуване: " + err));
+            .catch(err => alert("Грешка при гласуване: " + err))
+            .finally(() => {
+                likeBtn.disabled = false;
+                dislikeBtn.disabled = false;
+            });
     });
+
+    function animateCountChange(span, newValue) {
+        if (parseInt(span.textContent) !== newValue) {
+            span.classList.add("count-change");
+            span.textContent = newValue;
+            setTimeout(() => span.classList.remove("count-change"), 400);
+        }
+    }
+
+
+
 
     // Скриване на отговорите
     document.querySelectorAll('.replies').forEach(container => {

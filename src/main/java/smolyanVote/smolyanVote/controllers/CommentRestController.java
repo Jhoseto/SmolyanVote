@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
@@ -12,7 +13,6 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.CommentResponseDto;
-import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.EditCommentRequestDto;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ErrorDto;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
@@ -46,6 +46,8 @@ public class CommentRestController {
         return handleCommentSubmission(targetId, text, parentId);
     }
 
+
+
     // Гласуване (like / dislike) върху коментар
     @PostMapping("/{id}/reaction/{type}")
     public ResponseEntity<?> reactToComment(@PathVariable Long id,
@@ -61,8 +63,9 @@ public class CommentRestController {
         try {
             UserEntity currentUser = userService.getCurrentUser();
             CommentsEntity updated = commentsService.commentReaction(id, reactionType.name(), currentUser.getUsername());
+            String userVote = commentsService.getUserReaction(id, currentUser.getUsername());
 
-            return ResponseEntity.ok(new ReactionCountDto(updated.getLikeCount(), updated.getUnlikeCount()));
+            return ResponseEntity.ok(new ReactionCountDto(updated.getLikeCount(), updated.getUnlikeCount(), userVote));
         } catch (Exception e) {
             logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage(), e);
             return ResponseEntity.status(500).body(new ErrorDto("Unexpected server error: " + e.getMessage()));
@@ -78,14 +81,15 @@ public class CommentRestController {
                     targetId, targetType, parentId, currentUser.getUsername());
 
             CommentsEntity comment = commentsService.addComment(
-                    targetId, currentUser.getUsername(), text, parentId, targetType
-            );
+                    targetId, currentUser.getUsername(), text, parentId, targetType);
 
             CommentResponseDto responseDto = new CommentResponseDto(
                     comment.getId(),
                     comment.getAuthor(),
                     comment.getAuthorImage(),
-                    comment.getText()
+                    comment.getText(),
+                    comment.getParent() != null ? comment.getParent().getId() : null
+
             );
 
             return ResponseEntity.ok(responseDto);
@@ -104,16 +108,18 @@ public class CommentRestController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> editComment(@PathVariable Long id,
-                                         @RequestBody EditCommentRequestDto request) {
+                                         @RequestParam String text) {
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updatedComment = commentsService.editComment(id, request.getText(), currentUser);
+            CommentsEntity updatedComment = commentsService.editComment(id, text, currentUser);
 
             return ResponseEntity.ok(new CommentResponseDto(
                     updatedComment.getId(),
                     updatedComment.getAuthor(),
                     updatedComment.getAuthorImage(),
-                    updatedComment.getText()
+                    updatedComment.getText(),
+                    updatedComment.getParent() != null ? updatedComment.getParent().getId() : null
+
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(403).body(new ErrorDto("Нямате права за редактиране."));
@@ -122,7 +128,6 @@ public class CommentRestController {
             return ResponseEntity.status(500).body(new ErrorDto("Сървърна грешка."));
         }
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteComment(@PathVariable Long id) {

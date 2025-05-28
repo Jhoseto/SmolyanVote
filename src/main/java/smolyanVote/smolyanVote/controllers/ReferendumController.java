@@ -20,8 +20,10 @@ import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -131,37 +133,51 @@ public class ReferendumController {
         if (referendumOpt.isEmpty()) {
             return "redirect:/404";
         }
-
         ReferendumEntity referendum = referendumOpt.get();
 
+        // автора на референдума
         Optional<UserEntity> userOpt = userRepository.findByUsername(referendum.getCreatorName());
         if (userOpt.isEmpty()) {
             return "redirect:/404";
         }
-
         UserEntity user = userOpt.get();
+
+        // Текущ потребител
         UserEntity currentUser = userService.getCurrentUser();
+        String currentUsername = currentUser != null ? currentUser.getUsername() : null;
+
+        // Детайли за референдума
         ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getUsername());
-        referendum.setViewCounter(referendum.getViewCounter() + 1);
-        referendumRepository.save(referendum);
-
-        //check current VOTE for current user
-        VoteReferendumEntity vote = voteService.findByUserIdAndReferendumId(userService.getCurrentUser().getId(), id);
-
         if (referendumDetail == null) {
             return "redirect:/404";
         }
 
-        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
+        // Увеличаваме броя на прегледите
+        referendum.setViewCounter(referendum.getViewCounter() + 1);
+        referendumRepository.save(referendum);
 
+        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
+        Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
+
+        // Взимаме текущия вот на потребителя (ако има) за самия референдум
+        VoteReferendumEntity vote = null;
+        if (currentUser != null) {
+            vote = voteService.findByUserIdAndReferendumId(currentUser.getId(), id);
+        }
+
+        String currentUrl = "/referendum/" + id;
+
+        model.addAttribute("currentUrl", currentUrl);
         model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("user", user);
         model.addAttribute("referendum", referendum);
         model.addAttribute("referendumDetail", referendumDetail);
         model.addAttribute("comments", comments);
+        model.addAttribute("reactionsMap", reactionsMap);
 
         return "referendumDetailView";
     }
+
 
 }

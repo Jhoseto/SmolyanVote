@@ -18,8 +18,10 @@ import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -98,15 +100,15 @@ public class EventsController {
 
         // проверка дали потребителят е гласувал
         VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
+
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
-
-
+        Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, user.getUsername());
 
         model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("eventDetail", eventDetailView);
         model.addAttribute("currentUser", user);
         model.addAttribute("comments", comments);
-
+        model.addAttribute("reactionsMap", reactionsMap);
         return "eventDetailView";
     }
 

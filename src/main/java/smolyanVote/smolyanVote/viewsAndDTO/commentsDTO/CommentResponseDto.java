@@ -5,25 +5,54 @@ public class CommentResponseDto {
     private String author;
     private String authorImage;
     private String text;
+    private Long parentId;
 
-    public CommentResponseDto(Long id,
-                              String author,
-                              String authorImage,
-                              String text) {
+    public CommentResponseDto(Long id, String author, String authorImage, String text, Long parentId) {
         this.id = id;
         this.author = author;
         this.authorImage = authorImage;
         this.text = text;
+        this.parentId = parentId;
     }
 
 
-    public Long getId() { return id; }
-    public String getAuthor() { return author; }
-    public String getAuthorImage() { return authorImage; }
-    public String getText() { return text; }
+    public Long getId() {
+        return id;
+    }
 
-    public void setId(Long id) { this.id = id; }
-    public void setAuthor(String author) { this.author = author; }
-    public void setAuthorImage(String authorImage) { this.authorImage = authorImage; }
-    public void setText(String text) { this.text = text; }
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getAuthorImage() {
+        return authorImage;
+    }
+
+    public void setAuthorImage(String authorImage) {
+        this.authorImage = authorImage;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
 }
