@@ -5,10 +5,9 @@
 <!-- @thymesVar id="reply" type="smolyanVote.smolyanVote.models.CommentsEntity" -->
 
 <div th:fragment="comments(targetId, comments, currentUser)">
-    <div class="container mt-5" id="comments-section" th:attr="data-target-id=${targetId}">
-        <h3 class="mb-4">Коментари</h3>
+    <h3 class="mb-4 center-heading">Коментари</h3>
 
-        <!-- Форма за нов коментар -->
+    <div class="comment-form-container">
         <form id="comment-form" action="javascript:void(0);" method="post" class="mb-4">
             <input type="hidden" name="targetId" th:value="${targetId}" />
             <input type="hidden" name="author" th:value="${currentUser.username}" />
@@ -25,9 +24,9 @@
                 <div id="emoji-picker" class="emoji-picker"></div>
             </div>
         </form>
+    </div>
 
-        <hr />
-
+    <div class="container mt-5" id="comments-section" th:attr="data-target-id=${targetId}">
         <!-- Списък с коментари -->
         <div id="comment-list" class="d-flex flex-column gap-3">
             <div th:each="comment : ${comments}" th:id="'comment-' + ${comment.id}" class="card p-3 comment-box">
