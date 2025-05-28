@@ -4,6 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
@@ -20,6 +23,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.time.Instant;
 import java.util.*;
+
 
 @Service
 public class CommentsServiceImpl implements CommentsService {
@@ -88,6 +92,7 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
+    @Retryable(interceptor = "commentRetryInterceptor") // Решава проблема ми с DeadLock при реакциите
     @Transactional
     @Override
     public CommentsEntity commentReaction(Long commentId, String type, String username) {
@@ -98,50 +103,43 @@ public class CommentsServiceImpl implements CommentsService {
                 ? CommentReactionType.LIKE
                 : CommentReactionType.DISLIKE;
 
-        commentVoteRepository.findByCommentIdAndUsername(commentId, username).ifPresentOrElse(existingVote -> {
-            if (existingVote.getReaction() == newReaction) {
-                // Няма промяна
-                return;
-            }
+        Optional<CommentVoteEntity> existingVoteOpt = commentVoteRepository.findByCommentIdAndUsername(commentId, username);
 
-            // Отмени предишния вот
-            if (existingVote.getReaction() == CommentReactionType.LIKE) {
-                if (comment.getLikeCount() > 0) {
-                    comment.setLikeCount(comment.getLikeCount() - 1);
+        if (existingVoteOpt.isPresent()) {
+            CommentVoteEntity existingVote = existingVoteOpt.get();
+
+            if (existingVote.getReaction() != newReaction) {
+                // Промяна на гласа
+                if (existingVote.getReaction() == CommentReactionType.LIKE) {
+                    comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1));
+                    comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+                } else {
+                    comment.setUnlikeCount(Math.max(0, comment.getUnlikeCount() - 1));
+                    comment.setLikeCount(comment.getLikeCount() + 1);
                 }
-            } else {
-                if (comment.getUnlikeCount() > 0) {
-                    comment.setUnlikeCount(comment.getUnlikeCount() - 1);
-                }
+
+                existingVote.setReaction(newReaction);
+                commentVoteRepository.save(existingVote);
             }
 
-            // Приложи новия вот
-            if (newReaction == CommentReactionType.LIKE) {
-                comment.setLikeCount(comment.getLikeCount() + 1);
-            } else {
-                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
-            }
-
-            existingVote.setReaction(newReaction);
-            commentVoteRepository.save(existingVote);
-
-        }, () -> {
-            // Първи вот от този потребител
-            if (newReaction == CommentReactionType.LIKE) {
-                comment.setLikeCount(comment.getLikeCount() + 1);
-            } else {
-                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
-            }
-
+        } else {
+            // Нов глас
             CommentVoteEntity vote = new CommentVoteEntity();
             vote.setComment(comment);
             vote.setUsername(username);
             vote.setReaction(newReaction);
             commentVoteRepository.save(vote);
-        });
+
+            if (newReaction == CommentReactionType.LIKE) {
+                comment.setLikeCount(comment.getLikeCount() + 1);
+            } else {
+                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+            }
+        }
 
         return commentsRepository.save(comment);
     }
+
 
 
     @Transactional
@@ -255,4 +253,15 @@ public class CommentsServiceImpl implements CommentsService {
     }
 
 
+
+
+
+
+
+    // на края
+    @Recover
+    public CommentsEntity recoverFromDeadlock(Exception e, Long commentId, String type, String username) {
+        logger.error("Failed to apply comment reaction after retries: {}", e.getMessage(), e);
+        throw new RuntimeException("Системна грешка при запазване на реакцията. Моля, опитайте отново.");
+    }
 }
