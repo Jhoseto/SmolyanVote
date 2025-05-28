@@ -1,3 +1,19 @@
+.comment-form-container {
+    background: #fff;
+    border-radius: 16px;
+    padding: 15px 56px 1px 36px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    font-family: 'Segoe UI', sans-serif;
+    max-width: 850px;
+    margin: 0 auto 0 auto;
+}
+.center-heading {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+
 /* 🧩 Контейнер за коментари */
 #comments-section {
     background: #fff;
@@ -6,8 +22,8 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     font-family: 'Segoe UI', sans-serif;
     max-width: 850px;
-    margin: 0 auto;
-    height: 800px;
+    margin: 50px auto;
+    height: auto;
     overflow-y: auto;
 }
 
@@ -228,24 +244,25 @@ textarea.form-control {
     color: #2a8a6e;
 }
 
-/* Emoji picker */
 .emoji-picker {
     position: absolute;
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 0 7px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    display: none;
     z-index: 1000;
-    max-width: 220px;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: thin;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 240px;
+    max-height: none; /* няма ограничение на височината */
+    overflow: hidden;
 }
+
 .emoji-picker span.emoji {
-    font-size: 20px;
-    margin: 0 5px;
+    font-size: 16px;
+    margin: 0 3px;
     cursor: pointer;
     user-select: none;
 }
