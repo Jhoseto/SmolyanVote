@@ -88,7 +88,8 @@ public class CommentRestController {
                     comment.getAuthor(),
                     comment.getAuthorImage(),
                     comment.getText(),
-                    comment.getParent() != null ? comment.getParent().getId() : null
+                    comment.getParent() != null ? comment.getParent().getId() : null,
+                    comment.getCreatedAt()
 
             );
 
@@ -124,7 +125,8 @@ public class CommentRestController {
                     updatedComment.getAuthor(),
                     updatedComment.getAuthorImage(),
                     updatedComment.getText(),
-                    updatedComment.getParent() != null ? updatedComment.getParent().getId() : null
+                    updatedComment.getParent() != null ? updatedComment.getParent().getId() : null,
+                    updatedComment.getCreatedAt()
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(403).body(new ErrorDto("Нямате права за редактиране."));
