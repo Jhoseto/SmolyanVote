@@ -42,13 +42,11 @@ public class ApplicationSecurityConfiguration {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
-                                "/webjars/**",
                                 "/css/**",
                                 "/js/**",
+                                "/templates/**",
                                 "/images/**",
                                 "/fonts/**",
-                                "/impl/**",
-                                "/video/**",
                                 "/",
                                 "/index",
                                 "/forgotten_password",

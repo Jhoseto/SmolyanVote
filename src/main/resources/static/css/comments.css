@@ -1,152 +1,126 @@
-/* 🧩 Общ контейнер (фиксирана височина с вертикален скрол) */
+/* 🧩 Контейнер за коментари */
 #comments-section {
-    background-color: #ffffff;
+    background: #fff;
     border-radius: 16px;
     padding: 35px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     font-family: 'Segoe UI', sans-serif;
     max-width: 850px;
     margin: 0 auto;
-    height: 800px; /* фиксирана височина */
-    overflow-y: auto; /* добавяне на скрол */
+    height: 800px;
+    overflow-y: auto;
 }
 
-/* 🧱 Основен коментар - оградена рамка и padding */
+/* 🧱 Основен коментар */
 .comment-box {
     border: 1px solid #bec3c7;
     background: #fdfdfd;
     border-radius: 12px;
     padding: 12px 16px;
     margin-bottom: 0.75rem;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.02);
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-/* 👤 Хедър на коментара: потребител и действия (редакция, изтриване) на един ред */
+/* 👤 Хедър на коментара */
 .comment-header {
-    color: #777777;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    color: #777;
 }
-
-/* Лява част - потребител и дата */
 .comment-header > div:first-child {
-    color: #777777;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.comment-img,
-.user-img {
+/* Профилна снимка */
+.comment-img, .user-img, .reply-img {
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
+}
+.comment-img, .user-img {
     width: 36px;
     height: 36px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 2px solid #dee2e6;
+}
+.reply-img {
+    width: 28px;
+    height: 28px;
 }
 
-/* Име на автора */
+/* Автор и дата */
 .comment-author {
     font-weight: 600;
     font-size: 0.9rem;
     color: #40bd97;
 }
-
-/* Дата до името */
-.comment-header small {
+.comment-header small,
+.reply-header small {
     font-size: 0.75rem;
     color: #777;
 }
 
-/* Дясна част - бутоните за редакция и изтриване */
-.comment-header > div.actions {
+/* Действия */
+.comment-header > .actions,
+.reply-header > .actions {
     display: flex;
     gap: 8px;
 }
-
-/* Стил за бутоните за редакция и изтриване */
 .edit-btn,
-.delete-btn {
-    font-size: 0.8rem;
-    padding: 0 3px;
-    border-radius: 6px;
+.delete-btn,
+.reply-btn,
+#comment-form button,
+.reply-form button,
+.emoji-reply-btn {
+    background: transparent;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
+    color: #666;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.edit-btn:hover,
+.delete-btn:hover,
+.reply-btn:hover,
+#comment-form button:hover,
+.reply-form button:hover,
+.emoji-reply-btn:hover {
+    background-color: #f0f0f0;
 }
 
-/* 💬 Текстът на коментара */
-.comment-text {
+/* 💬 Текст */
+.comment-text,
+.reply-text {
     background: #f1f3f5;
     border-radius: 10px;
     padding: 0.75rem 1rem;
     font-size: 0.88rem;
     color: #333;
     line-height: 1.4;
-    white-space: pre-wrap; /* за нови редове */
+    white-space: pre-wrap;
 }
 
-/* Контейнер за действия (отговор, лайк, дизлайк) - под текста */
-.comment-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.85rem;
-}
-
-/* Бутон за отговор */
-.reply-btn {
-    font-size: 0.8rem;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid #ced4da;
-    background-color: transparent;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.reply-btn:hover {
-    background-color: #e9ecef;
-}
-
-/* Бутоните за лайк и дизлайк - стил, подравнени в края */
-.like-btn, .dislike-btn {
-    border: none;
-    background: transparent;
-    color: #555;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-/* Списък на броя лайкове и дизлайкове */
-.like-btn span, .dislike-btn span {
-    font-size: 0.85rem;
-}
-
-/* Форма за отговор - под коментар */
-.reply-form {
-    margin-top: 0.6rem;
-    padding-left: 46px; /* подравняване спрямо коментара */
-}
-
-/* 🔁 Отговори - контейнер */
+/* Подкоментари */
 .replies {
-    margin-left: 40px; /* изместване вдясно спрямо основния коментар */
+    margin-left: 40px;
     margin-top: 0.3rem;
     border-left: 2px solid #40bd97;
     padding-left: 12px;
 }
+.reply-form {
+    position: relative;
+}
 
-/* Подкоментар с рамка и padding */
 .reply-box {
-    background: #ffffff;
+    background: #fff;
     border: 1px solid #dee2e6;
     border-radius: 10px;
     padding: 8px 12px;
@@ -155,58 +129,36 @@
     flex-direction: column;
     gap: 6px;
 }
-
-/* Подкоментар хедър - същата структура като коментар */
-.reply-box > .reply-header {
+.reply-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
 }
-
-/* Лява част - снимка и име */
-.reply-img {
-    width: 28px;
-    height: 28px;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 1px solid #ced4da;
-}
-
 .reply-header > div:first-child {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-
 .reply-header .comment-author {
     font-size: 0.85rem;
     color: #40bd97;
 }
-
-.reply-header small {
-    font-size: 0.7rem;
-    color: #666;
-}
-
-/* Дясна част - бутони за редакция и изтриване */
-.reply-header > div.actions {
-    display: flex;
-    gap: 6px;
-}
-
-/* Текст на подкоментар */
 .reply-text {
     font-size: 0.82rem;
     color: #444;
     line-height: 1.3;
-    padding: 6px 10px;
-    background-color: #f9fafb;
+    background: #f9fafb;
     border-radius: 8px;
-    white-space: pre-wrap;
+    padding: 6px 10px;
 }
 
-/* Действия под текста на подкоментар */
+.highlight {
+    background-color: #ffffcc;
+    transition: background-color 0.5s ease;
+}
+/* Действия под коментара */
+.comment-actions,
 .reply-actions {
     display: flex;
     justify-content: flex-end;
@@ -215,43 +167,91 @@
     font-size: 0.8rem;
 }
 
-/* Форми и бутон за отговор */
+
+/* Бутоните за реакции */
+.like-btn,
+.dislike-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: transparent;
+    text-shadow: 0 0 0 rgb(215,215,215);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.like-btn.active-vote,
+.dislike-btn.active-vote {
+    color: #47b77c;
+    text-shadow: none;
+}
+.like-btn span,
+.dislike-btn span {
+    margin-left: 5px;
+    color: #989898;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Текстови полета */
 textarea.form-control {
     resize: none;
     border-radius: 8px;
     border: 1px solid #ced4da;
     padding: 0.5rem;
     font-size: 0.85rem;
-    margin-bottom: 0.5rem;
     width: 100%;
     font-family: inherit;
+    margin-bottom: 0.5rem;
 }
 
-/* Стил на бутоните Публикувай и Изпрати */
-#comment-form button,
-.reply-form button {
-    border-radius: 8px;
-    padding: 5px 11px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    background: linear-gradient(135deg, rgba(64, 189, 151, 0), rgba(204, 204, 204, 0.18));
-    color: #989898;
-    border-color: #b9b9b9;
-    outline: none;
+/* Бутон за затваряне */
+.close-btn {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    font-size: 1.4rem;
+    color: #40bd97;
+    background: none;
+    border: none;
+    padding: 0;
     cursor: pointer;
-    transition: all 0.3s ease;
+    line-height: 1;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+.close-btn:hover {
+    color: #2a8a6e;
 }
 
-#comment-form button:hover,
-.reply-form button:hover {
-    background: linear-gradient(135deg, #c8c9c9, rgba(182, 189, 187, 0.56));
-    transform: translateY(-2px);
+/* Emoji picker */
+.emoji-picker {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1000;
+    max-width: 220px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
 }
-
-#comment-form button:active,
-.reply-form button:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.emoji-picker span.emoji {
+    font-size: 20px;
+    margin: 0 5px;
+    cursor: pointer;
+    user-select: none;
+}
+.emoji-picker::-webkit-scrollbar {
+    height: 6px;
+}
+.emoji-picker::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
 }
 
 /* Минимални разстояния */
@@ -262,70 +262,34 @@ hr,
     margin-bottom: 0.5rem !important;
 }
 
-/*EMOJI*/
-.emoji-container {
-    position: relative;
-}
-
-.emoji-picker {
-    display: none;
-    padding: 7px;
-    max-width: 0;
-    background: rgba(255, 255, 255, 0);
-    position: absolute;
-    left: 24%;
-    top: 0;
-    z-index: 1000;
-    white-space: nowrap;
-}
-.emoji-btn{
-    background: rgb(255, 255, 255); !important;
-}
-.emoji {
-    cursor: pointer;
-    font-size: 15px;
-    margin: 0;
-}
-
-
-
-
-/* Мобилен изглед */
+/* 📱 Мобилен изглед */
 @media (max-width: 576px) {
     #comments-section {
         padding: 1rem;
         height: 400px;
     }
-
-    .comment-img,
-    .user-img {
+    .comment-img, .user-img {
         width: 28px;
         height: 28px;
     }
-
     .comment-author {
         font-size: 0.85rem;
     }
-
     .comment-header small {
         font-size: 0.65rem;
     }
-
     .comment-text {
         font-size: 0.8rem;
         padding: 0.5rem;
     }
-
     .reply-btn {
         padding: 3px 8px;
         font-size: 0.7rem;
     }
-
     .reply-img {
         width: 22px;
         height: 22px;
     }
-
     .reply-text {
         font-size: 0.75rem;
     }

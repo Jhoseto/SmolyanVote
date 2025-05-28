@@ -16,6 +16,7 @@ import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.time.Instant;
 import java.util.*;
@@ -51,8 +52,10 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, @NotNull EventType targetType) {
+    public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
         UserEntity user = userService.getCurrentUser();
+
+        EventType eventType = getTargetType(targetId);
 
         CommentsEntity comment = new CommentsEntity();
         comment.setAuthor(user.getUsername());
@@ -60,7 +63,7 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setText(text);
         comment.setCreatedAt(Instant.now());
 
-        switch (targetType) {
+        switch (eventType) {
             case REFERENDUM -> {
                 ReferendumEntity referendum = referendumRepository.findById(targetId)
                         .orElseThrow(() -> new IllegalArgumentException("Referendum not found with ID: " + targetId));
@@ -71,7 +74,7 @@ public class CommentsServiceImpl implements CommentsService {
                         .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with ID: " + targetId));
                 comment.setEvent(event);
             }
-            default -> throw new UnsupportedOperationException("Unsupported target type: " + targetType);
+            default -> throw new UnsupportedOperationException("Unsupported target type: " + eventType);
         }
 
         if (parentId != null) {
@@ -79,6 +82,7 @@ public class CommentsServiceImpl implements CommentsService {
                     .orElseThrow(() -> new IllegalArgumentException("Parent comment not found"));
             comment.setParent(parent);
         }
+
 
         return commentsRepository.save(comment);
     }
@@ -142,7 +146,45 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Transactional
     @Override
-    public List<CommentsEntity> getCommentsForTarget(Long targetId, @NotNull EventType targetType) {
+    public String getUserReaction(Long commentId, String username) {
+        return commentVoteRepository.findByCommentIdAndUsername(commentId, username)
+                .map(vote -> vote.getReaction().name()) // "LIKE" или "DISLIKE"
+                .orElse(null);
+    }
+
+    @Transactional
+    @Override
+    public Map<Long, ReactionCountDto> getReactionsForAllCommentsWithReplies(List<CommentsEntity> comments, String username) {
+        Map<Long, ReactionCountDto> reactionsMap = new HashMap<>();
+
+        for (CommentsEntity comment : comments) {
+            String userVote = username != null ? getUserReaction(comment.getId(), username) : null;
+            ReactionCountDto reactionDto = new ReactionCountDto(
+                    comment.getLikeCount(),
+                    comment.getUnlikeCount(),
+                    userVote
+            );
+            reactionsMap.put(comment.getId(), reactionDto);
+
+            if (comment.getReplies() != null) {
+                for (CommentsEntity reply : comment.getReplies()) {
+                    userVote = username != null ? getUserReaction(reply.getId(), username) : null;
+                    reactionDto = new ReactionCountDto(
+                            reply.getLikeCount(),
+                            reply.getUnlikeCount(),
+                            userVote
+                    );
+                    reactionsMap.put(reply.getId(), reactionDto);
+                }
+            }
+        }
+        return reactionsMap;
+    }
+
+
+    @Transactional
+    @Override
+    public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
