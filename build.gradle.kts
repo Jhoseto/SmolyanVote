@@ -41,6 +41,9 @@ dependencies {
 	implementation("org.owasp.encoder:encoder:1.2.3")
 	implementation("org.apache.tika:tika-core:3.1.0")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation ("org.springframework.retry:spring-retry")
+	implementation ("org.springframework:spring-aspects")
+
 
 	//Cloudinary Images
 	implementation("com.cloudinary:cloudinary-http5:2.0.0")

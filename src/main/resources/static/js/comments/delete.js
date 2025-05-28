@@ -13,7 +13,15 @@ export function initDelete() {
             method: "DELETE",
             headers: { [csrfHeader]: csrfToken }
         })
-            .then(res => res.ok ? document.getElementById(`comment-${id}`)?.remove() : res.json().then(err => Promise.reject(err.error)))
+            .then(res => {
+                if (res.ok) {
+                    // Изтриване на главен коментар или подкоментар (който съвпадне)
+                    document.getElementById(`comment-${id}`)?.remove();
+                    document.getElementById(`reply-${id}`)?.remove();
+                } else {
+                    return res.json().then(err => Promise.reject(err.error));
+                }
+            })
             .catch(err => alert("Грешка при изтриване: " + err));
     });
 }

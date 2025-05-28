@@ -1,6 +1,6 @@
 export function initEmojiPicker() {
     // Избираме всички emoji бутони - главния и reply бутоните
-    const emojiButtons = document.querySelectorAll('#emoji-btn, #comments-section button[id^="emoji-replay-btn"]');
+    const emojiButtons = document.querySelectorAll('#emoji-btn, .emoji-reply-btn');
 
     // Създаваме един общ emoji picker контейнер (ще го създадем динамично, ако го няма)
     let emojiPicker = document.getElementById('emoji-picker');

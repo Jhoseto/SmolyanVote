@@ -3,13 +3,21 @@ export function toggleReplies() {
         const list = container.querySelector('.replies-list');
         const btn = container.querySelector('.show-replies-btn');
 
-        if (list) list.style.display = 'none';
-        if (btn) {
-            btn.style.display = 'inline-block';
-            btn.addEventListener('click', () => {
+        if (!list || !btn) return;
+
+        // Скрии листа по подразбиране
+        list.style.display = 'none';
+        btn.style.display = 'inline-block';
+        btn.textContent = `Покажи всички (${list.children.length}) отговори`;
+
+        btn.addEventListener('click', () => {
+            if (list.style.display === 'none') {
                 list.style.display = 'block';
-                btn.style.display = 'none';
-            });
-        }
+                btn.textContent = 'Скрий отговорите';
+            } else {
+                list.style.display = 'none';
+                btn.textContent = `Покажи всички (${list.children.length}) отговори`;
+            }
+        });
     });
 }

@@ -106,12 +106,18 @@ public class CommentRestController {
 
 
 
+    public static class EditCommentRequest {
+        private String text;
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> editComment(@PathVariable Long id,
-                                         @RequestParam String text) {
+                                         @RequestBody EditCommentRequest request) {
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updatedComment = commentsService.editComment(id, text, currentUser);
+            CommentsEntity updatedComment = commentsService.editComment(id, request.getText(), currentUser);
 
             return ResponseEntity.ok(new CommentResponseDto(
                     updatedComment.getId(),
@@ -119,7 +125,6 @@ public class CommentRestController {
                     updatedComment.getAuthorImage(),
                     updatedComment.getText(),
                     updatedComment.getParent() != null ? updatedComment.getParent().getId() : null
-
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(403).body(new ErrorDto("Нямате права за редактиране."));
@@ -128,6 +133,7 @@ public class CommentRestController {
             return ResponseEntity.status(500).body(new ErrorDto("Сървърна грешка."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteComment(@PathVariable Long id) {
