@@ -1,18 +1,23 @@
 package smolyanVote.smolyanVote.viewsAndDTO.commentsDTO;
 
+import java.time.Instant;
+
 public class CommentResponseDto {
     private Long id;
     private String author;
     private String authorImage;
     private String text;
     private Long parentId;
+    private Instant createdAt;
 
-    public CommentResponseDto(Long id, String author, String authorImage, String text, Long parentId) {
+
+    public CommentResponseDto(Long id, String author, String authorImage, String text, Long parentId, Instant createdAt) {
         this.id = id;
         this.author = author;
         this.authorImage = authorImage;
         this.text = text;
         this.parentId = parentId;
+        this.createdAt = createdAt;
     }
 
 
@@ -55,4 +60,8 @@ public class CommentResponseDto {
     public void setParentId(Long parentId) {
         this.parentId = parentId;
     }
+
+    public Instant getCreatedAt() {return createdAt;}
+
+    public void setCreatedAt(Instant createdAt) {this.createdAt = createdAt;}
 }
