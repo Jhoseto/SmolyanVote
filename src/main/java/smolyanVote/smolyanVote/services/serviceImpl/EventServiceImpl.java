@@ -18,7 +18,7 @@ import smolyanVote.smolyanVote.services.interfaces.EventService;
 import smolyanVote.smolyanVote.services.mappers.EventMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -54,24 +54,24 @@ public class EventServiceImpl implements EventService {
 
     @Transactional(readOnly = true)
     @Override
-    public Page<EventView> getPaginatedEvents(int page, int size) {
+    public Page<SimpleEventDeteilDTO> getPaginatedEvents(int page, int size) {
         // Взимане на всички SimpleEventEntity и ReferendumEntity
         List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAll();
         List<ReferendumEntity> referendums = referendumRepository.findAll();
 
         // Мапваме към общия EventView (или създай подходящ метод)
-        List<EventView> allEvents = new ArrayList<>();
-        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapToView).toList());
+        List<SimpleEventDeteilDTO> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapSimpleEventToView).toList());
         allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
 
         // Сортиране по дата
-        allEvents.sort(Comparator.comparing(EventView::getCreatedAt,
+        allEvents.sort(Comparator.comparing(SimpleEventDeteilDTO::getCreatedAt,
                         Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
         // Ръчна пагинация
         int start = page * size;
         int end = Math.min(start + size, allEvents.size());
-        List<EventView> paginated = allEvents.subList(start, end);
+        List<SimpleEventDeteilDTO> paginated = allEvents.subList(start, end);
 
         return new PageImpl<>(paginated, PageRequest.of(page, size), allEvents.size());
     }
@@ -81,13 +81,13 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional()
-    public List<EventView> getAllEvents() {
+    public List<SimpleEventDeteilDTO> getAllEvents() {
         List<SimpleEventEntity> events = simpleEventRepository.findAll();
 
 
         return events.stream()
                 .sorted(Comparator.comparing(SimpleEventEntity::getCreatedAt).reversed()) // Сортиране по дата
-                .map(eventMapper::mapToView) //  метода от EventMapper
+                .map(eventMapper::mapSimpleEventToView) //  метода от EventMapper
                 .collect(Collectors.toList());
     }
 
@@ -95,11 +95,11 @@ public class EventServiceImpl implements EventService {
 
     @Transactional
     @Override
-    public EventView getEventById(Long id) {
+    public SimpleEventDeteilDTO getEventById(Long id) {
 
         SimpleEventEntity event = simpleEventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
-        return eventMapper.mapToView(event);
+        return eventMapper.mapSimpleEventToView(event);
     }
 
     @Transactional
@@ -165,15 +165,15 @@ public class EventServiceImpl implements EventService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<EventView> getUserEvents(String email) {
+    public List<SimpleEventDeteilDTO> getUserEvents(String email) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
 
         List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAllByCreatorName(user.getUsername());
         List<ReferendumEntity> referendums = referendumRepository.findAllByCreatorName(user.getUsername());
 
-        List<EventView> allEvents = new ArrayList<>();
-        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapToView).toList());
+        List<SimpleEventDeteilDTO> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapSimpleEventToView).toList());
         allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
 
         return allEvents;

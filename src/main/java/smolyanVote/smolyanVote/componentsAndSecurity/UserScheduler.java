@@ -36,10 +36,6 @@ public class UserScheduler {
         }
 
         userRepository.saveAll(inactiveUsers);
-        System.out.println("✅ Неактивните потребители са отбелязани като офлайн.");
     }
-
-
-
 
 }

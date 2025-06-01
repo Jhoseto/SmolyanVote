@@ -3,10 +3,7 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.ReferendumEntity;
-import smolyanVote.smolyanVote.models.ReferendumImageEntity;
-import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
@@ -29,20 +26,21 @@ public class ReferendumServiceImpl implements ReferendumService {
     private final ImageCloudinaryServiceImpl imageStorageService;
     private final UserRepository userRepository;
     private final CommentsService commentsService;
-    private final VoteServiceImpl referendumVoteService;
+    private final VoteServiceImpl voteService;
 
     public ReferendumServiceImpl(ReferendumRepository referendumRepository,
                                  ReferendumImageRepository imageRepository,
                                  ImageCloudinaryServiceImpl imageStorageService,
                                  UserRepository userRepository,
                                  CommentsServiceImpl commentsService,
-                                 VoteServiceImpl referendumVoteService) {
+                                 VoteServiceImpl voteService)
+    {
         this.referendumRepository = referendumRepository;
         this.imageRepository = imageRepository;
         this.imageStorageService = imageStorageService;
         this.userRepository = userRepository;
         this.commentsService = commentsService;
-        this.referendumVoteService = referendumVoteService;
+        this.voteService = voteService;
     }
 
 
@@ -111,7 +109,7 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     @Transactional(readOnly = true)
     @Override
-    public ReferendumDetailDTO getReferendumDetail(Long referendumId, String username) {
+    public ReferendumDetailDTO getReferendumDetail(Long referendumId, Long userId) {
         Optional<ReferendumEntity> optionalReferendum = referendumRepository.findById(referendumId);
         if (optionalReferendum.isEmpty()) {
             return null;
@@ -141,15 +139,23 @@ public class ReferendumServiceImpl implements ReferendumService {
         if (referendum.getOption9() != null) { options.add(referendum.getOption9()); votes.add(referendum.getVotes9()); }
         if (referendum.getOption10() != null) { options.add(referendum.getOption10()); votes.add(referendum.getVotes10()); }
 
+        // Увеличаваме броя на прегледите
+        referendum.setViewCounter(referendum.getViewCounter() + 1);
+        referendumRepository.save(referendum);
+
+
         int totalVotes = referendum.getTotalVotes();
+        int viewCounter = referendum.getViewCounter();
 
         List<Integer> votePercentages = votes.stream()
                 .map(v -> totalVotes == 0 ? 0 : (int) Math.round((v * 100.0) / totalVotes))
                 .toList();
 
+        // взимане на стойността от userVote
+        VoteReferendumEntity userVote = voteService.findByUserIdAndReferendumId(referendumId, userId);
+        Integer userVoteValue = userVote.getVoteValue();
 
-        Integer userVote = referendumVoteService.findVoteByReferendumIdAndUserEmail(referendumId, username);
-
+        // Коментари
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(referendumId, EventType.REFERENDUM);
 
         return new ReferendumDetailDTO(referendum, user.orElse(null),
@@ -158,7 +164,8 @@ public class ReferendumServiceImpl implements ReferendumService {
                 votes,
                 votePercentages,
                 totalVotes,
-                userVote,
+                viewCounter,
+                userVoteValue,
                 comments
         );
     }

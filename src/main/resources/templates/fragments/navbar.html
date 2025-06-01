@@ -120,9 +120,13 @@
 </script>
 //online status
 <script th:if="${#authorization.expression('isAuthenticated()')}">
-    setInterval(() => {
+    function sendHeartbeat() {
         fetch('/heartbeat', {
             method: 'POST'
         });
-    }, 60000);
+    }
+    // Прати веднага при отваряне
+    sendHeartbeat();
+    setInterval(sendHeartbeat, 60000);
 </script>
+

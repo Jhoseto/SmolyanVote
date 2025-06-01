@@ -67,7 +67,8 @@ public class ApplicationSecurityConfiguration {
                                 "/news",
                                 "/error/**",
                                 "/favicon.ico",
-                                "/robots.txt"
+                                "/robots.txt",
+                                "/heartbeat"
                         ).permitAll()
                         .requestMatchers(
                                 "/referendumVote",

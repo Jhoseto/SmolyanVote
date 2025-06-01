@@ -4,10 +4,10 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 
-public class EventView {
+public class
+SimpleEventDeteilDTO {
 
     private Long id;
     private EventType eventType;
@@ -134,7 +134,7 @@ public class EventView {
     }
 
     public int getTotalVotes() {
-        return yesVotes + noVotes + neutralVotes;
+        return totalVotes;
     }
 
     public int getYesPercent() {return yesPercent;}

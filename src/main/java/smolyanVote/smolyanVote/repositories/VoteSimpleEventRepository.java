@@ -15,8 +15,6 @@ import java.util.Optional;
 public interface VoteSimpleEventRepository extends JpaRepository<VoteSimpleEventEntity, Long> {
     boolean existsByUserAndEvent(UserEntity user, SimpleEventEntity event);
 
-    Optional<VoteSimpleEventEntity> findByEventIdAndUserEmail(Long eventId, String userEmail);
-
     Optional<VoteSimpleEventEntity> findByUserIdAndEventId(Long userId, Long eventId);
 
     @Transactional

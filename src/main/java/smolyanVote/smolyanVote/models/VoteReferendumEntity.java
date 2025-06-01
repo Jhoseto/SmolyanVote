@@ -24,7 +24,7 @@ public class VoteReferendumEntity {
 
 
     @Column(nullable = false)
-    private String voteValue; // "1", "2", "3"
+    private Integer voteValue; // "1", "2", "3"
 
     private Instant votedAt = Instant.now();
 
@@ -44,9 +44,9 @@ public class VoteReferendumEntity {
 
     public void setReferendum(ReferendumEntity referendum) {this.referendum = referendum;}
 
-    public String getVoteValue() {return voteValue;}
+    public Integer getVoteValue() {return voteValue;}
 
-    public void setVoteValue(String voteValue) {this.voteValue = voteValue;}
+    public void setVoteValue(Integer voteValue) {this.voteValue = voteValue;}
 
     public Instant getVotedAt() {return votedAt;}
 

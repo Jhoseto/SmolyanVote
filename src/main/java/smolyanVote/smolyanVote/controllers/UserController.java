@@ -1,9 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,10 +13,9 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.interfaces.EventService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
-import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -42,7 +38,7 @@ public class UserController {
                                         Model model) {
 
         UserEntity currentUser = userService.getCurrentUser();
-        List<EventView> userEvents = eventService.getUserEvents(currentUser.getEmail());
+        List<SimpleEventDeteilDTO> userEvents = eventService.getUserEvents(currentUser.getEmail());
 
         model.addAttribute("locations", Locations.values());
         model.addAttribute("currentUser", currentUser);
@@ -57,7 +53,7 @@ public class UserController {
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
         UserEntity currentUser = userService.getCurrentUser();
 
-        List<EventView> userEvents = eventService.getUserEvents(user.getEmail());
+        List<SimpleEventDeteilDTO> userEvents = eventService.getUserEvents(user.getEmail());
 
         model.addAttribute("user", user);
         model.addAttribute("currentUser", currentUser);
