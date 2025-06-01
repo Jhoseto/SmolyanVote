@@ -63,7 +63,7 @@ body {
   font-size: clamp(1.3rem, 3vw, 2rem);
   font-weight: 700;
   color: #015231;
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   border-bottom: 3px solid #4b9f3e;
   display: inline-block;
   padding-bottom: 0;
@@ -90,8 +90,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 40px;
-  min-height: 60px;
+  margin-top: 10px;
+  min-height: 10px;
 }
 
 .title-text {
@@ -99,13 +99,13 @@ body {
   align-items: center;
   font-size: clamp(1.3rem, 3vw, 2rem);
   font-weight: 700;
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   color: #015231;
   gap: 6px;
 }
 
 .dynamic-text-box {
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   position: relative;
   display: inline-block;
   height: 1.31em;
@@ -116,7 +116,7 @@ body {
 }
 
 .dynamic-text {
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   position: absolute;
   top: 0;
   left: 0;
@@ -130,7 +130,7 @@ body {
 
 
 .dynamic-text.active {
-  font-family: 'Helvetica Neue', sans-serif;
+  font-family: 'Noto Serif Display', serif;
   opacity: 1;
   transform: translateY(0%);
 }
@@ -221,9 +221,9 @@ body {
     text-align: center;
   }
 
-  /* Първата част "Какво е SmolyanVote?" оставаме като блок на първия ред */
+  /* Първата част "Какво е SmolyanVote?"*/
   .title-text::before {
-    content: "Какво е SmolyanVote?";
+    font-family: 'Noto Serif Display', serif;
     display: block;
     font-weight: 700;
     color: #015231;

@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import smolyanVote.smolyanVote.models.UserEntity;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -14,7 +16,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByUsername(String username);
 
-    Optional<UserEntity> findByUserConfirmationCode(String confirmationCode);
+    List<UserEntity> findByOnlineStatusAndLastOnlineBefore(int status, Instant time);
+
 
 
 }
