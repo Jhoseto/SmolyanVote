@@ -2,6 +2,8 @@ package smolyanVote.smolyanVote.controllers;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +19,7 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventView;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -68,9 +71,7 @@ public class UserController {
     @PostMapping("/profile/update")
     public String updateProfile(@RequestParam("profileImage") MultipartFile profileImage,
                                 @RequestParam("location") Locations location,
-                                @RequestParam("bio") String bio,
-                                HttpSession session,
-                                Model model) throws IOException {
+                                @RequestParam("bio") String bio) throws IOException {
 
         Long userId = userService.getCurrentUser().getId();
         userService.updateUserProfile(userId, profileImage, bio, location);
