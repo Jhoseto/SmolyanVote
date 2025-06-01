@@ -15,6 +15,7 @@ public class ReferendumDetailDTO {
     private List<Integer> votes;
     private List<Integer> votePercentages;
     private int totalVotes;
+    private int viewCounter;
     private Integer userVote;
     private List<CommentsEntity> comments;
 
@@ -22,7 +23,7 @@ public class ReferendumDetailDTO {
 
     public ReferendumDetailDTO(ReferendumEntity referendum, UserEntity creator, List<String> imageUrls,
                                List<String> options, List<Integer> votes, List<Integer> votePercentages,
-                               int totalVotes, Integer userVote, List<CommentsEntity> comments) {
+                               int totalVotes, int viewCounter, Integer userVote, List<CommentsEntity> comments) {
         this.referendum = referendum;
         this.creator = creator;
         this.imageUrls = imageUrls;
@@ -30,6 +31,7 @@ public class ReferendumDetailDTO {
         this.votes = votes;
         this.votePercentages = votePercentages;
         this.totalVotes = totalVotes;
+        this.viewCounter = viewCounter;
         this.userVote = userVote;
         this.comments = comments;
     }

@@ -147,28 +147,20 @@ public class ReferendumController {
         String currentUsername = currentUser != null ? currentUser.getUsername() : null;
 
         // Детайли за референдума
-        ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getUsername());
+        ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getId());
         if (referendumDetail == null) {
             return "redirect:/404";
         }
 
-        // Увеличаваме броя на прегледите
-        referendum.setViewCounter(referendum.getViewCounter() + 1);
-        referendumRepository.save(referendum);
+
 
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
         Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
 
-        // Взимаме текущия вот на потребителя (ако има) за самия референдум
-        VoteReferendumEntity vote = null;
-        if (currentUser != null) {
-            vote = voteService.findByUserIdAndReferendumId(currentUser.getId(), id);
-        }
-
         String currentUrl = "/referendum/" + id;
 
         model.addAttribute("currentUrl", currentUrl);
-        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
+        model.addAttribute("userVote", referendumDetail.getUserVote());
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("user", user);
         model.addAttribute("referendum", referendum);

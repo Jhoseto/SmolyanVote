@@ -19,6 +19,6 @@ public interface ReferendumService {
 
     Optional<ReferendumEntity> findById(Long id);
 
-    ReferendumDetailDTO getReferendumDetail(Long referendumId, String username);
+    ReferendumDetailDTO getReferendumDetail(Long referendumId, Long userId);
 }
 

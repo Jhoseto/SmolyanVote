@@ -13,7 +13,5 @@ public interface VoteService {
 
     VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId);
 
-    Integer findVoteByReferendumIdAndUserEmail(Long referendumId, String userEmail);
-
     String recordReferendumVote(Long eventId, String voteValue, String userEmail);
 }

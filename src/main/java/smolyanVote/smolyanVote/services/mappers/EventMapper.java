@@ -6,7 +6,7 @@ import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.EventImageRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +29,9 @@ public class EventMapper {
         this.referendumImageRepository = referendumImageRepository;
     }
 
-    public EventView mapToView(SimpleEventEntity event) {
+    public SimpleEventDeteilDTO mapSimpleEventToView(SimpleEventEntity event) {
         Optional<UserEntity> user = userRepository.findByUsername(event.getCreatorName());
-        EventView view = new EventView();
+        SimpleEventDeteilDTO view = new SimpleEventDeteilDTO();
         view.setId(event.getId());
         view.setTitle(event.getTitle());
         view.setDescription(event.getDescription());
@@ -75,8 +75,8 @@ public class EventMapper {
 
 
 
-    public EventView mapReferendumToView(ReferendumEntity referendum) {
-        EventView view = new EventView();
+    public SimpleEventDeteilDTO mapReferendumToView(ReferendumEntity referendum) {
+        SimpleEventDeteilDTO view = new SimpleEventDeteilDTO();
         Optional<UserEntity> user = userRepository.findByUsername(referendum.getCreatorName());
 
         // Автор
@@ -108,6 +108,8 @@ public class EventMapper {
         view.setLocation(referendum.getLocation());
         view.setCreatedAt(referendum.getCreatedAt());
         view.setEventType(referendum.getEventType());
+        view.setViewCounter(referendum.getViewCounter());
+        view.setTotalVotes(referendum.getTotalVotes());
 
         return view;
     }

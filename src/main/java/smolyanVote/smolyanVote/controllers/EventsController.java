@@ -17,7 +17,7 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
@@ -59,7 +59,7 @@ public class EventsController {
         //turkane na vsichki komentari
         //commentsService.deleteAllComments();
 
-        Page<EventView> eventPage = eventService.getPaginatedEvents(page, size);
+        Page<SimpleEventDeteilDTO> eventPage = eventService.getPaginatedEvents(page, size);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);
@@ -72,7 +72,7 @@ public class EventsController {
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
-        EventView eventDetailView = eventService.getEventById(id);
+        SimpleEventDeteilDTO eventDetailView = eventService.getEventById(id);
         UserEntity user = userService.getCurrentUser();
 
 

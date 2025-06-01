@@ -85,27 +85,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Override
     public VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId) {
-        return voteReferendumRepository.findByUserIdAndReferendum_Id(userId,referendumId).orElse(null);
+        return voteReferendumRepository.findByReferendum_IdAndUser_Id(userId,referendumId).orElse(null);
     }
-
-
-    @Override
-    public Integer findVoteByReferendumIdAndUserEmail(Long referendumId, String userEmail) {
-        return voteSimpleEventRepository.findByEventIdAndUserEmail(referendumId, userEmail)
-                .map(vote -> {
-                    try {
-                        return Integer.parseInt(vote.getVoteValue());
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                })
-                .orElse(null);
-    }
-
-
-
-
-
 
 
     @Override
@@ -162,7 +143,7 @@ public class VoteServiceImpl implements VoteService {
         VoteReferendumEntity vote = new VoteReferendumEntity();
         vote.setUser(user);
         vote.setReferendum(referendum);
-        vote.setVoteValue(String.valueOf(voteIndex));
+        vote.setVoteValue(voteIndex);
         voteReferendumRepository.save(vote);
 
         // Обнови броя гласове на потребителя

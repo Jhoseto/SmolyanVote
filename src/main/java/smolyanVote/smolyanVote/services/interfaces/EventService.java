@@ -4,18 +4,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.EventView;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
 
 import java.util.List;
 
 public interface EventService {
 
     @Transactional(readOnly = true)
-    Page<EventView> getPaginatedEvents(int page, int size);
+    Page<SimpleEventDeteilDTO> getPaginatedEvents(int page, int size);
 
-    List<EventView> getAllEvents();
+    List<SimpleEventDeteilDTO> getAllEvents();
 
-    EventView getEventById(Long id);
+    SimpleEventDeteilDTO getEventById(Long id);
 
     List<String> createEvent(CreateEventView dto,
                              MultipartFile[] files,
@@ -23,5 +23,5 @@ public interface EventService {
                              String negativeLabel,
                              String neutralLabel);
 
-    List<EventView> getUserEvents(String currentUser);
+    List<SimpleEventDeteilDTO> getUserEvents(String currentUser);
 }
