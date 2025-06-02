@@ -52,12 +52,9 @@ public class MultiPollEntity extends BaseEventEntity {
     private int votes8 = 0;
     private int votes9 = 0;
     private int votes10 = 0;
-    private int totalVotes;
+    private int totalVotes = 0;
 
-
-
-    // Getters & Setters
-
+    // ---------- Getters & Setters ----------
 
     public EventType getEventType() {
         return eventType;
@@ -285,5 +282,55 @@ public class MultiPollEntity extends BaseEventEntity {
 
     public void setTotalVotes(int totalVotes) {
         this.totalVotes = totalVotes;
+    }
+
+    // ---------- Utility methods for working with options and votes as lists ----------
+
+    @Transient
+    public List<String> getOptions() {
+        List<String> opts = new ArrayList<>();
+        opts.add(option1);
+        opts.add(option2);
+        opts.add(option3);
+        opts.add(option4);
+        opts.add(option5);
+        opts.add(option6);
+        opts.add(option7);
+        opts.add(option8);
+        opts.add(option9);
+        opts.add(option10);
+        return opts;
+    }
+
+    @Transient
+    public List<Integer> getVotes() {
+        List<Integer> v = new ArrayList<>();
+        v.add(votes1);
+        v.add(votes2);
+        v.add(votes3);
+        v.add(votes4);
+        v.add(votes5);
+        v.add(votes6);
+        v.add(votes7);
+        v.add(votes8);
+        v.add(votes9);
+        v.add(votes10);
+        return v;
+    }
+
+    @Transient
+    public void initializeVotes(int optionCount) {
+        // Запълва първите optionCount стойности с 0, останалите също със 0, за да има винаги 10 елемента
+        this.votes1 = 0;
+        this.votes2 = 0;
+        this.votes3 = 0;
+        this.votes4 = 0;
+        this.votes5 = 0;
+        this.votes6 = 0;
+        this.votes7 = 0;
+        this.votes8 = 0;
+        this.votes9 = 0;
+        this.votes10 = 0;
+        this.totalVotes = 0;
     }
 }
