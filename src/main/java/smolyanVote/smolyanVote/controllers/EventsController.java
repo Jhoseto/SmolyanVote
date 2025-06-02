@@ -39,7 +39,9 @@ public class EventsController {
     public EventsController(EventService eventService,
                             CommentsService commentsService,
                             UserService userService,
-                            VoteService voteService, SimpleEventRepository simpleEventRepository, DeleteService deleteService) {
+                            VoteService voteService,
+                            SimpleEventRepository simpleEventRepository,
+                            DeleteService deleteService) {
         this.eventService = eventService;
         this.commentsService = commentsService;
         this.userService = userService;

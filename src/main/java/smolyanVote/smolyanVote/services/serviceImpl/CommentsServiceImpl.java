@@ -186,7 +186,7 @@ public class CommentsServiceImpl implements CommentsService {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
-            case SIMPLEPOLL -> null;
+            case MULTI_POLL -> null;
             case POLL -> null;
         };
     }

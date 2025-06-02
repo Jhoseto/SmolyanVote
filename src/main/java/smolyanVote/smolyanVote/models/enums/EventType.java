@@ -5,7 +5,7 @@ public enum EventType {
 
     REFERENDUM("РЕФЕРЕНДУМ"),
 
-    SIMPLEPOLL("ОПРОСТЕНА АНКЕТА"),
+    MULTI_POLL("АНКЕТА С МНОЖЕСТВЕН ИЗБОР"),
 
     POLL("АНКЕТА");
 

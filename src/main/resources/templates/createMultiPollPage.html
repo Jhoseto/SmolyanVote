@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Създай анкета</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/navbar.css">
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/createEvent.css">
+</head>
+<body style="background: url('/images/web/referendum2.webp') no-repeat center -80px;">
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<section class="hero">
+    <div class="container">
+        <h1>Създай анкета с множествен избор</h1>
+        <p>Позволи на потребителите да избират повече от една опция (макс. 10). Подходящо за въпроси с повече от един правилен или предпочитан отговор.</p>
+    </div>
+</section>
+
+<div class="container my-5">
+    <div class="event-form-card p-4">
+        <h2 class="text-center mb-4">Форма за нова анкета</h2>
+
+        <div class="container mt-3">
+            <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <span th:text="${successMessage}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Затвори"></button>
+            </div>
+
+            <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <span th:text="${errorMessage}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Затвори"></button>
+            </div>
+        </div>
+
+        <form th:action="@{/multipoll/create}" method="post" enctype="multipart/form-data">
+
+            <div class="mb-3">
+                <label for="topic" class="form-label">Тема на анкетата</label>
+                <input type="text" class="form-control" id="topic" name="topic" required maxlength="150">
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Описание</label>
+                <textarea class="form-control link-aware" id="description" name="description" rows="5" required maxlength="1000"
+                          placeholder="Опиши въпроса и какви са целите на анкетата."></textarea>
+            </div>
+
+            <label for="location"></label>
+            <select class="form-select" id="location" name="location" required>
+                <option th:value="NONE">Избери локация</option>
+                <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
+            </select>
+
+            <!-- Изображения -->
+            <div class="row mt-4">
+                <div class="col-md-4 mb-3">
+                    <label for="image1" class="form-label">Снимка 1</label>
+                    <input type="file" class="form-control" id="image1" name="image1" accept="image/*">
+                    <img id="preview1" class="preview-image mt-2"/>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="image2" class="form-label">Снимка 2</label>
+                    <input type="file" class="form-control" id="image2" name="image2" accept="image/*">
+                    <img id="preview2" class="preview-image mt-2"/>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="image3" class="form-label">Снимка 3</label>
+                    <input type="file" class="form-control" id="image3" name="image3" accept="image/*">
+                    <img id="preview3" class="preview-image mt-2"/>
+                </div>
+            </div>
+
+            <!-- Опции за гласуване -->
+            <h5 class="mt-4">Въведи между 2 и 10 опции за гласуване:</h5>
+            <div id="options-container" class="mb-3">
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" name="options" placeholder="Опция 1" required>
+                </div>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" name="options" placeholder="Опция 2" required>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-success mb-3" onclick="addOption()">Добави още опция</button>
+
+            <div class="form-text mb-4">Участниците ще могат да избират повече от една опция.</div>
+
+            <div class="text-center">
+                <button type="submit" class="btn-custom mt-3">Публикувай анкетата</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    let optionCount = 2;
+
+    function addOption() {
+        if (optionCount >= 10) return;
+        optionCount++;
+
+        const container = document.getElementById("options-container");
+        const inputGroup = document.createElement("div");
+        inputGroup.className = "input-group mb-2";
+
+        inputGroup.innerHTML = `<input type="text" class="form-control" name="options" placeholder="Опция ${optionCount}" required>`;
+        container.appendChild(inputGroup);
+    }
+
+    function previewImage(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+
+        input.addEventListener("change", () => {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    preview.style.maxWidth = "150px";
+                    preview.style.maxHeight = "150px";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    previewImage("image1", "preview1");
+    previewImage("image2", "preview2");
+    previewImage("image3", "preview3");
+</script>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
