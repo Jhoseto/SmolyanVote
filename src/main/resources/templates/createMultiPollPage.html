@@ -37,23 +37,37 @@
             </div>
         </div>
 
-        <form th:action="@{/multipoll/create}" method="post" enctype="multipart/form-data">
+        <form th:action="@{/multipoll/create}"
+              method="post"
+              enctype="multipart/form-data">
 
+            <!-- Заглавие -->
             <div class="mb-3">
-                <label for="topic" class="form-label">Тема на анкетата</label>
-                <input type="text" class="form-control" id="topic" name="topic" required maxlength="150">
+                <label for="title" class="form-label">Тема / Въпрос</label>
+                <input type="text" class="form-control" id="title" name="title" required maxlength="150"
+                       th:value="${createMultiPollView.title}" />
             </div>
 
+            <!-- Описание -->
             <div class="mb-3">
                 <label for="description" class="form-label">Описание</label>
                 <textarea class="form-control link-aware" id="description" name="description" rows="5" required maxlength="1000"
-                          placeholder="Опиши въпроса и какви са целите на анкетата."></textarea>
+                          placeholder="Опиши въпроса и какви са целите на анкетата."
+                          th:text="${createMultiPollView.description}"></textarea>
             </div>
 
+            <!-- Локация -->
             <label for="location"></label>
             <select class="form-select" id="location" name="location" required>
-                <option th:value="NONE">Избери локация</option>
-                <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
+                <option th:value="NONE"
+                        th:selected="${createMultiPollView.location == null or createMultiPollView.location.name() == 'NONE'}">
+                    Избери локация
+                </option>
+                <option th:each="loc : ${locations}"
+                        th:value="${loc.name()}"
+                        th:text="${loc.toBG()}"
+                        th:selected="${createMultiPollView.location != null and createMultiPollView.location.name() == loc.name()}">
+                </option>
             </select>
 
             <!-- Изображения -->
@@ -78,11 +92,10 @@
             <!-- Опции за гласуване -->
             <h5 class="mt-4">Въведи между 2 и 10 опции за гласуване:</h5>
             <div id="options-container" class="mb-3">
-                <div class="input-group mb-2">
-                    <input type="text" class="form-control" name="options" placeholder="Опция 1" required>
-                </div>
-                <div class="input-group mb-2">
-                    <input type="text" class="form-control" name="options" placeholder="Опция 2" required>
+                <div th:each="option, iterStat : ${createMultiPollView.options}" class="input-group mb-2">
+                    <input type="text" class="form-control" name="options"
+                           th:placeholder="'Опция ' + ${iterStat.index + 1}"
+                           th:value="${option}" required/>
                 </div>
             </div>
             <button type="button" class="btn btn-outline-success mb-3" onclick="addOption()">Добави още опция</button>
@@ -98,7 +111,11 @@
 
 <!-- JavaScript -->
 <script>
-    let optionCount = 2;
+    // Започваме с броя опции от сървъра или минимум 2
+    let optionCount = /*[[${#lists.size(createMultiPollView.options)}]]*/ 0;
+    if (optionCount < 2) {
+        optionCount = 2;
+    }
 
     function addOption() {
         if (optionCount >= 10) return;

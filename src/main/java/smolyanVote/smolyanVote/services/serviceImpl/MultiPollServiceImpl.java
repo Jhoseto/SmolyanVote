@@ -48,22 +48,24 @@ public class MultiPollServiceImpl implements MultiPollService {
         poll.setCreatedAt(Instant.now());
         poll.setCreatorName(currentUser.getUsername());
 
-        // Опции
-        poll.setOption1(dto.getOption1());
-        poll.setOption2(dto.getOption2());
-        poll.setOption3(dto.getOption3());
-        poll.setOption4(dto.getOption4());
-        poll.setOption5(dto.getOption5());
-        poll.setOption6(dto.getOption6());
-        poll.setOption7(dto.getOption7());
-        poll.setOption8(dto.getOption8());
-        poll.setOption9(dto.getOption9());
-        poll.setOption10(dto.getOption10());
+        List<String> options = dto.getOptions()
+                .stream()
+                .filter(opt -> opt != null && !opt.trim().isEmpty())
+                .toList();
 
-
-
+        if (!options.isEmpty()) poll.setOption1(options.get(0));
+        if (options.size() > 1) poll.setOption2(options.get(1));
+        if (options.size() > 2) poll.setOption3(options.get(2));
+        if (options.size() > 3) poll.setOption4(options.get(3));
+        if (options.size() > 4) poll.setOption5(options.get(4));
+        if (options.size() > 5) poll.setOption6(options.get(5));
+        if (options.size() > 6) poll.setOption7(options.get(6));
+        if (options.size() > 7) poll.setOption8(options.get(7));
+        if (options.size() > 8) poll.setOption9(options.get(8));
+        if (options.size() > 9) poll.setOption10(options.get(9));
 
         MultiPollEntity savedPoll = multiPollRepository.save(poll);
+
         List<MultipartFile> files = List.of(dto.getImage1(), dto.getImage2(), dto.getImage3());
         List<MultiPollImageEntity> imageEntities = new ArrayList<>();
 
@@ -81,7 +83,9 @@ public class MultiPollServiceImpl implements MultiPollService {
 
         imageRepository.saveAll(imageEntities);
         savedPoll.setImages(imageEntities);
+        multiPollRepository.save(savedPoll);
     }
+
 
 
 }
