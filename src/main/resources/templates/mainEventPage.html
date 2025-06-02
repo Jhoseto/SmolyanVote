@@ -33,12 +33,10 @@
       <a th:href="@{/referendum}" class="btn btn-outline-light btn-lg mt-3 me-2">
         Създай референдум
       </a>
-      <a th:href="@{/createSimplePollPage}" class="btn btn-light btn-lg mt-3 me-2">
-        Създай опростена анкета
+      <a th:href="@{/multipoll/create}" class="btn btn-light btn-lg mt-3 me-2">
+        Създай Анкета с множествен избор
       </a>
-      <a th:href="@{/createPollPage}" class="btn btn-outline-light btn-lg mt-3">
-        Създай анкета
-      </a>
+
     </div>
 
     <!-- Ако потребителят НЕ е логнат -->
@@ -50,7 +48,7 @@
         Създай референдум
       </a>
       <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-light btn-lg mt-3 me-2">
-        Създай опростена анкета
+        Създай Анкета с множествен избор
       </a>
       <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-outline-light btn-lg mt-3">
         Създай анкета

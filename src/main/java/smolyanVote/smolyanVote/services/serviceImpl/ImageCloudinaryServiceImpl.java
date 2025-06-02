@@ -48,6 +48,16 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         return uploadImage(file, publicId, "smolyanVote/referendums/referendum_" + referendumId, true);
     }
 
+    // 🌟 Метод за качване на снимка на множествена анкета (с воден знак)
+    @Override
+    public String saveMultiPollImage(MultipartFile file, Long pollId) {
+        String publicId = "multipolls/poll_" + pollId + "/" + UUID.randomUUID();
+        return uploadImage(file, publicId, "smolyanVote/multipolls/poll_" + pollId, true); // с воден знак
+    }
+
+
+
+
     // 🌟 Общ метод за качване на изображение в Cloudinary
     @SuppressWarnings("unchecked")
     private String uploadImage(MultipartFile file, String publicId, String folder, boolean addWatermark) {
@@ -103,35 +113,5 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
 
 
 
-    // 🌟 Извличане на public_id от URL на Cloudinary
-    public String extractPublicIdFromUrl(String url) {
-        try {
-            // Примерен URL част: .../upload/v1234567890/events/event_123/abcdefg.jpg
-            int uploadIndex = url.indexOf("/upload/");
-            if (uploadIndex == -1) return null;
-
-            // Взимаме частта след "/upload/"
-            String pathAfterUpload = url.substring(uploadIndex + 8); // +8 = length("/upload/")
-
-            // Премахваме версията, ако има (пример: v1234567890/)
-            if (pathAfterUpload.startsWith("v")) {
-                int slashAfterVersion = pathAfterUpload.indexOf("/");
-                if (slashAfterVersion != -1) {
-                    pathAfterUpload = pathAfterUpload.substring(slashAfterVersion + 1);
-                }
-            }
-
-            // Премахваме разширението (.jpg, .png и т.н.)
-            int dotIndex = pathAfterUpload.lastIndexOf('.');
-            if (dotIndex != -1) {
-                pathAfterUpload = pathAfterUpload.substring(0, dotIndex);
-            }
-
-            return pathAfterUpload;
-        } catch (Exception e) {
-            System.err.println("Неуспешно извличане на public_id от URL: " + e.getMessage());
-            return null;
-        }
-    }
 
 }

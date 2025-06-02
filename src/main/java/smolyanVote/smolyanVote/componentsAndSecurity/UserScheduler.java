@@ -25,7 +25,6 @@ public class UserScheduler {
     @Transactional
     @Scheduled(fixedRate = 120000)
     public void checkInactiveUsers() {
-        System.out.println("🔍 Scheduled: Checking inactive users...");
 
         Instant twoMinutesAgo = Instant.now().minus(2, ChronoUnit.MINUTES);
         List<UserEntity> inactiveUsers = userRepository.findByOnlineStatusAndLastOnlineBefore(1, twoMinutesAgo);
