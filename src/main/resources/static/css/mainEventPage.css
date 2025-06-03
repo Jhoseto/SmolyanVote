@@ -133,6 +133,10 @@ body {
     border-color: #fd7e14;
 }
 
+.border-multi_poll{
+    border-color: #2ee6ff;
+}
+
 .type-label {
     position: absolute;
     top: 0;
@@ -155,6 +159,9 @@ body {
 
 .type-label-referendum {
     background-color: #fd7e14;
+}
+.type-label-multi_poll {
+    background-color: #17cdec;
 }
 
 /* Аватар до името на автора */
