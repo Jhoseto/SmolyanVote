@@ -13,7 +13,7 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Execution(ExecutionMode.CONCURRENT)
-public class StressTestForEventService {
+public class StressTestForSimpleEventService {
 
     private static final int NUMBER_OF_REQUESTS = 100;  // Брой на паралелни заявки
     private static final String BASE_URL = "http://localhost:2662"; // Променете с реалния URL

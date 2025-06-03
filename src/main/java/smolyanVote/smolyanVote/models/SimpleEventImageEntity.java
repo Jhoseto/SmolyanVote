@@ -3,7 +3,7 @@ package smolyanVote.smolyanVote.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "event_images")
+@Table(name = "simple_event_images")
 public class SimpleEventImageEntity {
 
     @Id

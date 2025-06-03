@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "votes", uniqueConstraints = {
+@Table(name = "simple_events_votes", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "event_id"}) // Един потребител може да гласува само веднъж на събитие
 })
 public class VoteSimpleEventEntity {

@@ -19,7 +19,7 @@ public class DeleteServiceImpl implements DeleteService {
     private final ReferendumRepository referendumRepository;
     private final VoteSimpleEventRepository voteSimpleEventRepository;
     private final VoteReferendumRepository voteReferendumRepository;
-    private final EventImageRepository eventImageRepository;
+    private final SimpleEventImageRepository simpleEventImageRepository;
     private final ReferendumImageRepository referendumImageRepository;
     private final CommentsRepository commentsRepository;
     private final ImageCloudinaryService imageCloudinaryService;
@@ -29,7 +29,7 @@ public class DeleteServiceImpl implements DeleteService {
                              ReferendumRepository referendumRepository,
                              VoteSimpleEventRepository voteSimpleEventRepository,
                              VoteReferendumRepository voteReferendumRepository,
-                             EventImageRepository eventImageRepository,
+                             SimpleEventImageRepository simpleEventImageRepository,
                              ReferendumImageRepository referendumImageRepository,
                              CommentsRepository commentsRepository,
                              ImageCloudinaryService imageCloudinaryService) {
@@ -37,7 +37,7 @@ public class DeleteServiceImpl implements DeleteService {
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
         this.voteReferendumRepository = voteReferendumRepository;
-        this.eventImageRepository = eventImageRepository;
+        this.simpleEventImageRepository = simpleEventImageRepository;
         this.referendumImageRepository = referendumImageRepository;
         this.commentsRepository = commentsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
@@ -64,8 +64,8 @@ public class DeleteServiceImpl implements DeleteService {
                 commentsRepository.deleteAllByEvent_Id(eventId);
 
                 // Изтриване на записите за снимки от базата
-                List<SimpleEventImageEntity> simpleImages = eventImageRepository.findByEventId(eventId);
-                eventImageRepository.deleteAll(simpleImages);
+                List<SimpleEventImageEntity> simpleImages = simpleEventImageRepository.findByEventId(eventId);
+                simpleEventImageRepository.deleteAll(simpleImages);
 
                 // Изтриване на цялата папка със снимки от Cloudinary
                 String folderPathEvents = "smolyanVote/events/event_" + eventId;

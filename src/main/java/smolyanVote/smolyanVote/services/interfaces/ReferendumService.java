@@ -4,7 +4,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +19,6 @@ public interface ReferendumService {
 
     Optional<ReferendumEntity> findById(Long id);
 
-    ReferendumDetailDTO getReferendumDetail(Long referendumId, Long userId);
+    ReferendumDetailViewDTO getReferendumDetail(Long referendumId, Long userId);
 }
 

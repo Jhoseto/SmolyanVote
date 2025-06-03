@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "events")
+@Table(name = "simple_events")
 public class SimpleEventEntity extends BaseEventEntity {
 
     @Enumerated(EnumType.STRING)

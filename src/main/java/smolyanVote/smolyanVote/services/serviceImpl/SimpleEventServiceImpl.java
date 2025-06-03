@@ -7,18 +7,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import smolyanVote.smolyanVote.models.ReferendumEntity;
-import smolyanVote.smolyanVote.models.SimpleEventEntity;
-import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
-import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.services.interfaces.EventService;
-import smolyanVote.smolyanVote.services.mappers.EventMapper;
+import smolyanVote.smolyanVote.services.interfaces.SimpleEventService;
+import smolyanVote.smolyanVote.services.mappers.AllEventsSimplePreviewMapper;
+import smolyanVote.smolyanVote.services.mappers.MultiPollMapper;
+import smolyanVote.smolyanVote.services.mappers.ReferendumMapper;
+import smolyanVote.smolyanVote.services.mappers.SimpleEventMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,67 +29,77 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class EventServiceImpl implements EventService {
+public class SimpleEventServiceImpl implements SimpleEventService {
 
     private final SimpleEventRepository simpleEventRepository;
     private final UserRepository userRepository;
-    private final EventMapper eventMapper;
+    private final SimpleEventMapper simpleEventMapper;
     private final UserService userService;
     private final ImageCloudinaryServiceImpl imageStorageService;
     private final ReferendumRepository referendumRepository;
+    private final AllEventsSimplePreviewMapper allEventsSimplePreviewMapper;
+    private final ReferendumMapper referendumMapper;
+    private final MultiPollRepository multiPollRepository;
+
 
     @Autowired
-    public EventServiceImpl(SimpleEventRepository simpleEventRepository,
-                            UserRepository userRepository,
-                            EventMapper eventMapper,
-                            UserService userService,
-                            ImageCloudinaryServiceImpl imageStorageService,
-                            ReferendumRepository referendumRepository) {
+    public SimpleEventServiceImpl(
+            SimpleEventRepository simpleEventRepository, UserRepository userRepository,
+            SimpleEventMapper simpleEventMapper,
+            UserService userService,
+            ImageCloudinaryServiceImpl imageStorageService,
+            ReferendumRepository referendumRepository,
+            AllEventsSimplePreviewMapper allEventsSimplePreviewMapper,
+            ReferendumMapper referendumMapper,
+            MultiPollRepository multiPollRepository) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
-        this.eventMapper = eventMapper;
+        this.simpleEventMapper = simpleEventMapper;
         this.userService = userService;
         this.imageStorageService = imageStorageService;
         this.referendumRepository = referendumRepository;
+        this.allEventsSimplePreviewMapper = allEventsSimplePreviewMapper;
+        this.referendumMapper = referendumMapper;
+        this.multiPollRepository = multiPollRepository;
     }
 
 
     @Transactional(readOnly = true)
     @Override
-    public Page<SimpleEventDeteilDTO> getPaginatedEvents(int page, int size) {
+    public Page<EventSimpleViewDTO> getPaginatedEvents(int page, int size) {
         // Взимане на всички SimpleEventEntity и ReferendumEntity
         List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAll();
         List<ReferendumEntity> referendums = referendumRepository.findAll();
+        List<MultiPollEntity> multiPoll = multiPollRepository.findAll();
 
         // Мапваме към общия EventView (или създай подходящ метод)
-        List<SimpleEventDeteilDTO> allEvents = new ArrayList<>();
-        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapSimpleEventToView).toList());
-        allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
+        List<EventSimpleViewDTO> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView).toList());
+        allEvents.addAll(referendums.stream().map(allEventsSimplePreviewMapper::mapReferendumToSimpleView).toList());
+        allEvents.addAll(multiPoll.stream().map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView).toList());
 
         // Сортиране по дата
-        allEvents.sort(Comparator.comparing(SimpleEventDeteilDTO::getCreatedAt,
+        allEvents.sort(Comparator.comparing(EventSimpleViewDTO::getCreatedAt,
                         Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
         // Ръчна пагинация
         int start = page * size;
         int end = Math.min(start + size, allEvents.size());
-        List<SimpleEventDeteilDTO> paginated = allEvents.subList(start, end);
+        List<EventSimpleViewDTO> paginated = allEvents.subList(start, end);
 
         return new PageImpl<>(paginated, PageRequest.of(page, size), allEvents.size());
     }
 
 
 
-
-    @Override
     @Transactional()
-    public List<SimpleEventDeteilDTO> getAllEvents() {
+    @Override
+    public List<SimpleEventDetailViewDTO> getAllEvents() {
         List<SimpleEventEntity> events = simpleEventRepository.findAll();
-
 
         return events.stream()
                 .sorted(Comparator.comparing(SimpleEventEntity::getCreatedAt).reversed()) // Сортиране по дата
-                .map(eventMapper::mapSimpleEventToView) //  метода от EventMapper
+                .map(simpleEventMapper::mapSimpleEventToView) //  метода от EventMapper
                 .collect(Collectors.toList());
     }
 
@@ -95,11 +107,11 @@ public class EventServiceImpl implements EventService {
 
     @Transactional
     @Override
-    public SimpleEventDeteilDTO getEventById(Long id) {
+    public SimpleEventDetailViewDTO getEventById(Long id) {
 
         SimpleEventEntity event = simpleEventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
-        return eventMapper.mapSimpleEventToView(event);
+        return simpleEventMapper.mapSimpleEventToView(event);
     }
 
     @Transactional
@@ -165,16 +177,18 @@ public class EventServiceImpl implements EventService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<SimpleEventDeteilDTO> getUserEvents(String email) {
+    public List<EventSimpleViewDTO> getAllUserEvents(String email) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен: " + email));
 
         List<SimpleEventEntity> simpleEvents = simpleEventRepository.findAllByCreatorName(user.getUsername());
         List<ReferendumEntity> referendums = referendumRepository.findAllByCreatorName(user.getUsername());
+        List<MultiPollEntity> multiPoll = multiPollRepository.findAllByCreatorName(user.getUsername());
 
-        List<SimpleEventDeteilDTO> allEvents = new ArrayList<>();
-        allEvents.addAll(simpleEvents.stream().map(eventMapper::mapSimpleEventToView).toList());
-        allEvents.addAll(referendums.stream().map(eventMapper::mapReferendumToView).toList());
+        List<EventSimpleViewDTO> allEvents = new ArrayList<>();
+        allEvents.addAll(simpleEvents.stream().map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView).toList());
+        allEvents.addAll(referendums.stream().map(allEventsSimplePreviewMapper::mapReferendumToSimpleView).toList());
+        allEvents.addAll(multiPoll.stream().map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView).toList());
 
         return allEvents;
     }
