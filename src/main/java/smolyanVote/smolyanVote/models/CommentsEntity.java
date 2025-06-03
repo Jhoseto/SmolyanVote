@@ -39,6 +39,10 @@ public class CommentsEntity {
     private ReferendumEntity referendum;
 
     @ManyToOne
+    @JoinColumn(name = "multi_poll_id", nullable = true)
+    private MultiPollEntity multiPoll;
+
+    @ManyToOne
     @JoinColumn(name = "parent_id")
     private CommentsEntity parent;
 
@@ -108,6 +112,18 @@ public class CommentsEntity {
     public ReferendumEntity getReferendum() {return referendum;}
 
     public void setReferendum(ReferendumEntity referendum) {this.referendum = referendum;}
+
+    public List<CommentVoteEntity> getVotes() {return votes;}
+
+    public void setVotes(List<CommentVoteEntity> votes) {this.votes = votes;}
+
+    public MultiPollEntity getMultiPoll() {
+        return multiPoll;
+    }
+
+    public void setMultiPoll(MultiPollEntity multiPoll) {
+        this.multiPoll = multiPoll;
+    }
 
     public CommentsEntity getParent() {
         return parent;

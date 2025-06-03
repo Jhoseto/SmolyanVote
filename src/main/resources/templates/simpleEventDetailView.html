@@ -37,20 +37,20 @@
         <h1 class="header" th:text="${eventDetail.title}">Заглавие на събитието</h1>
 
         <!-- Автор -->
-        <a th:href="@{'/user/' + ${eventDetail.creatorName}}" class="creator text-decoration-none">
+        <a th:href="@{'/user/' + ${eventDetail.creator.username}}" class="creator text-decoration-none">
             <div class="d-flex align-items-center">
                 <img class="creator-img"
-                     th:src="${eventDetail.creatorImage}"
+                     th:src="${eventDetail.creator.imageUrl}"
                      alt="Създател"
                      style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;"/>
-                <span class="creator-name" th:text="${eventDetail.creatorName}">Име на създателя</span>
+                <span class="creator-name" th:text="${eventDetail.creator.username}">Име на създателя</span>
             </div>
         </a>
 
 
         <!-- Галерия -->
-        <div class="gallery" th:if="${eventDetail.imageUrls != null and !eventDetail.imageUrls.isEmpty()}">
-            <img th:each="img : ${eventDetail.imageUrls}" th:src="${img}" alt="Снимка" />
+        <div class="gallery" th:if="${eventDetail.images != null and !eventDetail.images.isEmpty()}">
+            <img th:each="img : ${eventDetail.images}" th:src="${img}" alt="Снимка" />
         </div>
 
         <!-- Описание -->

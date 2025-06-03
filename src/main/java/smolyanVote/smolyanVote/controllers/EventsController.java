@@ -8,10 +8,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import smolyanVote.smolyanVote.models.CommentVoteEntity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.VoteSimpleEventEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
@@ -23,7 +22,6 @@ import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 public class EventsController {
@@ -75,44 +73,24 @@ public class EventsController {
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
-        SimpleEventDetailViewDTO eventDetailView = simpleEventService.getEventById(id);
-        UserEntity user = userService.getCurrentUser();
+        try {
+            SimpleEventDetailViewDTO pageData = simpleEventService.getSimpleEventDetails(id);
+            UserEntity currentUser = userService.getCurrentUser();
 
+            // Коментари и реакции
+            List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
+            Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUser.getUsername());
 
-        Optional<SimpleEventEntity> optionalEvent = simpleEventRepository.findById(id);
-        if (optionalEvent.isPresent()) {
-            SimpleEventEntity currentEvent = optionalEvent.get();
-            currentEvent.setViewCounter(currentEvent.getViewCounter() + 1);
-            simpleEventRepository.save(currentEvent);
-        } else {
+            model.addAttribute("userVote", pageData.getCurrentUserVote());
+            model.addAttribute("eventDetail", pageData);
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("comments", comments);
+            model.addAttribute("reactionsMap", reactionsMap);
 
+            return "simpleEventDetailView";
+        } catch (IllegalArgumentException e) {
             return "error/404";
         }
-
-
-        int totalVotes = eventDetailView.getTotalVotes();
-        if (totalVotes > 0) {
-            eventDetailView.setYesPercent(eventDetailView.getYesVotes() * 100 / totalVotes);
-            eventDetailView.setNoPercent(eventDetailView.getNoVotes() * 100 / totalVotes);
-            eventDetailView.setNeutralPercent(eventDetailView.getNeutralVotes() * 100 / totalVotes);
-        } else {
-            eventDetailView.setYesPercent(0);
-            eventDetailView.setNoPercent(0);
-            eventDetailView.setNeutralPercent(0);
-        }
-
-        // проверка дали потребителят е гласувал
-        VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(user.getId(), id);
-
-        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
-        Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, user.getUsername());
-
-        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
-        model.addAttribute("eventDetail", eventDetailView);
-        model.addAttribute("currentUser", user);
-        model.addAttribute("comments", comments);
-        model.addAttribute("reactionsMap", reactionsMap);
-        return "eventDetailView";
     }
 
 

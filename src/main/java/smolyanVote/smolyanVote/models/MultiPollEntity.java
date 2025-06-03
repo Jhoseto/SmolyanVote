@@ -287,4 +287,20 @@ public class MultiPollEntity extends BaseEventEntity {
         this.totalVotes = totalVotes;
     }
 
+    public List<String> getOptions() {
+        List<String> options = new ArrayList<>();
+        if (option1 != null && !option1.isBlank()) options.add(option1); else options.add(null);
+        if (option2 != null && !option2.isBlank()) options.add(option2); else options.add(null);
+        if (option3 != null && !option3.isBlank()) options.add(option3); else options.add(null);
+        if (option4 != null && !option4.isBlank()) options.add(option4); else options.add(null);
+        if (option5 != null && !option5.isBlank()) options.add(option5); else options.add(null);
+        if (option6 != null && !option6.isBlank()) options.add(option6); else options.add(null);
+        if (option7 != null && !option7.isBlank()) options.add(option7); else options.add(null);
+        if (option8 != null && !option8.isBlank()) options.add(option8); else options.add(null);
+        if (option9 != null && !option9.isBlank()) options.add(option9); else options.add(null);
+        if (option10 != null && !option10.isBlank()) options.add(option10); else options.add(null);
+        return options;
+    }
+
 }
+

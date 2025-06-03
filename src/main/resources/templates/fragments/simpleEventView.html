@@ -146,6 +146,12 @@
            class="btn btn-custom">
           Виж повече
         </a>
+
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
+           th:href="@{/multipoll/{id}(id=${event.id})}"
+           class="btn btn-custom">
+          Виж повече
+        </a>
       </div>
 
       <!-- Ако потребителят НЕ е логнат -->
