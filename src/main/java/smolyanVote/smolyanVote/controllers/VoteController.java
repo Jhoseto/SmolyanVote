@@ -31,7 +31,7 @@ public class VoteController {
             @RequestParam("userEmail") String userEmail,
             RedirectAttributes redirectAttributes
     ) {
-        voteService.recordVote(eventId, voteValue, userEmail);
+        voteService.recordSimpleEventVote(eventId, voteValue, userEmail);
 
         String voteLabel;
         switch (voteValue) {

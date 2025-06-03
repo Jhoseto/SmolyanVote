@@ -97,7 +97,7 @@ public class StressTestForSimpleEventService {
 
     // Стрес тест за извличане на събитие по ID
     @Test
-    void testGetEventById() throws InterruptedException {
+    void testGetSimpleEventDetails() throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(20);
 
         List<Callable<Response>> callables = new ArrayList<>();

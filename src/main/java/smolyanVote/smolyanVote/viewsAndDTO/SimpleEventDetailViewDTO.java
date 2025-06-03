@@ -18,6 +18,7 @@ public class SimpleEventDetailViewDTO {
     private Instant createdAt;
     private UserEntity creator;
     private List<String> images;
+    private String currentUserVote;
     private int yesVotes;
     private int noVotes;
     private int neutralVotes;
@@ -105,6 +106,14 @@ public class SimpleEventDetailViewDTO {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    public String getCurrentUserVote() {
+        return currentUserVote;
+    }
+
+    public void setCurrentUserVote(String currentUserVote) {
+        this.currentUserVote = currentUserVote;
     }
 
     public int getYesVotes() {

@@ -8,11 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.SimpleEventService;
+import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.services.mappers.AllEventsSimplePreviewMapper;
 import smolyanVote.smolyanVote.services.mappers.MultiPollMapper;
 import smolyanVote.smolyanVote.services.mappers.ReferendumMapper;
@@ -21,11 +24,13 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,8 +43,9 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     private final ImageCloudinaryServiceImpl imageStorageService;
     private final ReferendumRepository referendumRepository;
     private final AllEventsSimplePreviewMapper allEventsSimplePreviewMapper;
-    private final ReferendumMapper referendumMapper;
     private final MultiPollRepository multiPollRepository;
+    private final VoteService voteService;
+    private final CommentsService commentsService;
 
 
     @Autowired
@@ -50,8 +56,9 @@ public class SimpleEventServiceImpl implements SimpleEventService {
             ImageCloudinaryServiceImpl imageStorageService,
             ReferendumRepository referendumRepository,
             AllEventsSimplePreviewMapper allEventsSimplePreviewMapper,
-            ReferendumMapper referendumMapper,
-            MultiPollRepository multiPollRepository) {
+            MultiPollRepository multiPollRepository,
+            VoteService voteService,
+            CommentsService commentsService) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.simpleEventMapper = simpleEventMapper;
@@ -59,8 +66,9 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         this.imageStorageService = imageStorageService;
         this.referendumRepository = referendumRepository;
         this.allEventsSimplePreviewMapper = allEventsSimplePreviewMapper;
-        this.referendumMapper = referendumMapper;
         this.multiPollRepository = multiPollRepository;
+        this.voteService = voteService;
+        this.commentsService = commentsService;
     }
 
 
@@ -107,12 +115,38 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    public SimpleEventDetailViewDTO getEventById(Long id) {
+    public SimpleEventDetailViewDTO getSimpleEventDetails(Long id) {
+        UserEntity currentUser = userService.getCurrentUser();
 
         SimpleEventEntity event = simpleEventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
-        return simpleEventMapper.mapSimpleEventToView(event);
+
+        // Увеличаване на броя прегледи
+        event.setViewCounter(event.getViewCounter() + 1);
+        simpleEventRepository.save(event);
+
+        // Мапване към DTO
+        SimpleEventDetailViewDTO dto = simpleEventMapper.mapSimpleEventToView(event);
+
+        // Проценти
+        int totalVotes = dto.getTotalVotes();
+        if (totalVotes > 0) {
+            dto.setYesPercent(dto.getYesVotes() * 100 / totalVotes);
+            dto.setNoPercent(dto.getNoVotes() * 100 / totalVotes);
+            dto.setNeutralPercent(dto.getNeutralVotes() * 100 / totalVotes);
+        } else {
+            dto.setYesPercent(0);
+            dto.setNoPercent(0);
+            dto.setNeutralPercent(0);
+        }
+        // Глас
+        VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(currentUser.getId(), id);
+        String voteValue = (vote != null) ? vote.getVoteValue() : null;
+        dto.setCurrentUserVote(voteValue);
+
+        return dto;
     }
+
 
     @Transactional
     @Override

@@ -8,7 +8,7 @@ body {
 
 .background {
     background-size: cover;
-    padding: 40px;
+    padding: 40px 20px; /* малко повече padding отдолу и отстрани */
     display: flex;
     justify-content: center;
 }
@@ -19,7 +19,7 @@ body {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     width: 80%;
     max-width: 1200px;
-    padding: 30px;
+    padding: 30px 40px;
     text-align: center;
     animation: fadeIn 1s ease-in-out;
 }
@@ -31,155 +31,6 @@ body {
     margin-bottom: 20px;
     border-bottom: 2px solid #5c6bc0;
     padding-bottom: 10px;
-}
-
-
-.gallery {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
-}
-
-.gallery img {
-    max-width: 250px;
-    margin: 10px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-}
-
-.gallery img:hover {
-    transform: scale(1.05);
-}
-
-.voting {
-    margin-top: 40px;
-    text-align: left;
-}
-
-.vote-bar-wrapper {
-    margin-bottom: 25px;
-}
-
-.vote-label {
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.vote-bar {
-    height: 22px;
-    border-radius: 10px;
-    background-color: #e0e0e0;
-    overflow: hidden;
-    position: relative;
-}
-
-.vote-bar .bar {
-    position: relative;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #fff;
-    border-radius: 10px;
-    z-index: 1;
-    transition: width 0.5s ease;
-}
-
-.vote-bar .bar-text {
-    color: black;
-    z-index: 2;
-    position: relative;
-    padding-left: 10px;
-}
-
-/* Dynamic color fallback */
-.vote-bar .for {
-    background: linear-gradient(to right, #66bb6a, #388e3c);
-}
-
-.vote-bar .against {
-    background: linear-gradient(to right, #ef5350, #d32f2f);
-}
-
-.vote-bar .abstain {
-    background: linear-gradient(to right, #ffeb3b, #fbc02d);
-}
-
-.vote-section {
-    margin-top: 50px;
-}
-
-.vote-section h4 {
-    font-size: 1.3rem;
-    margin-bottom: 15px;
-}
-
-/* Замяна на Bootstrap .btn-primary с наш стил */
-.custom-btn-primary {
-    display: inline-block;
-    font-weight: 600;
-    color: #fff;
-    background-color: #1a7d80; /* твоят тюркоазено-зелен цвят */
-    border: 2px solid #0e6251;
-    padding: 10px 25px;
-    font-size: 1.1rem;
-    border-radius: 50px;
-    cursor: pointer;
-    text-align: center;
-    text-decoration: none;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.custom-btn-primary:hover,
-.custom-btn-primary:focus {
-    background: linear-gradient(to right, #5d987c, #1e7868);
-    color: white;
-    border-color: #13504d;
-    outline: none;
-}
-
-.custom-btn-primary:disabled {
-    background-color: #a3b6b5;
-    border-color: #7b8e8d;
-    cursor: not-allowed;
-    color: #e1e0e0;
-}
-
-
-.alert {
-    max-width: 700px;
-    margin: 20px auto;
-    text-align: left;
-}
-
-/* Анимация */
-@keyframes fadeIn {
-    0% {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Коментари контейнер – ако се използва */
-.comments-container {
-    max-width: 1000px;
-    margin: 40px auto;
-}
-
-/* Успешно съобщение */
-.alert-success {
-    font-weight: bold;
-    text-align: center;
 }
 
 .creator {
@@ -215,6 +66,173 @@ body {
     color: #333;
 }
 
+.description {
+    margin: 0 auto 20px auto;
+    font-size: 1.1rem;
+    color: #555;
+    max-height: 15em;
+    max-width: 700px;
+    overflow-y: auto;
+    padding: 15px;
+    line-height: 1.5em;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #fdfdfd;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+
+.gallery {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.gallery img {
+    max-width: 250px;
+    margin: 10px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.gallery img:hover {
+    transform: scale(1.05);
+}
+
+.voting {
+    margin-top: 40px;
+    text-align: left;
+}
+
+.vote-bar-wrapper {
+    margin-bottom: 25px;
+}
+
+.vote-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.vote-bar {
+    height: 14px;
+    border-radius: 10px;
+    background-color: #e0e0e0;
+    overflow: hidden;
+    position: relative;
+}
+
+.vote-bar .bar-text {
+    color: black;
+    z-index: 2;
+    position: relative;
+}
+
+/* Dynamic color fallback */
+.vote-bar .for {
+    background: linear-gradient(to right, #66bb6a, #388e3c);
+}
+
+.vote-bar .against {
+    background: linear-gradient(to right, #ef5350, #d32f2f);
+}
+
+.vote-bar .abstain {
+    background: linear-gradient(to right, #ffeb3b, #fbc02d);
+}
+
+.vote-section {
+    margin-top: 50px;
+    text-align: left;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.vote-section h4 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+}
+
+.vote-section form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vote-section form button {
+    margin-top: 15px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    border-color: #0e6251;
+    padding: 10px 20px;
+    color: #1a7d80;
+    transition: background-color 0.3s ease;
+    align-self: flex-start;
+}
+
+.vote-section form button:hover {
+    background: linear-gradient(to right, #5d987c, #1e7868);
+    color: white;
+}
+
+/* Чекбоксовете и етикетите подредени с флекс */
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-check-input {
+    margin-left: 0; /* махаме default margin */
+    margin-right: 10px; /* малко разстояние между чекбокса и текста */
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.form-check-label {
+    flex-grow: 1;
+    user-select: none;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Съобщения */
+.alert {
+    max-width: 700px;
+    margin: 20px auto;
+    text-align: left;
+}
+
+/* Анимация */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Коментари контейнер – ако се използва */
+.comments-container {
+    max-width: 1000px;
+    margin: 40px auto;
+}
+
+/* Успешно съобщение */
+.alert-success {
+    font-weight: bold;
+    text-align: center;
+}
+
 .alert-info {
     max-width: 600px;
     margin: 20px auto;
@@ -231,7 +249,6 @@ body {
     border-color: #5c6bc0;
 }
 
-
 /* Responsive */
 @media (max-width: 768px) {
     .event-card {
@@ -245,5 +262,25 @@ body {
 
     .description {
         font-size: 1rem;
+    }
+
+    .vote-section {
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .form-check {
+        gap: 8px;
+    }
+
+    .form-check-input {
+        width: 16px;
+        height: 16px;
+    }
+
+    .vote-section form button {
+        width: 100%;
+        text-align: center;
     }
 }

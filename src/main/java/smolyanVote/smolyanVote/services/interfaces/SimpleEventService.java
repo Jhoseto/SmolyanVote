@@ -17,7 +17,7 @@ public interface SimpleEventService {
     @Transactional()
     List<SimpleEventDetailViewDTO> getAllEvents();
 
-    SimpleEventDetailViewDTO getEventById(Long id);
+    SimpleEventDetailViewDTO getSimpleEventDetails(Long id);
 
     List<String> createEvent(CreateEventView dto, MultipartFile[] files, String positiveLabel,
                              String negativeLabel, String neutralLabel);
