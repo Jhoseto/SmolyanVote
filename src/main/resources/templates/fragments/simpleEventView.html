@@ -4,19 +4,23 @@
 
 <div th:fragment="simple-event" class="event-container">
   <div class="event-card"
-       th:classappend="
-       ${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT} ? ' border-simpleevent' :
-       (${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM} ? ' border-referendum' : '')">
+       th:classappend="${event.eventType.name() == 'SIMPLEEVENT'} ? ' border-simpleevent' :
+                     (${event.eventType.name() == 'REFERENDUM'} ? ' border-referendum' :
+                     (${event.eventType.name() == 'MULTI_POLL'} ? ' border-multi_poll' : ''))">
 
-    <!-- Надпис в рамката -->
+
+  <!-- Надпис в рамката -->
     <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
          class="type-label type-label-simpleevent">
       Опростен вид събитие
     </div>
-
     <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
          class="type-label type-label-referendum">
       Референдум
+    </div>
+    <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
+         class="type-label type-label-multi_poll">
+      Анкета с множествен отговор
     </div>
 
     <!-- Бутон за изтриване -->

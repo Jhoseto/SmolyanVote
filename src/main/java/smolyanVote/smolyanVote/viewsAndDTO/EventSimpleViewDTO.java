@@ -9,7 +9,7 @@ import java.util.List;
 public class EventSimpleViewDTO {
 
     private Long id;
-    private EventType eventType = EventType.SIMPLEEVENT;
+    private EventType eventType;
     private String title;
     private String description;
     private Locations location;
