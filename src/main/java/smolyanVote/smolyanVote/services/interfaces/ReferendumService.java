@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -19,6 +20,8 @@ public interface ReferendumService {
 
     Optional<ReferendumEntity> findById(Long id);
 
-    ReferendumDetailViewDTO getReferendumDetail(Long referendumId, Long userId);
+
+    @Transactional
+    ReferendumDetailViewDTO getReferendumDetail(Long referendumId);
 }
 

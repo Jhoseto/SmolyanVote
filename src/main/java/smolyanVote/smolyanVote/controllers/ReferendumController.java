@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -131,49 +132,24 @@ public class ReferendumController {
 
     @GetMapping("/referendum/{id}")
     public String showReferendumDetail(@PathVariable Long id, Model model) {
+        try {
+            ReferendumDetailViewDTO detailDto = referendumService.getReferendumDetail(id);
+            UserEntity currentUser = userService.getCurrentUser();
+            String currentUsername = currentUser != null ? currentUser.getUsername() : null;
 
-        Optional<ReferendumEntity> referendumOpt = referendumService.findById(id);
-        if (referendumOpt.isEmpty()) {
+            List<CommentsEntity> comments = detailDto.getComments();
+            Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
+
+            model.addAttribute("referendumDetail", detailDto);
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("comments", comments);
+            model.addAttribute("reactionsMap", reactionsMap);
+            model.addAttribute("currentUrl", "/referendum/" + id);
+
+            return "referendumDetailView";
+        } catch (EntityNotFoundException e) {
             return "redirect:/404";
         }
-        ReferendumEntity referendum = referendumOpt.get();
-
-        // автора на референдума
-        Optional<UserEntity> userOpt = userRepository.findByUsername(referendum.getCreatorName());
-        if (userOpt.isEmpty()) {
-            return "redirect:/404";
-        }
-        UserEntity user = userOpt.get();
-
-        // Текущ потребител
-        UserEntity currentUser = userService.getCurrentUser();
-        String currentUsername = currentUser != null ? currentUser.getUsername() : null;
-
-        // Детайли за референдума
-        ReferendumDetailViewDTO referendumDetail = referendumService.getReferendumDetail(id, user.getId());
-        if (referendumDetail == null) {
-            return "redirect:/404";
-        }
-
-        // проверка дали потребителят е гласувал
-        VoteReferendumEntity vote = voteService.findByUserIdAndReferendumId(user.getId(), id);
-
-        List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
-        Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
-
-
-        String currentUrl = "/referendum/" + id;
-
-        model.addAttribute("currentUrl", currentUrl);
-        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("user", user);
-        model.addAttribute("referendum", referendum);
-        model.addAttribute("referendumDetail", referendumDetail);
-        model.addAttribute("comments", comments);
-        model.addAttribute("reactionsMap", reactionsMap);
-
-        return "referendumDetailView";
     }
 
 

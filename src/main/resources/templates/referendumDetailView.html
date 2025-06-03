@@ -34,39 +34,39 @@
             <a href="/index" style="text-decoration: none; color: #000;">⬅️ Назад</a>
         </div>
 
-        <h1 th:text="${referendum.title}" class="header">Заглавие на референдума</h1>
+        <h1 th:text="${referendumDetail.title}" class="header">Заглавие на референдума</h1>
 
         <!-- Създател -->
         <div class="creator">
-            <img th:src="${user.imageUrl}" alt="Автор" class="creator-img">
-            <span class="creator-name" th:text="${referendum.creatorName}">Име</span>
+            <img th:src="${referendumDetail.creator.imageUrl}" alt="Автор" class="creator-img">
+            <span class="creator-name" th:text="${referendumDetail.creator.username}">Име</span>
         </div>
 
         <!-- Дата и локация -->
         <div class="details">
             <p><strong>Дата:</strong>
-                <span th:text="${#dates.format(referendum.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
+                <span th:text="${#dates.format(referendumDetail.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
             </p>
             <p><strong>Локация:</strong>
-                <span th:text="${referendum.location != null ? referendum.location.toBG() : 'няма'}">няма</span>
+                <span th:text="${referendumDetail.location != null ? referendumDetail.location.toBG() : 'няма'}">няма</span>
             </p>
         </div>
 
 
         <!-- Описание -->
         <div class="description mt-3">
-            <p th:utext="${referendum.description.replace('\n', '<br/>')}"></p>
+            <p th:utext="${referendumDetail.description.replace('\n', '<br/>')}"></p>
         </div>
 
         <!-- Галерия -->
-        <div class="gallery" th:if="${referendum.images != null and !referendum.images.isEmpty()}">
-            <img th:each="img : ${referendum.images}" th:src="${img.imageUrl}" class="img-thumbnail m-2" style="max-width: 200px;" />
+        <div class="gallery" th:if="${referendumDetail.imageUrls != null and !referendumDetail.imageUrls.isEmpty()}">
+            <img th:each="img : ${referendumDetail.imageUrls}" th:src="${img}" class="img-thumbnail m-2" style="max-width: 200px;"  alt="referentum_images"/>
         </div>
 
         <!-- Резултати -->
         <div class="voting mt-4">
             <h3>Резултати</h3>
-            <p><strong>Общо гласове:</strong> <span th:text="${referendum.totalVotes}">0</span></p>
+            <p><strong>Общо гласове:</strong> <span th:text="${referendumDetail.totalVotes}">0</span></p>
 
             <div th:each="opt, iterStat : ${referendumDetail.options}">
                 <div class="vote-bar-wrapper mt-3">
@@ -85,12 +85,12 @@
 
         <!-- Гласуване -->
         <div class="vote-section mt-4">
-            <div th:if="${userVote == null}">
+            <div th:if="${referendumDetail.currentUserVote == null}">
                 <h4>Гласувай:</h4>
                 <form th:action="@{/referendumVote}"
                       method="post"
                       class="d-flex flex-column">
-                    <input type="hidden" name="referendumId" th:value="${referendum.id}" />
+                    <input type="hidden" name="referendumId" th:value="${referendumDetail.id}" />
                     <input type="hidden" name="userEmail" th:value="${currentUser.email}" />
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div th:each="opt, iterStat : ${referendumDetail.options}" class="my-1">
@@ -101,9 +101,9 @@
                 </form>
             </div>
 
-            <div th:if="${referendumDetail.userVote != null}" class="alert alert-info mt-3">
+            <div th:if="${referendumDetail.currentUserVote != null}" class="alert alert-info mt-3">
                 <p><strong>Вече гласувахте.</strong></p>
-                <p>Вашият избор: <strong th:text="${referendumDetail.options[referendumDetail.userVote - 1]}">-</strong></p>
+                <p>Вашият избор: <strong th:text="${referendumDetail.options[referendumDetail.currentUserVote - 1]}">-</strong></p>
             </div>
 
         </div>
@@ -129,7 +129,7 @@
 </div>
 
 <!-- Коментари за референдума -->
-<div th:replace="~{fragments/comments :: comments(${referendum.id}, ${comments}, ${currentUser})}"></div>
+<div th:replace="~{fragments/comments :: comments(${referendumDetail.id}, ${comments}, ${currentUser})}"></div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
