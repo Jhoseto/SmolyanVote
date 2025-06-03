@@ -7,7 +7,6 @@ import smolyanVote.smolyanVote.models.ReferendumImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
 import java.util.ArrayList;
@@ -27,12 +26,12 @@ public class ReferendumMapper {
         this.referendumImageRepository = referendumImageRepository;
     }
 
-    public ReferendumDetailViewDTO mapReferendumToSimpleView(ReferendumEntity referendum) {
+    public ReferendumDetailViewDTO mapReferendumDetailView(ReferendumEntity referendum) {
         ReferendumDetailViewDTO view = new ReferendumDetailViewDTO();
         Optional<UserEntity> user = userRepository.findByUsername(referendum.getCreatorName());
 
         // Автор
-        user.ifPresent(userEntity -> view.setCreatorName(userEntity.getUsername()));
+        user.ifPresent(view::setCreator);
 
         // Снимки
         List<ReferendumImageEntity> images = referendumImageRepository.findByReferendumId(referendum.getId());
@@ -49,6 +48,7 @@ public class ReferendumMapper {
 
         // Присвояване на стойности
 
+        view.setId(referendum.getId());
         view.setTitle(referendum.getTitle());
         view.setDescription(referendum.getDescription());
         view.setLocation(referendum.getLocation());

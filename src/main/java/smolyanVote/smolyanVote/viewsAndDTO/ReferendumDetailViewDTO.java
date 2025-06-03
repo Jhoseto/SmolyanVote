@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
+import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.CommentsEntity;
@@ -16,18 +17,17 @@ public class ReferendumDetailViewDTO {
     private Locations location;
     private int viewCounter;
     private Instant createdAt;
-    private String creatorName;
-
+    private UserEntity creator;
     private List<String> imageUrls;
-
     private List<String> options;
     private List<Integer> votes;
     private List<Integer> votePercentages;
-
     private int totalVotes;
-    private Integer userVote; // nullable, ако потребителят не е гласувал
-
+    private Integer currentUserVote; // nullable, ако потребителят не е гласувал
     private List<CommentsEntity> comments;
+
+
+
 
     // Гетъри и сетъри
 
@@ -88,12 +88,12 @@ public class ReferendumDetailViewDTO {
         this.createdAt = createdAt;
     }
 
-    public String getCreatorName() {
-        return creatorName;
+    public UserEntity getCreator() {
+        return creator;
     }
 
-    public void setCreatorName(String creatorName) {
-        this.creatorName = creatorName;
+    public void setCreator(UserEntity creator) {
+        this.creator = creator;
     }
 
     public List<String> getImageUrls() {
@@ -136,12 +136,12 @@ public class ReferendumDetailViewDTO {
         this.totalVotes = totalVotes;
     }
 
-    public Integer getUserVote() {
-        return userVote;
+    public Integer getCurrentUserVote() {
+        return currentUserVote;
     }
 
-    public void setUserVote(Integer userVote) {
-        this.userVote = userVote;
+    public void setCurrentUserVote(Integer currentUserVote) {
+        this.currentUserVote = currentUserVote;
     }
 
     public List<CommentsEntity> getComments() {

@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,6 +12,7 @@ import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.ReferendumMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
@@ -29,13 +31,16 @@ public class ReferendumServiceImpl implements ReferendumService {
     private final CommentsService commentsService;
     private final VoteServiceImpl voteService;
     private final ReferendumMapper referendumMapper;
+    private final UserService userService;
 
     public ReferendumServiceImpl(ReferendumRepository referendumRepository,
                                  ReferendumImageRepository imageRepository,
                                  ImageCloudinaryServiceImpl imageStorageService,
                                  UserRepository userRepository,
                                  CommentsServiceImpl commentsService,
-                                 VoteServiceImpl voteService, ReferendumMapper referendumMapper)
+                                 VoteServiceImpl voteService,
+                                 ReferendumMapper referendumMapper,
+                                 UserService userService)
     {
         this.referendumRepository = referendumRepository;
         this.imageRepository = imageRepository;
@@ -44,6 +49,7 @@ public class ReferendumServiceImpl implements ReferendumService {
         this.commentsService = commentsService;
         this.voteService = voteService;
         this.referendumMapper = referendumMapper;
+        this.userService = userService;
     }
 
 
@@ -110,27 +116,21 @@ public class ReferendumServiceImpl implements ReferendumService {
     }
 
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
-    public ReferendumDetailViewDTO getReferendumDetail(Long referendumId, Long userId) {
-        Optional<ReferendumEntity> optionalReferendum = referendumRepository.findById(referendumId);
-        if (optionalReferendum.isEmpty()) {
-            return null;
-        }
+    public ReferendumDetailViewDTO getReferendumDetail(Long referendumId) {
+        ReferendumEntity referendum = referendumRepository.findById(referendumId)
+                .orElseThrow(() -> new EntityNotFoundException("Referendum not found"));
 
-        ReferendumEntity referendum = optionalReferendum.get();
+        // Увеличаване на броя прегледи
+        referendum.setViewCounter(referendum.getViewCounter() + 1);
+        referendumRepository.save(referendum);
 
-        Optional<UserEntity> user = userRepository.findByUsername(referendum.getCreatorName());
+        ReferendumDetailViewDTO dto = referendumMapper.mapReferendumDetailView(referendum);
 
-        List<String> imageUrls = referendum.getImages()
-                .stream()
-                .map(ReferendumImageEntity::getImageUrl)
-                .toList();
-
-        // Събиране на опции и гласове
+        // Опции и гласове
         List<String> options = new ArrayList<>();
         List<Integer> votes = new ArrayList<>();
-
         if (referendum.getOption1() != null) { options.add(referendum.getOption1()); votes.add(referendum.getVotes1()); }
         if (referendum.getOption2() != null) { options.add(referendum.getOption2()); votes.add(referendum.getVotes2()); }
         if (referendum.getOption3() != null) { options.add(referendum.getOption3()); votes.add(referendum.getVotes3()); }
@@ -142,34 +142,29 @@ public class ReferendumServiceImpl implements ReferendumService {
         if (referendum.getOption9() != null) { options.add(referendum.getOption9()); votes.add(referendum.getVotes9()); }
         if (referendum.getOption10() != null) { options.add(referendum.getOption10()); votes.add(referendum.getVotes10()); }
 
-        // Увеличаваме броя на прегледите
-        referendum.setViewCounter(referendum.getViewCounter() + 1);
-        referendumRepository.save(referendum);
-
+        dto.setOptions(options);
+        dto.setVotes(votes);
 
         int totalVotes = referendum.getTotalVotes();
-
-        List<Integer> votePercentages = votes.stream()
+        List<Integer> percentages = votes.stream()
                 .map(v -> totalVotes == 0 ? 0 : (int) Math.round((v * 100.0) / totalVotes))
                 .toList();
+        dto.setVotePercentages(percentages);
 
-        // взимане на стойността от userVote
-        VoteReferendumEntity userVote = voteService.findByUserIdAndReferendumId(referendumId, userId);
-        Integer userVoteValue = userVote.getVoteValue();
+        // Потребителят
+        UserEntity currentUser = userService.getCurrentUser();
+        if (currentUser != null) {
+            VoteReferendumEntity userVote = voteService.findByUserIdAndReferendumId(referendumId, currentUser.getId());
+            if (userVote != null) {
+                dto.setCurrentUserVote(userVote.getVoteValue());
+            }
+        }
 
         // Коментари
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(referendumId, EventType.REFERENDUM);
-
-        ReferendumDetailViewDTO dto = new ReferendumDetailViewDTO();
-        dto.setOptions(options);
-        dto.setVotes(votes);
-        dto.setVotePercentages(votePercentages);
-        dto.setImageUrls(imageUrls);
-        dto.setUserVote(userVoteValue);
         dto.setComments(comments);
-        dto.setCreatorName(user.get().getUsername());
 
         return dto;
-
     }
+
 }
