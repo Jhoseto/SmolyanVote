@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface MultiPollImageRepository extends JpaRepository<MultiPollImageEntity, Long> {
 
-    List<MultiPollImageRepository> findByMultiPoll_Id(Long referendumId);
+
+    List<MultiPollImageEntity> findByMultiPoll_Id(Long multiPollId);
 }

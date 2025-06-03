@@ -15,11 +15,12 @@ import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.repositories.VoteReferendumRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
-import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
@@ -36,19 +37,21 @@ public class ReferendumController {
     private final CommentsService commentsService;
     private final ReferendumRepository referendumRepository;
     private final VoteService voteService;
+    private final VoteReferendumRepository voteReferendumRepository;
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
                                 UserService userService, UserRepository userRepository,
                                 CommentsService commentsService,
                                 ReferendumRepository referendumRepository,
-                                VoteService voteService) {
+                                VoteService voteService, VoteReferendumRepository voteReferendumRepository) {
         this.referendumService = referendumService;
         this.userService = userService;
         this.userRepository = userRepository;
         this.commentsService = commentsService;
         this.referendumRepository = referendumRepository;
         this.voteService = voteService;
+        this.voteReferendumRepository = voteReferendumRepository;
     }
 
     @GetMapping("/referendum")
@@ -147,20 +150,22 @@ public class ReferendumController {
         String currentUsername = currentUser != null ? currentUser.getUsername() : null;
 
         // Детайли за референдума
-        ReferendumDetailDTO referendumDetail = referendumService.getReferendumDetail(id, user.getId());
+        ReferendumDetailViewDTO referendumDetail = referendumService.getReferendumDetail(id, user.getId());
         if (referendumDetail == null) {
             return "redirect:/404";
         }
 
-
+        // проверка дали потребителят е гласувал
+        VoteReferendumEntity vote = voteService.findByUserIdAndReferendumId(user.getId(), id);
 
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.REFERENDUM);
         Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
 
+
         String currentUrl = "/referendum/" + id;
 
         model.addAttribute("currentUrl", currentUrl);
-        model.addAttribute("userVote", referendumDetail.getUserVote());
+        model.addAttribute("userVote", vote != null ? vote.getVoteValue() : null);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("user", user);
         model.addAttribute("referendum", referendum);

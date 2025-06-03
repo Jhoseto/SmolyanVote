@@ -58,10 +58,10 @@
 
 
     <!-- Изображение на събитието -->
-    <img th:if="${event.imageUrls != null and !event.imageUrls.isEmpty()}"
-         th:src="${event.imageUrls[0]}"
+    <img th:if="${event.images!= null and !event.images.isEmpty()}"
+         th:src="${event.images[0]}"
          alt="Снимка на събитието" class="img-fluid rounded-top">
-    <img th:if="${event.imageUrls == null or event.imageUrls.isEmpty()}"
+    <img th:if="${event.images == null or event.images.isEmpty()}"
          src="/images/logo1.png"
          style="width: 30px; height: 30px; object-fit: cover;"
          alt="Снимка на събитието" class="img-fluid rounded-top">
@@ -108,9 +108,9 @@
           </a>
 
           <div class="d-flex align-items-center">
-      <span th:classappend="${event.creatorOnline == 1} ? 'bg-success' : 'bg-danger'"
+      <span th:classappend="${event.creatorOnlineStatus == 1} ? 'bg-success' : 'bg-danger'"
             class="status-dot rounded-circle me-1"></span>
-            <small th:text="${event.creatorOnline == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
+            <small th:text="${event.creatorOnlineStatus == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
           </div>
         </div>
       </div>

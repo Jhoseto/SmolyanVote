@@ -11,7 +11,8 @@ import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
-import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailDTO;
+import smolyanVote.smolyanVote.services.mappers.ReferendumMapper;
+import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,13 +28,14 @@ public class ReferendumServiceImpl implements ReferendumService {
     private final UserRepository userRepository;
     private final CommentsService commentsService;
     private final VoteServiceImpl voteService;
+    private final ReferendumMapper referendumMapper;
 
     public ReferendumServiceImpl(ReferendumRepository referendumRepository,
                                  ReferendumImageRepository imageRepository,
                                  ImageCloudinaryServiceImpl imageStorageService,
                                  UserRepository userRepository,
                                  CommentsServiceImpl commentsService,
-                                 VoteServiceImpl voteService)
+                                 VoteServiceImpl voteService, ReferendumMapper referendumMapper)
     {
         this.referendumRepository = referendumRepository;
         this.imageRepository = imageRepository;
@@ -41,6 +43,7 @@ public class ReferendumServiceImpl implements ReferendumService {
         this.userRepository = userRepository;
         this.commentsService = commentsService;
         this.voteService = voteService;
+        this.referendumMapper = referendumMapper;
     }
 
 
@@ -109,7 +112,7 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     @Transactional(readOnly = true)
     @Override
-    public ReferendumDetailDTO getReferendumDetail(Long referendumId, Long userId) {
+    public ReferendumDetailViewDTO getReferendumDetail(Long referendumId, Long userId) {
         Optional<ReferendumEntity> optionalReferendum = referendumRepository.findById(referendumId);
         if (optionalReferendum.isEmpty()) {
             return null;
@@ -145,7 +148,6 @@ public class ReferendumServiceImpl implements ReferendumService {
 
 
         int totalVotes = referendum.getTotalVotes();
-        int viewCounter = referendum.getViewCounter();
 
         List<Integer> votePercentages = votes.stream()
                 .map(v -> totalVotes == 0 ? 0 : (int) Math.round((v * 100.0) / totalVotes))
@@ -158,15 +160,16 @@ public class ReferendumServiceImpl implements ReferendumService {
         // Коментари
         List<CommentsEntity> comments = commentsService.getCommentsForTarget(referendumId, EventType.REFERENDUM);
 
-        return new ReferendumDetailDTO(referendum, user.orElse(null),
-                imageUrls,
-                options,
-                votes,
-                votePercentages,
-                totalVotes,
-                viewCounter,
-                userVoteValue,
-                comments
-        );
+        ReferendumDetailViewDTO dto = new ReferendumDetailViewDTO();
+        dto.setOptions(options);
+        dto.setVotes(votes);
+        dto.setVotePercentages(votePercentages);
+        dto.setImageUrls(imageUrls);
+        dto.setUserVote(userVoteValue);
+        dto.setComments(comments);
+        dto.setCreatorName(user.get().getUsername());
+
+        return dto;
+
     }
 }

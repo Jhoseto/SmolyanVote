@@ -17,7 +17,8 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDeteilDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.Optional;
 @Controller
 public class EventsController {
 
-    private final EventService eventService;
+    private final SimpleEventService simpleEventService;
     private final CommentsService commentsService;
     private final UserService userService;
     private final VoteService voteService;
@@ -36,13 +37,13 @@ public class EventsController {
 
 
     @Autowired
-    public EventsController(EventService eventService,
+    public EventsController(SimpleEventService simpleEventService,
                             CommentsService commentsService,
                             UserService userService,
                             VoteService voteService,
                             SimpleEventRepository simpleEventRepository,
                             DeleteService deleteService) {
-        this.eventService = eventService;
+        this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
         this.voteService = voteService;
@@ -61,7 +62,7 @@ public class EventsController {
         //turkane na vsichki komentari
         //commentsService.deleteAllComments();
 
-        Page<SimpleEventDeteilDTO> eventPage = eventService.getPaginatedEvents(page, size);
+        Page<EventSimpleViewDTO> eventPage = simpleEventService.getPaginatedEvents(page, size);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("events", eventPage);
         model.addAttribute("currentPage", page);
@@ -74,7 +75,7 @@ public class EventsController {
 
     @GetMapping("/event/{id}")
     public String eventDetail(@PathVariable Long id, Model model) {
-        SimpleEventDeteilDTO eventDetailView = eventService.getEventById(id);
+        SimpleEventDetailViewDTO eventDetailView = simpleEventService.getEventById(id);
         UserEntity user = userService.getCurrentUser();
 
 
@@ -134,7 +135,7 @@ public class EventsController {
             MultipartFile[] files = {createEventDto.getImage1(), createEventDto.getImage2(), createEventDto.getImage3()};
 
             // Логика за създаване на събитието и съхранение на изображенията
-            List<String> imagePaths = eventService.createEvent(createEventDto, files, positiveLabel, negativeLabel, neutralLabel);
+            List<String> imagePaths = simpleEventService.createEvent(createEventDto, files, positiveLabel, negativeLabel, neutralLabel);
 
             // Ако всичко е успешно, добавяме съобщение за успех
             redirectAttributes.addFlashAttribute("successMessage", "Събитието беше създадено успешно!");

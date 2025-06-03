@@ -8,7 +8,7 @@ import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import java.util.List;
 
 @Repository
-public interface EventImageRepository extends JpaRepository<SimpleEventImageEntity, Long> {
+public interface SimpleEventImageRepository extends JpaRepository<SimpleEventImageEntity, Long> {
 
     List<SimpleEventImageEntity> findByEventId(Long eventId);
 
