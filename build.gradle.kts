@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.runtimeOnly
+
 plugins {
 	id("java")
 	id("org.springframework.boot") version "3.4.4"
@@ -67,6 +69,9 @@ dependencies {
 	}
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("io.rest-assured:rest-assured:5.3.0")
+
+
+
 }
 
 tasks.withType<Test> {
