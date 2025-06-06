@@ -1,15 +1,15 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.*;
-import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 
 import java.util.List;
-
 
 @Service
 public class VoteServiceImpl implements VoteService {
@@ -21,7 +21,6 @@ public class VoteServiceImpl implements VoteService {
     private final VoteReferendumRepository voteReferendumRepository;
     private final MultiPollRepository multiPollRepository;
     private final VoteMultiPollRepository voteMultiPollRepository;
-
 
     @Autowired
     public VoteServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -40,6 +39,59 @@ public class VoteServiceImpl implements VoteService {
         this.voteMultiPollRepository = voteMultiPollRepository;
     }
 
+    private static final int MAX_RETRIES = 3;
+
+
+    /**
+     * Изпълнява дадено действие с retry механизъм при срещане на OptimisticLockException.
+     *
+     * Този метод се използва, за да се гарантира правилен запис на данни в ситуации на конкурентен достъп,
+     * при които няколко транзакции могат да променят един и същ запис едновременно.
+     *
+     * При засичане на {@link OptimisticLockException} или
+     * {@link org.springframework.orm.ObjectOptimisticLockingFailureException} методът
+     * ще повтори изпълнението на действието до {@link #MAX_RETRIES} пъти,
+     * като между опитите изчаква с експоненциално нарастващо време (backoff),
+     * започвайки от 100 ms и максимум 1000 ms.
+     *
+     * Методът е предназначен за работа с JPA ентити, които използват анотацията
+     * {@code @Version} в базовия ентити клас (например BaseEntity),
+     * което осигурява автоматично проследяване на версията на записа
+     * и е необходимо за коректното функциониране на оптимистичното заключване.
+     *
+     * Ако след всички retry опити действието не успее, хвърля
+     * {@link IllegalStateException} с информация за проблема.
+     *
+     * @param action действие (Runnable), което ще бъде изпълнено с retry механизъм при оптимистично заключване
+     * @throws IllegalStateException ако максималният брой опити бъде достигнат или retry е прекъснат
+     */
+
+    private void retryOnOptimisticLock(Runnable action) {
+        int attempts = 0;
+        long waitMillis = 100;
+        while (true) {
+            try {
+                action.run();
+                return;
+            } catch (OptimisticLockException | ObjectOptimisticLockingFailureException e) {
+                attempts++;
+                if (attempts >= MAX_RETRIES) {
+                    throw new IllegalStateException("Неуспешен опит за запис след няколко опита поради конкуренция.", e);
+                }
+                try {
+                    Thread.sleep(waitMillis);
+                    waitMillis *= 2; // удвояване на чакането след всеки неуспех
+                    if (waitMillis > 1000) {
+                        waitMillis = 1000; // максимално чакане 1 секунда
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Retry беше прекъснат.", ie);
+                }
+            }
+        }
+    }
+
 
     @Transactional
     @Override
@@ -49,12 +101,9 @@ public class VoteServiceImpl implements VoteService {
         UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
 
-
-        //TODO Проверка дали вече е гласувал
         if (voteSimpleEventRepository.existsByUserAndEvent(user, event)) {
             throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
         }
-
 
         VoteSimpleEventEntity vote = new VoteSimpleEventEntity();
         vote.setUser(user);
@@ -62,32 +111,29 @@ public class VoteServiceImpl implements VoteService {
         vote.setVoteValue(voteValue);
         voteSimpleEventRepository.save(vote);
 
-
         switch (voteValue.toLowerCase()) {
-            case "1":
+            case "1" -> {
                 event.setYesVotes(event.getYesVotes() + 1);
                 event.setTotalVotes(event.getTotalVotes() + 1);
-                break;
-            case "2":
+            }
+            case "2" -> {
                 event.setNoVotes(event.getNoVotes() + 1);
                 event.setTotalVotes(event.getTotalVotes() + 1);
-                break;
-            case "3":
+            }
+            case "3" -> {
                 event.setNeutralVotes(event.getNeutralVotes() + 1);
                 event.setTotalVotes(event.getTotalVotes() + 1);
-                break;
-            default:
-                throw new IllegalArgumentException("Невалиден вот: " + voteValue);
+            }
+            default -> throw new IllegalArgumentException("Невалиден вот: " + voteValue);
         }
-        simpleEventRepository.save(event);
 
+        retryOnOptimisticLock(() -> simpleEventRepository.save(event));
 
-
-        user.setTotalVotes(user.getTotalVotes() + 1);
-        userRepository.save(user);
+        retryOnOptimisticLock(() -> {
+            user.setTotalVotes(user.getTotalVotes() + 1);
+            userRepository.save(user);
+        });
     }
-
-
 
     @Override
     public VoteSimpleEventEntity findByUserIdAndEventId(Long userId, Long eventId) {
@@ -96,27 +142,21 @@ public class VoteServiceImpl implements VoteService {
 
     @Override
     public VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId) {
-        return voteReferendumRepository.findByReferendum_IdAndUser_Id(userId,referendumId).orElse(null);
+        return voteReferendumRepository.findByReferendum_IdAndUser_Id(userId, referendumId).orElse(null);
     }
 
-
-    @Override
     @Transactional
+    @Override
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
-        // Намери референдума
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен."));
-
-        // Намери потребителя
         UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен."));
 
-        // Провери дали вече е гласувал
         if (voteReferendumRepository.existsByUserAndReferendum(user, referendum)) {
             throw new IllegalStateException("Вече сте гласували в този референдум.");
         }
 
-        // Преобразувай стойността на гласа до индекс (0-базиран)
         int voteIndex;
         try {
             voteIndex = Integer.parseInt(voteValue);
@@ -128,7 +168,6 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalArgumentException("Избрана е невалидна опция.");
         }
 
-        // Актуализирай съответния брой гласове
         switch (voteIndex) {
             case 0 -> referendum.setVotes1(referendum.getVotes1() + 1);
             case 1 -> referendum.setVotes2(referendum.getVotes2() + 1);
@@ -142,37 +181,26 @@ public class VoteServiceImpl implements VoteService {
             case 9 -> referendum.setVotes10(referendum.getVotes10() + 1);
         }
 
-        // Увеличи общия брой гласове
         referendum.setTotalVotes(referendum.getTotalVotes() + 1);
-        user.setTotalVotes(user.getTotalVotes() +1);
+        user.setTotalVotes(user.getTotalVotes() + 1);
 
-        // Запази референдума
-        userRepository.save(user);
-        referendumRepository.save(referendum);
+        retryOnOptimisticLock(() -> userRepository.save(user));
 
-        // Запиши гласа
+        retryOnOptimisticLock(() -> referendumRepository.save(referendum));
+
         VoteReferendumEntity vote = new VoteReferendumEntity();
         vote.setUser(user);
         vote.setReferendum(referendum);
         vote.setVoteValue(voteIndex);
         voteReferendumRepository.save(vote);
 
-        // Обнови броя гласове на потребителя
-        user.setTotalVotes(user.getTotalVotes() + 1);
-        userRepository.save(user);
-
         return "Гласът беше успешно отчетен.";
     }
-
-
-
-
 
     @Transactional
     @Override
     public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
 
-        // 1. Проверка дали са избрани минимум 1 и максимум 3 опции
         if (selectedOptions == null || selectedOptions.isEmpty()) {
             throw new IllegalArgumentException("Трябва да изберете поне една опция.");
         }
@@ -180,24 +208,19 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalArgumentException("Можете да изберете до 3 опции.");
         }
 
-        // 2. Вземане на потребителя по имейл
         UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен."));
 
-        // 3. Вземане на анкетата
         MultiPollEntity poll = multiPollRepository.findById(pollId)
                 .orElseThrow(() -> new IllegalArgumentException("Анкетата не е намерена."));
 
-        // 4. Проверка дали потребителят вече е гласувал в тази анкета
         boolean alreadyVoted = voteMultiPollRepository.existsByMultiPollIdAndUserId(pollId, user.getId());
         if (alreadyVoted) {
             throw new IllegalArgumentException("Вече сте гласували в тази анкета.");
         }
 
-        // 5. Вземане на опциите (списък с текстове или null, ако опция няма)
         List<String> options = poll.getOptions();
 
-        // 6. Проверка валидност на избраните опции спрямо броя опции и дали съществуват
         for (Integer optionIndex : selectedOptions) {
             if (optionIndex < 1 || optionIndex > options.size()) {
                 throw new IllegalArgumentException("Избрана опция е невалидна.");
@@ -207,8 +230,9 @@ public class VoteServiceImpl implements VoteService {
             }
         }
 
-        // 7. Запис на гласовете - за всяка избрана опция увеличаваме брояча в poll-а
+        int optionsCounter = 0;
         for (Integer optionIndex : selectedOptions) {
+            optionsCounter++;
             switch (optionIndex) {
                 case 1 -> poll.setVotes1(poll.getVotes1() + 1);
                 case 2 -> poll.setVotes2(poll.getVotes2() + 1);
@@ -223,19 +247,16 @@ public class VoteServiceImpl implements VoteService {
             }
         }
 
-        // 8. Увеличаваме общия брой гласове
-        poll.setTotalVotes(poll.getTotalVotes() + 1);
+        poll.setTotalVotes(poll.getTotalVotes() + optionsCounter);
+        poll.setTotalUsersVotes(poll.getTotalUsersVotes() + 1);
 
-        // 9. Записваме анкетата с обновените гласове
-        multiPollRepository.save(poll);
+        retryOnOptimisticLock(() -> multiPollRepository.save(poll));
 
-        // 10. Записваме гласа(овете) в таблицата с гласове (по един запис за всяка опция)
         for (Integer optionIndex : selectedOptions) {
             VoteMultiPollEntity vote = new VoteMultiPollEntity();
             vote.setMultiPoll(poll);
             vote.setUser(user);
 
-            // Вземаме текста на опцията по индекса (опциите започват от 1, лист от 0)
             String optionText = poll.getOptions().get(optionIndex - 1);
             vote.setOptionText(optionText);
 
