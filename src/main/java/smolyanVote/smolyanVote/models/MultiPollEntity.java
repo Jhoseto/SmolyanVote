@@ -31,6 +31,8 @@ public class MultiPollEntity extends BaseEventEntity {
     @OneToMany(mappedBy = "multiPoll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MultiPollImageEntity> images = new ArrayList<>();
 
+    private int totalUsersVotes; // Колко човека са гласували
+
     private String option1;
     private String option2;
     private String option3;
@@ -117,6 +119,14 @@ public class MultiPollEntity extends BaseEventEntity {
 
     public void setImages(List<MultiPollImageEntity> images) {
         this.images = images;
+    }
+
+    public int getTotalUsersVotes() {
+        return totalUsersVotes;
+    }
+
+    public void setTotalUsersVotes(int totalUsersVotes) {
+        this.totalUsersVotes = totalUsersVotes;
     }
 
     public String getOption1() {

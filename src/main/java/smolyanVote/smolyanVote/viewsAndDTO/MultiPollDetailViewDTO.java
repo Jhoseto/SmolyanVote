@@ -22,6 +22,7 @@ public class MultiPollDetailViewDTO {
     private List<Integer> votesForOptions; // брой гласове за всяка опция
     private List<Integer> votePercentages; // проценти за всяка опция
     private int totalVotes;
+    private int totalUsersVotes; // Колко човека са гласували
     private Integer currentUserVote; // индекс на избраната опция (1-based)
     private int viewCounter;
 
@@ -130,6 +131,14 @@ public class MultiPollDetailViewDTO {
 
     public void setTotalVotes(int totalVotes) {
         this.totalVotes = totalVotes;
+    }
+
+    public int getTotalUsersVotes() {
+        return totalUsersVotes;
+    }
+
+    public void setTotalUsersVotes(int totalUsersVotes) {
+        this.totalUsersVotes = totalUsersVotes;
     }
 
     public Integer getCurrentUserVote() {
