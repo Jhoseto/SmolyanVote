@@ -47,6 +47,7 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatedAt(event.getCreatedAt());
         view.setCreatorName(user.getUsername());
         view.setCreatorImage(user.getImageUrl());
+        view.setCreatorOnlineStatus(user.getOnlineStatus());
         view.setTotalVotes(event.getTotalVotes());
 
         List<SimpleEventImageEntity> images = simpleEventImageRepository.findByEventId(event.getId());
@@ -77,6 +78,7 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatedAt(referendum.getCreatedAt());
         view.setCreatorName(user.getUsername());
         view.setCreatorImage(user.getImageUrl());
+        view.setCreatorOnlineStatus(user.getOnlineStatus());
         view.setTotalVotes(referendum.getTotalVotes());
 
         List<ReferendumImageEntity> images = referendumImageRepository.findByReferendumId(referendum.getId());
@@ -107,6 +109,7 @@ public class AllEventsSimplePreviewMapper {
         view.setCreatedAt(multiPoll.getCreatedAt());
         view.setCreatorName(user.getUsername());
         view.setCreatorImage(user.getImageUrl());
+        view.setCreatorOnlineStatus(user.getOnlineStatus());
         view.setTotalVotes(multiPoll.getTotalVotes());
 
         List<MultiPollImageEntity> images = multiPollImageRepository.findByMultiPoll_Id(multiPoll.getId());
