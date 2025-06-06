@@ -93,6 +93,7 @@ public class VoteServiceImpl implements VoteService {
     }
 
 
+
     @Transactional
     @Override
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
@@ -135,6 +136,7 @@ public class VoteServiceImpl implements VoteService {
         });
     }
 
+
     @Override
     public VoteSimpleEventEntity findByUserIdAndEventId(Long userId, Long eventId) {
         return voteSimpleEventRepository.findByUserIdAndEventId(userId, eventId).orElse(null);
@@ -144,6 +146,11 @@ public class VoteServiceImpl implements VoteService {
     public VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId) {
         return voteReferendumRepository.findByReferendum_IdAndUser_Id(userId, referendumId).orElse(null);
     }
+
+
+
+
+
 
     @Transactional
     @Override
@@ -196,6 +203,8 @@ public class VoteServiceImpl implements VoteService {
 
         return "Гласът беше успешно отчетен.";
     }
+
+
 
     @Transactional
     @Override
