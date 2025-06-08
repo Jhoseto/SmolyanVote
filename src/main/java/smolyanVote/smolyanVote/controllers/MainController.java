@@ -9,12 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class MainController {
 
 
-    @GetMapping("/")
-    public String redirectToIndex() {
-        return "redirect:/index";
-    }
 
-    @GetMapping("/index")
+    @GetMapping("/")
     public String homePage(Model model) {
 
         return "index";
