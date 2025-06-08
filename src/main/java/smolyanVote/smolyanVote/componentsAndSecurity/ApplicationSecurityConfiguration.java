@@ -10,6 +10,7 @@ import org.springframework.core.Ordered;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -46,11 +47,15 @@ public class ApplicationSecurityConfiguration {
         csrfTokenRepository.setCookiePath("/");
 
         http
+                .headers(headers -> headers
+                        .httpStrictTransportSecurity(HeadersConfigurer.HstsConfig::disable)
+                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
                                 "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**",
-                                "/", "/index", "/forgotten_password", "/user/registration", "/registration",
+                                "/", "//", "/forgotten_password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents", "/mainEventPage", "/event",
                                 "/eventDetailView", "/news", "/error/**", "/favicon.ico", "/robots.txt", "/heartbeat"
@@ -83,6 +88,7 @@ public class ApplicationSecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
 
                 )
+
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             request.setAttribute("errorMessage", "❌ Нямате достъп до това съдържание! Само администратори.");

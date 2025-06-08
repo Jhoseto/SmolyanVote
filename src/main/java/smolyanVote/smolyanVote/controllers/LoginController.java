@@ -90,7 +90,7 @@ public class LoginController {
                 rememberMeServices.loginSuccess(request, response, authentication);
             }
 
-            return "redirect:/index";
+            return "redirect:/";
         }
 
         redirectAttributes.addFlashAttribute("error", "Възникна неочаквана грешка. Моля, опитайте отново.");
