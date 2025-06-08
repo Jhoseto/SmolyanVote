@@ -13,7 +13,7 @@ public class SecureCookieConfig {
         serializer.setCookieName("__Secure-JSESSIONID");  // Префикс, изисква Secure + HTTPS
         serializer.setUseSecureCookie(true);              // Secure флаг
         serializer.setUseHttpOnlyCookie(true);            // HttpOnly флаг
-        serializer.setSameSite("Strict");                 // SameSite=Strict или "Lax"
+        serializer.setSameSite("Lax");                 // SameSite=Strict или "Lax"
         serializer.setCookiePath("/");                    // Нужно за __Secure-
         return serializer;
     }

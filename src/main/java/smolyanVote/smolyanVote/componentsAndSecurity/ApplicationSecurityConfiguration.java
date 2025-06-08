@@ -54,7 +54,7 @@ public class ApplicationSecurityConfiguration {
 
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
-                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**",
+                                "/css/**", "/js/**","/js/comments/**", "/templates/**", "/images/**", "/fonts/**",
                                 "/", "//", "/forgotten_password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents", "/mainEventPage", "/event",
@@ -100,8 +100,10 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
                 .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/js/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
+
 
         return http.build();
     }
@@ -158,12 +160,16 @@ public class ApplicationSecurityConfiguration {
                     for (String header : headers) {
                         String updatedHeader = header;
 
-                        if (!header.toLowerCase().contains("secure")) {
+                        boolean isSecureRequest = request.isSecure() || request.getServerName().contains("smolyanvote.com");
+
+                        if (isSecureRequest && !header.toLowerCase().contains("secure")) {
                             updatedHeader += "; Secure";
                         }
+
                         if (!header.toLowerCase().contains("httponly") && !header.startsWith("XSRF-TOKEN")) {
                             updatedHeader += "; HttpOnly";
                         }
+
                         if (!header.toLowerCase().contains("samesite")) {
                             updatedHeader += "; SameSite=Lax";
                         }
@@ -174,5 +180,4 @@ public class ApplicationSecurityConfiguration {
             }
         };
     }
-
 }
