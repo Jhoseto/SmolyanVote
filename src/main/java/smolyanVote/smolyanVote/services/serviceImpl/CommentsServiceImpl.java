@@ -13,10 +13,7 @@ import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
-import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
-import smolyanVote.smolyanVote.repositories.CommentsRepository;
-import smolyanVote.smolyanVote.repositories.ReferendumRepository;
-import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
+import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
@@ -35,6 +32,7 @@ public class CommentsServiceImpl implements CommentsService {
     private final ReferendumRepository referendumRepository;
     private final UserService userService;
     private final CommentVoteRepository commentVoteRepository;
+    private final MultiPollRepository multiPollRepository;
     ;
 
 
@@ -44,12 +42,13 @@ public class CommentsServiceImpl implements CommentsService {
                                SimpleEventRepository simpleEventRepository,
                                ReferendumRepository referendumRepository,
                                UserService userService,
-                               CommentVoteRepository commentVoteRepository) {
+                               CommentVoteRepository commentVoteRepository, MultiPollRepository multiPollRepository) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.userService = userService;
         this.commentVoteRepository = commentVoteRepository;
+        this.multiPollRepository = multiPollRepository;
     }
 
 
@@ -78,6 +77,11 @@ public class CommentsServiceImpl implements CommentsService {
                         .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with ID: " + targetId));
                 comment.setEvent(event);
             }
+            case MULTI_POLL -> {
+                MultiPollEntity poll = multiPollRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("MultiPoll not found with ID: " + targetId));
+                comment.setMultiPoll(poll);
+            }
             default -> throw new UnsupportedOperationException("Unsupported target type: " + eventType);
         }
 
@@ -90,6 +94,8 @@ public class CommentsServiceImpl implements CommentsService {
 
         return commentsRepository.save(comment);
     }
+
+
 
 
     @Retryable(interceptor = "commentRetryInterceptor") // Решава проблема ми с DeadLock при реакциите
@@ -186,7 +192,7 @@ public class CommentsServiceImpl implements CommentsService {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
-            case MULTI_POLL -> commentsRepository.findRootCommentsWithRepliesByMultiPoll_Id(targetId);
+            case MULTI_POLL -> commentsRepository.findRootCommentsWithRepliesByMultiPollId(targetId);
             case POLL -> null;
         };
     }
@@ -196,6 +202,7 @@ public class CommentsServiceImpl implements CommentsService {
     public EventType getTargetType(Long targetId) {
         boolean isReferendum = referendumRepository.existsById(targetId);
         boolean isEvent = simpleEventRepository.existsById(targetId);
+        boolean isMultiPoll = multiPollRepository.existsById(targetId);
 
         logger.debug("Checking target type for ID {}: referendum={}, event={}", targetId, isReferendum, isEvent);
 
@@ -205,6 +212,8 @@ public class CommentsServiceImpl implements CommentsService {
             return EventType.REFERENDUM;
         } else if (isEvent) {
             return EventType.SIMPLEEVENT;
+        } else if (isMultiPoll) {
+            return EventType.MULTI_POLL;
         } else {
             throw new IllegalArgumentException("Target ID not found: " + targetId);
         }
