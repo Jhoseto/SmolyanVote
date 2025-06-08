@@ -14,8 +14,10 @@ public class BaseEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     protected Long id;
 
-    @Version
-    protected Long version;
+
+//    //Оправлява конкурентноста при гласувания
+//    @Version
+//    protected long version;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant created;
@@ -24,22 +26,12 @@ public class BaseEntity {
     protected Instant modified;
 
 
-
-
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {this.id = id;
-    }
-
-    //Оправлява конкурентноста при гласувания
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Instant getCreated() {
