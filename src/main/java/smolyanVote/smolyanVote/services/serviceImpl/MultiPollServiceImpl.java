@@ -108,6 +108,8 @@ public class MultiPollServiceImpl implements MultiPollService {
         MultiPollEntity poll = multiPollRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Анкетата не е намерена"));
 
+        poll.setViewCounter(poll.getViewCounter() +1);
+
         // Текущ потребител (може да върнеш null ако е анонимен)
         UserEntity currentUser = userService.getCurrentUser();
 
@@ -159,7 +161,7 @@ public class MultiPollServiceImpl implements MultiPollService {
                 dto.setCurrentUserVote(index >= 0 ? index + 1 : null);
             }
         }
-
+        multiPollRepository.save(poll);
         return dto;
     }
 

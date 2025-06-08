@@ -35,6 +35,7 @@ public class MultiPollMapper {
         dto.setCreatedAt(poll.getCreatedAt());
         dto.setLocation(poll.getLocation());
         dto.setTotalUsersVotes(poll.getTotalUsersVotes());
+        dto.setViewCounter(poll.getViewCounter());
 
         // Събиране валидните (непразни) опции
         List<String> options = new ArrayList<>();
