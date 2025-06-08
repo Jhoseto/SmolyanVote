@@ -72,13 +72,12 @@ public class CommentRestController {
         }
     }
 
+
+
     private ResponseEntity<?> handleCommentSubmission(Long targetId, String text, Long parentId) {
         try {
             UserEntity currentUser = userService.getCurrentUser();
             EventType targetType = commentsService.getTargetType(targetId);
-
-            logger.info("Submitting comment for targetId={}, type={}, parentId={}, user={}",
-                    targetId, targetType, parentId, currentUser.getUsername());
 
             CommentsEntity comment = commentsService.addComment(
                     targetId, currentUser.getUsername(), text, parentId, targetType);
@@ -90,7 +89,6 @@ public class CommentRestController {
                     comment.getText(),
                     comment.getParent() != null ? comment.getParent().getId() : null,
                     comment.getCreatedAt()
-
             );
 
             return ResponseEntity.ok(responseDto);
