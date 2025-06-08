@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -18,46 +19,67 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class RegistrationRateLimitFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> ipBuckets = new ConcurrentHashMap<>();
+    // Отделни bucket-и за IP адреси (глобален и регистрация)
+    private final Map<String, Bucket> registrationBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> globalPostBuckets = new ConcurrentHashMap<>();
 
-    private Bucket createBucket() {
+    // Лимит за регистрация: 5 опита на 10 минути
+    private Bucket createRegistrationBucket() {
         Bandwidth limit = Bandwidth.classic(5, Refill.intervally(3, Duration.ofMinutes(10)));
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
     }
 
-    private Bucket resolveBucket(String ip) {
-        return ipBuckets.computeIfAbsent(ip, k -> createBucket());
+    // Глобален лимит за всички POST: 20 заявки на минута
+    private Bucket createGlobalPostBucket() {
+        Bandwidth limit = Bandwidth.classic(20, Refill.intervally(100, Duration.ofMinutes(1)));
+        return Bucket.builder()
+                .addLimit(limit)
+                .build();
+    }
+
+    private Bucket resolveRegistrationBucket(String ip) {
+        return registrationBuckets.computeIfAbsent(ip, k -> createRegistrationBucket());
+    }
+
+    private Bucket resolveGlobalPostBucket(String ip) {
+        return globalPostBuckets.computeIfAbsent(ip, k -> createGlobalPostBucket());
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+                                    @NotNull HttpServletResponse response,
+                                    @NotNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (request.getRequestURI().equals("/user/registration") && request.getMethod().equalsIgnoreCase("POST")) {
-            String ip = request.getRemoteAddr();
-            Bucket bucket = resolveBucket(ip);
+        String ip = request.getRemoteAddr();
 
-            if (bucket.tryConsume(1)) {
-                filterChain.doFilter(request, response);
-            } else {
-                System.out.println("Rate limit triggered for IP: " + ip);
-                System.out.println("Is response committed? " + response.isCommitted());
+        if ("POST".equalsIgnoreCase(request.getMethod())) {
 
+            // Първо проверяваме глобалния лимит
+            Bucket globalBucket = resolveGlobalPostBucket(ip);
+            if (!globalBucket.tryConsume(1)) {
                 if (!response.isCommitted()) {
-                    request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
-                    response.sendRedirect("/register");
-                } else {
-                    System.out.println("Response already committed, cannot redirect.");
+                    request.getSession().setAttribute("rateLimitError", "Прекалено много POST заявки. Опитайте по-късно.");
+                    response.sendRedirect(request.getRequestURI());
+                }
+                return;
+            }
+
+            // Ако е POST към /user/registration, проверяваме и специалния лимит
+            if ("/user/registration".equals(request.getRequestURI())) {
+                Bucket regBucket = resolveRegistrationBucket(ip);
+                if (!regBucket.tryConsume(1)) {
+                    if (!response.isCommitted()) {
+                        request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
+                        response.sendRedirect("/register");
+                    }
+                    return;
                 }
             }
-        } else {
-            filterChain.doFilter(request, response);
         }
+
+        filterChain.doFilter(request, response);
     }
-
 }
-

@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.runtimeOnly
 
 plugins {
 	id("java")
