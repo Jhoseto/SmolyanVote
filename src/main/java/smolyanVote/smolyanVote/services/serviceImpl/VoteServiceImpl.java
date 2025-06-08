@@ -1,9 +1,7 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
-import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.*;
@@ -38,60 +36,6 @@ public class VoteServiceImpl implements VoteService {
         this.multiPollRepository = multiPollRepository;
         this.voteMultiPollRepository = voteMultiPollRepository;
     }
-
-    private static final int MAX_RETRIES = 3;
-
-
-    /**
-     * Изпълнява дадено действие с retry механизъм при срещане на OptimisticLockException.
-     *
-     * Този метод се използва, за да се гарантира правилен запис на данни в ситуации на конкурентен достъп,
-     * при които няколко транзакции могат да променят един и същ запис едновременно.
-     *
-     * При засичане на {@link OptimisticLockException} или
-     * {@link org.springframework.orm.ObjectOptimisticLockingFailureException} методът
-     * ще повтори изпълнението на действието до {@link #MAX_RETRIES} пъти,
-     * като между опитите изчаква с експоненциално нарастващо време (backoff),
-     * започвайки от 100 ms и максимум 1000 ms.
-     *
-     * Методът е предназначен за работа с JPA ентити, които използват анотацията
-     * {@code @Version} в базовия ентити клас (например BaseEntity),
-     * което осигурява автоматично проследяване на версията на записа
-     * и е необходимо за коректното функциониране на оптимистичното заключване.
-     *
-     * Ако след всички retry опити действието не успее, хвърля
-     * {@link IllegalStateException} с информация за проблема.
-     *
-     * @param action действие (Runnable), което ще бъде изпълнено с retry механизъм при оптимистично заключване
-     * @throws IllegalStateException ако максималният брой опити бъде достигнат или retry е прекъснат
-     */
-
-    private void retryOnOptimisticLock(Runnable action) {
-        int attempts = 0;
-        long waitMillis = 100;
-        while (true) {
-            try {
-                action.run();
-                return;
-            } catch (OptimisticLockException | ObjectOptimisticLockingFailureException e) {
-                attempts++;
-                if (attempts >= MAX_RETRIES) {
-                    throw new IllegalStateException("Неуспешен опит за запис след няколко опита поради конкуренция.", e);
-                }
-                try {
-                    Thread.sleep(waitMillis);
-                    waitMillis *= 2; // удвояване на чакането след всеки неуспех
-                    if (waitMillis > 1000) {
-                        waitMillis = 1000; // максимално чакане 1 секунда
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Retry беше прекъснат.", ie);
-                }
-            }
-        }
-    }
-
 
 
     @Transactional
@@ -128,12 +72,10 @@ public class VoteServiceImpl implements VoteService {
             default -> throw new IllegalArgumentException("Невалиден вот: " + voteValue);
         }
 
-        retryOnOptimisticLock(() -> simpleEventRepository.save(event));
+        simpleEventRepository.save(event);
 
-        retryOnOptimisticLock(() -> {
-            user.setTotalVotes(user.getTotalVotes() + 1);
-            userRepository.save(user);
-        });
+        user.setTotalVotes(user.getTotalVotes() + 1);
+        userRepository.save(user);
     }
 
 
@@ -146,10 +88,6 @@ public class VoteServiceImpl implements VoteService {
     public VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId) {
         return voteReferendumRepository.findByReferendum_IdAndUser_Id(userId, referendumId).orElse(null);
     }
-
-
-
-
 
 
     @Transactional
@@ -191,9 +129,8 @@ public class VoteServiceImpl implements VoteService {
         referendum.setTotalVotes(referendum.getTotalVotes() + 1);
         user.setTotalVotes(user.getTotalVotes() + 1);
 
-        retryOnOptimisticLock(() -> userRepository.save(user));
-
-        retryOnOptimisticLock(() -> referendumRepository.save(referendum));
+        userRepository.save(user);
+        referendumRepository.save(referendum);
 
         VoteReferendumEntity vote = new VoteReferendumEntity();
         vote.setUser(user);
@@ -203,7 +140,6 @@ public class VoteServiceImpl implements VoteService {
 
         return "Гласът беше успешно отчетен.";
     }
-
 
 
     @Transactional
@@ -259,7 +195,7 @@ public class VoteServiceImpl implements VoteService {
         poll.setTotalVotes(poll.getTotalVotes() + optionsCounter);
         poll.setTotalUsersVotes(poll.getTotalUsersVotes() + 1);
 
-        retryOnOptimisticLock(() -> multiPollRepository.save(poll));
+        multiPollRepository.save(poll);
 
         for (Integer optionIndex : selectedOptions) {
             VoteMultiPollEntity vote = new VoteMultiPollEntity();
