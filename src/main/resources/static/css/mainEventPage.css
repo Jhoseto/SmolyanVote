@@ -1,6 +1,5 @@
 /* Основен фон и текст */
 body {
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
     background-color: #f8f9fa;
     color: #212529;
 }
@@ -14,9 +13,6 @@ body {
     border-bottom: 4px solid #25afb4;
 }
 
-.hero h1, .hero p {
-    font-family: 'Poppins', sans-serif;
-}
 
 .hero .btn {
     font-size: 0.85rem;

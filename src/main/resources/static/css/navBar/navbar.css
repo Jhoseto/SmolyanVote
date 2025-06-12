@@ -1,0 +1,308 @@
+/* Основни настройки за navbar с модерни ефекти */
+.navbar {
+    font-family: 'Droid Serif', serif !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1030;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    box-shadow: 0 8px 32px rgba(37, 175, 180, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(37, 175, 180, 0.1);
+}
+
+
+.navbar:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+    box-shadow: 0 12px 40px rgba(37, 175, 180, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Анимация на лого с модерни ефекти */
+.navbar-brand {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.navbar-brand::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(37, 175, 180, 0.2), transparent);
+    transition: left 0.6s ease;
+    z-index: 0;
+}
+
+.navbar-brand:hover::before {
+    left: 100%;
+}
+
+.navbar-brand img {
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    filter: drop-shadow(0 4px 8px rgba(37, 175, 180, 0.2));
+    position: relative;
+    z-index: 1;
+}
+
+.navbar-brand:hover img {
+    transform: rotate(-10deg) scale(1.15);
+    filter: drop-shadow(0 8px 16px rgba(37, 175, 180, 0.4));
+}
+
+.navbar-brand span {
+    background: linear-gradient(45deg, #25afb4, #198754);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    transition: all 0.4s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.navbar-brand:hover span {
+    transform: translateX(5px);
+    filter: drop-shadow(2px 2px 4px rgba(37, 175, 180, 0.3));
+}
+
+/* Навигационни линкове с напреднали ефекти */
+.nav-link {
+    color: #212529;
+    font-size: 1rem;
+    font-weight: 500;
+    position: relative;
+    padding: 12px 20px;
+    border-radius: 12px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    overflow: hidden;
+    margin: 0 4px;
+}
+
+.nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
+    transition: left 0.5s ease;
+    z-index: -1;
+    border-radius: 12px;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(45deg, #25afb4, #198754);
+    transition: all 0.4s ease;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.nav-link:hover {
+    color: #25afb4;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(37, 175, 180, 0.3);
+    background: rgba(37, 175, 180, 0.05);
+}
+
+.nav-link:hover::before {
+    left: 0;
+}
+
+.nav-link:hover::after {
+    width: 70%;
+}
+
+.nav-link:active {
+    transform: translateY(-1px);
+}
+
+/* Специални ефекти за навигационните елементи */
+.navbar-nav .nav-item {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.navbar-nav .nav-item:hover {
+    transform: translateY(-2px);
+}
+
+.navbar-nav .nav-item::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(37, 175, 180, 0.1), transparent);
+    transition: all 0.5s ease;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.navbar-nav .nav-item:hover::before {
+    width: 120%;
+    height: 120%;
+}
+
+/* Модерни ефекти за профилния dropdown */
+.profile-dropdown .nav-link {
+    display: flex;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background: linear-gradient(45deg, rgba(37, 175, 180, 0.05), rgba(25, 135, 84, 0.05));
+    border: 1px solid rgba(37, 175, 180, 0.1);
+}
+
+.profile-dropdown:hover .nav-link {
+    color: #25afb4;
+    transform: scale(1.05) translateY(-2px);
+    background: linear-gradient(45deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
+    border: 1px solid rgba(37, 175, 180, 0.3);
+    box-shadow: 0 8px 25px rgba(37, 175, 180, 0.2);
+}
+
+/* Стил на аватара с модерни ефекти */
+.profile-image {
+    width: 35px;
+    height: 35px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    background: linear-gradient(45deg, #25afb4, #198754);
+    background-clip: padding-box;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+}
+
+.profile-image::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, #25afb4, #198754);
+    border-radius: 50%;
+    z-index: -1;
+    transition: all 0.4s ease;
+}
+
+.profile-image:hover {
+    transform: scale(1.15) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(37, 175, 180, 0.4);
+}
+
+.avatar-placeholder {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(45deg, #6c757d, #495057);
+    color: #fff;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
+}
+
+.avatar-placeholder::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: transform 0.6s ease;
+    transform: rotate(45deg) translateX(-100%);
+}
+
+.avatar-placeholder:hover {
+    background: linear-gradient(45deg, #25afb4, #198754);
+    transform: scale(1.15) rotate(-5deg);
+    box-shadow: 0 8px 25px rgba(37, 175, 180, 0.4);
+}
+
+.avatar-placeholder:hover::before {
+    transform: rotate(45deg) translateX(100%);
+}
+
+/* Модернизиран dropdown menu */
+.profile-dropdown .dropdown-menu {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(37, 175, 180, 0.15);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.profile-dropdown .dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    transform: rotate(45deg);
+    border-top: 1px solid rgba(37, 175, 180, 0.1);
+    border-left: 1px solid rgba(37, 175, 180, 0.1);
+}
+
+.profile-dropdown .dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+.profile-dropdown .dropdown-item {
+    font-size: 1rem;
+    padding: 12px 20px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    margin: 5px 10px;
+}
+
+.profile-dropdown .dropdown-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #25afb4, #198754);
+    transition: left 0.4s ease;
+    z-index: -1;
+}
+
+.profile-dropdown .dropdown-item:hover {
+    color: #fff;
+    transform: translateX(5px);
+}
+
+.profile-dropdown .dropdown-item:hover::before {
+    left: 0;
+}
