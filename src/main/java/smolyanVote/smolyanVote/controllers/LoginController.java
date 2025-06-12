@@ -41,7 +41,7 @@ public class LoginController {
         if (!model.containsAttribute("userModel")) {
             model.addAttribute("userModel", new UserLoginViewModel());
         }
-        return "login";
+        return "login_page";
     }
 
     @PostMapping("/login")
