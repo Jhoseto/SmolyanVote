@@ -19,7 +19,14 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="/">Начало</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/mainEvents">Vote</a></li>
+
+                    <!-- Vote Link with Expand -->
+                    <li class="nav-item">
+                        <a class="nav-link vote-toggle" href="#" onclick="toggleVoteMenu(event)">
+                            Vote <i class="bi bi-chevron-down vote-arrow"></i>
+                        </a>
+                    </li>
+
                     <li class="nav-item"><a class="nav-link" href="/news">Новини</a></li>
                     <li class="nav-item"><a class="nav-link" href="/about">За нас</a></li>
                     <li class="nav-item"><a class="nav-link" href="/contacts">Контакти</a></li>
@@ -70,6 +77,107 @@
         </div>
     </nav>
 
+    <!-- Expandable Vote Menu -->
+    <div class="vote-menu-container" id="voteMenuContainer">
+        <div class="container px-4">
+            <div class="row">
+                <!-- Създай събитие секция -->
+                <div class="col-md-6">
+                    <h4 class="mb-3">Създай</h4>
+                    <div class="vote-section">
+                        <h5 class="vote-section-title">
+                            <i class="bi bi-plus-circle me-2 text-success"></i>
+                            Създай събитие
+                        </h5>
+                        <div class="vote-items">
+                            <a href="/create/simple-vote" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Опростен вид</h6>
+                                    <p>Създайте просто гласуване с да/не варианти</p>
+                                </div>
+                            </a>
+
+                            <a href="/create/referendum" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Референдум</h6>
+                                    <p>Организирайте официален референдум</p>
+                                </div>
+                            </a>
+
+                            <a href="/create/poll" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-list-ul"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Анкета с множествен избор</h6>
+                                    <p>Създайте анкета с множество варианти</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Разгледай събития секция -->
+                <div class="col-md-6">
+                    <h4 class="mb-3">Прегледай</h4>
+                    <div class="vote-section">
+                        <h5 class="vote-section-title">
+                            <i class="bi bi-eye me-2 text-primary"></i>
+                            Разгледай събития
+                        </h5>
+                        <div class="vote-items">
+                            <a href="/events/simple-votes" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Опростени видове</h6>
+                                    <p>Вижте всички опростени гласувания</p>
+                                </div>
+                            </a>
+
+                            <a href="/events/referendums" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Референдуми</h6>
+                                    <p>Прегледайte всички референдуми</p>
+                                </div>
+                            </a>
+
+                            <a href="/events/polls" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-list-ul"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Анкети</h6>
+                                    <p>Вижте всички анкети и опроси</p>
+                                </div>
+                            </a>
+
+                            <a href="/mainEvents" class="vote-item vote-item-highlight">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-grid"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Разгледай всички</h6>
+                                    <p>Общ преглед на всички събития</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -105,29 +213,75 @@
             </div>
         </div>
     </div>
-</div>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('yourModalId'); // смени с ID на твоя модал
-        if (modal) {
-            modal.addEventListener('hide.bs.modal', (e) => {
-                modal.classList.add('modal-closing');
-                setTimeout(() => {
-                    modal.classList.remove('modal-closing');
-                }, 300); // Трябва да е същото като продължителността на modalFadeOut
+    <div class="vote-overlay" id="voteOverlay" onclick="closeVoteMenu()"></div>
+
+    <script>
+        let voteMenuOpen = false;
+
+        function toggleVoteMenu(event) {
+            event.preventDefault();
+            const container = document.getElementById('voteMenuContainer');
+            const arrow = document.querySelector('.vote-arrow');
+            const overlay = document.getElementById('voteOverlay');
+
+            if (voteMenuOpen) {
+                closeVoteMenu();
+            } else {
+                openVoteMenu();
+            }
+        }
+
+        function openVoteMenu() {
+            const container = document.getElementById('voteMenuContainer');
+            const arrow = document.querySelector('.vote-arrow');
+            const overlay = document.getElementById('voteOverlay');
+
+            container.classList.add('show');
+            arrow.classList.add('rotated');
+            overlay.classList.add('show');
+            voteMenuOpen = true;
+        }
+
+        function closeVoteMenu() {
+            const container = document.getElementById('voteMenuContainer');
+            const arrow = document.querySelector('.vote-arrow');
+            const overlay = document.getElementById('voteOverlay');
+
+            container.classList.remove('show');
+            arrow.classList.remove('rotated');
+            overlay.classList.remove('show');
+            voteMenuOpen = false;
+        }
+
+        // Затваряне при натискане на Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && voteMenuOpen) {
+                closeVoteMenu();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('yourModalId'); // смени с ID на твоя модал
+            if (modal) {
+                modal.addEventListener('hide.bs.modal', (e) => {
+                    modal.classList.add('modal-closing');
+                    setTimeout(() => {
+                        modal.classList.remove('modal-closing');
+                    }, 300); // Трябва да е същото като продължителността на modalFadeOut
+                });
+            }
+        });
+    </script>
+
+
+    <script th:if="${#authorization.expression('isAuthenticated()')}">
+        function sendHeartbeat() {
+            fetch('/heartbeat', {
+                method: 'POST'
             });
         }
-    });
-</script>
-//online status
-<script th:if="${#authorization.expression('isAuthenticated()')}">
-    function sendHeartbeat() {
-        fetch('/heartbeat', {
-            method: 'POST'
-        });
-    }
-    // Прати веднага при отваряне
-    sendHeartbeat();
-    setInterval(sendHeartbeat, 60000);
-</script>
-
+        // Прати веднага при отваряне
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 60000);
+    </script>
+</div>
