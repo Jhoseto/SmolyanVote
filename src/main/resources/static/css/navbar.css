@@ -338,9 +338,10 @@
     border-top: 1px solid rgba(37, 175, 180, 0.1);
     box-shadow: 0 8px 32px rgba(37, 175, 180, 0.1);
     max-height: 0;
+    width: 100%;
     overflow: hidden;
     transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
+    position: absolute;
     z-index: 1000;
 }
 
@@ -358,6 +359,7 @@
 
 .vote-menu-container.show {
     max-height: 400px;
+    width: 100%;
     padding-top: 30px;
     padding-bottom: 10px;
 }
