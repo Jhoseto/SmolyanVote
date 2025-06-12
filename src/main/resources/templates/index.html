@@ -81,15 +81,19 @@
 
 
 <div class="container title-section">
-  <div class="title-text">
-    Какво е SmolyanVote? – Гражданска платформа, създадена&nbsp;
-    <span class="dynamic-text-box">
-      <span class="dynamic-text">от хората</span>
-      <span class="dynamic-text">за хората</span>
-      <span class="dynamic-text">с мисъл за града</span>
-    </span>
+  <div class="clickable-title" onclick="scrollToFeatures()">
+    <div class="title-question">Какво е SmolyanVote?</div>
+    <div class="title-description">
+      Гражданска платформа, създадена&nbsp;
+      <span class="dynamic-text-box">
+        <span class="dynamic-text">от хората</span>
+        <span class="dynamic-text">за хората</span>
+        <span class="dynamic-text">с мисъл за града</span>
+      </span>
+    </div>
   </div>
 </div>
+
 <!-- Видеопрезентация -->
 <section class="py-5 text-center" style="background-color: #f9f9f9;">
   <div class="container">
@@ -106,7 +110,7 @@
 
 
 <!-- Функции -->
-<section class="py-5" style="background: rgba(255, 255, 255, 0.7) url('/images/web/why11.jpg') no-repeat center -110px;">
+<section id="platform-features-carousel" class="py-5" style="background: rgba(255, 255, 255, 0.7) url('/images/web/why11.jpg') no-repeat center -110px;">
   <div th:replace="~{fragments/features :: platform-features-carousel}"></div>
 </section>
 
@@ -138,6 +142,16 @@
 
     showText(index);
   });
+
+  function scrollToFeatures() {
+    const featuresSection = document.getElementById('platform-features-carousel');
+    if (featuresSection) {
+      featuresSection.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }
 </script>
 
 <input type="hidden" name="cookieConsent" value="" />
