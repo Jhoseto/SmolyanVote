@@ -220,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+
     window.addEventListener("resize", () => {
         radiusX = window.innerWidth <= 768 ? 220 : 480;
         radiusZ = window.innerWidth <= 768 ? 140 : 300;
