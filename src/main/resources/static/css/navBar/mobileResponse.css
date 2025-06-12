@@ -1,0 +1,88 @@
+@media (max-width: 768px) {
+    .navbar-nav {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        margin: 10px;
+        padding: 15px;
+        box-shadow: 0 10px 30px rgba(37, 175, 180, 0.15);
+    }
+
+    .nav-link {
+        margin: 5px 0;
+        text-align: center;
+    }
+
+    .navbar-collapse {
+        transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .profile-dropdown .dropdown-menu {
+        position: static !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        box-shadow: none;
+        background: transparent;
+        border: none;
+        margin-top: 10px;
+    }
+
+    .profile-dropdown .dropdown-item {
+        background: rgba(37, 175, 180, 0.05);
+        margin: 8px 0;
+    }
+
+    /* Mobile vote menu */
+    .vote-menu-container.show {
+        max-height: 500px;
+        padding: 0.75rem 0;
+    }
+
+    .vote-sections-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .vote-section {
+        padding: 0.5rem;
+    }
+
+    .vote-item {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    .vote-item-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 0.4rem;
+    }
+
+    .vote-item-icon i {
+        font-size: 0.8rem;
+    }
+
+    .vote-section-title {
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+        padding-bottom: 0.4rem;
+    }
+
+    .vote-section-title::after {
+        width: 20px;
+    }
+}
+
+@media (min-width: 769px) {
+    .navbar-nav {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .navbar-toggler {
+        display: none;
+    }
+}
