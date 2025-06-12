@@ -1,5 +1,4 @@
 /* Vote Toggle Button */
-
 .vote-toggle {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -162,22 +161,49 @@
     left: 0;
 }
 
-/* Highlighted Vote Item */
+/* Highlighted Vote Item - в същия стил като стандартните vote-item */
 .vote-item-highlight {
-    background: linear-gradient(135deg, #25afb4 0%, #198754 100%);
-    color: white;
-    border-color: #25afb4;
-    box-shadow: 0 4px 15px rgba(37, 175, 180, 0.25);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.6) 100%);
+    border: 1px solid rgba(37, 175, 180, 0.08);
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+    font-size: 0.85rem;
 }
 
 .vote-item-highlight::before {
-    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(37, 175, 180, 0.05), rgba(25, 135, 84, 0.05));
+    transition: left 0.4s ease;
+    z-index: -1;
 }
 
 .vote-item-highlight:hover {
-    color: white;
-    background: linear-gradient(135deg, #198754 0%, #25afb4 100%);
-    box-shadow: 0 8px 20px rgba(37, 175, 180, 0.35);
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(37, 175, 180, 0.15);
+    color: inherit;
+    text-decoration: none;
+    border-color: rgba(37, 175, 180, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.vote-item-highlight:hover::before {
+    left: 0;
+}
+
+/* Иконка за vote-item-highlight */
+.vote-item-highlight .vote-item-icon {
+    background: linear-gradient(135deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
+}
+
+.vote-item-highlight .vote-item-icon i {
+    color: #25afb4;
 }
 
 /* Vote Item Icon - по-малък и компактен */
@@ -198,19 +224,10 @@
     transform: scale(1.1);
 }
 
-.vote-item-highlight .vote-item-icon {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-}
-
 .vote-item-icon i {
     font-size: 0.9rem;
     color: #25afb4;
     transition: all 0.3s ease;
-}
-
-.vote-item-highlight .vote-item-icon i {
-    color: white;
 }
 
 /* Vote Item Content - компактен текст */

@@ -18,9 +18,15 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="search-container">
-                        <input type="text" placeholder="Търси..." />
-                        <button type="button">Търси</button>
+
+                    <li class="search-container d-flex align-items-center">
+                        <input type="text" placeholder="Търси..." class="search-input" />
+                        <button type="button" class="search-button" aria-label="Търси">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon" viewBox="0 0 24 24">
+                                <circle cx="11" cy="11" r="7" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                        </button>
                     </li>
 
                     <li class="nav-item"><a class="nav-link" href="/">Начало</a></li>
@@ -98,7 +104,7 @@
                             <!-- Опростен вид -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <i class="bi bi-check-circle"></i>
+                                    <img src="/images/web/icons/create_simpleEventIcon.jpg" alt="Simple Event Icon" width="20" height="19">
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Опростен вид</h6>
@@ -107,6 +113,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/create_simpleEventIcon.jpg" alt="Simple Event Icon" width="20" height="19">
                                     <i class="bi bi-check-circle"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -118,6 +125,7 @@
                             <!-- Референдум -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/create_referendumIcon.jpg" alt="Referendum Icon" width="20" height="19">
                                     <i class="bi bi-people"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -127,6 +135,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/create_referendumIcon.jpg" alt="Referendum Icon" width="20" height="19">
                                     <i class="bi bi-people"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -138,6 +147,7 @@
                             <!-- Анкета с множествен избор -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/create_multiPollIcon.jpg" alt="Multi Poll" width="20" height="19">
                                     <i class="bi bi-list-ul"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -147,6 +157,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/create_multiPollIcon.jpg" alt="Multi Poll" width="20" height="19">
                                     <i class="bi bi-list-ul"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -170,6 +181,7 @@
                         <div class="vote-items">
                             <a href="/events/simple-votes" class="vote-item">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/view_SimpleEventIcon.jpg" alt="View Simple Event Icon" width="20" height="19">
                                     <i class="bi bi-check-circle"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -180,6 +192,7 @@
 
                             <a href="/events/referendums" class="vote-item">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/view_ReferendumIcon.jpg" alt="View Referendum Icon" width="20" height="19">
                                     <i class="bi bi-people"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -190,6 +203,7 @@
 
                             <a href="/events/polls" class="vote-item">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/view_MultiPollIcon.jpg" alt="View Multi Poll Icon" width="20" height="19">
                                     <i class="bi bi-list-ul"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -200,6 +214,7 @@
 
                             <a href="/mainEvents" class="vote-item vote-item-highlight">
                                 <div class="vote-item-icon">
+                                    <img src="/images/web/icons/allEvents.jpg" alt="All Events Icon" width="20" height="19">
                                     <i class="bi bi-grid"></i>
                                 </div>
                                 <div class="vote-item-content">

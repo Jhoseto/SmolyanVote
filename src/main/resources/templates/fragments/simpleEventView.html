@@ -8,8 +8,7 @@
                      (${event.eventType.name() == 'REFERENDUM'} ? ' border-referendum' :
                      (${event.eventType.name() == 'MULTI_POLL'} ? ' border-multi_poll' : ''))">
 
-
-  <!-- Надпис в рамката -->
+    <!-- Надпис в рамката -->
     <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
          class="type-label type-label-simpleevent">
       Опростен вид събитие
@@ -60,15 +59,15 @@
       </div>
     </div>
 
-
-    <!-- Изображение на събитието -->
-    <img th:if="${event.images!= null and !event.images.isEmpty()}"
-         th:src="${event.images[0]}"
-         alt="Снимка на събитието" class="img-fluid rounded-top">
-    <img th:if="${event.images == null or event.images.isEmpty()}"
-         src="/images/logo1.png"
-         style="width: 30px; height: 30px; object-fit: cover;"
-         alt="Снимка на събитието" class="img-fluid rounded-top">
+    <!-- Секция за изображение на събитието -->
+    <div class="event-image-container">
+      <img th:if="${event.images!= null and !event.images.isEmpty()}"
+           th:src="${event.images[0]}"
+           alt="Снимка на събитието" class="img-fluid">
+      <img th:if="${event.images == null or event.images.isEmpty()}"
+           src="/images/logo1.png"
+           alt="Снимка на събитието" class="img-fluid default-logo">
+    </div>
 
     <!-- Тяло на картата -->
     <div class="card-body event-info">
@@ -84,7 +83,7 @@
            th:href="@{/user/{username}(username=${event.creatorName})}">
           <img th:src="${event.creatorImage}"
                alt="Автор"
-               class="author-avatar rounded-circle me-2">
+               class="author-avatar rounded-circle">
         </a>
         <!-- Ако има снимка и потребителят НЕ е логнат -->
         <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
@@ -92,7 +91,7 @@
            onclick="showLoginWarning()">
           <img th:src="${event.creatorImage}"
                alt="Автор"
-               class="author-avatar rounded-circle me-2">
+               class="author-avatar rounded-circle">
         </a>
 
         <div>
@@ -112,19 +111,18 @@
           </a>
 
           <div class="d-flex align-items-center">
-      <span th:classappend="${event.creatorOnlineStatus == 1} ? 'bg-success' : 'bg-danger'"
-            class="status-dot rounded-circle me-1"></span>
+            <span th:classappend="${event.creatorOnlineStatus == 1} ? 'bg-success' : 'bg-danger'"
+                  class="status-dot rounded-circle me-1"></span>
             <small th:text="${event.creatorOnlineStatus == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
           </div>
         </div>
       </div>
 
-      <!-- блок2 -->
+      <!-- Блок за информация -->
       <div class="mb-2 text-muted small">
         <div>
           Създадено на:
-          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата
-    </span>
+          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата</span>
         </div>
         <div>
           Гласували:
@@ -135,7 +133,6 @@
           <span th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</span> души
         </div>
       </div>
-
 
       <!-- Ако потребителят е логнат -->
       <div th:if="${#authorization.expression('isAuthenticated()')}">
@@ -171,16 +168,19 @@
 </div>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.event-card .card-title').forEach(title => {
-      const containerHeight = title.parentElement.clientHeight * 0.25; // максимум 25% от височината на родителя
-      let fontSize = parseFloat(getComputedStyle(title).fontSize);
+    document.querySelectorAll('.event-container').forEach(container => {
+      container.classList.add('loaded');
+    });
 
-      while (title.scrollHeight > containerHeight && fontSize > 0.6) {
-        fontSize -= 0.05;
+    document.querySelectorAll('.event-card .card-title').forEach(title => {
+      const containerHeight = title.parentElement.clientHeight * 0.25; // Максимум 25% от височината на родителя
+      let fontSize = 1.0; // Начален размер в rem
+      title.style.fontSize = fontSize + 'rem';
+
+      while (title.scrollHeight > containerHeight && fontSize > 1) {
+        fontSize -= 0.08;
         title.style.fontSize = fontSize + 'rem';
       }
     });
   });
 </script>
-
-
