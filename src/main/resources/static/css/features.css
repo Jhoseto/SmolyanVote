@@ -6,45 +6,38 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 0;
+    padding: 0;
 }
 
 .carousel {
     position: relative;
     width: 100%;
     max-width: 1200px;
-    height: 360px; /* фиксирана височина за целия carousel */
+    height: 360px;
     transform-style: preserve-3d;
 }
 
 .carousel-item {
-    opacity: 0.85;
-    filter: blur(0); /* премахваме замъгляването */
-    transform: scale(0.95);
     position: absolute;
     top: 50%;
     left: 50%;
     width: 300px;
-    height: 360px; /* височина на всяка карта - съответства на carousel */
+    height: 360px;
     margin-left: -150px;
     margin-top: -180px;
     transform-origin: center center;
-    transition: transform 0.8s ease, opacity 0.8s ease, filter 0.8s ease;
-    pointer-events: none;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out; /* По-кратък и плавен преход */
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     background: white;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 1;
     transform-style: preserve-3d;
-    will-change: transform, opacity;
+    will-change: transform, opacity, z-index; /* Оптимизираме рендирането */
     backface-visibility: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    pointer-events: none;
 }
 
 .carousel-item.active {
@@ -52,50 +45,48 @@
     transform: scale(1.03);
     pointer-events: auto;
     z-index: 10;
-    filter: brightness(0.95) contrast(0.98);
-
 }
-.carousel-item:not(.active) .card {
-    filter: brightness(0.95) contrast(0.98);
+.carousel, .carousel-item, .carousel-item * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
-
-
+.carousel-item img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
 /* --- КАРТИ --- */
 .card {
     position: relative;
     width: 100%;
-    height: 100%; /* заема цялата височина на carousel-item */
+    height: 100%;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(6px);
-    border: 1px solid rgba(0, 0, 0, 0.2); /* супер тънка рамка */
-    transition: transform 0.5s ease, box-shadow 0.5s ease;
-    padding: 12px; /* padding вътре */
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
+    padding: 12px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    will-change: transform, box-shadow;
 }
 
 .card img {
     width: 100%;
-    height: 160px; /* оптимална височина за снимка */
+    height: 160px;
     object-fit: cover;
     border-radius: 15px;
     margin-bottom: 15px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-    border-bottom: 1px solid #eee;
-    image-rendering: auto;
     backface-visibility: hidden;
     transform-style: preserve-3d;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
 }
 
-/* Shine ефект */
 .card::before {
     content: '';
     position: absolute;
@@ -103,22 +94,17 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(
-            120deg,
-            rgba(255, 255, 255, 0.15) 0%,
-            rgba(255, 255, 255, 0.05) 60%
-    );
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 60%);
     transform: rotate(25deg);
     pointer-events: none;
     z-index: 2;
     mix-blend-mode: screen;
+    opacity: 0;
     transition: opacity 0.4s ease;
 }
 
 .carousel-item.active .card {
-    box-shadow:
-            0 20px 50px rgba(0, 0, 0, 0.35),
-            0 0 30px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     transform: scale(1.03);
 }
 
@@ -127,23 +113,15 @@
 }
 
 .card-content p {
-    font-size: clamp(0.6rem, 1.3vw, 1rem); /* минимален и максимален размер */
+    font-size: clamp(0.6rem, 1.3vw, 1rem);
     line-height: 1.3;
     color: #333;
     margin: 0;
     padding: 0 10px 10px 10px;
-    word-break: break-word;
-    overflow-wrap: break-word;
     text-align: center;
-    width: 100%;
     backface-visibility: hidden;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
     transform: translateZ(0);
-    will-change: transform, opacity;
-
 }
-
 
 .card-content h3 {
     margin: 0 0 10px 0;
@@ -152,17 +130,13 @@
     background: linear-gradient(to right, #015231, #4b9f3e);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    white-space: nowrap;         /* за един ред */
-    overflow: visible;           /* не скрива текста */
-    font-size: 18px;             /* начален размер */
-    max-width: 100%;
-    word-break: normal;
-    text-align: center;          /* центриране на текста */
+    white-space: nowrap;
+    font-size: 18px;
+    text-align: center;
     transform: translateZ(0);
-    will-change: transform, opacity;
     backface-visibility: hidden;
-
 }
+
 .card-content {
     contain: layout paint;
 }
@@ -182,7 +156,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Shine beam overlay */
+/* Shine ефект */
 .card .shine-overlay {
     content: '';
     position: absolute;
@@ -190,12 +164,7 @@
     left: -75%;
     width: 50%;
     height: 100%;
-    background: linear-gradient(
-            120deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.35) 50%,
-            rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0) 100%);
     transform: skewX(-20deg);
     z-index: 5;
     pointer-events: none;
@@ -208,23 +177,11 @@
 }
 
 @keyframes shineMove {
-    0% {
-        left: -75%;
-        opacity: 0;
-    }
-    25% {
-        opacity: 1;
-    }
-    50% {
-        left: 125%;
-        opacity: 1;
-    }
-    100% {
-        left: 125%;
-        opacity: 0;
-    }
+    0% { left: -75%; opacity: 0; }
+    25% { opacity: 1; }
+    50% { left: 125%; opacity: 1; }
+    100% { left: 125%; opacity: 0; }
 }
-
 
 @media (max-width: 768px) {
     html, body {
@@ -233,17 +190,17 @@
 
     .carousel-container {
         padding: 0;
-        overflow: visible; /* позволяваме показване извън контейнера */
+        overflow: visible;
     }
 
     .carousel {
-        height: 360px; /* повече височина */
+        height: 360px;
     }
 
     .carousel-item {
-        width: 100px;
+        width: 200px;
         height: 280px;
-        margin-left: -80px; /* по-малко разстояние между картите */
+        margin-left: -100px;
         margin-top: -140px;
     }
 
@@ -258,11 +215,11 @@
     }
 
     .card-content h3 {
-        font-size: clamp(0.45rem, 2vw, 0.55rem); /* заглавие - оставено както искаше */
+        font-size: clamp(0.45rem, 2vw, 0.55rem);
     }
 
     .card-content p {
-        font-size: clamp(0.5rem, 2.5vw, 0.65rem); /* по-голям текст вътре в картата */
+        font-size: clamp(0.5rem, 2.5vw, 0.65rem);
         padding: 0 6px 10px 6px;
     }
 
@@ -280,7 +237,7 @@
     .carousel-item {
         width: 180px;
         height: 260px;
-        margin-left: -70px;
+        margin-left: -90px;
         margin-top: -130px;
     }
 
@@ -296,4 +253,3 @@
         font-size: clamp(0.45rem, 2.2vw, 0.6rem);
     }
 }
-
