@@ -100,6 +100,7 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
                 .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/heartbeat") // Игнорираме CSRF за heartbeat
                         .ignoringRequestMatchers("/js/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );

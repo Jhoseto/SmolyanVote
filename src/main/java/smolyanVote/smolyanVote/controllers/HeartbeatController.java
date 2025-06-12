@@ -1,39 +1,40 @@
 package smolyanVote.smolyanVote.controllers;
 
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 
-import java.security.Principal;
 import java.time.Instant;
-import java.util.Optional;
 
+@Slf4j
 @RestController
-@RequiredArgsConstructor
 public class HeartbeatController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
+
+    public HeartbeatController(UserRepository userRepository, UserService userService) {
+        this.userRepository = userRepository;
+        this.userService = userService;
+    }
 
     @PostMapping("/heartbeat")
-    public ResponseEntity<Void> heartbeat(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<String> heartbeat() {
+        UserEntity currentUser = userService.getCurrentUser();
+
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        Optional<UserEntity> optionalUser = userRepository.findByUsername(principal.getName());
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        currentUser.setOnlineStatus(1);
+        currentUser.setLastOnline(Instant.now());
+        userRepository.save(currentUser);
 
-        UserEntity user = optionalUser.get();
-        user.setOnlineStatus(1); 
-        user.setLastOnline(Instant.now());
-        userRepository.save(user);
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("OK");
     }
 }

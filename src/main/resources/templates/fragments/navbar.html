@@ -90,7 +90,17 @@
                             Създай събитие
                         </h5>
                         <div class="vote-items">
-                            <a href="/create/simple-vote" class="vote-item">
+                            <!-- Опростен вид -->
+                            <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Опростен вид</h6>
+                                    <p>Създайте просто гласуване с да/не варианти</p>
+                                </div>
+                            </a>
+                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
                                     <i class="bi bi-check-circle"></i>
                                 </div>
@@ -100,7 +110,17 @@
                                 </div>
                             </a>
 
-                            <a href="/create/referendum" class="vote-item">
+                            <!-- Референдум -->
+                            <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Референдум</h6>
+                                    <p>Организирайте официален референдум</p>
+                                </div>
+                            </a>
+                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
                                     <i class="bi bi-people"></i>
                                 </div>
@@ -110,7 +130,17 @@
                                 </div>
                             </a>
 
-                            <a href="/create/poll" class="vote-item">
+                            <!-- Анкета с множествен избор -->
+                            <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item">
+                                <div class="vote-item-icon">
+                                    <i class="bi bi-list-ul"></i>
+                                </div>
+                                <div class="vote-item-content">
+                                    <h6>Анкета с множествен избор</h6>
+                                    <p>Създайте анкета с множество варианти</p>
+                                </div>
+                            </a>
+                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
                                     <i class="bi bi-list-ul"></i>
                                 </div>
@@ -131,6 +161,7 @@
                             <i class="bi bi-eye me-2 text-primary"></i>
                             Разгледай събития
                         </h5>
+
                         <div class="vote-items">
                             <a href="/events/simple-votes" class="vote-item">
                                 <div class="vote-item-icon">
@@ -260,6 +291,9 @@
             }
         });
 
+
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const modal = document.getElementById('yourModalId'); // смени с ID на твоя модал
             if (modal) {
@@ -274,14 +308,67 @@
     </script>
 
 
+    <!-- heartbet -->
     <script th:if="${#authorization.expression('isAuthenticated()')}">
-        function sendHeartbeat() {
-            fetch('/heartbeat', {
-                method: 'POST'
+        document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = document.querySelector('meta[name="_csrf"]');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+
+            function sendHeartbeat() {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                // Добавяме CSRF token ако е наличен
+                if (csrfToken && csrfHeader) {
+                    headers[csrfHeader.content] = csrfToken.content;
+                }
+
+                fetch('/heartbeat', {
+                    method: 'POST',
+                    headers: headers
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('Heartbeat failed:', response.status);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Heartbeat error:', error);
+                    });
+            }
+
+            // Изпрати heartbeat веднага при зареждане
+            sendHeartbeat();
+
+            // Изпрати heartbeat на всяка минута
+            setInterval(sendHeartbeat, 60000);
+        });
+    </script>
+
+    <!-- JS функция за предупреждение -->
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function showLoginWarning() {
+            Swal.fire({
+                icon: 'info',
+                title: 'Моля, влезте в системата',
+                text: 'Трябва да сте влезли в профила си, за да достъпите това съдържание.',
+                showCancelButton: true,
+                confirmButtonText: 'Вход',
+                cancelButtonText: 'Затвори',
+                confirmButtonColor: '#25afb4', // Bootstrap зелено
+                cancelButtonColor: '#6c757d',  // Bootstrap сиво
+                customClass: {
+                    popup: 'rounded-3 shadow'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+                    modal.show();
+                }
             });
         }
-        // Прати веднага при отваряне
-        sendHeartbeat();
-        setInterval(sendHeartbeat, 60000);
     </script>
 </div>
