@@ -9,4 +9,5 @@ public interface MultiPollImageRepository extends JpaRepository<MultiPollImageEn
 
 
     List<MultiPollImageEntity> findByMultiPoll_Id(Long multiPollId);
+
 }

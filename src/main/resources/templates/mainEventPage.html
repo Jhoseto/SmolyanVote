@@ -76,7 +76,7 @@
           <form id="searchForm"
                 th:action="@{/referendum}"
                 method="get">
-            <input type="text" id="eventSearch" name="search" placeholder="Търси ..." aria-label="Търси събития">
+            <input type="text" id="eventSearch" name="search" placeholder="Търси ..." aria-label="Търси събития" autocomplete="off">
             <button type="submit" class="search-button" aria-label="Търси">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--medium-gray)" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -196,16 +196,6 @@
   }
 </script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.event-card .card-title').forEach(title => {
-      const maxHeight = 60;
-      let fontSize = parseFloat(getComputedStyle(title).fontSize);
-      while (title.scrollHeight > maxHeight && fontSize > 10) {
-        fontSize -= 1;
-        title.style.fontSize = fontSize + 'px';
-      }
-    });
-
     const searchInput = document.getElementById('eventSearch');
     searchInput.addEventListener('focus', () => {
       searchInput.parentElement.classList.add('active');
@@ -229,17 +219,18 @@
           const text = item.textContent;
           button.textContent = text;
           button.setAttribute('data-value', value);
+
           // Задейства събитие за филтриране
           const event = new Event('change', { bubbles: true });
           button.dispatchEvent(event);
           console.log(`Филтър ${button.id}:`, value);
+
           // Анимация при избор
           dropdown.classList.add('selected');
           setTimeout(() => dropdown.classList.remove('selected'), 300);
         });
       });
     });
-  });
 </script>
 </body>
 </html>

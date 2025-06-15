@@ -23,6 +23,9 @@ public class DeleteServiceImpl implements DeleteService {
     private final ReferendumImageRepository referendumImageRepository;
     private final CommentsRepository commentsRepository;
     private final ImageCloudinaryService imageCloudinaryService;
+    private final MultiPollRepository multiPollRepository;
+    private final VoteMultiPollRepository voteMultiPollRepository;
+    private final MultiPollImageRepository multiPollImageRepository;
 
     @Autowired
     public DeleteServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -32,7 +35,7 @@ public class DeleteServiceImpl implements DeleteService {
                              SimpleEventImageRepository simpleEventImageRepository,
                              ReferendumImageRepository referendumImageRepository,
                              CommentsRepository commentsRepository,
-                             ImageCloudinaryService imageCloudinaryService) {
+                             ImageCloudinaryService imageCloudinaryService, MultiPollRepository multiPollRepository, VoteMultiPollRepository voteMultiPollRepository, MultiPollImageRepository multiPollImageRepository) {
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -41,6 +44,9 @@ public class DeleteServiceImpl implements DeleteService {
         this.referendumImageRepository = referendumImageRepository;
         this.commentsRepository = commentsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
+        this.multiPollRepository = multiPollRepository;
+        this.voteMultiPollRepository = voteMultiPollRepository;
+        this.multiPollImageRepository = multiPollImageRepository;
     }
 
     public EventType getEventTypeById(Long id) {
@@ -48,6 +54,9 @@ public class DeleteServiceImpl implements DeleteService {
             return EventType.SIMPLEEVENT;
         } else if (referendumRepository.existsById(id)) {
             return EventType.REFERENDUM;
+        } else if (multiPollRepository.existsById(id)) {
+            return EventType.MULTI_POLL;
+
         }
         throw new EntityNotFoundException("Събитието с ID " + id + " не съществува.");
     }
@@ -92,6 +101,18 @@ public class DeleteServiceImpl implements DeleteService {
                 referendumRepository.deleteById(eventId);
                 break;
 
+            case MULTI_POLL:
+                String folderPathMultiPoll = "smolyanVote/multipolls/poll_" + eventId;
+                imageCloudinaryService.deleteFolder(folderPathMultiPoll);
+
+                voteMultiPollRepository.deleteAllByMultiPollId(eventId);
+                commentsRepository.deleteAllByMultiPoll_Id(eventId);
+
+                List<MultiPollImageEntity> multiPollImages = multiPollImageRepository.findByMultiPoll_Id(eventId);
+                multiPollImageRepository.deleteAll(multiPollImages);
+
+                multiPollRepository.deleteById(eventId);
+                break;
             default:
                 throw new UnsupportedOperationException("Тип на събитието не е поддържан за изтриване: " + type);
         }

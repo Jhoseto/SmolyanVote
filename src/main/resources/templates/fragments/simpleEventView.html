@@ -21,14 +21,11 @@
          class="type-label type-label-multi_poll">
       Анкета с множествен отговор
     </div>
-
     <!-- Бутон за изтриване -->
     <div th:if="${#authorization.expression('isAuthenticated()')}">
-      <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or event.creatorName == currentUser.username}"
-           style="position: absolute; top: 10px; right: 10px; z-index: 5;">
+      <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or event.creatorName == currentUser.username}">
         <button type="button"
                 class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
-                style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"
                 data-bs-toggle="modal"
                 th:attr="data-bs-target='#deleteModal__' + ${event.id}">
           ✖
@@ -63,124 +60,109 @@
     <div class="event-image-container">
       <img th:if="${event.images!= null and !event.images.isEmpty()}"
            th:src="${event.images[0]}"
-           alt="Снимка на събитието" class="img-fluid">
+           alt="Снимка на събитието" class="event-image img-fluid">
       <img th:if="${event.images == null or event.images.isEmpty()}"
            src="/images/logo1.png"
-           alt="Снимка на събитието" class="img-fluid default-logo">
+           alt="Снимка на събитието" class="event-image img-fluid default-logo">
     </div>
 
     <!-- Тяло на картата -->
     <div class="card-body event-info">
-
       <!-- Заглавие -->
       <h5 class="card-title" th:text="${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
 
-      <!-- Блок за автора -->
-      <div class="d-flex align-items-center mb-2">
-
-        <!-- Ако има снимка и потребителят е логнат -->
-        <a th:if="${event.creatorImage != null and #authorization.expression('isAuthenticated()')}"
-           th:href="@{/user/{username}(username=${event.creatorName})}">
-          <img th:src="${event.creatorImage}"
-               alt="Автор"
-               class="author-avatar rounded-circle">
-        </a>
-        <!-- Ако има снимка и потребителят НЕ е логнат -->
-        <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
-           href="javascript:void(0);"
-           onclick="showLoginWarning()">
-          <img th:src="${event.creatorImage}"
-               alt="Автор"
-               class="author-avatar rounded-circle">
-        </a>
-
-        <div>
-          <!-- Име на автора -->
-          <!-- Ако е логнат потребителят -->
-          <a th:if="${#authorization.expression('isAuthenticated()')}"
-             th:href="@{/user/{username}(username=${event.creatorName})}"
-             class="text-decoration-none">
-            <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+      <!-- Блок за автора и дата -->
+      <div class="author-date-block d-flex justify-content-between align-items-center mb-3" >
+        <div class="author-info d-flex align-items-center">
+          <!-- Снимка на автора -->
+          <a th:if="${event.creatorImage != null and #authorization.expression('isAuthenticated()')}"
+             th:href="@{/user/{username}(username=${event.creatorName})}">
+            <img th:src="${event.creatorImage}"
+                 alt="Автор"
+                 class="author-avatar rounded-circle">
           </a>
-          <!-- Ако НЕ е логнат -->
-          <a th:if="${!#authorization.expression('isAuthenticated()')}"
+          <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
              href="javascript:void(0);"
-             onclick="showLoginWarning()"
-             class="text-decoration-none">
-            <small class="text-muted d-block" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+             onclick="showLoginWarning()">
+            <img th:src="${event.creatorImage}"
+                 alt="Автор"
+                 class="author-avatar rounded-circle">
+          </a>
+          <a th:if="${event.creatorImage == null}"
+             href="javascript:void(0);"
+             onclick="showLoginWarning()">
+            <img src="/images/default-avatar.png"
+                 alt="Автор"
+                 class="author-avatar rounded-circle">
           </a>
 
-          <div class="d-flex align-items-center">
-            <span th:classappend="${event.creatorOnlineStatus == 1} ? 'bg-success' : 'bg-danger'"
-                  class="status-dot rounded-circle me-1"></span>
-            <small th:text="${event.creatorOnlineStatus == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
+          <!-- Име и статус -->
+          <div class="ms-2">
+            <a th:if="${#authorization.expression('isAuthenticated()')}"
+               th:href="@{/user/{username}(username=${event.creatorName})}"
+               class="text-decoration-none">
+              <small class="text-muted d-block fw-bold" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+            </a>
+            <a th:if="${!#authorization.expression('isAuthenticated()')}"
+               href="javascript:void(0);"
+               onclick="showLoginWarning()"
+               class="text-decoration-none">
+              <small class="text-muted d-block fw-bold" th:text="${event.creatorName ?: 'Анонимен'}">Автор</small>
+            </a>
+            <div class="d-flex align-items-center">
+              <span th:classappend="${event.creatorOnlineStatus == 1} ? 'bg-success' : 'bg-danger'"
+                    class="status-dot rounded-circle me-1"></span>
+              <small th:text="${event.creatorOnlineStatus == 1} ? 'Онлайн' : 'Офлайн'" class="text-muted"></small>
+            </div>
           </div>
+        </div>
+
+        <!-- Дата -->
+        <div class="date-info text-end">
+          <small class="text-muted d-block">Създадено на:</small>
+          <small class="text-muted fw-bold"
+                 th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy  ' ) : 'Неизвестна дата'}">Неизвестна дата</small>
         </div>
       </div>
 
       <!-- Блок за информация -->
-      <div class="mb-2 text-muted small">
-        <div>
-          Създадено на:
-          <span th:text="${event.createdAt != null ? #dates.format(event.createdAt, 'dd.MM.yyyy HH:mm') : 'Неизвестна дата'}">Неизвестна дата</span>
+      <div class="event-stats mb-3">
+        <div class="stat-item d-flex justify-content-between">
+          <small class="text-muted">Гласували:</small>
+          <small class="text-muted fw-bold" th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</small>
         </div>
-        <div>
-          Гласували:
-          <span th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</span> души
-        </div>
-        <div>
-          Преглеждания:
-          <span th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</span> души
+        <div class="stat-item d-flex justify-content-between">
+          <small class="text-muted">Преглеждания:</small>
+          <small class="text-muted fw-bold" th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</small>
         </div>
       </div>
 
-      <!-- Ако потребителят е логнат -->
-      <div th:if="${#authorization.expression('isAuthenticated()')}">
-        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
-           th:href="@{/event/{id}(id=${event.id})}"
-           class="btn btn-custom">
-          Виж повече
-        </a>
-
-        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
-           th:href="@{/referendum/{id}(id=${event.id})}"
-           class="btn btn-custom">
-          Виж повече
-        </a>
-
-        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
-           th:href="@{/multipoll/{id}(id=${event.id})}"
-           class="btn btn-custom">
+      <!-- Бутон "Виж повече" -->
+      <div class="text-left">
+        <div th:if="${#authorization.expression('isAuthenticated()')}">
+          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
+             th:href="@{/event/{id}(id=${event.id})}"
+             class="btn btn-custom w-100">
+            Виж повече
+          </a>
+          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
+             th:href="@{/referendum/{id}(id=${event.id})}"
+             class="btn btn-custom w-100">
+            Виж повече
+          </a>
+          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
+             th:href="@{/multipoll/{id}(id=${event.id})}"
+             class="btn btn-custom w-100">
+            Виж повече
+          </a>
+        </div>
+        <a th:if="${#authorization.expression('!isAuthenticated()')}"
+           href="javascript:void(0);"
+           onclick="showLoginWarning()"
+           class="btn btn-custom w-100">
           Виж повече
         </a>
       </div>
-
-      <!-- Ако потребителят НЕ е логнат -->
-      <a th:if="${#authorization.expression('!isAuthenticated()')}"
-         href="javascript:void(0);"
-         onclick="showLoginWarning()"
-         class="btn btn-custom">
-        Виж повече
-      </a>
-
     </div>
   </div>
 </div>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.event-container').forEach(container => {
-      container.classList.add('loaded');
-    });
-
-    document.querySelectorAll('.event-card .card-title').forEach(title => {
-      const containerHeight = title.parentElement.clientHeight * 0.25; // Максимум 25% от височината на родителя
-      let fontSize = 1.0; // Начален размер в rem
-      title.style.fontSize = fontSize + 'rem';
-
-      while (title.scrollHeight > containerHeight && fontSize > 1) {
-        fontSize -= 0.08;
-        title.style.fontSize = fontSize + 'rem';
-      }
-    });
-  });
-</script>
