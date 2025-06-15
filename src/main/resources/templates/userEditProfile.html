@@ -5,22 +5,16 @@
     <title>Профил на потребителя</title>
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
-    <!-- ✅ Favicon -->
-    <link rel="icon" type="image/x-icon" href="/images/logo1.png">
-    <link rel="stylesheet" href="/css/userProfile.css">
-    <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
-    <link rel="stylesheet" href="/css/footer.css">
-    <link rel="stylesheet" href="/css/mainEventPage.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+    <link rel="stylesheet" href="/css/simpleEventCard.css">
+    <link rel="stylesheet" href="/css/userProfile.css">
 </head>
 <body>
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-
 <div class="profile-container">
-
     <!-- Горна секция с корица -->
     <div class="cover-photo">
         <!-- по избор, може да добавиш динамично изображение -->
@@ -40,41 +34,11 @@
             </div>
         </div>
         <!-- Бутон за редактиране -->
-        <button class="edit-profile-btn" onclick="openEditModal()">Редактирай профил</button>
-
-        <!-- Модал за редактиране -->
-        <div id="editModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeEditModal()">&times;</span>
-                <h3>Редакция на профила</h3>
-                <!-- Форма за редакция -->
-                <form method="post"
-                      enctype="multipart/form-data"
-                      th:action="@{/profile/update}">
-                    <label>Профилна снимка:</label>
-                    <input type="file" name="profileImage"><br><br>
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-
-                    <!-- Локация с dropdown -->
-                    <label for="location">Локация:</label>
-                    <select class="form-select" id="location" name="location" required>
-                        <option value="NONE">Избери локация</option>
-                        <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
-                    </select><br><br>
-
-                    <label>Био:</label>
-                    <textarea name="bio" th:text="${currentUser.bio}"></textarea><br><br>
-
-                    <button type="submit" class="save-btn">Запази</button>
-                </form>
-            </div>
-        </div>
-
+        <button class="edit-profile-btn" data-bs-toggle="modal" data-bs-target="#editModal">Редактирай профил</button>
     </div>
 
     <!-- Секции с допълнителна информация -->
     <div class="profile-sections">
-
         <div class="section">
             <h3>Информация</h3>
             <ul>
@@ -83,57 +47,47 @@
                 <li>Присъединил се: <strong th:text="${currentUser.created != null ? #dates.format(currentUser.created, 'dd.MM.yyyy / HH:mm') : 'Неизвестно'}"></strong></li>
             </ul>
         </div>
-
         <div class="section">
             <h3>Рейтинг</h3>
             <p>Име на рейтинга + икона</p>
         </div>
-
     </div>
 
     <!-- Секция със събития -->
     <div class="user-events">
         <h3>Моите Събития</h3>
         <div class="events-list">
-
-            <!-- Thymeleaf фрагмент или динамичен изход тук -->
             <div th:each="event : ${userEvents}" th:insert="~{fragments/simpleEventView :: simple-event}"></div>
-
         </div>
     </div>
-
 </div>
 
-<script>
-    function openEditModal() {
-        document.getElementById("editModal").style.display = "block";
-    }
+<!-- Модал за редактиране -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <span class="close" data-bs-dismiss="modal" aria-label="Close">×</span>
+            <h3>Редакция на профила</h3>
+            <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}">
+                <label>Профилна снимка:</label>
+                <input type="file" name="profileImage"><br><br>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <label for="location">Локация:</label>
+                <select class="form-select" id="location" name="location" required>
+                    <option value="NONE">Избери локация</option>
+                    <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
+                </select><br><br>
+                <label>Био:</label>
+                <textarea name="bio" th:text="${currentUser.bio}"></textarea><br><br>
+                <button type="submit" class="save-btn">Запази</button>
+            </form>
+        </div>
+    </div>
+</div>
 
-    function closeEditModal() {
-        document.getElementById("editModal").style.display = "none";
-    }
+<!-- Футър -->
+<div th:replace="~{fragments/footer :: footer}"></div>
 
-    window.onclick = function(event) {
-        const modal = document.getElementById("editModal");
-        if (event.target === modal) {
-            closeEditModal();
-        }
-    }
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.event-card .card-title').forEach(title => {
-            const maxHeight = 60; // напр. максимум 60px височина
-            let fontSize = parseFloat(getComputedStyle(title).fontSize);
-
-            while (title.scrollHeight > maxHeight && fontSize > 10) {
-                fontSize -= 1;
-                title.style.fontSize = fontSize + 'px';
-            }
-        });
-    });
-</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

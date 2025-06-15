@@ -1,288 +1,479 @@
-/* Основни настройки */
+/* Color Variables and Global Settings */
+:root {
+    /* Color Palette - Modern Green Gradients */
+    --primary-green: #19861c;
+    --secondary-green: #a9a9a9;
+    --accent-green: #81C784;
+    --light-green: #E8F5E8;
+    --dark-green: #1B5E20;
+
+    /* Neutral Colors */
+    --white: #ffffff;
+    --light-gray: #F8F9FA;
+    --medium-gray: #6C757D;
+    --dark-gray: #212529;
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #0F7B59 0%, #4CAF50 100%);
+    --gradient-secondary: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+    --shadow-xl: 0 25px 50px rgba(0,0,0,0.25);
+
+    /* Typography */
+    --font-primary: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-secondary: 'Playfair Display', 'Georgia', serif;
+
+    /* Animations */
+    --animation-fast: 1.8s;
+    --animation-normal: 3.0s;
+    --animation-slow: 2.5s;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+    /* Sizes and Spacing */
+    --profile-container-width: 1200px;
+    --cover-height: 250px;
+    --profile-img-size: 120px;
+    --section-gap: 1.5rem;
+    --section-padding: 1.5rem;
+    --modal-width: 500px;
+}
+
+/* Global Styles */
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f0f2f5;
-    color: #333;
+    background: var(--light-gray);
+    font-family: var(--font-primary), serif;
+    color: var(--text-primary);
+    margin: -33px !important;
 }
 
-/* Контейнер */
+/* Profile Container */
 .profile-container {
-    max-width: 1200px;
-    margin: auto;
-    background: linear-gradient(to right, #5d987c, #1e7868);
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 40px;
-    animation: fadeIn 0.6s ease-in-out;
+    max-width: var(--profile-container-width);
+    margin: 2rem auto;
+    padding: 0 1rem;
+    animation: fadeInUp 1.2s var(--ease-out-expo) forwards;
+    overflow: visible;
 }
 
-/* Корица */
+/* Cover Photo */
 .cover-photo {
-    background: linear-gradient(to right, #5d987c, #1e7868);
-    height: 180px;
+    height: var(--cover-height);
+    background: var(--gradient-primary);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
 }
 
-/* Основна информация */
+.cover-photo::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+    animation: containerShimmer var(--animation-normal) ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Profile Info */
 .profile-info {
     display: flex;
-    padding: 20px 30px;
-    border-bottom: 1px solid #e0e0e0;
-    background: linear-gradient(to right, #5d987c, #1e7868);
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--gradient-glass);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 20px 0 30px 15px ;
+    margin: -80px 0 0 0;
+    box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     position: relative;
-    top: -50px;
+    z-index: 1;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: visible;
+}
+
+.profile-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+    animation: containerShimmer var(--animation-normal) ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.profile-info:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Profile Image */
+.profile-img {
+    flex-shrink: 0;
 }
 
 .profile-img img {
-    width: 120px;
-    height: 120px;
+    width: var(--profile-img-size);
+    height: var(--profile-img-size);
     border-radius: 50%;
-    border: 5px solid #fff;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
     object-fit: cover;
+    border: 4px solid var(--white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
 }
 
+.profile-img img:hover {
+    transform: scale(1.05);
+}
+
+/* Profile Details */
 .profile-details {
-    margin-left: 30px;
     flex: 1;
 }
 
-/* Текстове с два нюанса */
 .username {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-    background: linear-gradient(to right, #ffffff, #ffffff);
+    font-family: var(--font-secondary), serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 55px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F0F8FF 50%, #E8F5E8 100%);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-}
-
-.location {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-    background: linear-gradient(to right, #000000, #000000);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .bio {
-    font-style: italic;
-    margin-bottom: 15px;
-    background: linear-gradient(to right, #000000, #000000);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    max-width: 600px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .stats {
+    font-family: var(--font-secondary), serif;
     display: flex;
-    gap: 20px;
-    font-size: 1rem;
-    background: linear-gradient(to right, #1e7868, #5d987c);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    gap: 2rem;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    padding-left: 2px;
 }
 
-/* Секции */
+.stats span strong {
+    color: var(--primary-green);
+    font-weight: 400;
+}
+
+/* Edit Profile Button */
+.edit-profile-btn {
+    background: var(--gradient-secondary);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: absolute;
+    top: var(--section-padding);
+    right: var(--section-padding);
+}
+
+.edit-profile-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+}
+
+.edit-profile-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -6%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: transform 0.4s ease;
+}
+
+.edit-profile-btn:hover::before {
+    transform: translateX(100%);
+}
+
+/* Modal */
+.modal.fade .modal-dialog {
+    max-width: var(--modal-width);
+    margin: 150px 0 0 680px;
+    padding:0 15px 0 15px !important;
+}
+
+.modal-content {
+    background: var(--gradient-glass) !important;
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    position: relative;
+    margin: 0 0 0 0 !important;
+    padding: 15px 15px 15px 15px !important;
+}
+
+
+.modal-content .close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    color: white;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    line-height: 1;
+}
+
+.modal-content .close:hover {
+    color: var(--primary-green);
+}
+
+.modal-content h3 {
+    font-family: var(--font-secondary), serif;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin: 0 0 0 0;
+    padding: 0 0 20px 90px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.modal-content label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    margin: 0 0 7px 0;
+    padding: 0 0 0 3px;
+}
+
+.modal-content input[type="file"],
+.modal-content select,
+.modal-content textarea {
+    margin: -5px 0 0 0;
+    padding: 0 0 0 4px;
+    border: 2px solid var(--light-gray);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-content input[type="file"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(129, 199, 132, 0.3);
+    outline: none;
+}
+
+.modal-content textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.save-btn {
+    background: var(--gradient-primary);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 150px 0 150px;
+    padding: 0 0 0 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 123, 89, 0.3);
+    margin: 0 150px 0 150px;
+}
+
+/* Profile Sections */
 .profile-sections {
-    padding: 30px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    background: linear-gradient(to right, #f9f9f9, #e0e0e0); /* Сив фон за секциите */
+    grid-template-columns: 2fr 1fr;
+    gap: var(--section-gap);
+    margin-top: var(--section-gap);
+}
+
+.section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: var(--section-padding);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.section:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
 }
 
 .section h3 {
-    margin-bottom: 10px;
-    font-size: 1.4rem;
-    font-weight: bold;
-    background: linear-gradient(to right, #1e7868, #5d987c);
+    font-family: var(--font-secondary), serif;
+    font-size: 1.3rem;
+    color: white;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-    border-bottom: 3px solid #fff;
-    padding-bottom: 5px;
+    -webkit-text-fill-color: transparent;
 }
 
 .section ul {
     list-style: none;
     padding: 0;
-    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
 }
 
 .section ul li {
-    padding: 5px 0;
-    font-size: 1rem;
-    color: #333;
-    transition: color 0.3s ease;
+    margin-bottom: 0.5rem;
 }
 
-.section ul li:hover {
-    color: #5d987c; /* Поставяне на цветен ефект при задържане на курсора */
+.section ul li strong {
+    color: var(--text-primary);
 }
 
-/* Събития */
+/* User Events */
 .user-events {
-    padding: 30px;
-    background: linear-gradient(to right, #f9f9f9, #e0e0e0); /* Бел фон със сив нюанс */
-    border-top: 1px solid #eee;
+    margin-top: var(--section-gap);
 }
 
 .user-events h3 {
-    margin-bottom: 20px;
-    font-size: 1.6rem;
-    font-weight: bold;
-    background: linear-gradient(to right, #1e7868, #5d987c);
+    font-family: var(--font-secondary), serif;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-left: 24px;
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-    border-left: 4px solid #fff;
-    padding-left: 10px;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Редове за събития */
 .events-list {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 на ред */
-    gap: 20px;
-    padding: 0 20px;
-    grid-auto-rows: 1fr; /* Изравняване на височината на редовете */
-    grid-template-rows: auto; /* Това ще разреши всяка клетка да има еднаква височина */
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: var(--section-gap);
 }
 
-/* Кутии със събития */
-.events-list .event-container {
-    background-color: #fff;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-    min-height: 200px; /* Минимална височина, за да се изравнят */
-    transition: transform 0.3s ease;
-    flex-grow: 1; /* Осигурява еднаква височина за контейнерите */
+/* Animations */
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.events-list .event-container:hover {
-    transform: translateY(-10px); /* Лека анимация при задържане на курсора */
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-/* Мобилна поддръжка */
-@media (max-width: 768px) {
+@keyframes containerShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .profile-sections {
+        grid-template-columns: 1fr;
+    }
+
     .profile-info {
         flex-direction: column;
         align-items: center;
         text-align: center;
     }
 
-    .profile-details {
-        margin-left: 0;
-        margin-top: 15px;
+    .edit-profile-btn {
+        position: static;
+        margin-top: 1rem;
     }
 
-    .profile-sections {
-        grid-template-columns: 1fr; /* 1 на ред за малки екрани */
+    .profile-img img {
+        width: 100px;
+        height: 100px;
+    }
+
+    .username {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .cover-photo {
+        height: 200px;
+    }
+
+    .profile-container {
+        padding: 0 0.5rem;
+    }
+
+    .profile-info {
+        padding: 1rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .modal-content {
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .section h3 {
+        font-size: 1.2rem;
+    }
+
+    .user-events h3 {
+        font-size: 1.3rem;
     }
 
     .events-list {
-        grid-template-columns: 1fr 1fr; /* 2 на ред за по-малки екрани */
+        grid-template-columns: 1fr;
     }
-}
-
-/* Малка анимация */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Бутон за редактиране на профила */
-.edit-profile-btn {
-    margin-left: auto;
-    background: linear-gradient(to right, rgba(93, 152, 124, 0.66), rgba(30, 120, 104, 0.68));
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.edit-profile-btn:hover {
-    background: linear-gradient(to right, #1e7868, #5d987c);
-}
-
-.edit-profile-btn:focus {
-    outline: 2px solid #5d987c; /* Добавяне на контур при фокусиране */
-    outline-offset: 2px;
-}
-
-/* Модал */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 99;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(3px);
-}
-
-.modal-content {
-    background: linear-gradient(to right, #5d987c, #1e7868);
-    margin: 8% auto;
-    padding: 30px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 500px;
-    position: relative;
-    animation: fadeIn 0.4s ease;
-}
-
-.modal-content h3 {
-    margin-top: 0;
-    color: #fff;
-}
-
-.modal-content input,
-.modal-content textarea {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-.modal-content .save-btn {
-    margin-top: 20px;
-    padding: 10px 20px;
-    background: linear-gradient(to right, #5d987c, #1a8081);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-}
-
-.modal-content .save-btn:hover {
-    background: linear-gradient(to right, #1e7868, #5d987c);
-}
-
-.close {
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    font-size: 24px;
-    color: #777;
-    cursor: pointer;
 }
