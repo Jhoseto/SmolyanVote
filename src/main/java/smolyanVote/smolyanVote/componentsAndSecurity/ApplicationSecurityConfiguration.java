@@ -54,7 +54,7 @@ public class ApplicationSecurityConfiguration {
 
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
-                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**",
+                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**","/static/**",
                                 "/", "//", "/forgotten_password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents", "/mainEventPage", "/event",
@@ -100,8 +100,9 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/heartbeat") // Игнорираме CSRF за heartbeat
-                        .ignoringRequestMatchers("/js/**")
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat")
+                       // .ignoringRequestMatchers("/heartbeat") // Игнорираме CSRF за heartbeat
+                       // .ignoringRequestMatchers("/js/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 
