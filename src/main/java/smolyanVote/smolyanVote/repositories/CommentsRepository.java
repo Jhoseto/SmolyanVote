@@ -26,5 +26,6 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Transactional
     void deleteAllByReferendum_Id(Long referendumId);
 
+    void deleteAllByMultiPoll_Id(Long eventId);
 }
 

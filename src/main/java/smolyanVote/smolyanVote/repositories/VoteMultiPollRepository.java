@@ -17,4 +17,6 @@ public interface VoteMultiPollRepository extends JpaRepository<VoteMultiPollEnti
     List<VoteMultiPollEntity> findAllByMultiPoll_IdAndUser_Id(Long multiPollId, Long userId);
 
     boolean existsByMultiPollIdAndUserId(Long multiPollId, Long userId);
+
+    void deleteAllByMultiPollId(Long eventId);
 }
