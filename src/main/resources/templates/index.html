@@ -98,16 +98,37 @@
   </div>
 </div>
 
-<!-- Видеопрезентация -->
-<section class="py-5 text-center" style="background-color: #f9f9f9;">
+<section class="video-section py-5">
   <div class="container">
-    <div class="ratio ratio-16x9 mx-auto" style="max-width: 600px;">
-      <mux-player
-              playback-id="bLLgklxk00010223uuEqWDL1qTf75YngmvaFmnssDY01u8g"
-              metadata-viewer-user-id="Placeholder (optional)"
-              metadata-video-title="SmolyanVote_promo1"
-              poster="https://image.mux.com/bLLgklxk00010223uuEqWDL1qTf75YngmvaFmnssDY01u8g/thumbnail.png?height=640&width=360&time=1"
-      ></mux-player>
+    <div class="video-stats-wrapper">
+      <div class="video-container">
+        <div class="ratio ratio-16x9">
+          <mux-player
+                  playback-id="bLLgklxk00010223uuEqWDL1qTf75YngmvaFmnssDY01u8g"
+                  metadata-viewer-user-id="Placeholder (optional)"
+                  metadata-video-title="SmolyanVote_promo1"
+                  poster="https://image.mux.com/bLLgklxk00010223uuEqWDL1qTf75YngmvaFmnssDY01u8g/thumbnail.png?height=640&width=360&time=1"
+          ></mux-player>
+        </div>
+      </div>
+      <div class="stats-container">
+        <div class="stat-item">
+          <h2 class="stat-title">Потребители</h2>
+          <span class="stat-number" data-target="366">0</span>
+        </div>
+        <div class="stat-item">
+          <h2 class="stat-title">Опростен вид събития</h2>
+          <span class="stat-number" data-target="22">0</span>
+        </div>
+        <div class="stat-item">
+          <h2 class="stat-title">Референдуми</h2>
+          <span class="stat-number" data-target="38">0</span>
+        </div>
+        <div class="stat-item">
+          <h2 class="stat-title">Мулти Анкети</h2>
+          <span class="stat-number" data-target="19">0</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -123,6 +144,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/futuresCarossel.js" defer></script>
+<script src="/js/index.js" defer></script>
 <script src="https://unpkg.com/@mux/mux-player"></script>
 
 <script>

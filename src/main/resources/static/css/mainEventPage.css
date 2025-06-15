@@ -1,40 +1,358 @@
-/* Основен фон и текст */
-body {
-    background-color: #f8f9fa;
-    color: #212529;
-}
+:root {
+    /* Color Palette - Modern Green Gradients */
+    --primary-green: #8d8d8d;
+    --secondary-green: #c8c9c8;
+    --accent-green: #81C784;
+    --light-green: #E8F5E8;
+    --dark-green: #1B5E20;
 
-/* Hero секция */
+    /* Neutral Colors */
+    --white: #ffffff;
+    --light-gray: #F8F9FA;
+    --medium-gray: #6C757D;
+    --dark-gray: #212529;
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #0F7B59 0%, #4CAF50 100%);
+    --gradient-secondary: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+    --shadow-xl: 0 25px 50px rgba(0,0,0,0.25);
+
+    /* Typography */
+    --font-primary: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-secondary: 'Playfair Display', 'Georgia', serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Animations */
+    --animation-fast: 1.8s;
+    --animation-normal: 3.0s;
+    --animation-slow: 2.5s;
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+    /* Animation Intervals */
+    --hero-bg-duration: 35s;
+    --title-glow-duration: 10s;
+    --title-shimmer-duration: 12s;
+    --button-pulse-duration: 5s;
+    --container-shimmer-duration: 8s;
+    --particles-duration: 40s;
+}
+/* Hero Section */
 .hero {
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), center/cover no-repeat;
-    color: white;
-    padding: 120px 0;
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    border-bottom: 4px solid #25afb4;
+    overflow: hidden;
+    padding-top: 30px;
+    background-size: cover;
 }
 
-
-.hero .btn {
-    font-size: 0.85rem;
-    padding: 0.4rem 1rem;
-    border-radius: 1.5rem;
-    background-color: rgba(255, 255, 255, 0.56);
-    color: #333;
-    border: 1px solid #ccc;
-    transition: all 0.3s ease;
+.hero .container {
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+    -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 2rem 2.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    animation: heroSlideUp 1.2s var(--ease-out-expo) forwards;
+    max-width: 1200px;
+    margin: 65px auto -16px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    opacity: 1;
 }
 
-.hero .btn:hover {
-    background-color: #f0f0f0;
-    color: #000;
+.hero .container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    animation: containerShimmer var(--container-shimmer-duration) ease-in-out infinite;
+    pointer-events: none;
 }
 
-/* Събития */
+.hero .display-4 {
+    font-family: var(--font-secondary), serif;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    text-shadow:
+            0 4px 8px rgba(0,0,0,0.4),
+            0 2px 4px rgba(0,0,0,0.3);
+    background: var(--gradient-secondary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F0F8FF 50%, #E8F5E8 100%);
+    animation: titleGlow var(--title-glow-duration) ease-in-out infinite alternate;
+    width: 70%;
+    text-align: center;
+    position: relative;
+}
+
+.hero .display-4::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.3) 50%, transparent 55%);
+    animation: titleShimmer var(--title-shimmer-duration) ease-in-out infinite;
+    pointer-events: none;
+}
+
+.hero .lead {
+    font-family: var(--font-primary), serif;
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: fadeInUp 1.4s var(--ease-out-expo) 0.4s forwards;
+    width: 100%;
+    text-align: center;
+}
+
+/* Create Event Buttons */
+.create-event-buttons {
+    flex: 0 0 30%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.create-event-buttons div {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--white);
+    padding: 0.8rem 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.4s var(--ease-out-quart);
+    animation: buttonPulse var(--button-pulse-duration) ease-in-out infinite;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-primary:hover {
+    background: var(--gradient-secondary);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: var(--shadow-lg), 0 0 15px rgba(129, 199, 132, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--white);
+    padding: 0.8rem 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.4s var(--ease-out-quart);
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn-outline:hover {
+    background: var(--gradient-secondary);
+    color: var(--white);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: var(--shadow-md), 0 0 10px rgba(129, 199, 132, 0.4);
+    border-color: var(--accent-green);
+}
+
+/* Search and Filter Container */
+.search-filter-container {
+    padding: 35px 0 0 0 ;
+    flex: 0 0 65%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.search-bar {
+    margin: 0 550px 0 0;
+    padding: 0 0 0 0;
+    position: relative;
+    max-width: 600px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.8rem 1.5rem 0.8rem 3rem;
+    font-size: 1rem;
+    font-family: var(--font-primary), serif;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.4s var(--ease-out-quart);
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: var(--shadow-md), 0 0 15px rgba(129, 199, 132, 0.4);
+    transform: scale(1.02);
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: stroke 0.3s ease;
+}
+
+.search-bar input:focus + .search-icon svg {
+    stroke: var(--accent-green);
+}
+
+.filter-sort-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-dropdown {
+    position: relative;
+}
+
+.filter-dropdown select {
+    font-size: 0.9rem;
+    font-family: var(--font-primary), serif;
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s var(--ease-out-quart);
+    appearance: none;
+    padding: 0.6rem 2rem 0.6rem 1rem;
+    background: rgba(255, 255, 255, 0.15) url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>') no-repeat right 0.8rem center;
+    background-size: 12px;
+    min-width: 150px;
+}
+
+.filter-dropdown select:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: var(--shadow-md), 0 0 10px rgba(129, 199, 132, 0.3);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.filter-dropdown select:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero {
+        min-height: 80vh;
+        padding: 1.5rem 0;
+    }
+
+    .hero .container {
+        max-width: 95%;
+        padding: 1.5rem;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .create-event-buttons {
+        flex: 0 0 100%;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-filter-container {
+        flex: 0 0 100%;
+    }
+
+    .filter-sort-group {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .filter-dropdown select {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .btn-primary, .btn-outline {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero .display-4 {
+        font-size: clamp(1.8rem, 5vw, 2.5rem);
+    }
+
+    .hero .lead {
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
+    }
+
+    .search-bar input {
+        font-size: 0.9rem;
+        padding: 0.7rem 1.2rem 0.7rem 2.5rem;
+    }
+
+    .filter-dropdown select {
+        font-size: 0.8rem;
+    }
+}
+
+/* Event Container (Unchanged) */
 .event-container {
-    margin-top: 10px;
+    margin-top: 0;
 }
 
-/* Пагинация */
+/* Pagination (Unchanged) */
 .pagination {
     margin-top: 30px;
     display: flex;
@@ -83,14 +401,14 @@ body {
     padding: 8px 12px;
 }
 
-/* Статус точка */
+/* Status Dot (Unchanged) */
 .status-dot {
     width: 10px;
     height: 10px;
     display: inline-block;
 }
 
-/* Изключване на hover ефект при отворен модал */
+/* Disable hover effect when modal is open (Unchanged) */
 .modal-open .event-card:hover {
     transform: none !important;
     box-shadow: none !important;

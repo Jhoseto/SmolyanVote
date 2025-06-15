@@ -1,14 +1,14 @@
 /* CSS Custom Properties (Variables) */
 :root {
   /* Color Palette - Modern Green Gradients */
-  --primary-green: #0F7B59;
-  --secondary-green: #4CAF50;
+  --primary-green: #19861c;
+  --secondary-green: #a9a9a9;
   --accent-green: #81C784;
   --light-green: #E8F5E8;
   --dark-green: #1B5E20;
 
   /* Neutral Colors */
-  --white: #FFFFFF;
+  --white: #ffffff;
   --light-gray: #F8F9FA;
   --medium-gray: #6C757D;
   --dark-gray: #212529;
@@ -47,18 +47,22 @@
   --particles-duration: 40s;
 }
 
+/* Global Styles */
+html {
+  scroll-behavior: smooth;
+}
+
 /* Hero Section */
 .hero {
   position: relative;
-  background: url('static/images/web/background2222.png') no-repeat center center;
   background-size: cover;
-  min-height: 90vh;
+  min-height: 70vh;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   text-align: center;
   overflow: hidden;
-  padding: 2rem 0 4rem 0;
+  padding: 2rem 0 0 0;
 }
 
 .hero .container {
@@ -231,20 +235,17 @@
   }
 }
 
-/* Title Section with Full Width Background */
+/* Title Section */
 .title-section .container {
   max-width: none;
-  padding: 0;
-  margin: auto;
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
   width: 100%;
 }
 
 .title-section {
   padding: 1rem 0;
-  background:
-          linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%),
-          radial-gradient(circle at 30% 20%, rgba(15, 123, 89, 0.05) 0%, transparent 50%),
-          radial-gradient(circle at 70% 80%, rgba(76, 175, 80, 0.03) 0%, transparent 50%);
+  background-color: #fdfdfe;
   position: relative;
   overflow: hidden;
   width: 100%;
@@ -258,7 +259,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.4) 50%, transparent 52%);
+  background: linear-gradient(45deg, transparent 48%, rgb(255, 255, 255) 50%, transparent 52%);
   animation: sectionShimmer 12s ease-in-out infinite;
   pointer-events: none;
   opacity: 0.6;
@@ -277,8 +278,9 @@
   display: block;
   text-align: center;
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  margin: 0 0 0 0;
+  padding: 0 0 0 0;
+  background-color: #fdfdfe;
 }
 
 .clickable-title:hover .title-question {
@@ -367,92 +369,121 @@
 
 @keyframes textGlow {
   0% {
-    filter: drop-shadow(0 0 2px rgba(15, 123, 89, 0.3));
+    filter: drop-shadow(0 0 2px rgba(15, 123, 88, 0.3));
   }
   100% {
-    filter: drop-shadow(0 0 8px rgba(15, 123, 89, 0.5));
+    filter: drop-shadow(0 0 8px rgba(15, 123, 88, 0.5));
   }
 }
 
-/* Enhanced Video Section */
+/* Video Section */
 .video-section {
-  background:
-          linear-gradient(135deg, rgba(15, 123, 89, 0.03) 0%, rgba(76, 175, 80, 0.02) 100%),
-          radial-gradient(circle at 25% 25%, rgba(15, 123, 89, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 75% 75%, rgba(76, 175, 80, 0.06) 0%, transparent 50%);
   position: relative;
+  padding: 2rem 0;
+  background: var(--gradient-glass);
+  backdrop-filter: blur(10px);
   overflow: hidden;
 }
 
-.video-section::before {
+.video-stats-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.video-container {
+  flex: 0 0 50%;
+  position: relative;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: var(--gradient-glass);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.video-container::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: var(--gradient-secondary);
+  border-radius: 16px;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+.video-container:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-xl);
+}
+
+mux-player {
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.stats-container {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  position: relative;
+}
+
+.stat-title {
+  font-family: var(--font-secondary), serif;
+  font-size: clamp(1.4rem, 3vw, 2.0rem);
+  font-weight: 700;
+  padding-top: 10px;
+  color: var(--white);
+  line-height: 1.2;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.44);
+  background: linear-gradient(135deg, #8c8b8b 0%, #9a9b9b 50%, #747574 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGlow var(--title-glow-duration) ease-in-out infinite alternate;
+  margin-bottom: 0.5rem;
+}
+
+.stat-title::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background:
-          repeating-linear-gradient(
-                  45deg,
-                  transparent,
-                  transparent 2px,
-                  rgba(255, 255, 255, 0.02) 2px,
-                  rgba(255, 255, 255, 0.02) 4px
-          );
+  background: linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.2) 50%, transparent 55%);
+  animation: titleShimmer var(--title-shimmer-duration) ease-in-out infinite;
   pointer-events: none;
 }
 
-.video-container {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow:
-          0 20px 60px rgba(0, 0, 0, 0.15),
-          0 8px 25px rgba(0, 0, 0, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s ease;
-  animation: videoFloat 6s ease-in-out infinite;
+.stat-number {
+  font-family: serif;
+  font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+  font-weight: 900;
+  padding: 0 0 0 30px;
+  color: var(--white);
+  line-height: 1.2;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.44);
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textGlow 3s ease-in-out infinite alternate;
 }
-
-.video-container:hover {
-  transform: scale(1.02) translateY(-5px);
-  box-shadow:
-          0 30px 80px rgba(0, 0, 0, 0.2),
-          0 12px 35px rgba(0, 0, 0, 0.15),
-          inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-@keyframes videoFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-.video-container::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, var(--primary-green), var(--secondary-green), var(--accent-green), var(--primary-green));
-  border-radius: 22px;
-  z-index: -1;
-  animation: borderGlow 4s ease-in-out infinite;
-}
-
-@keyframes borderGlow {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
-}
-
-mux-player {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -461,44 +492,99 @@ mux-player {
   }
 
   .clickable-title {
-    padding: 0 1.5rem;
+    padding: 0 1rem;
   }
 
   .title-question {
-    margin-bottom: 0.5rem;
+    display: block;
     text-align: center;
+    margin-bottom: 0.5rem;
   }
 
   .title-description {
+    display: block;
     text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    white-space: normal;
+  }
+
+  .title-description::before {
+    content: "Гражданска платформа\A";
+    white-space: pre;
+    display: block;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-description > :not(.dynamic-text-box) {
+    content: "създадена ";
+    display: inline;
+  }
+
+  .title-description {
+    display: inline-block;
+    text-align: left;
   }
 
   .dynamic-text-box {
-    min-width: 150px;
+    display: inline-block;
+    min-width: 120px;
+    vertical-align: baseline;
+  }
+
+  .dynamic-text {
+    white-space: nowrap;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .video-stats-wrapper {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .video-container,
+  .stats-container {
+    flex: 0 0 100%;
+  }
+
+  .stat-title {
+    font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+  }
+
+  .stat-number {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
   }
 }
 
 @media (max-width: 480px) {
   .title-section {
-    padding: 2.5rem 0;
+    padding: 1rem 0;
   }
 
   .clickable-title {
-    padding: 0 1rem;
+    padding: 0 0.5rem;
   }
 
   .title-question {
+    font-size: clamp(1.4rem, 4vw, 2rem);
     text-align: center;
+  }
+
+  .title-description::before {
+    font-size: clamp(1rem, 3vw, 1.4rem);
   }
 
   .title-description {
-    text-align: center;
+    font-size: clamp(1rem, 3vw, 1.4rem);
   }
 
   .dynamic-text-box {
-    min-width: 120px;
+    min-width: 100px;
   }
-}
-html {
-  scroll-behavior: smooth;
 }

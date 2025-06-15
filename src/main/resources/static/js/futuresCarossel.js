@@ -144,10 +144,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const deltaX = currentX - lastTouchX;
         const currentTime = performance.now();
         const deltaTime = (currentTime - lastTouchTime) / 1000;
-        const swipeSensitivity = 0.01;
+        const swipeSensitivity = 0.005; // Намалена чувствителност (от 0.01 на 0.005)
 
         if (deltaTime > 0 && deltaTime < 0.1) {
-            lastVelocity = -deltaX * swipeSensitivity * 30;
+            lastVelocity = -deltaX * swipeSensitivity * 15; // Намален множител (от 30 на 15)
             console.log("Touchmove lastVelocity:", lastVelocity);
         }
 
@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     carousel.addEventListener("touchend", () => {
         console.log("Touchend triggered, lastVelocity:", lastVelocity);
         isTouching = false;
-        velocity = Math.abs(lastVelocity) > 0.02 ? lastVelocity * 0.5 : 0; // Инерция само при бързо движение
+        velocity = Math.abs(lastVelocity) > 0.02 ? lastVelocity * 0.3 : 0; // Намалена инерция (от 0.5 на 0.3)
         isInteracting = false;
         startAnimation();
     });
