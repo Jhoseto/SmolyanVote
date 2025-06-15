@@ -9,39 +9,59 @@
   <link rel="icon" type="image/x-icon" href="/images/logo1.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/footer.css">
-  <link rel="stylesheet" href="/css/loginModal.css">
-  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/mainEventPage.css">
   <link rel="stylesheet" href="/css/simpleEventCard.css">
   <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
-  <link rel="stylesheet" href="/css/fonts.css">
 </head>
 <body>
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- Hero секция -->
-<section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-                             url('/images/web/why.webp') no-repeat center -50px; ">
+<section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -50px;">
   <div class="container">
     <h1 class="display-4 fw-bold">Събития</h1>
-    <p class="lead">Открийте или създайте събития, които оформят бъдещето на Смолян</p>
-
+    <p class="lead">Открийте или създайте събития, които оформят бъдещето на Смолян.<br>
+      Търсите събития по ключова дума, за да намерите точно това, което ви интересува, или използвайте филтри по
+      категории, дати, местоположение и други фактори, за да персонализирате избора си.<br>
+      Участвайте активно, като гласувате в референдуми и анкети по теми, които ви вълнуват и смятате, че вашият глас е важен за тях.<br>
+      Създайте свои собствени събития, като ползвате някоя от предоставените ви форми за да структорирате правилно въпроса и начина,
+      по който общността да има възможност да гласува.<br>
+      Споделите идеите си и въпростите, които лично ви вълнуват за да ангажирате общността.<br>
+      Важно! Преди да създадете ново събитие по дден въпрос, прегледайте и потърсете дали такова или подобно вече не съществува.
+    </p>
     <!-- Секция за създаване на събития -->
     <div class="create-event-buttons">
       <!-- Ако потребителят е логнат -->
       <div th:if="${#authorization.expression('isAuthenticated()')}">
-        <a th:href="@{/createNewEvent}" class="btn btn-primary">Създай събитие</a>
-        <a th:href="@{/referendum}" class="btn btn-outline">Създай референдум</a>
-        <a th:href="@{/multipoll/createMultiPoll}" class="btn btn-primary">Създай анкета</a>
+        <a th:href="@{/createNewEvent}" class="event-create-item" data-type="event">
+          <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
+          <span class="event-create-content"><h6>Създай събитие</h6></span>
+        </a>
+        <a th:href="@{/referendum}" class="event-create-item" data-type="referendum">
+          <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
+          <span class="event-create-content"><h6>Създай референдум</h6></span>
+        </a>
+        <a th:href="@{/multipoll/createMultiPoll}" class="event-create-item" data-type="poll">
+          <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
+          <span class="event-create-content"><h6>Създай анкета</h6></span>
+        </a>
       </div>
       <!-- Ако потребителят НЕ е логнат -->
       <div th:if="${#authorization.expression('!isAuthenticated()')}">
-        <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-primary">Създай Обикновен вид събитие</a>
-        <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-outline">Създай Референдум</a>
-        <a href="javascript:void(0);" onclick="showLoginWarning()" class="btn btn-primary">Създай Множествена анкета</a>
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="event">
+          <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
+          <span class="event-create-content"><h6>Създай събитие</h6></span>
+        </a>
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="referendum">
+          <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
+          <span class="event-create-content"><h6>Създай референдум</h6></span>
+        </a>
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="poll">
+          <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
+          <span class="event-create-content"><h6>Създай анкета</h6></span>
+        </a>
       </div>
     </div>
   </div>
@@ -53,37 +73,61 @@
     <div class="search-filter-container">
       <div class="filter-sort-group">
         <div class="search-bar">
-          <input type="text" id="eventSearch" placeholder="Търси ..." aria-label="Търси събития">
-          <span class="search-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--medium-gray)" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </span>
+          <form id="searchForm"
+                th:action="@{/referendum}"
+                method="get">
+            <input type="text" id="eventSearch" name="search" placeholder="Търси ..." aria-label="Търси събития">
+            <button type="submit" class="search-button" aria-label="Търси">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--medium-gray)" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </form>
         </div>
-        <div class="filter-dropdown">
-          <select id="eventTypeFilter" aria-label="Филтър по тип събитие">
-            <option value="">Тип събитие</option>
-            <option value="event">Събитие</option>
-            <option value="referendum">Референдум</option>
-            <option value="poll">Анкета</option>
-          </select>
+        <div class="filter-dropdown dropdown">
+          <button class="btn dropdown-toggle" type="button" id="eventLocationFilter" data-bs-toggle="dropdown" aria-label="Филтър по Локация">
+            Локация
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="eventLocationFilter">
+            <li><a class="dropdown-item" href="#" data-value="">Всички локации</a></li>
+            <li th:each="location : ${T(smolyanVote.smolyanVote.models.enums.Locations).values()}">
+              <a class="dropdown-item" href="#" th:data-value="${location.name()}" th:text="${location.toBG()}"></a>
+            </li>
+          </ul>
         </div>
-        <div class="filter-dropdown">
-          <select id="eventStatusFilter" aria-label="Филтър по статус">
-            <option value="">Статус</option>
-            <option value="active">Активни</option>
-            <option value="completed">Завършени</option>
-          </select>
+        <div class="filter-dropdown dropdown">
+          <button class="btn dropdown-toggle" type="button" id="eventTypeFilter" data-bs-toggle="dropdown" aria-label="Филтър по тип събитие">
+            Тип събитие
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="eventTypeFilter">
+            <li><a class="dropdown-item" href="#" data-value="">Тип събитие</a></li>
+            <li><a class="dropdown-item" href="#" data-value="event">Събитие</a></li>
+            <li><a class="dropdown-item" href="#" data-value="referendum">Референдум</a></li>
+            <li><a class="dropdown-item" href="#" data-value="poll">Анкета</a></li>
+          </ul>
         </div>
-        <div class="filter-dropdown">
-          <select id="eventSort" aria-label="Сортирай по">
-            <option value="">Сортирай по</option>
-            <option value="date-desc">Най-нови</option>
-            <option value="date-asc">Най-стари</option>
-            <option value="popularity">Популярност</option>
-            <option value="name">Име (А-Я)</option>
-          </select>
+        <div class="filter-dropdown dropdown">
+          <button class="btn dropdown-toggle" type="button" id="eventStatusFilter" data-bs-toggle="dropdown" aria-label="Филтър по статус">
+            Статус
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="eventStatusFilter">
+            <li><a class="dropdown-item" href="#" data-value="">Статус</a></li>
+            <li><a class="dropdown-item" href="#" data-value="active">Активни</a></li>
+            <li><a class="dropdown-item" href="#" data-value="completed">Завършени</a></li>
+          </ul>
+        </div>
+        <div class="filter-dropdown dropdown">
+          <button class="btn dropdown-toggle" type="button" id="eventSort" data-bs-toggle="dropdown" aria-label="Сортирай по">
+            Сортирай по
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="eventSort">
+            <li><a class="dropdown-item" href="#" data-value="">Сортирай по</a></li>
+            <li><a class="dropdown-item" href="#" data-value="date-desc">Най-нови</a></li>
+            <li><a class="dropdown-item" href="#" data-value="date-asc">Най-стари</a></li>
+            <li><a class="dropdown-item" href="#" data-value="popularity">Популярност</a></li>
+            <li><a class="dropdown-item" href="#" data-value="name">Име (А-Я)</a></li>
+          </ul>
         </div>
       </div>
     </div>
@@ -163,28 +207,36 @@
     });
 
     const searchInput = document.getElementById('eventSearch');
-    const filterSelects = document.querySelectorAll('.filter-dropdown select');
-
     searchInput.addEventListener('focus', () => {
       searchInput.parentElement.classList.add('active');
     });
     searchInput.addEventListener('blur', () => {
       searchInput.parentElement.classList.remove('active');
     });
-
-    filterSelects.forEach(select => {
-      select.addEventListener('change', () => {
-        select.parentElement.classList.add('selected');
-        setTimeout(() => select.parentElement.classList.remove('selected'), 300);
-      });
-    });
-
     searchInput.addEventListener('input', (e) => {
       console.log('Търсене:', e.target.value);
     });
-    filterSelects.forEach(select => {
-      select.addEventListener('change', (e) => {
-        console.log(`Филтър ${e.target.id}:`, e.target.value);
+
+    // Нов код за персонализирани dropdown менюта
+    document.querySelectorAll('.filter-dropdown.dropdown').forEach(dropdown => {
+      const button = dropdown.querySelector('.dropdown-toggle');
+      const items = dropdown.querySelectorAll('.dropdown-item');
+
+      items.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const value = item.getAttribute('data-value');
+          const text = item.textContent;
+          button.textContent = text;
+          button.setAttribute('data-value', value);
+          // Задейства събитие за филтриране
+          const event = new Event('change', { bubbles: true });
+          button.dispatchEvent(event);
+          console.log(`Филтър ${button.id}:`, value);
+          // Анимация при избор
+          dropdown.classList.add('selected');
+          setTimeout(() => dropdown.classList.remove('selected'), 300);
+        });
       });
     });
   });

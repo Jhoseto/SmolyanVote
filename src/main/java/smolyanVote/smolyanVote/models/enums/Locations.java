@@ -59,7 +59,7 @@ public enum Locations {
     PESHTERA("Пещера"),
     PISANITSA("Писаница"),
     PODVIS("Подвис"),
-    POLKOVNIK_SERAFIMOVO("Полковник Серафимово"),
+    POLKOVNIK_SERAFIMOVO("Полк. Серафимово"),
     POPRELKA("Попрелка"),
     POTOKA("Потока"),
     RECHANI("Речани"),

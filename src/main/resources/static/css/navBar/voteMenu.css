@@ -1,3 +1,21 @@
+
+.vote-item-icon i {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+.vote-item-icon .bi-pencil-square,
+.vote-item-icon .bi-file-earmark-plus,
+.vote-item-icon .bi-list-check {
+    color: var(--primary-green, #0F7B59);
+}
+.vote-item-icon .bi-eye,
+.vote-item-icon .bi-grid {
+    color: var(--accent-green, #81C784);
+}
+.vote-item-highlight .bi-grid {
+    color: var(--secondary-green, #4CAF50);
+}
+
 /* Vote Toggle Button */
 .vote-toggle {
     cursor: pointer;
@@ -91,6 +109,7 @@
     font-size: 0.9rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
+    padding-left: 8px;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid rgba(37, 175, 180, 0.15);
     display: flex;
@@ -211,6 +230,7 @@
 .vote-item-icon {
     width: 28px;
     height: 28px;
+    padding-left: 8px;
     border-radius: 6px;
     background: linear-gradient(135deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
     display: flex;

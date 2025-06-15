@@ -1,7 +1,7 @@
-<!-- fragments/navbar.html -->
-
 <div th:fragment="navbar"
      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <!-- Включване на Bootstrap Icons CDN (премахни, ако вече е добавен в главния шаблон) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <nav class="navbar navbar-expand-lg bg-white shadow-sm custom-navbar">
         <div class="container px-4">
@@ -103,7 +103,7 @@
                             <!-- Опростен вид -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_simpleEventIcon.jpg" alt="Simple Event Icon" width="20" height="19">
+                                    <i class="bi bi-pencil-square"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Опростен вид</h6>
@@ -112,8 +112,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_simpleEventIcon.jpg" alt="Simple Event Icon" width="20" height="19">
-                                    <i class="bi bi-check-circle"></i>
+                                    <i class="bi bi-pencil-square"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Опростен вид</h6>
@@ -124,8 +123,7 @@
                             <!-- Референдум -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_referendumIcon.jpg" alt="Referendum Icon" width="20" height="19">
-                                    <i class="bi bi-people"></i>
+                                    <i class="bi bi-file-earmark-plus"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Референдум</h6>
@@ -134,8 +132,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_referendumIcon.jpg" alt="Referendum Icon" width="20" height="19">
-                                    <i class="bi bi-people"></i>
+                                    <i class="bi bi-file-earmark-plus"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Референдум</h6>
@@ -146,8 +143,7 @@
                             <!-- Анкета с множествен избор -->
                             <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_multiPollIcon.jpg" alt="Multi Poll" width="20" height="19">
-                                    <i class="bi bi-list-ul"></i>
+                                    <i class="bi bi-list-check"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Анкета с множествен избор</h6>
@@ -156,8 +152,7 @@
                             </a>
                             <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/create_multiPollIcon.jpg" alt="Multi Poll" width="20" height="19">
-                                    <i class="bi bi-list-ul"></i>
+                                    <i class="bi bi-list-check"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Анкета с множествен избор</h6>
@@ -179,8 +174,7 @@
                         <div class="vote-items">
                             <a href="/events/simple-votes" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/view_SimpleEventIcon.jpg" alt="View Simple Event Icon" width="20" height="19">
-                                    <i class="bi bi-check-circle"></i>
+                                    <i class="bi bi-eye"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Опростени видове</h6>
@@ -190,8 +184,7 @@
 
                             <a href="/events/referendums" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/view_ReferendumIcon.jpg" alt="View Referendum Icon" width="20" height="19">
-                                    <i class="bi bi-people"></i>
+                                    <i class="bi bi-eye"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Референдуми</h6>
@@ -201,8 +194,7 @@
 
                             <a href="/events/polls" class="vote-item">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/view_MultiPollIcon.jpg" alt="View Multi Poll Icon" width="20" height="19">
-                                    <i class="bi bi-list-ul"></i>
+                                    <i class="bi bi-eye"></i>
                                 </div>
                                 <div class="vote-item-content">
                                     <h6>Анкети</h6>
@@ -212,7 +204,6 @@
 
                             <a href="/mainEvents" class="vote-item vote-item-highlight">
                                 <div class="vote-item-icon">
-                                    <img src="/images/web/icons/allEvents.jpg" alt="All Events Icon" width="20" height="19">
                                     <i class="bi bi-grid"></i>
                                 </div>
                                 <div class="vote-item-content">
@@ -252,7 +243,6 @@
                             </div>
                             <a href="/forgotten_password" class="small text-decoration-none">Забравена парола?</a>
                             <a href="/register" class="small text-decoration-none">Регистрация</a>
-
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -264,6 +254,7 @@
     </div>
     <div class="vote-overlay" id="voteOverlay" onclick="closeVoteMenu()"></div>
 
+    <!-- JavaScript за Vote Menu -->
     <script>
         let voteMenuOpen = false;
 
@@ -308,25 +299,24 @@
                 closeVoteMenu();
             }
         });
-
-
     </script>
+
+    <!-- JavaScript за Login Modal анимация -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('loginModal'); // смени с ID на твоя модал
+            const modal = document.getElementById('loginModal');
             if (modal) {
                 modal.addEventListener('hide.bs.modal', (e) => {
                     modal.classList.add('modal-closing');
                     setTimeout(() => {
                         modal.classList.remove('modal-closing');
-                    }, 300); // Трябва да е същото като продължителността на modalFadeOut
+                    }, 300);
                 });
             }
         });
     </script>
 
-
-    <!-- heartbet -->
+    <!-- Heartbeat скрипт -->
     <script th:if="${#authorization.expression('isAuthenticated()')}">
         document.addEventListener('DOMContentLoaded', function() {
             const csrfToken = document.querySelector('meta[name="_csrf"]');
@@ -337,7 +327,6 @@
                     'Content-Type': 'application/json'
                 };
 
-                // Добавяме CSRF token ако е наличен
                 if (csrfToken && csrfHeader) {
                     headers[csrfHeader.content] = csrfToken.content;
                 }
@@ -356,16 +345,12 @@
                     });
             }
 
-            // Изпрати heartbeat веднага при зареждане
             sendHeartbeat();
-
-            // Изпрати heartbeat на всяка минута
             setInterval(sendHeartbeat, 60000);
         });
     </script>
 
-    <!-- JS функция за предупреждение -->
-    <!-- SweetAlert2 CDN -->
+    <!-- SweetAlert2 CDN и предупреждение -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function showLoginWarning() {
@@ -376,8 +361,8 @@
                 showCancelButton: true,
                 confirmButtonText: 'Вход',
                 cancelButtonText: 'Затвори',
-                confirmButtonColor: '#25afb4', // Bootstrap зелено
-                cancelButtonColor: '#6c757d',  // Bootstrap сиво
+                confirmButtonColor: '#25afb4',
+                cancelButtonColor: '#6c757d',
                 customClass: {
                     popup: 'rounded-3 shadow'
                 }
