@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.services.interfaces.SimpleEventService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
@@ -23,12 +24,15 @@ public class UserController {
 
     private final UserService userService;
     private final SimpleEventService simpleEventService;
+    private final MainEventsService mainEventsService;
 
     @Autowired
     public UserController(UserService userService,
-                          SimpleEventService simpleEventService) {
+                          SimpleEventService simpleEventService,
+                          MainEventsService mainEventsService) {
         this.userService = userService;
         this.simpleEventService = simpleEventService;
+        this.mainEventsService = mainEventsService;
     }
 
 
@@ -38,7 +42,7 @@ public class UserController {
                                         Model model) {
 
         UserEntity currentUser = userService.getCurrentUser();
-        List<EventSimpleViewDTO> userEvents = simpleEventService.getAllUserEvents(currentUser.getEmail());
+        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(currentUser.getEmail());
 
         model.addAttribute("locations", Locations.values());
         model.addAttribute("currentUser", currentUser);
@@ -53,7 +57,7 @@ public class UserController {
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
         UserEntity currentUser = userService.getCurrentUser();
 
-        List<EventSimpleViewDTO> userEvents = simpleEventService.getAllUserEvents(user.getEmail());
+        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(user.getEmail());
 
         model.addAttribute("user", user);
         model.addAttribute("currentUser", currentUser);

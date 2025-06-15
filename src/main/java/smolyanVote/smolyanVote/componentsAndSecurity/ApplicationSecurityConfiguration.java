@@ -57,7 +57,7 @@ public class ApplicationSecurityConfiguration {
                                 "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**","/static/**",
                                 "/", "//", "/forgotten_password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
-                                "/user/logout", "/confirm/**", "/mainEvents", "/mainEventPage", "/event",
+                                "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
                                 "/eventDetailView", "/news", "/error/**", "/favicon.ico", "/robots.txt", "/heartbeat","/search"
                         ).permitAll()
                         .requestMatchers(

@@ -11,8 +11,6 @@ import java.util.List;
 
 public interface SimpleEventService {
 
-    @Transactional(readOnly = true)
-    Page<EventSimpleViewDTO> getPaginatedEvents(int page, int size);
 
     @Transactional()
     List<SimpleEventDetailViewDTO> getAllEvents();
@@ -22,6 +20,4 @@ public interface SimpleEventService {
     List<String> createEvent(CreateEventView dto, MultipartFile[] files, String positiveLabel,
                              String negativeLabel, String neutralLabel);
 
-    @Transactional(readOnly = true)
-    List<EventSimpleViewDTO> getAllUserEvents(String email);
 }
