@@ -1,14 +1,12 @@
 package smolyanVote.smolyanVote.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import smolyanVote.smolyanVote.models.CommentVoteEntity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
@@ -16,7 +14,6 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
-import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
@@ -24,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-public class EventsController {
+public class SimpleEventController {
 
     private final SimpleEventService simpleEventService;
     private final CommentsService commentsService;
@@ -35,12 +32,12 @@ public class EventsController {
 
 
     @Autowired
-    public EventsController(SimpleEventService simpleEventService,
-                            CommentsService commentsService,
-                            UserService userService,
-                            VoteService voteService,
-                            SimpleEventRepository simpleEventRepository,
-                            DeleteService deleteService) {
+    public SimpleEventController(SimpleEventService simpleEventService,
+                                 CommentsService commentsService,
+                                 UserService userService,
+                                 VoteService voteService,
+                                 SimpleEventRepository simpleEventRepository,
+                                 DeleteService deleteService) {
         this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
