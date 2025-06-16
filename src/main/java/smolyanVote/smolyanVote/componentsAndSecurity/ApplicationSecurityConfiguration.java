@@ -58,14 +58,15 @@ public class ApplicationSecurityConfiguration {
                                 "/", "//", "/forgotten_password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
-                                "/eventDetailView", "/news", "/error/**", "/favicon.ico", "/robots.txt", "/heartbeat","/search"
+                                "/eventDetailView", "/news", "/error/**", "/favicon.ico", "/robots.txt",
+                                "/heartbeat","/search","/contacts"
                         ).permitAll()
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
                                 "/user/**", "/profile/update", "/profile", "/userProfile",
                                 "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
                                 "/createEvent", "/createNewEvent", "/user/logout", "/user/profile/**",
-                                "/user/dashboard/**"
+                                "/user/dashboard/**","/contact"
                         ).authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().denyAll()
