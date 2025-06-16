@@ -25,6 +25,7 @@ public class UserEntity extends BaseEntity {
     private String email;
 
     private boolean isActive;
+    @Column(length = 1000)
     private String imageUrl;
     private String userConfirmationCode;
     private String bio;

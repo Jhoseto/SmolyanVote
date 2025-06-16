@@ -36,7 +36,7 @@ public class EmailConfirmationController {
 
                 redirectAttributes.addFlashAttribute(
                         "message", "Вашият Имейл е потвърден! Можете да влезнете във вашият профил.");
-                return "redirect:/login";
+                return "redirect:/viewLogin";
             } else {
                 redirectAttributes.addFlashAttribute("error",
                         "Невалиден код или акаунт вече е активиран.");

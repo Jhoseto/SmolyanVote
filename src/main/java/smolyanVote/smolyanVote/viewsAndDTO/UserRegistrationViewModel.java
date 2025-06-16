@@ -18,7 +18,7 @@ public class UserRegistrationViewModel {
 
 
     @NotNull
-    @Size(min = 5, max = 20, message = "Невалидно подребителско име! Въведете име с минимум 5 символа.")
+    @Size(min = 5, max = 20, message = "Невалидно подребителско име! Въведете име с минимум 5 и максимум 20 символа.")
     private String username;
 
     @NotNull
