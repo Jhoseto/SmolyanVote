@@ -172,7 +172,7 @@ html {
 .event-create-item {
     display: flex;
     align-items: center;
-    padding: 4px 0 4px 5px;
+    padding: 5px 15px 4px 5px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 249, 250, 0.6));
     border-radius: 8px;
     text-decoration: none;

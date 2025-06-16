@@ -68,7 +68,7 @@
         <div class="modal-content">
             <span class="close" data-bs-dismiss="modal" aria-label="Close">×</span>
             <h3>Редакция на профила</h3>
-            <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}">
+            <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}" th:max="240">
                 <label>Профилна снимка:</label>
                 <input type="file" name="profileImage"><br><br>
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />

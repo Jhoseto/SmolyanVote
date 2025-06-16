@@ -29,7 +29,7 @@
       Създайте свои собствени събития, като ползвате някоя от предоставените ви форми за да структорирате правилно въпроса и начина,
       по който общността да има възможност да гласува.<br>
       Споделите идеите си и въпростите, които лично ви вълнуват за да ангажирате общността.<br>
-      Важно! Преди да създадете ново събитие по дден въпрос, прегледайте и потърсете дали такова или подобно вече не съществува.
+      Важно! Преди да създадете ново събитие по даден въпрос, прегледайте и потърсете дали такова или подобно вече не съществува.
     </p>
     <!-- Секция за създаване на събития -->
     <div class="create-event-buttons">
@@ -37,30 +37,30 @@
       <div th:if="${#authorization.expression('isAuthenticated()')}">
         <a th:href="@{/createNewEvent}" class="event-create-item" data-type="event">
           <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
-          <span class="event-create-content"><h6>Създай събитие</h6></span>
+          <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
         </a>
         <a th:href="@{/referendum}" class="event-create-item" data-type="referendum">
           <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
-          <span class="event-create-content"><h6>Създай референдум</h6></span>
+          <span class="event-create-content"><h6>Създай Референдум</h6></span>
         </a>
         <a th:href="@{/multipoll/createMultiPoll}" class="event-create-item" data-type="poll">
           <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
-          <span class="event-create-content"><h6>Създай анкета</h6></span>
+          <span class="event-create-content"><h6>Създай Анкета с Множествен Избор</h6></span>
         </a>
       </div>
       <!-- Ако потребителят НЕ е логнат -->
       <div th:if="${#authorization.expression('!isAuthenticated()')}">
         <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="event">
           <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
-          <span class="event-create-content"><h6>Създай събитие</h6></span>
+          <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
         </a>
         <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="referendum">
           <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
-          <span class="event-create-content"><h6>Създай референдум</h6></span>
+          <span class="event-create-content"><h6>Създай Референдум</h6></span>
         </a>
         <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="poll">
           <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
-          <span class="event-create-content"><h6>Създай анкета</h6></span>
+          <span class="event-create-content"><h6>Създай Анкета с Множествен Избор</h6></span>
         </a>
       </div>
     </div>

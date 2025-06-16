@@ -1,62 +1,55 @@
+/* Глобални стилове */
 html, body {
     height: 100%;
     margin: 0;
     display: flex;
     flex-direction: column;
     font-family: 'Poppins', sans-serif;
-    background-color: #f4f6f8;
 }
 
-main {
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    height: 100vh;
-    margin: 0;
-    flex: 1;
+body {
+    background-color: #f4f7f6; /* Лек фон за контраст */
 }
 
-/* Центриране на формата */
+/* Секция hero */
 .hero {
-    padding-top: 200px;
-    padding-bottom: 40px;
-    flex: 1 0 auto;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: calc(100vh - 100px);
+    align-items: center;
+    padding-top: 100px; /* Намален отстъп за по-добър баланс */
+    padding-bottom: 40px;
 }
 
-/* Стъклен стил на формата */
-.hero .card,
-form.mx-auto {
-    max-width: 600px;
-    width: 100%;
-    background: rgba(25, 135, 84, 0.08);
-    border: 3px solid rgb(75, 159, 62);
+/* Карта за формата */
+.card {
+    background: rgba(25, 135, 84, 0.08); /* Стъклен ефект */
+    border: 3px solid rgb(75, 159, 62); /* Зелен контур */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 50px 40px;
+    padding: 40px 30px; /* По-компактно вътрешно разстояние */
     box-shadow: 0 10px 36px rgba(25, 135, 84, 0.15);
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    max-width: 500px; /* По-компактна широчина */
+    margin: 0 auto;
 }
 
-.hero .card:hover,
-.hero .card:focus-within,
-form.mx-auto:hover,
-form.mx-auto:focus-within {
-    box-shadow: 0 12px 40px 0 rgba(25, 135, 84, 0.3);
+.card:hover,
+.card:focus-within {
+    box-shadow: 0 12px 40px rgba(25, 135, 84, 0.3);
+    transform: translateY(-2px); /* Леко повдигане при ховър */
 }
 
-/* Заглавие на формата */
-.card-title, form.mx-auto h2 {
+/* Заглавие на картата */
+.card-title {
     color: #d7d9d8;
+    font-weight: 700;
+    font-size: 1.8rem;
     margin-bottom: 25px;
     text-align: center;
-    font-weight: 600;
-    font-size: 1.4rem;
 }
 
 /* Полета */
@@ -71,34 +64,16 @@ form.mx-auto:focus-within {
 
 .form-control:focus {
     border-color: #c4cbc8;
-    box-shadow: 0 0 0 0.2rem rgb(71, 183, 124);
+    box-shadow: 0 0 0 0.2rem rgba(71, 183, 124, 0.5);
     background-color: rgba(255, 255, 255, 0.9);
     color: #015231;
 }
 
 /* Етикети */
 .form-label {
-    font-weight: 600;
+    font-weight: 300;
     color: #e0e3e1;
     font-size: 1.05rem;
-}
-
-/* Чекбокс */
-.form-check-label {
-    font-size: 0.875rem;
-    color: #d7d7d7;
-}
-
-/* Линкове */
-.small {
-    color: #fcfcfc;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.small:hover {
-    color: #656565;
-    text-decoration: underline;
 }
 
 /* Бутон */
@@ -107,13 +82,13 @@ form.mx-auto:focus-within {
     border: none;
     border-radius: 8px;
     font-weight: 600;
-    padding: 12px 0;
+    padding: 12px;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-    color: #fff;
+    width: 100%;
 }
 
 .btn-success:hover {
-    background-color: #145c32;
+    background: linear-gradient(to right, #2e7d44, #156255);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -122,7 +97,20 @@ form.mx-auto:focus-within {
     box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.5);
 }
 
-/* Грешки и съобщения */
+/* Линк за вход */
+.small {
+    color: #fcfcfc;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.small:hover {
+    color: #b0b0b0;
+    text-decoration: underline;
+}
+
+/* Съобщения за грешка и успех */
 .error-message {
     background-color: #ffe5e5;
     color: #a94442;
@@ -134,16 +122,24 @@ form.mx-auto:focus-within {
     font-size: 0.95rem;
     box-shadow: 0 4px 12px rgba(255, 0, 0, 0.05);
     animation: fadeInSlide 0.4s ease-out;
+    text-align: center;
 }
 
-.alert-success,
-.alert-warning {
+.success-message {
+    background-color: #e6f4ea;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    padding: 12px 16px;
     border-radius: 8px;
+    margin-top: 20px;
     font-weight: 500;
     font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(0, 128, 0, 0.05);
+    animation: fadeInSlide 0.4s ease-out;
+    text-align: center;
 }
 
-/* Анимация */
+/* Анимация за съобщения */
 @keyframes fadeInSlide {
     from {
         opacity: 0;
@@ -155,12 +151,32 @@ form.mx-auto:focus-within {
     }
 }
 
-/* Разстояние между елементи */
+/* Разстояния */
 .mb-3 {
     margin-bottom: 1rem;
 }
 
 .text-center {
-    margin-top: 10px;
-    text-align: center;
+    margin-top: 15px;
+}
+
+/* Контейнер */
+.container {
+    max-width: 1200px;
+}
+
+/* Адаптивност */
+@media (max-width: 768px) {
+    .card {
+        padding: 30px 20px;
+        max-width: 90%;
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+    }
+
+    .hero {
+        padding-top: 80px;
+    }
 }
