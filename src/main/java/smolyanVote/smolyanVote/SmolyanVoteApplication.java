@@ -16,6 +16,6 @@ public class SmolyanVoteApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SmolyanVoteApplication.class, args);
-	}
 
+	}
 }
