@@ -3,21 +3,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- SEO -->
+    <meta name="title" th:content="${eventDetail.title != null and eventDetail.title.length() > 0 ? (eventDetail.title.length() > 160 ? eventDetail.title.substring(0, 160) : eventDetail.title) : 'Детайли за събитие'}" />
+    <meta name="description" th:content="${eventDetail.description != null and eventDetail.description.length() > 0 ? (eventDetail.description.length() > 160 ? eventDetail.description.substring(0, 160) : eventDetail.description) : 'Детайли за събитие'}" />
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>Детайли за събитие</title>
-    <!-- ✅ Favicon -->
-    <link rel="icon" type="image/x-icon" href="/images/logo1.png">
 
-    <!-- Зареждане на jQuery  -->
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
-    <link rel="stylesheet" href="/css/fonts.css">
-    <link rel="stylesheet" href="/css/eventDetailView.css">
+    <link rel="stylesheet" href="/css/simpleEventDetailView.css">
     <link rel="stylesheet" href="/css/comments.css">
 </head>
 <body>
@@ -25,109 +20,93 @@
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<div class="background" style="background: rgba(255, 255, 255, 0.7) url('/images/web/createEventBackground1.png') no-repeat center -290px;">
-    <div class="event-card">
-        <div style="background: #ffc; padding: 10px; text-align: center; border-bottom: 1px solid #ccc;">
-            <a href="//" style="text-decoration: none; color: #000; font-weight: bold;">
-                ⬅️ Върни се към началната страница
-            </a>
-        </div>
-
-        <!-- Заглавие -->
-        <h1 class="header" th:text="${eventDetail.title}">Заглавие на събитието</h1>
-
-        <!-- Автор -->
-        <a th:href="@{'/user/' + ${eventDetail.creator.username}}" class="creator text-decoration-none">
-            <div class="d-flex align-items-center">
-                <img class="creator-img"
-                     th:src="${eventDetail.creator.imageUrl}"
-                     alt="Създател"
-                     style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;"/>
-                <span class="creator-name" th:text="${eventDetail.creator.username}">Име на създателя</span>
+<!-- Hero секция -->
+<section class="hero"style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+                             url('/images/web/eventDetail.png') no-repeat center; ">
+    <div class="hero-container">
+        <div class="event-card">
+            <!-- Детайли контейнер -->
+            <div class="details-container">
+                <div class="details-left">
+                    <h3>Автор на събитието</h3>
+                    <a th:href="@{'/user/' + ${eventDetail.creator.username}}" class="creator text-decoration-none">
+                        <div class="d-flex align-items-center">
+                            <img class="creator-img" th:src="${eventDetail.creator.imageUrl}" alt="Създател"/>
+                            <span class="creator-name" th:text="${eventDetail.creator.username}">Име на създателя</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="details-right">
+                    <h3>Детайли</h3>
+                    <ul>
+                        <li><strong>ID:</strong> <span th:text="${eventDetail.id}">#12345</span></li>
+                        <li><strong>Дата:</strong> <span th:text="${#dates.format(eventDetail.createdAt, 'dd.MM.yyyy HH:mm')}">2025-04-18</span></li>
+                        <li><strong>Локация:</strong> <span th:text="${eventDetail.location != null ? eventDetail.location.toBG() : 'Няма локация'}">Няма локация</span></li>
+                        <li><strong>Гласували потребители:</strong> <span th:text="${eventDetail.totalVotes}">0</span></li>
+                    </ul>
+                </div>
             </div>
-        </a>
 
+            <!-- Галерия контейнер -->
+            <div class="gallery-block" th:if="${eventDetail.images != null and !eventDetail.images.isEmpty()}">
+                <img th:each="img : ${eventDetail.images}" th:src="${img}" alt="Снимка" class="gallery-img" loading="lazy"/>
+            </div>
 
-        <!-- Галерия -->
-        <div class="gallery" th:if="${eventDetail.images != null and !eventDetail.images.isEmpty()}">
-            <img th:each="img : ${eventDetail.images}" th:src="${img}" alt="Снимка" />
-        </div>
+            <!-- Заглавие контейнер -->
+            <div class="header-block">
+                <h1 class="event-title" th:text="${eventDetail.title}">Заглавие на събитието</h1>
+                <div class="description-block">
+                    <p th:utext="${eventDetail.description.replace('\n', '<br/>')}">Тук е описанието на събитието.</p>
+                </div>
+            </div>
 
-        <!-- Описание -->
-        <div class="description">
-            <p th:utext="${eventDetail.description.replace('\n', '<br/>')}">Тук е описанието на събитието.</p>
-        </div>
-
-        <!-- Допълнителни детайли -->
-        <div class="details">
-            <p>
-                <strong>Дата на създаване:</strong>
-                <span th:text="${#dates.format(eventDetail.createdAt, 'dd.MM.yyyy HH:mm')}">2025-04-18</span>
-            </p>
-            <p><strong>Локация:</strong>
-                <span th:text="${eventDetail.location != null ? eventDetail.location.toBG() : 'няма локация'}">няма локация</span>
-            </p>
-            <p><strong>ID:</strong> <span th:text="${eventDetail.id}">#12345</span></p>
-            <p><strong>Общо гласове:</strong> <span th:text="${eventDetail.totalVotes}">0</span></p>
-        </div>
-
-        <div class="voting">
-            <h2>Резултати от гласуването</h2>
-
-            <!-- За -->
-            <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="${eventDetail.positiveLabel} + ' – ' + ${eventDetail.yesVotes} + ' гласа'">За</div>
-                <div class="vote-bar">
-                    <div class="bar for" th:style="'width:' + ${eventDetail.yesPercent} + '%'">
-                        <span class="bar-text" th:text="${eventDetail.yesPercent} + '%'">0%</span>
+            <!-- Резултати от гласуването контейнер -->
+            <div class="voting-block">
+                <h3>Резултати от гласуването</h3>
+                <div class="vote-bar-wrapper">
+                    <div class="vote-label" th:text="${eventDetail.positiveLabel} + ' – ' + ${eventDetail.yesVotes} + ' гласа'">За – 0 гласа</div>
+                    <div class="vote-bar">
+                        <div class="bar for" th:style="'width:' + ${eventDetail.yesPercent} + '%'">
+                            <span class="bar-text" th:text="${eventDetail.yesPercent} + '%'">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="vote-bar-wrapper">
+                    <div class="vote-label" th:text="${eventDetail.negativeLabel} + ' – ' + ${eventDetail.noVotes} + ' гласа'">Против – 0 гласа</div>
+                    <div class="vote-bar">
+                        <div class="bar against" th:style="'width:' + ${eventDetail.noPercent} + '%'">
+                            <span class="bar-text" th:text="${eventDetail.noPercent} + '%'">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="vote-bar-wrapper">
+                    <div class="vote-label" th:text="${eventDetail.neutralLabel} + ' – ' + ${eventDetail.neutralVotes} + ' гласа'">Въздържал се – 0 гласа</div>
+                    <div class="vote-bar">
+                        <div class="bar abstain" th:style="'width:' + ${eventDetail.neutralPercent} + '%'">
+                            <span class="bar-text" th:text="${eventDetail.neutralPercent} + '%'">0%</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Против -->
-            <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="${eventDetail.negativeLabel} + ' – ' + ${eventDetail.noVotes} + ' гласа'">Против – 0 гласа</div>
-                <div class="vote-bar">
-                    <div class="bar against" th:style="'width:' + ${eventDetail.noPercent} + '%'">
-                        <span class="bar-text" th:text="${eventDetail.noPercent} + '%'">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Въздържал се -->
-            <div class="vote-bar-wrapper">
-                <div class="vote-label" th:text="${eventDetail.neutralLabel} + ' – ' + ${eventDetail.neutralVotes} + ' гласа'">Въздържал се – 0 гласа</div>
-                <div class="vote-bar">
-                    <div class="bar abstain" th:style="'width:' + ${eventDetail.neutralPercent} + '%'">
-                        <span class="bar-text" th:text="${eventDetail.neutralPercent} + '%'">0%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Бутон за гласуване -->
-        <div class="vote-section">
-            <!-- Ако потребителят не е гласувал -->
-            <div th:if="${userVote == null}">
-                <h3>Гласувай:</h3>
-                <div class="vote-buttons">
-                    <form th:action="@{/simpleVote}"
-                          method="post">
+            <!-- Гласуване контейнер -->
+            <div class="vote-section-block">
+                <div th:if="${userVote == null}">
+                    <h3>Гласувай</h3>
+                    <form th:action="@{/simpleVote}" method="post" class="vote-buttons">
                         <input type="hidden" name="eventId" th:value="${eventDetail.id}" />
                         <input type="hidden" name="userEmail" th:value="${currentUser.getEmail()}" />
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-
-                        <button name="vote" value="1" class="vote-btn yes" type="submit" th:text="${eventDetail.positiveLabel}">За</button>
-                        <button name="vote" value="2" class="vote-btn no" type="submit" th:text="${eventDetail.negativeLabel}">Против</button>
-                        <button name="vote" value="3" class="vote-btn neutral" type="submit" th:text="${eventDetail.neutralLabel}">Въздържал се</button>
+                        <button name="vote" value="1" class="vote-btn yes" type="submit" th:text="${eventDetail.positiveLabel}" aria-label="Гласувай За">За</button>
+                        <button name="vote" value="2" class="vote-btn no" type="submit" th:text="${eventDetail.negativeLabel}" aria-label="Гласувай Против">Против</button>
+                        <button name="vote" value="3" class="vote-btn neutral" type="submit" th:text="${eventDetail.neutralLabel}" aria-label="Гласувай Въздържал се">Въздържал се</button>
                     </form>
                 </div>
             </div>
 
-            <!-- Ако потребителят вече е гласувал -->
-            <div th:if="${userVote != null}" class="alert alert-info mt-3">
-                <p><strong>Вече гласувахте по този въпрос.</strong></p>
-                <p>Вашият глас е отчетен като:
+            <!-- Съобщение за гласуване контейнер -->
+            <div th:if="${userVote != null}" class="alert alert-info vote-result-block">
+                <p><strong>Вече гласувахте с:</strong>
                     <span th:switch="${userVote}">
                         <strong th:case="'1'" th:text="${eventDetail.positiveLabel + ' ✅'}">За ✅</strong>
                         <strong th:case="'2'" th:text="${eventDetail.negativeLabel + ' ❌'}">Против ❌</strong>
@@ -135,57 +114,58 @@
                     </span>
                 </p>
             </div>
-        </div>
 
-        <div th:if="${successMessage}" class="alert alert-success" role="alert">
-            <span th:text="${successMessage}"></span>
+            <!-- Бутон за връщане -->
+            <div class="back-link">
+                <a href="/mainEvents/allEvents" class="btn btn-glass">Върни се към събитията</a>
+            </div>
         </div>
-
     </div>
-</div>
+</section>
 
-<!-- Модален прозорец за преглед на снимки със стрелки -->
-<div id="imageModal" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 90%;">
+<!-- Модален прозорец за галерия -->
+<div id="imageModal" class="modal fade" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content bg-transparent border-0">
             <div class="modal-body p-0 position-relative text-center">
                 <button type="button" class="btn-close position-absolute top-0 end-0 m-3" aria-label="Close" data-bs-dismiss="modal"></button>
-                <button id="prevBtn" class="btn btn-light position-absolute start-0 top-50 translate-middle-y ms-2">&larr;</button>
-                <img id="modalImage" src="" class="img-fluid rounded" style="max-height: 90vh;" alt="">
-                <button id="nextBtn" class="btn btn-light position-absolute end-0 top-50 translate-middle-y me-2">&rarr;</button>
+                <button id="prevBtn" class="btn btn-glass position-absolute start-0 top-50 translate-middle-y ms-3" aria-label="Предишна снимка">←</button>
+                <img id="modalImage" src="" class="img-fluid rounded gallery-modal-img" alt="Увеличена снимка">
+                <button id="nextBtn" class="btn btn-glass position-absolute end-0 top-50 translate-middle-y me-3" aria-label="Следваща снимка">→</button>
             </div>
         </div>
     </div>
 </div>
 
-
-
-<!-- Коментари за събитието -->
-<div th:replace="~{fragments/comments :: comments(${eventDetail.id}, ${comments}, ${currentUser})}"></div>
-
+<!-- Коментари -->
+<div class="hero-container">
+    <div th:replace="~{fragments/comments :: comments(${eventDetail.id}, ${comments}, ${currentUser})}"></div>
+</div>
 
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module" src="/js/comments/main.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const modal = new bootstrap.Modal(document.getElementById("imageModal"));
+        const modal = new bootstrap.Modal(document.getElementById("imageModal"), { backdrop: 'static' });
         const modalImage = document.getElementById("modalImage");
         const prevBtn = document.getElementById("prevBtn");
         const nextBtn = document.getElementById("nextBtn");
-        const images = Array.from(document.querySelectorAll(".gallery img"));
+        const images = Array.from(document.querySelectorAll(".gallery-img"));
 
         let currentIndex = 0;
 
         function updateModalImage() {
             modalImage.src = images[currentIndex].src;
+            modalImage.style.opacity = '0';
+            setTimeout(() => {
+                modalImage.style.opacity = '1';
+            }, 100);
         }
 
         images.forEach((img, index) => {
-            img.style.cursor = "pointer";
             img.addEventListener("click", () => {
                 currentIndex = index;
                 updateModalImage();
@@ -204,12 +184,24 @@
         });
 
         document.getElementById("imageModal").addEventListener("click", function (e) {
-            if (e.target === this) {
+            if (e.target === this || e.target.classList.contains('modal-dialog')) {
                 modal.hide();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener("keydown", function (e) {
+            if (modal._isShown) {
+                if (e.key === "ArrowLeft") {
+                    prevBtn.click();
+                } else if (e.key === "ArrowRight") {
+                    nextBtn.click();
+                } else if (e.key === "Escape") {
+                    modal.hide();
+                }
             }
         });
     });
 </script>
-
 </body>
 </html>
