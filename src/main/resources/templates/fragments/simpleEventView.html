@@ -19,7 +19,7 @@
     </div>
     <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
          class="type-label type-label-multi_poll">
-      Анкета с множествен отговор
+      Анкета с множествен избор
     </div>
     <!-- Бутон за изтриване -->
     <div th:if="${#authorization.expression('isAuthenticated()')}">

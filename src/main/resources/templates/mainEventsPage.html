@@ -9,10 +9,9 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/mainEventPage.css">
+  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/eventSimpleCard.css">
   <link rel="stylesheet" href="/css/mainEventPage.css">
-  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
 </head>
 <body>
 <!-- Навигация -->
@@ -111,10 +110,10 @@
           <!-- Филтър по тип събитие -->
           <div class="filter-dropdown">
             <select name="type" id="eventTypeFilter" onchange="resetPageAndSubmit()">
-              <option value="" th:selected="${currentType == null}">Всички типове</option>
-              <option value="event" th:selected="${currentType == 'event'}">Събитие</option>
+              <option value="" th:selected="${currentType == null}">Всички видове</option>
+              <option value="event" th:selected="${currentType == 'event'}">Опростен вид събития</option>
               <option value="referendum" th:selected="${currentType == 'referendum'}">Референдум</option>
-              <option value="poll" th:selected="${currentType == 'poll'}">Анкета</option>
+              <option value="poll" th:selected="${currentType == 'poll'}">Анкета с множествен избор</option>
             </select>
           </div>
 
@@ -175,7 +174,7 @@
 
         <span th:if="${currentType != null}" class="badge bg-info rounded-pill">
           <i class="bi bi-tag me-1"></i>
-          <span th:text="${currentType == 'event' ? 'Събитие' : (currentType == 'referendum' ? 'Референдум' : 'Анкета')}">тип</span>
+          <span th:text="${currentType == 'event' ? 'Опростен вид Събитие' : (currentType == 'referendum' ? 'Референдум' : 'Множествена Анкета')}">тип</span>
           <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, status=${currentStatus}, sort=${currentSort})}"
              class="text-white ms-1" style="text-decoration: none;">×</a>
         </span>
@@ -260,13 +259,15 @@
         </li>
 
         <!-- Страници -->
-        <li class="page-item" th:each="pageNumber : ${#numbers.sequence(startPage ?: 0, endPage ?: 0)}"
-            th:classappend="${pageNumber == currentPage} ? 'active'">
-          <a class="page-link"
-             th:href="@{/mainEvents(page=${pageNumber}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
-             th:text="${pageNumber + 1}"
-             th:title="'Страница ' + ${pageNumber + 1}">1</a>
-        </li>
+        <th:block th:if="${startPage != null and endPage != null and startPage <= endPage}">
+          <li class="page-item" th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+              th:classappend="${pageNumber == currentPage} ? 'active'">
+            <a class="page-link"
+               th:href="@{/mainEvents(page=${pageNumber}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+               th:text="${pageNumber + 1}"
+               th:title="'Страница ' + ${pageNumber + 1}">1</a>
+          </li>
+        </th:block>
 
         <!-- Следваща страница -->
         <li class="page-item" th:classappend="${not hasNextPage} ? 'disabled'">
@@ -303,6 +304,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Custom JavaScript -->
-<script src="/js/mainEventsPage.js"></script>
+<script src="/js/mainEvent/uiUtils.js"></script>
+<script src="/js/mainEvent/customDropdowns.js"></script>
+<script src="/js/mainEvent/searchAndFilters.js"></script>
+<script src="/js/mainEvent/mainEventsPage.js"></script>
 </body>
 </html>

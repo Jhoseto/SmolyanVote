@@ -68,14 +68,13 @@ public class MainEventsController {
 
         // Валидация на типа и конвертиране към EventType enum
         type = cleanParam(type);
-        EventType eventTypeEnum = null; // Това ще подаваме към service-a
+        EventType eventTypeEnum = null;
         if (type != null && isValidType(type)) {
             try {
-                // Конвертираме от lowercase към EventType enum
                 eventTypeEnum = switch (type.toLowerCase()) {
                     case "event" -> EventType.SIMPLEEVENT;
                     case "referendum" -> EventType.REFERENDUM;
-                    case "poll" -> EventType.POLL; // или MULTI_POLL според нуждите
+                    case "poll" -> EventType.POLL;
                     default -> null;
                 };
                 logger.info("Converting type '{}' to EventType enum '{}'", type, eventTypeEnum);
@@ -90,10 +89,9 @@ public class MainEventsController {
 
         // Валидация на статуса и конвертиране към EventStatus enum
         status = cleanParam(status);
-        EventStatus eventStatusEnum = null; // Това ще подаваме към service-a
+        EventStatus eventStatusEnum = null;
         if (status != null && isValidStatus(status)) {
             try {
-                // Конвертираме от lowercase към EventStatus enum
                 eventStatusEnum = status.equalsIgnoreCase("active") ? EventStatus.ACTIVE : EventStatus.INACTIVE;
                 logger.info("Converting status '{}' to EventStatus enum '{}'", status, eventStatusEnum);
             } catch (Exception e) {
@@ -123,7 +121,7 @@ public class MainEventsController {
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
         try {
-            // Извличане на събития - подаваме enum обектите
+            // Извличане на събития
             long startTime = System.currentTimeMillis();
             Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
                     search, location, eventTypeEnum, eventStatusEnum, pageable);
@@ -131,21 +129,21 @@ public class MainEventsController {
                     System.currentTimeMillis() - startTime, events.getTotalElements(),
                     eventTypeEnum, eventStatusEnum);
 
-            // Основни атрибути за eventos
+            // Основни атрибути за události
             model.addAttribute("events", events);
             model.addAttribute("currentPage", page);
             model.addAttribute("size", size);
             model.addAttribute("totalPages", events.getTotalPages());
             model.addAttribute("totalElements", events.getTotalElements());
 
-            // Текущи стойности на филтрите (за запазване в формата)
+            // Текущи стойности на филтрите
             model.addAttribute("currentSearch", search);
             model.addAttribute("currentLocation", location);
-            model.addAttribute("currentType", type); // Запазваме оригиналния lowercase type за HTML
-            model.addAttribute("currentStatus", status); // Запазваме оригиналния lowercase status за HTML
+            model.addAttribute("currentType", type);
+            model.addAttribute("currentStatus", status);
             model.addAttribute("currentSort", sort);
 
-            // За backward compatibility с предишния код
+            // За backward compatibility
             model.addAttribute("param.search", search);
             model.addAttribute("param.location", location);
             model.addAttribute("param.type", type);
@@ -182,6 +180,16 @@ public class MainEventsController {
             model.addAttribute("currentPage", 0);
             model.addAttribute("totalPages", 0);
             model.addAttribute("totalElements", 0L);
+
+            // Задаваме безопасни стойности за пагинацията при грешка
+            model.addAttribute("startPage", 0);
+            model.addAttribute("endPage", 0);
+            model.addAttribute("isFirstPage", true);
+            model.addAttribute("isLastPage", true);
+            model.addAttribute("hasNextPage", false);
+            model.addAttribute("hasPreviousPage", false);
+            model.addAttribute("startResult", 0L);
+            model.addAttribute("endResult", 0L);
         }
 
         return "mainEventsPage";
@@ -199,13 +207,31 @@ public class MainEventsController {
 
         // Изчисляване на видимите страници за пагинацията
         int totalPages = events.getTotalPages();
+
+        // Защита срещу null или негативни стойности
+        if (totalPages <= 0) {
+            model.addAttribute("startPage", 0);
+            model.addAttribute("endPage", 0);
+            model.addAttribute("startResult", 0L);
+            model.addAttribute("endResult", 0L);
+            return;
+        }
+
         int startPage = Math.max(0, currentPage - 2);
         int endPage = Math.min(totalPages - 1, currentPage + 2);
 
         // Ако има малко страници, показваме всички
         if (totalPages <= 5) {
             startPage = 0;
-            endPage = totalPages - 1;
+            endPage = Math.max(0, totalPages - 1); // Защита срещу негативни стойности
+        }
+
+        // Финална защита за валидни стойности
+        endPage = Math.max(0, Math.min(endPage, totalPages - 1));
+
+        // Осигуряваме че startPage <= endPage
+        if (startPage > endPage) {
+            startPage = endPage;
         }
 
         model.addAttribute("startPage", startPage);
@@ -222,24 +248,49 @@ public class MainEventsController {
             model.addAttribute("startResult", 0L);
             model.addAttribute("endResult", 0L);
         }
+
+        // Debug logging за пагинацията
+        logger.debug("Pagination info: totalPages={}, currentPage={}, startPage={}, endPage={}",
+                totalPages, currentPage, startPage, endPage);
     }
 
+    /**
+     * Почиства параметър от null и празни стойности
+     */
     private String cleanParam(String param) {
         return param == null || param.trim().isEmpty() ? null : param.trim();
     }
 
+    /**
+     * Валидира типа на събитието
+     */
     private boolean isValidType(String type) {
-        return type != null && ("event".equalsIgnoreCase(type) || "referendum".equalsIgnoreCase(type) || "poll".equalsIgnoreCase(type));
+        return ("event".equalsIgnoreCase(type) ||
+                "referendum".equalsIgnoreCase(type) ||
+                "poll".equalsIgnoreCase(type));
     }
 
+    /**
+     * Валидира статуса на събитието
+     */
     private boolean isValidStatus(String status) {
-        return status != null && ("active".equalsIgnoreCase(status) || "inactive".equalsIgnoreCase(status));
+        return ("active".equalsIgnoreCase(status) ||
+                "inactive".equalsIgnoreCase(status));
     }
 
+    /**
+     * Валидира сортировката
+     */
     private boolean isValidSort(String sort) {
-        return sort != null && ("date-desc".equals(sort) || "date-asc".equals(sort) || "popularity".equals(sort) || "name".equals(sort));
+        return ("date-desc".equals(sort) ||
+                "date-asc".equals(sort) ||
+                "popularity".equals(sort) ||
+                "name".equals(sort));
     }
 
+    /**
+     * Създава Sort обект от string параметър
+     */
     private Sort getSort(String sort) {
         if (sort == null) {
             return Sort.by(Sort.Direction.DESC, "createdAt");
