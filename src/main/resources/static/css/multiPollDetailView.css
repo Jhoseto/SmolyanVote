@@ -1,4 +1,4 @@
-/* Referendum Detail View Styles */
+/* Multi Poll Detail View Styles */
 :root {
     --primary-green: #ffffff;
     --secondary-green: #a9a9a9;
@@ -24,24 +24,20 @@
 
 .hero {
     min-height: 100vh;
-    background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url('/images/web/eventDetail.png') repeat center -290px;
+    background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url('/images/web/vote1.png') no-repeat center -290px;
     background-size: cover;
-    display: flow;
+    display: flex;
     align-items: flex-start;
     justify-content: center;
     padding: 2rem 1rem;
     position: relative;
     overflow: hidden;
-    margin: auto;
 }
 
 .hero-container {
     max-width: 900px;
     width: 100%;
-    margin-top: 80px;
-    margin-bottom: 20px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 80px auto;
 }
 
 .event-card {
@@ -232,11 +228,11 @@
     align-items: center;
     justify-content: flex-end;
     padding-right: 5px;
-    background-color: #1d8e9a !important;
+    background-color: #1d8f9b;
 }
 
 .bar-text {
-    font-family: var(--font-primary), serif;
+    font-family: var(--font-primary);
     font-size: 0.8rem;
     color: var(--white);
     font-weight: 600;
@@ -310,9 +306,9 @@
 }
 
 .modal-content {
-    background: var(--gradient-glass);
+    background: var(--gradient-glass) !important;
     backdrop-filter: blur(12px);
-    border: 10px solid rgba(255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     box-shadow: var(--shadow-lg);
     animation: modalFadeIn 0.3s var(--ease-out-expo);
 }
@@ -349,11 +345,6 @@
     transform: scale(1.1);
 }
 
-.comments-container{
-    max-width: 900px;
-    width: 100%;
-    margin: 20px auto;
-}
 #prevBtn, #nextBtn {
     background: var(--gradient-glass);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -373,7 +364,7 @@
     box-shadow: var(--shadow-md);
 }
 
-/* Animations */
+/* Анимации */
 @keyframes heroSlideUp {
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -384,7 +375,7 @@
     to { transform: scale(1); opacity: 1; }
 }
 
-/* Responsive Design */
+/* Респонсивен дизайн */
 @media (max-width: 768px) {
     .hero-container {
         max-width: 95%;
