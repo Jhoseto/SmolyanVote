@@ -75,8 +75,8 @@ public class MainEventsServiceImpl implements MainEventsService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<EventSimpleViewDTO> getAllUserEvents(String email) {
-        if (!StringUtils.hasText(email)) {
+    public List<EventSimpleViewDTO> getAllUserEvents(String username) {
+        if (!StringUtils.hasText(username)) {
             return new ArrayList<>();
         }
 
@@ -84,19 +84,19 @@ public class MainEventsServiceImpl implements MainEventsService {
             // Синхронен подход - по-прост и надежден за @Transactional методи
 
             // Извличане на SimpleEvents
-            List<SimpleEventEntity> simpleEvents = getSimpleEventsByCreatorEmail(email);
+            List<SimpleEventEntity> simpleEvents = getSimpleEventsByCreatorUsername(username);
             List<EventSimpleViewDTO> userEvents = new ArrayList<>(simpleEvents.stream()
                     .map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView)
                     .toList());
 
             // Извличане на Referendums
-            List<ReferendumEntity> referendums = getReferendumsByCreatorEmail(email);
+            List<ReferendumEntity> referendums = getReferendumsByCreatorUsername(username);
             userEvents.addAll(referendums.stream()
                     .map(allEventsSimplePreviewMapper::mapReferendumToSimpleView)
                     .toList());
 
             // Извличане на MultiPolls
-            List<MultiPollEntity> multiPolls = getMultiPollsByCreatorEmail(email);
+            List<MultiPollEntity> multiPolls = getMultiPollsByCreatorUsername(username);
             userEvents.addAll(multiPolls.stream()
                     .map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView)
                     .toList());
@@ -104,11 +104,11 @@ public class MainEventsServiceImpl implements MainEventsService {
             // Сортираме по дата на създаване (най-новите първо)
             userEvents.sort((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()));
 
-            logger.info("Found {} events for user with email: {}", userEvents.size(), email);
+            logger.info("Found {} events for user with email: {}", userEvents.size(), username);
             return userEvents;
 
         } catch (Exception e) {
-            logger.error("Error retrieving user events for email: {}", email, e);
+            logger.error("Error retrieving user events for email: {}", username, e);
             return new ArrayList<>();
         }
     }
@@ -384,39 +384,40 @@ public class MainEventsServiceImpl implements MainEventsService {
     }
 
     /**
-     * Методи за извличане на събития по creator email (оптимизирани)
+     * Методи за извличане на събития по creator name (оптимизирани)
      */
-    private List<SimpleEventEntity> getSimpleEventsByCreatorEmail(String email) {
+    private List<SimpleEventEntity> getSimpleEventsByCreatorUsername(String username) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<SimpleEventEntity> query = cb.createQuery(SimpleEventEntity.class);
         Root<SimpleEventEntity> root = query.from(SimpleEventEntity.class);
 
-        query.where(cb.equal(root.get("creatorEmail"), email));
+        query.where(cb.equal(root.get("creatorName"), username));
         query.orderBy(cb.desc(root.get("createdAt")));
 
         return entityManager.createQuery(query).getResultList();
     }
 
-    private List<ReferendumEntity> getReferendumsByCreatorEmail(String email) {
+    private List<ReferendumEntity> getReferendumsByCreatorUsername(String username) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ReferendumEntity> query = cb.createQuery(ReferendumEntity.class);
         Root<ReferendumEntity> root = query.from(ReferendumEntity.class);
 
-        query.where(cb.equal(root.get("creatorEmail"), email));
+        query.where(cb.equal(root.get("creatorName"), username));
         query.orderBy(cb.desc(root.get("createdAt")));
 
         return entityManager.createQuery(query).getResultList();
     }
 
-    private List<MultiPollEntity> getMultiPollsByCreatorEmail(String email) {
+    private List<MultiPollEntity> getMultiPollsByCreatorUsername(String username) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<MultiPollEntity> query = cb.createQuery(MultiPollEntity.class);
         Root<MultiPollEntity> root = query.from(MultiPollEntity.class);
 
-        query.where(cb.equal(root.get("creatorEmail"), email));
+        query.where(cb.equal(root.get("creatorName"), username));
         query.orderBy(cb.desc(root.get("createdAt")));
 
         return entityManager.createQuery(query).getResultList();
+
     }
 
     /**

@@ -16,5 +16,5 @@ public interface MainEventsService {
     Page<EventSimpleViewDTO> findAllEvents(String search, String location, EventType type, EventStatus status, Pageable pageable);
 
     @Transactional(readOnly = true)
-    List<EventSimpleViewDTO> getAllUserEvents(String email);
+    List<EventSimpleViewDTO> getAllUserEvents(String username);
 }

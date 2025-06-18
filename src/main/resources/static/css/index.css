@@ -299,7 +299,7 @@ html {
 }
 
 .title-question {
-  font-size: clamp(1.6rem, 4.5vw, 2.61rem);
+  font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 0.9;
@@ -316,7 +316,7 @@ html {
 }
 
 .title-description {
-  font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+  font-size: 1.6rem;
   font-weight: 200;
   color: var(--text-secondary);
   line-height: 1.4;
@@ -335,7 +335,7 @@ html {
   position: relative;
   display: inline-block;
   min-width: 200px;
-  height: 1.12em;
+  height: 27px;
   vertical-align: baseline;
   flex-shrink: 0;
 }
@@ -343,7 +343,7 @@ html {
 .dynamic-text {
   position: absolute;
   top: 0;
-  left: 50%;
+  left: 10%;
   transform: translateX(-50%) translateY(0px);
   opacity: 0;
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -362,7 +362,7 @@ html {
 
 .dynamic-text.active {
   opacity: 1;
-  transform: translateX(-50%) translateY(0px);
+  transform: translateX(-10%) translateY(0px);
   filter: blur(0);
   animation: textGlow 3s ease-in-out infinite alternate;
 }
