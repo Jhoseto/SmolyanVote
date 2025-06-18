@@ -11,6 +11,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import smolyanVote.smolyanVote.models.enums.EventStatus;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
@@ -35,14 +37,21 @@ public class MainEventsController {
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "6") int size,
+            @RequestParam(value = "reset", required = false) String reset,
             Model model) {
+
         logger.info("Search query: search={}, location={}, type={}, status={}, sort={}, page={}, size={}",
                 search, location, type, status, sort, page, size);
 
+        // Ако има reset параметър, пренасочваме без параметри
+        if ("true".equals(reset)) {
+            return "redirect:/mainEvents";
+        }
+
         // Валидация и нормализиране на параметрите
         search = cleanParam(search);
-        if (search != null && search.length() > 50) {
-            search = search.substring(0, 50); // Ограничаване на дължината
+        if (search != null && search.length() > 100) {
+            search = search.substring(0, 100);
         }
 
         // Валидация на локацията
@@ -57,16 +66,41 @@ public class MainEventsController {
             location = null;
         }
 
-        // Валидация на типа
+        // Валидация на типа и конвертиране към EventType enum
         type = cleanParam(type);
-        if (type != null && !isValidType(type)) {
+        EventType eventTypeEnum = null; // Това ще подаваме към service-a
+        if (type != null && isValidType(type)) {
+            try {
+                // Конвертираме от lowercase към EventType enum
+                eventTypeEnum = switch (type.toLowerCase()) {
+                    case "event" -> EventType.SIMPLEEVENT;
+                    case "referendum" -> EventType.REFERENDUM;
+                    case "poll" -> EventType.POLL; // или MULTI_POLL според нуждите
+                    default -> null;
+                };
+                logger.info("Converting type '{}' to EventType enum '{}'", type, eventTypeEnum);
+            } catch (Exception e) {
+                logger.warn("Error converting type '{}' to enum: {}", type, e.getMessage());
+                type = null;
+            }
+        } else if (type != null) {
             logger.warn("Invalid type: {}", type);
             type = null;
         }
 
-        // Валидация на статуса
+        // Валидация на статуса и конвертиране към EventStatus enum
         status = cleanParam(status);
-        if (status != null && !isValidStatus(status)) {
+        EventStatus eventStatusEnum = null; // Това ще подаваме към service-a
+        if (status != null && isValidStatus(status)) {
+            try {
+                // Конвертираме от lowercase към EventStatus enum
+                eventStatusEnum = status.equalsIgnoreCase("active") ? EventStatus.ACTIVE : EventStatus.INACTIVE;
+                logger.info("Converting status '{}' to EventStatus enum '{}'", status, eventStatusEnum);
+            } catch (Exception e) {
+                logger.warn("Error converting status '{}' to enum: {}", status, e.getMessage());
+                status = null;
+            }
+        } else if (status != null) {
             logger.warn("Invalid status: {}", status);
             status = null;
         }
@@ -88,23 +122,106 @@ public class MainEventsController {
         // Създаване на Pageable
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
-        // Извличане на събития
-        long startTime = System.currentTimeMillis();
-        Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(search, location, type, status, pageable);
-        logger.info("Query executed in {} ms", System.currentTimeMillis() - startTime);
+        try {
+            // Извличане на събития - подаваме enum обектите
+            long startTime = System.currentTimeMillis();
+            Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
+                    search, location, eventTypeEnum, eventStatusEnum, pageable);
+            logger.info("Query executed in {} ms. Found {} events with type '{}' and status '{}'",
+                    System.currentTimeMillis() - startTime, events.getTotalElements(),
+                    eventTypeEnum, eventStatusEnum);
 
-        // Добавяне на атрибути в модела
-        model.addAttribute("events", events);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("size", size);
-        model.addAttribute("totalPages", events.getTotalPages());
-        model.addAttribute("param.search", search);
-        model.addAttribute("param.location", location);
-        model.addAttribute("param.type", type);
-        model.addAttribute("param.status", status);
-        model.addAttribute("param.sort", sort);
+            // Основни атрибути за eventos
+            model.addAttribute("events", events);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("size", size);
+            model.addAttribute("totalPages", events.getTotalPages());
+            model.addAttribute("totalElements", events.getTotalElements());
 
-        return "mainEventsPage"; // Името на Thymeleaf шаблона
+            // Текущи стойности на филтрите (за запазване в формата)
+            model.addAttribute("currentSearch", search);
+            model.addAttribute("currentLocation", location);
+            model.addAttribute("currentType", type); // Запазваме оригиналния lowercase type за HTML
+            model.addAttribute("currentStatus", status); // Запазваме оригиналния lowercase status за HTML
+            model.addAttribute("currentSort", sort);
+
+            // За backward compatibility с предишния код
+            model.addAttribute("param.search", search);
+            model.addAttribute("param.location", location);
+            model.addAttribute("param.type", type);
+            model.addAttribute("param.status", status);
+            model.addAttribute("param.sort", sort);
+
+            // Флаг дали има активни филтри
+            boolean hasActiveFilters = search != null || location != null ||
+                    type != null || status != null || sort != null;
+            model.addAttribute("hasActiveFilters", hasActiveFilters);
+
+            // Пагинация информация за HTML
+            addPaginationInfo(model, events, page);
+
+            // Съобщение при липса на резултати
+            if (events.isEmpty()) {
+                String noResultsMessage = hasActiveFilters ?
+                        "Няма намерени събития със зададените филтри. Опитайте да промените критериите за търсене." :
+                        "Все още няма създадени събития.";
+                model.addAttribute("noResultsMessage", noResultsMessage);
+            }
+
+            // Debug logging
+            if (type != null || status != null) {
+                logger.info("Filters applied: HTML type='{}', EventType='{}', HTML status='{}', EventStatus='{}', Results={}",
+                        type, eventTypeEnum, status, eventStatusEnum, events.getTotalElements());
+            }
+
+        } catch (Exception e) {
+            logger.error("Error retrieving events", e);
+            model.addAttribute("error", "Възникна грешка при зареждането на събитията. Моля, опитайте отново.");
+            // Добавяме празна страница при грешка
+            model.addAttribute("events", Page.empty());
+            model.addAttribute("currentPage", 0);
+            model.addAttribute("totalPages", 0);
+            model.addAttribute("totalElements", 0L);
+        }
+
+        return "mainEventsPage";
+    }
+
+    /**
+     * Добавя информация за пагинацията в модела
+     */
+    private void addPaginationInfo(Model model, Page<EventSimpleViewDTO> events, int currentPage) {
+        // Пагинация flags
+        model.addAttribute("isFirstPage", events.isFirst());
+        model.addAttribute("isLastPage", events.isLast());
+        model.addAttribute("hasNextPage", events.hasNext());
+        model.addAttribute("hasPreviousPage", events.hasPrevious());
+
+        // Изчисляване на видимите страници за пагинацията
+        int totalPages = events.getTotalPages();
+        int startPage = Math.max(0, currentPage - 2);
+        int endPage = Math.min(totalPages - 1, currentPage + 2);
+
+        // Ако има малко страници, показваме всички
+        if (totalPages <= 5) {
+            startPage = 0;
+            endPage = totalPages - 1;
+        }
+
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
+
+        // Информация за текущите резултати
+        if (!events.isEmpty()) {
+            long startResult = (long) currentPage * events.getSize() + 1;
+            long endResult = Math.min(startResult + events.getSize() - 1, events.getTotalElements());
+
+            model.addAttribute("startResult", startResult);
+            model.addAttribute("endResult", endResult);
+        } else {
+            model.addAttribute("startResult", 0L);
+            model.addAttribute("endResult", 0L);
+        }
     }
 
     private String cleanParam(String param) {

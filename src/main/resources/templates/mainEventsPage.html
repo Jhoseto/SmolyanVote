@@ -6,12 +6,12 @@
   <title>Събития - SmolyanVote</title>
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
-  <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/mainEventPage.css">
   <link rel="stylesheet" href="/css/eventSimpleCard.css">
+  <link rel="stylesheet" href="/css/mainEventPage.css">
   <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
 </head>
 <body>
@@ -28,7 +28,7 @@
       Използвайте филтри по категории, местоположение и статус, за да персонализирате избора си.<br>
       Участвайте активно, като гласувате в референдуми и анкети.<br>
       Създайте свои собствени събития и ангажирайте общността.<br>
-      Важно! Преди да създадете ново събитие, проверете дали подобно вече съществува.
+      <strong>Важно!</strong> Преди да създадете ново събитие, проверете дали подобно вече съществува.
     </p>
     <div class="create-event-buttons">
       <div th:if="${#authorization.expression('isAuthenticated()')}">
@@ -66,13 +66,29 @@
 <!-- Секция за търсене и филтри -->
 <section class="search-section">
   <div class="container">
+    <!-- Показване на информация за резултатите -->
+    <div class="results-info mb-3" th:if="${not events.isEmpty()}">
+      <p class="text-muted mb-0">
+        Показани <strong th:text="${startResult ?: 0}">0</strong>-<strong th:text="${endResult ?: 0}">0</strong>
+        от общо <strong th:text="${totalElements ?: 0}">0</strong> събития
+        <span th:if="${hasActiveFilters}" class="ms-2">
+          <i class="bi bi-funnel-fill text-primary"></i>
+          <small>Филтрирани резултати</small>
+        </span>
+      </p>
+    </div>
+
     <div class="search-filter-container">
       <form id="searchForm" th:action="@{/mainEvents}" method="get">
         <div class="filter-sort-group">
           <!-- Търсене -->
           <div class="search-bar">
-            <input type="text" id="eventSearch" name="search" th:value="${param.search ?: ''}"
-                   placeholder="Търси по заглавие или потребител..." aria-label="Търси събития" autocomplete="off">
+            <input type="text" id="eventSearch" name="search"
+                   th:value="${currentSearch}"
+                   placeholder="Търси по заглавие или потребител..."
+                   aria-label="Търси събития"
+                   autocomplete="off"
+                   maxlength="100">
             <button type="submit" class="search-button" aria-label="Търси">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--medium-gray)" stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -83,55 +99,94 @@
 
           <!-- Филтър по локация -->
           <div class="filter-dropdown">
-            <select name="location" id="eventLocationFilter" onchange="this.form.submit()">
-              <option value="" th:selected="${param.location == null or param.location.isEmpty()}">Всички локации</option>
+            <select name="location" id="eventLocationFilter" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentLocation == null}">Всички локации</option>
               <option th:each="location : ${T(smolyanVote.smolyanVote.models.enums.Locations).values()}"
                       th:value="${location.name()}"
                       th:text="${location.toBG()}"
-                      th:selected="${param.location == location.name()}"></option>
+                      th:selected="${currentLocation != null and currentLocation.toUpperCase() == location.name()}"></option>
             </select>
           </div>
 
           <!-- Филтър по тип събитие -->
           <div class="filter-dropdown">
-            <select name="type" id="eventTypeFilter" onchange="this.form.submit()">
-              <option value="" th:selected="${param.type == null or param.type.isEmpty()}">Всички типове</option>
-              <option value="event" th:selected="${param.type == 'event'}">Събитие</option>
-              <option value="referendum" th:selected="${param.type == 'referendum'}">Референдум</option>
-              <option value="poll" th:selected="${param.type == 'poll'}">Анкета</option>
+            <select name="type" id="eventTypeFilter" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentType == null}">Всички типове</option>
+              <option value="event" th:selected="${currentType == 'event'}">Събитие</option>
+              <option value="referendum" th:selected="${currentType == 'referendum'}">Референдум</option>
+              <option value="poll" th:selected="${currentType == 'poll'}">Анкета</option>
             </select>
           </div>
 
           <!-- Филтър по статус -->
           <div class="filter-dropdown">
-            <select name="status" id="eventStatusFilter" onchange="this.form.submit()">
-              <option value="" th:selected="${param.status == null or param.status.isEmpty()}">Всички статуси</option>
-              <option value="active" th:selected="${param.status == 'active'}">Активен</option>
-              <option value="inactive" th:selected="${param.status == 'inactive'}">Неактивен</option>
+            <select name="status" id="eventStatusFilter" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentStatus == null}">Всички статуси</option>
+              <option value="active" th:selected="${currentStatus == 'active'}">Активен</option>
+              <option value="inactive" th:selected="${currentStatus == 'inactive'}">Неактивен</option>
             </select>
           </div>
 
           <!-- Сортиране -->
           <div class="filter-dropdown">
-            <select name="sort" id="eventSort" onchange="this.form.submit()">
-              <option value="" th:selected="${param.sort == null or param.sort.isEmpty()}">Сортирай по</option>
-              <option value="date-desc" th:selected="${param.sort == 'date-desc'}">Най-нови</option>
-              <option value="date-asc" th:selected="${param.sort == 'date-asc'}">Най-стари</option>
-              <option value="popularity" th:selected="${param.sort == 'popularity'}">Популярност</option>
-              <option value="name" th:selected="${param.sort == 'name'}">Име (А-Я)</option>
+            <select name="sort" id="eventSort" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentSort == null}">Сортирай по</option>
+              <option value="date-desc" th:selected="${currentSort == 'date-desc'}">Най-нови</option>
+              <option value="date-asc" th:selected="${currentSort == 'date-asc'}">Най-стари</option>
+              <option value="popularity" th:selected="${currentSort == 'popularity'}">Популярност</option>
+              <option value="name" th:selected="${currentSort == 'name'}">Име (А-Я)</option>
             </select>
           </div>
 
           <!-- Бутон за ресетване на филтрите -->
           <div class="filter-reset">
-            <a th:href="@{/mainEvents}" class="btn btn-outline-secondary">Изчисти филтри</a>
+            <a th:href="@{/mainEvents(reset=true)}" class="btn btn-outline-secondary"
+               th:title="'Изчисти всички филтри'">
+              <i class="bi bi-arrow-clockwise me-1"></i>
+              Изчисти филтри
+            </a>
           </div>
         </div>
 
-        <!-- Скрити полета за пагинация -->
-        <input type="hidden" name="page" th:value="${currentPage ?: 0}"/>
-        <input type="hidden" name="size" th:value="${size ?: 10}"/>
+        <!-- Скрити полета за запазване на текущата страница при търсене -->
+        <input type="hidden" name="page" id="hiddenPage" th:value="${currentPage ?: 0}"/>
+        <input type="hidden" name="size" th:value="${size ?: 6}"/>
       </form>
+    </div>
+
+    <!-- Активни филтри -->
+    <div class="active-filters mt-3" th:if="${hasActiveFilters}">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted small">Активни филтри:</span>
+
+        <span th:if="${currentSearch != null}" class="badge bg-primary rounded-pill">
+          <i class="bi bi-search me-1"></i>
+          <span th:text="'&quot;' + ${currentSearch} + '&quot;'">търсене</span>
+          <a th:href="@{/mainEvents(location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+
+        <span th:if="${currentLocation != null}" class="badge bg-success rounded-pill">
+          <i class="bi bi-geo-alt me-1"></i>
+          <span th:text="${T(smolyanVote.smolyanVote.models.enums.Locations).valueOf(currentLocation.toUpperCase()).toBG()}">локация</span>
+          <a th:href="@{/mainEvents(search=${currentSearch}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+
+        <span th:if="${currentType != null}" class="badge bg-info rounded-pill">
+          <i class="bi bi-tag me-1"></i>
+          <span th:text="${currentType == 'event' ? 'Събитие' : (currentType == 'referendum' ? 'Референдум' : 'Анкета')}">тип</span>
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, status=${currentStatus}, sort=${currentSort})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+
+        <span th:if="${currentStatus != null}" class="badge bg-warning rounded-pill">
+          <i class="bi bi-circle-fill me-1"></i>
+          <span th:text="${currentStatus == 'active' ? 'Активен' : 'Неактивен'}">статус</span>
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, type=${currentType}, sort=${currentSort})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+      </div>
     </div>
   </div>
 </section>
@@ -139,68 +194,115 @@
 <!-- Събития -->
 <section class="event-container py-5">
   <div class="container">
-    <div class="text-center" th:if="${events.isEmpty()}">
-      <h3>Няма намерени събития</h3>
-      <p>Опитайте да промените филтрите или търсенето.</p>
+    <!-- Съобщение за грешка -->
+    <div class="alert alert-danger" role="alert" th:if="${error}">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <span th:text="${error}">Грешка</span>
     </div>
-    <div class="row">
+
+    <!-- Съобщение при липса на резултати -->
+    <div class="text-center py-5" th:if="${events.isEmpty() and error == null}">
+      <div class="mb-4">
+        <i class="bi bi-search display-1 text-muted"></i>
+      </div>
+      <h3 class="text-muted" th:text="${noResultsMessage ?: 'Няма намерени събития'}">Няма намерени събития</h3>
+      <div th:if="${hasActiveFilters}" class="mt-3">
+        <a th:href="@{/mainEvents}" class="btn btn-primary">
+          <i class="bi bi-arrow-clockwise me-2"></i>
+          Покажи всички събития
+        </a>
+      </div>
+    </div>
+
+    <!-- Списък със събития -->
+    <div class="row" th:if="${not events.isEmpty()}">
       <div class="col-md-4 mb-4" th:each="event : ${events.content}">
         <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
       </div>
     </div>
-    <!-- Пагинация -->
-    <div class="pagination" th:if="${not events.isEmpty()}">
-      <ul>
-        <li th:if="${currentPage > 0}">
-          <a class="arrow" th:href="@{/mainEvents(page=0, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">«</a>
+
+    <!-- Подобрена пагинация -->
+    <nav aria-label="Пагинация" th:if="${not events.isEmpty() and totalPages > 1}">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="pagination-info">
+          <small class="text-muted">
+            Страница <strong th:text="${currentPage + 1}">1</strong> от <strong th:text="${totalPages}">1</strong>
+          </small>
+        </div>
+
+        <!-- Избор на размер на страницата -->
+        <div class="page-size-selector">
+          <label for="pageSizeSelect" class="form-label small text-muted mb-0 me-2">Събития на страница:</label>
+          <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;" onchange="changePageSize(this.value)">
+            <option value="6" th:selected="${size == 6}">6</option>
+            <option value="12" th:selected="${size == 12}">12</option>
+            <option value="24" th:selected="${size == 24}">24</option>
+            <option value="50" th:selected="${size == 50}">50</option>
+          </select>
+        </div>
+      </div>
+
+      <ul class="pagination justify-content-center">
+        <!-- Първа страница -->
+        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+          <a class="page-link" th:href="@{/mainEvents(page=0, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             aria-label="Първа страница" th:title="'Първа страница'">
+            «
+          </a>
         </li>
-        <li th:if="${currentPage > 0}">
-          <a class="arrow" th:href="@{/mainEvents(page=${currentPage - 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">‹</a>
+
+        <!-- Предишна страница -->
+        <li class="page-item" th:classappend="${not hasPreviousPage} ? 'disabled'">
+          <a class="page-link" th:href="@{/mainEvents(page=${currentPage - 1}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             aria-label="Предишна страница" th:title="'Предишна страница'">
+            ‹
+          </a>
         </li>
-        <li th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}" th:class="${pageNumber == currentPage ? 'active' : ''}">
-          <a th:href="@{/mainEvents(page=${pageNumber}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}"
-             th:text="${pageNumber + 1}"></a>
+
+        <!-- Страници -->
+        <li class="page-item" th:each="pageNumber : ${#numbers.sequence(startPage ?: 0, endPage ?: 0)}"
+            th:classappend="${pageNumber == currentPage} ? 'active'">
+          <a class="page-link"
+             th:href="@{/mainEvents(page=${pageNumber}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             th:text="${pageNumber + 1}"
+             th:title="'Страница ' + ${pageNumber + 1}">1</a>
         </li>
-        <li th:if="${currentPage < totalPages - 1}">
-          <a class="arrow" th:href="@{/mainEvents(page=${currentPage + 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">›</a>
+
+        <!-- Следваща страница -->
+        <li class="page-item" th:classappend="${not hasNextPage} ? 'disabled'">
+          <a class="page-link" th:href="@{/mainEvents(page=${currentPage + 1}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             aria-label="Следваща страница" th:title="'Следваща страница'">
+            ›
+          </a>
         </li>
-        <li th:if="${currentPage < totalPages - 1}">
-          <a class="arrow" th:href="@{/mainEvents(page=${totalPages - 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">»</a>
+
+        <!-- Последна страница -->
+        <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+          <a class="page-link" th:href="@{/mainEvents(page=${totalPages - 1}, size=${size}, search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+             aria-label="Последна страница" th:title="'Последна страница'">
+            »
+          </a>
         </li>
       </ul>
-    </div>
+    </nav>
   </div>
 </section>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Зареждане...</span>
+  </div>
+</div>
 
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
-<!-- JS библиотеки (само за Bootstrap и SweetAlert2) -->
+<!-- JS библиотеки -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<!-- JS функция за модала за предупреждение -->
-<script>
-  function showLoginWarning() {
-    Swal.fire({
-      icon: 'info',
-      title: 'Моля, влезте в системата',
-      text: 'Трябва да сте влезли в профила си, за да достъпите това съдържание.',
-      showCancelButton: true,
-      confirmButtonText: 'Вход',
-      cancelButtonText: 'Затвори',
-      confirmButtonColor: '#25afb4',
-      cancelButtonColor: '#6c757d',
-      customClass: {
-        popup: 'rounded-3 shadow'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const modal = new bootstrap.Modal(document.getElementById('loginModal'));
-        modal.show();
-      }
-    });
-  }
-</script>
+<!-- Custom JavaScript -->
+<script src="/js/mainEventsPage.js"></script>
 </body>
 </html>
