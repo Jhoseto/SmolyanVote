@@ -2,165 +2,390 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.ReferendumEntity;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.repositories.MultiPollRepository;
-import smolyanVote.smolyanVote.repositories.ReferendumRepository;
-import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.services.mappers.AllEventsSimplePreviewMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class MainEventsServiceImpl implements MainEventsService {
 
-    private final SimpleEventRepository simpleEventRepository;
-    private final ReferendumRepository referendumRepository;
-    private final MultiPollRepository multiPollRepository;
+    private static final Logger logger = LoggerFactory.getLogger(MainEventsServiceImpl.class);
+
+
     private final AllEventsSimplePreviewMapper allEventsSimplePreviewMapper;
+    private final ExecutorService executorService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public MainEventsServiceImpl(
-            SimpleEventRepository simpleEventRepository,
-            ReferendumRepository referendumRepository,
-            MultiPollRepository multiPollRepository,
             AllEventsSimplePreviewMapper allEventsSimplePreviewMapper) {
-        this.simpleEventRepository = simpleEventRepository;
-        this.referendumRepository = referendumRepository;
-        this.multiPollRepository = multiPollRepository;
+
         this.allEventsSimplePreviewMapper = allEventsSimplePreviewMapper;
+        this.executorService = Executors.newFixedThreadPool(3); // За паралелни заявки
     }
 
     @Transactional(readOnly = true)
     @Override
-    public Page<EventSimpleViewDTO> findAllEvents(String search, String location, String type, String status, Pageable pageable) {
-        // Събираме всички събития от трите типа
-        List<EventSimpleViewDTO> allEvents = new ArrayList<>();
+    public Page<EventSimpleViewDTO> findAllEvents(String search, String location, EventType type, EventStatus status, Pageable pageable) {
+        long startTime = System.currentTimeMillis();
 
-        // Парсваме филтрите веднъж
-        Locations locationFilter = parseLocation(location);
-        EventStatus statusFilter = parseStatus(status);
+        try {
+            // Парсваме филтрите
+            SearchParameters params = parseSearchParameters(search, location, type, status);
 
-        // Ако няма филтър по тип или е "event"
-        if (type == null || type.trim().isEmpty() || "event".equalsIgnoreCase(type.trim())) {
-            List<SimpleEventEntity> simpleEvents = getFilteredSimpleEvents(search, locationFilter, statusFilter);
-            allEvents.addAll(simpleEvents.stream()
+            // Ако имаме специфичен тип, използваме оптимизирана заявка
+            if (type != null) {
+                return findEventsBySpecificType(params, pageable, type);
+            }
+
+            // В противен случай търсим във всички типове паралелно
+            return findEventsFromAllTypes(params, pageable);
+
+        } catch (Exception e) {
+            logger.error("Error in findAllEvents", e);
+            throw new RuntimeException("Failed to retrieve events", e);
+        } finally {
+            logger.debug("findAllEvents completed in {} ms", System.currentTimeMillis() - startTime);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<EventSimpleViewDTO> getAllUserEvents(String email) {
+        if (!StringUtils.hasText(email)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            // Синхронен подход - по-прост и надежден за @Transactional методи
+
+            // Извличане на SimpleEvents
+            List<SimpleEventEntity> simpleEvents = getSimpleEventsByCreatorEmail(email);
+            List<EventSimpleViewDTO> userEvents = new ArrayList<>(simpleEvents.stream()
                     .map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView)
                     .toList());
-        }
 
-        // Ако няма филтър по тип или е "referendum"
-        if (type == null || type.trim().isEmpty() || "referendum".equalsIgnoreCase(type.trim())) {
-            List<ReferendumEntity> referendums = getFilteredReferendums(search, locationFilter, statusFilter);
-            allEvents.addAll(referendums.stream()
+            // Извличане на Referendums
+            List<ReferendumEntity> referendums = getReferendumsByCreatorEmail(email);
+            userEvents.addAll(referendums.stream()
                     .map(allEventsSimplePreviewMapper::mapReferendumToSimpleView)
                     .toList());
-        }
 
-        // Ако няма филтър по тип или е "poll"
-        if (type == null || type.trim().isEmpty() || "poll".equalsIgnoreCase(type.trim())) {
-            List<MultiPollEntity> multiPolls = getFilteredMultiPolls(search, locationFilter, statusFilter);
-            allEvents.addAll(multiPolls.stream()
+            // Извличане на MultiPolls
+            List<MultiPollEntity> multiPolls = getMultiPollsByCreatorEmail(email);
+            userEvents.addAll(multiPolls.stream()
                     .map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView)
                     .toList());
+
+            // Сортираме по дата на създаване (най-новите първо)
+            userEvents.sort((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()));
+
+            logger.info("Found {} events for user with email: {}", userEvents.size(), email);
+            return userEvents;
+
+        } catch (Exception e) {
+            logger.error("Error retrieving user events for email: {}", email, e);
+            return new ArrayList<>();
+        }
+    }
+
+
+    /**
+     * Намира събития от специфичен тип с оптимизирана заявка
+     */
+    private Page<EventSimpleViewDTO> findEventsBySpecificType(SearchParameters params, Pageable pageable, EventType type) {
+        return switch (type) {
+            case SIMPLEEVENT -> findSimpleEventsOptimized(params, pageable);
+            case REFERENDUM -> findReferendumsOptimized(params, pageable);
+            case MULTI_POLL -> findMultiPollsOptimized(params, pageable);
+            default -> new PageImpl<>(new ArrayList<>(), pageable, 0);
+        };
+    }
+
+    /**
+     * Намира събития от всички типове и ги комбинира
+     */
+    private Page<EventSimpleViewDTO> findEventsFromAllTypes(SearchParameters params, Pageable pageable) {
+        // Паралелно извличане на данни от всички таблици
+        CompletableFuture<List<EventSimpleViewDTO>> simpleEventsFuture = CompletableFuture
+                .supplyAsync(() -> getFilteredSimpleEventsAsDTOs(params), executorService);
+
+        CompletableFuture<List<EventSimpleViewDTO>> referendumsFuture = CompletableFuture
+                .supplyAsync(() -> getFilteredReferendumsAsDTOs(params), executorService);
+
+        CompletableFuture<List<EventSimpleViewDTO>> multiPollsFuture = CompletableFuture
+                .supplyAsync(() -> getFilteredMultiPollsAsDTOs(params), executorService);
+
+        // Събираме всички резултати
+        List<EventSimpleViewDTO> allEvents = new ArrayList<>();
+
+        try {
+            CompletableFuture.allOf(simpleEventsFuture, referendumsFuture, multiPollsFuture).join();
+
+            allEvents.addAll(simpleEventsFuture.get());
+            allEvents.addAll(referendumsFuture.get());
+            allEvents.addAll(multiPollsFuture.get());
+
+        } catch (Exception e) {
+            logger.error("Error combining events from all types", e);
+            throw new RuntimeException("Failed to retrieve events", e);
         }
 
-        // Сортираме резултатите
-        sortEvents(allEvents, pageable.getSort());
-
-        // Прилагаме pagination
+        // Сортираме и прилагаме пагинация
+        sortEventsList(allEvents, pageable.getSort());
         return applyPagination(allEvents, pageable);
     }
 
-    @Override
-    public List<EventSimpleViewDTO> getAllUserEvents(String email) {
-        List<EventSimpleViewDTO> userEvents = new ArrayList<>();
+    /**
+     * Оптимизирана заявка за SimpleEvents с pagination в базата данни
+     */
+    private Page<EventSimpleViewDTO> findSimpleEventsOptimized(SearchParameters params, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 
-        // Намираме SimpleEvents на потребителя
-        List<SimpleEventEntity> userSimpleEvents = getSimpleEventsByCreatorEmail(email);
-        userEvents.addAll(userSimpleEvents.stream()
+        // Count query
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<SimpleEventEntity> countRoot = countQuery.from(SimpleEventEntity.class);
+        countQuery.select(cb.count(countRoot));
+        addPredicatesToQuery(countQuery, countRoot, cb, params);
+
+        Long totalElements = entityManager.createQuery(countQuery).getSingleResult();
+
+        if (totalElements == 0) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0);
+        }
+
+        // Data query
+        CriteriaQuery<SimpleEventEntity> dataQuery = cb.createQuery(SimpleEventEntity.class);
+        Root<SimpleEventEntity> dataRoot = dataQuery.from(SimpleEventEntity.class);
+        dataQuery.select(dataRoot);
+        addPredicatesToQuery(dataQuery, dataRoot, cb, params);
+        addSortingToQuery(dataQuery, dataRoot, cb, pageable.getSort());
+
+        TypedQuery<SimpleEventEntity> typedQuery = entityManager.createQuery(dataQuery);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<SimpleEventEntity> entities = typedQuery.getResultList();
+        List<EventSimpleViewDTO> dtos = entities.stream()
                 .map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView)
-                .toList());
+                .toList();
 
-        // Намираме Referendums на потребителя
-        List<ReferendumEntity> userReferendums = getReferendumsByCreatorEmail(email);
-        userEvents.addAll(userReferendums.stream()
-                .map(allEventsSimplePreviewMapper::mapReferendumToSimpleView)
-                .toList());
-
-        // Намираме MultiPolls на потребителя
-        List<MultiPollEntity> userMultiPolls = getMultiPollsByCreatorEmail(email);
-        userEvents.addAll(userMultiPolls.stream()
-                .map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView)
-                .toList());
-
-        // Сортираме по дата на създаване (най-новите първо)
-        userEvents.sort((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()));
-
-        return userEvents;
+        return new PageImpl<>(dtos, pageable, totalElements);
     }
 
-    // Методи за извличане на филтрирани събития
-    private List<SimpleEventEntity> getFilteredSimpleEvents(String search, Locations location, EventStatus status) {
+    /**
+     * Аналогично за Referendums
+     */
+    private Page<EventSimpleViewDTO> findReferendumsOptimized(SearchParameters params, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        // Count query
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<ReferendumEntity> countRoot = countQuery.from(ReferendumEntity.class);
+        countQuery.select(cb.count(countRoot));
+        addPredicatesToQuery(countQuery, countRoot, cb, params);
+
+        Long totalElements = entityManager.createQuery(countQuery).getSingleResult();
+
+        if (totalElements == 0) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0);
+        }
+
+        // Data query
+        CriteriaQuery<ReferendumEntity> dataQuery = cb.createQuery(ReferendumEntity.class);
+        Root<ReferendumEntity> dataRoot = dataQuery.from(ReferendumEntity.class);
+        dataQuery.select(dataRoot);
+        addPredicatesToQuery(dataQuery, dataRoot, cb, params);
+        addSortingToQuery(dataQuery, dataRoot, cb, pageable.getSort());
+
+        TypedQuery<ReferendumEntity> typedQuery = entityManager.createQuery(dataQuery);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<ReferendumEntity> entities = typedQuery.getResultList();
+        List<EventSimpleViewDTO> dtos = entities.stream()
+                .map(allEventsSimplePreviewMapper::mapReferendumToSimpleView)
+                .toList();
+
+        return new PageImpl<>(dtos, pageable, totalElements);
+    }
+
+    /**
+     * Аналогично за MultiPolls
+     */
+    private Page<EventSimpleViewDTO> findMultiPollsOptimized(SearchParameters params, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        // Count query
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<MultiPollEntity> countRoot = countQuery.from(MultiPollEntity.class);
+        countQuery.select(cb.count(countRoot));
+        addPredicatesToQuery(countQuery, countRoot, cb, params);
+
+        Long totalElements = entityManager.createQuery(countQuery).getSingleResult();
+
+        if (totalElements == 0) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0);
+        }
+
+        // Data query
+        CriteriaQuery<MultiPollEntity> dataQuery = cb.createQuery(MultiPollEntity.class);
+        Root<MultiPollEntity> dataRoot = dataQuery.from(MultiPollEntity.class);
+        dataQuery.select(dataRoot);
+        addPredicatesToQuery(dataQuery, dataRoot, cb, params);
+        addSortingToQuery(dataQuery, dataRoot, cb, pageable.getSort());
+
+        TypedQuery<MultiPollEntity> typedQuery = entityManager.createQuery(dataQuery);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<MultiPollEntity> entities = typedQuery.getResultList();
+        List<EventSimpleViewDTO> dtos = entities.stream()
+                .map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView)
+                .toList();
+
+        return new PageImpl<>(dtos, pageable, totalElements);
+    }
+
+    /**
+     * Помощни методи за извличане на филтрирани данни като DTO
+     */
+    private List<EventSimpleViewDTO> getFilteredSimpleEventsAsDTOs(SearchParameters params) {
+        List<SimpleEventEntity> entities = getFilteredSimpleEvents(params);
+        return entities.stream()
+                .map(allEventsSimplePreviewMapper::mapSimpleEventToSimpleView)
+                .toList();
+    }
+
+    private List<EventSimpleViewDTO> getFilteredReferendumsAsDTOs(SearchParameters params) {
+        List<ReferendumEntity> entities = getFilteredReferendums(params);
+        return entities.stream()
+                .map(allEventsSimplePreviewMapper::mapReferendumToSimpleView)
+                .toList();
+    }
+
+    private List<EventSimpleViewDTO> getFilteredMultiPollsAsDTOs(SearchParameters params) {
+        List<MultiPollEntity> entities = getFilteredMultiPolls(params);
+        return entities.stream()
+                .map(allEventsSimplePreviewMapper::mapMultiPollToSimpleView)
+                .toList();
+    }
+
+    /**
+     * Методи за извличане на филтрирани entitites
+     */
+    private List<SimpleEventEntity> getFilteredSimpleEvents(SearchParameters params) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<SimpleEventEntity> query = cb.createQuery(SimpleEventEntity.class);
         Root<SimpleEventEntity> root = query.from(SimpleEventEntity.class);
 
-        List<Predicate> predicates = buildPredicatesForEntity(root, cb, search, location, status);
-        if (!predicates.isEmpty()) {
-            query.where(cb.and(predicates.toArray(new Predicate[0])));
-        }
+        addPredicatesToQuery(query, root, cb, params);
 
         return entityManager.createQuery(query).getResultList();
     }
 
-    private List<ReferendumEntity> getFilteredReferendums(String search, Locations location, EventStatus status) {
+    private List<ReferendumEntity> getFilteredReferendums(SearchParameters params) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ReferendumEntity> query = cb.createQuery(ReferendumEntity.class);
         Root<ReferendumEntity> root = query.from(ReferendumEntity.class);
 
-        List<Predicate> predicates = buildPredicatesForEntity(root, cb, search, location, status);
-        if (!predicates.isEmpty()) {
-            query.where(cb.and(predicates.toArray(new Predicate[0])));
-        }
+        addPredicatesToQuery(query, root, cb, params);
 
         return entityManager.createQuery(query).getResultList();
     }
 
-    private List<MultiPollEntity> getFilteredMultiPolls(String search, Locations location, EventStatus status) {
+    private List<MultiPollEntity> getFilteredMultiPolls(SearchParameters params) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<MultiPollEntity> query = cb.createQuery(MultiPollEntity.class);
         Root<MultiPollEntity> root = query.from(MultiPollEntity.class);
 
-        List<Predicate> predicates = buildPredicatesForEntity(root, cb, search, location, status);
-        if (!predicates.isEmpty()) {
-            query.where(cb.and(predicates.toArray(new Predicate[0])));
-        }
+        addPredicatesToQuery(query, root, cb, params);
 
         return entityManager.createQuery(query).getResultList();
     }
 
+    /**
+     * Универсален метод за добавяне на predicates към query
+     */
+    private <T> void addPredicatesToQuery(CriteriaQuery<T> query, Root<?> root, CriteriaBuilder cb, SearchParameters params) {
+        List<Predicate> predicates = new ArrayList<>();
 
-    // Методи за извличане на събития по creator email
+        // Търсене по заглавие или creatorName
+        if (StringUtils.hasText(params.search())) {
+            String searchPattern = "%" + params.search().toLowerCase() + "%";
+            predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("title")), searchPattern),
+                    cb.like(cb.lower(root.get("creatorName")), searchPattern)
+            ));
+        }
+
+        // Филтър по локация
+        if (params.location() != null) {
+            predicates.add(cb.equal(root.get("location"), params.location()));
+        }
+
+        // Филтър по статус
+        if (params.status() != null) {
+            predicates.add(cb.equal(root.get("eventStatus"), params.status()));
+        }
+
+        if (!predicates.isEmpty()) {
+            query.where(cb.and(predicates.toArray(new Predicate[0])));
+        }
+    }
+
+    /**
+     * Добавя сортиране към query
+     */
+    private <T> void addSortingToQuery(CriteriaQuery<T> query, Root<?> root, CriteriaBuilder cb, Sort sort) {
+        if (sort.isEmpty()) {
+            query.orderBy(cb.desc(root.get("createdAt")));
+            return;
+        }
+
+        List<Order> orders = new ArrayList<>();
+        for (Sort.Order order : sort) {
+            String property = order.getProperty();
+            if ("popularity".equals(property)) {
+                property = "totalVotes";
+            }
+
+            if (order.isAscending()) {
+                orders.add(cb.asc(root.get(property)));
+            } else {
+                orders.add(cb.desc(root.get(property)));
+            }
+        }
+        query.orderBy(orders);
+    }
+
+    /**
+     * Методи за извличане на събития по creator email (оптимизирани)
+     */
     private List<SimpleEventEntity> getSimpleEventsByCreatorEmail(String email) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<SimpleEventEntity> query = cb.createQuery(SimpleEventEntity.class);
@@ -194,61 +419,38 @@ public class MainEventsServiceImpl implements MainEventsService {
         return entityManager.createQuery(query).getResultList();
     }
 
-    // Помощни методи
-    private List<Predicate> buildPredicatesForEntity(Root<?> root, CriteriaBuilder cb, String search, Locations location, EventStatus status) {
-        List<Predicate> predicates = new ArrayList<>();
+    /**
+     * Парсва входните параметри в обект SearchParameters
+     */
+    private SearchParameters parseSearchParameters(String search, String location, EventType type, EventStatus status) {
+        String cleanSearch = StringUtils.hasText(search) ? search.trim() : null;
 
-        // Търсене по заглавие или creatorName
-        if (search != null && !search.trim().isEmpty()) {
-            String searchLower = search.trim().toLowerCase();
-            predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("title")), "%" + searchLower + "%"),
-                    cb.like(cb.lower(root.get("creatorName")), "%" + searchLower + "%")
-            ));
+        Locations locationEnum = null;
+        if (StringUtils.hasText(location)) {
+            try {
+                locationEnum = Locations.valueOf(location.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid location parameter: {}", location);
+            }
         }
 
-        // Филтър по локация
-        if (location != null) {
-            predicates.add(cb.equal(root.get("location"), location));
-        }
+        // status вече е EventStatus enum - само проверяваме дали не е null
+        EventStatus statusEnum = status; // Директно присвояване
 
-        // Филтър по статус
-        if (status != null) {
-            predicates.add(cb.equal(root.get("status"), status));
-        }
-
-        return predicates;
+        return new SearchParameters(cleanSearch, locationEnum, statusEnum);
     }
 
-    private Locations parseLocation(String location) {
-        if (location == null || location.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Locations.valueOf(location.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private EventStatus parseStatus(String status) {
-        if (status == null || status.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return EventStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private void sortEvents(List<EventSimpleViewDTO> events, org.springframework.data.domain.Sort sort) {
+    /**
+     * Сортира списък от события
+     */
+    private void sortEventsList(List<EventSimpleViewDTO> events, Sort sort) {
         if (sort.isEmpty()) {
+            events.sort((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()));
             return;
         }
 
         events.sort((e1, e2) -> {
-            for (org.springframework.data.domain.Sort.Order order : sort) {
+            for (Sort.Order order : sort) {
                 String property = order.getProperty();
                 if ("popularity".equals(property)) {
                     property = "totalVotes";
@@ -263,34 +465,31 @@ public class MainEventsServiceImpl implements MainEventsService {
         });
     }
 
+    /**
+     * Сравнява два събития по определено свойство
+     */
     private int compareEventsByProperty(EventSimpleViewDTO e1, EventSimpleViewDTO e2, String property) {
         try {
-            switch (property) {
-                case "title":
-                    return compareStrings(e1.getTitle(), e2.getTitle());
-                case "totalVotes":
-                    return compareIntegers(e1.getTotalVotes(), e2.getTotalVotes());
-                case "createdAt":
-                    return compareInstants(e1.getCreatedAt(), e2.getCreatedAt());
-                case "creatorName":
-                    return compareStrings(e1.getCreatorName(), e2.getCreatorName());
-                case "location":
-                    return compareEnums(e1.getLocation(), e2.getLocation());
-                case "status":
-                    return compareEnums(e1.getEventStatus(), e2.getEventStatus());
-                case "viewCounter":
-                    return compareIntegers(e1.getViewCounter(), e2.getViewCounter());
-                case "eventType":
-                    return compareEnums(e1.getEventType(), e2.getEventType());
-                default:
-                    return 0;
-            }
+            return switch (property) {
+                case "title" -> compareStrings(e1.getTitle(), e2.getTitle());
+                case "totalVotes" -> compareIntegers(e1.getTotalVotes(), e2.getTotalVotes());
+                case "createdAt" -> e1.getCreatedAt().compareTo(e2.getCreatedAt());
+                case "creatorName" -> compareStrings(e1.getCreatorName(), e2.getCreatorName());
+                case "location" -> compareEnums(e1.getLocation(), e2.getLocation());
+                case "status" -> compareEnums(e1.getEventStatus(), e2.getEventStatus());
+                case "viewCounter" -> compareIntegers(e1.getViewCounter(), e2.getViewCounter());
+                case "eventType" -> compareEnums(e1.getEventType(), e2.getEventType());
+                default -> 0;
+            };
         } catch (Exception e) {
-            // Ако има проблем с някое поле, връщаме 0 (равни)
+            logger.warn("Error comparing events by property: {}", property, e);
             return 0;
         }
     }
 
+    /**
+     * Помощни методи за сравнение
+     */
     private int compareStrings(String s1, String s2) {
         if (s1 == null && s2 == null) return 0;
         if (s1 == null) return -1;
@@ -305,20 +504,6 @@ public class MainEventsServiceImpl implements MainEventsService {
         return Integer.compare(i1, i2);
     }
 
-    private int compareDateTimes(LocalDateTime d1, LocalDateTime d2) {
-        if (d1 == null && d2 == null) return 0;
-        if (d1 == null) return -1;
-        if (d2 == null) return 1;
-        return d1.compareTo(d2);
-    }
-
-    private int compareInstants(Instant i1, Instant i2) {
-        if (i1 == null && i2 == null) return 0;
-        if (i1 == null) return -1;
-        if (i2 == null) return 1;
-        return i1.compareTo(i2);
-    }
-
     private int compareEnums(Enum<?> e1, Enum<?> e2) {
         if (e1 == null && e2 == null) return 0;
         if (e1 == null) return -1;
@@ -326,6 +511,9 @@ public class MainEventsServiceImpl implements MainEventsService {
         return e1.toString().compareToIgnoreCase(e2.toString());
     }
 
+    /**
+     * Прилага пагинация в паметта (използва се когато комбинираме резултати)
+     */
     private Page<EventSimpleViewDTO> applyPagination(List<EventSimpleViewDTO> events, Pageable pageable) {
         int total = events.size();
         int start = (int) pageable.getOffset();
@@ -338,4 +526,18 @@ public class MainEventsServiceImpl implements MainEventsService {
         List<EventSimpleViewDTO> pageContent = events.subList(start, end);
         return new PageImpl<>(pageContent, pageable, total);
     }
+
+    /**
+     * Cleanup метод за ExecutorService
+     */
+    public void destroy() {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
+    }
+
+    /**
+     * Record класове за по-добра организация на параметрите
+     */
+    private record SearchParameters(String search, Locations location, EventStatus status) {}
 }
