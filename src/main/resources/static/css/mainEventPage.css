@@ -67,6 +67,7 @@
     -webkit-text-fill-color: transparent !important;
     width: 70% !important;
     text-align: left !important;
+    padding-top: 0;
 }
 
 .hero .lead {
@@ -78,11 +79,12 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
     width: 60% !important;
     text-align: left !important;
+    padding-top: 10px;
 }
 
 /* ====== CREATE EVENT BUTTONS ====== */
 .create-event-buttons {
-    padding-top: 25px !important;
+    padding-top: 5px !important;
     flex: 0 0 25% !important;
     display: flex !important;
     flex-direction: column !important;
