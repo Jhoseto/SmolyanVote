@@ -42,7 +42,7 @@ public class UserController {
                                         Model model) {
 
         UserEntity currentUser = userService.getCurrentUser();
-        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(currentUser.getEmail());
+        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(currentUser.getUsername());
 
         model.addAttribute("locations", Locations.values());
         model.addAttribute("currentUser", currentUser);
@@ -57,7 +57,7 @@ public class UserController {
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
         UserEntity currentUser = userService.getCurrentUser();
 
-        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(user.getEmail());
+        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(user.getUsername());
 
         model.addAttribute("user", user);
         model.addAttribute("currentUser", currentUser);

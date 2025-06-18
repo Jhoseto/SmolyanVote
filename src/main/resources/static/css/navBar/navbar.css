@@ -73,6 +73,7 @@
 
 /* Навигационни линкове с напреднали ефекти */
 .nav-link {
+    font-family: 'Droid Serif', serif !important;
     color: #212529;
     font-size: 1rem;
     font-weight: 500;
@@ -160,6 +161,7 @@
 
 /* Модерни ефекти за профилния dropdown */
 .profile-dropdown .nav-link {
+    font-family: 'Droid Serif', serif !important;
     display: flex;
     align-items: center;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
