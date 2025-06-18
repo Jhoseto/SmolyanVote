@@ -11,10 +11,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 
 @Controller
@@ -22,10 +24,13 @@ public class MainEventsController {
     private static final Logger logger = LoggerFactory.getLogger(MainEventsController.class);
 
     private final MainEventsService mainEventsService;
+    private final UserService userService;
 
     @Autowired
-    public MainEventsController(MainEventsService mainEventsService) {
+    public MainEventsController(MainEventsService mainEventsService,
+                                UserService userService) {
         this.mainEventsService = mainEventsService;
+        this.userService = userService;
     }
 
     @GetMapping("/mainEvents")
@@ -128,9 +133,11 @@ public class MainEventsController {
             logger.info("Query executed in {} ms. Found {} events with type '{}' and status '{}'",
                     System.currentTimeMillis() - startTime, events.getTotalElements(),
                     eventTypeEnum, eventStatusEnum);
+            UserEntity currentUser = userService.getCurrentUser();
 
             // Основни атрибути за události
             model.addAttribute("events", events);
+            model.addAttribute("currentUser", currentUser);
             model.addAttribute("currentPage", page);
             model.addAttribute("size", size);
             model.addAttribute("totalPages", events.getTotalPages());

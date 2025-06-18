@@ -10,7 +10,7 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>Детайли за събитие</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
     <link rel="stylesheet" href="/css/simpleEventDetailView.css">
     <link rel="stylesheet" href="/css/comments.css">
@@ -21,8 +21,8 @@
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- Hero секция -->
-<section class="hero"style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-                             url('/images/web/eventDetail.png') no-repeat center; ">
+<section class="hero" style="background: linear-gradient(rgba(26, 26, 46, 0.85), rgba(22, 33, 62, 0.75)),
+                             url('/images/web/eventDetail.png') no-repeat center;">
     <div class="hero-container">
         <div class="event-card">
             <!-- Детайли контейнер -->
@@ -66,7 +66,7 @@
                 <div class="vote-bar-wrapper">
                     <div class="vote-label" th:text="${eventDetail.positiveLabel} + ' – ' + ${eventDetail.yesVotes} + ' гласа'">За – 0 гласа</div>
                     <div class="vote-bar">
-                        <div class="bar for" th:style="'width:' + ${eventDetail.yesPercent} + '%'">
+                        <div class="bar for" th:style="'width:' + ${eventDetail.yesPercent} + '%'" th:data-percent="${eventDetail.yesPercent}">
                             <span class="bar-text" th:text="${eventDetail.yesPercent} + '%'">0%</span>
                         </div>
                     </div>
@@ -74,7 +74,7 @@
                 <div class="vote-bar-wrapper">
                     <div class="vote-label" th:text="${eventDetail.negativeLabel} + ' – ' + ${eventDetail.noVotes} + ' гласа'">Против – 0 гласа</div>
                     <div class="vote-bar">
-                        <div class="bar against" th:style="'width:' + ${eventDetail.noPercent} + '%'">
+                        <div class="bar against" th:style="'width:' + ${eventDetail.noPercent} + '%'" th:data-percent="${eventDetail.noPercent}">
                             <span class="bar-text" th:text="${eventDetail.noPercent} + '%'">0%</span>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
                 <div class="vote-bar-wrapper">
                     <div class="vote-label" th:text="${eventDetail.neutralLabel} + ' – ' + ${eventDetail.neutralVotes} + ' гласа'">Въздържал се – 0 гласа</div>
                     <div class="vote-bar">
-                        <div class="bar abstain" th:style="'width:' + ${eventDetail.neutralPercent} + '%'">
+                        <div class="bar abstain" th:style="'width:' + ${eventDetail.neutralPercent} + '%'" th:data-percent="${eventDetail.neutralPercent}">
                             <span class="bar-text" th:text="${eventDetail.neutralPercent} + '%'">0%</span>
                         </div>
                     </div>
@@ -108,9 +108,9 @@
             <div th:if="${userVote != null}" class="alert alert-info vote-result-block">
                 <p><strong>Вече гласувахте с:</strong>
                     <span th:switch="${userVote}">
-                        <strong th:case="'1'" th:text="${eventDetail.positiveLabel + ' ✅'}">За ✅</strong>
-                        <strong th:case="'2'" th:text="${eventDetail.negativeLabel + ' ❌'}">Против ❌</strong>
-                        <strong th:case="'3'" th:text="${eventDetail.neutralLabel + ' ⚖️'}">Въздържал се ⚖️</strong>
+                        <strong th:case="'1'" th:text="${eventDetail.positiveLabel}">За</strong>
+                        <strong th:case="'2'" th:text="${eventDetail.negativeLabel}">Против</strong>
+                        <strong th:case="'3'" th:text="${eventDetail.neutralLabel}">Въздържал се</strong>
                     </span>
                 </p>
             </div>
@@ -147,61 +147,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module" src="/js/comments/main.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const modal = new bootstrap.Modal(document.getElementById("imageModal"), { backdrop: 'static' });
-        const modalImage = document.getElementById("modalImage");
-        const prevBtn = document.getElementById("prevBtn");
-        const nextBtn = document.getElementById("nextBtn");
-        const images = Array.from(document.querySelectorAll(".gallery-img"));
-
-        let currentIndex = 0;
-
-        function updateModalImage() {
-            modalImage.src = images[currentIndex].src;
-            modalImage.style.opacity = '0';
-            setTimeout(() => {
-                modalImage.style.opacity = '1';
-            }, 100);
-        }
-
-        images.forEach((img, index) => {
-            img.addEventListener("click", () => {
-                currentIndex = index;
-                updateModalImage();
-                modal.show();
-            });
-        });
-
-        nextBtn.addEventListener("click", () => {
-            currentIndex = (currentIndex + 1) % images.length;
-            updateModalImage();
-        });
-
-        prevBtn.addEventListener("click", () => {
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            updateModalImage();
-        });
-
-        document.getElementById("imageModal").addEventListener("click", function (e) {
-            if (e.target === this || e.target.classList.contains('modal-dialog')) {
-                modal.hide();
-            }
-        });
-
-        // Keyboard navigation
-        document.addEventListener("keydown", function (e) {
-            if (modal._isShown) {
-                if (e.key === "ArrowLeft") {
-                    prevBtn.click();
-                } else if (e.key === "ArrowRight") {
-                    nextBtn.click();
-                } else if (e.key === "Escape") {
-                    modal.hide();
-                }
-            }
-        });
-    });
-</script>
+<script src="/js/simpleEventDetail.js"></script>
 </body>
 </html>
