@@ -40,6 +40,7 @@ public class AllEventsSimplePreviewMapper {
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(event.getId());
         view.setEventType(event.getEventType());
+        view.setEventStatus(event.getEventStatus());
         view.setTitle(event.getTitle());
         view.setDescription(event.getDescription());
         view.setLocation(event.getLocation());
@@ -71,6 +72,7 @@ public class AllEventsSimplePreviewMapper {
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(referendum.getId());
         view.setEventType(referendum.getEventType());
+        view.setEventStatus(referendum.getEventStatus());
         view.setTitle(referendum.getTitle());
         view.setDescription(referendum.getDescription());
         view.setLocation(referendum.getLocation());
@@ -102,6 +104,7 @@ public class AllEventsSimplePreviewMapper {
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(multiPoll.getId());
         view.setEventType(multiPoll.getEventType());
+        view.setEventStatus(multiPoll.getEventStatus());
         view.setTitle(multiPoll.getTitle());
         view.setDescription(multiPoll.getDescription());
         view.setLocation(multiPoll.getLocation());

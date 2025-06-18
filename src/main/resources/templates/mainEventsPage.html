@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Събития - SmolyanVote</title>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/mainEventPage.css">
+  <link rel="stylesheet" href="/css/eventSimpleCard.css">
+  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+</head>
+<body>
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Hero секция -->
+<section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -50px;">
+  <div class="container">
+    <h1 class="display-4 fw-bold">Събития</h1>
+    <p class="lead">
+      Открийте или създайте събития, които оформят бъдещето на Смолян.<br>
+      Търсете събития по ключова дума или потребител, за да намерите точно това, което ви интересува.<br>
+      Използвайте филтри по категории, местоположение и статус, за да персонализирате избора си.<br>
+      Участвайте активно, като гласувате в референдуми и анкети.<br>
+      Създайте свои собствени събития и ангажирайте общността.<br>
+      Важно! Преди да създадете ново събитие, проверете дали подобно вече съществува.
+    </p>
+    <div class="create-event-buttons">
+      <div th:if="${#authorization.expression('isAuthenticated()')}">
+        <a th:href="@{/createNewEvent}" class="event-create-item" data-type="event">
+          <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
+          <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
+        </a>
+        <a th:href="@{/referendum}" class="event-create-item" data-type="referendum">
+          <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
+          <span class="event-create-content"><h6>Създай Референдум</h6></span>
+        </a>
+        <a th:href="@{/multipoll/createMultiPoll}" class="event-create-item" data-type="poll">
+          <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
+          <span class="event-create-content"><h6>Създай Анкета с Множествен Избор</h6></span>
+        </a>
+      </div>
+      <div th:if="${#authorization.expression('!isAuthenticated()')}">
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="event">
+          <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
+          <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
+        </a>
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="referendum">
+          <span class="event-create-icon"><i class="bi bi-file-earmark-plus"></i></span>
+          <span class="event-create-content"><h6>Създай Референдум</h6></span>
+        </a>
+        <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="poll">
+          <span class="event-create-icon"><i class="bi bi-list-check"></i></span>
+          <span class="event-create-content"><h6>Създай Анкета с Множествен Избор</h6></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Секция за търсене и филтри -->
+<section class="search-section">
+  <div class="container">
+    <div class="search-filter-container">
+      <form id="searchForm" th:action="@{/mainEvents}" method="get">
+        <div class="filter-sort-group">
+          <!-- Търсене -->
+          <div class="search-bar">
+            <input type="text" id="eventSearch" name="search" th:value="${param.search ?: ''}"
+                   placeholder="Търси по заглавие или потребител..." aria-label="Търси събития" autocomplete="off">
+            <button type="submit" class="search-button" aria-label="Търси">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--medium-gray)" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Филтър по локация -->
+          <div class="filter-dropdown">
+            <select name="location" id="eventLocationFilter" onchange="this.form.submit()">
+              <option value="" th:selected="${param.location == null or param.location.isEmpty()}">Всички локации</option>
+              <option th:each="location : ${T(smolyanVote.smolyanVote.models.enums.Locations).values()}"
+                      th:value="${location.name()}"
+                      th:text="${location.toBG()}"
+                      th:selected="${param.location == location.name()}"></option>
+            </select>
+          </div>
+
+          <!-- Филтър по тип събитие -->
+          <div class="filter-dropdown">
+            <select name="type" id="eventTypeFilter" onchange="this.form.submit()">
+              <option value="" th:selected="${param.type == null or param.type.isEmpty()}">Всички типове</option>
+              <option value="event" th:selected="${param.type == 'event'}">Събитие</option>
+              <option value="referendum" th:selected="${param.type == 'referendum'}">Референдум</option>
+              <option value="poll" th:selected="${param.type == 'poll'}">Анкета</option>
+            </select>
+          </div>
+
+          <!-- Филтър по статус -->
+          <div class="filter-dropdown">
+            <select name="status" id="eventStatusFilter" onchange="this.form.submit()">
+              <option value="" th:selected="${param.status == null or param.status.isEmpty()}">Всички статуси</option>
+              <option value="active" th:selected="${param.status == 'active'}">Активен</option>
+              <option value="inactive" th:selected="${param.status == 'inactive'}">Неактивен</option>
+            </select>
+          </div>
+
+          <!-- Сортиране -->
+          <div class="filter-dropdown">
+            <select name="sort" id="eventSort" onchange="this.form.submit()">
+              <option value="" th:selected="${param.sort == null or param.sort.isEmpty()}">Сортирай по</option>
+              <option value="date-desc" th:selected="${param.sort == 'date-desc'}">Най-нови</option>
+              <option value="date-asc" th:selected="${param.sort == 'date-asc'}">Най-стари</option>
+              <option value="popularity" th:selected="${param.sort == 'popularity'}">Популярност</option>
+              <option value="name" th:selected="${param.sort == 'name'}">Име (А-Я)</option>
+            </select>
+          </div>
+
+          <!-- Бутон за ресетване на филтрите -->
+          <div class="filter-reset">
+            <a th:href="@{/mainEvents}" class="btn btn-outline-secondary">Изчисти филтри</a>
+          </div>
+        </div>
+
+        <!-- Скрити полета за пагинация -->
+        <input type="hidden" name="page" th:value="${currentPage ?: 0}"/>
+        <input type="hidden" name="size" th:value="${size ?: 10}"/>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Събития -->
+<section class="event-container py-5">
+  <div class="container">
+    <div class="text-center" th:if="${events.isEmpty()}">
+      <h3>Няма намерени събития</h3>
+      <p>Опитайте да промените филтрите или търсенето.</p>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-4" th:each="event : ${events.content}">
+        <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
+      </div>
+    </div>
+    <!-- Пагинация -->
+    <div class="pagination" th:if="${not events.isEmpty()}">
+      <ul>
+        <li th:if="${currentPage > 0}">
+          <a class="arrow" th:href="@{/mainEvents(page=0, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">«</a>
+        </li>
+        <li th:if="${currentPage > 0}">
+          <a class="arrow" th:href="@{/mainEvents(page=${currentPage - 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">‹</a>
+        </li>
+        <li th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}" th:class="${pageNumber == currentPage ? 'active' : ''}">
+          <a th:href="@{/mainEvents(page=${pageNumber}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}"
+             th:text="${pageNumber + 1}"></a>
+        </li>
+        <li th:if="${currentPage < totalPages - 1}">
+          <a class="arrow" th:href="@{/mainEvents(page=${currentPage + 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">›</a>
+        </li>
+        <li th:if="${currentPage < totalPages - 1}">
+          <a class="arrow" th:href="@{/mainEvents(page=${totalPages - 1}, size=${size}, search=${param.search}, location=${param.location}, type=${param.type}, status=${param.status}, sort=${param.sort})}">»</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Футър -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- JS библиотеки (само за Bootstrap и SweetAlert2) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- JS функция за модала за предупреждение -->
+<script>
+  function showLoginWarning() {
+    Swal.fire({
+      icon: 'info',
+      title: 'Моля, влезте в системата',
+      text: 'Трябва да сте влезли в профила си, за да достъпите това съдържание.',
+      showCancelButton: true,
+      confirmButtonText: 'Вход',
+      cancelButtonText: 'Затвори',
+      confirmButtonColor: '#25afb4',
+      cancelButtonColor: '#6c757d',
+      customClass: {
+        popup: 'rounded-3 shadow'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+        modal.show();
+      }
+    });
+  }
+</script>
+</body>
+</html>

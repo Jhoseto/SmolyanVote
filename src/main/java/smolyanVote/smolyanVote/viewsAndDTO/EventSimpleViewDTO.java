@@ -1,5 +1,8 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
@@ -10,6 +13,7 @@ public class EventSimpleViewDTO {
 
     private Long id;
     private EventType eventType;
+    private EventStatus eventStatus;
     private String title;
     private String description;
     private Locations location;
@@ -33,14 +37,14 @@ public class EventSimpleViewDTO {
     public void setId(Long id) {
         this.id = id;
     }
-
     public EventType getEventType() {
         return eventType;
     }
-
     public void setEventType(EventType eventType) {
         this.eventType = eventType;
     }
+    public EventStatus getEventStatus() {return eventStatus;}
+    public void setEventStatus(EventStatus eventStatus) {this.eventStatus = eventStatus;}
 
     public String getTitle() {
         return title;

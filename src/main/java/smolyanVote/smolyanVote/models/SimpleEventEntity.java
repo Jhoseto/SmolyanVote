@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 
@@ -15,6 +16,8 @@ public class SimpleEventEntity extends BaseEventEntity {
     @Enumerated(EnumType.STRING)
     private final EventType eventType = EventType.SIMPLEEVENT;
 
+    @Enumerated(EnumType.STRING)
+    private EventStatus eventStatus;
     private String title;
 
     @Column(length = 2000)
@@ -52,6 +55,8 @@ public class SimpleEventEntity extends BaseEventEntity {
     }
 
     public EventType getEventType() {return eventType;}
+    public EventStatus getEventStatus() {return eventStatus;}
+    public void setEventStatus(EventStatus eventStatus) {this.eventStatus = eventStatus;}
 
     public String getTitle() {
         return title;
