@@ -24,31 +24,31 @@
     <!-- Бутон за изтриване -->
     <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or (currentUser != null and event.creatorName == currentUser.username)}">
       <button type="button"
-              class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
-              data-bs-toggle="modal"
-              th:attr="data-bs-target='#deleteModal__' + ${event.id}">
+              class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center delete-btn"
+              style="width: 24px; height: 24px; font-size: 12px; line-height: 1;"
+              th:data-modal-id="'deleteModal__' + ${event.id}">
         ✖
       </button>
     </div>
 
     <!-- Модал за потвърждение на изтриването -->
-    <div th:id="'deleteModal__' + ${event.id}" class="modal fade" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <form th:action="@{/event/{id}/delete(id=${event.id})}" method="post" class="modal-content">
+    <div th:id="'deleteModal__' + ${event.id}" class="custom-modal" aria-hidden="true">
+      <div class="custom-modal-dialog">
+        <form th:action="@{/event/{id}/delete(id=${event.id})}" method="post" class="custom-modal-content">
           <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
 
-          <div class="modal-header">
-            <h5 class="modal-title">Потвърди изтриване</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+          <div class="custom-modal-header">
+            <h5 class="custom-modal-title">Потвърди изтриване</h5>
+            <button type="button" class="custom-modal-close" th:data-modal-id="'deleteModal__' + ${event.id}">×</button>
           </div>
 
-          <div class="modal-body">
+          <div class="custom-modal-body">
             <p>Сигурен ли си, че искаш да изтриеш събитието: <strong th:text="${event.title}">Заглавие</strong>?</p>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
-            <button type="submit" class="btn btn-danger">Изтрий</button>
+          <div class="custom-modal-footer">
+            <button type="button" class="custom-btn custom-btn-secondary" th:data-modal-id="'deleteModal__' + ${event.id}">Отказ</button>
+            <button type="submit" class="custom-btn custom-btn-danger">Изтрий</button>
           </div>
         </form>
       </div>
@@ -70,7 +70,7 @@
       <h5 class="card-title" th:text="${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
 
       <!-- Блок за автора и дата -->
-      <div class="author-date-block d-flex justify-content-between align-items-center mb-3" >
+      <div class="author-date-block d-flex justify-content-between align-items-center mb-3">
         <div class="author-info d-flex align-items-center">
           <!-- Снимка на автора -->
           <a th:if="${event.creatorImage != null and #authorization.expression('isAuthenticated()')}"
@@ -164,3 +164,4 @@
     </div>
   </div>
 </div>
+
