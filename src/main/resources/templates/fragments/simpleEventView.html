@@ -22,7 +22,7 @@
       Анкета с множествен избор
     </div>
     <!-- Бутон за изтриване -->
-    <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or (event.creatorName == currentUser.username)}">
+    <div th:if="${#authorization.expression('hasRole(''ADMIN'')') or (currentUser != null and event.creatorName == currentUser.username)}">
       <button type="button"
               class="btn btn-sm btn-danger p-1 d-flex align-items-center justify-content-center"
               data-bs-toggle="modal"
