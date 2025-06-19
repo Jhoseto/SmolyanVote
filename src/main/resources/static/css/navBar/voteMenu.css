@@ -144,7 +144,7 @@
 .vote-item {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.75rem;
+    padding: 0.3rem 0.75rem;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.6) 100%);
     border-radius: 8px;
     text-decoration: none;
