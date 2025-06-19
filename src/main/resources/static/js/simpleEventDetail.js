@@ -1,64 +1,23 @@
-// Complete Event Detail JavaScript - Optimized and Enhanced
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all functionality
-    initializeVoteBars();
-    initializeGalleryModal();
-    initializeVoteButtons();
-    initializeHoverEffects();
-    initializeSmoothScrolling();
+/**
+ * Simple Event Detail View JavaScript
+ * Enhanced with vote confirmation modal
+ */
 
-    console.log('Event Detail Page fully initialized');
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSimpleEventDetail();
 });
 
-/**
- * Initialize vote bars animation with smooth counting
- */
-function initializeVoteBars() {
-    const bars = document.querySelectorAll('.bar');
-    const votingCard = document.querySelector('.voting-card');
+function initializeSimpleEventDetail() {
+    // Initialize all components
+    initializeGalleryModal();
+    initializeVotingForm();
+    initializeAnimations();
 
-    if (!votingCard || bars.length === 0) return;
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                // Animate each bar with staggered delay
-                bars.forEach((bar, index) => {
-                    const currentWidth = bar.style.width || bar.getAttribute('data-width') || '0%';
-                    const targetWidth = currentWidth;
-                    const targetPercent = parseInt(targetWidth.replace('%', '')) || 0;
-
-                    // Reset bar width
-                    bar.style.width = '0%';
-
-                    // Set percentage to 0 initially
-                    const percentText = bar.querySelector('.bar-percent');
-                    if (percentText) {
-                        percentText.textContent = '0%';
-                    }
-
-                    setTimeout(() => {
-                        // Animate bar width
-                        bar.style.transition = 'width 2s cubic-bezier(0.4, 0, 0.2, 1)';
-                        bar.style.width = targetWidth;
-
-                        // Animate percentage counter
-                        if (percentText) {
-                            animateCounter(percentText, 0, targetPercent, 2000, '%');
-                        }
-                    }, index * 300 + 800);
-                });
-
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.3 });
-
-    observer.observe(votingCard);
+    console.log('Simple Event detail view initialized successfully');
 }
 
 /**
- * Premium Gallery Modal - Enhanced with all features
+ * Gallery Modal Functionality
  */
 function initializeGalleryModal() {
     const modal = document.getElementById('imageModal');
@@ -71,365 +30,368 @@ function initializeGalleryModal() {
     const nextBtn = document.getElementById('nextImage');
     const currentImageSpan = document.getElementById('currentImage');
     const totalImagesSpan = document.getElementById('totalImages');
-    const modalOverlay = document.querySelector('.modal-overlay');
 
-    const images = Array.from(document.querySelectorAll('.gallery-img'));
+    const galleryImages = Array.from(document.querySelectorAll('.gallery-img'));
+    let currentImageIndex = 0;
+    let isModalOpen = false;
 
-    if (images.length === 0) return;
-
-    let currentIndex = 0;
-    let isOpen = false;
-    let isLoading = false;
-    let hintTimer = null;
-
-    // Touch support variables
-    let touchStartX = 0;
-    let touchEndX = 0;
-    const minSwipeDistance = 50;
-
-    // Set total images
-    if (totalImagesSpan) {
-        totalImagesSpan.textContent = images.length;
+    if (galleryImages.length === 0) {
+        return; // No images found
     }
 
-    // Add click listeners to gallery images
-    images.forEach((img, index) => {
-        img.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            currentIndex = index;
-            openModal();
-        });
+    // Set total images count
+    totalImagesSpan.textContent = galleryImages.length;
 
-        // Add cursor pointer
-        img.style.cursor = 'pointer';
+    // Open modal when clicking on gallery image
+    galleryImages.forEach((img, index) => {
+        img.addEventListener('click', () => {
+            openModal(index);
+        });
     });
 
-    function openModal() {
-        if (isOpen) return;
+    // Close modal
+    closeBtn.addEventListener('click', closeModal);
 
-        isOpen = true;
+    // Close modal when clicking overlay
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+            closeModal();
+        }
+    });
+
+    // Navigation buttons
+    prevBtn.addEventListener('click', () => navigateImage(-1));
+    nextBtn.addEventListener('click', () => navigateImage(1));
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (!isModalOpen) return;
+
+        switch(e.key) {
+            case 'Escape':
+                closeModal();
+                break;
+            case 'ArrowLeft':
+                navigateImage(-1);
+                break;
+            case 'ArrowRight':
+                navigateImage(1);
+                break;
+        }
+    });
+
+    // Touch/swipe support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    modal.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    modal.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                navigateImage(1); // Swipe left - next image
+            } else {
+                navigateImage(-1); // Swipe right - previous image
+            }
+        }
+    }
+
+    function openModal(index) {
+        currentImageIndex = index;
+        isModalOpen = true;
+
+        // Show modal
+        modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
 
-        modal.style.display = 'block';
-
-        // Force reflow then add active class for smooth animation
+        // Trigger animations
         requestAnimationFrame(() => {
             modal.classList.add('active');
-            loadCurrentImage();
-            updateCounter();
-            updateNavigationButtons();
-            showHintAfterDelay();
-
-            // Focus close button for accessibility
-            if (closeBtn) closeBtn.focus();
+            setTimeout(() => {
+                modal.classList.add('show-hint');
+            }, 1000);
         });
+
+        updateModalImage();
+        updateNavigationButtons();
     }
 
     function closeModal() {
-        if (!isOpen) return;
-
-        isOpen = false;
+        isModalOpen = false;
         modal.classList.remove('active', 'show-hint');
+        document.body.style.overflow = '';
 
-        // Clear hint timer
-        if (hintTimer) {
-            clearTimeout(hintTimer);
-            hintTimer = null;
-        }
-
-        // Hide modal after animation
         setTimeout(() => {
-            if (!isOpen) {
-                modal.style.display = 'none';
-                document.body.style.overflow = '';
-            }
+            modal.style.display = 'none';
         }, 400);
     }
 
-    function loadCurrentImage() {
-        if (!modalImage || !modalImageFrame || isLoading || !images[currentIndex]) return;
+    function navigateImage(direction) {
+        const newIndex = currentImageIndex + direction;
 
-        isLoading = true;
-
-        // Remove loaded state
-        modalImage.classList.remove('loaded');
-        modalImageFrame.classList.remove('loaded');
-
-        // Preload image
-        const img = new Image();
-        img.onload = () => {
-            modalImage.src = images[currentIndex].src;
-            modalImage.alt = images[currentIndex].alt || 'Gallery image';
-            isLoading = false;
-        };
-
-        img.onerror = () => {
-            console.error('Грешка при зареждане на изображение:', images[currentIndex].src);
-            modalImage.alt = 'Грешка при зареждане на изображението';
-            modalImageFrame.classList.add('loaded');
-            isLoading = false;
-        };
-
-        img.src = images[currentIndex].src;
+        if (newIndex >= 0 && newIndex < galleryImages.length) {
+            currentImageIndex = newIndex;
+            updateModalImage();
+            updateNavigationButtons();
+        }
     }
 
-    function updateCounter() {
-        if (currentImageSpan && totalImagesSpan) {
-            // Smooth counter animation
-            currentImageSpan.style.transform = 'scale(0.8)';
-            currentImageSpan.style.opacity = '0.6';
+    function updateModalImage() {
+        const imgSrc = galleryImages[currentImageIndex].src;
 
+        // Add loading state
+        modalImageFrame.classList.remove('loaded');
+        modalImage.classList.remove('loaded');
+
+        // Create new image to preload
+        const newImg = new Image();
+        newImg.onload = () => {
+            modalImage.src = imgSrc;
+            modalImageFrame.classList.add('loaded');
+
+            // Small delay for smooth transition
             setTimeout(() => {
-                currentImageSpan.textContent = currentIndex + 1;
-                currentImageSpan.style.transform = 'scale(1)';
-                currentImageSpan.style.opacity = '1';
-            }, 150);
-        }
+                modalImage.classList.add('loaded');
+            }, 100);
+        };
+        newImg.src = imgSrc;
+
+        // Update counter
+        currentImageSpan.textContent = currentImageIndex + 1;
     }
 
     function updateNavigationButtons() {
-        if (!prevBtn || !nextBtn) return;
-
-        const isFirstImage = currentIndex === 0;
-        const isLastImage = currentIndex === images.length - 1;
-        const isSingleImage = images.length <= 1;
-
-        // Update disabled state
-        prevBtn.disabled = isSingleImage || isFirstImage;
-        nextBtn.disabled = isSingleImage || isLastImage;
-
-        // Update visual state
-        if (isSingleImage) {
-            prevBtn.style.opacity = '0.3';
-            nextBtn.style.opacity = '0.3';
-        } else {
-            prevBtn.style.opacity = isFirstImage ? '0.5' : '1';
-            nextBtn.style.opacity = isLastImage ? '0.5' : '1';
-        }
+        prevBtn.disabled = currentImageIndex === 0;
+        nextBtn.disabled = currentImageIndex === galleryImages.length - 1;
     }
-
-    function showPrevImage() {
-        if (currentIndex > 0 && !isLoading) {
-            currentIndex--;
-            loadCurrentImage();
-            updateCounter();
-            updateNavigationButtons();
-        }
-    }
-
-    function showNextImage() {
-        if (currentIndex < images.length - 1 && !isLoading) {
-            currentIndex++;
-            loadCurrentImage();
-            updateCounter();
-            updateNavigationButtons();
-        }
-    }
-
-    function showHintAfterDelay() {
-        hintTimer = setTimeout(() => {
-            if (isOpen && images.length > 1) {
-                modal.classList.add('show-hint');
-
-                // Hide hint after 3 seconds
-                setTimeout(() => {
-                    modal.classList.remove('show-hint');
-                }, 3000);
-            }
-        }, 2000);
-    }
-
-    // Event Listeners
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModal);
-    }
-
-    if (modalOverlay) {
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                closeModal();
-            }
-        });
-    }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', showPrevImage);
-    }
-
-    if (nextBtn) {
-        nextBtn.addEventListener('click', showNextImage);
-    }
-
-    // Image load event
-    if (modalImage) {
-        modalImage.addEventListener('load', () => {
-            modalImage.classList.add('loaded');
-            modalImageFrame.classList.add('loaded');
-        });
-
-        modalImage.addEventListener('dragstart', (e) => e.preventDefault());
-    }
-
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (!isOpen) return;
-
-        switch(e.key) {
-            case 'ArrowLeft':
-                e.preventDefault();
-                showPrevImage();
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                showNextImage();
-                break;
-            case ' ':
-                e.preventDefault();
-                showNextImage();
-                break;
-            case 'Escape':
-                e.preventDefault();
-                closeModal();
-                break;
-        }
-    });
-
-    // Touch/Swipe support
-    if (modalImage) {
-        modalImage.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        modalImage.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            const swipeDistance = touchStartX - touchEndX;
-
-            if (Math.abs(swipeDistance) > minSwipeDistance) {
-                if (swipeDistance > 0) {
-                    showNextImage();
-                } else {
-                    showPrevImage();
-                }
-            }
-        }, { passive: true });
-    }
-
-    // Mouse wheel navigation
-    modal.addEventListener('wheel', (e) => {
-        if (!isOpen) return;
-
-        e.preventDefault();
-
-        if (e.deltaY > 0) {
-            showNextImage();
-        } else {
-            showPrevImage();
-        }
-    }, { passive: false });
-
-    // Add smooth transitions
-    if (currentImageSpan) {
-        currentImageSpan.style.transition = 'all 0.2s cubic-bezier(0.23, 1, 0.32, 1)';
-    }
-
-    console.log('Premium Gallery modal initialized with', images.length, 'images');
 }
 
 /**
- * Enhanced vote buttons functionality
+ * Simple Event Voting Form with Confirmation Modal
  */
-function initializeVoteButtons() {
-    const voteButtons = document.querySelectorAll('.vote-btn');
-    const voteForm = document.querySelector('.vote-form');
+function initializeVotingForm() {
+    const voteForm = document.getElementById('simpleVoteForm');
+    const voteButtons = document.querySelectorAll('.vote-btn[data-vote]');
 
-    // Add enhanced ripple effect
+    if (!voteForm || voteButtons.length === 0) {
+        return; // No voting form found
+    }
+
+    let selectedVote = null;
+    let selectedVoteText = '';
+
+    // Handle vote button clicks
     voteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            if (!this.disabled) {
-                createRippleEffect(this, e);
-            }
+        button.addEventListener('click', function() {
+            selectedVote = this.getAttribute('data-vote');
+            selectedVoteText = this.getAttribute('data-vote-text') || this.textContent;
+
+            showVoteConfirmationModal();
         });
 
-        // Add hover sound effect (optional)
+        // Add hover effects
         button.addEventListener('mouseenter', function() {
-            if (!this.disabled) {
-                this.style.transform = 'translateY(-2px)';
-            }
+            this.style.transform = 'translateY(-2px)';
         });
 
         button.addEventListener('mouseleave', function() {
-            if (!this.disabled) {
-                this.style.transform = 'translateY(0)';
-            }
+            this.style.transform = 'translateY(0)';
+        });
+
+        // Add ripple effect
+        button.addEventListener('click', function(e) {
+            createRippleEffect(this, e);
         });
     });
 
-    // Enhanced form submission
-    if (voteForm) {
-        voteForm.addEventListener('submit', function() {
-            const submitButton = document.activeElement;
-            const allButtons = this.querySelectorAll('.vote-btn');
+    // Initialize vote confirmation modal
+    initializeVoteConfirmationModal();
 
-            allButtons.forEach(btn => {
-                btn.disabled = true;
-                btn.style.opacity = '0.7';
-                btn.style.cursor = 'not-allowed';
+    function showVoteConfirmationModal() {
+        if (!selectedVote || !selectedVoteText) return;
 
-                if (btn === submitButton) {
-                    btn.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <div class="spinner"></div>
-                            <span>Изпраща се...</span>
-                        </div>
-                    `;
-                }
+        // Update modal content
+        const selectedOptionText = document.getElementById('selectedOptionText');
+        if (selectedOptionText) {
+            selectedOptionText.textContent = selectedVoteText;
+
+            // Add appropriate styling based on vote type
+            selectedOptionText.className = 'option-badge';
+            if (selectedVote === '1') {
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--success-green), var(--accent-green))';
+            } else if (selectedVote === '2') {
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--error-red), #ef4444)';
+            } else if (selectedVote === '3') {
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--neutral-gray), #6b7280)';
+            }
+        }
+
+        // Show modal
+        const modal = document.getElementById('voteConfirmModal');
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
             });
+        }
+    }
 
-            // Add loading animation
-            addLoadingSpinner();
+    function initializeVoteConfirmationModal() {
+        const modal = document.getElementById('voteConfirmModal');
+        const cancelBtn = document.getElementById('cancelVote');
+        const confirmBtn = document.getElementById('confirmVote');
+
+        if (!modal || !cancelBtn || !confirmBtn) return;
+
+        // Cancel vote
+        cancelBtn.addEventListener('click', () => {
+            closeVoteConfirmationModal();
+            selectedVote = null;
+            selectedVoteText = '';
         });
+
+        // Confirm vote - submit form
+        confirmBtn.addEventListener('click', () => {
+            if (!selectedVote) return;
+
+            // Show loading state
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Гласуване...
+            `;
+
+            // Set the vote value and submit
+            const selectedVoteInput = document.getElementById('selectedVoteValue');
+            if (selectedVoteInput) {
+                selectedVoteInput.value = selectedVote;
+            }
+
+            // Submit the form after short delay
+            setTimeout(() => {
+                voteForm.submit();
+            }, 500);
+        });
+
+        // Close modal when clicking overlay
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+                closeVoteConfirmationModal();
+            }
+        });
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeVoteConfirmationModal();
+            }
+        });
+
+        function closeVoteConfirmationModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+
+            setTimeout(() => {
+                modal.style.display = 'none';
+                // Reset confirm button
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Потвърждавам гласа си
+                `;
+            }, 300);
+        }
     }
 }
 
 /**
- * Enhanced hover effects with performance optimization
+ * Smooth Animations and Interactions
  */
-function initializeHoverEffects() {
-    // Card hover effects with throttling
+function initializeAnimations() {
+    // Animate cards on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all cards
     const cards = document.querySelectorAll('.description-card, .gallery-card, .voting-card, .voting-actions-card, .navigation-card');
-
     cards.forEach(card => {
-        let hoverTimeout;
-
-        card.addEventListener('mouseenter', function() {
-            clearTimeout(hoverTimeout);
-            this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            this.style.transform = 'translateY(-4px)';
-            this.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.15)';
-        });
-
-        card.addEventListener('mouseleave', function() {
-            hoverTimeout = setTimeout(() => {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = '';
-            }, 50);
-        });
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
     });
 
-    // Gallery images enhanced hover
+    // Animate vote bars
+    animateVoteBars();
+
+    // Add enhanced hover effects
+    enhanceInteractiveElements();
+}
+
+/**
+ * Animate voting result bars
+ */
+function animateVoteBars() {
+    const voteBars = document.querySelectorAll('.bar');
+
+    // Reset bars to 0 width initially
+    voteBars.forEach(bar => {
+        const targetWidth = bar.style.width;
+        bar.style.width = '0%';
+        bar.dataset.targetWidth = targetWidth;
+    });
+
+    // Animate bars after a short delay
+    setTimeout(() => {
+        voteBars.forEach((bar, index) => {
+            setTimeout(() => {
+                bar.style.width = bar.dataset.targetWidth;
+            }, index * 200); // Stagger animation
+        });
+    }, 500);
+}
+
+/**
+ * Enhanced interactions for elements
+ */
+function enhanceInteractiveElements() {
+    // Enhanced gallery image hover
     const galleryImages = document.querySelectorAll('.gallery-img');
     galleryImages.forEach(img => {
         img.addEventListener('mouseenter', function() {
-            this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            this.style.transform = 'translateY(-8px) scale(1.05)';
-            this.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.3)';
+            this.style.transform = 'translateY(-8px) scale(1.02)';
             this.style.zIndex = '10';
         });
 
         img.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0) scale(1)';
-            this.style.boxShadow = '';
             this.style.zIndex = '';
         });
     });
@@ -438,19 +400,15 @@ function initializeHoverEffects() {
     const creatorLink = document.querySelector('.creator-link');
     if (creatorLink) {
         creatorLink.addEventListener('mouseenter', function() {
-            this.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             this.style.transform = 'translateX(4px)';
-
             const avatar = this.querySelector('.creator-avatar');
             if (avatar) {
-                avatar.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                avatar.style.transform = 'scale(1.1) rotate(5deg)';
+                avatar.style.transform = 'scale(1.05) rotate(2deg)';
             }
         });
 
         creatorLink.addEventListener('mouseleave', function() {
             this.style.transform = 'translateX(0)';
-
             const avatar = this.querySelector('.creator-avatar');
             if (avatar) {
                 avatar.style.transform = 'scale(1) rotate(0deg)';
@@ -480,193 +438,236 @@ function initializeHoverEffects() {
 }
 
 /**
- * Initialize smooth scrolling for anchor links
+ * Create ripple effect for vote buttons
  */
-function initializeSmoothScrolling() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-}
-
-/**
- * Create enhanced ripple effect
- */
-function createRippleEffect(button, event) {
-    const rect = button.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height) * 1.2;
+function createRippleEffect(element, event) {
+    const ripple = document.createElement('span');
+    const rect = element.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
     const x = event.clientX - rect.left - size / 2;
     const y = event.clientY - rect.top - size / 2;
 
-    const ripple = document.createElement('div');
-    ripple.className = 'ripple-effect';
     ripple.style.cssText = `
         position: absolute;
         width: ${size}px;
         height: ${size}px;
         left: ${x}px;
         top: ${y}px;
+        background: rgba(255, 255, 255, 0.3);
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.4);
         transform: scale(0);
-        animation: ripple-animation 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: ripple 0.6s linear;
         pointer-events: none;
         z-index: 1;
     `;
 
-    // Ensure button has relative positioning
-    const originalPosition = getComputedStyle(button).position;
-    if (originalPosition === 'static') {
-        button.style.position = 'relative';
+    // Add ripple keyframe if not exists
+    if (!document.querySelector('#ripple-styles')) {
+        const style = document.createElement('style');
+        style.id = 'ripple-styles';
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+            .animate-spin {
+                animation: spin 1s linear infinite;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
-    button.appendChild(ripple);
+    element.style.position = 'relative';
+    element.style.overflow = 'hidden';
+    element.appendChild(ripple);
 
+    // Remove ripple after animation
     setTimeout(() => {
-        if (ripple && ripple.parentNode) {
-            ripple.remove();
+        if (ripple.parentNode) {
+            ripple.parentNode.removeChild(ripple);
         }
     }, 600);
 }
 
 /**
- * Animate counter numbers with easing
+ * Utility Functions
  */
-function animateCounter(element, start, end, duration, suffix = '') {
-    const startTime = performance.now();
-    const startValue = start;
-    const endValue = end;
 
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Easing function - ease out cubic
-        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-        const current = Math.floor(startValue + (endValue - startValue) * easeOutCubic);
-
-        element.textContent = current + suffix;
-
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            element.textContent = endValue + suffix;
-        }
-    }
-
-    requestAnimationFrame(update);
+/**
+ * Debounce function to limit rapid function calls
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 /**
- * Add loading spinner for vote submission
+ * Show notification to user
  */
-function addLoadingSpinner() {
-    if (document.querySelector('.spinner')) return;
+function showNotification(message, type = 'info', duration = 5000) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        notification.remove();
+    });
 
-    const style = document.createElement('style');
-    style.textContent = `
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'error' ? 'var(--error-red)' : type === 'success' ? 'var(--success-green)' : 'var(--accent-green)'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        z-index: 10000;
+        font-weight: 500;
+        max-width: 300px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
     `;
-    document.head.appendChild(style);
+
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        notification.style.transform = 'translateX(0)';
+    });
+
+    // Auto remove
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, duration);
 }
 
-// Add all required CSS animations
-const globalStyles = document.createElement('style');
-globalStyles.textContent = `
-    @keyframes ripple-animation {
-        to {
-            transform: scale(2.5);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* Smooth transitions for all interactive elements */
-    .vote-btn, .control-btn, .modal-close, .creator-link, .back-btn, .gallery-img {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    /* Enhanced focus states */
-    .vote-btn:focus, .control-btn:focus, .modal-close:focus {
-        outline: 2px solid rgba(15, 123, 89, 0.8);
-        outline-offset: 2px;
-    }
-    
-    /* Reduced motion support */
-    @media (prefers-reduced-motion: reduce) {
-        * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
-`;
-document.head.appendChild(globalStyles);
-
-// Performance optimization - Debounce resize events
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        // Handle responsive adjustments if needed
-        console.log('Window resized, adjusting layout');
-    }, 250);
+/**
+ * Enhanced Error Handling
+ */
+window.addEventListener('error', function(e) {
+    console.error('Simple Event Detail Error:', e.error);
+    showNotification('Възникна грешка. Моля опитайте отново.', 'error');
 });
 
-// Initialize intersection observer for performance
-const observerOptions = {
-    root: null,
-    rootMargin: '10px',
-    threshold: 0.1
-};
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled Promise Rejection:', e.reason);
+    showNotification('Възникна грешка при обработка на заявката.', 'error');
+});
 
-// Lazy load optimization for images
-const imageObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const img = entry.target;
-            if (img.dataset.src) {
-                img.src = img.dataset.src;
-                img.removeAttribute('data-src');
-                imageObserver.unobserve(img);
-            }
+/**
+ * Performance Optimizations
+ */
+
+// Optimize scroll performance
+const optimizedScrollHandler = debounce(() => {
+    const scrollTop = window.pageYOffset;
+    const documentHeight = document.documentElement.scrollHeight;
+    const windowHeight = window.innerHeight;
+    const scrollPercentage = scrollTop / (documentHeight - windowHeight);
+
+    // Update any scroll-based elements
+    document.documentElement.style.setProperty('--scroll-progress', scrollPercentage);
+}, 16); // ~60fps
+
+window.addEventListener('scroll', optimizedScrollHandler, { passive: true });
+
+/**
+ * Accessibility Enhancements
+ */
+function enhanceAccessibility() {
+    // Add skip links
+    const skipLink = document.createElement('a');
+    skipLink.href = '#main-content';
+    skipLink.textContent = 'Към основното съдържание';
+    skipLink.className = 'skip-link';
+    skipLink.style.cssText = `
+        position: absolute;
+        top: -40px;
+        left: 6px;
+        background: var(--primary-green);
+        color: white;
+        padding: 8px;
+        text-decoration: none;
+        border-radius: 4px;
+        z-index: 1000;
+        transition: top 0.3s;
+    `;
+
+    skipLink.addEventListener('focus', () => {
+        skipLink.style.top = '6px';
+    });
+
+    skipLink.addEventListener('blur', () => {
+        skipLink.style.top = '-40px';
+    });
+
+    document.body.prepend(skipLink);
+
+    // Add ARIA labels where needed
+    const voteButtons = document.querySelectorAll('.vote-btn[data-vote]');
+    voteButtons.forEach((button, index) => {
+        if (!button.getAttribute('aria-label')) {
+            const voteText = button.textContent;
+            button.setAttribute('aria-label', `Гласувай с: ${voteText}`);
         }
     });
-}, observerOptions);
+}
 
-// Apply lazy loading to gallery images
-document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
-    imageObserver.observe(img);
-});
+/**
+ * Initialize all enhancements
+ */
+function initializeEnhancements() {
+    enhanceAccessibility();
 
-console.log('Event Detail JavaScript fully loaded and optimized');
+    // Feature detection for touch devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.body.classList.add('touch-device');
+    }
+
+    // Check for reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.body.classList.add('reduced-motion');
+    }
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (e) => {
+        // Close any open modals when navigating back
+        const openModals = document.querySelectorAll('.premium-modal.active, .vote-confirm-modal.active');
+        openModals.forEach(modal => {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        });
+        document.body.style.overflow = '';
+    });
+}
+
+// Initialize enhancements after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEnhancements);
+} else {
+    initializeEnhancements();
+}
+
+// Export functions for potential external use
+window.SimpleEventDetail = {
+    showNotification,
+    debounce
+};
+
+console.log('Simple Event Detail JavaScript loaded successfully');

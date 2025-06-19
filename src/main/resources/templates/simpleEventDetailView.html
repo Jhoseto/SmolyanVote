@@ -140,14 +140,15 @@
                 <div class="voting-actions-card">
                     <div th:if="${userVote == null}">
                         <h3 class="card-title">Гласувай</h3>
-                        <form th:action="@{/simpleVote}" method="post" class="vote-form">
+                        <form th:action="@{/simpleVote}" method="post" class="vote-form" id="simpleVoteForm">
                             <input type="hidden" name="eventId" th:value="${eventDetail.id}" />
                             <input type="hidden" name="userEmail" th:value="${currentUser.getEmail()}" />
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="vote" id="selectedVoteValue" value="" />
 
-                            <button name="vote" value="1" class="vote-btn vote-btn-for" type="submit" th:text="${eventDetail.positiveLabel}">За</button>
-                            <button name="vote" value="2" class="vote-btn vote-btn-against" type="submit" th:text="${eventDetail.negativeLabel}">Против</button>
-                            <button name="vote" value="3" class="vote-btn vote-btn-neutral" type="submit" th:text="${eventDetail.neutralLabel}">Въздържал се</button>
+                            <button type="button" data-vote="1" class="vote-btn vote-btn-for" th:text="${eventDetail.positiveLabel}" th:attr="data-vote-text=${eventDetail.positiveLabel}">За</button>
+                            <button type="button" data-vote="2" class="vote-btn vote-btn-against" th:text="${eventDetail.negativeLabel}" th:attr="data-vote-text=${eventDetail.negativeLabel}">Против</button>
+                            <button type="button" data-vote="3" class="vote-btn vote-btn-neutral" th:text="${eventDetail.neutralLabel}" th:attr="data-vote-text=${eventDetail.neutralLabel}">Въздържал се</button>
                         </form>
                     </div>
 
@@ -211,6 +212,58 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M9 18L15 12L9 6"/>
                     </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vote Confirmation Modal -->
+<div id="voteConfirmModal" class="vote-confirm-modal" style="display: none;">
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="warning-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.731 0 2.814-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                </div>
+                <h3 class="modal-title">Потвърдете вашия глас</h3>
+            </div>
+
+            <div class="modal-body">
+                <div class="vote-confirmation-text">
+                    <p class="confirmation-main">Вие избрахте да гласувате с:</p>
+                    <div class="selected-option">
+                        <span class="option-badge" id="selectedOptionText">...</span>
+                    </div>
+                </div>
+
+                <div class="warning-message">
+                    <div class="warning-content">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="warning-text">
+                            <strong>Внимание:</strong> След като потвърдите гласа си, той <strong>не може да бъде променян</strong>.
+                            Моля, уверете се че сте направили правилния избор.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="cancelVote">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                    Отказ
+                </button>
+                <button type="button" class="btn-confirm" id="confirmVote">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Потвърждавам гласа си
                 </button>
             </div>
         </div>
