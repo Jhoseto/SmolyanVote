@@ -1,95 +1,76 @@
-/* Контейнер на search bar */
-.search-container {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    margin-right: 15px;
+/* =================================================================
+   SMOLYAN VOTE - ULTRA CLEAN SEARCH COMPONENT
+   ================================================================= */
 
-}
-
-/* Поле за търсене с модерни ефекти като navbar */
-.search-container input[type="text"] {
-    font-family: 'Droid Serif', serif !important;
-    padding: 3px 16px;
-    font-size: 12px;
-    border: 1px solid rgba(37, 175, 180, 0.2);
-    border-radius: 12px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    box-shadow: 0 8px 32px rgba(37, 175, 180, 0.1);
-    backdrop-filter: blur(10px);
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    outline: none;
-    color: #212529;
-    width: 180px;
-}
-
-.search-container input[type="text"]:focus {
-    border-color: #25afb4;
-    box-shadow: 0 12px 40px rgba(37, 175, 180, 0.15);
-    transform: translateY(-2px);
-}
-
-/* Бутон за търсене в стила на nav-link */
-.search-container button {
-    font-family: 'Droid Serif', serif !important;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #212529;
-    margin-left: 3px;
-    padding: 4px 0 9px 3px;
-    border-radius: 12px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
+/* Search container */
+.smolyan-vote-navbar-search-container {
     position: relative;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 8px 25px rgba(37, 175, 180, 0);
+    margin-right: 1rem;
 }
 
-.search-container button::before {
-    content: '';
+/* Search input field */
+.smolyan-vote-navbar-search-input {
+    font-family: 'Droid Serif', serif !important;
+    width: 12rem; /* 192px */
+    padding: 0.1rem 2.5rem 0.1rem 1rem; /* Right padding for icon */
+    font-size: 0.875rem; /* 14px */
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem; /* 8px */
+    background: #ffffff;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.smolyan-vote-navbar-search-input::placeholder {
+    color: #64748b;
+    font-style: normal;
+}
+
+.smolyan-vote-navbar-search-input:focus {
+    border-color: #25afb4;
+    box-shadow: 0 0 0 3px rgba(37, 175, 180, 0.1);
+}
+
+/* Search icon inside input */
+.smolyan-vote-navbar-search-icon {
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
-    transition: left 0.5s ease;
-    z-index: -1;
-    border-radius: 12px;
+    right: 0.75rem; /* 12px from right */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem; /* 16px */
+    height: 1rem; /* 16px */
+    color: #64748b;
+    pointer-events: none;
+    stroke-width: 2;
 }
 
-.search-container button::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 3px;
-    background: linear-gradient(45deg, #25afb4, #198754);
-    transition: all 0.4s ease;
-    transform: translateX(-50%);
-    border-radius: 2px;
-    z-index: -1;
-}
-
-.search-container button:hover {
+/* Icon color change on input focus */
+.smolyan-vote-navbar-search-container:focus-within .smolyan-vote-navbar-search-icon {
     color: #25afb4;
-    box-shadow: 0 8px 25px rgba(37, 175, 180, 0.3);
-    background: rgba(37, 175, 180, 0.05);
 }
 
-.search-container button:hover::before {
-    left: 0;
+/* Responsive */
+@media (max-width: 768px) {
+    .smolyan-vote-navbar-search-container {
+        margin-right: 0.5rem;
+    }
+
+    .smolyan-vote-navbar-search-input {
+        width: 10rem; /* 160px */
+        font-size: 0.8125rem; /* 13px */
+        padding: 0.1rem 2.25rem 0.1rem 0.875rem;
+    }
+
+    .smolyan-vote-navbar-search-icon {
+        right: 0.625rem; /* 10px */
+        width: 0.875rem; /* 14px */
+        height: 0.875rem; /* 14px */
+    }
 }
 
-.search-container button:hover::after {
-    width: 70%;
-}
-
-.search-container button:active {
-    transform: translateY(-1px);
+@media (max-width: 480px) {
+    .smolyan-vote-navbar-search-input {
+        width: 8.5rem; /* 136px */
+    }
 }
