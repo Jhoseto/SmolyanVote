@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Създай събитие</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+    <link rel="stylesheet" href="/css/createSimpleEvent.css">
+</head>
+<body>
+
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Main Content -->
+<main class="main-wrapper">
+    <div class="content-container">
+
+        <!-- Header Card -->
+        <div class="header-card">
+            <div class="event-type-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <span>Опростен вид събитие</span>
+            </div>
+
+            <h1 class="page-title">Създайте ново събитие</h1>
+
+            <div class="description-text">
+                <p>Формулирайте ясен и недвусмислен въпрос с три опции за гласуване: положителен, отрицателен и неутрален глас.</p>
+                <div class="examples">
+                    <span class="example-badge">ЗА / ПРОТИВ / ВЪЗДЪРЖАЛ СЕ</span>
+                    <span class="example-badge">ДА / НЕ / НЯМАМ МНЕНИЕ</span>
+                </div>
+                <div class="warning-note">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.731 0 2.814-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                    <span><strong>Важно!</strong> Проверете дали не съществува вече подобно събитие.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Container -->
+        <div class="alerts-container">
+            <div th:if="${successMessage}" class="alert alert-success">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <span th:text="${successMessage}"></span>
+                <button type="button" class="alert-close" data-bs-dismiss="alert">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div th:if="${errorMessage}" class="alert alert-error">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <span th:text="${errorMessage}"></span>
+                <button type="button" class="alert-close" data-bs-dismiss="alert">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <form th:action="@{/create}" method="post" enctype="multipart/form-data" class="event-form">
+
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Основна информация
+                    </h3>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="title" class="form-label">
+                                <span>Заглавие</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title" required maxlength="150" placeholder="Въведете заглавие на събитието">
+                            <div class="char-counter">
+                                <span class="current">0</span>/<span class="max">150</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="description" class="form-label">
+                                <span>Описание</span>
+                                <span class="required">*</span>
+                            </label>
+                            <textarea class="form-control link-aware" id="description" name="description" rows="6" required maxlength="1000" placeholder="Въведете подробности за събитието..."></textarea>
+                            <div class="char-counter">
+                                <span class="current">0</span>/<span class="max">1000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="location" class="form-label">
+                                <span>Локация</span>
+                                <span class="required">*</span>
+                            </label>
+                            <select class="form-control" id="location" name="location" required>
+                                <option value="NONE">Избери локация</option>
+                                <option th:each="loc : ${locations}"
+                                        th:value="${loc.name()}"
+                                        th:text="${loc.toBG()}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Images Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                        Снимки
+                        <span class="optional">(по избор)</span>
+                    </h3>
+
+                    <div class="images-grid">
+                        <div class="image-upload-group">
+                            <label for="image1" class="image-upload-label">
+                                <div class="upload-area" id="uploadArea1">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"/>
+                                        <path d="M16 2l5 5"/>
+                                        <path d="M21 7H16V2"/>
+                                    </svg>
+                                    <span class="upload-text">Снимка 1</span>
+                                    <span class="upload-hint">Кликнете или влачете</span>
+                                </div>
+                                <img id="preview1" class="preview-image" style="display: none;"/>
+                            </label>
+                            <input type="file" class="file-input" id="image1" name="image1" accept="image/*">
+                            <button type="button" class="remove-image" id="remove1" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="image-upload-group">
+                            <label for="image2" class="image-upload-label">
+                                <div class="upload-area" id="uploadArea2">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"/>
+                                        <path d="M16 2l5 5"/>
+                                        <path d="M21 7H16V2"/>
+                                    </svg>
+                                    <span class="upload-text">Снимка 2</span>
+                                    <span class="upload-hint">Кликнете или влачете</span>
+                                </div>
+                                <img id="preview2" class="preview-image" style="display: none;"/>
+                            </label>
+                            <input type="file" class="file-input" id="image2" name="image2" accept="image/*">
+                            <button type="button" class="remove-image" id="remove2" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="image-upload-group">
+                            <label for="image3" class="image-upload-label">
+                                <div class="upload-area" id="uploadArea3">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"/>
+                                        <path d="M16 2l5 5"/>
+                                        <path d="M21 7H16V2"/>
+                                    </svg>
+                                    <span class="upload-text">Снимка 3</span>
+                                    <span class="upload-hint">Кликнете или влачете</span>
+                                </div>
+                                <img id="preview3" class="preview-image" style="display: none;"/>
+                            </label>
+                            <input type="file" class="file-input" id="image3" name="image3" accept="image/*">
+                            <button type="button" class="remove-image" id="remove3" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voting Options Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"/>
+                            <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.84 0 3.55.56 4.95 1.52"/>
+                        </svg>
+                        Опции за гласуване
+                    </h3>
+
+                    <div class="voting-options">
+                        <div class="form-group">
+                            <label for="positiveLabel" class="form-label">
+                                <div class="vote-icon positive">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M8 12l2 2 4-4"/>
+                                    </svg>
+                                </div>
+                                <span>Положителен вот</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="positiveLabel" name="positiveLabel" required maxlength="80" placeholder="Напр. Подкрепям, ЗА, Да">
+                            <div class="char-counter">
+                                <span class="current">0</span>/<span class="max">80</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="negativeLabel" class="form-label">
+                                <div class="vote-icon negative">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                    </svg>
+                                </div>
+                                <span>Отрицателен вот</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="negativeLabel" name="negativeLabel" required maxlength="80" placeholder="Напр. Против съм, ПРОТИВ, Не">
+                            <div class="char-counter">
+                                <span class="current">0</span>/<span class="max">80</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="neutralLabel" class="form-label">
+                                <div class="vote-icon neutral">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="1"/>
+                                        <circle cx="12" cy="5" r="1"/>
+                                        <circle cx="12" cy="19" r="1"/>
+                                    </svg>
+                                </div>
+                                <span>Неутрален вот</span>
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="neutralLabel" name="neutralLabel" required maxlength="80" placeholder="Напр. Без мнение, ВЪЗДЪРЖАЛ СЕ">
+                            <div class="char-counter">
+                                <span class="current">0</span>/<span class="max">80</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <div class="form-actions">
+                        <a href="/mainEvents" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 12H5m7-7l-7 7 7 7"/>
+                            </svg>
+                            Отказ
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitEventBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 19l7-7 3 3-11 11-4-4-3 3-7-7"/>
+                            </svg>
+                            Публикувай събитието
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</main>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="confirmation-modal" style="display: none;">
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="warning-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.731 0 2.814-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                </div>
+                <h3 class="modal-title">Потвърдете създаването на събитието</h3>
+            </div>
+
+            <div class="modal-body">
+                <div class="confirmation-checklist">
+                    <div class="checklist-item">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="confirmCheck1">
+                            <span class="checkmark">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </span>
+                            <div class="check-content">
+                                <strong>Проверил съм дали не съществува подобно събитие</strong>
+                                <p>Уверете се, че не създавате дублиращо се събитие</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="checklist-item">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="confirmCheck2">
+                            <span class="checkmark">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </span>
+                            <div class="check-content">
+                                <strong>Заглавието и описанието са ясни и точни</strong>
+                                <p>Информацията трябва да бъде недвусмислена за гласуващите</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="checklist-item">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="confirmCheck3">
+                            <span class="checkmark">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </span>
+                            <div class="check-content">
+                                <strong>Опциите за гласуване са подходящи</strong>
+                                <p>Положителен, отрицателен и неутрален вот са правилно формулирани</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="checklist-item">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" id="confirmCheck4">
+                            <span class="checkmark">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </span>
+                            <div class="check-content">
+                                <strong>Съгласявам се с <a href="/terms-and-conditions" target="_blank" class="terms-link">правилата и условията</a> за ползване</strong>
+                                <p>Моля, прочетете внимателно нашите правила и условия преди да продължите</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="warning-message">
+                    <div class="warning-content">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="warning-text">
+                            <strong>Внимание:</strong> След публикуването събитието <strong>не може да бъде редактирано</strong>.
+                            Моля, уверете се че всички детайли са правилни.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-summary">
+                    <h4>Преглед на събитието:</h4>
+                    <div class="summary-item">
+                        <span class="summary-label">Заглавие:</span>
+                        <span class="summary-value" id="summaryTitle">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Локация:</span>
+                        <span class="summary-value" id="summaryLocation">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Положителен вот:</span>
+                        <span class="summary-value" id="summaryPositive">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Отрицателен вот:</span>
+                        <span class="summary-value" id="summaryNegative">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Неутрален вот:</span>
+                        <span class="summary-value" id="summaryNeutral">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" id="cancelSubmit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                    Отказ
+                </button>
+                <button type="button" class="btn btn-confirm" id="confirmSubmit" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Потвърждавам и публикувам
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="success-modal" th:style="${successMessage != null ? 'display: block;' : 'display: none;'}">
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="success-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"/>
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                </div>
+                <h3 class="modal-title">Събитието е създадено успешно!</h3>
+            </div>
+
+            <div class="modal-body">
+                <div class="success-message">
+                    <p th:text="${successMessage ?: 'Вашето събитие беше публикувано успешно и вече е достъпно за гласуване.'}"></p>
+                </div>
+
+                <div class="success-actions">
+                    <div class="action-item">
+                        <div class="action-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </div>
+                        <div class="action-content">
+                            <strong>Прегледайте събитието</strong>
+                            <p>Вижте как изглежда публикуваното събитие</p>
+                        </div>
+                    </div>
+
+                    <div class="action-item">
+                        <div class="action-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                            </svg>
+                        </div>
+                        <div class="action-content">
+                            <strong>Създайте още</strong>
+                            <p>Останете тук за да създадете ново събитие</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="stayHereBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                    </svg>
+                    Създай още събитие
+                </button>
+                <a href="/mainEvents" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Виж всички събития
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Футър -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="/js/createSimpleEvent.js"></script>
+</body>
+</html>

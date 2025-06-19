@@ -26,8 +26,6 @@ public class SimpleEventController {
     private final SimpleEventService simpleEventService;
     private final CommentsService commentsService;
     private final UserService userService;
-    private final VoteService voteService;
-    private final SimpleEventRepository simpleEventRepository;
     private final DeleteService deleteService;
 
 
@@ -35,14 +33,10 @@ public class SimpleEventController {
     public SimpleEventController(SimpleEventService simpleEventService,
                                  CommentsService commentsService,
                                  UserService userService,
-                                 VoteService voteService,
-                                 SimpleEventRepository simpleEventRepository,
                                  DeleteService deleteService) {
         this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
-        this.voteService = voteService;
-        this.simpleEventRepository = simpleEventRepository;
         this.deleteService = deleteService;
     }
 
@@ -78,7 +72,7 @@ public class SimpleEventController {
     public String showCreateEvent(Model model) {
         model.addAttribute("locations", Locations.values()); // enum стойности
 
-        return "createEvent";
+        return "createSimpleEvent";
     }
 
     @PostMapping("/create")
@@ -115,10 +109,4 @@ public class SimpleEventController {
         redirectAttributes.addFlashAttribute("successMessage", "Събитието беше изтрито успешно.");
         return "redirect:/mainEvents";
     }
-
-
-
-
-
-
 }

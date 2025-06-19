@@ -46,7 +46,7 @@ public class MultiPollController {
             model.addAttribute("createMultiPollView", view);
         }
         model.addAttribute("locations", Locations.values());
-        return "createMultiPollPage";
+        return "createMultiPoll";
     }
 
 
