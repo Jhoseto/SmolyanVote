@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display&display=swap" rel="stylesheet">
   <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
-  <link rel="stylesheet" href="/css/eventSimpleCard.css">
   <link rel="stylesheet" href="/css/mainEventPage.css">
+  <link rel="stylesheet" href="/css/eventSimpleCard.css">
 </head>
 <body>
 <!-- Навигация -->
@@ -289,6 +289,7 @@
   </div>
 </section>
 
+
 <!-- Loading overlay -->
 <div id="loadingOverlay" class="loading-overlay">
   <div class="spinner-border text-primary" role="status">
@@ -299,14 +300,64 @@
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
-<!-- JS библиотеки -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- JavaScript за модала -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Отваряне на модала
+    document.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const modalId = button.getAttribute('data-modal-id');
+        const modal = document.getElementById(modalId);
+        if (modal) {
+          modal.style.display = 'flex';
+          setTimeout(() => {
+            modal.classList.add('active');
+          }, 10);
+          modal.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+        }
+      });
+    });
 
+    // Затваряне на модала
+    document.querySelectorAll('.custom-modal-close, .custom-btn-secondary').forEach(element => {
+      element.addEventListener('click', () => {
+        const modalId = element.getAttribute('data-modal-id');
+        const modal = document.getElementById(modalId);
+        if (modal) {
+          modal.classList.remove('active');
+          setTimeout(() => {
+            modal.style.display = 'none';
+          }, 300);
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+
+    // Затваряне при клик извън модала
+    document.querySelectorAll('.custom-modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+          setTimeout(() => {
+            modal.style.display = 'none';
+          }, 300);
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+  });
+</script>
 <!-- Custom JavaScript -->
 <script src="/js/mainEvent/uiUtils.js"></script>
 <script src="/js/mainEvent/customDropdowns.js"></script>
 <script src="/js/mainEvent/searchAndFilters.js"></script>
 <script src="/js/mainEvent/mainEventsPage.js"></script>
+<!-- JS библиотеки -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </body>
 </html>

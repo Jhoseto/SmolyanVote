@@ -675,21 +675,6 @@
     color: var(--white) !important;
 }
 
-.modal-content {
-    border-radius: var(--border-radius-lg) !important;
-    border: none !important;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
-}
-
-.modal-header {
-    border-bottom: 1px solid rgba(0,0,0,0.1) !important;
-    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
-}
-
-.modal-footer {
-    border-top: 1px solid rgba(0,0,0,0.1) !important;
-    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg) !important;
-}
 
 /* ====== RESPONSIVE DESIGN ====== */
 @media (max-width: 768px) {
