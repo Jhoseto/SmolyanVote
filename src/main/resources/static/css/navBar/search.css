@@ -1,76 +1,213 @@
 /* =================================================================
-   SMOLYAN VOTE - ULTRA CLEAN SEARCH COMPONENT
+   SEARCH COMPONENT - Desktop стилове за glassmorphism navbar (ФИКСИРАН)
    ================================================================= */
 
-/* Search container */
-.smolyan-vote-navbar-search-container {
+/* Search Container */
+.search-container-glass {
     position: relative;
     margin-right: 1rem;
+    transition: all 0.3s var(--ease-out-quart);
 }
 
-/* Search input field */
-.smolyan-vote-navbar-search-input {
-    font-family: 'Droid Serif', serif !important;
-    width: 12rem; /* 192px */
-    padding: 0.1rem 2.5rem 0.1rem 1rem; /* Right padding for icon */
-    font-size: 0.875rem; /* 14px */
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem; /* 8px */
-    background: #ffffff;
-    color: #1e293b;
+/* Search Input Field with Glassmorphism */
+.search-input-glass {
+    font-family: var(--font-primary);
+    width: 230px;
+    padding: 0.2rem 3rem 0.2rem 1.2rem;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: rgb(105, 108, 123);
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: all 0.3s var(--ease-out-quart);
+    /* ФИКСИРАНИ box-shadow с еднакви размери */
+    box-shadow:
+            0 4px 15px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    /* Добавяме will-change за по-добра производителност */
+    will-change: transform, box-shadow;
 }
 
-.smolyan-vote-navbar-search-input::placeholder {
-    color: #64748b;
-    font-style: normal;
+.search-input-glass::placeholder {
+    color: rgb(105, 108, 123);;
+    font-style: italic;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
 }
 
-.smolyan-vote-navbar-search-input:focus {
-    border-color: #25afb4;
-    box-shadow: 0 0 0 3px rgba(37, 175, 180, 0.1);
+.search-input-glass:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow:
+            0 0 0 3px rgba(255, 255, 255, 0.15),
+            0 8px 25px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    /* ФИКСИРАНО: използваме scale() вместо scaleZ() */
+    transform: scale(1.02);
+    color: var(--white);
 }
 
-/* Search icon inside input */
-.smolyan-vote-navbar-search-icon {
+.search-input-glass:focus::placeholder {
+    color: var(--accent-green);
+    transform: translateX(5px);
+}
+
+/* Search Submit Button */
+.search-submit-glass {
     position: absolute;
-    right: 0.75rem; /* 12px from right */
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3rem;
+    background: none;
+    border: none;
+    border-radius: 0 25px 25px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    outline: none;
+}
+
+.search-submit-glass:hover {
+    background: rgba(25, 134, 28, 0.1);
+}
+
+.search-submit-glass:focus {
+    background: rgba(25, 134, 28, 0.15);
+    box-shadow: 0 0 0 2px rgba(25, 134, 28, 0.3);
+}
+
+.search-submit-glass:active {
+    background: rgba(25, 134, 28, 0.2);
+}
+
+/* Search Icon with Enhanced Styling */
+.search-icon-glass {
+    position: absolute;
+    right: 1.1rem;
     top: 50%;
-    transform: translateY(-50%);
-    width: 1rem; /* 16px */
-    height: 1rem; /* 16px */
-    color: #64748b;
+    padding-right: 0;
+    width: 18px;
+    height: 18px;
+    color: var(--primary-green);
     pointer-events: none;
     stroke-width: 2;
+    transition: transform 0.3s ease, color 0.3s ease, filter 0.3s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    /* ОСНОВЕН transform за центриране */
+    transform: translateY(-50%);
+    transform-origin: center center;
+    will-change: transform, color, filter;
 }
 
-/* Icon color change on input focus */
-.smolyan-vote-navbar-search-container:focus-within .smolyan-vote-navbar-search-icon {
-    color: #25afb4;
+/* Icon Animation on Focus */
+.search-container-glass:focus-within .search-icon-glass {
+    color: var(--accent-green);
+    /* КОМБИНИРАН: запазва центрирането + zoom */
+    transform: translateY(-50%) scale(1.2);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .smolyan-vote-navbar-search-container {
-        margin-right: 0.5rem;
-    }
-
-    .smolyan-vote-navbar-search-input {
-        width: 10rem; /* 160px */
-        font-size: 0.8125rem; /* 13px */
-        padding: 0.1rem 2.25rem 0.1rem 0.875rem;
-    }
-
-    .smolyan-vote-navbar-search-icon {
-        right: 0.625rem; /* 10px */
-        width: 0.875rem; /* 14px */
-        height: 0.875rem; /* 14px */
-    }
+/* Search Container Hover Effect - ФИКСИРАН */
+.search-container-glass:hover .search-input-glass {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.25);
+    /* ФИКСИРАНО: използваме същите размери на shadow за да избегнем layout shift */
+    box-shadow:
+            0 4px 15px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
-@media (max-width: 480px) {
-    .smolyan-vote-navbar-search-input {
-        width: 8.5rem; /* 136px */
+.search-container-glass:hover .search-icon-glass {
+    color: var(--accent-green);
+    /* КОМБИНИРАН: запазва центрирането + zoom */
+    transform: translateY(-50%) scale(1.15);
+}
+
+/* Loading state animation */
+.search-input-glass.loading {
+    background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.2) 25%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0.2) 75%),
+            rgba(255, 255, 255, 0.2);
+    background-size: 200% 100%;
+    animation: searchLoading 1.5s ease-in-out infinite;
+}
+
+@keyframes searchLoading {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Search Results Dropdown */
+.search-results-glass {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    transition: all 0.3s var(--ease-out-quart);
+    z-index: 1050;
+}
+
+.search-results-glass.show {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+.search-result-item-glass {
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.search-result-item-glass:hover {
+    background: rgba(25, 134, 28, 0.1);
+    color: var(--primary-green);
+}
+
+.search-result-item-glass:last-child {
+    border-bottom: none;
+}
+
+/* Dark mode compatibility */
+@media (prefers-color-scheme: dark) {
+    .search-input-glass {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .search-input-glass:focus {
+        background: rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .search-results-glass {
+        background: rgba(0, 0, 0, 0.9);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .search-result-item-glass {
+        color: rgba(255, 255, 255, 0.9);
+        border-bottom-color: rgba(255, 255, 255, 0.1);
     }
 }

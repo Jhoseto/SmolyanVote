@@ -3,219 +3,223 @@
     <!-- Включване на Bootstrap Icons CDN (премахни, ако вече е добавен в главния шаблон) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm custom-navbar">
-        <div class="container px-4">
+    <!-- Navbar with Glassmorphism Effect -->
+    <nav class="navbar-glassmorphism">
+        <div class="navbar-container">
+            <div class="navbar-content">
+                <!-- Brand Section - вляво -->
+                <div class="navbar-brand-section">
+                    <a class="navbar-brand-glass d-flex align-items-center" href="/">
+                        <img src="/images/logo1.png" alt="SmolyanVote Logo" class="brand-logo-glass">
+                        <span class="brand-text-glass">SmolyanVote</span>
+                    </a>
+                </div>
 
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/images/logo1.png" alt="SmolyanVote Logo" width="40" height="40" class="me-2">
-                <span class="fw-bold text-dark">SmolyanVote</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarNav" aria-controls="navbarNav"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <!-- Mobile Toggler -->
+                <div class="mobile-toggler-glass" onclick="toggleMobileMenu()">
+                    <div class="toggler-line-glass"></div>
+                    <div class="toggler-line-glass"></div>
+                    <div class="toggler-line-glass"></div>
+                </div>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
+                <!-- Navigation Section - средата -->
+                <div class="navbar-nav-section-glass" id="navbarNavSection">
+                    <!-- Search Component -->
+                    <form th:action="@{/search}" method="get" class="search-container-glass">
+                        <input type="text" name="query" placeholder="Търси..." class="search-input-glass" th:value="${param.query}" />
+                        <button type="submit" class="search-submit-glass">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon-glass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </button>
+                    </form>
 
-                    <li class="smolyan-vote-navbar-search-container">
-                        <input type="text" placeholder="Търси..." class="smolyan-vote-navbar-search-input" />
-                        <svg xmlns="http://www.w3.org/2000/svg" class="smolyan-vote-navbar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.35-4.35"/>
-                        </svg>
-                    </li>
+                    <!-- Navigation Links -->
+                    <ul class="nav-links-glass">
+                        <li class="nav-item-glass"><a class="nav-link-glass" href="/">Начало</a></li>
 
-                    <li class="nav-item"><a class="nav-link" href="/">Начало</a></li>
+                        <!-- Vote Link with Expand -->
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass vote-toggle-glass" href="#" onclick="toggleVoteMenu(event)">
+                                Vote <i class="bi bi-chevron-down vote-arrow-glass"></i>
+                            </a>
+                        </li>
 
-                    <!-- Vote Link with Expand -->
-                    <li class="nav-item">
-                        <a class="nav-link vote-toggle" href="#" onclick="toggleVoteMenu(event)">
-                            Vote <i class="bi bi-chevron-down vote-arrow"></i>
-                        </a>
-                    </li>
+                        <li class="nav-item-glass"><a class="nav-link-glass" href="/news">Новини</a></li>
+                        <li class="nav-item-glass"><a class="nav-link-glass" href="/about">За нас</a></li>
+                        <li class="nav-item-glass"><a class="nav-link-glass" href="/contacts">Контакти</a></li>
+                    </ul>
+                </div>
 
-                    <li class="nav-item"><a class="nav-link" href="/news">Новини</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/about">За нас</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/contacts">Контакти</a></li>
-
+                <!-- Auth/Profile Section - вдясно -->
+                <div class="auth-profile-section-glass">
                     <!-- Нелогнати потребители -->
-                    <li class="nav-item" sec:authorize="!isAuthenticated()">
-                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal" sec:authorize="!isAuthenticated()">Вход</a>
-                    </li>
-                    <li class="nav-item" sec:authorize="!isAuthenticated()">
-                        <a class="nav-link" href="/register">Регистрация</a>
-                    </li>
+                    <div class="auth-buttons-glass" sec:authorize="!isAuthenticated()">
+                        <a class="auth-link-glass" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Вход</a>
+                        <a class="auth-link-glass" href="/register">Регистрация</a>
+                    </div>
 
                     <!-- Логнати потребители -->
-                    <li class="nav-item dropdown profile-dropdown" sec:authorize="isAuthenticated()">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
+                        <!-- ПРЕМАХНАТИ: data-bs-toggle="dropdown" aria-expanded="false" -->
+                        <a class="profile-toggle-glass d-flex align-items-center" href="#" role="button">
                             <!-- Показване на профилна снимка или началната буква от името, ако няма снимка -->
                             <span th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
-                                  class="avatar-placeholder rounded-circle d-flex justify-content-center align-items-center"
-                                  style="width: 40px; height: 40px; background-color: #6c757d; color: white; font-size: 18px;">
+                                  class="avatar-placeholder-glass rounded-circle d-flex justify-content-center align-items-center">
                                 <span th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 1).toUpperCase()}">A</span>
                             </span>
                             <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() != null}"
                                  th:src="${@userServiceImpl.getCurrentUser().getImageUrl()}"
                                  onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2230%22%20height=%2230%22%20viewBox=%220%200%2030%2030%22%3E%3Ccircle%20cx=%2215%22%20cy=%2215%22%20r=%2214%22%20fill=%22%23ccc%22/%3E%3Ctext%20x=%2215%22%20y=%2220%22%20font-size=%2212%22%20font-family=%22Arial%22%20text-anchor=%22middle%22%20fill=%22%23fff%22%3E%E2%9C%94%3C/text%3E%3C/svg%3E'"
-                                 alt="User Image" class="rounded-circle profile-image me-2">
+                                 alt="User Image" class="profile-image-glass me-2">
 
                             <!-- Ако няма изображение, показваме първите две букви от името на потребителя -->
                             <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
                                  th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 2)}"
-                                 class="rounded-circle profile-image me-2"
+                                 class="profile-image-glass me-2"
                                  th:style="'background-color: ' + ${randomColor} + '; color: #fff; text-align: center; font-size: 14px; width: 30px; height: 30px;'" alt="" src="">
 
-                            <span class="fw-medium" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
+                            <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile">Профил</a></li>
+                        <ul class="dropdown-menu-glass dropdown-menu-end">
+                            <li><a class="dropdown-item-glass" href="/profile">Профил</a></li>
                             <li>
                                 <form th:action="@{/logout}" method="post" class="m-0">
-                                    <button type="submit" class="dropdown-item">Изход</button>
+                                    <button type="submit" class="dropdown-item-glass logout-btn-glass">Изход</button>
                                 </form>
                             </li>
                         </ul>
-                    </li>
-
-                </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Expandable Vote Menu -->
-    <div class="vote-menu-container" id="voteMenuContainer">
-        <div class="container px-4">
-            <div class="row">
-                <!-- Създай събитие секция -->
-                <div class="col-md-6">
-                    <div class="vote-section">
-                        <h5 class="vote-section-title">
-                            <i class="bi bi-plus-circle me-2 text-success"></i>
-                            Създай събитие
-                        </h5>
-                        <div class="vote-items">
-                            <!-- Опростен вид -->
-                            <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-pencil-square"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Опростен вид</h6>
-                                    <p>Създайте просто гласуване с да/не варианти</p>
-                                </div>
-                            </a>
-                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-pencil-square"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Опростен вид</h6>
-                                    <p>Създайте просто гласуване с да/не варианти</p>
-                                </div>
-                            </a>
-
-                            <!-- Референдум -->
-                            <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-file-earmark-plus"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Референдум</h6>
-                                    <p>Организирайте официален референдум</p>
-                                </div>
-                            </a>
-                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-file-earmark-plus"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Референдум</h6>
-                                    <p>Организирайте официален референдум</p>
-                                </div>
-                            </a>
-
-                            <!-- Анкета с множествен избор -->
-                            <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-list-check"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Анкета с множествен избор</h6>
-                                    <p>Създайте анкета с множество варианти</p>
-                                </div>
-                            </a>
-                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item" onclick="showLoginWarning()">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-list-check"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Анкета с множествен избор</h6>
-                                    <p>Създайте анкета с множество варианти</p>
-                                </div>
-                            </a>
+    <div class="vote-menu-container-glass" id="voteMenuContainer">
+        <div class="vote-sections-grid-glass">
+            <!-- Създай събитие секция -->
+            <div class="vote-section-glass">
+                <h5 class="vote-section-title-glass">
+                    <i class="bi bi-plus-circle me-2 text-success"></i>
+                    Създай събитие
+                </h5>
+                <div class="vote-items-glass">
+                    <!-- Опростен вид -->
+                    <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-pencil-square"></i>
                         </div>
-                    </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Опростен вид</h6>
+                            <p>Създайте просто гласуване с да/не варианти</p>
+                        </div>
+                    </a>
+                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Опростен вид</h6>
+                            <p>Създайте просто гласуване с да/не варианти</p>
+                        </div>
+                    </a>
+
+                    <!-- Референдум -->
+                    <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-file-earmark-plus"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Референдум</h6>
+                            <p>Организирайте официален референдум</p>
+                        </div>
+                    </a>
+                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-file-earmark-plus"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Референдум</h6>
+                            <p>Организирайте официален референдум</p>
+                        </div>
+                    </a>
+
+                    <!-- Анкета с множествен избор -->
+                    <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-list-check"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Анкета с множествен избор</h6>
+                            <p>Създайте анкета с множество варианти</p>
+                        </div>
+                    </a>
+                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-list-check"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Анкета с множествен избор</h6>
+                            <p>Създайте анкета с множество варианти</p>
+                        </div>
+                    </a>
                 </div>
+            </div>
 
-                <!-- Разгледай събития секция -->
-                <div class="col-md-6">
-                    <div class="vote-section">
-                        <h5 class="vote-section-title">
-                            <i class="bi bi-eye me-2 text-primary"></i>
-                            Прегледай / Гласувай
-                        </h5>
+            <!-- Разгледай събития секция -->
+            <div class="vote-section-glass">
+                <h5 class="vote-section-title-glass">
+                    <i class="bi bi-eye me-2 text-primary"></i>
+                    Прегледай / Гласувай
+                </h5>
 
-                        <!-- В секцията "Прегледай / Гласувай" -->
-                        <div class="vote-items">
-                            <!-- Опростени видове -->
-                            <a href="/mainEvents?type=event" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-eye"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Опростени видове</h6>
-                                    <p>Вижте всички опростени гласувания</p>
-                                </div>
-                            </a>
-
-                            <!-- Референдуми -->
-                            <a href="/mainEvents?type=referendum" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-eye"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Референдуми</h6>
-                                    <p>Прегледайte всички референдуми</p>
-                                </div>
-                            </a>
-
-                            <!-- Анкети -->
-                            <a href="/mainEvents?type=poll" class="vote-item">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-eye"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Анкети</h6>
-                                    <p>Вижте всички анкети и опроси</p>
-                                </div>
-                            </a>
-
-                            <!-- Всички събития (без филтър) -->
-                            <a href="/mainEvents" class="vote-item vote-item-highlight">
-                                <div class="vote-item-icon">
-                                    <i class="bi bi-grid"></i>
-                                </div>
-                                <div class="vote-item-content">
-                                    <h6>Разгледай всички</h6>
-                                    <p>Общ преглед на всички събития</p>
-                                </div>
-                            </a>
+                <!-- В секцията "Прегледай / Гласувай" -->
+                <div class="vote-items-glass">
+                    <!-- Опростени видове -->
+                    <a href="/mainEvents?type=event" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-eye"></i>
                         </div>
-                    </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Опростени видове</h6>
+                            <p>Вижте всички опростени гласувания</p>
+                        </div>
+                    </a>
+
+                    <!-- Референдуми -->
+                    <a href="/mainEvents?type=referendum" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-eye"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Референдуми</h6>
+                            <p>Прегледайte всички референдуми</p>
+                        </div>
+                    </a>
+
+                    <!-- Анкети -->
+                    <a href="/mainEvents?type=poll" class="vote-item-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-eye"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Анкети</h6>
+                            <p>Вижте всички анкети и опроси</p>
+                        </div>
+                    </a>
+
+                    <!-- Всички събития (без филтър) -->
+                    <a href="/mainEvents" class="vote-item-glass vote-item-highlight-glass">
+                        <div class="vote-item-icon-glass">
+                            <i class="bi bi-grid"></i>
+                        </div>
+                        <div class="vote-item-content-glass">
+                            <h6>Разгледай всички</h6>
+                            <p>Общ преглед на всички събития</p>
+                        </div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -255,16 +259,18 @@
             </div>
         </div>
     </div>
-    <div class="vote-overlay" id="voteOverlay" onclick="closeVoteMenu()"></div>
+    <div class="vote-overlay-glass" id="voteOverlay" onclick="closeVoteMenu()"></div>
 
     <!-- JavaScript за Vote Menu -->
     <script>
         let voteMenuOpen = false;
+        let mobileMenuOpen = false;
+        let profileDropdownOpen = false; // НОВО: за profile dropdown
 
         function toggleVoteMenu(event) {
             event.preventDefault();
             const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow');
+            const arrow = document.querySelector('.vote-arrow-glass');
             const overlay = document.getElementById('voteOverlay');
 
             if (voteMenuOpen) {
@@ -276,7 +282,7 @@
 
         function openVoteMenu() {
             const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow');
+            const arrow = document.querySelector('.vote-arrow-glass');
             const overlay = document.getElementById('voteOverlay');
 
             container.classList.add('show');
@@ -287,7 +293,7 @@
 
         function closeVoteMenu() {
             const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow');
+            const arrow = document.querySelector('.vote-arrow-glass');
             const overlay = document.getElementById('voteOverlay');
 
             container.classList.remove('show');
@@ -296,40 +302,89 @@
             voteMenuOpen = false;
         }
 
+        function toggleMobileMenu() {
+            const navSection = document.getElementById('navbarNavSection');
+
+            if (mobileMenuOpen) {
+                navSection.classList.remove('show');
+                mobileMenuOpen = false;
+            } else {
+                navSection.classList.add('show');
+                mobileMenuOpen = true;
+            }
+        }
+
+        // НОВО: Custom Profile Dropdown функции
+        function toggleProfileDropdown() {
+            const dropdownMenu = document.querySelector('.dropdown-menu-glass');
+
+            if (profileDropdownOpen) {
+                dropdownMenu.classList.remove('show');
+                profileDropdownOpen = false;
+            } else {
+                dropdownMenu.classList.add('show');
+                profileDropdownOpen = true;
+            }
+        }
+
         // Затваряне при натискане на Escape
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && voteMenuOpen) {
-                closeVoteMenu();
+            if (e.key === 'Escape') {
+                if (voteMenuOpen) closeVoteMenu();
+                if (mobileMenuOpen) toggleMobileMenu();
+                if (profileDropdownOpen) { // НОВО: затваряне на profile dropdown
+                    document.querySelector('.dropdown-menu-glass').classList.remove('show');
+                    profileDropdownOpen = false;
+                }
             }
         });
-    </script>
 
-    <!-- JavaScript за Login Modal анимация -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('loginModal');
-            if (modal) {
-                modal.addEventListener('hide.bs.modal', (e) => {
-                    modal.classList.add('modal-closing');
-                    setTimeout(() => {
-                        modal.classList.remove('modal-closing');
-                    }, 300);
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const navSection = document.getElementById('navbarNavSection');
+            const toggler = document.querySelector('.mobile-toggler-glass');
+
+            if (mobileMenuOpen && !navSection.contains(e.target) && !toggler.contains(e.target)) {
+                toggleMobileMenu();
+            }
+        });
+
+        // НОВО: Custom Profile Dropdown Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileToggle = document.querySelector('.profile-toggle-glass');
+            const dropdownMenu = document.querySelector('.dropdown-menu-glass');
+
+            if (profileToggle && dropdownMenu) {
+                // Клик върху profile toggle
+                profileToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleProfileDropdown();
+                });
+
+                // Затваряне при клик извън менюто
+                document.addEventListener('click', function(e) {
+                    if (profileDropdownOpen &&
+                        !profileToggle.contains(e.target) &&
+                        !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.classList.remove('show');
+                        profileDropdownOpen = false;
+                    }
                 });
             }
         });
     </script>
 
-    <!-- Heartbeat скрипт -->
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Heartbeat скрипт за автентикирани потребители -->
     <script th:if="${#authorization.expression('isAuthenticated()')}">
         document.addEventListener('DOMContentLoaded', function() {
             const csrfToken = document.querySelector('meta[name="_csrf"]');
             const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
 
             function sendHeartbeat() {
-                const headers = {
-                    'Content-Type': 'application/json'
-                };
-
+                const headers = { 'Content-Type': 'application/json' };
                 if (csrfToken && csrfHeader) {
                     headers[csrfHeader.content] = csrfToken.content;
                 }
@@ -337,15 +392,7 @@
                 fetch('/heartbeat', {
                     method: 'POST',
                     headers: headers
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.error('Heartbeat failed:', response.status);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Heartbeat error:', error);
-                    });
+                }).catch(error => console.warn('Heartbeat error:', error));
             }
 
             sendHeartbeat();
@@ -353,28 +400,16 @@
         });
     </script>
 
-    <!-- SweetAlert2 CDN и предупреждение -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Modal анимации -->
     <script>
-        function showLoginWarning() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Моля, влезте в системата',
-                text: 'Трябва да сте влезли в профила си, за да достъпите това съдържание.',
-                showCancelButton: true,
-                confirmButtonText: 'Вход',
-                cancelButtonText: 'Затвори',
-                confirmButtonColor: '#25afb4',
-                cancelButtonColor: '#6c757d',
-                customClass: {
-                    popup: 'rounded-3 shadow'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const modal = new bootstrap.Modal(document.getElementById('loginModal'));
-                    modal.show();
-                }
-            });
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.addEventListener('hide.bs.modal', () => {
+                    modal.classList.add('modal-closing');
+                    setTimeout(() => modal.classList.remove('modal-closing'), 300);
+                });
+            }
+        });
     </script>
 </div>
