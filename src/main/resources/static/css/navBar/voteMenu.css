@@ -1,292 +1,280 @@
+/* =================================================================
+   VOTE MENU COMPONENT - Desktop стилове за glassmorphism navbar
+   ================================================================= */
 
-.vote-item-icon i {
-    font-size: 1.5rem;
-    margin-right: 0.5rem;
-}
-.vote-item-icon .bi-pencil-square,
-.vote-item-icon .bi-file-earmark-plus,
-.vote-item-icon .bi-list-check {
-    color: var(--primary-green, #0F7B59);
-}
-.vote-item-icon .bi-eye,
-.vote-item-icon .bi-grid {
-    color: var(--accent-green, #81C784);
-}
-.vote-item-highlight .bi-grid {
-    color: var(--secondary-green, #4CAF50);
+/* Vote Menu Grid */
+.vote-sections-grid-glass {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
 }
 
-/* Vote Toggle Button */
-.vote-toggle {
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    color: #212529;
-    font-weight: 500;
+/* Vote Section with Enhanced Glassmorphism */
+.vote-section-glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.3s var(--ease-out-quart);
     position: relative;
     overflow: hidden;
 }
 
-.vote-toggle:hover {
-    color: #25afb4;
-    transform: translateY(-2px);
-}
-
-.vote-arrow {
-    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    font-size: 0.8rem;
-    margin-left: 8px;
-    display: inline-block;
-}
-
-.vote-arrow.rotated {
-    transform: rotate(180deg);
-}
-
-/* Vote Menu Container - компактен дизайн */
-.vote-menu-container {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(37, 175, 180, 0.1);
-    box-shadow: 0 8px 32px rgba(37, 175, 180, 0.1);
-    max-height: 0;
-    width: 100%;
-    overflow: hidden;
-    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: fixed;
-    z-index: 1020;
-}
-
-.vote-menu-container::before {
+.vote-section-glass::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(45deg, #25afb4, #198754);
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    animation: sectionShimmer 8s ease-in-out infinite;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
 }
 
-.vote-menu-container.show {
-    margin-top: 66px;
-    max-height: 400px;
-    width: 100%;
-    padding-top: 10px;
-    padding-bottom: 10px;
+@keyframes sectionShimmer {
+    0%, 100% { transform: translateX(-100%) translateY(-100%); }
+    50% { transform: translateX(100%) translateY(100%); }
 }
 
-.vote-menu-container.show::before {
+.vote-section-glass:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-5px);
+    box-shadow:
+            0 15px 45px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.vote-section-glass:hover::before {
     opacity: 1;
 }
 
-/* Vote Sections Grid Layout */
-.vote-sections-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    padding: 0 1rem;
-}
-
-/* Vote Section - компактен дизайн */
-.vote-section {
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 12px;
-    padding: 0.75rem;
-    border: 1px solid rgba(37, 175, 180, 0.1);
-    transition: all 0.3s ease;
-}
-
-.vote-section:hover {
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(37, 175, 180, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(37, 175, 180, 0.1);
-}
-
-.vote-section-title {
-    color: #212529;
-    font-size: 0.9rem;
+/* Vote Section Title */
+.vote-section-title-glass {
+    font-size: 1.1rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
-    padding-left: 8px;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(37, 175, 180, 0.15);
+    color: var(--text-primary);
+    margin-bottom: 1.25rem;
     display: flex;
     align-items: center;
-    position: relative;
-    background: linear-gradient(45deg, #25afb4, #198754);
+    gap: 0.75rem;
+    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    position: relative;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(25, 134, 28, 0.1);
 }
 
-.vote-section-title::after {
+.vote-section-title-glass::after {
     content: '';
     position: absolute;
     bottom: -2px;
     left: 0;
-    width: 25px;
+    width: 40px;
     height: 2px;
-    background: linear-gradient(45deg, #25afb4, #198754);
+    background: linear-gradient(45deg, var(--primary-green), var(--accent-green));
     border-radius: 1px;
+    transition: width 0.3s ease;
 }
 
-/* Vote Items - много компактни */
-.vote-items {
+.vote-section-glass:hover .vote-section-title-glass::after {
+    width: 80px;
+}
+
+.vote-section-title-glass i {
+    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.2rem;
+}
+
+/* Vote Items Container */
+.vote-items-glass {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
 }
 
-.vote-item {
+/* Vote Item with Enhanced Glassmorphism */
+.vote-item-glass {
     display: flex;
     align-items: center;
-    padding: 0.3rem 0.75rem;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.6) 100%);
-    border-radius: 8px;
+    gap: 1rem;
+    padding: 0.1rem 0.2rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
     text-decoration: none;
-    color: inherit;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    border: 1px solid rgba(37, 175, 180, 0.08);
+    color: var(--text-primary);
+    transition: all 0.3s var(--ease-out-quart);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     position: relative;
     overflow: hidden;
-    font-size: 0.85rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
-.vote-item::before {
+.vote-item-glass::before {
     content: '';
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, rgba(37, 175, 180, 0.05), rgba(25, 135, 84, 0.05));
-    transition: left 0.4s ease;
-    z-index: -2;
-}
-
-.vote-item:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(37, 175, 180, 0.15);
-    color: inherit;
-    text-decoration: none;
-    border-color: rgba(37, 175, 180, 0.2);
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.vote-item:hover::before {
-    left: 0;
-}
-
-/* Highlighted Vote Item - в същия стил като стандартните vote-item */
-.vote-item-highlight {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.6) 100%);
-    border: 1px solid rgba(37, 175, 180, 0.08);
-    color: inherit;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-    overflow: hidden;
-    font-size: 0.85rem;
-}
-
-.vote-item-highlight::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, rgba(37, 175, 180, 0.05), rgba(25, 135, 84, 0.05));
+    background: linear-gradient(45deg, rgba(25, 134, 28, 0.05), rgba(72, 162, 76, 0.05));
     transition: left 0.4s ease;
     z-index: -1;
 }
 
-.vote-item-highlight:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(37, 175, 180, 0.15);
-    color: inherit;
-    text-decoration: none;
-    border-color: rgba(37, 175, 180, 0.2);
-    background: rgba(255, 255, 255, 0.9);
+.vote-item-glass::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0;
+    height: 40%;
+    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
+    transition: all 0.3s ease;
+    transform: translateY(-50%);
+    border-radius: 0 3px 3px 0;
 }
 
-.vote-item-highlight:hover::before {
+.vote-item-glass:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateX(8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.vote-item-glass:hover::before {
     left: 0;
 }
 
-/* Иконка за vote-item-highlight */
-.vote-item-highlight .vote-item-icon {
-    background: linear-gradient(135deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
+.vote-item-glass:hover::after {
+    width: 4px;
 }
 
-.vote-item-highlight .vote-item-icon i {
-    color: #25afb4;
+/* Highlighted Vote Item */
+.vote-item-highlight-glass {
+    background: linear-gradient(135deg, rgba(25, 134, 28, 0.1) 0%, rgba(72, 162, 76, 0.08) 100%);
+    border-color: rgba(25, 134, 28, 0.2);
+    box-shadow: 0 6px 20px rgba(25, 134, 28, 0.1);
 }
 
-/* Vote Item Icon - по-малък и компактен */
-.vote-item-icon {
-    width: 28px;
-    height: 28px;
-    padding-left: 8px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, rgba(37, 175, 180, 0.1), rgba(25, 135, 84, 0.1));
+.vote-item-highlight-glass:hover {
+    background: linear-gradient(135deg, rgba(25, 134, 28, 0.15) 0%, rgba(72, 162, 76, 0.12) 100%);
+    border-color: rgba(25, 134, 28, 0.3);
+    box-shadow: 0 10px 30px rgba(25, 134, 28, 0.15);
+}
+
+/* Vote Item Icon */
+.vote-item-icon-glass {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 0.5rem;
+    color: var(--white);
+    font-size: 1.3rem;
     flex-shrink: 0;
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: all 0.3s var(--ease-out-expo);
+    box-shadow: 0 4px 15px rgba(25, 134, 28, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
-.vote-item:hover .vote-item-icon {
-    transform: scale(1.1);
+.vote-item-icon-glass::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: transform 0.6s ease;
+    transform: rotate(45deg) translateX(-100%);
 }
 
-.vote-item-icon i {
-    font-size: 0.9rem;
-    color: #25afb4;
+.vote-item-glass:hover .vote-item-icon-glass {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(25, 134, 28, 0.4);
+}
+
+.vote-item-glass:hover .vote-item-icon-glass::before {
+    transform: rotate(45deg) translateX(100%);
+}
+
+.vote-item-icon-glass i {
+    color: var(--white);
     transition: all 0.3s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
-/* Vote Item Content - компактен текст */
-.vote-item-content {
+/* Highlighted item icon styling */
+.vote-item-highlight-glass .vote-item-icon-glass {
+    background: linear-gradient(135deg, var(--accent-green), var(--primary-green));
+    box-shadow: 0 6px 20px rgba(72, 162, 76, 0.4);
+}
+
+/* Vote Item Content */
+.vote-item-content-glass {
     flex: 1;
     min-width: 0;
 }
 
-.vote-item-content h6 {
-    margin: 0;
+.vote-item-content-glass h6 {
+    margin: 0 0 0.25rem 0;
     font-weight: 600;
-    font-size: 0.85rem;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.vote-item-content p {
-    display: none; /* Скриваме описанието за по-компактен вид */
-}
-
-/* Overlay за затваряне при клик извън менюто */
-.vote-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.02);
-    backdrop-filter: blur(1px);
-    z-index: 999;
-    opacity: 0;
-    visibility: hidden;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    color: var(--text-primary);
     transition: all 0.3s ease;
 }
 
-.vote-overlay.show {
+.vote-item-content-glass p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+}
+
+.vote-item-glass:hover .vote-item-content-glass h6 {
+    color: var(--primary-green);
+    transform: translateX(3px);
+}
+
+.vote-item-glass:hover .vote-item-content-glass p {
     opacity: 1;
-    visibility: visible;
+    color: var(--text-primary);
+    transform: translateX(3px);
+}
+
+/* Icon color variations for different types */
+.vote-item-icon-glass .bi-pencil-square,
+.vote-item-icon-glass .bi-file-earmark-plus,
+.vote-item-icon-glass .bi-list-check {
+    color: var(--white);
+}
+
+.vote-item-icon-glass .bi-eye,
+.vote-item-icon-glass .bi-grid {
+    color: var(--white);
 }

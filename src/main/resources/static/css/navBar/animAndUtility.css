@@ -1,57 +1,436 @@
-/* Keyframe анимации */
+/* =================================================================
+   ANIMATIONS & UTILITY CLASSES - Glassmorphism navbar
+   ================================================================= */
+
+/* Enhanced Keyframe Animations for Glassmorphism */
+
+/* Main Navbar Entry Animation */
 @keyframes slideInFromTop {
     0% {
         transform: translateY(-100%);
         opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    50% {
+        backdrop-filter: blur(8px);
     }
     100% {
         transform: translateY(0);
         opacity: 1;
+        backdrop-filter: blur(15px);
     }
 }
 
+/* Enhanced Pulse Glow for Interactive Elements */
 @keyframes pulseGlow {
     0% {
-        box-shadow: 0 0 5px rgba(37, 175, 180, 0.5);
+        box-shadow:
+                0 0 5px rgba(25, 134, 28, 0.5),
+                0 0 10px rgba(25, 134, 28, 0.3),
+                0 0 15px rgba(25, 134, 28, 0.1);
+        transform: scale(1);
     }
     50% {
-        box-shadow: 0 0 20px rgba(37, 175, 180, 0.8);
+        box-shadow:
+                0 0 20px rgba(25, 134, 28, 0.8),
+                0 0 30px rgba(25, 134, 28, 0.6),
+                0 0 40px rgba(25, 134, 28, 0.4);
+        transform: scale(1.02);
     }
     100% {
-        box-shadow: 0 0 5px rgba(37, 175, 180, 0.5);
+        box-shadow:
+                0 0 5px rgba(25, 134, 28, 0.5),
+                0 0 10px rgba(25, 134, 28, 0.3),
+                0 0 15px rgba(25, 134, 28, 0.1);
+        transform: scale(1);
     }
 }
 
+/* Advanced Bounce In Animation */
 @keyframes bounceIn {
     0% {
-        transform: scale(0.3);
+        transform: scale(0.3) rotateZ(-15deg);
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    25% {
+        transform: scale(0.7) rotateZ(-5deg);
+        backdrop-filter: blur(5px);
+    }
+    50% {
+        transform: scale(1.05) rotateZ(2deg);
+        backdrop-filter: blur(10px);
+    }
+    70% {
+        transform: scale(0.95) rotateZ(-1deg);
+        backdrop-filter: blur(12px);
+    }
+    100% {
+        transform: scale(1) rotateZ(0deg);
+        opacity: 1;
+        backdrop-filter: blur(15px);
+    }
+}
+
+/* Glassmorphism Slide Up Animation */
+@keyframes slideUpGlass {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+        backdrop-filter: blur(0px);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Shimmer Effect for Glass Elements */
+@keyframes shimmerGlass {
+    0% {
+        background-position: -200% 0;
         opacity: 0;
     }
     50% {
-        transform: scale(1.05);
-    }
-    70% {
-        transform: scale(0.9);
-    }
-    100% {
-        transform: scale(1);
         opacity: 1;
     }
+    100% {
+        background-position: 200% 0;
+        opacity: 0;
+    }
 }
 
-/* Utility класове */
-.navbar.loaded {
-    animation: slideInFromTop 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* Floating Animation for Glass Elements */
+@keyframes floatGlass {
+    0%, 100% {
+        transform: translateY(0) rotateZ(0deg);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    25% {
+        transform: translateY(-5px) rotateZ(0.5deg);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+        transform: translateY(-3px) rotateZ(0deg);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+    }
+    75% {
+        transform: translateY(-7px) rotateZ(-0.5deg);
+        box-shadow: 0 14px 45px rgba(0, 0, 0, 0.18);
+    }
 }
 
-.glow-effect {
-    animation: pulseGlow 2s infinite;
+/* Glass Ripple Effect */
+@keyframes rippleGlass {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    }
 }
 
-.bounce-in {
-    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+/* Advanced Rotation Animation */
+@keyframes rotateGlass {
+    0% {
+        transform: rotate(0deg) scale(1);
+        filter: brightness(1);
+    }
+    25% {
+        transform: rotate(90deg) scale(1.05);
+        filter: brightness(1.1);
+    }
+    50% {
+        transform: rotate(180deg) scale(1);
+        filter: brightness(1);
+    }
+    75% {
+        transform: rotate(270deg) scale(1.05);
+        filter: brightness(1.1);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+        filter: brightness(1);
+    }
 }
 
+/* Typewriter Effect for Text */
+@keyframes typewriterGlass {
+    from {
+        width: 0;
+        border-right: 2px solid rgba(255, 255, 255, 0.8);
+    }
+    to {
+        width: 100%;
+        border-right: 2px solid transparent;
+    }
+}
+
+/* =================================================================
+   UTILITY CLASSES FOR GLASSMORPHISM EFFECTS
+   ================================================================= */
+
+/* Animation Utility Classes */
+.navbar-glass.loaded {
+    animation: slideInFromTop 0.8s var(--ease-out-expo);
+}
+
+.glow-effect-glass {
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.bounce-in-glass {
+    animation: bounceIn 0.8s var(--ease-out-expo);
+}
+
+.slide-up-glass {
+    animation: slideUpGlass 0.6s var(--ease-out-quart);
+}
+
+.float-glass {
+    animation: floatGlass 6s ease-in-out infinite;
+}
+
+.shimmer-glass {
+    position: relative;
+    overflow: hidden;
+}
+
+.shimmer-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.4) 50%,
+            transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmerGlass 2s infinite;
+    pointer-events: none;
+}
+
+.rotate-glass {
+    animation: rotateGlass 2s linear infinite;
+}
+
+/* Glassmorphism Effect Utilities */
+.glass-light {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-medium {
+    backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.glass-heavy {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+    backdrop-filter: blur(15px);
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Interactive State Utilities */
+.hover-lift-glass {
+    transition: all 0.3s var(--ease-out-quart);
+}
+
+.hover-lift-glass:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow-glass {
+    transition: all 0.3s ease;
+}
+
+.hover-glow-glass:hover {
+    box-shadow:
+            0 0 20px rgba(25, 134, 28, 0.4),
+            0 0 40px rgba(25, 134, 28, 0.2),
+            0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.hover-blur-glass {
+    transition: all 0.3s ease;
+}
+
+.hover-blur-glass:hover {
+    backdrop-filter: blur(25px);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Scale Animation Utilities */
+.scale-on-hover-glass {
+    transition: transform 0.3s var(--ease-out-expo);
+}
+
+.scale-on-hover-glass:hover {
+    transform: scale(1.05);
+}
+
+.scale-on-click-glass:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+/* Ripple Effect Utility */
+.ripple-glass {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-glass::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    animation: rippleGlass 0.6s ease-out;
+    pointer-events: none;
+}
+
+/* Loading States */
+.loading-glass {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.loading-glass::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 10;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Smooth Scroll Utility */
 html {
     scroll-behavior: smooth;
+}
+
+/* Focus Utilities for Accessibility */
+.focus-glass:focus {
+    outline: none;
+    box-shadow:
+            0 0 0 3px rgba(25, 134, 28, 0.3),
+            0 0 0 6px rgba(255, 255, 255, 0.2);
+}
+
+.focus-glass:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+/* Text Effects */
+.text-glow-glass {
+    text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.8),
+            0 0 20px rgba(255, 255, 255, 0.6),
+            0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+.text-gradient-glass {
+    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Border Utilities */
+.border-glass {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.border-glass-thick {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.border-gradient-glass {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, var(--primary-green), var(--accent-green)) border-box;
+}
+
+/* Shadow Utilities */
+.shadow-glass-sm {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-glass-md {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-glass-lg {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-glass-xl {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+/* Performance Optimizations */
+.will-change-glass {
+    will-change: transform, opacity, backdrop-filter;
+}
+
+.gpu-accelerated-glass {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Reduced Motion for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .float-glass,
+    .shimmer-glass::before,
+    .glow-effect-glass,
+    .rotate-glass {
+        animation: none !important;
+    }
 }
