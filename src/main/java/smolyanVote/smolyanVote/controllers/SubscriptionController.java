@@ -65,7 +65,7 @@ public class SubscriptionController {
                 redirectAttributes.addFlashAttribute("subscriptionSuccess", "Успешно се отписахте от всички известия");
             } else {
                 redirectAttributes.addFlashAttribute("subscriptionSuccess",
-                        "Успешно се абонирахте за " + types.size() + " типа известия");
+                        "Успешно се абонирахте и за напред ще получавате известия на вашата поща");
             }
 
         } catch (Exception e) {

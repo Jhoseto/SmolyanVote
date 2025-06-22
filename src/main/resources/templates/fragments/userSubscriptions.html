@@ -1,15 +1,15 @@
-<!--@thymeleaf.variable name="user" type="smolyanVote.smolyanVote.models.UserEntity"-->
-<!--@thymeleaf.variable name="userSubscriptions" type="java.util.Set<smolyanVote.smolyanVote.models.enums.SubscriptionType>"-->
-<!--@thymeleaf.variable name="subscriptionSuccess" type="java.lang.String"-->
-<!--@thymeleaf.variable name="subscriptionError" type="java.lang.String"-->
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       lang="bg">
 
+<!-- @thymesVar id="user" type="smolyanVote.smolyanVote.models.UserEntity" -->
+<!-- @thymesVar id="userSubscriptions" type="java.util.Set<smolyanVote.smolyanVote.models.enums.SubscriptionType>" -->
+<!-- @thymesVar id="subscriptionSuccess" type="java.lang.String" -->
+<!-- @thymesVar id="subscriptionError" type="java.lang.String" -->
+
 <!-- Subscription Panel за logged users -->
-<div th:fragment="subscriptionPanel" class="subscription-panel">
+<div th:fragment="subscriptionPanel(redirectUrl)" class="subscription-panel">
 
     <p sec:authorize="isAuthenticated()">
         Получавайте актуализации за нови събития, подкасти и публикации на <strong sec:authentication="name"></strong>
@@ -27,9 +27,10 @@
     <!-- Проверка дали потребителят вече е абониран -->
     <div th:if="${userSubscriptions != null and !userSubscriptions.isEmpty()}">
         <!-- Вече е абониран - показваме unsubscribe бутон -->
-        <form action="/subscription/update" method="post">
-            <input type="hidden" name="redirectUrl" value="/podcast">
-            <!-- Не подаваме никакви subscriptions = премахва всички -->
+        <form th:action="@{/subscription/update}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <!-- ВАРИАНТ 3: #request.requestURI -->
+            <input type="hidden" name="redirectUrl" th:value="${#request.requestURI}">
 
             <button type="submit" class="btn btn-outline-secondary">
                 <i class="fas fa-bell-slash"></i> Отписване от известията
@@ -42,12 +43,10 @@
 
     <div th:if="${userSubscriptions == null or userSubscriptions.isEmpty()}">
         <!-- Не е абониран - показваме subscribe бутон -->
-        <form action="/subscription/update" method="post">
-            <input type="hidden" name="redirectUrl" value="/podcast">
-            <!-- Добавяме всички типове известия -->
-            <input type="hidden" name="subscriptions" value="PODCAST_EPISODES">
-            <input type="hidden" name="subscriptions" value="ELECTION_UPDATES">
-            <input type="hidden" name="subscriptions" value="CITY_NEWS">
+        <form th:action="@{/subscription/update}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <!-- ВАРИАНТ 3: #request.requestURI -->
+            <input type="hidden" name="redirectUrl" th:value="${redirectUrl}">
             <input type="hidden" name="subscriptions" value="ALL_NOTIFICATIONS">
 
             <button type="submit" class="btn btn-green">
@@ -63,7 +62,6 @@
 
 <!-- Login Prompt за non-logged users -->
 <div th:fragment="loginPrompt" class="login-prompt">
-
     <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="btn btn-green">
         <i class="fas fa-sign-in-alt"></i> Влез в профила
     </a>
