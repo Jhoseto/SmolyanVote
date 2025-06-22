@@ -261,6 +261,42 @@
     </div>
     <div class="vote-overlay-glass" id="voteOverlay" onclick="closeVoteMenu()"></div>
 
+    <!-- SweetAlert2 CDN -  JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        window.showLoginWarning = function() {
+            console.log('showLoginWarning called');
+
+            if (typeof Swal === 'undefined') {
+                alert('За да създадете събитие, моля влезте в системата!');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Недостъпно Съдържание!',
+                text: 'За да създадете събитие, моля влезте в системата или се регистрирайте.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#198622',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Вход',
+                cancelButtonText: 'Отказ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const loginModal = document.getElementById('loginModal');
+                    if (loginModal) {
+                        // Trigger click на Вход бутона
+                        const loginButton = document.querySelector('[data-bs-target="#loginModal"]');
+                        if (loginButton) {
+                            loginButton.click();
+                        }
+                    }
+                }
+            });
+        };
+    </script>
+
     <!-- JavaScript за Vote Menu -->
     <script>
         let voteMenuOpen = false;
