@@ -25,8 +25,8 @@
                 <!-- Navigation Section - средата -->
                 <div class="navbar-nav-section-glass" id="navbarNavSection">
                     <!-- Search Component -->
-                    <form th:action="@{/search}" method="get" class="search-container-glass">
-                        <input type="text" name="query" placeholder="Търси..." class="search-input-glass" th:value="${param.query}" />
+                    <form th:action="@{/mainEvents}" method="get" class="search-container-glass">
+                        <input type="text" name="search" placeholder="Търси..." class="search-input-glass" th:value="${param.search}" />
                         <button type="submit" class="search-submit-glass">
                             <svg xmlns="http://www.w3.org/2000/svg" class="search-icon-glass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <circle cx="11" cy="11" r="8"/>

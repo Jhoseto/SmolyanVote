@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmolyanVote - Подкаст</title>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
   <!-- Font Awesome за икони -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- WaveSurfer.js -->
@@ -253,7 +255,7 @@
   <div class="container">
     <!-- Subscription панел за logged users -->
     <div sec:authorize="isAuthenticated()">
-      <div th:replace="~{fragments/userSubscriptions :: subscriptionPanel}"></div>
+      <div th:replace="~{fragments/userSubscriptions :: subscriptionPanel('/podcast')}"></div>
     </div>
 
     <!-- Login prompt за non-logged users -->

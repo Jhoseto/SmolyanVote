@@ -19,7 +19,7 @@
     border-radius: 25px;
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
-    color: rgb(105, 108, 123);
+    color: rgb(52, 56, 61);
     outline: none;
     transition: all 0.3s var(--ease-out-quart);
     /* ФИКСИРАНИ box-shadow с еднакви размери */
@@ -48,7 +48,7 @@
             inset 0 1px 0 rgba(255, 255, 255, 0.3);
     /* ФИКСИРАНО: използваме scale() вместо scaleZ() */
     transform: scale(1.02);
-    color: var(--white);
+    color: gray;
 }
 
 .search-input-glass:focus::placeholder {
