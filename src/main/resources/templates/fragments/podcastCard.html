@@ -1,0 +1,38 @@
+<!-- @thymesVar id="episodes" type="smolyanVote.smolyanVote.viewsAndDTO.PodcastEpisodeDTO" -->
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+
+<div th:fragment="podcastCard(episode)" class="episode-card"
+     th:data-date="${episode.publishDate}"
+     th:data-duration="${episode.durationSeconds}">
+
+    <div class="episode-image">
+        <h3 class="episode-titleNumber style-glass" th:text="${episode.episodeNumber}"></h3>
+        <img th:src="${episode.imageUrlOrDefault}" th:alt="${episode.title}">
+        <button class="play-btn" th:data-audio="${episode.audioUrl}">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+
+    <div class="episode-content">
+        <h3 class="episode-title" th:text="${episode.title}"></h3>
+        <p class="episode-description" th:text="${episode.description}"></p>
+
+        <div class="episode-meta">
+            <span class="episode-date" th:text="${episode.formattedPublishDate}"></span>
+            <span class="episode-duration" th:text="${episode.formattedDuration}"></span>
+        </div>
+
+        <div class="episode-actions">
+            <button class="favorite-btn" th:data-episode-id="${episode.id}">
+                <i class="far fa-heart"></i>
+            </button>
+            <button class="share-btn" th:data-episode-id="${episode.id}">
+                <i class="fas fa-share-alt"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+</html>

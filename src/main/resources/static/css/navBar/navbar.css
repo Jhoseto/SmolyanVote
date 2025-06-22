@@ -85,11 +85,11 @@
 .navbar-nav-section-glass {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 5rem;
     flex: 1; /* Заема останалото пространство */
     justify-content: flex-end;
     max-width: none; /* Премахваме ограничението */
-    margin-right: 9rem; /* Добавяме разстояние до auth секцията */
+    margin-right: 5rem; /* Добавяме разстояние до auth секцията */
 }
 
 /* Search Component в navigation section-а */

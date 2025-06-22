@@ -5,11 +5,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class NewsController {
+public class PostsController {
 
-    @GetMapping("/news")
+    @GetMapping("/posts")
     public String showNewsPage(Model model) {
 
-        return "news";
+        return "posts";
     }
 }
