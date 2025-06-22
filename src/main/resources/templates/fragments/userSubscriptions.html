@@ -1,0 +1,75 @@
+<!--@thymeleaf.variable name="user" type="smolyanVote.smolyanVote.models.UserEntity"-->
+<!--@thymeleaf.variable name="userSubscriptions" type="java.util.Set<smolyanVote.smolyanVote.models.enums.SubscriptionType>"-->
+<!--@thymeleaf.variable name="subscriptionSuccess" type="java.lang.String"-->
+<!--@thymeleaf.variable name="subscriptionError" type="java.lang.String"-->
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="bg">
+
+<!-- Subscription Panel за logged users -->
+<div th:fragment="subscriptionPanel" class="subscription-panel">
+
+    <p sec:authorize="isAuthenticated()">
+        Получавайте актуализации за нови събития, подкасти и публикации на <strong sec:authentication="name"></strong>
+    </p>
+
+    <!-- Success/Error съобщения -->
+    <div th:if="${subscriptionSuccess}" class="alert alert-success">
+        <i class="fas fa-check-circle"></i> <span th:text="${subscriptionSuccess}"></span>
+    </div>
+
+    <div th:if="${subscriptionError}" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i> <span th:text="${subscriptionError}"></span>
+    </div>
+
+    <!-- Проверка дали потребителят вече е абониран -->
+    <div th:if="${userSubscriptions != null and !userSubscriptions.isEmpty()}">
+        <!-- Вече е абониран - показваме unsubscribe бутон -->
+        <form action="/subscription/update" method="post">
+            <input type="hidden" name="redirectUrl" value="/podcast">
+            <!-- Не подаваме никакви subscriptions = премахва всички -->
+
+            <button type="submit" class="btn btn-outline-secondary">
+                <i class="fas fa-bell-slash"></i> Отписване от известията
+            </button>
+        </form>
+        <p class="subscription-status">
+            <small><i class="fas fa-check-circle text-success"></i> Абониран си за известия</small>
+        </p>
+    </div>
+
+    <div th:if="${userSubscriptions == null or userSubscriptions.isEmpty()}">
+        <!-- Не е абониран - показваме subscribe бутон -->
+        <form action="/subscription/update" method="post">
+            <input type="hidden" name="redirectUrl" value="/podcast">
+            <!-- Добавяме всички типове известия -->
+            <input type="hidden" name="subscriptions" value="PODCAST_EPISODES">
+            <input type="hidden" name="subscriptions" value="ELECTION_UPDATES">
+            <input type="hidden" name="subscriptions" value="CITY_NEWS">
+            <input type="hidden" name="subscriptions" value="ALL_NOTIFICATIONS">
+
+            <button type="submit" class="btn btn-green">
+                <i class="fas fa-bell"></i> Абонирай се
+            </button>
+        </form>
+    </div>
+
+    <div class="gdpr-notice">
+        <small>Можете да се отпишете по всяко време от получените имейли.</small>
+    </div>
+</div>
+
+<!-- Login Prompt за non-logged users -->
+<div th:fragment="loginPrompt" class="login-prompt">
+
+    <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="btn btn-green">
+        <i class="fas fa-sign-in-alt"></i> Влез в профила
+    </a>
+    <p class="mt-3">
+        <small>Нямате профил? <a href="/register">Регистрирай се тук</a></small>
+    </p>
+</div>
+
+</html>

@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,7 +16,7 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
-import smolyanVote.smolyanVote.services.EmailService;
+import smolyanVote.smolyanVote.services.interfaces.EmailService;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
@@ -25,7 +24,6 @@ import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

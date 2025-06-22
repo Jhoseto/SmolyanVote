@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" th:fragment="subscriptionPanel" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -199,84 +199,6 @@
           </div>
         </article>
 
-        <!-- Episode 6 -->
-        <article class="episode-card" data-date="2025-05-25" data-duration="1834">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 6">
-            <button class="play-btn" data-audio="/audio/episode6.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Туризъм и опазване на природата</h3>
-            <p class="episode-description">Как можем да развиваме устойчив туризъм в Родопите, без да нарушаваме уникалната природа на региона.</p>
-            <div class="episode-meta">
-              <span class="episode-date">25 май 2025</span>
-              <span class="episode-duration">30:34</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 7 -->
-        <article class="episode-card" data-date="2025-05-20" data-duration="2445">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 7">
-            <button class="play-btn" data-audio="/audio/episode7.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Професионално образование и кариера</h3>
-            <p class="episode-description">Обсъждаме възможностите за професионално развитие в Смолян и как образователните институции могат да подготвят младите хора.</p>
-            <div class="episode-meta">
-              <span class="episode-date">20 май 2025</span>
-              <span class="episode-duration">40:45</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 8 -->
-        <article class="episode-card" data-date="2025-05-15" data-duration="1623">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 8">
-            <button class="play-btn" data-audio="/audio/episode8.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Местни фестивали и традиции</h3>
-            <p class="episode-description">Запознаваме се с организаторите на традиционни фестивали в Смолян и ролята им в съхраняването на културата.</p>
-            <div class="episode-meta">
-              <span class="episode-date">15 май 2025</span>
-              <span class="episode-duration">27:03</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
       </div>
     </div>
   </div>
@@ -327,14 +249,17 @@
 
 <!-- Абонирай се -->
 <section class="subscribe-section">
+  <h3>Абонирай за да слушаш новите епизоди първи !</h3>
   <div class="container">
-    <h3>Абонирай се за нови епизоди</h3>
-    <p>Не изпускай нито един разговор.</p>
-    <div class="subscribe-form">
-      <input type="email" id="subscribeEmail" placeholder="Вашият имейл" required>
-      <button id="subscribeBtn" class="btn btn-green">Абонирай се</button>
+    <!-- Subscription панел за logged users -->
+    <div sec:authorize="isAuthenticated()">
+      <div th:replace="~{fragments/userSubscriptions :: subscriptionPanel}"></div>
     </div>
-    <p id="subscribeMessage" class="subscribe-message hidden"></p>
+
+    <!-- Login prompt за non-logged users -->
+    <div sec:authorize="!isAuthenticated()">
+      <div th:replace="~{fragments/userSubscriptions :: loginPrompt}"></div>
+    </div>
   </div>
 </section>
 
@@ -342,6 +267,7 @@
 <div th:replace="~{fragments/footer :: footer}"></div>
 
 <!-- JavaScript за функционалности -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/podcast.js"></script>
 
 </body>
