@@ -1,0 +1,176 @@
+/* Episode Card Styles */
+.episode-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.0rem;
+    box-shadow: var(--shadow-md);
+    transition: all var(--animation-normal) var(--ease-out-quart);
+    border: 1px solid #f0f0f0;
+    flex: 0 0 calc(25% - 1.125rem);
+    max-width: calc(25% - 1.125rem);
+}
+
+.episode-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-green);
+}
+
+.episode-image {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.episode-image img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.8);
+    border: none;
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all var(--animation-normal);
+}
+
+.episode-card:hover .play-btn {
+    opacity: 1;
+}
+
+.play-btn:hover {
+    background: var(--primary-green);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.episode-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+/* Episode Title Number Overlay */
+.episode-titleNumber {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: var(--white);
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 100;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    z-index: 3;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all var(--animation-normal);
+}
+
+
+.episode-titleNumber.style-glass {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--white);
+}
+
+.episode-titleNumber.style-bottom {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+}
+
+.episode-titleNumber.style-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.episode-description {
+    color: var(--text-secondary);
+    font-size: 0.67rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.episode-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: var(--medium-gray);
+}
+
+.episode-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.favorite-btn,
+.share-btn {
+    background: none;
+    border: none;
+    color: var(--medium-gray);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all var(--animation-normal);
+}
+
+.favorite-btn:hover,
+.share-btn:hover {
+    color: var(--primary-green);
+    background: var(--light-green);
+}
+
+.favorite-btn.favorited {
+    color: #e74c3c;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .episode-card {
+        flex: 0 0 calc(33.333% - 1rem);
+        max-width: calc(33.333% - 1rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .episode-card {
+        flex: 0 0 calc(50% - 0.75rem);
+        max-width: calc(50% - 0.75rem);
+        padding: 1rem;
+    }
+
+    .episode-image img {
+        height: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .episode-card {
+        flex: 0 0 calc(100% - 0rem);
+        max-width: calc(100% - 0rem);
+    }
+}
