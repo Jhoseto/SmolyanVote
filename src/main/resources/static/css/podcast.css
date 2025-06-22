@@ -39,9 +39,9 @@ body {
 
 /* Hero Section */
 .hero {
-    background: url('/images/web/podcast1.png') no-repeat center -120px;
+    background: url('/images/web/podcast1.png') no-repeat center -50px;
     position: relative;
-    min-height: 60vh;
+    min-height: 70vh;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -356,7 +356,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0 0 0 0.1rem;
     background: rgba(255, 255, 255, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
@@ -376,6 +376,7 @@
 }
 
 .profile-image-glass {
+
     width: 35px;
     height: 35px;
     border-radius: 50%;

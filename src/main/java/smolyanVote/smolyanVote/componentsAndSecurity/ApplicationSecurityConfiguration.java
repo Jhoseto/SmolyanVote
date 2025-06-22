@@ -66,7 +66,7 @@ public class ApplicationSecurityConfiguration {
                                 "/user/**", "/profile/update", "/profile", "/userProfile",
                                 "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
                                 "/createEvent", "/createNewEvent", "/user/logout", "/user/profile/**",
-                                "/user/dashboard/**"
+                                "/user/dashboard/**","/subscription/**"
                         ).authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().denyAll()
