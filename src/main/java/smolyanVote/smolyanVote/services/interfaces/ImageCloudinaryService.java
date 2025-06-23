@@ -16,4 +16,6 @@ public interface ImageCloudinaryService {
 
     // Нов метод за изтриване на цяла папка по префикс
     void deleteFolder(String folderPath);
+
+    String savePodcastImage(MultipartFile file, Long episodeId);
 }

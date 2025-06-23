@@ -1,0 +1,461 @@
+// ====== PUBLICATIONS API JS ======
+// Файл: src/main/resources/static/js/publications/publicationsApi.js
+
+class PublicationsAPI {
+    constructor() {
+        this.baseUrl = '/publications';
+        this.apiUrl = '/api/publications';
+        this.csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        this.csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+    }
+
+    async request(url, options = {}) {
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(this.csrfToken && { [this.csrfHeader]: this.csrfToken })
+            }
+        };
+
+        const mergedOptions = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...options.headers
+            }
+        };
+
+        try {
+            const response = await fetch(url, mergedOptions);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new APIError(`HTTP ${response.status}: ${response.statusText}`, response.status, errorText);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
+
+            return await response.text();
+        } catch (error) {
+            console.error('API Request failed:', error);
+            throw error;
+        }
+    }
+
+    async getPublications(filters = {}, page = 0, size = 10) {
+        const params = new URLSearchParams();
+
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) {
+                params.append(key, filters[key]);
+            }
+        });
+
+        params.append('page', page);
+        params.append('size', size);
+
+        const url = `${this.baseUrl}?${params.toString()}`;
+        return await this.request(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+    }
+
+    async getPublication(id) {
+        const url = `${this.apiUrl}/${id}`;
+        return await this.request(url);
+    }
+
+    async createPublication(publicationData) {
+        return await this.request(this.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(publicationData)
+        });
+    }
+
+    async updatePublication(id, publicationData) {
+        const url = `${this.apiUrl}/${id}`;
+        return await this.request(url, {
+            method: 'PUT',
+            body: JSON.stringify(publicationData)
+        });
+    }
+
+    async deletePublication(id) {
+        const url = `${this.apiUrl}/${id}`;
+        return await this.request(url, {
+            method: 'DELETE'
+        });
+    }
+
+    async toggleLike(publicationId) {
+        const url = `${this.apiUrl}/${publicationId}/like`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
+    async sharePublication(publicationId) {
+        const url = `${this.apiUrl}/${publicationId}/share`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
+    async reportPublication(publicationId, reason) {
+        const url = `${this.apiUrl}/${publicationId}/report`;
+        return await this.request(url, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
+    }
+
+    async getStatistics() {
+        const url = `${this.apiUrl}/statistics`;
+        return await this.request(url);
+    }
+
+    async getTrendingTopics() {
+        const url = `${this.apiUrl}/trending`;
+        return await this.request(url);
+    }
+
+    async getActiveAuthors() {
+        const url = `${this.apiUrl}/authors/active`;
+        return await this.request(url);
+    }
+
+    async toggleFollowAuthor(authorId) {
+        const url = `/api/users/${authorId}/follow`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
+    async uploadImage(file, onProgress = null) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            if (onProgress) {
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        onProgress(percentComplete);
+                    }
+                });
+            }
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (error) {
+                        resolve(xhr.responseText);
+                    }
+                } else {
+                    reject(new APIError(`Upload failed: ${xhr.statusText}`, xhr.status, xhr.responseText));
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                reject(new APIError('Upload failed: Network error', 0, 'Network error'));
+            });
+
+            xhr.open('POST', `${this.apiUrl}/upload/image`);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            if (this.csrfToken) {
+                xhr.setRequestHeader(this.csrfHeader, this.csrfToken);
+            }
+
+            xhr.send(formData);
+        });
+    }
+
+    async getUserDrafts(page = 0, size = 10) {
+        const url = `${this.apiUrl}/drafts?page=${page}&size=${size}`;
+        return await this.request(url);
+    }
+
+    async saveDraft(publicationData) {
+        const url = `${this.apiUrl}/drafts`;
+        return await this.request(url, {
+            method: 'POST',
+            body: JSON.stringify(publicationData)
+        });
+    }
+
+    async publishDraft(draftId) {
+        const url = `${this.apiUrl}/drafts/${draftId}/publish`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
+    // Batch operations
+    async getMultiplePublications(ids) {
+        const promises = ids.map(id => this.getPublication(id));
+        return await Promise.allSettled(promises);
+    }
+
+    async preloadNextPage(filters, currentPage, size = 10) {
+        try {
+            return await this.getPublications(filters, currentPage + 1, size);
+        } catch (error) {
+            console.warn('Failed to preload next page:', error);
+            return null;
+        }
+    }
+
+    // Search with suggestions
+    async searchPublications(query, filters = {}, page = 0, size = 10) {
+        const allFilters = { ...filters, search: query };
+        return await this.getPublications(allFilters, page, size);
+    }
+
+    async getSearchSuggestions(query) {
+        if (!query || query.length < 2) return [];
+
+        const url = `${this.apiUrl}/search/suggestions?q=${encodeURIComponent(query)}`;
+        try {
+            return await this.request(url);
+        } catch (error) {
+            console.warn('Failed to get search suggestions:', error);
+            return [];
+        }
+    }
+
+    // Health check
+    async healthCheck() {
+        try {
+            const response = await fetch(`${this.apiUrl}/health`, {
+                method: 'HEAD',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            return response.ok;
+        } catch (error) {
+            return false;
+        }
+    }
+}
+
+// Error handling
+class APIError extends Error {
+    constructor(message, status, response) {
+        super(message);
+        this.name = 'APIError';
+        this.status = status;
+        this.response = response;
+    }
+
+    isNetworkError() {
+        return this.status === 0 || this.status >= 500;
+    }
+
+    isClientError() {
+        return this.status >= 400 && this.status < 500;
+    }
+
+    isAuthError() {
+        return this.status === 401 || this.status === 403;
+    }
+}
+
+// Retry wrapper with exponential backoff
+class RetryableAPI extends PublicationsAPI {
+    constructor(maxRetries = 3, baseDelay = 1000, maxDelay = 10000) {
+        super();
+        this.maxRetries = maxRetries;
+        this.baseDelay = baseDelay;
+        this.maxDelay = maxDelay;
+    }
+
+    async request(url, options = {}, retryCount = 0) {
+        try {
+            return await super.request(url, options);
+        } catch (error) {
+            if (retryCount < this.maxRetries && this.shouldRetry(error)) {
+                const delay = Math.min(
+                    this.baseDelay * Math.pow(2, retryCount),
+                    this.maxDelay
+                );
+
+                console.log(`Retrying request ${retryCount + 1}/${this.maxRetries} after ${delay}ms`);
+                await this.delay(delay);
+                return this.request(url, options, retryCount + 1);
+            }
+            throw error;
+        }
+    }
+
+    shouldRetry(error) {
+        // Retry on network errors and 5xx server errors, but not on 4xx client errors
+        return error.isNetworkError() || (error.status >= 500 && error.status < 600);
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Cache wrapper
+class CachedAPI extends PublicationsAPI {
+    constructor(cacheSize = 100, cacheTTL = 5 * 60 * 1000) { // 5 minutes
+        super();
+        this.cache = new Map();
+        this.cacheSize = cacheSize;
+        this.cacheTTL = cacheTTL;
+    }
+
+    async request(url, options = {}) {
+        // Only cache GET requests
+        if (options.method && options.method !== 'GET') {
+            return super.request(url, options);
+        }
+
+        const cacheKey = this.getCacheKey(url, options);
+        const cached = this.cache.get(cacheKey);
+
+        if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+            return cached.data;
+        }
+
+        const response = await super.request(url, options);
+        this.setCache(cacheKey, response);
+        return response;
+    }
+
+    getCacheKey(url, options) {
+        return `${url}_${JSON.stringify(options.headers || {})}`;
+    }
+
+    setCache(key, data) {
+        // Implement LRU cache
+        if (this.cache.size >= this.cacheSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+
+        this.cache.set(key, {
+            data: data,
+            timestamp: Date.now()
+        });
+    }
+
+    clearCache() {
+        this.cache.clear();
+    }
+
+    invalidateCache(pattern) {
+        for (const key of this.cache.keys()) {
+            if (key.includes(pattern)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+}
+
+// Observable API for real-time updates
+class ObservableAPI extends PublicationsAPI {
+    constructor() {
+        super();
+        this.listeners = new Map();
+        this.setupSSE();
+    }
+
+    setupSSE() {
+        if (typeof EventSource === 'undefined') return;
+
+        const eventSource = new EventSource(`${this.apiUrl}/updates`);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.notifyListeners(data.type, data);
+            } catch (error) {
+                console.error('Failed to parse SSE data:', error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error('SSE connection error:', error);
+            // Attempt to reconnect after delay
+            setTimeout(() => this.setupSSE(), 5000);
+        };
+
+        this.eventSource = eventSource;
+    }
+
+    subscribe(eventType, callback) {
+        if (!this.listeners.has(eventType)) {
+            this.listeners.set(eventType, new Set());
+        }
+        this.listeners.get(eventType).add(callback);
+
+        // Return unsubscribe function
+        return () => {
+            const listeners = this.listeners.get(eventType);
+            if (listeners) {
+                listeners.delete(callback);
+            }
+        };
+    }
+
+    notifyListeners(eventType, data) {
+        const listeners = this.listeners.get(eventType);
+        if (listeners) {
+            listeners.forEach(callback => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error('Error in event listener:', error);
+                }
+            });
+        }
+    }
+
+    disconnect() {
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+    }
+}
+
+// Initialize API based on features needed
+function createPublicationsAPI(features = {}) {
+    let api = PublicationsAPI;
+
+    if (features.retry) {
+        api = RetryableAPI;
+    } else if (features.cache) {
+        api = CachedAPI;
+    } else if (features.realtime) {
+        api = ObservableAPI;
+    }
+
+    return new api();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    window.publicationsAPI = createPublicationsAPI({
+        retry: true,
+        cache: true
+    });
+});
+
+// Export for modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { PublicationsAPI, APIError, RetryableAPI, CachedAPI, ObservableAPI, createPublicationsAPI };
+}

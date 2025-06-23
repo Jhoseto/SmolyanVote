@@ -2,25 +2,32 @@ package smolyanVote.smolyanVote.controllers;
 
 import smolyanVote.smolyanVote.models.PodcastEpisodeEntity;
 import smolyanVote.smolyanVote.repositories.PodcastEpisodeRepository;
+import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.viewsAndDTO.PodcastEpisodeDTO;
 
+import java.time.Instant;
 import java.util.List;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import java.util.stream.Collectors;
 
 @Controller
 public class PodcastController {
 
-
     private final PodcastEpisodeRepository podcastEpisodeRepository;
+    private final ImageCloudinaryService imageCloudinaryService;
 
     @Autowired
-    public PodcastController(PodcastEpisodeRepository podcastEpisodeRepository) {
+    public PodcastController(PodcastEpisodeRepository podcastEpisodeRepository,
+                             ImageCloudinaryService imageCloudinaryService) {
         this.podcastEpisodeRepository = podcastEpisodeRepository;
+        this.imageCloudinaryService = imageCloudinaryService;
     }
 
     @GetMapping("/podcast")
@@ -48,58 +55,59 @@ public class PodcastController {
     }
 
 
+    @PostMapping("/admin/podcast/upload")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String uploadPodcastEpisode(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("audioUrl") String audioUrl,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+            @RequestParam(value = "duration", required = false) String duration,
+            @RequestParam(value = "isPublished", defaultValue = "false") boolean isPublished,
+            RedirectAttributes redirectAttributes) {
 
-    @GetMapping("/podcast/search")
-    public String searchEpisodes(@RequestParam("q") String searchTerm, Model model) {
+        try {
+            PodcastEpisodeEntity episode = new PodcastEpisodeEntity();
+            episode.setTitle(title);
+            episode.setDescription(description);
+            episode.setAudioUrl(audioUrl);
 
-        List<PodcastEpisodeEntity> episodes = podcastEpisodeRepository.searchEpisodes(searchTerm);
+            long totalEpisodes = podcastEpisodeRepository.count();
+            episode.setEpisodeNumber((int) totalEpisodes + 1);
 
-        List<PodcastEpisodeDTO> episodeDTOs = episodes.stream()
-                .map(PodcastEpisodeDTO::new)
-                .collect(Collectors.toList());
+            // Конвертиране на продължителността от мм:сс в секунди
+            if (duration != null && !duration.isEmpty()) {
+                try {
+                    String[] parts = duration.split(":");
+                    int minutes = Integer.parseInt(parts[0]);
+                    int seconds = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+                    episode.setDurationSeconds(minutes * 60 + seconds);
+                } catch (Exception e) {
+                    // Ако има грешка в парсирането, просто игнорираме
+                }
+            }
 
-        model.addAttribute("episodes", episodeDTOs);
-        model.addAttribute("searchTerm", searchTerm);
-        model.addAttribute("episodeCount", (long) episodes.size());
+            episode.setPublished(isPublished);
+            episode.setPublishDate(Instant.now());
+            episode.setListenCount(0L);
 
-        return "podcast";
-    }
+            // Първо записваме в базата за да получим ID
+            episode = podcastEpisodeRepository.save(episode);
 
+            // След това качваме изображението със знанието за ID-то
+            if (imageFile != null && !imageFile.isEmpty()) {
+                String imageUrl = imageCloudinaryService.savePodcastImage(imageFile, episode.getId());
+                episode.setImageUrl(imageUrl);
+                // Запазваме отново с URL-а на изображението
+                podcastEpisodeRepository.save(episode);
+            }
 
+            redirectAttributes.addFlashAttribute("successMessage", "Епизодът е качен успешно!");
 
-    @GetMapping("/podcast/sort")
-    public String sortEpisodes(@RequestParam("sortBy") String sortBy, Model model) {
-
-        List<PodcastEpisodeEntity> episodes;
-
-        switch (sortBy) {
-            case "oldest":
-                episodes = podcastEpisodeRepository.findAllByIsPublishedTrueOrderByPublishDateDesc();
-                // Reverse order for oldest first
-                episodes = episodes.stream()
-                        .sorted((e1, e2) -> e1.getPublishDate().compareTo(e2.getPublishDate()))
-                        .collect(Collectors.toList());
-                break;
-            case "duration_desc":
-                episodes = podcastEpisodeRepository.findAllByIsPublishedTrueOrderByDurationSecondsDesc();
-                break;
-            case "duration_asc":
-                episodes = podcastEpisodeRepository.findAllByIsPublishedTrueOrderByDurationSecondsAsc();
-                break;
-            case "newest":
-            default:
-                episodes = podcastEpisodeRepository.findAllByIsPublishedTrueOrderByPublishDateDesc();
-                break;
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при качване: " + e.getMessage());
         }
 
-        List<PodcastEpisodeDTO> episodeDTOs = episodes.stream()
-                .map(PodcastEpisodeDTO::new)
-                .collect(Collectors.toList());
-
-        model.addAttribute("episodes", episodeDTOs);
-        model.addAttribute("sortBy", sortBy);
-        model.addAttribute("episodeCount", (long) episodes.size());
-
-        return "podcast";
+        return "redirect:/podcast";
     }
 }

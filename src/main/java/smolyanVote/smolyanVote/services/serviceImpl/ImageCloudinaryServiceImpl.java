@@ -113,5 +113,13 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
 
 
 
+    @Override
+    public String savePodcastImage(MultipartFile file, Long episodeId) {
+        String publicId = "podcasts/episode_" + episodeId + "/" + UUID.randomUUID();
+        return uploadImage(file, publicId, "smolyanVote/podcasts/episode_" + episodeId, false); // БЕЗ воден знак
+    }
+
+
+
 
 }

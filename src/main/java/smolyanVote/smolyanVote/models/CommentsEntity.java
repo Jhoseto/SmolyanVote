@@ -43,6 +43,10 @@ public class CommentsEntity {
     private MultiPollEntity multiPoll;
 
     @ManyToOne
+    @JoinColumn(name = "publication_id", nullable = true)
+    private PublicationEntity publication;
+
+    @ManyToOne
     @JoinColumn(name = "parent_id")
     private CommentsEntity parent;
 

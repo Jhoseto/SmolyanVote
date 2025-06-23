@@ -45,4 +45,5 @@ public interface UserService {
 
     void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException;
 
+
 }

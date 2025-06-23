@@ -4,6 +4,9 @@ public enum EventStatus {
     ACTIVE("Активен"),
 
     INACTIVE("Неактивен"),
+
+    DRAFT("Чернова"),
+    PENDING("Изчакващ")
     ;
 
 
