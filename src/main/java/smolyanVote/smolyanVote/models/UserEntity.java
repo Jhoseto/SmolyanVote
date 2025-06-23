@@ -44,6 +44,11 @@ public class UserEntity extends BaseEntity {
     private List<Long> notification;
     private int totalVotes;
 
+
+
+
+
+
     public String getUsername() {
         return username;
     }

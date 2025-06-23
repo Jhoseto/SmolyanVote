@@ -107,6 +107,7 @@ public class UserServiceImpl implements UserService {
     /**
      * {@inheritDoc}
      */
+    @Transactional
     @Override
     public List<UserProfileViewModel> getAllUsers() {
         List<UserProfileViewModel> allUsers = new ArrayList<>();

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg" th:fragment="subscriptionPanel" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="bg" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,14 +20,21 @@
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<!-- Hero секция -->
-<section class="hero" >
-  <div class="container">
 
+
+<!-- Hero секция -->
+<section class="hero">
+  <div class="container">
+    <!-- Admin Button -->
+    <div sec:authorize="hasRole('ADMIN')">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        Качи нов епизод
+      </button>
+    </div>
     <p class="lead">Истории, новини и разговори за Смолян и областта</p>
     <div class="hero-stats">
-      <span><i class="fas fa-headphones"></i> 1,234 слушания</span>
-      <span><i class="fas fa-microphone"></i> 8 епизода</span>
+      <span><i class="fas fa-headphones"></i> <span th:text="${totalListens}">1,234</span> слушания</span>
+      <span><i class="fas fa-microphone"></i> <span th:text="${episodeCount}">8</span> епизода</span>
       <span><i class="fas fa-clock"></i> Актуализиран днес</span>
     </div>
   </div>
@@ -55,7 +62,7 @@
 <section class="episodes">
   <div class="container">
     <div class="episodes-header">
-      <h2>Епизоди <span id="episodeCount">(8)</span></h2>
+      <h2>Епизоди <span id="episodeCount" th:text="'(' + ${episodeCount} + ')'"></span></h2>
       <div class="carousel-nav">
         <button class="carousel-btn" id="prevCarousel" disabled>
           <i class="fas fa-chevron-left"></i>
@@ -67,140 +74,10 @@
     </div>
 
     <div class="episodes-carousel" id="episodesCarousel">
-      <div class="episodes-grid" id="episodesContainer" th:each="episode : ${episodes}">
-
-        <div th:replace="~{fragments/podcastCard :: podcastCard(${episode})}"></div>
-
-        <!-- Episode 1 -->
-        <article class="episode-card" data-date="2025-06-20" data-duration="1845">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 1">
-            <button class="play-btn" data-audio="https://dn720705.ca.archive.org/0/items/smolyan-vote-podcats-l-ver/SmolyanVote_Podcats_L_Ver.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Запознаване с платформата</h3>
-            <p class="episode-description">В първия епизод представяме SmolyanVote платформата и разговаряме за важността на гражданското участие в местната политика.</p>
-            <div class="episode-meta">
-              <span class="episode-date">20 юни 2025</span>
-              <span class="episode-duration">30:45</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 2 -->
-        <article class="episode-card" data-date="2025-06-15" data-duration="2245">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 2">
-            <button class="play-btn" data-audio="/audio/episode2.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Зелени инициативи в Смолян</h3>
-            <p class="episode-description">Обсъждаме екологичните предизвикателства на града и иновативни решения за повече зелени площи и устойчиво развитие.</p>
-            <div class="episode-meta">
-              <span class="episode-date">15 юни 2025</span>
-              <span class="episode-duration">37:25</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 3 -->
-        <article class="episode-card" data-date="2025-06-10" data-duration="2678">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 3">
-            <button class="play-btn" data-audio="/audio/episode3.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Образованието в дигиталната ера</h3>
-            <p class="episode-description">Говорим за бъдещето на образованието в Смолян, дигиталните технологии в класните стаи и предизвикателствата пред учителите.</p>
-            <div class="episode-meta">
-              <span class="episode-date">10 юни 2025</span>
-              <span class="episode-duration">44:38</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 4 -->
-        <article class="episode-card" data-date="2025-06-05" data-duration="1920">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 4">
-            <button class="play-btn" data-audio="/audio/episode4.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Културното наследство на Родопите</h3>
-            <p class="episode-description">Разкриваме богатството на родопската култура, традиции и как можем да ги запазим за бъдещите поколения.</p>
-            <div class="episode-meta">
-              <span class="episode-date">5 юни 2025</span>
-              <span class="episode-duration">32:00</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
-        <!-- Episode 5 -->
-        <article class="episode-card" data-date="2025-05-30" data-duration="2156">
-          <div class="episode-image">
-            <img src="https://res.cloudinary.com/dgescxzjk/image/upload/v1750605607/smolyanVote/users/user_Bai%20Admin/users/user_Bai%20Admin/4a7ebea9-cc8c-46ab-ab46-6c34d59ebcd8.jpg" alt="Епизод 5">
-            <button class="play-btn" data-audio="/audio/episode5.mp3">
-              <i class="fas fa-play"></i>
-            </button>
-          </div>
-          <div class="episode-content">
-            <h3 class="episode-title">Младежка политика и активизъм</h3>
-            <p class="episode-description">Разговор с млади активисти от Смолян за тяхната роля в местната политика и как да се включат в промяната.</p>
-            <div class="episode-meta">
-              <span class="episode-date">30 май 2025</span>
-              <span class="episode-duration">35:56</span>
-            </div>
-            <div class="episode-actions">
-              <button class="favorite-btn" title="Харесай">
-                <i class="far fa-heart"></i>
-              </button>
-              <button class="share-btn" title="Сподели">
-                <i class="fas fa-share-alt"></i>
-              </button>
-            </div>
-          </div>
-        </article>
-
+      <div class="episodes-grid" id="episodesContainer">
+        <div th:each="episode : ${episodes}">
+          <div th:replace="~{fragments/podcastCard :: podcastCard(${episode})}"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -267,6 +144,52 @@
 
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Качи нов епизод</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/admin/podcast/upload}" method="post" enctype="multipart/form-data">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="modalTitle" class="form-label">Заглавие</label>
+            <input type="text" class="form-control" id="modalTitle" name="title" required>
+          </div>
+          <div class="mb-3">
+            <label for="modalDescription" class="form-label">Описание</label>
+            <textarea class="form-control" id="modalDescription" name="description" rows="3" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="modalAudioUrl" class="form-label">Аудио URL (archive.org)</label>
+            <input type="url" class="form-control" id="modalAudioUrl" name="audioUrl" placeholder="https://archive.org/download/..." required>
+          </div>
+          <div class="mb-3">
+            <label for="modalImageFile" class="form-label">Изображение</label>
+            <input type="file" class="form-control" id="modalImageFile" name="imageFile" accept="image/*">
+          </div>
+          <div class="mb-3">
+            <label for="modalDuration" class="form-label">Продължителност (мм:сс)</label>
+            <input type="text" class="form-control" id="modalDuration" name="duration" placeholder="6:32">
+            <small class="form-text text-muted">Формат: минути:секунди (например 6:32)</small>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="modalIsPublished" name="isPublished" checked>
+            <label class="form-check-label" for="modalIsPublished">Публикувай веднага</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+          <button type="submit" class="btn btn-primary">Качи епизод</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- JavaScript за функционалности -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

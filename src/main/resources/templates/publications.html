@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Публикации - SmolyanVote</title>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+  <link rel="stylesheet" href="/css/publications.css">
+
+  <!-- Thymeleaf data for JavaScript -->
+  <script th:inline="javascript">
+    window.appData = {
+      isAuthenticated: /*[[${#authorization.expression('isAuthenticated()')}]]*/ false,
+      currentUserId: null,
+      currentUsername: /*[[${#authentication.name ?: ''}]]*/ '',
+      csrfToken: /*[[${_csrf.token}]]*/ '',
+      csrfHeader: /*[[${_csrf.headerName}]]*/ '',
+      totalPublications: /*[[${totalPublications ?: 0}]]*/ 0,
+      categoryCounts: {
+        news: /*[[${newsCount ?: 0}]]*/ 0,
+        municipal: /*[[${municipalCount ?: 0}]]*/ 0,
+        initiatives: /*[[${initiativesCount ?: 0}]]*/ 0,
+        culture: /*[[${cultureCount ?: 0}]]*/ 0,
+        other: /*[[${otherCount ?: 0}]]*/ 0
+      }
+    };
+  </script>
+</head>
+<body>
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- Mobile Filter Toggle -->
+<div class="mobile-filter-toggle" id="mobileFilterToggle">
+  <button class="filter-toggle-btn">
+    <i class="bi bi-funnel-fill"></i>
+    <span>Филтри</span>
+  </button>
+</div>
+
+<!-- Main Feed Container -->
+<div class="feed-layout">
+  <!-- Left Sidebar - Filters -->
+  <aside class="left-sidebar" id="leftSidebar">
+    <div class="sidebar-header">
+      <h3 class="filters-title">
+        <i class="bi bi-funnel-fill"></i>
+        Филтри
+      </h3>
+      <button class="close-sidebar" id="closeSidebar">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <div class="filters-panel">
+      <!-- Search -->
+      <div class="filter-section">
+        <label class="filter-label">Търсене</label>
+        <div class="search-input-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" id="searchInput" placeholder="Търси публикации..." class="search-input">
+          <button class="clear-search" id="clearSearch" style="display: none;">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="filter-section">
+        <label class="filter-label">Категория</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="category" data-value="">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Всички</span>
+            <span class="count" th:text="${totalPublications}">0</span>
+          </div>
+          <div class="filter-option" data-filter="category" data-value="news">
+            <i class="bi bi-newspaper"></i>
+            <span>Новини</span>
+            <span class="count" th:text="${newsCount}">0</span>
+          </div>
+          <div class="filter-option" data-filter="category" data-value="municipal">
+            <i class="bi bi-building"></i>
+            <span>Общински решения</span>
+            <span class="count" th:text="${municipalCount}">0</span>
+          </div>
+          <div class="filter-option" data-filter="category" data-value="initiatives">
+            <i class="bi bi-lightbulb"></i>
+            <span>Граждански инициативи</span>
+            <span class="count" th:text="${initiativesCount}">0</span>
+          </div>
+          <div class="filter-option" data-filter="category" data-value="culture">
+            <i class="bi bi-palette"></i>
+            <span>Културни събития</span>
+            <span class="count" th:text="${cultureCount}">0</span>
+          </div>
+          <div class="filter-option" data-filter="category" data-value="other">
+            <i class="bi bi-three-dots"></i>
+            <span>Други</span>
+            <span class="count" th:text="${otherCount}">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-section">
+        <label class="filter-label">Статус</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="status" data-value="">
+            <i class="bi bi-eye"></i>
+            <span>Всички</span>
+          </div>
+          <div class="filter-option" data-filter="status" data-value="published">
+            <i class="bi bi-globe"></i>
+            <span>Публикувани</span>
+          </div>
+          <div class="filter-option" data-filter="status" data-value="review" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+            <i class="bi bi-clock"></i>
+            <span>За преглед</span>
+          </div>
+          <div class="filter-option" data-filter="status" data-value="draft" th:if="${#authorization.expression('isAuthenticated()')}">
+            <i class="bi bi-file-earmark"></i>
+            <span>Моите чернови</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sort Options -->
+      <div class="filter-section">
+        <label class="filter-label">Сортиране</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="sort" data-value="date-desc">
+            <i class="bi bi-sort-down"></i>
+            <span>Най-нови</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="date-asc">
+            <i class="bi bi-sort-up"></i>
+            <span>Най-стари</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="likes">
+            <i class="bi bi-heart-fill"></i>
+            <span>Най-харесвани</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="views">
+            <i class="bi bi-eye-fill"></i>
+            <span>Най-гледани</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="comments">
+            <i class="bi bi-chat-fill"></i>
+            <span>Най-коментирани</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time Filter -->
+      <div class="filter-section">
+        <label class="filter-label">Период</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="time" data-value="">
+            <i class="bi bi-infinity"></i>
+            <span>Всички</span>
+          </div>
+          <div class="filter-option" data-filter="time" data-value="today">
+            <i class="bi bi-sun"></i>
+            <span>Днес</span>
+          </div>
+          <div class="filter-option" data-filter="time" data-value="week">
+            <i class="bi bi-calendar-week"></i>
+            <span>Тази седмица</span>
+          </div>
+          <div class="filter-option" data-filter="time" data-value="month">
+            <i class="bi bi-calendar-month"></i>
+            <span>Този месец</span>
+          </div>
+          <div class="filter-option" data-filter="time" data-value="year">
+            <i class="bi bi-calendar-range"></i>
+            <span>Тази година</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Author Filter -->
+      <div class="filter-section" th:if="${#authorization.expression('isAuthenticated()')}">
+        <label class="filter-label">Автор</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="author" data-value="">
+            <i class="bi bi-people"></i>
+            <span>Всички автори</span>
+          </div>
+          <div class="filter-option" data-filter="author" data-value="me">
+            <i class="bi bi-person-circle"></i>
+            <span>Моите публикации</span>
+          </div>
+          <div class="filter-option" data-filter="author" data-value="following">
+            <i class="bi bi-person-plus"></i>
+            <span>Следвани автори</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clear Filters -->
+      <div class="filter-section">
+        <button class="clear-all-filters" id="clearAllFilters">
+          <i class="bi bi-arrow-clockwise"></i>
+          Изчисти всички филтри
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filters Summary -->
+    <div class="active-filters-summary" id="activeFiltersSummary" style="display: none;">
+      <h4>Активни филтри:</h4>
+      <div class="active-filters-list" id="activeFiltersList"></div>
+    </div>
+  </aside>
+
+  <!-- Main Feed -->
+  <main class="main-feed">
+    <!-- Create Post Section -->
+    <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
+      <div class="create-post-header">
+        <div class="user-avatar" th:text="${#authentication.principal.username?.substring(0,1)?.toUpperCase()}">U</div>
+        <input type="text" class="create-post-input"
+               placeholder="Какво мислите за Смолян?"
+               onclick="showCreateModal()" readonly>
+      </div>
+      <div class="create-post-actions">
+        <button class="create-action" onclick="showCreateModal()">
+          <i class="bi bi-pencil-fill text-success"></i>
+          <span>Напиши публикация</span>
+        </button>
+        <button class="create-action" onclick="showCreateModal()">
+          <i class="bi bi-image-fill text-primary"></i>
+          <span>Снимка/Видео</span>
+        </button>
+        <button class="create-action" onclick="showCreateModal()">
+          <i class="bi bi-emoji-smile-fill text-warning"></i>
+          <span>Настроение</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Login Prompt for Guests -->
+    <div class="login-prompt" th:if="${#authorization.expression('!isAuthenticated()')}">
+      <div class="prompt-content">
+        <i class="bi bi-person-circle"></i>
+        <h3>Влезте в профила си</h3>
+        <p>За да създавате и харесвате публикации, моля влезте в профила си или се регистрирайте.</p>
+        <div class="prompt-actions">
+          <a href="/login" class="btn btn-primary">Вход</a>
+          <a href="/register" class="btn btn-outline-primary">Регистрация</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Posts Feed -->
+    <div class="posts-container" id="postsContainer">
+      <!-- Posts will be loaded here via JavaScript -->
+    </div>
+
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" id="loadingIndicator">
+      <div class="spinner">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+      </div>
+      <span>Зареждане на публикации...</span>
+    </div>
+
+    <!-- No More Posts Message -->
+    <div class="no-more-posts" id="noMorePosts" style="display: none;">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>Всички публикации са заредени</span>
+    </div>
+
+    <!-- No Results Message -->
+    <div class="no-results" id="noResults" style="display: none;">
+      <i class="bi bi-search"></i>
+      <h3>Няма намерени публикации</h3>
+      <p>Опитайте да промените критериите за търсене или филтрите.</p>
+      <button class="btn btn-primary" onclick="clearAllFilters()">
+        <i class="bi bi-arrow-clockwise"></i>
+        Изчисти филтрите
+      </button>
+    </div>
+  </main>
+
+  <!-- Right Sidebar - Trending/Suggestions -->
+  <aside class="right-sidebar">
+    <!-- Trending Topics -->
+    <div class="sidebar-widget">
+      <h3 class="widget-title">
+        <i class="bi bi-trending-up"></i>
+        Популярни теми
+      </h3>
+      <div class="trending-topics" id="trendingTopics">
+        <div class="trending-item">
+          <span class="hashtag">#СмолянЦентър</span>
+          <span class="count">24 публикации</span>
+        </div>
+        <div class="trending-item">
+          <span class="hashtag">#НовиПроекти</span>
+          <span class="count">18 публикации</span>
+        </div>
+        <div class="trending-item">
+          <span class="hashtag">#ЕкологияСмолян</span>
+          <span class="count">15 публикации</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Authors -->
+    <div class="sidebar-widget">
+      <h3 class="widget-title">
+        <i class="bi bi-people-fill"></i>
+        Активни автори
+      </h3>
+      <div class="recent-authors" id="recentAuthors">
+        <div class="author-item" th:each="author : ${recentAuthors}">
+          <div class="author-avatar" th:text="${author.username?.substring(0,1)?.toUpperCase()}">A</div>
+          <div class="author-info">
+            <div class="author-name" th:text="${author.username}">Автор</div>
+            <div class="author-stats" th:text="${author.publicationsCount + ' публикации'}">0 публикации</div>
+          </div>
+          <button class="follow-btn" th:if="${#authorization.expression('isAuthenticated()')}"
+                  th:onclick="'followAuthor(' + ${author.id} + ')'">
+            <i class="bi bi-person-plus"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="sidebar-widget">
+      <h3 class="widget-title">
+        <i class="bi bi-bar-chart-fill"></i>
+        Статистики
+      </h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number" th:text="${totalPublications}">0</div>
+          <div class="stat-label">Общо публикации</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" th:text="${todayPublications}">0</div>
+          <div class="stat-label">Днес</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" th:text="${weekPublications}">0</div>
+          <div class="stat-label">Тази седмица</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" th:text="${activeUsers}">0</div>
+          <div class="stat-label">Активни потребители</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-to-top" id="scrollToTop" style="display: none;">
+  <i class="bi bi-arrow-up"></i>
+</button>
+
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/publications/filtersManager.js"></script>
+<script src="/js/publications/publicationsApi.js"></script>
+<script src="/js/publications/postInteractions.js"></script>
+<script src="/js/publications/publicationsMain.js"></script>
+</body>
+</html>

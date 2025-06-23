@@ -1,4 +1,17 @@
-/* Episode Card Styles */
+/* Episode Carousel Styles - Compatible with PodcastPlayer.js */
+.episodes-carousel {
+    position: relative;
+    overflow: hidden;
+    padding: 0.5rem 0;
+}
+
+.episodes-grid {
+    display: flex;
+    gap: 1.5rem;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+}
+
 .episode-card {
     background: var(--white);
     border-radius: 12px;
@@ -6,8 +19,12 @@
     box-shadow: var(--shadow-md);
     transition: all var(--animation-normal) var(--ease-out-quart);
     border: 1px solid #f0f0f0;
-    flex: 0 0 calc(25% - 1.125rem);
-    max-width: calc(25% - 1.125rem);
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    flex: 0 0 calc(25% - 1.125rem); /* 4 карти на ред */
+    min-width: 280px;
+    max-width: 320px;
 }
 
 .episode-card:hover {
@@ -16,9 +33,15 @@
     border-color: var(--primary-green);
 }
 
+.episode-card.playing {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(25, 134, 28, 0.2);
+}
+
 .episode-image {
     position: relative;
     margin-bottom: 1rem;
+    flex-shrink: 0;
 }
 
 .episode-image img {
@@ -54,63 +77,65 @@
     transform: translate(-50%, -50%) scale(1.1);
 }
 
+.play-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.episode-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
 .episode-title {
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 0.5rem;
     line-height: 1.3;
+    min-height: 2.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-/* Episode Title Number Overlay */
+
 .episode-titleNumber {
     position: absolute;
-    top: 5px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.7);
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     color: var(--white);
-    padding: 6px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 100;
-    letter-spacing: 0;
-    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
     z-index: 3;
-    margin: 0;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all var(--animation-normal);
 }
 
-
 .episode-titleNumber.style-glass {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: var(--white);
 }
 
-.episode-titleNumber.style-bottom {
-    top: auto;
-    bottom: 12px;
-    left: 12px;
-}
-
-.episode-titleNumber.style-center {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
 .episode-description {
     color: var(--text-secondary);
-    font-size: 0.67rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.2;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+    flex-grow: 1;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    min-height: 3.57rem; /* 3 реда за описанието */
 }
 
 .episode-meta {
@@ -120,11 +145,14 @@
     margin-bottom: 1rem;
     font-size: 0.8rem;
     color: var(--medium-gray);
+    flex-shrink: 0;
 }
 
 .episode-actions {
     display: flex;
     gap: 0.5rem;
+    flex-shrink: 0;
+    margin-top: auto;
 }
 
 .favorite-btn,
@@ -148,29 +176,70 @@
     color: #e74c3c;
 }
 
-/* Responsive */
+/* Animation for loading states */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hidden episodes (for search/filter) */
+.episode-card.hidden {
+    display: none;
+}
+
+/* Responsive breakpoints - работи с JavaScript логиката */
 @media (max-width: 1024px) {
     .episode-card {
-        flex: 0 0 calc(33.333% - 1rem);
-        max-width: calc(33.333% - 1rem);
+        flex: 0 0 calc(33.333% - 1rem); /* 3 карти */
+        min-width: 250px;
+    }
+
+    .episode-image img {
+        height: 110px;
     }
 }
 
 @media (max-width: 768px) {
     .episode-card {
-        flex: 0 0 calc(50% - 0.75rem);
-        max-width: calc(50% - 0.75rem);
-        padding: 1rem;
+        flex: 0 0 calc(50% - 0.75rem); /* 2 карти */
+        min-width: 220px;
+        padding: 0.875rem;
+    }
+
+    .episodes-grid {
+        gap: 1.25rem;
     }
 
     .episode-image img {
         height: 100px;
     }
+
+    .episode-title {
+        font-size: 1.1rem;
+    }
+
+    .episode-description {
+        font-size: 0.8rem;
+    }
 }
 
 @media (max-width: 480px) {
     .episode-card {
-        flex: 0 0 calc(100% - 0rem);
-        max-width: calc(100% - 0rem);
+        flex: 0 0 calc(100% - 0rem); /* 1 карта */
+        min-width: auto;
+        max-width: none;
+        padding: 1rem;
+    }
+
+    .episodes-grid {
+        gap: 1rem;
+    }
+
+    .episode-image img {
+        height: 100px;
     }
 }
