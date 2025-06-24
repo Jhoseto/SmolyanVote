@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
@@ -30,12 +31,14 @@ public class PublicationServiceImpl implements PublicationService {
 
     private final PublicationRepository publicationRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
-                                  UserService userService) {
+                                  UserService userService, UserRepository userRepository) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -50,20 +53,47 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         PublicationEntity publication = new PublicationEntity();
+
+        // Задаваме датите първо
+        publication.setCreated(java.time.Instant.now());
+        publication.setModified(java.time.Instant.now());
+
         publication.setTitle(request.getTitle());
         publication.setContent(request.getContent());
         publication.setCategory(request.getCategory());
         publication.setAuthor(author);
-        publication.setStatus(EventStatus.DRAFT);
 
+        // Set status based on request
+        if ("PUBLISHED".equals(request.getStatus())) {
+            publication.setStatus(EventStatus.ACTIVE);
+            publication.publish(); // Sets publishedAt
+        } else {
+            publication.setStatus(EventStatus.DRAFT);
+        }
+
+        // Set image URL if provided
         if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
             publication.setImageUrl(request.getImageUrl());
+        }
+
+        // Set emotion if provided
+        if (request.getEmotion() != null && !request.getEmotion().trim().isEmpty()) {
+            publication.setEmotion(request.getEmotion());
+            publication.setEmotionText(request.getEmotionText());
         }
 
         publication.generateExcerpt();
         publication.calculateReadingTime();
 
-        return publicationRepository.save(publication);
+        PublicationEntity savedPublication = publicationRepository.save(publication);
+
+        // АКТУАЛИЗИРАМЕ БРОЯЧА НА АВТОРА
+        if ("PUBLISHED".equals(request.getStatus())) {
+            author.setPublicationsCount(author.getPublicationsCount() + 1);
+            userRepository.save(author);
+        }
+
+        return savedPublication;
     }
 
     @Override
@@ -77,6 +107,10 @@ public class PublicationServiceImpl implements PublicationService {
             publication.setImageUrl(request.getImageUrl());
         }
 
+        // Update emotion
+        publication.setEmotion(request.getEmotion());
+        publication.setEmotionText(request.getEmotionText());
+
         publication.generateExcerpt();
         publication.calculateReadingTime();
 
@@ -86,6 +120,14 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional
     public void delete(Long id) {
+        PublicationEntity publication = findById(id);
+        if (publication != null && publication.getStatus() == EventStatus.ACTIVE) {
+            // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
+            UserEntity author = publication.getAuthor();
+            author.setPublicationsCount(author.getPublicationsCount() + 1);
+            userRepository.save(author);
+        }
+
         publicationRepository.deleteById(id);
     }
 
@@ -111,7 +153,7 @@ public class PublicationServiceImpl implements PublicationService {
 
         } catch (Exception e) {
             // Fallback към всички активни публикации
-            return publicationRepository.findByStatusOrderByCreatedDesc(EventStatus.ACTIVE, pageable);
+            return publicationRepository.findByStatusWithAuthorOrderByCreatedDesc(EventStatus.ACTIVE, pageable);
         }
     }
 
@@ -205,7 +247,7 @@ public class PublicationServiceImpl implements PublicationService {
         return publicationRepository.countByCreatedAfterAndStatus(monthAgo, EventStatus.ACTIVE);
     }
 
-    // ====== ВЗАИМОДЕЙСТВИЯ ======
+    // ====== ВЗАИМОДЕЙСТВИЯ (САМО USERNAME) ======
 
     @Override
     @Transactional
@@ -223,6 +265,24 @@ public class PublicationServiceImpl implements PublicationService {
 
         publicationRepository.save(publication);
         return !isLiked;
+    }
+
+    @Override
+    @Transactional
+    public boolean toggleBookmark(Long publicationId, UserEntity user) {
+        PublicationEntity publication = findById(publicationId);
+        if (publication == null) return false;
+
+        boolean isBookmarked = publication.isBookmarkedBy(user.getUsername());
+
+        if (isBookmarked) {
+            publication.removeBookmark(user.getUsername());
+        } else {
+            publication.addBookmark(user.getUsername());
+        }
+
+        publicationRepository.save(publication);
+        return !isBookmarked;
     }
 
     @Override
@@ -266,14 +326,13 @@ public class PublicationServiceImpl implements PublicationService {
         if (publication == null) return;
 
         // Опростено добавяне на доклад
-        Map<String, Object> report = new HashMap<>();
-        report.put("userId", user.getId());
-        report.put("reason", reason);
-        report.put("timestamp", LocalDateTime.now().toString());
-
         String currentReports = publication.getReportedByUsers();
+        String newReport = "{\"userId\":" + user.getId() + ",\"username\":\"" + user.getUsername() + "\",\"reason\":\"" + reason + "\",\"timestamp\":\"" + LocalDateTime.now() + "\"}";
+
         if (currentReports == null || currentReports.isEmpty()) {
-            publication.setReportedByUsers("[{\"userId\":" + user.getId() + ",\"reason\":\"" + reason + "\"}]");
+            publication.setReportedByUsers("[" + newReport + "]");
+        } else {
+            publication.setReportedByUsers(currentReports.substring(0, currentReports.length() - 1) + "," + newReport + "]");
         }
 
         publicationRepository.save(publication);

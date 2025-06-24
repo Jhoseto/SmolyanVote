@@ -8,16 +8,18 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +30,22 @@ public class PublicationsController {
 
     private final PublicationService publicationService;
     private final UserService userService;
+    private final ImageCloudinaryServiceImpl imageService;
 
     @Autowired
     public PublicationsController(PublicationService publicationService,
-                                  UserService userService) {
+                                  UserService userService,
+                                  ImageCloudinaryServiceImpl imageService) {
         this.publicationService = publicationService;
         this.userService = userService;
+        this.imageService = imageService;
     }
 
     // ====== MAIN PAGE ======
+    @Transactional(readOnly = true)
     @GetMapping
     public String publicationsPage(Model model, Authentication auth) {
         try {
-            // ПОПРАВКА: Добавяме currentUserId за JavaScript
             if (auth != null && auth.isAuthenticated()) {
                 UserEntity currentUser = userService.getCurrentUser();
                 if (currentUser != null) {
@@ -66,7 +71,7 @@ public class PublicationsController {
             model.addAttribute("recentAuthors", publicationService.getActiveAuthors(5));
             model.addAttribute("todayPublications", publicationService.getTodayCount());
             model.addAttribute("weekPublications", publicationService.getWeekCount());
-            model.addAttribute("activeUsers", 0); // TODO: Implement when ready
+            model.addAttribute("activeUsers", 0);
 
         } catch (Exception e) {
             // Fallback values при грешка
@@ -87,15 +92,6 @@ public class PublicationsController {
         return "publications";
     }
 
-    // ====== CRUD PAGES ======
-    @GetMapping("/create")
-    public String createPublicationPage(Model model, Authentication auth) {
-        if (auth == null) {
-            return "redirect:/login?returnUrl=/publications/create";
-        }
-        return "createPublication";
-    }
-
     @GetMapping("/{id}")
     public String publicationDetail(@PathVariable Long id, Model model, Authentication auth) {
         PublicationEntity publication = publicationService.findById(id);
@@ -112,6 +108,8 @@ public class PublicationsController {
         return "publicationDetail";
     }
 
+
+    @Transactional(readOnly = true)
     @GetMapping("/{id}/edit")
     public String editPublicationPage(@PathVariable Long id, Model model, Authentication auth) {
         if (auth == null) {
@@ -126,6 +124,7 @@ public class PublicationsController {
         model.addAttribute("publication", publication);
         return "editPublication";
     }
+
 
     // ====== REST API ENDPOINTS ======
 
@@ -165,6 +164,7 @@ public class PublicationsController {
         }
     }
 
+
     @PostMapping(value = "/api", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createPublication(
@@ -181,12 +181,52 @@ public class PublicationsController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("publicationId", publication.getId());
+            response.put("id", publication.getId());
             response.put("message", "Публикацията е създадена успешно");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията"));
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията: " + e.getMessage()));
+        }
+    }
+
+    // ====== IMAGE UPLOAD ENDPOINT ======
+
+    @PostMapping(value = "/api/upload/image", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> uploadImage(
+            @RequestParam("image") MultipartFile file,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            // Validate file
+            if (file.isEmpty()) {
+                return ResponseEntity.status(400).body(createErrorResponse("Не е избран файл"));
+            }
+
+            if (file.getSize() > 10 * 1024 * 1024) { // 10MB
+                return ResponseEntity.status(400).body(createErrorResponse("Файлът е твърде голям (максимум 10MB)"));
+            }
+
+            if (!file.getContentType().startsWith("image/")) {
+                return ResponseEntity.status(400).body(createErrorResponse("Моля, изберете снимка"));
+            }
+
+            UserEntity user = userService.getCurrentUser();
+            String imageUrl = imageService.savePublicationImage(file, user.getUsername());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("url", imageUrl);
+            response.put("message", "Снимката е качена успешно");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при качването на снимката: " + e.getMessage()));
         }
     }
 
@@ -301,6 +341,30 @@ public class PublicationsController {
         }
     }
 
+    @PostMapping(value = "/api/{id}/bookmark", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleBookmark(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity user = userService.getCurrentUser();
+            boolean isBookmarked = publicationService.toggleBookmark(id, user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isBookmarked", isBookmarked);
+            response.put("message", isBookmarked ? "Добавено в любими" : "Премахнато от любими");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при bookmark-ването"));
+        }
+    }
+
     @PostMapping(value = "/api/{id}/share", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> sharePublication(@PathVariable Long id) {
@@ -348,6 +412,63 @@ public class PublicationsController {
         }
     }
 
+    // ====== FOLLOW/UNFOLLOW ENDPOINTS ======
+
+    @PostMapping(value = "/api/users/{authorId}/follow", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleFollowAuthor(
+            @PathVariable Long authorId,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+
+            if (currentUser.getId().equals(authorId)) {
+                return ResponseEntity.status(400).body(createErrorResponse("Не можете да следвате себе си"));
+            }
+
+            // За сега симулираме follow/unfollow логиката
+            // В бъдеще ще се имплементира правилно с UserFollowing entity
+            boolean isFollowing = false; // Placeholder логика
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isFollowing", !isFollowing);
+            response.put("message", !isFollowing ? "Сега следвате този автор" : "Не следвате този автор");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при следването"));
+        }
+    }
+
+    // ====== USER PREFERENCES ENDPOINT ======
+
+    @GetMapping(value = "/api/user/preferences", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getUserPreferences(Authentication auth) {
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity user = userService.getCurrentUser();
+            Map<String, Object> preferences = new HashMap<>();
+
+            // За сега връщаме празни масиви - по-късно ще се имплементира правилно
+            preferences.put("likedPosts", List.of());
+            preferences.put("bookmarkedPosts", List.of());
+            preferences.put("followedAuthors", List.of());
+
+            return ResponseEntity.ok(preferences);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на предпочитанията"));
+        }
+    }
+
     // ====== DATA ENDPOINTS ======
 
     @GetMapping(value = "/api/statistics", produces = "application/json")
@@ -359,7 +480,6 @@ public class PublicationsController {
             stats.put("todayPublications", publicationService.getTodayCount());
             stats.put("weekPublications", publicationService.getWeekCount());
             stats.put("monthPublications", publicationService.getMonthCount());
-            //stats.put("activeUsers", userService.getActiveUsersCount());
 
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
