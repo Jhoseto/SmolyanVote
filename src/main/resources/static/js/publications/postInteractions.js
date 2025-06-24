@@ -476,7 +476,7 @@ class PostInteractions {
             icon: 'error',
             title: 'Грешка',
             text: message,
-            confirmButtonColor: '#1877f2'
+            confirmButtonColor: '#4b9f3e'
         });
     }
 
@@ -487,7 +487,7 @@ class PostInteractions {
             text: 'Моля, влезте в профила си.',
             confirmButtonText: 'Вход',
             showCancelButton: true,
-            confirmButtonColor: '#1877f2'
+            confirmButtonColor: '#4b9f3e'
         }).then((result) => {
             if (result.isConfirmed) {
                 document.querySelector('[data-bs-target="#loginModal"]')?.click();
@@ -599,7 +599,7 @@ class PostInteractions {
                 icon: 'success',
                 title: 'Докладът е изпратен',
                 text: 'Благодарим за докладването. Ще прегледаме публикацията.',
-                confirmButtonColor: '#1877f2',
+                confirmButtonColor: '#4b9f3e',
                 timer: 3000
             });
 

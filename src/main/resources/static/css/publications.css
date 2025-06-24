@@ -4,7 +4,7 @@
 /* ====== CSS VARIABLES ====== */
 :root {
     /* цветове */
-    --fb-blue: #4b9f3e;
+    --fb-blue: rgba(75, 159, 62, 0);
     --fb-blue-hover: #1e8d92;
     --fb-bg: #f0f2f5;
     --fb-white: #ffffff;
@@ -742,11 +742,11 @@
     height: 18px;
     border-radius: 50%;
     border: 1px solid var(--fb-white);
-    margin-left: -2px;
+    margin-left: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 17px;
 }
 
 .like-icon {

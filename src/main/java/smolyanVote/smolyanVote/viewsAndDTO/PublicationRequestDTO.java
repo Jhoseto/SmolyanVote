@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 
-
 public class PublicationRequestDTO {
 
     @NotBlank(message = "Заглавието не може да бъде празно")
@@ -20,6 +19,13 @@ public class PublicationRequestDTO {
     private CategoryEnum category;
 
     private String imageUrl;
+
+    // Emotion fields от frontend
+    private String emotion;
+    private String emotionText;
+
+    // Status field
+    private String status = "PUBLISHED"; // Default
 
     // ====== CONSTRUCTORS ======
 
@@ -58,5 +64,29 @@ public class PublicationRequestDTO {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getEmotion() {
+        return emotion;
+    }
+
+    public void setEmotion(String emotion) {
+        this.emotion = emotion;
+    }
+
+    public String getEmotionText() {
+        return emotionText;
+    }
+
+    public void setEmotionText(String emotionText) {
+        this.emotionText = emotionText;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

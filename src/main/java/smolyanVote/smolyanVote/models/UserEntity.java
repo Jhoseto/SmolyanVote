@@ -44,6 +44,8 @@ public class UserEntity extends BaseEntity {
     private List<Long> notification;
     private int totalVotes;
 
+    private int publicationsCount;
+
 
 
 
@@ -179,5 +181,13 @@ public class UserEntity extends BaseEntity {
 
     public void setTotalVotes(int totalVotes) {
         this.totalVotes = totalVotes;
+    }
+
+    public int getPublicationsCount() {
+        return publicationsCount;
+    }
+
+    public void setPublicationsCount(int publicationsCount) {
+        this.publicationsCount = publicationsCount;
     }
 }

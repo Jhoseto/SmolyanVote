@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,23 +56,18 @@ public class PublicationEntity extends BaseEntity {
     @Column(name = "shares_count", nullable = false, columnDefinition = "int default 0")
     private Integer sharesCount = 0;
 
-    @Column(name = "is_featured", nullable = false, columnDefinition = "boolean default false")
-    private Boolean isFeatured = false;
-
-    @Column(name = "is_pinned", nullable = false, columnDefinition = "boolean default false")
-    private Boolean isPinned = false;
-
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
-
-    @Column(name = "tags", length = 500)
-    private String tags; // Comma-separated tags
 
     @Column(name = "reading_time")
     private Integer readingTime; // In minutes
 
-    @Column(name = "admin_notes", columnDefinition = "TEXT")
-    private String adminNotes; // Internal notes for admins
+    // Emotion fields
+    @Column(name = "emotion", length = 10)
+    private String emotion;
+
+    @Column(name = "emotion_text", length = 100)
+    private String emotionText;
 
     // ====== SIMPLIFIED RELATIONSHIPS ======
 
@@ -82,19 +76,16 @@ public class PublicationEntity extends BaseEntity {
     @JsonManagedReference
     private UserEntity author;
 
-    // САМО за коментари - използваме съществуващата Comment entity от събития
     @OneToMany(mappedBy = "publication", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<CommentsEntity> comments = new HashSet<>();
 
-    // Останалите взаимодействия ги пазим в отделни таблици ако е необходимо
-    // ИЛИ използваме JSON колони за по-прости случаи
-
+    // JSON колони за взаимодействия
     @Column(name = "liked_by_users", columnDefinition = "TEXT")
-    private String likedByUsers; // JSON array of user IDs
+    private String likedByUsers; // JSON array of usernames
 
     @Column(name = "bookmarked_by_users", columnDefinition = "TEXT")
-    private String bookmarkedByUsers; // JSON array of user IDs
+    private String bookmarkedByUsers; // JSON array of usernames
 
     @Column(name = "reported_by_users", columnDefinition = "TEXT")
     private String reportedByUsers; // JSON array of report objects
@@ -103,6 +94,9 @@ public class PublicationEntity extends BaseEntity {
 
     public PublicationEntity() {
         super();
+        // Задаваме created дата директно в конструктора
+        this.setCreated(java.time.Instant.now());
+        this.setModified(java.time.Instant.now());
     }
 
     public PublicationEntity(String title, String content, CategoryEnum category, UserEntity author) {
@@ -114,18 +108,6 @@ public class PublicationEntity extends BaseEntity {
         this.status = EventStatus.DRAFT;
         this.generateExcerpt();
         this.calculateReadingTime();
-    }
-
-    // ====== LIFECYCLE CALLBACKS ======
-
-    @PrePersist
-    public void prePersist() {
-
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-
     }
 
     // ====== BUSINESS METHODS ======
@@ -206,192 +188,26 @@ public class PublicationEntity extends BaseEntity {
         return status == EventStatus.DRAFT;
     }
 
-    // ====== JSON HELPER METHODS ======
-
-    // За likes - използваме JSON за простота
-    public boolean isLikedBy(String userName) {
-        if (likedByUsers == null) return false;
-        return likedByUsers.contains("\"" + userName + "\"");
-    }
-
-    public void addLike(String userName) {
-        if (likedByUsers == null) {
-            likedByUsers = "[" + userName + "]";
-        } else if (!isLikedBy(userName)) {
-            // Simple JSON manipulation - в production би било добре да се използва Jackson
-            likedByUsers = likedByUsers.substring(0, likedByUsers.length() - 1) + "," + userName + "]";
-        }
-        incrementLikes();
-    }
-
-    public void removeLike(String userName) {
-        if (likedByUsers != null && isLikedBy(userName)) {
-            // Simple JSON manipulation
-            likedByUsers = likedByUsers.replace("," + userName, "").replace(userName + ",", "").replace("[" + userName + "]", "[]");
-            if (likedByUsers.equals("[]")) {
-                likedByUsers = null;
-            }
-            decrementLikes();
-        }
-    }
-
-    // Подобни методи за bookmarks и reports...
-    public boolean isBookmarkedBy(Long userId) {
-        if (bookmarkedByUsers == null) return false;
-        return bookmarkedByUsers.contains("\"" + userId + "\"");
-    }
-
-    public void addBookmark(Long userId) {
-        if (bookmarkedByUsers == null) {
-            bookmarkedByUsers = "[" + userId + "]";
-        } else if (!isBookmarkedBy(userId)) {
-            bookmarkedByUsers = bookmarkedByUsers.substring(0, bookmarkedByUsers.length() - 1) + "," + userId + "]";
-        }
-    }
-
-    public void removeBookmark(Long userId) {
-        if (bookmarkedByUsers != null && isBookmarkedBy(userId)) {
-            bookmarkedByUsers = bookmarkedByUsers.replace("," + userId, "").replace(userId + ",", "").replace("[" + userId + "]", "[]");
-            if (bookmarkedByUsers.equals("[]")) {
-                bookmarkedByUsers = null;
-            }
-        }
-    }
-
-    // ====== GETTERS AND SETTERS ======
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getExcerpt() {
-        return excerpt;
-    }
-
-    public void setExcerpt(String excerpt) {
-        this.excerpt = excerpt;
-    }
-
-    public CategoryEnum getCategory() {
-        return category;
-    }
-
-    public void setCategory(CategoryEnum category) {
-        this.category = category;
-    }
-
-    public EventStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EventStatus status) {
-        this.status = status;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public Integer getViewsCount() {
-        return viewsCount;
-    }
-
-    public void setViewsCount(Integer viewsCount) {
-        this.viewsCount = viewsCount;
-    }
-
-    public Integer getLikesCount() {
-        return likesCount;
-    }
-
-    public void setLikesCount(Integer likesCount) {
-        this.likesCount = likesCount;
-    }
-
-    public Integer getCommentsCount() {
-        return commentsCount;
-    }
-
-    public void setCommentsCount(Integer commentsCount) {
-        this.commentsCount = commentsCount;
-    }
-
-    public Integer getSharesCount() {
-        return sharesCount;
-    }
-
-    public void setSharesCount(Integer sharesCount) {
-        this.sharesCount = sharesCount;
-    }
-
-    public UserEntity getAuthor() {
-        return author;
-    }
-
-    public void setAuthor(UserEntity author) {
-        this.author = author;
-    }
-
-    public String getLikedByUsers() {
-        return likedByUsers;
-    }
-
-    public void setLikedByUsers(String likedByUsers) {
-        this.likedByUsers = likedByUsers;
-    }
-
-    public String getReportedByUsers() {
-        return reportedByUsers;
-    }
-
-    public void setReportedByUsers(String reportedByUsers) {
-        this.reportedByUsers = reportedByUsers;
-    }
-
-    public Integer getReadingTime() {
-        return readingTime;
-    }
-
-    public void setReadingTime(Integer readingTime) {
-        this.readingTime = readingTime;
-    }
-
-// ====== САМО НУЖНИТЕ BUSINESS МЕТОДИ ======
+    // ====== LIKES MANAGEMENT (САМО USERNAME) ======
 
     /**
      * Проверка дали публикацията е харесана от потребител
      */
-    public boolean isLikedBy(Long userId) {
-        if (likedByUsers == null || userId == null) return false;
-        return likedByUsers.contains(userId.toString());
+    public boolean isLikedBy(String userName) {
+        if (likedByUsers == null || userName == null) return false;
+        return likedByUsers.contains("\"" + userName + "\"");
     }
 
     /**
      * Добавяне на харесване
      */
-    public void addLike(Long userId) {
-        if (userId == null) return;
+    public void addLike(String userName) {
+        if (userName == null) return;
 
         if (likedByUsers == null || likedByUsers.isEmpty()) {
-            likedByUsers = "[" + userId + "]";
-        } else if (!isLikedBy(userId)) {
-            likedByUsers = likedByUsers.substring(0, likedByUsers.length() - 1) + "," + userId + "]";
+            likedByUsers = "[\"" + userName + "\"]";
+        } else if (!isLikedBy(userName)) {
+            likedByUsers = likedByUsers.substring(0, likedByUsers.length() - 1) + ",\"" + userName + "\"]";
         }
         incrementLikes();
     }
@@ -399,21 +215,110 @@ public class PublicationEntity extends BaseEntity {
     /**
      * Премахване на харесване
      */
-    public void removeLike(Long userId) {
-        if (likedByUsers == null || userId == null || !isLikedBy(userId)) return;
+    public void removeLike(String userName) {
+        if (likedByUsers == null || userName == null || !isLikedBy(userName)) return;
 
-        String userIdStr = userId.toString();
+        String userStr = "\"" + userName + "\"";
 
-        if (likedByUsers.equals("[" + userIdStr + "]")) {
+        if (likedByUsers.equals("[" + userStr + "]")) {
             likedByUsers = null;
-        } else if (likedByUsers.startsWith("[" + userIdStr + ",")) {
-            likedByUsers = likedByUsers.replace("[" + userIdStr + ",", "[");
-        } else if (likedByUsers.endsWith("," + userIdStr + "]")) {
-            likedByUsers = likedByUsers.replace("," + userIdStr + "]", "]");
+        } else if (likedByUsers.startsWith("[" + userStr + ",")) {
+            likedByUsers = likedByUsers.replace("[" + userStr + ",", "[");
+        } else if (likedByUsers.endsWith("," + userStr + "]")) {
+            likedByUsers = likedByUsers.replace("," + userStr + "]", "]");
         } else {
-            likedByUsers = likedByUsers.replace("," + userIdStr + ",", ",");
+            likedByUsers = likedByUsers.replace("," + userStr + ",", ",");
         }
 
         decrementLikes();
     }
+
+    // ====== BOOKMARKS MANAGEMENT ======
+
+    public boolean isBookmarkedBy(String userName) {
+        if (bookmarkedByUsers == null || userName == null) return false;
+        return bookmarkedByUsers.contains("\"" + userName + "\"");
+    }
+
+    public void addBookmark(String userName) {
+        if (userName == null) return;
+
+        if (bookmarkedByUsers == null || bookmarkedByUsers.isEmpty()) {
+            bookmarkedByUsers = "[\"" + userName + "\"]";
+        } else if (!isBookmarkedBy(userName)) {
+            bookmarkedByUsers = bookmarkedByUsers.substring(0, bookmarkedByUsers.length() - 1) + ",\"" + userName + "\"]";
+        }
+    }
+
+    public void removeBookmark(String userName) {
+        if (bookmarkedByUsers == null || userName == null || !isBookmarkedBy(userName)) return;
+
+        String userStr = "\"" + userName + "\"";
+
+        if (bookmarkedByUsers.equals("[" + userStr + "]")) {
+            bookmarkedByUsers = null;
+        } else if (bookmarkedByUsers.startsWith("[" + userStr + ",")) {
+            bookmarkedByUsers = bookmarkedByUsers.replace("[" + userStr + ",", "[");
+        } else if (bookmarkedByUsers.endsWith("," + userStr + "]")) {
+            bookmarkedByUsers = bookmarkedByUsers.replace("," + userStr + "]", "]");
+        } else {
+            bookmarkedByUsers = bookmarkedByUsers.replace("," + userStr + ",", ",");
+        }
+    }
+
+    // ====== GETTERS AND SETTERS ======
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+
+    public String getExcerpt() { return excerpt; }
+    public void setExcerpt(String excerpt) { this.excerpt = excerpt; }
+
+    public CategoryEnum getCategory() { return category; }
+    public void setCategory(CategoryEnum category) { this.category = category; }
+
+    public EventStatus getStatus() { return status; }
+    public void setStatus(EventStatus status) { this.status = status; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public Integer getViewsCount() { return viewsCount; }
+    public void setViewsCount(Integer viewsCount) { this.viewsCount = viewsCount; }
+
+    public Integer getLikesCount() { return likesCount; }
+    public void setLikesCount(Integer likesCount) { this.likesCount = likesCount; }
+
+    public Integer getCommentsCount() { return commentsCount; }
+    public void setCommentsCount(Integer commentsCount) { this.commentsCount = commentsCount; }
+
+    public Integer getSharesCount() { return sharesCount; }
+    public void setSharesCount(Integer sharesCount) { this.sharesCount = sharesCount; }
+
+    public UserEntity getAuthor() { return author; }
+    public void setAuthor(UserEntity author) { this.author = author; }
+
+    public String getLikedByUsers() { return likedByUsers; }
+    public void setLikedByUsers(String likedByUsers) { this.likedByUsers = likedByUsers; }
+
+    public String getReportedByUsers() { return reportedByUsers; }
+    public void setReportedByUsers(String reportedByUsers) { this.reportedByUsers = reportedByUsers; }
+
+    public Integer getReadingTime() { return readingTime; }
+    public void setReadingTime(Integer readingTime) { this.readingTime = readingTime; }
+
+    public String getEmotion() { return emotion; }
+    public void setEmotion(String emotion) { this.emotion = emotion; }
+
+    public String getEmotionText() { return emotionText; }
+    public void setEmotionText(String emotionText) { this.emotionText = emotionText; }
+
+    public LocalDateTime getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
+
+    public String getBookmarkedByUsers() { return bookmarkedByUsers; }
+    public void setBookmarkedByUsers(String bookmarkedByUsers) { this.bookmarkedByUsers = bookmarkedByUsers; }
 }

@@ -191,7 +191,7 @@ class PublicationsManager {
 
         // ПОПРАВКА: По-сигурна обработка на автора
         const authorUsername = post.author?.username || 'Анонимен';
-        const authorInitial = authorUsername.charAt(0).toUpperCase();
+        const authorImageUrl = post.author?.imageUrl || '/images/default-avatar.png';
         const authorId = post.author?.id || 0;
 
         const isOwner = this.isCurrentUserOwner(authorId);
@@ -203,7 +203,7 @@ class PublicationsManager {
 
         postDiv.innerHTML = `
             <div class="post-header">
-                <div class="user-avatar">${authorInitial}</div>
+                <img class="user-avatar" src="${authorImageUrl}" alt="${this.escapeHtml(authorUsername)}" onerror="this.src='/images/default-avatar.png'">
                 <div class="post-author-info">
                     <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
                     <div class="post-meta">
@@ -213,6 +213,7 @@ class PublicationsManager {
                         <span class="post-status ${this.getStatusClass(status)}">
                             ${this.getStatusText(status)}
                         </span>
+                        ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                     </div>
                 </div>
                 ${isOwner ? this.createPostMenu(post.id) : ''}
@@ -224,7 +225,7 @@ class PublicationsManager {
                     <span>${this.getCategoryText(category)}</span>
                 </div>
                 <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
-                ${post.excerpt ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
+                ${post.excerpt && post.excerpt !== post.title ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
             </div>
 

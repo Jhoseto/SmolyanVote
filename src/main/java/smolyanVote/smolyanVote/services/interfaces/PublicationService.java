@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.services.interfaces;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
@@ -37,6 +38,10 @@ public interface PublicationService {
     // ====== ВЗАИМОДЕЙСТВИЯ ======
 
     boolean toggleLike(Long publicationId, UserEntity user);
+
+    @Transactional
+    boolean toggleBookmark(Long publicationId, UserEntity user);
+
     int getLikesCount(Long publicationId);
     void incrementViewCount(Long publicationId);
     void incrementShareCount(Long publicationId);

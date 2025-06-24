@@ -17,10 +17,11 @@ import java.util.List;
 @Repository
 public interface PublicationRepository extends JpaRepository<PublicationEntity, Long> {
 
-    // Използвани в service
-    Page<PublicationEntity> findByStatusOrderByCreatedDesc(EventStatus status, Pageable pageable);
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = :status ORDER BY p.created DESC")
+    Page<PublicationEntity> findByStatusWithAuthorOrderByCreatedDesc(@Param("status") EventStatus status, Pageable pageable);
 
-    @Query("SELECT p FROM PublicationEntity p WHERE " +
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE " +
             "(:search IS NULL OR :search = '' OR " +
             " LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " LOWER(p.content) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +

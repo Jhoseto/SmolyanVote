@@ -55,8 +55,16 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         return uploadImage(file, publicId, "smolyanVote/multipolls/poll_" + pollId, true); // с воден знак
     }
 
+    @Override
+    public void deleteImage(String imageUrl) {
 
+    }
 
+    // 🌟 Метод за качване на снимка на публикация (БЕЗ воден знак)
+    public String savePublicationImage(MultipartFile file, String username) {
+        String publicId = "publications/user_" + username + "/" + UUID.randomUUID();
+        return uploadImage(file, publicId, "smolyanVote/publications/user_" + username, false);
+    }
 
     // 🌟 Общ метод за качване на изображение в Cloudinary
     @SuppressWarnings("unchecked")
@@ -91,10 +99,7 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         }
     }
 
-    @Override
-    public void deleteImage(String imageUrl) {
-        // Ако искаш, можеш да запазиш този метод, но за изтриване на папка няма да го ползваме
-    }
+
 
 
 
@@ -111,15 +116,9 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         }
     }
 
-
-
     @Override
     public String savePodcastImage(MultipartFile file, Long episodeId) {
         String publicId = "podcasts/episode_" + episodeId + "/" + UUID.randomUUID();
         return uploadImage(file, publicId, "smolyanVote/podcasts/episode_" + episodeId, false); // БЕЗ воден знак
     }
-
-
-
-
 }
