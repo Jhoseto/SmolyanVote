@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bg" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -11,16 +10,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/publications.css">
+  <link rel="stylesheet" href="/css/createPublication.css">
   <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
-    // Глобални променливи за целия проект
     window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
     window.currentUserId = /*[[${currentUserId}]]*/ null;
     window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
 
-    // App data за publications
     window.appData = {
       isAuthenticated: window.isAuthenticated,
       currentUserId: window.currentUserId,
@@ -237,26 +235,104 @@
     <!-- Create Post Section -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
       <div class="create-post-header">
-
         <img class="user-avatar" th:src="${currentUser.getImageUrl()}" alt="UserImage">
-        <input type="text" class="create-post-input"
-               placeholder="Направи твоята публикация..."
-               onclick="showCreateModal()" readonly>
+        <div class="create-post-input" onclick="expandCreateForm()">
+          <span class="placeholder-text">Какво мислите, <span th:text="${currentUser.username}">потребител</span>?</span>
+        </div>
       </div>
-      <div class="create-post-actions">
-        <button class="create-action" onclick="showCreateModal()">
-          <i class="bi bi-pencil-fill text-success"></i>
-          <span>Напиши публикация</span>
+
+      <!-- Expanded Form -->
+      <div class="create-post-expanded" id="createPostExpanded" style="display: none;">
+        <!-- Image Preview -->
+        <div class="image-preview-section" id="imagePreviewSection" style="display: none;">
+          <div class="image-preview-container" id="imagePreviewContainer"></div>
+        </div>
+
+        <!-- Text Area -->
+        <textarea class="post-textarea" id="postContent"
+                  placeholder="Какво се случва?"
+                  rows="3"></textarea>
+
+        <!-- Selected Emotion -->
+        <div class="selected-emotion" id="selectedEmotion" style="display: none;"></div>
+
+        <!-- Category -->
+        <div class="category-row">
+          <select class="category-select" id="postCategory">
+            <option value="">Избери категория</option>
+            <option value="news">📰 Новини</option>
+            <option value="infrastructure">🔧 Инфраструктура</option>
+            <option value="municipal">🏛️ Община</option>
+            <option value="initiatives">💡 Граждански инициативи</option>
+            <option value="culture">🎨 Културни събития</option>
+            <option value="other">📋 Други</option>
+          </select>
+        </div>
+
+        <!-- Options Row -->
+        <div class="post-options-row">
+          <span class="options-text">Добави към публикацията:</span>
+          <div class="options-buttons">
+            <button class="option-btn" id="imageBtn" title="Снимка">
+              <i class="bi bi-image"></i>
+            </button>
+            <button class="option-btn" id="emotionBtn" title="Настроение">
+              <i class="bi bi-emoji-smile"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Emotion Picker -->
+        <div class="emotion-picker" id="emotionPicker" style="display: none;">
+          <div class="emotions-list">
+            <button class="emotion-item" data-emotion="😊" data-text="щастлив/а">
+              <span class="emotion-icon">😊</span>
+              <span class="emotion-label">щастлив/а</span>
+            </button>
+            <button class="emotion-item" data-emotion="😢" data-text="тъжен/а">
+              <span class="emotion-icon">😢</span>
+              <span class="emotion-label">тъжен/а</span>
+            </button>
+            <button class="emotion-item" data-emotion="😠" data-text="ядосан/а">
+              <span class="emotion-icon">😠</span>
+              <span class="emotion-label">ядосан/а</span>
+            </button>
+            <button class="emotion-item" data-emotion="😍" data-text="влюбен/а">
+              <span class="emotion-icon">😍</span>
+              <span class="emotion-label">влюбен/а</span>
+            </button>
+            <button class="emotion-item" data-emotion="🤔" data-text="замислен/а">
+              <span class="emotion-icon">🤔</span>
+              <span class="emotion-label">замислен/а</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn-cancel" id="cancelPost">Отказ</button>
+          <button class="btn-publish" id="submitPost" disabled>Публикувай</button>
+        </div>
+      </div>
+
+      <!-- Collapsed Actions -->
+      <div class="create-post-actions" id="collapsedActions">
+        <button class="action-item" onclick="expandCreateForm()">
+          <i class="bi bi-pencil"></i>
+          <span>Публикация</span>
         </button>
-        <button class="create-action" onclick="showCreateModal()">
-          <i class="bi bi-image-fill text-primary"></i>
-          <span>Снимка/Видео</span>
+        <button class="action-item" onclick="expandCreateForm(); setTimeout(() => document.getElementById('imageBtn').click(), 100)">
+          <i class="bi bi-image"></i>
+          <span>Снимка</span>
         </button>
-        <button class="create-action" onclick="showCreateModal()">
-          <i class="bi bi-emoji-smile-fill text-warning"></i>
+        <button class="action-item" onclick="expandCreateForm(); setTimeout(() => document.getElementById('emotionBtn').click(), 100)">
+          <i class="bi bi-emoji-smile"></i>
           <span>Настроение</span>
         </button>
       </div>
+
+      <!-- Hidden File Input -->
+      <input type="file" id="postImage" accept="image/*" style="display: none;">
     </div>
 
     <!-- Login Prompt for Guests -->
@@ -314,7 +390,6 @@
         Популярни теми
       </h3>
       <div class="trending-topics" id="trendingTopics">
-        <!-- Статични trending topics -->
         <div class="trending-item">
           <span class="hashtag">#СмолянЦентър</span>
           <span class="count">24 публикации</span>
@@ -337,7 +412,6 @@
         Активни автори
       </h3>
       <div class="recent-authors" id="recentAuthors">
-        <!-- По-безопасна обработка на recent authors -->
         <div class="author-item" th:each="author : ${recentAuthors}" th:if="${author != null}">
           <div class="author-avatar" th:text="${author.username != null ? author.username?.substring(0,1)?.toUpperCase() : 'A'}">A</div>
           <div class="author-info">
@@ -351,7 +425,6 @@
           </button>
         </div>
 
-        <!-- Fallback когато няма автори -->
         <div th:if="${#lists.isEmpty(recentAuthors)}" class="no-authors">
           <p>Няма активни автори в момента</p>
         </div>
@@ -404,3 +477,5 @@
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
+</body>
+</html>
