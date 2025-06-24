@@ -40,24 +40,41 @@ public class PublicationsController {
     @GetMapping
     public String publicationsPage(Model model, Authentication auth) {
         try {
+            // ПОПРАВКА: Добавяме currentUserId за JavaScript
+            if (auth != null && auth.isAuthenticated()) {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    model.addAttribute("currentUserId", currentUser.getId());
+                    model.addAttribute("currentUser", currentUser);
+                } else {
+                    model.addAttribute("currentUserId", null);
+                }
+            } else {
+                model.addAttribute("currentUserId", null);
+            }
+
+            // Статистики за филтрите
             model.addAttribute("totalPublications", publicationService.getTotalCount());
             model.addAttribute("newsCount", publicationService.getCountByCategory(CategoryEnum.NEWS));
-            model.addAttribute("municipalCount", publicationService.getCountByCategory(CategoryEnum.MUNICIPAL));
             model.addAttribute("infrastructureCount", publicationService.getCountByCategory(CategoryEnum.INFRASTRUCTURE));
+            model.addAttribute("municipalCount", publicationService.getCountByCategory(CategoryEnum.MUNICIPAL));
             model.addAttribute("initiativesCount", publicationService.getCountByCategory(CategoryEnum.INITIATIVES));
             model.addAttribute("cultureCount", publicationService.getCountByCategory(CategoryEnum.CULTURE));
             model.addAttribute("otherCount", publicationService.getCountByCategory(CategoryEnum.OTHER));
 
+            // Допълнителни данни за страницата
             model.addAttribute("recentAuthors", publicationService.getActiveAuthors(5));
             model.addAttribute("todayPublications", publicationService.getTodayCount());
             model.addAttribute("weekPublications", publicationService.getWeekCount());
-            //model.addAttribute("activeUsers", userService.getActiveUsersCount());
+            model.addAttribute("activeUsers", 0); // TODO: Implement when ready
+
         } catch (Exception e) {
-            // Fallback values
+            // Fallback values при грешка
+            model.addAttribute("currentUserId", null);
             model.addAttribute("totalPublications", 0);
             model.addAttribute("newsCount", 0);
-            model.addAttribute("municipalCount", 0);
             model.addAttribute("infrastructureCount", 0);
+            model.addAttribute("municipalCount", 0);
             model.addAttribute("initiativesCount", 0);
             model.addAttribute("cultureCount", 0);
             model.addAttribute("otherCount", 0);
@@ -69,7 +86,6 @@ public class PublicationsController {
 
         return "publications";
     }
-
 
     // ====== CRUD PAGES ======
     @GetMapping("/create")
@@ -149,7 +165,7 @@ public class PublicationsController {
         }
     }
 
-    @PostMapping(produces = "application/json")
+    @PostMapping(value = "/api", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createPublication(
             @RequestBody PublicationRequestDTO request,
@@ -174,7 +190,26 @@ public class PublicationsController {
         }
     }
 
-    @PutMapping(value = "/{id}", produces = "application/json")
+    @GetMapping(value = "/api/{id}", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<PublicationEntity> getPublicationAPI(@PathVariable Long id, Authentication auth) {
+        try {
+            PublicationEntity publication = publicationService.findById(id);
+            if (publication == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            if (!publicationService.canViewPublication(publication, auth)) {
+                return ResponseEntity.status(403).build();
+            }
+
+            return ResponseEntity.ok(publication);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @PutMapping(value = "/api/{id}", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updatePublication(
             @PathVariable Long id,
@@ -207,7 +242,7 @@ public class PublicationsController {
         }
     }
 
-    @DeleteMapping(value = "/{id}", produces = "application/json")
+    @DeleteMapping(value = "/api/{id}", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> deletePublication(
             @PathVariable Long id,
@@ -241,7 +276,7 @@ public class PublicationsController {
 
     // ====== INTERACTION ENDPOINTS ======
 
-    @PostMapping(value = "/{id}/like", produces = "application/json")
+    @PostMapping(value = "/api/{id}/like", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleLike(
             @PathVariable Long id,
@@ -266,7 +301,7 @@ public class PublicationsController {
         }
     }
 
-    @PostMapping(value = "/{id}/share", produces = "application/json")
+    @PostMapping(value = "/api/{id}/share", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> sharePublication(@PathVariable Long id) {
         try {
@@ -282,7 +317,7 @@ public class PublicationsController {
         }
     }
 
-    @PostMapping(value = "/{id}/report", produces = "application/json")
+    @PostMapping(value = "/api/{id}/report", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> reportPublication(
             @PathVariable Long id,
@@ -315,7 +350,7 @@ public class PublicationsController {
 
     // ====== DATA ENDPOINTS ======
 
-    @GetMapping(value = "/statistics", produces = "application/json")
+    @GetMapping(value = "/api/statistics", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getStatistics() {
         try {
@@ -338,7 +373,7 @@ public class PublicationsController {
         }
     }
 
-    @GetMapping(value = "/trending", produces = "application/json")
+    @GetMapping(value = "/api/trending", produces = "application/json")
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getTrendingTopics() {
         try {
@@ -349,7 +384,7 @@ public class PublicationsController {
         }
     }
 
-    @GetMapping(value = "/authors/active", produces = "application/json")
+    @GetMapping(value = "/api/authors/active", produces = "application/json")
     @ResponseBody
     public ResponseEntity<List<UserEntity>> getActiveAuthors() {
         try {
@@ -363,11 +398,11 @@ public class PublicationsController {
     // ====== HELPER METHODS ======
 
     private Pageable createPageable(int page, int size, String sort) {
-        Sort sortObj = Sort.by(Sort.Direction.DESC, "created"); // Променено от "createdAt" на "created"
+        Sort sortObj = Sort.by(Sort.Direction.DESC, "created");
 
         switch (sort) {
             case "date-asc":
-                sortObj = Sort.by(Sort.Direction.ASC, "created"); // Променено
+                sortObj = Sort.by(Sort.Direction.ASC, "created");
                 break;
             case "likes":
                 sortObj = Sort.by(Sort.Direction.DESC, "likesCount");
