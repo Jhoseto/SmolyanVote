@@ -1,6 +1,3 @@
-// ====== POST INTERACTIONS JS ======
-// Файл: src/main/resources/static/js/publications/postInteractions.js
-
 class PostInteractions {
     constructor() {
         this.likedPosts = new Set();
@@ -8,6 +5,10 @@ class PostInteractions {
         this.followedAuthors = new Set();
         this.pendingRequests = new Map();
         this.notificationPermission = false;
+        this.eventSource = null;
+        this.selectedEmotion = null;
+        this.selectedEmotionText = '';
+        this.isFormExpanded = false;
 
         this.init();
     }
@@ -15,27 +16,316 @@ class PostInteractions {
     init() {
         this.loadUserPreferences();
         this.setupEventListeners();
+        this.setupCreatePostForm();
         this.requestNotificationPermission();
+    }
+
+    setupCreatePostForm() {
+        // Text area auto-resize and validation
+        const postContent = document.getElementById('postContent');
+        if (postContent) {
+            postContent.addEventListener('input', (e) => {
+                // Auto resize
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+
+                // Validate form
+                this.validateForm();
+            });
+        }
+
+        // Image button
+        const imageBtn = document.getElementById('imageBtn');
+        const imageInput = document.getElementById('postImage');
+
+        if (imageBtn && imageInput) {
+            imageBtn.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    this.handleImageUpload(e.target.files[0]);
+                }
+            });
+        }
+
+        // Emotion button
+        const emotionBtn = document.getElementById('emotionBtn');
+        if (emotionBtn) {
+            emotionBtn.addEventListener('click', () => this.toggleEmotionPicker());
+        }
+
+        // Emotion picker events
+        document.querySelectorAll('.emotion-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.selectEmotion(item.dataset.emotion, item.dataset.text);
+            });
+        });
+
+        // Category validation
+        const categorySelect = document.getElementById('postCategory');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => this.validateForm());
+        }
+
+        // Submit button
+        const submitBtn = document.getElementById('submitPost');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', () => this.createPost());
+        }
+
+        // Cancel button
+        const cancelBtn = document.getElementById('cancelPost');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.collapseCreateForm());
+        }
+
+        // Close emotion picker when clicking outside
+        document.addEventListener('click', (e) => {
+            const emotionPicker = document.getElementById('emotionPicker');
+            const emotionBtn = document.getElementById('emotionBtn');
+
+            if (emotionPicker && emotionPicker.style.display === 'block' &&
+                !emotionPicker.contains(e.target) && !emotionBtn.contains(e.target)) {
+                emotionPicker.style.display = 'none';
+            }
+        });
+    }
+
+    expandCreateForm() {
+        if (!window.isAuthenticated) {
+            this.showLoginPrompt();
+            return;
+        }
+
+        const expanded = document.getElementById('createPostExpanded');
+        const collapsed = document.getElementById('collapsedActions');
+
+        expanded.style.display = 'block';
+        collapsed.style.display = 'none';
+
+        // Focus on textarea
+        setTimeout(() => {
+            const textarea = document.getElementById('postContent');
+            if (textarea) textarea.focus();
+        }, 100);
+
+        this.isFormExpanded = true;
+    }
+
+    collapseCreateForm() {
+        const expanded = document.getElementById('createPostExpanded');
+        const collapsed = document.getElementById('collapsedActions');
+
+        expanded.style.display = 'none';
+        collapsed.style.display = 'flex';
+
+        this.resetForm();
+        this.isFormExpanded = false;
+    }
+
+    resetForm() {
+        // Reset text
+        const postContent = document.getElementById('postContent');
+        if (postContent) {
+            postContent.value = '';
+            postContent.style.height = 'auto';
+        }
+
+        // Reset category
+        const categorySelect = document.getElementById('postCategory');
+        if (categorySelect) categorySelect.value = '';
+
+        // Reset image
+        this.removeImage();
+
+        // Reset emotion
+        this.removeEmotion();
+
+        // Hide emotion picker
+        const emotionPicker = document.getElementById('emotionPicker');
+        if (emotionPicker) emotionPicker.style.display = 'none';
+
+        // Reset validation
+        this.validateForm();
+    }
+
+    handleImageUpload(file) {
+        if (file.size > 10 * 1024 * 1024) {
+            this.showError('Снимката не може да надвишава 10MB.');
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            this.showError('Моля, изберете снимка.');
+            return;
+        }
+
+        const previewSection = document.getElementById('imagePreviewSection');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewContainer.innerHTML = `
+                <img class="image-preview" src="${e.target.result}" alt="Preview">
+                <button class="remove-image-btn" onclick="postInteractions.removeImage()">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            previewSection.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        this.validateForm();
+    }
+
+    removeImage() {
+        const previewSection = document.getElementById('imagePreviewSection');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const imageInput = document.getElementById('postImage');
+
+        if (previewSection) previewSection.style.display = 'none';
+        if (previewContainer) previewContainer.innerHTML = '';
+        if (imageInput) imageInput.value = '';
+
+        this.validateForm();
+    }
+
+    toggleEmotionPicker() {
+        const picker = document.getElementById('emotionPicker');
+        const isVisible = picker.style.display === 'block';
+        picker.style.display = isVisible ? 'none' : 'block';
+    }
+
+    selectEmotion(emotion, text) {
+        this.selectedEmotion = emotion;
+        this.selectedEmotionText = text;
+
+        const selectedSection = document.getElementById('selectedEmotion');
+        selectedSection.innerHTML = `
+            <span class="emotion-icon">${emotion}</span>
+            <span>се чувства <strong>${text}</strong></span>
+            <button class="remove-selected-emotion" onclick="postInteractions.removeEmotion()">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        selectedSection.style.display = 'flex';
+
+        // Hide picker
+        document.getElementById('emotionPicker').style.display = 'none';
+
+        this.validateForm();
+    }
+
+    removeEmotion() {
+        this.selectedEmotion = null;
+        this.selectedEmotionText = '';
+
+        const selectedSection = document.getElementById('selectedEmotion');
+        selectedSection.style.display = 'none';
+        selectedSection.innerHTML = '';
+
+        this.validateForm();
+    }
+
+    validateForm() {
+        const content = document.getElementById('postContent')?.value.trim() || '';
+        const category = document.getElementById('postCategory')?.value || '';
+        const hasImage = document.getElementById('postImage')?.files.length > 0;
+        const submitBtn = document.getElementById('submitPost');
+
+        const isValid = (content.length > 0 || hasImage) && category;
+
+        if (submitBtn) {
+            submitBtn.disabled = !isValid;
+        }
+
+        return isValid;
+    }
+
+    async createPost() {
+        if (!window.isAuthenticated) {
+            this.showLoginPrompt();
+            return;
+        }
+
+        if (!this.validateForm()) {
+            this.showError('Моля, попълнете съдържание и изберете категория.');
+            return;
+        }
+
+        const content = document.getElementById('postContent').value.trim();
+        const category = document.getElementById('postCategory').value;
+        const imageInput = document.getElementById('postImage');
+        const submitBtn = document.getElementById('submitPost');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Публикуване...';
+
+        try {
+            let imageUrl = null;
+
+            if (imageInput.files.length > 0) {
+                const response = await window.publicationsAPI.uploadImage(imageInput.files[0]);
+                imageUrl = response.url;
+            }
+
+            const publicationData = {
+                title: content.substring(0, 100) || 'Публикация',
+                content: content,
+                excerpt: content.substring(0, 200),
+                category: category.toUpperCase(),
+                emotion: this.selectedEmotion,
+                emotionText: this.selectedEmotionText,
+                imageUrl: imageUrl,
+                status: 'PUBLISHED',
+                author: {
+                    id: window.currentUserId,
+                    username: window.currentUsername
+                },
+                createdAt: new Date().toISOString(),
+                likesCount: 0,
+                commentsCount: 0,
+                sharesCount: 0
+            };
+
+            const response = await window.publicationsAPI.createPublication(publicationData);
+
+            if (response && response.id) {
+                publicationData.id = response.id;
+
+                if (window.publicationsManager) {
+                    window.publicationsManager.addPost(publicationData);
+                }
+
+                this.showToast('Публикацията е създадена успешно!', 'success');
+                this.collapseCreateForm();
+                this.trackInteraction('create_post', response.id);
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+        } catch (error) {
+            console.error('Error creating post:', error);
+            this.showError('Възникна грешка при създаването на публикацията.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Публикувай';
+        }
     }
 
     async loadUserPreferences() {
         if (!window.isAuthenticated) return;
-
         try {
-            // Load user's liked posts, bookmarks, followed authors
-            const response = await window.publicationsAPI.request('/api/user/preferences');
-
+            const response = await window.publicationsAPI.getUserPreferences();
             this.likedPosts = new Set(response.likedPosts || []);
             this.bookmarkedPosts = new Set(response.bookmarkedPosts || []);
             this.followedAuthors = new Set(response.followedAuthors || []);
-
         } catch (error) {
             console.error('Error loading user preferences:', error);
         }
     }
 
     setupEventListeners() {
-        // Handle dynamic post menu toggles
+        // Handle post menu toggles
         document.addEventListener('click', (e) => {
             if (e.target.closest('.post-menu')) {
                 e.stopPropagation();
@@ -43,49 +333,30 @@ class PostInteractions {
             }
         });
 
-        // Close all menus when clicking outside
+        // Close menus when clicking outside
         document.addEventListener('click', () => {
             document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
                 menu.style.display = 'none';
             });
         });
 
-        // Handle keyboard shortcuts
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // L key for like (when focused on a post)
-            if (e.key === 'l' && e.target.closest('.post')) {
-                const postId = e.target.closest('.post').dataset.postId;
-                if (postId) this.toggleLike(parseInt(postId));
-            }
-
-            // S key for share
-            if (e.key === 's' && e.target.closest('.post')) {
-                const postId = e.target.closest('.post').dataset.postId;
-                if (postId) this.sharePublication(parseInt(postId));
+            if (e.key === 'Escape' && this.isFormExpanded) {
+                this.collapseCreateForm();
             }
         });
     }
-
-
 
     handlePostMenuClick(menuElement) {
         const dropdown = menuElement.querySelector('.post-menu-dropdown');
         const isVisible = dropdown.style.display === 'block';
 
-        // Close all other menus first
         document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
             menu.style.display = 'none';
         });
 
-        // Toggle current menu
         dropdown.style.display = isVisible ? 'none' : 'block';
-
-        // Position dropdown if it goes off screen
-        const rect = dropdown.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            dropdown.style.right = '0';
-            dropdown.style.left = 'auto';
-        }
     }
 
     async toggleLike(postId) {
@@ -94,31 +365,23 @@ class PostInteractions {
             return;
         }
 
-        // Prevent duplicate requests
         const requestKey = `like-${postId}`;
-        if (this.pendingRequests.has(requestKey)) {
-            return;
-        }
+        if (this.pendingRequests.has(requestKey)) return;
 
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (!postElement) return;
 
         const likeButton = postElement.querySelector('.post-action');
-        const likeIcon = likeButton.querySelector('i');
         const likeCount = postElement.querySelector('.reaction-count span');
-
-        // Optimistic update
         const isCurrentlyLiked = this.likedPosts.has(postId);
         const currentCount = parseInt(likeCount.textContent) || 0;
-        const newLikeCount = currentCount + (isCurrentlyLiked ? -1 : 1);
 
-        this.updateLikeUI(postElement, !isCurrentlyLiked, newLikeCount);
+        // Optimistic update
+        this.updateLikeUI(postElement, !isCurrentlyLiked, currentCount + (isCurrentlyLiked ? -1 : 1));
         this.pendingRequests.set(requestKey, true);
 
         try {
             const response = await window.publicationsAPI.toggleLike(postId);
-
-            // Update with actual data from server
             this.updateLikeUI(postElement, response.isLiked, response.likesCount);
 
             if (response.isLiked) {
@@ -129,14 +392,10 @@ class PostInteractions {
                 this.likedPosts.delete(postId);
                 this.trackInteraction('unlike', postId);
             }
-
         } catch (error) {
             console.error('Error toggling like:', error);
-
-            // Revert optimistic update on error
             this.updateLikeUI(postElement, isCurrentlyLiked, currentCount);
             this.showError('Възникна грешка при харесването.');
-
         } finally {
             this.pendingRequests.delete(requestKey);
         }
@@ -156,19 +415,12 @@ class PostInteractions {
         }
 
         likeCount.textContent = count;
-
-        // Add pulse animation
-        likeButton.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            likeButton.style.transform = '';
-        }, 150);
     }
 
     showLikeAnimation(postElement) {
         const likeButton = postElement.querySelector('.post-action');
         const rect = likeButton.getBoundingClientRect();
 
-        // Create floating heart
         const heart = document.createElement('div');
         heart.innerHTML = '❤️';
         heart.style.cssText = `
@@ -179,52 +431,68 @@ class PostInteractions {
             z-index: 1000;
             pointer-events: none;
             animation: likeAnimation 1s ease-out forwards;
-            transform-origin: center;
         `;
 
         document.body.appendChild(heart);
-
-        setTimeout(() => {
-            if (document.body.contains(heart)) {
-                document.body.removeChild(heart);
-            }
-        }, 1000);
+        setTimeout(() => document.body.removeChild(heart), 1000);
     }
 
     async sharePublication(postId) {
         try {
-            const post = await this.getPostData(postId);
             const url = `${window.location.origin}/publications/${postId}`;
 
-            const shareData = {
-                title: post.title || 'Публикация от SmolyanVote',
-                text: post.excerpt || 'Интересна публикация от SmolyanVote',
-                url: url
-            };
-
-            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                await navigator.share(shareData);
-
-                // Track share on server
-                await window.publicationsAPI.sharePublication(postId);
-                this.updateShareCount(postId);
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Публикация от SmolyanVote',
+                    url: url
+                });
                 this.trackInteraction('share_native', postId);
-
             } else {
-                // Fallback to clipboard
                 await navigator.clipboard.writeText(url);
-
-                this.showToast('Линкът е копиран в клипборда', 'success');
-
-                // Track share
-                await window.publicationsAPI.sharePublication(postId);
-                this.updateShareCount(postId);
+                this.showToast('Линкът е копиран!', 'success');
                 this.trackInteraction('share_clipboard', postId);
             }
+
+            await window.publicationsAPI.sharePublication(postId);
+            this.updateShareCount(postId);
         } catch (error) {
-            console.error('Error sharing publication:', error);
-            this.showError('Възникна грешка при споделянето.');
+            console.error('Error sharing:', error);
         }
+    }
+
+    showToast(message, type = 'success') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            icon: type,
+            title: message
+        });
+    }
+
+    showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Грешка',
+            text: message,
+            confirmButtonColor: '#1877f2'
+        });
+    }
+
+    showLoginPrompt() {
+        Swal.fire({
+            icon: 'info',
+            title: 'Вход необходим',
+            text: 'Моля, влезте в профила си.',
+            confirmButtonText: 'Вход',
+            showCancelButton: true,
+            confirmButtonColor: '#1877f2'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.querySelector('[data-bs-target="#loginModal"]')?.click();
+            }
+        });
     }
 
     async toggleBookmark(postId) {
@@ -247,7 +515,6 @@ class PostInteractions {
             }
 
             this.updateBookmarkUI(postId, response.isBookmarked);
-
         } catch (error) {
             console.error('Error toggling bookmark:', error);
             this.showError('Възникна грешка при добавянето в любими.');
@@ -296,7 +563,6 @@ class PostInteractions {
             }
 
             this.updateFollowUI(authorId, response.isFollowing);
-
         } catch (error) {
             console.error('Error following author:', error);
             this.showError('Възникна грешка при следването на автора.');
@@ -333,12 +599,11 @@ class PostInteractions {
                 icon: 'success',
                 title: 'Докладът е изпратен',
                 text: 'Благодарим за докладването. Ще прегледаме публикацията.',
-                confirmButtonColor: '#4b9f3e',
+                confirmButtonColor: '#1877f2',
                 timer: 3000
             });
 
             this.trackInteraction('report', postId);
-
         } catch (error) {
             console.error('Error reporting post:', error);
             this.showError('Възникна грешка при докладването.');
@@ -395,7 +660,6 @@ class PostInteractions {
 
             await window.publicationsAPI.deletePublication(postId);
 
-            // Animate removal
             const postElement = document.querySelector(`[data-post-id="${postId}"]`);
             if (postElement) {
                 postElement.style.animation = 'fadeOut 0.3s ease-out';
@@ -409,52 +673,12 @@ class PostInteractions {
             this.showToast('Публикацията е изтрита успешно', 'success');
             this.trackInteraction('delete', postId);
 
-            // Remove from manager
             if (window.publicationsManager) {
                 window.publicationsManager.removePost(postId);
             }
-
         } catch (error) {
             console.error('Error deleting post:', error);
             this.showError('Възникна грешка при изтриването.');
-        }
-    }
-
-    async getPostData(postId) {
-        try {
-            return await window.publicationsAPI.getPublication(postId);
-        } catch (error) {
-            console.error('Error getting post data:', error);
-            return {
-                title: 'Публикация от SmolyanVote',
-                excerpt: 'Вижте тази интересна публикация от SmolyanVote'
-            };
-        }
-    }
-
-    // Real-time update handlers
-    updateLikeCount(postId, count) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const likeCount = postElement.querySelector('.reaction-count span');
-            if (likeCount) {
-                likeCount.textContent = count;
-                // Add subtle animation
-                likeCount.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    likeCount.style.transform = '';
-                }, 200);
-            }
-        }
-    }
-
-    updateCommentCount(postId, count) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const statsRight = postElement.querySelector('.stats-right span');
-            if (statsRight) {
-                statsRight.textContent = statsRight.textContent.replace(/\d+(\s+коментара)/, `${count}$1`);
-            }
         }
     }
 
@@ -473,40 +697,32 @@ class PostInteractions {
         }
     }
 
-    // UI Helper methods
-
-
-    showToast(message, type = 'success') {
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer);
-                toast.addEventListener('mouseleave', Swal.resumeTimer);
+    updateLikeCount(postId, count) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            const likeCount = postElement.querySelector('.reaction-count span');
+            if (likeCount) {
+                likeCount.textContent = count;
+                likeCount.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    likeCount.style.transform = '';
+                }, 200);
             }
-        });
-
-        Toast.fire({
-            icon: type,
-            title: message
-        });
+        }
     }
 
-    showError(message) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Грешка',
-            text: message,
-            confirmButtonColor: '#4b9f3e'
-        });
+    updateCommentCount(postId, count) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            const statsRight = postElement.querySelector('.stats-right span');
+            if (statsRight) {
+                statsRight.textContent = statsRight.textContent.replace(/\d+(\s+коментара)/, `${count}$1`);
+            }
+        }
     }
 
     requestNotificationPermission() {
         if ('Notification' in window && Notification.permission === 'default') {
-            // Ask after user interaction
             document.addEventListener('click', () => {
                 Notification.requestPermission().then(permission => {
                     this.notificationPermission = permission === 'granted';
@@ -520,39 +736,12 @@ class PostInteractions {
         }
     }
 
-    // Analytics tracking
     trackInteraction(type, targetId) {
         if (window.analyticsTracker) {
             window.analyticsTracker.trackInteraction(type, targetId);
         }
     }
 
-    // Public API methods
-    isPostLiked(postId) {
-        return this.likedPosts.has(postId);
-    }
-
-    isPostBookmarked(postId) {
-        return this.bookmarkedPosts.has(postId);
-    }
-
-    isAuthorFollowed(authorId) {
-        return this.followedAuthors.has(authorId);
-    }
-
-    getLikedPosts() {
-        return Array.from(this.likedPosts);
-    }
-
-    getBookmarkedPosts() {
-        return Array.from(this.bookmarkedPosts);
-    }
-
-    getFollowedAuthors() {
-        return Array.from(this.followedAuthors);
-    }
-
-    // Event emitter for other modules
     emit(eventName, data) {
         document.dispatchEvent(new CustomEvent(`publication:${eventName}`, { detail: data }));
     }
@@ -565,58 +754,65 @@ class PostInteractions {
         document.removeEventListener(`publication:${eventName}`, callback);
     }
 
-    // Cleanup
     destroy() {
         if (this.eventSource) {
             this.eventSource.close();
         }
         this.pendingRequests.clear();
     }
+
+    // Public API methods
+    isPostLiked(postId) { return this.likedPosts.has(postId); }
+    isPostBookmarked(postId) { return this.bookmarkedPosts.has(postId); }
+    isAuthorFollowed(authorId) { return this.followedAuthors.has(authorId); }
+    getLikedPosts() { return Array.from(this.likedPosts); }
+    getBookmarkedPosts() { return Array.from(this.bookmarkedPosts); }
+    getFollowedAuthors() { return Array.from(this.followedAuthors); }
 }
 
-// Global functions for template usage
-window.showCreateModal = function() {
-    if (!window.isAuthenticated) {
-        window.postInteractions.showLoginPrompt();
-        return;
-    }
-    window.location.href = '/publications/create';
+// Global functions
+window.expandCreateForm = function() {
+    window.postInteractions?.expandCreateForm();
+};
+
+window.showCreateForm = function() {
+    window.postInteractions?.expandCreateForm();
 };
 
 window.togglePostMenu = function(element) {
-    window.postInteractions.handlePostMenuClick(element);
+    window.postInteractions?.handlePostMenuClick(element);
 };
 
 window.toggleLike = function(postId) {
-    window.postInteractions.toggleLike(postId);
+    window.postInteractions?.toggleLike(postId);
 };
 
 window.sharePublication = function(postId) {
-    window.postInteractions.sharePublication(postId);
+    window.postInteractions?.sharePublication(postId);
 };
 
 window.toggleBookmark = function(postId) {
-    window.postInteractions.toggleBookmark(postId);
+    window.postInteractions?.toggleBookmark(postId);
 };
 
 window.followAuthor = function(authorId) {
-    window.postInteractions.followAuthor(authorId);
+    window.postInteractions?.followAuthor(authorId);
 };
 
 window.showReportModal = function(postId) {
-    window.postInteractions.showReportModal(postId);
+    window.postInteractions?.showReportModal(postId);
 };
 
 window.confirmDelete = function(postId) {
-    window.postInteractions.deletePost(postId);
+    window.postInteractions?.deletePost(postId);
 };
 
 window.showLikesModal = function(postId) {
-    // Future implementation for showing who liked the post
-    // Could show a modal with list of users who liked
+    // Future implementation
+    console.log('Show likes modal for post:', postId);
 };
 
-// CSS animations
+// CSS Animations
 const animationStyles = document.createElement('style');
 animationStyles.textContent = `
     @keyframes likeAnimation {
@@ -708,7 +904,11 @@ document.head.appendChild(animationStyles);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    window.postInteractions = new PostInteractions();
+    try {
+        window.postInteractions = new PostInteractions();
+    } catch (error) {
+        console.error('Failed to initialize PostInteractions:', error);
+    }
 });
 
 // Cleanup on page unload

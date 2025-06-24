@@ -1,10 +1,7 @@
-// ====== PUBLICATIONS API JS ======
-// Файл: src/main/resources/static/js/publications/publicationsApi.js
-
 class PublicationsAPI {
     constructor() {
         this.baseUrl = '/publications';
-        this.apiUrl = '/publications/api';  // ПОПРАВЕН URL
+        this.apiUrl = '/publications/api';
         this.csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
         this.csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
     }
@@ -49,17 +46,14 @@ class PublicationsAPI {
 
     async getPublications(filters = {}, page = 0, size = 10) {
         const params = new URLSearchParams();
-
         Object.keys(filters).forEach(key => {
             if (filters[key]) {
                 params.append(key, filters[key]);
             }
         });
-
         params.append('page', page);
         params.append('size', size);
-
-        const url = `${this.apiUrl}?${params.toString()}`;  // ПОПРАВЕН URL
+        const url = `${this.apiUrl}?${params.toString()}`;
         return await this.request(url, {
             headers: {
                 'Accept': 'application/json'
@@ -101,6 +95,13 @@ class PublicationsAPI {
         });
     }
 
+    async toggleBookmark(publicationId) {
+        const url = `${this.apiUrl}/${publicationId}/bookmark`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
     async sharePublication(publicationId) {
         const url = `${this.apiUrl}/${publicationId}/share`;
         return await this.request(url, {
@@ -132,7 +133,7 @@ class PublicationsAPI {
     }
 
     async toggleFollowAuthor(authorId) {
-        const url = `/api/users/${authorId}/follow`;  // TODO: Implement in UserController
+        const url = `/api/users/${authorId}/follow`;
         return await this.request(url, {
             method: 'POST'
         });
@@ -206,7 +207,6 @@ class PublicationsAPI {
         });
     }
 
-    // Batch operations
     async getMultiplePublications(ids) {
         const promises = ids.map(id => this.getPublication(id));
         return await Promise.allSettled(promises);
@@ -221,7 +221,6 @@ class PublicationsAPI {
         }
     }
 
-    // Search with suggestions
     async searchPublications(query, filters = {}, page = 0, size = 10) {
         const allFilters = { ...filters, search: query };
         return await this.getPublications(allFilters, page, size);
@@ -239,7 +238,6 @@ class PublicationsAPI {
         }
     }
 
-    // Health check
     async healthCheck() {
         try {
             const response = await fetch(`${this.apiUrl}/health`, {
@@ -255,7 +253,6 @@ class PublicationsAPI {
     }
 }
 
-// Error handling
 class APIError extends Error {
     constructor(message, status, response) {
         super(message);
@@ -277,7 +274,6 @@ class APIError extends Error {
     }
 }
 
-// Retry wrapper with exponential backoff
 class RetryableAPI extends PublicationsAPI {
     constructor(maxRetries = 3, baseDelay = 1000, maxDelay = 10000) {
         super();
@@ -295,7 +291,6 @@ class RetryableAPI extends PublicationsAPI {
                     this.baseDelay * Math.pow(2, retryCount),
                     this.maxDelay
                 );
-
                 await this.delay(delay);
                 return this.request(url, options, retryCount + 1);
             }
@@ -304,7 +299,6 @@ class RetryableAPI extends PublicationsAPI {
     }
 
     shouldRetry(error) {
-        // Retry on network errors and 5xx server errors, but not on 4xx client errors
         return error.isNetworkError() || (error.status >= 500 && error.status < 600);
     }
 
@@ -313,9 +307,8 @@ class RetryableAPI extends PublicationsAPI {
     }
 }
 
-// Cache wrapper
 class CachedAPI extends PublicationsAPI {
-    constructor(cacheSize = 100, cacheTTL = 5 * 60 * 1000) { // 5 minutes
+    constructor(cacheSize = 100, cacheTTL = 5 * 60 * 1000) {
         super();
         this.cache = new Map();
         this.cacheSize = cacheSize;
@@ -323,7 +316,6 @@ class CachedAPI extends PublicationsAPI {
     }
 
     async request(url, options = {}) {
-        // Only cache GET requests
         if (options.method && options.method !== 'GET') {
             return super.request(url, options);
         }
@@ -345,7 +337,6 @@ class CachedAPI extends PublicationsAPI {
     }
 
     setCache(key, data) {
-        // Implement LRU cache
         if (this.cache.size >= this.cacheSize) {
             const firstKey = this.cache.keys().next().value;
             this.cache.delete(firstKey);
@@ -370,7 +361,6 @@ class CachedAPI extends PublicationsAPI {
     }
 }
 
-// Initialize API based on features needed
 function createPublicationsAPI(features = {}) {
     let api = PublicationsAPI;
 
@@ -383,7 +373,6 @@ function createPublicationsAPI(features = {}) {
     return new api();
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.publicationsAPI = createPublicationsAPI({
         retry: true,
@@ -391,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Export for modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { PublicationsAPI, APIError, RetryableAPI, CachedAPI, createPublicationsAPI };
 }
