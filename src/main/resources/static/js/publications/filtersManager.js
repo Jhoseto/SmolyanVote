@@ -1,4 +1,4 @@
-// ====== FILTERS MANAGER JS ======
+// ====== ENHANCED FILTERS MANAGER JS ======
 // Файл: src/main/resources/static/js/publications/filtersManager.js
 
 class FiltersManager {
@@ -19,8 +19,8 @@ class FiltersManager {
 
     loadFiltersFromStorage() {
         try {
-            const saved = localStorage.getItem('smolyan_publications_filters');
-            const filters = saved ? JSON.parse(saved) : this.getDefaultFilters();
+            // ПОПРАВКА: По-безопасно зареждане на филтри
+            const filters = this.getDefaultFilters();
 
             // Merge with URL params if present
             const urlParams = new URLSearchParams(window.location.search);
@@ -32,9 +32,27 @@ class FiltersManager {
                 });
             }
 
+            // ПОПРАВКА: Опитваме localStorage само ако е наличен и работи
+            try {
+                if (typeof Storage !== 'undefined' && localStorage) {
+                    const stored = localStorage.getItem('smolyan_publications_filters');
+                    if (stored) {
+                        const storedFilters = JSON.parse(stored);
+                        // Merge stored filters но URL params имат приоритет
+                        Object.keys(storedFilters).forEach(key => {
+                            if (!urlParams.has(key)) {
+                                filters[key] = storedFilters[key];
+                            }
+                        });
+                    }
+                }
+            } catch (storageError) {
+                console.warn('localStorage not available, using session filters:', storageError);
+            }
+
             return filters;
         } catch (error) {
-            console.error('Error loading filters from storage:', error);
+            console.error('Error loading filters:', error);
             return this.getDefaultFilters();
         }
     }
@@ -51,10 +69,14 @@ class FiltersManager {
     }
 
     saveFiltersToStorage() {
+        // ПОПРАВКА: По-безопасно запазване
         try {
-            localStorage.setItem('smolyan_publications_filters', JSON.stringify(this.filters));
+            if (typeof Storage !== 'undefined' && localStorage) {
+                localStorage.setItem('smolyan_publications_filters', JSON.stringify(this.filters));
+            } else {
+            }
         } catch (error) {
-            console.error('Error saving filters to storage:', error);
+            console.warn('Failed to save filters to localStorage:', error);
         }
     }
 
@@ -80,9 +102,11 @@ class FiltersManager {
 
         if (clearSearch) {
             clearSearch.addEventListener('click', () => {
-                searchInput.value = '';
-                this.updateSearchUI('');
-                this.updateFilter('search', '');
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.updateSearchUI('');
+                    this.updateFilter('search', '');
+                }
             });
         }
 
@@ -116,6 +140,14 @@ class FiltersManager {
             });
         }
 
+        // Close mobile filters
+        const closeSidebar = document.getElementById('closeSidebar');
+        if (closeSidebar) {
+            closeSidebar.addEventListener('click', () => {
+                this.closeMobileFilters();
+            });
+        }
+
         // Close mobile filters when clicking outside
         document.addEventListener('click', (e) => {
             const sidebar = document.querySelector('.left-sidebar');
@@ -123,7 +155,7 @@ class FiltersManager {
 
             if (sidebar && sidebar.classList.contains('show') &&
                 !sidebar.contains(e.target) &&
-                !toggle.contains(e.target)) {
+                toggle && !toggle.contains(e.target)) {
                 this.closeMobileFilters();
             }
         });
@@ -249,15 +281,17 @@ class FiltersManager {
             tag.className = 'active-filter-tag';
             tag.innerHTML = `
                 <span>${this.getFilterDisplayName(filterType, value)}</span>
-                <span class="remove" data-filter="${filterType}">&times;</span>
+                <button class="remove-filter-btn" data-filter="${filterType}">&times;</button>
             `;
 
             // Add click listener to remove button
-            const removeBtn = tag.querySelector('.remove');
-            removeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.removeFilter(filterType);
-            });
+            const removeBtn = tag.querySelector('.remove-filter-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeFilter(filterType);
+                });
+            }
 
             list.appendChild(tag);
         });
@@ -296,15 +330,17 @@ class FiltersManager {
         return filterNames[filterType] || value;
     }
 
+    // ПОПРАВКА: Съвместимост с backend енуми
     getCategoryText(category) {
         const texts = {
             'news': 'Новини',
-            'municipal': 'Общински решения',
+            'infrastructure': 'Инфраструктура',
+            'municipal': 'Община',
             'initiatives': 'Граждански инициативи',
             'culture': 'Културни събития',
             'other': 'Други'
         };
-        return texts[category] || category;
+        return texts[category?.toLowerCase()] || category;
     }
 
     getStatusText(status) {
@@ -313,7 +349,7 @@ class FiltersManager {
             'review': 'За преглед',
             'draft': 'Чернови'
         };
-        return texts[status] || status;
+        return texts[status?.toLowerCase()] || status;
     }
 
     getTimeText(time) {
@@ -358,67 +394,170 @@ class FiltersManager {
             `${window.location.pathname}?${params.toString()}` :
             window.location.pathname;
 
-        window.history.replaceState({}, '', newURL);
+        // ПОПРАВКА: По-безопасна промяна на URL
+        try {
+            window.history.replaceState({}, '', newURL);
+        } catch (error) {
+            console.warn('Failed to update URL:', error);
+        }
     }
 
-    // Local filtering for instant response
+    // Mobile functions
+    toggleMobileFilters() {
+        const sidebar = document.querySelector('.left-sidebar');
+        const overlay = document.getElementById('mobileOverlay');
+
+        if (sidebar) {
+            sidebar.classList.toggle('show');
+            if (overlay) {
+                overlay.style.display = sidebar.classList.contains('show') ? 'block' : 'none';
+            }
+
+            // ПОПРАВКА: По-безопасна промяна на body overflow
+            try {
+                document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+            } catch (error) {
+                console.warn('Failed to set body overflow:', error);
+            }
+        }
+    }
+
+    closeMobileFilters() {
+        const sidebar = document.querySelector('.left-sidebar');
+        const overlay = document.getElementById('mobileOverlay');
+
+        if (sidebar) {
+            sidebar.classList.remove('show');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+
+            // ПОПРАВКА: Възстановяване на body overflow
+            try {
+                document.body.style.overflow = '';
+            } catch (error) {
+                console.warn('Failed to reset body overflow:', error);
+            }
+        }
+    }
+
+    // ====== ПОДОБРЕНИ ФИЛТРИРАЩИ МЕТОДИ ======
+
+    // Локално филтриране на posts за instant response
     filterPostsLocally(posts) {
-        if (!posts || posts.length === 0) return posts;
+        if (!posts || !Array.isArray(posts)) return [];
 
         return posts.filter(post => {
-            // Search filter
-            if (this.filters.search && !this.matchesSearch(post, this.filters.search)) {
-                return false;
-            }
+            try {
+                // Search filter
+                if (this.filters.search) {
+                    const searchTerm = this.filters.search.toLowerCase();
+                    const searchIn = [
+                        post.title || '',
+                        post.excerpt || '',
+                        post.content || '',
+                        post.author?.username || ''
+                    ].join(' ').toLowerCase();
 
-            // Category filter
-            if (this.filters.category && post.category !== this.filters.category) {
-                return false;
-            }
-
-            // Status filter
-            if (this.filters.status) {
-                if (this.filters.status === 'published' && post.status !== 'PUBLISHED') {
-                    return false;
+                    if (!searchIn.includes(searchTerm)) return false;
                 }
-                if (this.filters.status === 'review' && post.status !== 'REVIEW') {
-                    return false;
-                }
-                if (this.filters.status === 'draft' && post.status !== 'DRAFT') {
-                    return false;
-                }
-            }
 
-            // Time filter
-            if (this.filters.time && !this.matchesTimeFilter(post, this.filters.time)) {
-                return false;
-            }
-
-            // Author filter
-            if (this.filters.author) {
-                if (this.filters.author === 'me' && post.author.id !== window.currentUserId) {
-                    return false;
+                // Category filter - ПОПРАВКА: Обработка на различни формати
+                if (this.filters.category) {
+                    const postCategory = this.normalizeCategory(post.category);
+                    const filterCategory = this.normalizeCategory(this.filters.category);
+                    if (postCategory !== filterCategory) return false;
                 }
-                // 'following' filter would need additional data
-            }
 
-            return true;
+                // Status filter - ПОПРАВКА: Обработка на различни формати
+                if (this.filters.status) {
+                    const postStatus = this.normalizeStatus(post.status);
+                    const filterStatus = this.normalizeStatus(this.filters.status);
+                    if (postStatus !== filterStatus) return false;
+                }
+
+                // Time filter
+                if (this.filters.time) {
+                    const postDate = this.parsePostDate(post.createdAt || post.created);
+                    if (!this.isWithinTimeFilter(postDate, this.filters.time)) {
+                        return false;
+                    }
+                }
+
+                // Author filter
+                if (this.filters.author) {
+                    if (this.filters.author === 'me' && post.author?.id !== window.currentUserId) {
+                        return false;
+                    }
+                    if (this.filters.author === 'following' &&
+                        window.postInteractions &&
+                        !window.postInteractions.isAuthorFollowed(post.author?.id)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                console.warn('Error filtering post:', post, error);
+                return true; // По-добре да покаже post-а отколкото да го скрие заради грешка
+            }
         });
     }
 
-    matchesSearch(post, query) {
-        const searchQuery = query.toLowerCase();
-        const searchableText = [
-            post.title,
-            post.content || post.excerpt || '',
-            post.author.username
-        ].join(' ').toLowerCase();
+    // ПОПРАВКА: Нормализиране на категории
+    normalizeCategory(category) {
+        if (!category) return 'other';
 
-        return searchableText.includes(searchQuery);
+        // Обработка на Java enum формат
+        if (typeof category === 'object' && category.name) {
+            return category.name.toLowerCase();
+        }
+
+        return category.toString().toLowerCase();
     }
 
-    matchesTimeFilter(post, timeFilter) {
-        const postDate = new Date(post.createdAt);
+    // ПОПРАВКА: Нормализиране на статуси
+    normalizeStatus(status) {
+        if (!status) return 'published';
+
+        // Обработка на Java enum формат
+        if (typeof status === 'object' && status.name) {
+            return status.name.toLowerCase();
+        }
+
+        return status.toString().toLowerCase();
+    }
+
+    // ПОПРАВКА: По-гъвкаво парсване на дати
+    parsePostDate(dateInput) {
+        if (!dateInput) return new Date();
+
+        if (dateInput instanceof Date) {
+            return dateInput;
+        }
+
+        if (typeof dateInput === 'string') {
+            return new Date(dateInput);
+        }
+
+        // Java LocalDateTime като масив: [year, month, day, hour, minute, second]
+        if (Array.isArray(dateInput) && dateInput.length >= 3) {
+            return new Date(
+                dateInput[0],
+                dateInput[1] - 1, // Java месеците са 1-базирани
+                dateInput[2],
+                dateInput[3] || 0,
+                dateInput[4] || 0,
+                dateInput[5] || 0
+            );
+        }
+
+        return new Date(dateInput);
+    }
+
+    isWithinTimeFilter(postDate, timeFilter) {
+        if (isNaN(postDate.getTime())) return true; // Невалидна дата - показваме я
+
         const now = new Date();
 
         switch (timeFilter) {
@@ -438,24 +577,58 @@ class FiltersManager {
         }
     }
 
+    // Подобрено сортиране
     sortPosts(posts) {
-        if (!posts || posts.length === 0) return posts;
+        if (!posts || !Array.isArray(posts)) return [];
 
-        const sortedPosts = [...posts];
+        const sortBy = this.filters.sort || 'date-desc';
 
-        switch (this.filters.sort) {
-            case 'date-asc':
-                return sortedPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            case 'likes':
-                return sortedPosts.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
-            case 'views':
-                return sortedPosts.sort((a, b) => (b.viewsCount || 0) - (a.viewsCount || 0));
-            case 'comments':
-                return sortedPosts.sort((a, b) => (b.commentsCount || 0) - (a.commentsCount || 0));
-            case 'date-desc':
-            default:
-                return sortedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        }
+        return [...posts].sort((a, b) => {
+            try {
+                switch (sortBy) {
+                    case 'date-desc':
+                        const dateA = this.parsePostDate(a.createdAt || a.created);
+                        const dateB = this.parsePostDate(b.createdAt || b.created);
+                        return dateB - dateA;
+                    case 'date-asc':
+                        const dateA2 = this.parsePostDate(a.createdAt || a.created);
+                        const dateB2 = this.parsePostDate(b.createdAt || b.created);
+                        return dateA2 - dateB2;
+                    case 'likes':
+                        return (b.likesCount || 0) - (a.likesCount || 0);
+                    case 'views':
+                        return (b.viewsCount || 0) - (a.viewsCount || 0);
+                    case 'comments':
+                        return (b.commentsCount || 0) - (a.commentsCount || 0);
+                    default:
+                        return 0;
+                }
+            } catch (error) {
+                console.warn('Error sorting posts:', error);
+                return 0;
+            }
+        });
+    }
+
+    // Public API
+    getCurrentFilters() {
+        return { ...this.filters };
+    }
+
+    setFilter(filterType, value) {
+        this.updateFilter(filterType, value);
+    }
+
+    hasActiveFilters() {
+        return Object.keys(this.filters).some(key =>
+            this.filters[key] && key !== 'sort' && this.filters[key] !== 'date-desc'
+        );
+    }
+
+    getFilterCount() {
+        return Object.keys(this.filters).filter(key =>
+            this.filters[key] && key !== 'sort' && this.filters[key] !== 'date-desc'
+        ).length;
     }
 
     // Cache management
@@ -480,58 +653,8 @@ class FiltersManager {
         }
     }
 
-    getCacheKey() {
-        return JSON.stringify(this.filters);
-    }
-
-    // Mobile functions
-    toggleMobileFilters() {
-        const sidebar = document.querySelector('.left-sidebar');
-        if (sidebar) {
-            sidebar.classList.toggle('show');
-            document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
-        }
-    }
-
-    closeMobileFilters() {
-        const sidebar = document.querySelector('.left-sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-    }
-
-    // Public API
-    getCurrentFilters() {
-        return { ...this.filters };
-    }
-
-    setFilter(filterType, value) {
-        this.updateFilter(filterType, value);
-    }
-
-    hasActiveFilters() {
-        return Object.keys(this.filters).some(key =>
-            this.filters[key] && key !== 'sort' && this.filters[key] !== 'date-desc'
-        );
-    }
-
-    getFilterCount() {
-        return Object.keys(this.filters).filter(key =>
-            this.filters[key] && key !== 'sort' && this.filters[key] !== 'date-desc'
-        ).length;
-    }
-
-    // Debug methods
-    debugFilters() {
-        console.log('Current filters:', this.filters);
-        console.log('Cache size:', this.searchCache.size);
-        console.log('Has active filters:', this.hasActiveFilters());
-    }
-
     clearCache() {
         this.searchCache.clear();
-        console.log('Filter cache cleared');
     }
 }
 
@@ -544,37 +667,49 @@ window.clearAllFilters = function() {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.filtersManager = new FiltersManager();
+    try {
+        window.filtersManager = new FiltersManager();
 
-    // Update mobile filter toggle badge
-    const updateFilterBadge = () => {
-        const toggle = document.getElementById('mobileFilterToggle');
-        const count = window.filtersManager.getFilterCount();
+        // Update mobile filter toggle badge
+        const updateFilterBadge = () => {
+            const toggle = document.getElementById('mobileFilterToggle');
+            const count = window.filtersManager.getFilterCount();
 
-        if (toggle && count > 0) {
-            toggle.innerHTML = `
-                <i class="bi bi-funnel-fill"></i>
-                <span>Филтри (${count})</span>
-            `;
-        } else if (toggle) {
-            toggle.innerHTML = `
-                <i class="bi bi-funnel"></i>
-                <span>Филтри</span>
-            `;
-        }
-    };
+            if (toggle && count > 0) {
+                const button = toggle.querySelector('.filter-toggle-btn');
+                if (button) {
+                    button.innerHTML = `
+                        <i class="bi bi-funnel-fill"></i>
+                        <span>Филтри (${count})</span>
+                    `;
+                }
+            } else if (toggle) {
+                const button = toggle.querySelector('.filter-toggle-btn');
+                if (button) {
+                    button.innerHTML = `
+                        <i class="bi bi-funnel"></i>
+                        <span>Филтри</span>
+                    `;
+                }
+            }
+        };
 
-    // Update badge when filters change
-    const originalUpdateFilter = window.filtersManager.updateFilter;
-    window.filtersManager.updateFilter = function(...args) {
-        originalUpdateFilter.apply(this, args);
+        // Update badge when filters change
+        const originalUpdateFilter = window.filtersManager.updateFilter;
+        window.filtersManager.updateFilter = function(...args) {
+            originalUpdateFilter.apply(this, args);
+            updateFilterBadge();
+        };
+
         updateFilterBadge();
-    };
 
-    updateFilterBadge();
+
+    } catch (error) {
+        console.error('Failed to initialize FiltersManager:', error);
+    }
 });
 
-// Export for use in other modules
+// Export for modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = FiltersManager;
 }

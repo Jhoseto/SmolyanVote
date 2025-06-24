@@ -3,9 +3,9 @@
 
 /* ====== CSS VARIABLES ====== */
 :root {
-    /* Facebook цветове */
-    --fb-blue: #1877f2;
-    --fb-blue-hover: #166fe5;
+    /* цветове */
+    --fb-blue: #4b9f3e;
+    --fb-blue-hover: #1e8d92;
     --fb-bg: #f0f2f5;
     --fb-white: #ffffff;
     --fb-text: #1c1e21;
@@ -31,28 +31,59 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* ====== GLOBAL STYLES ====== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* ====== PUBLICATIONS SPECIFIC STYLES - ИЗОЛИРАНИ ОТ NAVBAR ====== */
+/* Премахваме глобалните стилове за да не влияят на navbar-а */
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    background: var(--fb-bg) !important;
-    color: var(--fb-text) !important;
-    line-height: 1.5 !important;
+/* Стилове само за publications страницата */
+.publications-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--fb-bg);
+    color: var(--fb-text);
+    line-height: 1.5;
 }
 
 /* ====== LAYOUT ====== */
 .feed-layout {
     display: flex;
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 60px auto;
     gap: 20px;
     padding: 20px 16px;
     min-height: calc(100vh - 120px);
+}
+
+/* ====== MOBILE FILTER TOGGLE ====== */
+.mobile-filter-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: none; /* Скрит по подразбиране */
+}
+
+.filter-toggle-btn {
+    background: var(--primary-color);
+    border: none;
+    border-radius: 25px;
+    color: var(--fb-white);
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-toggle-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.filter-toggle-btn i {
+    font-size: 16px;
 }
 
 /* ====== LEFT SIDEBAR - FILTERS ====== */
@@ -63,6 +94,36 @@ body {
     height: fit-content;
     max-height: calc(100vh - 140px);
     overflow-y: auto;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--fb-border);
+    margin-bottom: 20px;
+    background: var(--fb-white);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.close-sidebar {
+    background: none;
+    border: none;
+    color: var(--fb-text-secondary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: var(--transition);
+    display: none; /* Скрит по подразбиране */
+}
+
+.close-sidebar:hover {
+    background: var(--fb-hover);
+    color: var(--fb-text);
 }
 
 .filters-panel {
@@ -407,7 +468,9 @@ body {
     justify-content: center;
 }
 
-.btn {
+/* ====== ENHANCED BUTTON STYLES - САМО ЗА PUBLICATIONS ====== */
+.publications-page .publications-btn,
+.publications-page .btn {
     padding: 12px 24px;
     border-radius: var(--border-radius);
     font-weight: 600;
@@ -421,26 +484,30 @@ body {
     gap: 8px;
 }
 
-.btn-primary {
+.publications-page .publications-btn.btn-primary,
+.publications-page .btn-primary {
     background: var(--fb-blue);
     border-color: var(--fb-blue);
     color: var(--fb-white);
 }
 
-.btn-primary:hover {
+.publications-page .publications-btn.btn-primary:hover,
+.publications-page .btn-primary:hover {
     background: var(--fb-blue-hover);
     border-color: var(--fb-blue-hover);
     color: var(--fb-white);
     text-decoration: none;
 }
 
-.btn-outline-primary {
+.publications-page .publications-btn.btn-outline-primary,
+.publications-page .btn-outline-primary {
     background: transparent;
     border-color: var(--fb-blue);
     color: var(--fb-blue);
 }
 
-.btn-outline-primary:hover {
+.publications-page .publications-btn.btn-outline-primary:hover,
+.publications-page .btn-outline-primary:hover {
     background: var(--fb-blue);
     color: var(--fb-white);
     text-decoration: none;
@@ -553,6 +620,11 @@ body {
     display: none;
 }
 
+.post-menu-dropdown.show {
+    display: block;
+    animation: fadeInDown 0.2s ease-out;
+}
+
 .menu-item {
     display: flex;
     align-items: center;
@@ -563,6 +635,11 @@ body {
     font-size: 15px;
     font-weight: 500;
     transition: var(--transition);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
 }
 
 .menu-item:hover {
@@ -634,6 +711,12 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.stats-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .reaction-count {
@@ -986,7 +1069,7 @@ body {
     margin-top: 4px;
 }
 
-/* ====== SCROLL TO TOP & MOBILE ====== */
+/* ====== SCROLL TO TOP ====== */
 .scroll-to-top {
     position: fixed;
     bottom: 20px;
@@ -1009,24 +1092,23 @@ body {
     transform: scale(1.1);
 }
 
-.mobile-filter-toggle {
+/* ====== MOBILE OVERLAY ====== */
+.mobile-overlay {
     position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background: var(--primary-color);
-    border: none;
-    border-radius: 25px;
-    color: var(--fb-white);
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--shadow-lg);
-    transition: var(--transition);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-overlay.show {
+    display: block;
+    opacity: 1;
 }
 
 /* ====== ANIMATIONS ====== */
@@ -1034,6 +1116,17 @@ body {
     from {
         opacity: 0;
         transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
     }
     to {
         opacity: 1;
@@ -1056,6 +1149,18 @@ body {
     }
 }
 
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* ====== RESPONSIVE DESIGN ====== */
 @media (max-width: 1024px) {
     .right-sidebar {
@@ -1068,6 +1173,10 @@ body {
 }
 
 @media (max-width: 768px) {
+    .mobile-filter-toggle {
+        display: block;
+    }
+
     .left-sidebar {
         position: fixed;
         top: 0;
@@ -1078,11 +1187,27 @@ body {
         z-index: 9999;
         transition: left 0.3s ease;
         overflow-y: auto;
-        padding: 20px;
+        padding: 0;
     }
 
     .left-sidebar.show {
         left: 0;
+    }
+
+    .close-sidebar {
+        display: block;
+    }
+
+    .sidebar-header {
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--fb-border);
+    }
+
+    .filters-panel {
+        margin-top: 0;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
     }
 
     .feed-layout {
@@ -1094,16 +1219,16 @@ body {
         max-width: 100%;
     }
 
-    .filters-panel {
-        margin-top: 60px;
-    }
-
-    .mobile-filter-toggle {
-        display: flex;
+    .scroll-to-top {
+        bottom: 80px; /* Над filter toggle */
     }
 }
 
 @media (max-width: 480px) {
+    .feed-layout {
+        padding: 12px 8px;
+    }
+
     .create-post-actions {
         flex-direction: column;
         gap: 8px;
@@ -1130,6 +1255,62 @@ body {
     .prompt-actions {
         flex-direction: column;
     }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .filter-toggle-btn {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .scroll-to-top {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        bottom: 70px;
+    }
+}
+
+@media (max-width: 360px) {
+    .feed-layout {
+        padding: 8px 4px;
+    }
+
+    .post,
+    .create-post,
+    .login-prompt,
+    .no-results,
+    .loading-indicator {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .sidebar-header {
+        padding: 12px 16px;
+    }
+
+    .filters-panel {
+        padding: 16px;
+    }
+
+    .create-post-header {
+        gap: 8px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .author-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
 }
 
 /* ====== SCROLLBAR STYLING ====== */
@@ -1154,3 +1335,183 @@ body {
 .right-sidebar::-webkit-scrollbar-thumb:hover {
     background: var(--fb-text-secondary);
 }
+
+/* ====== ACCESSIBILITY ====== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ====== FOCUS STYLES - САМО ЗА PUBLICATIONS ====== */
+.publications-page .filter-option:focus,
+.publications-page .post-action:focus,
+.publications-page .create-action:focus,
+.publications-page .btn:focus,
+.publications-page .search-input:focus,
+.publications-page .clear-all-filters:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ====== PRINT STYLES ====== */
+@media print {
+    .left-sidebar,
+    .right-sidebar,
+    .mobile-filter-toggle,
+    .scroll-to-top,
+    .mobile-overlay {
+        display: none !important;
+    }
+
+    .feed-layout {
+        flex-direction: column;
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .main-feed {
+        max-width: 100%;
+    }
+
+    .post {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}
+
+/* ====== DARK MODE SUPPORT (FUTURE) ====== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fb-bg: #18191a;
+        --fb-white: #242526;
+        --fb-text: #e4e6ea;
+        --fb-text-secondary: #b0b3b8;
+        --fb-border: #3a3b3c;
+        --fb-hover: #3a3b3c;
+    }
+}
+
+/* ====== UTILITY CLASSES - САМО ЗА PUBLICATIONS ====== */
+.publications-page .text-center {
+    text-align: center;
+}
+
+.publications-page .text-left {
+    text-align: left;
+}
+
+.publications-page .text-right {
+    text-align: right;
+}
+
+.publications-page .d-none {
+    display: none !important;
+}
+
+.publications-page .d-block {
+    display: block !important;
+}
+
+.publications-page .d-flex {
+    display: flex !important;
+}
+
+.publications-page .align-items-center {
+    align-items: center;
+}
+
+.publications-page .justify-content-center {
+    justify-content: center;
+}
+
+.publications-page .justify-content-between {
+    justify-content: space-between;
+}
+
+.publications-page .gap-2 {
+    gap: 8px;
+}
+
+.publications-page .gap-3 {
+    gap: 12px;
+}
+
+.publications-page .gap-4 {
+    gap: 16px;
+}
+
+.publications-page .mt-2 {
+    margin-top: 8px;
+}
+
+.publications-page .mt-3 {
+    margin-top: 12px;
+}
+
+.publications-page .mt-4 {
+    margin-top: 16px;
+}
+
+.publications-page .mb-2 {
+    margin-bottom: 8px;
+}
+
+.publications-page .mb-3 {
+    margin-bottom: 12px;
+}
+
+.publications-page .mb-4 {
+    margin-bottom: 16px;
+}
+
+.publications-page .p-2 {
+    padding: 8px;
+}
+
+.publications-page .p-3 {
+    padding: 12px;
+}
+
+.publications-page .p-4 {
+    padding: 16px;
+}
+
+.publications-page .rounded {
+    border-radius: var(--border-radius);
+}
+
+.publications-page .rounded-lg {
+    border-radius: var(--border-radius-lg);
+}
+
+.publications-page .shadow-sm {
+    box-shadow: var(--shadow-sm);
+}
+
+.publications-page .shadow-md {
+    box-shadow: var(--shadow-md);
+}
+
+.publications-page .shadow-lg {
+    box-shadow: var(--shadow-lg);
+}
+
+/* ====== HOVER EFFECTS - САМО ЗА PUBLICATIONS ====== */
+.publications-page .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.publications-page .hover-scale:hover {
+    transform: scale(1.02);
+}
+
+.publications-page .hover-fade:hover {
+    opacity: 0.8;
+}
+
+/* ====== END OF CSS ====== */

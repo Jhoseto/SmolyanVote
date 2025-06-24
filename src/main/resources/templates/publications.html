@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="bg" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -9,20 +10,27 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/publications.css">
+  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
+    // Глобални променливи за целия проект
+    window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+    window.currentUserId = /*[[${currentUserId}]]*/ null;
+    window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
+
+    // App data за publications
     window.appData = {
-      isAuthenticated: /*[[${#authorization.expression('isAuthenticated()')}]]*/ false,
-      currentUserId: null,
-      currentUsername: /*[[${#authentication.name ?: ''}]]*/ '',
+      isAuthenticated: window.isAuthenticated,
+      currentUserId: window.currentUserId,
+      currentUsername: window.currentUsername,
       csrfToken: /*[[${_csrf.token}]]*/ '',
       csrfHeader: /*[[${_csrf.headerName}]]*/ '',
       totalPublications: /*[[${totalPublications ?: 0}]]*/ 0,
       categoryCounts: {
         news: /*[[${newsCount ?: 0}]]*/ 0,
+        infrastructure: /*[[${infrastructureCount ?: 0}]]*/ 0,
         municipal: /*[[${municipalCount ?: 0}]]*/ 0,
         initiatives: /*[[${initiativesCount ?: 0}]]*/ 0,
         culture: /*[[${cultureCount ?: 0}]]*/ 0,
@@ -31,7 +39,7 @@
     };
   </script>
 </head>
-<body>
+<body class="publications-page">
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
@@ -84,9 +92,14 @@
             <span>Новини</span>
             <span class="count" th:text="${newsCount}">0</span>
           </div>
+          <div class="filter-option" data-filter="category" data-value="infrastructure">
+            <i class="bi bi-tools"></i>
+            <span>Инфраструктура</span>
+            <span class="count" th:text="${infrastructureCount}">0</span>
+          </div>
           <div class="filter-option" data-filter="category" data-value="municipal">
             <i class="bi bi-building"></i>
-            <span>Общински решения</span>
+            <span>Община</span>
             <span class="count" th:text="${municipalCount}">0</span>
           </div>
           <div class="filter-option" data-filter="category" data-value="initiatives">
@@ -224,9 +237,10 @@
     <!-- Create Post Section -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
       <div class="create-post-header">
-        <div class="user-avatar" th:text="${#authentication.principal.username?.substring(0,1)?.toUpperCase()}">U</div>
+
+        <img class="user-avatar" th:src="${currentUser.getImageUrl()}" alt="UserImage">
         <input type="text" class="create-post-input"
-               placeholder="Какво мислите за Смолян?"
+               placeholder="Направи твоята публикация..."
                onclick="showCreateModal()" readonly>
       </div>
       <div class="create-post-actions">
@@ -252,8 +266,8 @@
         <h3>Влезте в профила си</h3>
         <p>За да създавате и харесвате публикации, моля влезте в профила си или се регистрирайте.</p>
         <div class="prompt-actions">
-          <a href="/login" class="btn btn-primary">Вход</a>
-          <a href="/register" class="btn btn-outline-primary">Регистрация</a>
+          <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="publications-btn btn-primary">Вход</a>
+          <a href="/register" class="publications-btn btn-outline-primary">Регистрация</a>
         </div>
       </div>
     </div>
@@ -284,7 +298,7 @@
       <i class="bi bi-search"></i>
       <h3>Няма намерени публикации</h3>
       <p>Опитайте да промените критериите за търсене или филтрите.</p>
-      <button class="btn btn-primary" onclick="clearAllFilters()">
+      <button class="publications-btn btn-primary" onclick="clearAllFilters()">
         <i class="bi bi-arrow-clockwise"></i>
         Изчисти филтрите
       </button>
@@ -300,6 +314,7 @@
         Популярни теми
       </h3>
       <div class="trending-topics" id="trendingTopics">
+        <!-- Статични trending topics -->
         <div class="trending-item">
           <span class="hashtag">#СмолянЦентър</span>
           <span class="count">24 публикации</span>
@@ -322,16 +337,23 @@
         Активни автори
       </h3>
       <div class="recent-authors" id="recentAuthors">
-        <div class="author-item" th:each="author : ${recentAuthors}">
-          <div class="author-avatar" th:text="${author.username?.substring(0,1)?.toUpperCase()}">A</div>
+        <!-- По-безопасна обработка на recent authors -->
+        <div class="author-item" th:each="author : ${recentAuthors}" th:if="${author != null}">
+          <div class="author-avatar" th:text="${author.username != null ? author.username?.substring(0,1)?.toUpperCase() : 'A'}">A</div>
           <div class="author-info">
-            <div class="author-name" th:text="${author.username}">Автор</div>
-            <div class="author-stats" th:text="${author.publicationsCount + ' публикации'}">0 публикации</div>
+            <div class="author-name" th:text="${author.username ?: 'Анонимен'}">Автор</div>
+            <div class="author-stats" th:text="${(author.publicationsCount ?: 0) + ' публикации'}">0 публикации</div>
           </div>
-          <button class="follow-btn" th:if="${#authorization.expression('isAuthenticated()')}"
+          <button class="follow-btn"
+                  th:if="${#authorization.expression('isAuthenticated()') and author.id != currentUserId}"
                   th:onclick="'followAuthor(' + ${author.id} + ')'">
             <i class="bi bi-person-plus"></i>
           </button>
+        </div>
+
+        <!-- Fallback когато няма автори -->
+        <div th:if="${#lists.isEmpty(recentAuthors)}" class="no-authors">
+          <p>Няма активни автори в момента</p>
         </div>
       </div>
     </div>
@@ -344,19 +366,19 @@
       </h3>
       <div class="stats-grid">
         <div class="stat-item">
-          <div class="stat-number" th:text="${totalPublications}">0</div>
+          <div class="stat-number" th:text="${totalPublications ?: 0}">0</div>
           <div class="stat-label">Общо публикации</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" th:text="${todayPublications}">0</div>
+          <div class="stat-number" th:text="${todayPublications ?: 0}">0</div>
           <div class="stat-label">Днес</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" th:text="${weekPublications}">0</div>
+          <div class="stat-number" th:text="${weekPublications ?: 0}">0</div>
           <div class="stat-label">Тази седмица</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" th:text="${activeUsers}">0</div>
+          <div class="stat-number" th:text="${activeUsers ?: 0}">0</div>
           <div class="stat-label">Активни потребители</div>
         </div>
       </div>
@@ -382,5 +404,3 @@
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
-</body>
-</html>

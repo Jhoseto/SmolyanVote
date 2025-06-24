@@ -186,22 +186,32 @@ class PublicationsManager {
         postDiv.className = 'post';
         postDiv.dataset.postId = post.id;
 
-        const timeAgo = this.formatTimeAgo(post.createdAt);
-        const authorInitial = post.author.username.charAt(0).toUpperCase();
-        const isOwner = this.isCurrentUserOwner(post.author.id);
+        // ПОПРАВКА: По-сигурна обработка на датата
+        const timeAgo = this.formatTimeAgo(post.createdAt || post.created || new Date());
+
+        // ПОПРАВКА: По-сигурна обработка на автора
+        const authorUsername = post.author?.username || 'Анонимен';
+        const authorInitial = authorUsername.charAt(0).toUpperCase();
+        const authorId = post.author?.id || 0;
+
+        const isOwner = this.isCurrentUserOwner(authorId);
         const isLiked = window.postInteractions ? window.postInteractions.isPostLiked(post.id) : false;
+
+        // ПОПРАВКА: По-сигурна обработка на енуми и опционални полета
+        const status = this.normalizeStatus(post.status);
+        const category = this.normalizeCategory(post.category);
 
         postDiv.innerHTML = `
             <div class="post-header">
                 <div class="user-avatar">${authorInitial}</div>
                 <div class="post-author-info">
-                    <a href="/users/${post.author.id}" class="post-author-name">${this.escapeHtml(post.author.username)}</a>
+                    <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
                     <div class="post-meta">
                         <span>${timeAgo}</span>
                         <span>•</span>
-                        <i class="${this.getStatusIcon(post.status)}"></i>
-                        <span class="post-status ${this.getStatusClass(post.status)}">
-                            ${this.getStatusText(post.status)}
+                        <i class="${this.getStatusIcon(status)}"></i>
+                        <span class="post-status ${this.getStatusClass(status)}">
+                            ${this.getStatusText(status)}
                         </span>
                     </div>
                 </div>
@@ -210,11 +220,11 @@ class PublicationsManager {
             
             <div class="post-content">
                 <div class="post-category">
-                    <i class="${this.getCategoryIcon(post.category)}"></i>
-                    <span>${this.getCategoryText(post.category)}</span>
+                    <i class="${this.getCategoryIcon(category)}"></i>
+                    <span>${this.getCategoryText(category)}</span>
                 </div>
-                <div class="post-title">${this.escapeHtml(post.title)}</div>
-                <div class="post-excerpt">${this.escapeHtml(post.excerpt || '')}</div>
+                <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
+                ${post.excerpt ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
             </div>
 
@@ -354,9 +364,29 @@ class PublicationsManager {
         });
     }
 
-    // Utility methods
-    formatTimeAgo(dateString) {
-        const date = new Date(dateString);
+    // ====== UTILITY METHODS - ПОПРАВЕНИ ======
+
+    formatTimeAgo(dateInput) {
+        let date;
+
+        // ПОПРАВКА: По-гъвкава обработка на различните дата формати
+        if (typeof dateInput === 'string') {
+            // Обработваме Java LocalDateTime формат: "2024-01-15T10:30:00"
+            date = new Date(dateInput);
+        } else if (dateInput instanceof Date) {
+            date = dateInput;
+        } else if (Array.isArray(dateInput) && dateInput.length >= 6) {
+            // Java LocalDateTime може да се сериализира като масив [year, month, day, hour, minute, second]
+            date = new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3] || 0, dateInput[4] || 0, dateInput[5] || 0);
+        } else {
+            date = new Date();
+        }
+
+        // Проверяваме дали датата е валидна
+        if (isNaN(date.getTime())) {
+            return 'неизвестно време';
+        }
+
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
 
@@ -369,6 +399,7 @@ class PublicationsManager {
     }
 
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -376,6 +407,17 @@ class PublicationsManager {
 
     isCurrentUserOwner(authorId) {
         return window.currentUserId && window.currentUserId == authorId;
+    }
+
+    // ПОПРАВКА: Нормализиране на енуми от Java
+    normalizeStatus(status) {
+        if (!status) return 'PUBLISHED';
+        return typeof status === 'string' ? status.toUpperCase() : status.toString().toUpperCase();
+    }
+
+    normalizeCategory(category) {
+        if (!category) return 'OTHER';
+        return typeof category === 'string' ? category.toLowerCase() : category.toString().toLowerCase();
     }
 
     getStatusIcon(status) {
@@ -408,6 +450,7 @@ class PublicationsManager {
     getCategoryIcon(category) {
         const icons = {
             'news': 'bi bi-newspaper',
+            'infrastructure': 'bi bi-tools',
             'municipal': 'bi bi-building',
             'initiatives': 'bi bi-lightbulb',
             'culture': 'bi bi-palette',
@@ -419,7 +462,8 @@ class PublicationsManager {
     getCategoryText(category) {
         const texts = {
             'news': 'Новини',
-            'municipal': 'Общински решения',
+            'infrastructure': 'Инфраструктура',
+            'municipal': 'Община',
             'initiatives': 'Граждански инициативи',
             'culture': 'Културни събития',
             'other': 'Други'
@@ -477,15 +521,7 @@ class PublicationsManager {
     }
 
     // Debug methods
-    debugState() {
-        console.log('Publications Manager State:', {
-            isLoading: this.isLoading,
-            hasMorePosts: this.hasMorePosts,
-            currentPage: this.currentPage,
-            loadedPostsCount: this.allLoadedPosts.length,
-            filteredPostsCount: this.filteredPosts.length
-        });
-    }
+
 
     clearCache() {
         if (window.filtersManager) {
@@ -508,8 +544,10 @@ class LazyImageLoader {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
-                        img.src = img.dataset.src;
-                        img.classList.remove('lazy');
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.classList.remove('lazy');
+                        }
                         observer.unobserve(img);
                     }
                 });
@@ -518,7 +556,7 @@ class LazyImageLoader {
     }
 
     observe(img) {
-        if (this.imageObserver) {
+        if (this.imageObserver && img.dataset.src) {
             this.imageObserver.observe(img);
         }
     }
@@ -648,7 +686,6 @@ class AnalyticsTracker {
         this.events.push(event);
 
         // Could send to analytics service
-        console.log('Analytics event:', event);
     }
 
     trackPageView() {
@@ -768,7 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    console.log('Publications page initialized successfully');
 });
 
 // Export for modules

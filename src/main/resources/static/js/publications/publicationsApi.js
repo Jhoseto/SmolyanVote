@@ -4,7 +4,7 @@
 class PublicationsAPI {
     constructor() {
         this.baseUrl = '/publications';
-        this.apiUrl = '/api/publications';
+        this.apiUrl = '/publications/api';  // ПОПРАВЕН URL
         this.csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
         this.csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
     }
@@ -59,7 +59,7 @@ class PublicationsAPI {
         params.append('page', page);
         params.append('size', size);
 
-        const url = `${this.baseUrl}?${params.toString()}`;
+        const url = `${this.apiUrl}?${params.toString()}`;  // ПОПРАВЕН URL
         return await this.request(url, {
             headers: {
                 'Accept': 'application/json'
@@ -132,7 +132,7 @@ class PublicationsAPI {
     }
 
     async toggleFollowAuthor(authorId) {
-        const url = `/api/users/${authorId}/follow`;
+        const url = `/api/users/${authorId}/follow`;  // TODO: Implement in UserController
         return await this.request(url, {
             method: 'POST'
         });
@@ -179,6 +179,11 @@ class PublicationsAPI {
 
             xhr.send(formData);
         });
+    }
+
+    async getUserPreferences() {
+        const url = `${this.apiUrl}/user/preferences`;
+        return await this.request(url);
     }
 
     async getUserDrafts(page = 0, size = 10) {
@@ -291,7 +296,6 @@ class RetryableAPI extends PublicationsAPI {
                     this.maxDelay
                 );
 
-                console.log(`Retrying request ${retryCount + 1}/${this.maxRetries} after ${delay}ms`);
                 await this.delay(delay);
                 return this.request(url, options, retryCount + 1);
             }
@@ -366,72 +370,6 @@ class CachedAPI extends PublicationsAPI {
     }
 }
 
-// Observable API for real-time updates
-class ObservableAPI extends PublicationsAPI {
-    constructor() {
-        super();
-        this.listeners = new Map();
-        this.setupSSE();
-    }
-
-    setupSSE() {
-        if (typeof EventSource === 'undefined') return;
-
-        const eventSource = new EventSource(`${this.apiUrl}/updates`);
-
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                this.notifyListeners(data.type, data);
-            } catch (error) {
-                console.error('Failed to parse SSE data:', error);
-            }
-        };
-
-        eventSource.onerror = (error) => {
-            console.error('SSE connection error:', error);
-            // Attempt to reconnect after delay
-            setTimeout(() => this.setupSSE(), 5000);
-        };
-
-        this.eventSource = eventSource;
-    }
-
-    subscribe(eventType, callback) {
-        if (!this.listeners.has(eventType)) {
-            this.listeners.set(eventType, new Set());
-        }
-        this.listeners.get(eventType).add(callback);
-
-        // Return unsubscribe function
-        return () => {
-            const listeners = this.listeners.get(eventType);
-            if (listeners) {
-                listeners.delete(callback);
-            }
-        };
-    }
-
-    notifyListeners(eventType, data) {
-        const listeners = this.listeners.get(eventType);
-        if (listeners) {
-            listeners.forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error('Error in event listener:', error);
-                }
-            });
-        }
-    }
-
-    disconnect() {
-        if (this.eventSource) {
-            this.eventSource.close();
-        }
-    }
-}
-
 // Initialize API based on features needed
 function createPublicationsAPI(features = {}) {
     let api = PublicationsAPI;
@@ -440,8 +378,6 @@ function createPublicationsAPI(features = {}) {
         api = RetryableAPI;
     } else if (features.cache) {
         api = CachedAPI;
-    } else if (features.realtime) {
-        api = ObservableAPI;
     }
 
     return new api();
@@ -457,5 +393,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export for modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PublicationsAPI, APIError, RetryableAPI, CachedAPI, ObservableAPI, createPublicationsAPI };
+    module.exports = { PublicationsAPI, APIError, RetryableAPI, CachedAPI, createPublicationsAPI };
 }

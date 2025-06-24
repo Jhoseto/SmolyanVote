@@ -15,7 +15,6 @@ class PostInteractions {
     init() {
         this.loadUserPreferences();
         this.setupEventListeners();
-        this.setupRealtimeUpdates();
         this.requestNotificationPermission();
     }
 
@@ -67,101 +66,7 @@ class PostInteractions {
         });
     }
 
-    setupRealtimeUpdates() {
-        // Setup Server-Sent Events for real-time updates
-        if (typeof EventSource !== 'undefined') {
-            try {
-                this.eventSource = new EventSource('/api/publications/updates');
 
-                this.eventSource.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        this.handleRealtimeUpdate(data);
-                    } catch (error) {
-                        console.error('Error parsing SSE data:', error);
-                    }
-                };
-
-                this.eventSource.onerror = (error) => {
-                    console.error('SSE connection error:', error);
-                    // Try to reconnect after 5 seconds
-                    setTimeout(() => {
-                        if (this.eventSource.readyState === EventSource.CLOSED) {
-                            this.setupRealtimeUpdates();
-                        }
-                    }, 5000);
-                };
-            } catch (error) {
-                console.error('Failed to setup SSE:', error);
-            }
-        }
-    }
-
-    handleRealtimeUpdate(data) {
-        switch (data.type) {
-            case 'NEW_POST':
-                this.handleNewPost(data.post);
-                break;
-            case 'POST_LIKED':
-                this.updateLikeCount(data.postId, data.likesCount);
-                break;
-            case 'POST_COMMENTED':
-                this.updateCommentCount(data.postId, data.commentsCount);
-                break;
-            case 'POST_SHARED':
-                this.updateShareCount(data.postId, data.sharesCount);
-                break;
-            case 'POST_DELETED':
-                this.handlePostDeleted(data.postId);
-                break;
-        }
-    }
-
-    handleNewPost(post) {
-        // Show notification for new posts from followed authors
-        if (this.followedAuthors.has(post.author.id)) {
-            this.showNewPostNotification(post);
-        }
-
-        // Add to feed if filters allow
-        if (window.publicationsManager) {
-            window.publicationsManager.addPost(post);
-        }
-    }
-
-    handlePostDeleted(postId) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            postElement.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => {
-                if (postElement.parentNode) {
-                    postElement.parentNode.removeChild(postElement);
-                }
-            }, 300);
-        }
-    }
-
-    showNewPostNotification(post) {
-        if (this.notificationPermission) {
-            const notification = new Notification(`Нова публикация от ${post.author.username}`, {
-                body: post.title,
-                icon: '/images/logo.png',
-                tag: `post-${post.id}`,
-                badge: '/images/logo.png',
-                requireInteraction: false,
-                silent: false
-            });
-
-            notification.onclick = () => {
-                window.focus();
-                window.location.href = `/publications/${post.id}`;
-                notification.close();
-            };
-
-            // Auto close after 5 seconds
-            setTimeout(() => notification.close(), 5000);
-        }
-    }
 
     handlePostMenuClick(menuElement) {
         const dropdown = menuElement.querySelector('.post-menu-dropdown');
@@ -428,7 +333,7 @@ class PostInteractions {
                 icon: 'success',
                 title: 'Докладът е изпратен',
                 text: 'Благодарим за докладването. Ще прегледаме публикацията.',
-                confirmButtonColor: '#1877f2',
+                confirmButtonColor: '#4b9f3e',
                 timer: 3000
             });
 
@@ -569,22 +474,7 @@ class PostInteractions {
     }
 
     // UI Helper methods
-    showLoginPrompt() {
-        Swal.fire({
-            title: 'Влезте в профила си',
-            text: 'За да извършите това действие, трябва да се влезете в профила си.',
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Вход',
-            cancelButtonText: 'Отказ',
-            confirmButtonColor: '#1877f2',
-            cancelButtonColor: '#6c757d'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = '/login?returnUrl=' + encodeURIComponent(window.location.pathname);
-            }
-        });
-    }
+
 
     showToast(message, type = 'success') {
         const Toast = Swal.mixin({
@@ -610,7 +500,7 @@ class PostInteractions {
             icon: 'error',
             title: 'Грешка',
             text: message,
-            confirmButtonColor: '#1877f2'
+            confirmButtonColor: '#4b9f3e'
         });
     }
 
@@ -723,7 +613,6 @@ window.confirmDelete = function(postId) {
 
 window.showLikesModal = function(postId) {
     // Future implementation for showing who liked the post
-    console.log('Show likes modal for post:', postId);
     // Could show a modal with list of users who liked
 };
 
