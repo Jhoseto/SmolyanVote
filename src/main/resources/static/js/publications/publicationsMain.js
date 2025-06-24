@@ -202,24 +202,24 @@ class PublicationsManager {
         const category = this.normalizeCategory(post.category);
 
         postDiv.innerHTML = `
-            <div class="post-header">
-                <img class="user-avatar" src="${authorImageUrl}" alt="${this.escapeHtml(authorUsername)}" onerror="this.src='/images/default-avatar.png'">
-                <div class="post-author-info">
-                    <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
-                    <div class="post-meta">
-                        <span>${timeAgo}</span>
-                        <span>•</span>
-                        <i class="${this.getStatusIcon(status)}"></i>
-                        <span class="post-status ${this.getStatusClass(status)}">
-                            ${this.getStatusText(status)}
-                        </span>
-                        ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
-                    </div>
+        <div class="post-header">
+            <img class="user-avatar" src="${authorImageUrl}" alt="${this.escapeHtml(authorUsername)}" onerror="this.src='/images/default-avatar.png'">
+            <div class="post-author-info">
+                <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
+                <div class="post-meta">
+                <span>${timeAgo}</span>
+                <i class="bi bi-circle online-status-indicator ${this.getOnlineStatus(post.author)}" title="${this.getOnlineStatusText(post.author)}"></i>
+                <span>•</span><span
+                <span class="post-status ${this.getStatusClass(status)}">
+                     ${this.getStatusText(status)}
+                </span>
+                     ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                 </div>
-                ${isOwner ? this.createPostMenu(post.id) : ''}
             </div>
-            
-            <div class="post-content">
+            ${isOwner ? this.createPostMenu(post.id) : ''}
+        </div>
+        
+        <div class="post-content">
                 <div class="post-category">
                     <i class="${this.getCategoryIcon(category)}"></i>
                     <span>${this.getCategoryText(category)}</span>
@@ -229,38 +229,76 @@ class PublicationsManager {
                 ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
             </div>
 
-            <div class="post-stats">
-                <div class="stats-left">
-                    <div class="reaction-count" onclick="showLikesModal(${post.id})">
-                        <div class="reaction-icons">
-                            <div class="reaction-icon like-icon">👍</div>
-                            ${(post.likesCount || 0) > 5 ? '<div class="reaction-icon heart-icon">❤️</div>' : ''}
-                        </div>
-                        <span>${post.likesCount || 0}</span>
+        <div class="post-stats">
+            <div class="stats-left">
+                <div class="reaction-count" onclick="showLikesModal(${post.id})">
+                    <div class="reaction-icons">
+                        <div class="reaction-icon like-icon">👍</div>
+                        ${(post.likesCount || 0) > 5 ? '<div class="reaction-icon heart-icon">❤️</div>' : ''}
                     </div>
-                </div>
-                <div class="stats-right">
-                    <span>${(post.commentsCount || 0)} коментара • ${(post.sharesCount || 0)} споделяния</span>
+                    <span>${post.likesCount || 0}</span>
                 </div>
             </div>
+            <div class="stats-right">
+                <span>${(post.commentsCount || 0)} коментара • ${(post.sharesCount || 0)} споделяния</span>
+            </div>
+        </div>
 
-            <div class="post-actions">
-                <button class="post-action ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
-                    <i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i>
-                    <span>Харесва</span>
-                </button>
-                <a href="/publications/${post.id}" class="post-action">
-                    <i class="bi bi-chat"></i>
-                    <span>Коментирай</span>
-                </a>
-                <button class="post-action" onclick="sharePublication(${post.id})">
-                    <i class="bi bi-share"></i>
-                    <span>Сподели</span>
-                </button>
-            </div>
-        `;
+        <div class="post-actions">
+            <button class="post-action ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                <i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i>
+                <span>Харесва</span>
+            </button>
+            <a href="/publications/${post.id}" class="post-action">
+                <i class="bi bi-chat"></i>
+                <span>Коментирай</span>
+            </a>
+            <button class="post-action" onclick="sharePublication(${post.id})">
+                <i class="bi bi-share"></i>
+                <span>Сподели</span>
+            </button>
+        </div>
+    `;
 
         return postDiv;
+    }
+
+
+    getOnlineStatus(author) {
+        if (!author) return 'offline';
+
+        // Проверяваме onlineStatus или lastOnline
+        if (author.onlineStatus === 1) {
+            return 'online';
+        }
+
+        // Проверяваме lastOnline времето
+        if (author.lastOnline) {
+            const lastOnlineDate = new Date(author.lastOnline);
+            const now = new Date();
+            const diffMinutes = (now - lastOnlineDate) / (1000 * 60);
+
+            // Ако е логнат в последните 5 минути - онлайн
+            if (diffMinutes <= 5) {
+                return 'online';
+            }
+            // Ако е логнат в последните 30 минути - away
+            else if (diffMinutes <= 30) {
+                return 'away';
+            }
+        }
+
+        return 'offline';
+    }
+
+    getOnlineStatusText(author) {
+        const status = this.getOnlineStatus(author);
+        const texts = {
+            'online': 'Онлайн сега',
+            'away': 'Неактивен',
+            'offline': 'Офлайн'
+        };
+        return texts[status] || 'Неизвестен статус';
     }
 
     createPostMenu(postId) {

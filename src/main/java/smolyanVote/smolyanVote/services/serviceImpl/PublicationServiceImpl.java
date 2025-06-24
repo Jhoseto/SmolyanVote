@@ -82,6 +82,7 @@ public class PublicationServiceImpl implements PublicationService {
             publication.setEmotionText(request.getEmotionText());
         }
 
+
         publication.generateExcerpt();
         publication.calculateReadingTime();
 
@@ -124,7 +125,7 @@ public class PublicationServiceImpl implements PublicationService {
         if (publication != null && publication.getStatus() == EventStatus.ACTIVE) {
             // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
             UserEntity author = publication.getAuthor();
-            author.setPublicationsCount(author.getPublicationsCount() + 1);
+            author.setPublicationsCount(author.getPublicationsCount() - 1);
             userRepository.save(author);
         }
 
