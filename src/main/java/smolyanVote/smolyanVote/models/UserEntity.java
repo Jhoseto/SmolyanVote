@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
@@ -19,14 +20,17 @@ public class UserEntity extends BaseEntity {
     @Column(name = "location")
     private Locations location;
 
+    @JsonIgnore
     private String password;
-
+    @JsonIgnore
     @Column(unique = true, nullable = false)
     private String email;
 
     private boolean isActive;
     @Column(length = 1000)
     private String imageUrl;
+
+    @JsonIgnore
     private String userConfirmationCode;
     private String bio;
     private int userEventsCount;
