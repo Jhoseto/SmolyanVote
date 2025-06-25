@@ -27,7 +27,9 @@
     <!-- Основна потребителска информация -->
     <div class="profile-info">
         <div class="profile-img">
-            <img th:src="${user.getImageUrl()}" alt="Профилна снимка">
+            <div class="user-avatar avatar-placeholder profile-avatar"
+                 th:attr="data-user-image=${user.getImageUrl()},data-username=${user.username}">
+            </div>
         </div>
         <div class="profile-details">
             <h2 class="username" th:text="${user.username}">Име на потребителя</h2>
