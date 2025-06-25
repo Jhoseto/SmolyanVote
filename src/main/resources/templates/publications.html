@@ -18,11 +18,13 @@
     window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
     window.currentUserId = /*[[${currentUserId}]]*/ null;
     window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
+    window.currentUserImage = /*[[${currentUserImage ?: '/images/default-avatar.png'}]]*/ '/images/default-avatar.png';
 
     window.appData = {
       isAuthenticated: window.isAuthenticated,
       currentUserId: window.currentUserId,
       currentUsername: window.currentUsername,
+      currentUserImage: window.currentUserImage,
       csrfToken: /*[[${_csrf.token}]]*/ '',
       csrfHeader: /*[[${_csrf.headerName}]]*/ '',
       totalPublications: /*[[${totalPublications ?: 0}]]*/ 0,
@@ -235,9 +237,9 @@
     <!-- Create Post Section -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
       <div class="create-post-header">
-        <img class="user-avatar" th:src="${currentUser.getImageUrl()}" alt="UserImage">
+        <img class="user-avatar" th:src="${currentUser?.imageUrl ?: '/images/default-avatar.png'}" alt="UserImage" onerror="this.src='/images/default-avatar.png'">
         <div class="create-post-input" onclick="expandCreateForm()">
-          <span class="placeholder-text">Какво мислите, <span th:text="${currentUser.username}">потребител</span>?</span>
+          <span class="placeholder-text">Какво мислите, <span th:text="${currentUser?.username ?: 'потребител'}">потребител</span>?</span>
         </div>
       </div>
 
@@ -405,18 +407,21 @@
       </div>
     </div>
 
-    <!-- Recent Authors -->
+    <!-- Top Authors Today -->
     <div class="sidebar-widget">
       <h3 class="widget-title">
-        <i class="bi bi-people-fill"></i>
-        Активни автори
+        <i class="bi bi-trophy-fill"></i>
+        Топ 5 Автори на деня
       </h3>
-      <div class="recent-authors" id="recentAuthors">
-        <div class="author-item" th:each="author : ${recentAuthors}" th:if="${author != null}">
-          <div class="author-avatar" th:text="${author.username != null ? author.username?.substring(0,1)?.toUpperCase() : 'A'}">A</div>
+      <div class="top-authors-today" id="topAuthorsToday">
+        <div class="author-item" th:each="author : ${todayTopAuthors}" th:if="${author != null}">
+          <img class="author-avatar"
+               th:src="${author.imageUrl ?: '/images/default-avatar.png'}"
+               th:alt="${author.username ?: 'User'}"
+               onerror="this.src='/images/default-avatar.png'">
           <div class="author-info">
             <div class="author-name" th:text="${author.username ?: 'Анонимен'}">Автор</div>
-            <div class="author-stats" th:text="${(author.publicationsCount ?: 0) + ' публикации'}">0 публикации</div>
+            <div class="author-stats" th:text="${(author.publicationsCount ?: 0) + ' публикации днес'}">0 публикации днес</div>
           </div>
           <button class="follow-btn"
                   th:if="${#authorization.expression('isAuthenticated()') and author.id != currentUserId}"
@@ -425,8 +430,8 @@
           </button>
         </div>
 
-        <div th:if="${#lists.isEmpty(recentAuthors)}" class="no-authors">
-          <p>Няма активни автори в момента</p>
+        <div th:if="${#lists.isEmpty(todayTopAuthors)}" class="no-authors">
+          <p>Няма публикации днес</p>
         </div>
       </div>
     </div>
@@ -451,8 +456,8 @@
           <div class="stat-label">Тази седмица</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" th:text="${activeUsers ?: 0}">0</div>
-          <div class="stat-label">Активни потребители</div>
+          <div class="stat-number" th:text="${activeUsers ?: 0}">83</div>
+          <div class="stat-label">Онлайн потребители</div>
         </div>
       </div>
     </div>
