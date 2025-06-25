@@ -51,6 +51,8 @@ public class PublicationsController {
                 if (currentUser != null) {
                     model.addAttribute("currentUserId", currentUser.getId());
                     model.addAttribute("currentUser", currentUser);
+                    model.addAttribute("currentUserImage", currentUser.getImageUrl());
+
                 } else {
                     model.addAttribute("currentUserId", null);
                 }

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+
+<!-- Post Detail Modal Fragment -->
+<div th:fragment="postModal">
+    <!-- Modal Overlay -->
+    <div id="postDetailModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <div class="modal-navigation">
+                    <button class="nav-btn prev-btn" id="prevPostBtn" title="Предишна публикация">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="nav-btn next-btn" id="nextPostBtn" title="Следваща публикация">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <button class="close-modal-btn" id="closeModalBtn" title="Затвори">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="modal-content">
+                <!-- Left Side - Post Content -->
+                <div class="modal-left-side">
+                    <!-- Post Image -->
+                    <div class="modal-post-image-container" id="modalPostImageContainer" style="display: none;">
+                        <img id="modalPostImage" class="modal-post-image" alt="Post image">
+                    </div>
+
+                    <!-- Post Details -->
+                    <div class="modal-post-details">
+                        <!-- Author Info -->
+                        <div class="modal-post-header">
+                            <div class="modal-author-avatar" id="modalAuthorAvatar">
+                                <!-- Avatar ще се попълни от JavaScript -->
+                            </div>
+                            <div class="modal-author-info">
+                                <a href="#" class="modal-author-name" id="modalAuthorName">Автор</a>
+                                <div class="modal-post-meta">
+                                    <span id="modalPostTime">преди малко</span>
+                                    <i class="bi bi-circle online-status-indicator" id="modalOnlineStatus"></i>
+                                    <span>•</span>
+                                    <span class="modal-post-status" id="modalPostStatus">Публикувана</span>
+                                    <span id="modalPostEmotion" style="display: none;"></span>
+                                </div>
+                            </div>
+                            <div class="modal-post-menu" id="modalPostMenu" style="display: none;">
+                                <button class="modal-menu-btn">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <div class="modal-menu-dropdown" style="display: none;">
+                                    <button class="modal-menu-item" id="modalEditBtn">
+                                        <i class="bi bi-pencil"></i> Редактирай
+                                    </button>
+                                    <button class="modal-menu-item text-danger" id="modalDeleteBtn">
+                                        <i class="bi bi-trash"></i> Изтрий
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post Category -->
+                        <div class="modal-post-category">
+                            <i id="modalCategoryIcon" class="bi bi-tag"></i>
+                            <span id="modalCategoryText">Категория</span>
+                        </div>
+
+                        <!-- Post Content -->
+                        <div class="modal-post-content">
+                            <h2 class="modal-post-title" id="modalPostTitle">Заглавие на публикацията</h2>
+                            <div class="modal-post-text" id="modalPostText">
+                                Съдържанието на публикацията ще се покаже тук...
+                            </div>
+                        </div>
+
+                        <!-- Post Stats -->
+                        <div class="modal-post-stats">
+                            <div class="modal-stats-left">
+                                <div class="modal-stats-item" id="modalLikesStats">
+                                    <i class="bi bi-hand-thumbs-up-fill"></i>
+                                    <span id="modalLikesCount">0</span>
+                                </div>
+                                <div class="modal-stats-item" id="modalDislikesStats">
+                                    <i class="bi bi-hand-thumbs-down-fill"></i>
+                                    <span id="modalDislikesCount">0</span>
+                                </div>
+                            </div>
+                            <div class="modal-stats-right">
+                                <div class="modal-stats-item">
+                                    <i class="bi bi-chat-fill"></i>
+                                    <span id="modalCommentsCount">0</span>
+                                    <span>коментара</span>
+                                </div>
+                                <div class="modal-stats-item">
+                                    <i class="bi bi-share-fill"></i>
+                                    <span id="modalSharesCount">0</span>
+                                    <span>споделяния</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post Actions -->
+                        <div class="modal-post-actions">
+                            <button class="modal-action-btn like-btn" id="modalLikeBtn">
+                                <i class="bi bi-hand-thumbs-up"></i>
+                                <span>Харесвам</span>
+                            </button>
+                            <button class="modal-action-btn dislike-btn" id="modalDislikeBtn">
+                                <i class="bi bi-hand-thumbs-down"></i>
+                                <span>Не харесвам</span>
+                            </button>
+                            <button class="modal-action-btn share-btn" id="modalShareBtn">
+                                <i class="bi bi-share"></i>
+                                <span>Сподели</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side - Comments Section -->
+                <div class="modal-right-side">
+                    <div class="comments-header">
+                        <h3>
+                            <i class="bi bi-chat-dots"></i>
+                            Коментари (<span id="commentsHeaderCount">0</span>)
+                        </h3>
+                        <div class="comments-sort">
+                            <select id="commentsSortSelect">
+                                <option value="newest">Най-нови</option>
+                                <option value="oldest">Най-стари</option>
+                                <option value="popular">Най-популярни</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Comments Section Fragment -->
+                    <div id="commentsSection" class="comments-section">
+                        <div th:replace="~{fragments/commentsPublicationsSection :: commentsSection}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="modal-loading" id="modalLoading" style="display: none;">
+            <div class="modal-spinner">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Зареждане...</span>
+                </div>
+                <span>Зареждане на публикацията...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>

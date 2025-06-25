@@ -705,13 +705,27 @@
 /* ====== НОВА СТРУКТУРА ЗА POST STATS ====== */
 .post-stats {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
     background: var(--fb-hover);
     border-top: 1px solid var(--fb-border);
     border-bottom: 1px solid var(--fb-border);
     margin: 0;
+}
+
+.stats-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 11px;
+}
+.stats-right{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 120px;
+    padding-left: 20px;
 }
 
 .stats-item {
@@ -721,19 +735,11 @@
     color: var(--fb-text-secondary);
     font-size: 14px;
     font-weight: 500;
-    flex: 1;
-    justify-content: center;
     cursor: pointer;
     transition: var(--transition);
     padding: 6px 8px;
     border-radius: 6px;
 }
-
-/*.stats-item:hover {*/
-/*    background: rgba(75, 177, 92, 0.1);*/
-/*    color: var(--primary-color);*/
-/*    transform: translateY(-1px);*/
-/*}*/
 
 .stats-icon {
     font-size: 16px;
@@ -747,15 +753,6 @@
     min-width: 20px;
     text-align: center;
 }
-
-/*.stats-item:hover .stats-count {*/
-/*    transform: scale(1.05);*/
-/*}*/
-
-/*.stats-item:hover .stats-icon {*/
-/*    color: var(--primary-dark);*/
-/*    transform: scale(1.1);*/
-/*}*/
 
 /* ====== POST ACTIONS ====== */
 .post-actions {
