@@ -17,7 +17,7 @@
 
     /* SmolyanVote цветове */
     --primary-color: #4cb15c;
-    --primary-dark: #1e8e93;
+    --primary-dark: #198754;
     --accent-green: #228e55;
 
     /* Размери и shadow */
@@ -45,7 +45,7 @@
 /* ====== LAYOUT ====== */
 .feed-layout {
     display: flex;
-    max-width: 1200px;
+    max-width: 1900px;
     margin: 60px auto;
     gap: 20px;
     padding: 20px 16px;
@@ -186,7 +186,7 @@
 
 .search-input:focus {
     outline: none;
-    border-color: var(--fb-blue);
+    border-color: var(--primary-color);
     background: var(--fb-white);
 }
 
@@ -486,15 +486,15 @@
 
 .publications-page .publications-btn.btn-primary,
 .publications-page .btn-primary {
-    background: var(--fb-blue);
-    border-color: var(--fb-blue);
+    background: var(--primary-color);
+    border-color: var(--primary-color);
     color: var(--fb-white);
 }
 
 .publications-page .publications-btn.btn-primary:hover,
 .publications-page .btn-primary:hover {
-    background: var(--fb-blue-hover);
-    border-color: var(--fb-blue-hover);
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
     color: var(--fb-white);
     text-decoration: none;
 }
@@ -502,13 +502,13 @@
 .publications-page .publications-btn.btn-outline-primary,
 .publications-page .btn-outline-primary {
     background: transparent;
-    border-color: var(--fb-blue);
-    color: var(--fb-blue);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .publications-page .publications-btn.btn-outline-primary:hover,
 .publications-page .btn-outline-primary:hover {
-    background: var(--fb-blue);
+    background: var(--primary-color);
     color: var(--fb-white);
     text-decoration: none;
 }
@@ -593,6 +593,11 @@
     color: #856404;
 }
 
+.status-edited {
+    background: #e2e3e5;
+    color: #495057;
+}
+
 .post-menu {
     position: relative;
     color: var(--fb-text-secondary);
@@ -665,8 +670,8 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: rgba(66, 184, 131, 0.1);
-    color: var(--fb-green);
+    background: rgba(75, 177, 92, 0.1);
+    color: var(--primary-color);
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 12px;
@@ -697,104 +702,166 @@
     margin-bottom: 12px;
 }
 
+/* ====== НОВА СТРУКТУРА ЗА POST STATS ====== */
 .post-stats {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
-    padding: 0 16px;
-    margin-bottom: 8px;
+    padding: 12px 16px;
+    background: var(--fb-hover);
+    border-top: 1px solid var(--fb-border);
+    border-bottom: 1px solid var(--fb-border);
+    margin: 0;
+}
+
+.stats-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--fb-text-secondary);
-    font-size: 15px;
-}
-
-.stats-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.stats-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.reaction-count {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+    justify-content: center;
     cursor: pointer;
+    transition: var(--transition);
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+
+.stats-item:hover {
+    background: rgba(75, 177, 92, 0.1);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.stats-icon {
+    font-size: 16px;
+    color: var(--primary-color);
     transition: var(--transition);
 }
 
-.reaction-count:hover {
-    text-decoration: underline;
+.stats-count {
+    font-weight: 600;
+    transition: transform 0.2s ease;
+    min-width: 20px;
+    text-align: center;
+}
+
+.stats-item:hover .stats-count {
     transform: scale(1.05);
 }
 
-.reaction-icons {
-    display: flex;
-    margin-right: 4px;
+.stats-item:hover .stats-icon {
+    color: var(--primary-dark);
+    transform: scale(1.1);
 }
 
-.reaction-icon {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1px solid var(--fb-white);
-    margin-left: 6px;
+/* ====== ЗЕЛЕНИ СТИЛОВЕ ЗА POST ACTIONS ====== */
+.post-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 17px;
-}
-
-.like-icon {
-    background: var(--fb-blue);
-    color: var(--fb-white);
-}
-
-.heart-icon {
-    background: #f33e58;
-    color: var(--fb-white);
-}
-
-.post-actions {
-    border-top: 1px solid var(--fb-border);
-    display: flex;
     justify-content: space-around;
+    padding: 8px 0;
+    background: var(--fb-white);
+    border-top: 1px solid var(--fb-border);
 }
 
 .post-action {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px;
-    color: var(--fb-text-secondary);
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
+    padding: 10px 5px;
     background: none;
     border: none;
+    border-radius: 6px;
+    color: var(--fb-text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    flex: 1;
+    position: relative;
 }
 
 .post-action:hover {
-    background: var(--fb-hover);
-    color: var(--fb-text-secondary);
+    background-color: rgba(75, 177, 92, 0.1);
+    color: var(--primary-color);
     text-decoration: none;
-}
-
-.post-action.active, .post-action.liked {
-    color: var(--fb-blue);
-    transform: scale(1.05);
+    transform: translateY(-1px);
 }
 
 .post-action i {
     font-size: 20px;
+    color: var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.post-action:hover i {
+    color: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+/* ====== АКТИВНИ СЪСТОЯНИЯ НА БУТОНИТЕ ====== */
+.like-btn.liked {
+    color: var(--primary-color) !important;
+    background: rgba(75, 177, 92, 0.15);
+}
+
+.like-btn.liked:hover {
+    background: rgba(75, 177, 92, 0);
+    color: var(--primary-dark) !important;
+}
+
+.like-btn.liked i {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 8px rgba(75, 177, 92, 0.3);
+}
+
+.dislike-btn.disliked {
+    color: #e74c3c !important;
+    background: rgba(231, 76, 60, 0);
+}
+
+.dislike-btn.disliked:hover {
+    background: rgba(231, 76, 60, 0);
+    color: #c0392b !important;
+}
+
+.dislike-btn.disliked i {
+    color: #e74c3c !important;
+    text-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+}
+
+.comment-btn:hover {
+    background: rgba(75, 177, 92, 0.1);
+    color: var(--primary-color);
+}
+
+.share-btn:hover {
+    background: rgba(75, 177, 92, 0.1);
+    color: var(--primary-color);
+}
+
+.post-action:active {
+    transform: scale(0.95);
+}
+
+/* ====== АНИМАЦИИ ЗА СТАТИСТИКИ ====== */
+.stats-count {
+    transition: all 0.3s ease;
+}
+
+@keyframes statsUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: var(--primary-color); }
+    100% { transform: scale(1); }
+}
+
+.stats-count.updated {
+    animation: statsUpdate 0.4s ease;
 }
 
 /* ====== LOADING INDICATOR ====== */
@@ -1015,7 +1082,7 @@
 }
 
 .follow-btn {
-    background: var(--fb-blue);
+    background: var(--primary-color);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -1029,7 +1096,7 @@
 }
 
 .follow-btn:hover {
-    background: var(--fb-blue-hover);
+    background: var(--primary-dark);
     transform: scale(1.05);
 }
 
@@ -1131,7 +1198,6 @@
     color: #9e9fa1;
 }
 
-
 /* ====== ОНЛАЙН СТАТУС ИНДИКАТОР ====== */
 .online-status-indicator {
     margin: 0 4px;
@@ -1159,8 +1225,7 @@
     background-color: #6b7280 !important;
 }
 
-
-/*edit options*/
+/* ====== EDIT OPTIONS ====== */
 .inline-edit-form {
     margin: 12px 0;
 }
@@ -1186,12 +1251,9 @@
 .edit-buttons .btn {
     padding: 6px 12px;
     font-size: 13px;
-
 }
 
-
-/*createPublicationLoader*/
-/* Loading spinner for submit button */
+/* ====== CREATE PUBLICATION LOADER ====== */
 .spinner-border-sm {
     width: 1rem;
     height: 1rem;
@@ -1205,84 +1267,6 @@
     border-radius: 50%;
     animation: spinner-border 0.75s linear infinite;
 }
-
-
-/*likeDislike*/
-
-.like-btn, .dislike-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: none;
-    border: none;
-    border-radius: 6px;
-    color: #65676b;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 80px;
-    justify-content: center;
-}
-
-.like-btn:hover {
-    background-color: rgba(24, 119, 242, 0.1);
-    color: #4b9f3e;
-}
-
-.dislike-btn:hover {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-}
-
-/* ====== ACTIVE STATES ====== */
-.like-btn.liked {
-    color: #4b9f3e !important;
-    background-color: rgba(255, 255, 255, 0.07);
-}
-
-.dislike-btn.disliked {
-    color: #e74c3c !important;
-    background-color: rgba(231, 76, 60, 0.15);
-}
-
-/* ====== COUNTS ====== */
-.like-count, .dislike-count {
-    font-weight: 600;
-    min-width: 20px;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.like-btn.liked .like-count {
-    color: #4b9f3e;
-}
-
-.dislike-btn.disliked .dislike-count {
-    color: #e74c3c;
-}
-
-/* ====== ANIMATIONS ====== */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.like-btn.liked {
-    animation: pulse 0.3s ease;
-}
-
-.dislike-btn.disliked {
-    animation: pulse 0.3s ease;
-}
-
-.like-btn:active, .dislike-btn:active {
-    transform: scale(0.96);
-}
-
-
 
 @keyframes spinner-border {
     to {
@@ -1301,7 +1285,6 @@
     white-space: nowrap !important;
     border: 0 !important;
 }
-
 
 @keyframes pulse-dot {
     0% {
@@ -1368,6 +1351,70 @@
     }
 }
 
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes pulseBlue {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); color: var(--primary-color); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulseRed {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); color: #e74c3c; }
+    100% { transform: scale(1); }
+}
+
+.like-btn.liked {
+    animation: pulseBlue 0.3s ease;
+}
+
+.dislike-btn.disliked {
+    animation: pulseRed 0.3s ease;
+}
+
+.like-btn, .dislike-btn {
+    transition: all 0.2s ease;
+}
+
+.bookmark-btn.bookmarked {
+    color: #ffc107 !important;
+    animation: pulse 0.3s ease;
+}
+
+.follow-btn {
+    transition: all 0.2s ease;
+}
+
+.follow-btn.following {
+    background: #28a745 !important;
+}
+
+.follow-btn.following:hover {
+    background: #218838 !important;
+}
+
+.like-count, .dislike-count {
+    transition: transform 0.2s ease;
+}
+
+.like-count:hover, .dislike-count:hover {
+    transform: scale(1.05);
+}
+
+.post-menu-dropdown {
+    animation: fadeInDown 0.2s ease;
+}
+
 /* ====== RESPONSIVE DESIGN ====== */
 @media (max-width: 1024px) {
     .right-sidebar {
@@ -1385,8 +1432,8 @@
     }
 
     .left-sidebar {
-        position: sticky;
-        height: fit-content;
+        position: fixed;
+        height: 100vh;
         top: 0;
         left: -100%;
         width: 100%;
@@ -1429,6 +1476,29 @@
     .scroll-to-top {
         bottom: 80px; /* Над filter toggle */
     }
+
+    /* ====== MOBILE RESPONSIVE ЗА НОВАТА СТРУКТУРА ====== */
+    .post-stats {
+        padding: 8px 12px;
+    }
+
+    .stats-item {
+        font-size: 13px;
+        gap: 4px;
+    }
+
+    .stats-icon {
+        font-size: 14px;
+    }
+
+    .post-action {
+        padding: 8px 6px;
+        font-size: 14px;
+    }
+
+    .post-action i {
+        font-size: 18px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1442,15 +1512,6 @@
     }
 
     .create-action {
-        justify-content: flex-start;
-        padding: 12px 16px;
-    }
-
-    .post-actions {
-        flex-direction: column;
-    }
-
-    .post-action {
         justify-content: flex-start;
         padding: 12px 16px;
     }
@@ -1478,6 +1539,32 @@
         height: 44px;
         font-size: 18px;
         bottom: 70px;
+    }
+
+    .post-stats {
+        padding: 6px 8px;
+    }
+
+    .stats-item {
+        font-size: 12px;
+        gap: 3px;
+        flex-direction: column;
+    }
+
+    .stats-icon {
+        font-size: 16px;
+    }
+
+    .stats-count {
+        font-size: 11px;
+    }
+
+    .post-action span {
+        display: none;
+    }
+
+    .post-action {
+        padding: 8px;
     }
 }
 
@@ -1599,6 +1686,23 @@
         --fb-text-secondary: #b0b3b8;
         --fb-border: #3a3b3c;
         --fb-hover: #3a3b3c;
+    }
+
+    .post-actions {
+        border-top-color: #3a3b3c;
+    }
+
+    .post-action {
+        color: #b0b3b8;
+    }
+
+    .post-action:hover {
+        background-color: #3a3b3c;
+        color: #e4e6ea;
+    }
+
+    .post-stats {
+        color: #b0b3b8;
     }
 }
 

@@ -510,7 +510,6 @@ class PostInteractions {
         // Update like button
         const likeButton = postElement.querySelector('.like-btn');
         const likeIcon = likeButton?.querySelector('i');
-        const likeCountElement = postElement.querySelector('.like-count');
 
         if (likeButton && likeIcon) {
             if (isLiked) {
@@ -522,14 +521,9 @@ class PostInteractions {
             }
         }
 
-        if (likeCountElement) {
-            likeCountElement.textContent = likesCount;
-        }
-
         // Update dislike button
         const dislikeButton = postElement.querySelector('.dislike-btn');
         const dislikeIcon = dislikeButton?.querySelector('i');
-        const dislikeCountElement = postElement.querySelector('.dislike-count');
 
         if (dislikeButton && dislikeIcon) {
             if (isDisliked) {
@@ -541,8 +535,15 @@ class PostInteractions {
             }
         }
 
-        if (dislikeCountElement) {
-            dislikeCountElement.textContent = dislikesCount;
+        // Update stats counts - ТУК Е НОВОТО
+        const likeStatsCount = postElement.querySelector('.like-stats-count');
+        if (likeStatsCount) {
+            likeStatsCount.textContent = likesCount || 0;
+        }
+
+        const dislikeStatsCount = postElement.querySelector('.dislike-stats-count');
+        if (dislikeStatsCount) {
+            dislikeStatsCount.textContent = dislikesCount || 0;
         }
     }
 
@@ -551,7 +552,7 @@ class PostInteractions {
         const rect = likeButton.getBoundingClientRect();
 
         const heart = document.createElement('div');
-        heart.innerHTML = '❤️';
+        heart.innerHTML = '💚';
         heart.style.cssText = `
             position: fixed;
             left: ${rect.left + rect.width / 2}px;
@@ -816,14 +817,14 @@ class PostInteractions {
     updateShareCount(postId) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
-            const statsRight = postElement.querySelector('.stats-right span');
-            if (statsRight) {
-                const currentText = statsRight.textContent;
-                const matches = currentText.match(/(\d+)\s+споделяния/);
-                if (matches) {
-                    const newCount = parseInt(matches[1]) + 1;
-                    statsRight.textContent = currentText.replace(/\d+(\s+споделяния)/, `${newCount}$1`);
-                }
+            const shareStatsCount = postElement.querySelector('.share-stats-count');
+            if (shareStatsCount) {
+                const currentCount = parseInt(shareStatsCount.textContent) || 0;
+                shareStatsCount.textContent = currentCount + 1;
+                shareStatsCount.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    shareStatsCount.style.transform = '';
+                }, 200);
             }
         }
     }
@@ -845,9 +846,13 @@ class PostInteractions {
     updateCommentCount(postId, count) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
-            const statsRight = postElement.querySelector('.stats-right span');
-            if (statsRight) {
-                statsRight.textContent = statsRight.textContent.replace(/\d+(\s+коментара)/, `${count}$1`);
+            const commentStatsCount = postElement.querySelector('.comment-stats-count');
+            if (commentStatsCount) {
+                commentStatsCount.textContent = count;
+                commentStatsCount.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    commentStatsCount.style.transform = '';
+                }, 200);
             }
         }
     }
@@ -993,7 +998,7 @@ animationStyles.textContent = `
     }
     
     .like-btn.liked {
-        color: #1877f2 !important;
+        color: #4cb15c !important;
         animation: pulse 0.3s ease;
     }
     

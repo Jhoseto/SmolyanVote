@@ -241,35 +241,38 @@ class PublicationsManager {
         </div>
 
         <div class="post-stats">
-            <div class="stats-left">
-                <div class="reaction-count" onclick="showLikesModal(${post.id})">
-                    <div class="reaction-icons">
-                        <div class="reaction-icon like-icon">👍</div>
-                        ${(post.likesCount || 0) > 5 ? '<div class="reaction-icon heart-icon">❤️</div>' : ''}
-                        ${(post.dislikesCount || 0) > 0 ? '<div class="reaction-icon dislike-icon">👎</div>' : ''}
-                    </div>
-                    <span>${(post.likesCount || 0)} ${(post.dislikesCount || 0) > 0 ? '• ' + (post.dislikesCount || 0) : ''}</span>
-                </div>
+            <div class="stats-item">
+                <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
+                <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
             </div>
-            <div class="stats-right">
-                <span>${(post.commentsCount || 0)} коментара • ${(post.sharesCount || 0)} споделяния</span>
+            <div class="stats-item">
+                <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
+                <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
+            </div>
+            <div class="stats-item">
+                <i class="bi bi-chat-fill stats-icon"></i>
+                <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
+            </div>
+            <div class="stats-item">
+                <i class="bi bi-share-fill stats-icon"></i>
+                <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
             </div>
         </div>
 
         <div class="post-actions">
             <button class="post-action like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
                 <i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i>
-                <span class="like-count">${post.likesCount || 0}</span>
+                <span>Харесвам</span>
             </button>
             <button class="post-action dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="toggleDislike(${post.id})">
                 <i class="bi ${isDisliked ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'}"></i>
-                <span class="dislike-count">${post.dislikesCount || 0}</span>
+                <span>Не харесвам</span>
             </button>
-            <a href="/publications/${post.id}" class="post-action">
+            <a href="/publications/${post.id}" class="post-action comment-btn">
                 <i class="bi bi-chat"></i>
                 <span>Коментирай</span>
             </a>
-            <button class="post-action" onclick="sharePublication(${post.id})">
+            <button class="post-action share-btn" onclick="sharePublication(${post.id})">
                 <i class="bi bi-share"></i>
                 <span>Сподели</span>
             </button>
