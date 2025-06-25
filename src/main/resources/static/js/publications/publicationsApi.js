@@ -88,12 +88,23 @@ class PublicationsAPI {
         });
     }
 
+    // ====== LIKES/DISLIKES ======
+
     async toggleLike(publicationId) {
         const url = `${this.apiUrl}/${publicationId}/like`;
         return await this.request(url, {
             method: 'POST'
         });
     }
+
+    async toggleDislike(publicationId) {
+        const url = `${this.apiUrl}/${publicationId}/dislike`;
+        return await this.request(url, {
+            method: 'POST'
+        });
+    }
+
+    // ====== OTHER INTERACTIONS ======
 
     async toggleBookmark(publicationId) {
         const url = `${this.apiUrl}/${publicationId}/bookmark`;

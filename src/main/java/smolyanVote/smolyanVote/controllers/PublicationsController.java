@@ -83,7 +83,7 @@ public class PublicationsController {
             model.addAttribute("initiativesCount", 0);
             model.addAttribute("cultureCount", 0);
             model.addAttribute("otherCount", 0);
-            model.addAttribute("todayTopAuthors", List.of());  // ← ПОПРАВЕНО!
+            model.addAttribute("todayTopAuthors", List.of());
             model.addAttribute("todayPublications", 0);
             model.addAttribute("weekPublications", 0);
             model.addAttribute("activeUsers", 0);
@@ -108,7 +108,6 @@ public class PublicationsController {
         return "publicationDetail";
     }
 
-
     @Transactional(readOnly = true)
     @GetMapping("/{id}/edit")
     public String editPublicationPage(@PathVariable Long id, Model model, Authentication auth) {
@@ -124,7 +123,6 @@ public class PublicationsController {
         model.addAttribute("publication", publication);
         return "editPublication";
     }
-
 
     // ====== REST API ENDPOINTS ======
 
@@ -164,7 +162,6 @@ public class PublicationsController {
         }
     }
 
-
     @PostMapping(value = "/api", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createPublication(
@@ -192,10 +189,11 @@ public class PublicationsController {
             response.put("status", publication.getStatus());
             response.put("createdAt", publication.getCreated());
             response.put("likesCount", publication.getLikesCount());
+            response.put("dislikesCount", publication.getDislikesCount());
             response.put("commentsCount", publication.getCommentsCount());
             response.put("sharesCount", publication.getSharesCount());
 
-            // ВАЖНО: Добави author данните
+            // Добави author данните
             Map<String, Object> authorData = new HashMap<>();
             authorData.put("id", publication.getAuthor().getId());
             authorData.put("username", publication.getAuthor().getUsername());
@@ -356,14 +354,43 @@ public class PublicationsController {
             UserEntity user = userService.getCurrentUser();
             boolean isLiked = publicationService.toggleLike(id, user);
             int likesCount = publicationService.getLikesCount(id);
+            int dislikesCount = publicationService.getDislikesCount(id);
 
             Map<String, Object> response = new HashMap<>();
             response.put("isLiked", isLiked);
             response.put("likesCount", likesCount);
+            response.put("dislikesCount", dislikesCount);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при харесването"));
+        }
+    }
+
+    @PostMapping(value = "/api/{id}/dislike", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleDislike(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity user = userService.getCurrentUser();
+            boolean isDisliked = publicationService.toggleDislike(id, user);
+            int likesCount = publicationService.getLikesCount(id);
+            int dislikesCount = publicationService.getDislikesCount(id);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isDisliked", isDisliked);
+            response.put("likesCount", likesCount);
+            response.put("dislikesCount", dislikesCount);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при дислайкването"));
         }
     }
 
@@ -486,6 +513,7 @@ public class PublicationsController {
 
             // За сега връщаме празни масиви - по-късно ще се имплементира правилно
             preferences.put("likedPosts", List.of());
+            preferences.put("dislikedPosts", List.of());
             preferences.put("bookmarkedPosts", List.of());
             preferences.put("followedAuthors", List.of());
 
@@ -552,6 +580,9 @@ public class PublicationsController {
                 break;
             case "likes":
                 sortObj = Sort.by(Sort.Direction.DESC, "likesCount");
+                break;
+            case "dislikes":
+                sortObj = Sort.by(Sort.Direction.ASC, "dislikesCount");
                 break;
             case "views":
                 sortObj = Sort.by(Sort.Direction.DESC, "viewsCount");
