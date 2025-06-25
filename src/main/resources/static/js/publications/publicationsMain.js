@@ -1,4 +1,3 @@
-// ====== PUBLICATIONS MAIN JS ======
 // Файл: src/main/resources/static/js/publications/publicationsMain.js
 
 class PublicationsManager {
@@ -21,13 +20,6 @@ class PublicationsManager {
         this.setupEventListeners();
         this.setupInfiniteScroll();
         this.setupScrollToTop();
-
-        // TODO: Разкоментирай когато имаш 50+ постове със снимки
-        // this.setupLazyImageLoading();
-
-        // TODO: Разкоментирай когато имаш 500+ постове
-        // this.setupVirtualScrolling();
-
         this.loadInitialPosts();
     }
 
@@ -195,15 +187,9 @@ class PublicationsManager {
         const postsContainer = document.getElementById('postsContainer');
         if (!postsContainer) return;
 
-        // TODO: Когато активираш virtual scrolling, използвай:
-        // return this.renderPostsVirtual(posts);
-
         posts.forEach(post => {
             const postElement = this.createPostElement(post);
             postsContainer.appendChild(postElement);
-
-            // TODO: Когато активираш lazy loading, добави:
-            // this.observeNewImages(postElement);
         });
 
         this.hideNoResults();
@@ -221,6 +207,7 @@ class PublicationsManager {
 
         const isOwner = this.isCurrentUserOwner(authorId);
         const isLiked = window.postInteractions ? window.postInteractions.isPostLiked(post.id) : false;
+        const isDisliked = window.postInteractions ? window.postInteractions.isPostDisliked(post.id) : false;
 
         const status = this.normalizeStatus(post.status);
         const category = this.normalizeCategory(post.category);
@@ -250,11 +237,7 @@ class PublicationsManager {
             </div>
             <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
             ${post.excerpt && post.excerpt !== post.title ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
-            ${post.imageUrl ?
-            // TODO: За lazy loading промени на:
-            // `<img data-src="${post.imageUrl}" class="post-image lazy" src="/images/placeholder.jpg" alt="Publication image">`
-            `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">`
-            : ''}
+            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
         </div>
 
         <div class="post-stats">
@@ -263,8 +246,9 @@ class PublicationsManager {
                     <div class="reaction-icons">
                         <div class="reaction-icon like-icon">👍</div>
                         ${(post.likesCount || 0) > 5 ? '<div class="reaction-icon heart-icon">❤️</div>' : ''}
+                        ${(post.dislikesCount || 0) > 0 ? '<div class="reaction-icon dislike-icon">👎</div>' : ''}
                     </div>
-                    <span>${post.likesCount || 0}</span>
+                    <span>${(post.likesCount || 0)} ${(post.dislikesCount || 0) > 0 ? '• ' + (post.dislikesCount || 0) : ''}</span>
                 </div>
             </div>
             <div class="stats-right">
@@ -273,9 +257,13 @@ class PublicationsManager {
         </div>
 
         <div class="post-actions">
-            <button class="post-action ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+            <button class="post-action like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
                 <i class="bi ${isLiked ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i>
-                <span>Харесва</span>
+                <span class="like-count">${post.likesCount || 0}</span>
+            </button>
+            <button class="post-action dislike-btn ${isDisliked ? 'disliked' : ''}" onclick="toggleDislike(${post.id})">
+                <i class="bi ${isDisliked ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'}"></i>
+                <span class="dislike-count">${post.dislikesCount || 0}</span>
             </button>
             <a href="/publications/${post.id}" class="post-action">
                 <i class="bi bi-chat"></i>
@@ -732,22 +720,6 @@ class PublicationsManager {
         }
         console.log('Publications cache cleared');
     }
-
-    // ====== TODO: PERFORMANCE OPTIMIZATIONS ======
-
-    // TODO: LazyImageLoading - добави при 50+ постове със снимки за по-бързо зареждане
-    // setupLazyImageLoading() - IntersectionObserver за снимки
-    // observeNewImages(postElement) - добави нови снимки към observer
-
-    // TODO: VirtualScrolling - добави при 500+ постове за перфектен performance
-    // setupVirtualScrolling() - рендира само видимите постове (10-15 DOM елемента)
-    // renderPostsVirtual(posts) - замести renderPosts() за големи списъци
-
-    // TODO: Други оптимизации при голям трафик:
-    // - Image compression (WebP, thumbnails)
-    // - Service Worker (offline режим)
-    // - IndexedDB caching
-    // - Code splitting
 }
 
 // Enhanced error handling

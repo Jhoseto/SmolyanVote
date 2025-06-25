@@ -86,7 +86,6 @@ public class PublicationServiceImpl implements PublicationService {
             publication.setEmotionText(request.getEmotionText());
         }
 
-
         publication.generateExcerpt();
         publication.calculateReadingTime();
 
@@ -266,7 +265,7 @@ public class PublicationServiceImpl implements PublicationService {
         return publicationRepository.countByCreatedAfterAndStatus(monthAgo, PublicationStatus.PUBLISHED);
     }
 
-    // ====== ВЗАИМОДЕЙСТВИЯ (САМО USERNAME) ======
+    // ====== ВЗАИМОДЕЙСТВИЯ - LIKES/DISLIKES ======
 
     @Override
     @Transactional
@@ -277,13 +276,59 @@ public class PublicationServiceImpl implements PublicationService {
         boolean isLiked = publication.isLikedBy(user.getUsername());
 
         if (isLiked) {
+            // Премахни like
             publication.removeLike(user.getUsername());
         } else {
+            // Добави like
             publication.addLike(user.getUsername());
+
+            // ВАЖНО: Премахни dislike ако го има
+            if (publication.isDislikedBy(user.getUsername())) {
+                publication.removeDislike(user.getUsername());
+            }
         }
 
         publicationRepository.save(publication);
         return !isLiked;
+    }
+
+    @Transactional
+    @Override
+    public boolean toggleDislike(Long publicationId, UserEntity user) {
+        PublicationEntity publication = findById(publicationId);
+        if (publication == null) return false;
+
+        boolean isDisliked = publication.isDislikedBy(user.getUsername());
+
+        if (isDisliked) {
+            // Премахни dislike
+            publication.removeDislike(user.getUsername());
+        } else {
+            // Добави dislike
+            publication.addDislike(user.getUsername());
+
+            // ВАЖНО: Премахни like ако го има
+            if (publication.isLikedBy(user.getUsername())) {
+                publication.removeLike(user.getUsername());
+            }
+        }
+
+        publicationRepository.save(publication);
+        return !isDisliked;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int getLikesCount(Long publicationId) {
+        PublicationEntity publication = findById(publicationId);
+        return publication != null ? publication.getLikesCount() : 0;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public int getDislikesCount(Long publicationId) {
+        PublicationEntity publication = findById(publicationId);
+        return publication != null ? publication.getDislikesCount() : 0;
     }
 
     @Override
@@ -302,13 +347,6 @@ public class PublicationServiceImpl implements PublicationService {
 
         publicationRepository.save(publication);
         return !isBookmarked;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public int getLikesCount(Long publicationId) {
-        PublicationEntity publication = findById(publicationId);
-        return publication != null ? publication.getLikesCount() : 0;
     }
 
     @Override
@@ -431,7 +469,6 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional(readOnly = true)
     @Override
     public List<UserEntity> getTodayTopAuthors(int limit) {
-
         return publicationRepository.findTodayTopAuthors(limit);
     }
 }

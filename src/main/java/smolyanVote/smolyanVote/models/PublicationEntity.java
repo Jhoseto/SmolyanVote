@@ -50,6 +50,9 @@ public class PublicationEntity extends BaseEntity {
     @Column(name = "likes_count", nullable = false, columnDefinition = "int default 0")
     private Integer likesCount = 0;
 
+    @Column(name = "dislikes_count", nullable = false, columnDefinition = "int default 0")
+    private Integer dislikesCount = 0;
+
     @Column(name = "comments_count", nullable = false, columnDefinition = "int default 0")
     private Integer commentsCount = 0;
 
@@ -83,6 +86,9 @@ public class PublicationEntity extends BaseEntity {
     // JSON колони за взаимодействия
     @Column(name = "liked_by_users", columnDefinition = "TEXT")
     private String likedByUsers; // JSON array of usernames
+
+    @Column(name = "disliked_by_users", columnDefinition = "TEXT")
+    private String dislikedByUsers; // JSON array of usernames
 
     @Column(name = "bookmarked_by_users", columnDefinition = "TEXT")
     private String bookmarkedByUsers; // JSON array of usernames
@@ -152,6 +158,16 @@ public class PublicationEntity extends BaseEntity {
     public void decrementLikes() {
         if (this.likesCount > 0) {
             this.likesCount--;
+        }
+    }
+
+    public void incrementDislikes() {
+        this.dislikesCount++;
+    }
+
+    public void decrementDislikes() {
+        if (this.dislikesCount > 0) {
+            this.dislikesCount--;
         }
     }
 
@@ -233,6 +249,51 @@ public class PublicationEntity extends BaseEntity {
         decrementLikes();
     }
 
+    // ====== DISLIKES MANAGEMENT ======
+
+    /**
+     * Проверка дали публикацията е дислайкана от потребител
+     */
+    public boolean isDislikedBy(String userName) {
+        if (dislikedByUsers == null || userName == null) return false;
+        return dislikedByUsers.contains("\"" + userName + "\"");
+    }
+
+    /**
+     * Добавяне на дислайк
+     */
+    public void addDislike(String userName) {
+        if (userName == null) return;
+
+        if (dislikedByUsers == null || dislikedByUsers.isEmpty()) {
+            dislikedByUsers = "[\"" + userName + "\"]";
+        } else if (!isDislikedBy(userName)) {
+            dislikedByUsers = dislikedByUsers.substring(0, dislikedByUsers.length() - 1) + ",\"" + userName + "\"]";
+        }
+        incrementDislikes();
+    }
+
+    /**
+     * Премахване на дислайк
+     */
+    public void removeDislike(String userName) {
+        if (dislikedByUsers == null || userName == null || !isDislikedBy(userName)) return;
+
+        String userStr = "\"" + userName + "\"";
+
+        if (dislikedByUsers.equals("[" + userStr + "]")) {
+            dislikedByUsers = null;
+        } else if (dislikedByUsers.startsWith("[" + userStr + ",")) {
+            dislikedByUsers = dislikedByUsers.replace("[" + userStr + ",", "[");
+        } else if (dislikedByUsers.endsWith("," + userStr + "]")) {
+            dislikedByUsers = dislikedByUsers.replace("," + userStr + "]", "]");
+        } else {
+            dislikedByUsers = dislikedByUsers.replace("," + userStr + ",", ",");
+        }
+
+        decrementDislikes();
+    }
+
     // ====== BOOKMARKS MANAGEMENT ======
 
     public boolean isBookmarkedBy(String userName) {
@@ -292,6 +353,9 @@ public class PublicationEntity extends BaseEntity {
     public Integer getLikesCount() { return likesCount; }
     public void setLikesCount(Integer likesCount) { this.likesCount = likesCount; }
 
+    public Integer getDislikesCount() { return dislikesCount; }
+    public void setDislikesCount(Integer dislikesCount) { this.dislikesCount = dislikesCount; }
+
     public Integer getCommentsCount() { return commentsCount; }
     public void setCommentsCount(Integer commentsCount) { this.commentsCount = commentsCount; }
 
@@ -303,6 +367,9 @@ public class PublicationEntity extends BaseEntity {
 
     public String getLikedByUsers() { return likedByUsers; }
     public void setLikedByUsers(String likedByUsers) { this.likedByUsers = likedByUsers; }
+
+    public String getDislikedByUsers() { return dislikedByUsers; }
+    public void setDislikedByUsers(String dislikedByUsers) { this.dislikedByUsers = dislikedByUsers; }
 
     public String getReportedByUsers() { return reportedByUsers; }
     public void setReportedByUsers(String reportedByUsers) { this.reportedByUsers = reportedByUsers; }

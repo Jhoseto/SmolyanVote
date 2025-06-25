@@ -1206,6 +1206,84 @@
     animation: spinner-border 0.75s linear infinite;
 }
 
+
+/*likeDislike*/
+
+.like-btn, .dislike-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: #65676b;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+    justify-content: center;
+}
+
+.like-btn:hover {
+    background-color: rgba(24, 119, 242, 0.1);
+    color: #4b9f3e;
+}
+
+.dislike-btn:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* ====== ACTIVE STATES ====== */
+.like-btn.liked {
+    color: #4b9f3e !important;
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+.dislike-btn.disliked {
+    color: #e74c3c !important;
+    background-color: rgba(231, 76, 60, 0.15);
+}
+
+/* ====== COUNTS ====== */
+.like-count, .dislike-count {
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.like-btn.liked .like-count {
+    color: #4b9f3e;
+}
+
+.dislike-btn.disliked .dislike-count {
+    color: #e74c3c;
+}
+
+/* ====== ANIMATIONS ====== */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.like-btn.liked {
+    animation: pulse 0.3s ease;
+}
+
+.dislike-btn.disliked {
+    animation: pulse 0.3s ease;
+}
+
+.like-btn:active, .dislike-btn:active {
+    transform: scale(0.96);
+}
+
+
+
 @keyframes spinner-border {
     to {
         transform: rotate(360deg);

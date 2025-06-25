@@ -39,8 +39,14 @@ public interface PublicationService {
 
     boolean toggleLike(Long publicationId, UserEntity user);
 
+    @Transactional(readOnly = true)
+    int getDislikesCount(Long publicationId);
+
     @Transactional
     boolean toggleBookmark(Long publicationId, UserEntity user);
+
+    @Transactional
+    boolean toggleDislike(Long publicationId, UserEntity user);
 
     int getLikesCount(Long publicationId);
     void incrementViewCount(Long publicationId);

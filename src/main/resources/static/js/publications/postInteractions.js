@@ -1,6 +1,7 @@
 class PostInteractions {
     constructor() {
         this.likedPosts = new Set();
+        this.dislikedPosts = new Set();
         this.bookmarkedPosts = new Set();
         this.followedAuthors = new Set();
         this.pendingRequests = new Map();
@@ -319,9 +320,10 @@ class PostInteractions {
                     status: response.status || publicationData.status,
                     createdAt: response.createdAt || new Date().toISOString(),
                     likesCount: response.likesCount || 0,
+                    dislikesCount: response.dislikesCount || 0,
                     commentsCount: response.commentsCount || 0,
                     sharesCount: response.sharesCount || 0,
-                    // ПОПРАВКА: Използвай целия author от response
+                    // Използвай целия author от response
                     author: response.author || {
                         id: window.currentUserId,
                         username: window.currentUser?.username || 'Неизвестен',
@@ -379,6 +381,7 @@ class PostInteractions {
         try {
             const response = await window.publicationsAPI.getUserPreferences();
             this.likedPosts = new Set(response.likedPosts || []);
+            this.dislikedPosts = new Set(response.dislikedPosts || []);
             this.bookmarkedPosts = new Set(response.bookmarkedPosts || []);
             this.followedAuthors = new Set(response.followedAuthors || []);
         } catch (error) {
@@ -421,6 +424,8 @@ class PostInteractions {
         dropdown.style.display = isVisible ? 'none' : 'block';
     }
 
+    // ====== LIKES/DISLIKES FUNCTIONALITY ======
+
     async toggleLike(postId) {
         if (!window.isAuthenticated) {
             this.showLoginPrompt();
@@ -433,54 +438,116 @@ class PostInteractions {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (!postElement) return;
 
-        const likeButton = postElement.querySelector('.post-action');
-        const likeCount = postElement.querySelector('.reaction-count span');
         const isCurrentlyLiked = this.likedPosts.has(postId);
-        const currentCount = parseInt(likeCount.textContent) || 0;
+        const isCurrentlyDisliked = this.dislikedPosts.has(postId);
 
-        // Optimistic update
-        this.updateLikeUI(postElement, !isCurrentlyLiked, currentCount + (isCurrentlyLiked ? -1 : 1));
         this.pendingRequests.set(requestKey, true);
 
         try {
             const response = await window.publicationsAPI.toggleLike(postId);
-            this.updateLikeUI(postElement, response.isLiked, response.likesCount);
 
+            // Update local state
             if (response.isLiked) {
                 this.likedPosts.add(postId);
+                this.dislikedPosts.delete(postId); // Remove dislike if was disliked
                 this.showLikeAnimation(postElement);
                 this.trackInteraction('like', postId);
             } else {
                 this.likedPosts.delete(postId);
                 this.trackInteraction('unlike', postId);
             }
+
+            // Update UI
+            this.updateLikeDislikeUI(postElement, response.isLiked, false, response.likesCount, response.dislikesCount);
+
         } catch (error) {
             console.error('Error toggling like:', error);
-            this.updateLikeUI(postElement, isCurrentlyLiked, currentCount);
             this.showError('Възникна грешка при харесването.');
         } finally {
             this.pendingRequests.delete(requestKey);
         }
     }
 
-    updateLikeUI(postElement, isLiked, count) {
-        const likeButton = postElement.querySelector('.post-action');
-        const likeIcon = likeButton.querySelector('i');
-        const likeCount = postElement.querySelector('.reaction-count span');
-
-        if (isLiked) {
-            likeButton.classList.add('liked');
-            likeIcon.className = 'bi bi-hand-thumbs-up-fill';
-        } else {
-            likeButton.classList.remove('liked');
-            likeIcon.className = 'bi bi-hand-thumbs-up';
+    async toggleDislike(postId) {
+        if (!window.isAuthenticated) {
+            this.showLoginPrompt();
+            return;
         }
 
-        likeCount.textContent = count;
+        const requestKey = `dislike-${postId}`;
+        if (this.pendingRequests.has(requestKey)) return;
+
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+
+        this.pendingRequests.set(requestKey, true);
+
+        try {
+            const response = await window.publicationsAPI.toggleDislike(postId);
+
+            // Update local state
+            if (response.isDisliked) {
+                this.dislikedPosts.add(postId);
+                this.likedPosts.delete(postId); // Remove like if was liked
+                this.trackInteraction('dislike', postId);
+            } else {
+                this.dislikedPosts.delete(postId);
+                this.trackInteraction('undislike', postId);
+            }
+
+            // Update UI
+            this.updateLikeDislikeUI(postElement, false, response.isDisliked, response.likesCount, response.dislikesCount);
+
+        } catch (error) {
+            console.error('Error toggling dislike:', error);
+            this.showError('Възникна грешка при дислайкването.');
+        } finally {
+            this.pendingRequests.delete(requestKey);
+        }
+    }
+
+    updateLikeDislikeUI(postElement, isLiked, isDisliked, likesCount, dislikesCount) {
+        // Update like button
+        const likeButton = postElement.querySelector('.like-btn');
+        const likeIcon = likeButton?.querySelector('i');
+        const likeCountElement = postElement.querySelector('.like-count');
+
+        if (likeButton && likeIcon) {
+            if (isLiked) {
+                likeButton.classList.add('liked');
+                likeIcon.className = 'bi bi-hand-thumbs-up-fill';
+            } else {
+                likeButton.classList.remove('liked');
+                likeIcon.className = 'bi bi-hand-thumbs-up';
+            }
+        }
+
+        if (likeCountElement) {
+            likeCountElement.textContent = likesCount;
+        }
+
+        // Update dislike button
+        const dislikeButton = postElement.querySelector('.dislike-btn');
+        const dislikeIcon = dislikeButton?.querySelector('i');
+        const dislikeCountElement = postElement.querySelector('.dislike-count');
+
+        if (dislikeButton && dislikeIcon) {
+            if (isDisliked) {
+                dislikeButton.classList.add('disliked');
+                dislikeIcon.className = 'bi bi-hand-thumbs-down-fill';
+            } else {
+                dislikeButton.classList.remove('disliked');
+                dislikeIcon.className = 'bi bi-hand-thumbs-down';
+            }
+        }
+
+        if (dislikeCountElement) {
+            dislikeCountElement.textContent = dislikesCount;
+        }
     }
 
     showLikeAnimation(postElement) {
-        const likeButton = postElement.querySelector('.post-action');
+        const likeButton = postElement.querySelector('.like-btn');
         const rect = likeButton.getBoundingClientRect();
 
         const heart = document.createElement('div');
@@ -498,6 +565,8 @@ class PostInteractions {
         document.body.appendChild(heart);
         setTimeout(() => document.body.removeChild(heart), 1000);
     }
+
+    // ====== OTHER INTERACTIONS ======
 
     async sharePublication(postId) {
         try {
@@ -762,7 +831,7 @@ class PostInteractions {
     updateLikeCount(postId, count) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
-            const likeCount = postElement.querySelector('.reaction-count span');
+            const likeCount = postElement.querySelector('.like-count');
             if (likeCount) {
                 likeCount.textContent = count;
                 likeCount.style.transform = 'scale(1.1)';
@@ -825,9 +894,11 @@ class PostInteractions {
 
     // Public API methods
     isPostLiked(postId) { return this.likedPosts.has(postId); }
+    isPostDisliked(postId) { return this.dislikedPosts.has(postId); }
     isPostBookmarked(postId) { return this.bookmarkedPosts.has(postId); }
     isAuthorFollowed(authorId) { return this.followedAuthors.has(authorId); }
     getLikedPosts() { return Array.from(this.likedPosts); }
+    getDislikedPosts() { return Array.from(this.dislikedPosts); }
     getBookmarkedPosts() { return Array.from(this.bookmarkedPosts); }
     getFollowedAuthors() { return Array.from(this.followedAuthors); }
 }
@@ -847,6 +918,10 @@ window.togglePostMenu = function(element) {
 
 window.toggleLike = function(postId) {
     window.postInteractions?.toggleLike(postId);
+};
+
+window.toggleDislike = function(postId) {
+    window.postInteractions?.toggleDislike(postId);
 };
 
 window.sharePublication = function(postId) {
@@ -909,16 +984,21 @@ animationStyles.textContent = `
         100% { transform: scale(1); }
     }
     
-    .post-action {
+    .like-btn, .dislike-btn {
         transition: all 0.2s ease;
     }
     
-    .post-action:active {
+    .like-btn:active, .dislike-btn:active {
         transform: scale(0.95);
     }
     
-    .post-action.liked {
+    .like-btn.liked {
         color: #1877f2 !important;
+        animation: pulse 0.3s ease;
+    }
+    
+    .dislike-btn.disliked {
+        color: #e74c3c !important;
         animation: pulse 0.3s ease;
     }
     
@@ -939,11 +1019,11 @@ animationStyles.textContent = `
         background: #218838 !important;
     }
     
-    .reaction-count {
+    .like-count, .dislike-count {
         transition: transform 0.2s ease;
     }
     
-    .reaction-count:hover {
+    .like-count:hover, .dislike-count:hover {
         transform: scale(1.05);
     }
     
