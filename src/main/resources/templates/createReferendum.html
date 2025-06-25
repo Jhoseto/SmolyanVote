@@ -9,7 +9,7 @@
 
   <link rel="icon" type="image/x-icon" href="/images/logo1.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/createReferendum.css">
 </head>
 <body>
@@ -515,6 +515,7 @@
 <!-- Футър -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="/js/createReferendum.js"></script>
 </body>
 </html>

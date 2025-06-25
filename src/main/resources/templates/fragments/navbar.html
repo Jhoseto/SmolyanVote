@@ -63,23 +63,11 @@
 
                     <!-- Логнати потребители -->
                     <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
-                        <!-- ПРЕМАХНАТИ: data-bs-toggle="dropdown" aria-expanded="false" -->
                         <a class="profile-toggle-glass d-flex align-items-center" href="#" role="button">
-                            <!-- Показване на профилна снимка или началната буква от името, ако няма снимка -->
-                            <span th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
-                                  class="avatar-placeholder-glass rounded-circle d-flex justify-content-center align-items-center">
-                                <span th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 1).toUpperCase()}">A</span>
-                            </span>
-                            <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() != null}"
-                                 th:src="${@userServiceImpl.getCurrentUser().getImageUrl()}"
-                                 onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2230%22%20height=%2230%22%20viewBox=%220%200%2030%2030%22%3E%3Ccircle%20cx=%2215%22%20cy=%2215%22%20r=%2214%22%20fill=%22%23ccc%22/%3E%3Ctext%20x=%2215%22%20y=%2220%22%20font-size=%2212%22%20font-family=%22Arial%22%20text-anchor=%22middle%22%20fill=%22%23fff%22%3E%E2%9C%94%3C/text%3E%3C/svg%3E'"
-                                 alt="User Image" class="profile-image-glass me-2">
-
-                            <!-- Ако няма изображение, показваме първите две букви от името на потребителя -->
-                            <img th:if="${@userServiceImpl.getCurrentUser()?.getImageUrl() == null}"
-                                 th:text="${#strings.substring(@userServiceImpl.getCurrentUser().getUsername(), 0, 2)}"
-                                 class="profile-image-glass me-2"
-                                 th:style="'background-color: ' + ${randomColor} + '; color: #fff; text-align: center; font-size: 14px; width: 30px; height: 30px;'" alt="" src="">
+                            <!-- ПРОМЯНА: Заменяме цялата объркана логика с един avatar-placeholder -->
+                            <div class="profile-image-glass avatar-placeholder me-2"
+                                 th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
+                            </div>
 
                             <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
                         </a>

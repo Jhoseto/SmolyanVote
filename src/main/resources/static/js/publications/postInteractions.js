@@ -535,7 +535,7 @@ class PostInteractions {
             }
         }
 
-        // Update stats counts - ТУК Е НОВОТО
+        // Update stats counts
         const likeStatsCount = postElement.querySelector('.like-stats-count');
         if (likeStatsCount) {
             likeStatsCount.textContent = likesCount || 0;
