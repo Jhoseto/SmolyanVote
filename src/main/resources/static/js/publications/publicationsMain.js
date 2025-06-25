@@ -212,9 +212,14 @@ class PublicationsManager {
         const status = this.normalizeStatus(post.status);
         const category = this.normalizeCategory(post.category);
 
+        // Използваме avatarUtils за създаване на avatar
+        const authorAvatarHTML = window.avatarUtils ?
+            window.avatarUtils.createAvatar(authorImageUrl, authorUsername, 40, 'user-avatar') :
+            `<img class="user-avatar" src="${authorImageUrl}" alt="${authorUsername}" style="width:40px;height:40px;">`;
+
         postDiv.innerHTML = `
         <div class="post-header">
-            <img class="user-avatar" src="${authorImageUrl}" alt="${this.escapeHtml(authorUsername)}" onerror="this.src='/images/default-avatar.png'">
+            ${authorAvatarHTML}
             <div class="post-author-info">
                 <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
                 <div class="post-meta">
@@ -330,6 +335,7 @@ class PublicationsManager {
         `;
     }
 
+    // Останалите методи остават същите...
     startInlineEdit(postId) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (!postElement || postElement.querySelector('.edit-textarea')) return;

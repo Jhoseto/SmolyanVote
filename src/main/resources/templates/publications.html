@@ -11,7 +11,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/publications.css">
   <link rel="stylesheet" href="/css/createPublication.css">
-  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
@@ -237,7 +237,10 @@
     <!-- Create Post Section -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
       <div class="create-post-header">
-        <img class="user-avatar" th:src="${currentUser?.imageUrl ?: '/images/default-avatar.png'}" alt="UserImage" onerror="this.src='/images/default-avatar.png'">
+        <!-- ПРОМЯНА 1: Заменяме img с div който ще се попълни от avatarUtils -->
+        <div class="user-avatar avatar-placeholder"
+             th:attr="data-user-image=${currentUser?.imageUrl ?: '/images/default-avatar.png'},data-username=${currentUser?.username ?: 'потребител'}">
+        </div>
         <div class="create-post-input" onclick="expandCreateForm()">
           <span class="placeholder-text">Какво мислите, <span th:text="${currentUser?.username ?: 'потребител'}">потребител</span>?</span>
         </div>
@@ -352,7 +355,8 @@
 
     <!-- Posts Feed -->
     <div class="posts-container" id="postsContainer">
-      <!-- Posts will be loaded here via JavaScript -->
+      <!-- ПРОМЯНА 2: Добавяме data-avatar-container за автоматично обработване -->
+      <!-- Posts will be loaded here via JavaScript and avatarUtils will auto-process them -->
     </div>
 
     <!-- Loading Indicator -->
@@ -415,10 +419,9 @@
       </h3>
       <div class="top-authors-today" id="topAuthorsToday">
         <div class="author-item" th:each="author : ${todayTopAuthors}" th:if="${author != null}">
-          <img class="author-avatar"
-               th:src="${author.imageUrl ?: '/images/default-avatar.png'}"
-               th:alt="${author.username ?: 'User'}"
-               onerror="this.src='/images/default-avatar.png'">
+          <div class="author-avatar avatar-placeholder"
+               th:attr="data-user-image=${author.imageUrl ?: '/images/default-avatar.png'},data-username=${author.username ?: 'Анонимен'},data-user-id=${author.id}">
+          </div>
           <div class="author-info">
             <div class="author-name" th:text="${author.username ?: 'Анонимен'}">Автор</div>
             <div class="author-stats" th:text="${(author.publicationsCount ?: 0) + ' публикации днес'}">0 публикации днес</div>
@@ -478,9 +481,74 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="/js/utils/avatarUtils.js"></script>
 <script src="/js/publications/filtersManager.js"></script>
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Инициализираме avatar placeholders
+    setTimeout(() => {
+      initializeAvatarPlaceholders();
+      // Също така стартираме стандартната инициализация
+      if (window.avatarUtils) {
+        window.avatarUtils.updateAll();
+      }
+    }, 300);
+  });
+
+  // Функция за инициализация на avatar placeholders
+  function initializeAvatarPlaceholders() {
+    document.querySelectorAll('.avatar-placeholder').forEach(placeholder => {
+      const imageUrl = placeholder.getAttribute('data-user-image');
+      const username = placeholder.getAttribute('data-username');
+      const userId = placeholder.getAttribute('data-user-id');
+      const size = placeholder.offsetWidth || 40;
+      const className = placeholder.className.replace('avatar-placeholder', '').trim();
+
+      if (window.createAvatar && username) {
+        // Добавяме user-id атрибут ако съществува
+        const avatarHtml = window.createAvatar(imageUrl, username, size, className);
+
+        // Създаваме временен div за да парсираме HTML-а
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = avatarHtml;
+        const avatarElement = tempDiv.firstElementChild;
+
+        // Добавяме data атрибути ако ги има
+        if (userId) {
+          avatarElement.setAttribute('data-user-id', userId);
+        }
+        if (imageUrl) {
+          avatarElement.setAttribute('data-user-image', imageUrl);
+        }
+        if (username) {
+          avatarElement.setAttribute('data-username', username);
+        }
+
+        // Заменяме placeholder-а
+        placeholder.outerHTML = avatarElement.outerHTML;
+      }
+    });
+  }
+
+  // Функция за обновяване на avatars след AJAX заявки
+  function refreshAvatarsAfterAjax() {
+    setTimeout(() => {
+      initializeAvatarPlaceholders();
+      if (window.avatarUtils) {
+        window.avatarUtils.initializeAllAvatars();
+      }
+    }, 100);
+  }
+
+  // Export функцията за използване в други скриптове
+  window.refreshAvatarsAfterAjax = refreshAvatarsAfterAjax;
+  window.initializeAvatarPlaceholders = initializeAvatarPlaceholders;
+</script>
 </body>
 </html>

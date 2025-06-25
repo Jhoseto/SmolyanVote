@@ -11,7 +11,7 @@
   <!-- WaveSurfer.js -->
   <script src="https://unpkg.com/wavesurfer.js@7.8.0/dist/wavesurfer.min.js"></script>
   <!-- Персонализиран CSS -->
-  <div th:replace="~{fragments/navbarStyles :: navbarStyles}"></div>
+  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/podcast.css">
   <link rel="stylesheet" href="/css/podcastCard.css">
 </head>
@@ -192,7 +192,7 @@
 </div>
 
 <!-- JavaScript за функционалности -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="/js/podcast.js"></script>
 
 </body>
