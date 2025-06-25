@@ -90,7 +90,7 @@
 .left-sidebar {
     width: var(--sidebar-width);
     position: sticky;
-    top: 20px;
+    top: 80px;
     height: fit-content;
     max-height: 2100px;
     overflow-y: auto;
@@ -100,7 +100,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--fb-border);
     margin-bottom: 20px;
     background: var(--fb-white);
@@ -138,7 +138,7 @@
     font-size: 18px;
     font-weight: 700;
     color: var(--fb-text);
-    margin-bottom: 20px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -729,11 +729,11 @@
     border-radius: 6px;
 }
 
-.stats-item:hover {
-    background: rgba(75, 177, 92, 0.1);
-    color: var(--primary-color);
-    transform: translateY(-1px);
-}
+/*.stats-item:hover {*/
+/*    background: rgba(75, 177, 92, 0.1);*/
+/*    color: var(--primary-color);*/
+/*    transform: translateY(-1px);*/
+/*}*/
 
 .stats-icon {
     font-size: 16px;
@@ -748,16 +748,78 @@
     text-align: center;
 }
 
-.stats-item:hover .stats-count {
-    transform: scale(1.05);
+/*.stats-item:hover .stats-count {*/
+/*    transform: scale(1.05);*/
+/*}*/
+
+/*.stats-item:hover .stats-icon {*/
+/*    color: var(--primary-dark);*/
+/*    transform: scale(1.1);*/
+/*}*/
+
+/* ====== POST ACTIONS ====== */
+.post-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 8px 0;
+    background: var(--fb-white);
+    border-top: 1px solid var(--fb-border);
 }
 
-.stats-item:hover .stats-icon {
-    color: var(--primary-dark);
+.post-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 5px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 6px;
+    color: var(--fb-text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    flex: 1;
+    position: relative;
+}
+
+/* Премахваме всички hover/focus ефекти за like/dislike */
+.like-btn:hover, .dislike-btn:hover,
+.like-btn:focus, .dislike-btn:focus,
+.like-btn:focus-visible, .dislike-btn:focus-visible,
+.like-btn:active, .dislike-btn:active {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: none !important;
+    color: var(--fb-text-secondary) !important;
+}
+
+/* Hover само за comment и share */
+.comment-btn:hover, .share-btn:hover {
+    background-color: rgba(75, 177, 92, 0.1) !important;
+    color: var(--primary-color) !important;
+    transform: translateY(-1px);
+}
+
+.post-action i {
+    font-size: 20px;
+    color: var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.comment-btn:hover i, .share-btn:hover i {
+    color: var(--primary-dark) !important;
     transform: scale(1.1);
 }
 
-/* ====== ЗЕЛЕНИ СТИЛОВЕ ЗА POST ACTIONS ====== */
+/* ====== POST ACTIONS ====== */
 .post-actions {
     display: flex;
     align-items: center;
@@ -774,7 +836,9 @@
     gap: 8px;
     padding: 10px 5px;
     background: none;
-    border: none;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
     border-radius: 6px;
     color: var(--fb-text-secondary);
     font-size: 15px;
@@ -786,11 +850,19 @@
     position: relative;
 }
 
+/* Hover ефекти за всички бутони */
 .post-action:hover {
     background-color: rgba(75, 177, 92, 0.1);
     color: var(--primary-color);
     text-decoration: none;
     transform: translateY(-1px);
+}
+
+/* Премахваме само border/outline при focus и active */
+.post-action:focus, .post-action:focus-visible, .post-action:active {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .post-action i {
@@ -807,12 +879,17 @@
 /* ====== АКТИВНИ СЪСТОЯНИЯ НА БУТОНИТЕ ====== */
 .like-btn.liked {
     color: var(--primary-color) !important;
-    background: rgba(75, 177, 92, 0.15);
+    background: rgba(75, 177, 92, 0.1);
 }
 
 .like-btn.liked:hover {
-    background: rgba(75, 177, 92, 0);
+    background: rgba(75, 177, 92, 0.15);
     color: var(--primary-dark) !important;
+}
+
+.like-btn.liked:focus, .like-btn.liked:active {
+    border: none !important;
+    outline: none !important;
 }
 
 .like-btn.liked i {
@@ -822,12 +899,17 @@
 
 .dislike-btn.disliked {
     color: #e74c3c !important;
-    background: rgba(231, 76, 60, 0);
+    background: rgba(231, 76, 60, 0.1);
 }
 
 .dislike-btn.disliked:hover {
-    background: rgba(231, 76, 60, 0);
+    background: rgba(231, 76, 60, 0.15);
     color: #c0392b !important;
+}
+
+.dislike-btn.disliked:focus, .dislike-btn.disliked:active {
+    border: none !important;
+    outline: none !important;
 }
 
 .dislike-btn.disliked i {
@@ -835,14 +917,42 @@
     text-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
 }
 
-.comment-btn:hover {
-    background: rgba(75, 177, 92, 0.1);
-    color: var(--primary-color);
+/* Анимации при клик */
+.like-btn.liked {
+    animation: pulseGreen 0.3s ease;
 }
 
-.share-btn:hover {
-    background: rgba(75, 177, 92, 0.1);
-    color: var(--primary-color);
+.dislike-btn.disliked {
+    animation: pulseRed 0.3s ease;
+}
+
+@keyframes pulseGreen {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulseRed {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.bookmark-btn.bookmarked {
+    color: #ffc107 !important;
+    animation: pulse 0.3s ease;
+}
+
+.follow-btn {
+    transition: all 0.2s ease;
+}
+
+.follow-btn.following {
+    background: #28a745 !important;
+}
+
+.follow-btn.following:hover {
+    background: #218838 !important;
 }
 
 .post-action:active {
@@ -967,7 +1077,7 @@
 .right-sidebar {
     width: var(--sidebar-width);
     position: sticky;
-    top: 20px;
+    top: 80px;
     height: fit-content;
     max-height: 800px;
     overflow-y: auto;
@@ -1434,7 +1544,7 @@
     .left-sidebar {
         position: fixed;
         height: 100vh;
-        top: 0;
+        top: 20px;
         left: -100%;
         width: 100%;
         background: var(--fb-white);
