@@ -57,4 +57,7 @@ public interface PublicationService {
 
     boolean canViewPublication(PublicationEntity publication, Authentication auth);
     boolean canEditPublication(PublicationEntity publication, Authentication auth);
+
+    @Transactional(readOnly = true)
+    List<UserEntity> getTodayTopAuthors(int limit);
 }

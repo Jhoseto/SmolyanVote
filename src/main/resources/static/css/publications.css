@@ -262,14 +262,14 @@
 }
 
 .filter-option .count {
-    font-size: 13px;
+    font-size: 14px;
     background: var(--fb-border);
     color: var(--fb-text-secondary);
     padding: 2px 8px;
     border-radius: 12px;
     font-weight: 600;
     min-width: 24px;
-    text-align: center;
+    text-align: right;
 }
 
 .filter-option.active .count {
@@ -902,7 +902,7 @@
     position: sticky;
     top: 20px;
     height: fit-content;
-    max-height: 680px;
+    max-height: 800px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1158,6 +1158,72 @@
 .online-status-indicator.offline {
     background-color: #6b7280 !important;
 }
+
+
+/*edit options*/
+.inline-edit-form {
+    margin: 12px 0;
+}
+
+.edit-textarea {
+    width: 100%;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 120px;
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    color: #7e7e7e;
+}
+
+.edit-buttons .btn {
+    padding: 6px 12px;
+    font-size: 13px;
+
+}
+
+
+/*createPublicationLoader*/
+/* Loading spinner for submit button */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+}
+
+.spinner-border {
+    display: inline-block;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 
 @keyframes pulse-dot {
     0% {

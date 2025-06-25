@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
-import smolyanVote.smolyanVote.models.enums.EventStatus;
+import smolyanVote.smolyanVote.models.enums.PublicationStatus;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -39,7 +39,7 @@ public class PublicationEntity extends BaseEntity {
     @NotNull(message = "Статусът е задължителен")
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private EventStatus status;
+    private PublicationStatus status;
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
@@ -105,7 +105,7 @@ public class PublicationEntity extends BaseEntity {
         this.content = content;
         this.category = category;
         this.author = author;
-        this.status = EventStatus.DRAFT;
+        this.status = PublicationStatus.PENDING;
         this.generateExcerpt();
         this.calculateReadingTime();
     }
@@ -132,12 +132,12 @@ public class PublicationEntity extends BaseEntity {
     }
 
     public void publish() {
-        this.status = EventStatus.ACTIVE;
+        this.status = PublicationStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
     }
 
     public void unpublish() {
-        this.status = EventStatus.DRAFT;
+        this.status = PublicationStatus.PENDING;
         this.publishedAt = null;
     }
 
@@ -175,17 +175,17 @@ public class PublicationEntity extends BaseEntity {
     }
 
     public boolean canBeViewedBy(UserEntity user) {
-        if (status == EventStatus.ACTIVE) return true;
+        if (status == PublicationStatus.PUBLISHED) return true;
         if (user == null) return false;
         return author.getId().equals(user.getId());
     }
 
     public boolean isPublished() {
-        return status == EventStatus.ACTIVE;
+        return status == PublicationStatus.PUBLISHED;
     }
 
     public boolean isDraft() {
-        return status == EventStatus.DRAFT;
+        return status == PublicationStatus.PENDING;
     }
 
     // ====== LIKES MANAGEMENT (САМО USERNAME) ======
@@ -280,8 +280,8 @@ public class PublicationEntity extends BaseEntity {
     public CategoryEnum getCategory() { return category; }
     public void setCategory(CategoryEnum category) { this.category = category; }
 
-    public EventStatus getStatus() { return status; }
-    public void setStatus(EventStatus status) { this.status = status; }
+    public PublicationStatus getStatus() { return status; }
+    public void setStatus(PublicationStatus status) { this.status = status; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }

@@ -257,16 +257,40 @@ class PostInteractions {
         const imageInput = document.getElementById('postImage');
         const submitBtn = document.getElementById('submitPost');
 
+        // Show loading animation
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Публикуване...';
+        submitBtn.innerHTML = `
+        <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        Публикуване...
+    `;
+
+        // Add loading overlay to form
+        const formContainer = document.getElementById('createPostExpanded');
+        if (formContainer) {
+            formContainer.style.opacity = '0.7';
+            formContainer.style.pointerEvents = 'none';
+        }
 
         try {
             let imageUrl = null;
 
+            // Upload image with progress
             if (imageInput.files.length > 0) {
+                submitBtn.innerHTML = `
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                Качване на снимка...
+            `;
+
                 const response = await window.publicationsAPI.uploadImage(imageInput.files[0]);
                 imageUrl = response.url;
             }
+
+            submitBtn.innerHTML = `
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            Запазване...
+        `;
 
             const publicationData = {
                 title: content.substring(0, 100) || 'Публикация',
@@ -276,39 +300,77 @@ class PostInteractions {
                 emotion: this.selectedEmotion,
                 emotionText: this.selectedEmotionText,
                 imageUrl: imageUrl,
-                status: 'PUBLISHED',
-                author: {
-                    id: window.currentUserId,
-                    username: window.currentUsername
-                },
-                createdAt: new Date().toISOString(),
-                likesCount: 0,
-                commentsCount: 0,
-                sharesCount: 0
+                status: 'PUBLISHED'
             };
 
             const response = await window.publicationsAPI.createPublication(publicationData);
 
             if (response && response.id) {
-                publicationData.id = response.id;
+                // Get full publication data from server response
+                const fullPublicationData = {
+                    id: response.id,
+                    title: response.title || publicationData.title,
+                    content: response.content || publicationData.content,
+                    excerpt: response.excerpt || publicationData.excerpt,
+                    category: response.category || publicationData.category,
+                    emotion: response.emotion || publicationData.emotion,
+                    emotionText: response.emotionText || publicationData.emotionText,
+                    imageUrl: response.imageUrl || publicationData.imageUrl,
+                    status: response.status || publicationData.status,
+                    createdAt: response.createdAt || new Date().toISOString(),
+                    likesCount: response.likesCount || 0,
+                    commentsCount: response.commentsCount || 0,
+                    sharesCount: response.sharesCount || 0,
+                    // ПОПРАВКА: Използвай целия author от response
+                    author: response.author || {
+                        id: window.currentUserId,
+                        username: window.currentUser?.username || 'Неизвестен',
+                        imageUrl: window.currentUser?.imageUrl || '/images/default-avatar.png',
+                        onlineStatus: 1
+                    }
+                };
 
-                if (window.publicationsManager) {
-                    window.publicationsManager.addPost(publicationData);
-                }
+                // Success animation
+                submitBtn.innerHTML = `
+                <i class="bi bi-check-circle"></i>
+                Публикувано!
+            `;
+                submitBtn.style.background = '#28a745';
 
-                this.showToast('Публикацията е създадена успешно!', 'success');
-                this.collapseCreateForm();
-                this.trackInteraction('create_post', response.id);
+                setTimeout(() => {
+                    if (window.publicationsManager) {
+                        window.publicationsManager.addPost(fullPublicationData);
+                    }
 
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                    this.showToast('Публикацията е създадена успешно!', 'success');
+                    this.collapseCreateForm();
+                    this.trackInteraction('create_post', response.id);
+
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 1000);
             }
 
         } catch (error) {
             console.error('Error creating post:', error);
-            this.showError('Възникна грешка при създаването на публикацията.');
+
+            // ЗАЩИТА: Специална обработка за rate limiting (429 status)
+            if (error.status === 429) {
+                this.showError('Можете да публикувате само една публикация на минута. Моля, изчакайте.');
+            } else {
+                this.showError('Засечен е СПАМ или съдържание от грозен характер !');
+            }
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Публикувай';
+            // Reset form state
+            setTimeout(() => {
+                if (formContainer) {
+                    formContainer.style.opacity = '1';
+                    formContainer.style.pointerEvents = 'auto';
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Публикувай';
+                submitBtn.style.background = '';
+            }, this.isFormExpanded ? 0 : 1500);
         }
     }
 

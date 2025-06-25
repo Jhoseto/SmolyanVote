@@ -21,26 +21,53 @@ class PublicationsManager {
         this.setupEventListeners();
         this.setupInfiniteScroll();
         this.setupScrollToTop();
+
+        // TODO: Разкоментирай когато имаш 50+ постове със снимки
+        // this.setupLazyImageLoading();
+
+        // TODO: Разкоментирай когато имаш 500+ постове
+        // this.setupVirtualScrolling();
+
         this.loadInitialPosts();
     }
 
     setupEventListeners() {
         // Listen for filter changes
         if (window.filtersManager) {
-            // Override the filter manager's update method to notify us
             const originalUpdate = window.filtersManager.updateFilter;
             window.filtersManager.updateFilter = (...args) => {
                 originalUpdate.apply(window.filtersManager, args);
                 this.onFiltersChanged(window.filtersManager.getCurrentFilters());
             };
         }
+
+        // Post menu handling
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.post-menu')) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const menu = e.target.closest('.post-menu');
+                const dropdown = menu.querySelector('.post-menu-dropdown');
+
+                // Close all other menus
+                document.querySelectorAll('.post-menu-dropdown').forEach(d => {
+                    if (d !== dropdown) d.style.display = 'none';
+                });
+
+                // Toggle current menu
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            } else {
+                // Close all menus when clicking outside
+                document.querySelectorAll('.post-menu-dropdown').forEach(d => {
+                    d.style.display = 'none';
+                });
+            }
+        });
     }
 
     onFiltersChanged(filters) {
-        // Apply filters locally first for instant response
         this.applyLocalFilters();
-
-        // Then load from server with debounce
         this.debouncedServerLoad();
     }
 
@@ -105,20 +132,17 @@ class PublicationsManager {
             const filters = window.filtersManager ? window.filtersManager.getCurrentFilters() : {};
             const cacheKey = this.getCacheKey(filters, this.currentPage);
 
-            // Try cache first
             let data = window.filtersManager ? window.filtersManager.getCachedResults(cacheKey) : null;
 
             if (!data) {
                 data = await window.publicationsAPI.getPublications(filters, this.currentPage, this.postsPerPage);
 
-                // Cache the results
                 if (window.filtersManager) {
                     window.filtersManager.setCachedResults(cacheKey, data);
                 }
             }
 
             if (data.publications && data.publications.length > 0) {
-                // Add to all loaded posts
                 data.publications.forEach(post => {
                     if (!this.loadedPosts.has(post.id)) {
                         this.allLoadedPosts.push(post);
@@ -130,7 +154,6 @@ class PublicationsManager {
                 this.currentPage++;
                 this.hasMorePosts = data.publications.length === this.postsPerPage;
 
-                // Preload next page if we're getting close
                 if (this.hasMorePosts && this.allLoadedPosts.length < this.preloadThreshold * this.postsPerPage) {
                     this.preloadNextPage(filters);
                 }
@@ -160,7 +183,6 @@ class PublicationsManager {
                 window.filtersManager.setCachedResults(cacheKey, nextPageData);
             }
         } catch (error) {
-            // Preloading failed, but that's ok
             console.warn('Preload failed:', error);
         }
     }
@@ -173,9 +195,15 @@ class PublicationsManager {
         const postsContainer = document.getElementById('postsContainer');
         if (!postsContainer) return;
 
+        // TODO: Когато активираш virtual scrolling, използвай:
+        // return this.renderPostsVirtual(posts);
+
         posts.forEach(post => {
             const postElement = this.createPostElement(post);
             postsContainer.appendChild(postElement);
+
+            // TODO: Когато активираш lazy loading, добави:
+            // this.observeNewImages(postElement);
         });
 
         this.hideNoResults();
@@ -186,10 +214,7 @@ class PublicationsManager {
         postDiv.className = 'post';
         postDiv.dataset.postId = post.id;
 
-        // ПОПРАВКА: По-сигурна обработка на датата
         const timeAgo = this.formatTimeAgo(post.createdAt || post.created || new Date());
-
-        // ПОПРАВКА: По-сигурна обработка на автора
         const authorUsername = post.author?.username || 'Анонимен';
         const authorImageUrl = post.author?.imageUrl || '/images/default-avatar.png';
         const authorId = post.author?.id || 0;
@@ -197,7 +222,6 @@ class PublicationsManager {
         const isOwner = this.isCurrentUserOwner(authorId);
         const isLiked = window.postInteractions ? window.postInteractions.isPostLiked(post.id) : false;
 
-        // ПОПРАВКА: По-сигурна обработка на енуми и опционални полета
         const status = this.normalizeStatus(post.status);
         const category = this.normalizeCategory(post.category);
 
@@ -207,27 +231,31 @@ class PublicationsManager {
             <div class="post-author-info">
                 <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
                 <div class="post-meta">
-                <span>${timeAgo}</span>
-                <i class="bi bi-circle online-status-indicator ${this.getOnlineStatus(post.author)}" title="${this.getOnlineStatusText(post.author)}"></i>
-                <span>•</span><span
-                <span class="post-status ${this.getStatusClass(status)}">
-                     ${this.getStatusText(status)}
-                </span>
-                     ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
+                    <span>${timeAgo}</span>
+                    <i class="bi bi-circle online-status-indicator ${this.getOnlineStatus(post.author)}" title="${this.getOnlineStatusText(post.author)}"></i>
+                    <span>•</span>
+                    <span class="post-status ${this.getStatusClass(post.status)}">
+                        ${this.getStatusText(status)}
+                    </span>
+                    ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                 </div>
             </div>
             ${isOwner ? this.createPostMenu(post.id) : ''}
         </div>
         
         <div class="post-content">
-                <div class="post-category">
-                    <i class="${this.getCategoryIcon(category)}"></i>
-                    <span>${this.getCategoryText(category)}</span>
-                </div>
-                <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
-                ${post.excerpt && post.excerpt !== post.title ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
-                ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
+            <div class="post-category">
+                <i class="${this.getCategoryIcon(category)}"></i>
+                <span>${this.getCategoryText(category)}</span>
             </div>
+            <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
+            ${post.excerpt && post.excerpt !== post.title ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
+            ${post.imageUrl ?
+            // TODO: За lazy loading промени на:
+            // `<img data-src="${post.imageUrl}" class="post-image lazy" src="/images/placeholder.jpg" alt="Publication image">`
+            `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">`
+            : ''}
+        </div>
 
         <div class="post-stats">
             <div class="stats-left">
@@ -263,27 +291,21 @@ class PublicationsManager {
         return postDiv;
     }
 
-
     getOnlineStatus(author) {
         if (!author) return 'offline';
 
-        // Проверяваме onlineStatus или lastOnline
         if (author.onlineStatus === 1) {
             return 'online';
         }
 
-        // Проверяваме lastOnline времето
         if (author.lastOnline) {
             const lastOnlineDate = new Date(author.lastOnline);
             const now = new Date();
             const diffMinutes = (now - lastOnlineDate) / (1000 * 60);
 
-            // Ако е логнат в последните 5 минути - онлайн
             if (diffMinutes <= 5) {
                 return 'online';
-            }
-            // Ако е логнат в последните 30 минути - away
-            else if (diffMinutes <= 30) {
+            } else if (diffMinutes <= 30) {
                 return 'away';
             }
         }
@@ -306,7 +328,7 @@ class PublicationsManager {
             <div class="post-menu">
                 <i class="bi bi-three-dots"></i>
                 <div class="post-menu-dropdown" style="display: none;">
-                    <a href="/publications/${postId}/edit" class="menu-item">
+                    <a href="javascript:void(0)" class="menu-item" onclick="startInlineEdit(${postId})">
                         <i class="bi bi-pencil"></i> Редактирай
                     </a>
                     <a href="javascript:void(0)" class="menu-item text-danger" onclick="confirmDelete(${postId})">
@@ -317,6 +339,157 @@ class PublicationsManager {
         `;
     }
 
+    startInlineEdit(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement || postElement.querySelector('.edit-textarea')) return;
+
+        const post = this.allLoadedPosts.find(p => p.id === postId);
+        if (!post) return;
+
+        const contentDiv = postElement.querySelector('.post-content');
+        const titleElement = postElement.querySelector('.post-title');
+        const excerptElement = postElement.querySelector('.post-excerpt');
+
+        const fullContent = post.content || ((post.title || '') + '\n\n' + (post.excerpt || '')).trim();
+
+        // Hide original content
+        titleElement.style.display = 'none';
+        if (excerptElement) excerptElement.style.display = 'none';
+
+        // Create edit form
+        const editForm = document.createElement('div');
+        editForm.className = 'inline-edit-form';
+        editForm.innerHTML = `
+            <textarea class="edit-textarea" rows="6" placeholder="Напишете вашия текст...">${this.escapeHtml(fullContent)}</textarea>
+            <div class="edit-buttons">
+                <button class="btn btn-primary btn-sm" onclick="saveInlineEdit(${postId})">
+                    <i class="bi bi-check"></i> Запази
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="cancelInlineEdit(${postId})">
+                    <i class="bi bi-x"></i> Отказ
+                </button>
+            </div>
+        `;
+
+        // Insert after category
+        const categoryElement = postElement.querySelector('.post-category');
+        categoryElement.parentNode.insertBefore(editForm, categoryElement.nextSibling);
+
+        // Focus textarea
+        setTimeout(() => {
+            const textarea = editForm.querySelector('.edit-textarea');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }, 100);
+
+        // Close menu
+        document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    }
+
+    async saveInlineEdit(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        const textarea = postElement.querySelector('.edit-textarea');
+        const newContent = textarea.value.trim();
+
+        if (!newContent) {
+            alert('Текстът не може да бъде празен!');
+            return;
+        }
+
+        try {
+            const post = this.allLoadedPosts.find(p => p.id === postId);
+            if (!post) {
+                throw new Error('Публикацията не е намерена');
+            }
+
+            // Split content into title and excerpt
+            const lines = newContent.split('\n');
+            const newTitle = lines[0].substring(0, 100);
+            const remainingContent = lines.slice(1).join('\n').trim();
+            const newExcerpt = remainingContent.substring(0, 200);
+
+            const updateData = {
+                title: newTitle,
+                content: newContent,
+                category: post.category,
+                emotion: post.emotion,
+                emotionText: post.emotionText,
+                imageUrl: post.imageUrl
+            };
+
+            await window.publicationsAPI.updatePublication(postId, updateData);
+
+            // Update data in memory
+            if (post) {
+                post.title = newTitle;
+                post.excerpt = newExcerpt;
+                post.content = newContent;
+                post.status = 'EDITED';
+            }
+
+            // Update DOM elements
+            this.updatePostContentInDOM(postElement, newTitle, newExcerpt);
+            this.cancelInlineEdit(postId);
+            this.updatePostStatus(postElement, 'EDITED');
+
+            window.postInteractions?.showToast('Публикацията е обновена успешно!', 'success');
+        } catch (error) {
+            console.error('Error updating post:', error);
+            window.postInteractions?.showError('Възникна грешка при запазването.');
+        }
+    }
+
+    updatePostContentInDOM(postElement, newTitle, newExcerpt) {
+        // Update title
+        const titleElement = postElement.querySelector('.post-title');
+        if (titleElement) {
+            titleElement.textContent = newTitle;
+        }
+
+        // Update excerpt
+        const excerptElement = postElement.querySelector('.post-excerpt');
+        if (excerptElement) {
+            if (newExcerpt && newExcerpt !== newTitle) {
+                excerptElement.textContent = newExcerpt;
+                excerptElement.style.display = 'block';
+            } else {
+                excerptElement.style.display = 'none';
+            }
+        } else if (newExcerpt && newExcerpt !== newTitle) {
+            // Create new excerpt element if it doesn't exist
+            const newExcerptDiv = document.createElement('div');
+            newExcerptDiv.className = 'post-excerpt';
+            newExcerptDiv.textContent = newExcerpt;
+
+            const titleElement = postElement.querySelector('.post-title');
+            if (titleElement && titleElement.nextSibling) {
+                titleElement.parentNode.insertBefore(newExcerptDiv, titleElement.nextSibling);
+            }
+        }
+    }
+
+    updatePostStatus(postElement, newStatus) {
+        const statusElement = postElement.querySelector('.post-status');
+        if (statusElement) {
+            statusElement.className = `post-status ${this.getStatusClass(newStatus)}`;
+            statusElement.textContent = this.getStatusText(newStatus);
+        }
+    }
+
+    cancelInlineEdit(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        const editForm = postElement.querySelector('.inline-edit-form');
+        const titleElement = postElement.querySelector('.post-title');
+        const excerptElement = postElement.querySelector('.post-excerpt');
+
+        // Remove edit form
+        if (editForm) editForm.remove();
+
+        // Show original content
+        titleElement.style.display = 'block';
+        if (excerptElement) excerptElement.style.display = 'block';
+    }
+
     setupInfiniteScroll() {
         let scrollTimeout;
 
@@ -324,7 +497,6 @@ class PublicationsManager {
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
                 if (this.isNearBottom() && !this.isLoading && this.hasMorePosts) {
-                    // Only load more if we're not filtering locally
                     const filters = window.filtersManager ? window.filtersManager.getCurrentFilters() : {};
                     const hasActiveFilters = window.filtersManager ? window.filtersManager.hasActiveFilters() : false;
 
@@ -399,29 +571,25 @@ class PublicationsManager {
             icon: 'error',
             title: 'Грешка',
             text: message,
-            confirmButtonColor: '#1877f2'
+            confirmButtonColor: '#4b9f3e'
         });
     }
 
-    // ====== UTILITY METHODS - ПОПРАВЕНИ ======
+    // ====== UTILITY METHODS ======
 
     formatTimeAgo(dateInput) {
         let date;
 
-        // ПОПРАВКА: По-гъвкава обработка на различните дата формати
         if (typeof dateInput === 'string') {
-            // Обработваме Java LocalDateTime формат: "2024-01-15T10:30:00"
             date = new Date(dateInput);
         } else if (dateInput instanceof Date) {
             date = dateInput;
         } else if (Array.isArray(dateInput) && dateInput.length >= 6) {
-            // Java LocalDateTime може да се сериализира като масив [year, month, day, hour, minute, second]
             date = new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3] || 0, dateInput[4] || 0, dateInput[5] || 0);
         } else {
             date = new Date();
         }
 
-        // Проверяваме дали датата е валидна
         if (isNaN(date.getTime())) {
             return 'неизвестно време';
         }
@@ -448,7 +616,6 @@ class PublicationsManager {
         return window.currentUserId && window.currentUserId == authorId;
     }
 
-    // ПОПРАВКА: Нормализиране на енуми от Java
     normalizeStatus(status) {
         if (!status) return 'PUBLISHED';
         return typeof status === 'string' ? status.toUpperCase() : status.toString().toUpperCase();
@@ -462,8 +629,8 @@ class PublicationsManager {
     getStatusIcon(status) {
         const icons = {
             'PUBLISHED': 'bi bi-globe',
-            'REVIEW': 'bi bi-clock',
-            'DRAFT': 'bi bi-file-earmark'
+            'PENDING': 'bi bi-clock',
+            'EDITED': 'bi bi-file-earmark'
         };
         return icons[status] || 'bi bi-circle';
     }
@@ -471,8 +638,8 @@ class PublicationsManager {
     getStatusClass(status) {
         const classes = {
             'PUBLISHED': 'status-published',
-            'REVIEW': 'status-review',
-            'DRAFT': 'status-draft'
+            'PENDING': 'status-pending',
+            'EDITED': 'status-edited'
         };
         return classes[status] || '';
     }
@@ -480,8 +647,8 @@ class PublicationsManager {
     getStatusText(status) {
         const texts = {
             'PUBLISHED': 'Публикувана',
-            'REVIEW': 'За преглед',
-            'DRAFT': 'Чернова'
+            'PENDING': 'Изчаква преглед от модератор',
+            'EDITED': 'Редактирана'
         };
         return texts[status] || status;
     }
@@ -559,91 +726,28 @@ class PublicationsManager {
         return this.loadedPosts.has(postId);
     }
 
-    // Debug methods
-
-
     clearCache() {
         if (window.filtersManager) {
             window.filtersManager.clearCache();
         }
         console.log('Publications cache cleared');
     }
-}
 
-// Performance optimization - Intersection Observer for lazy loading
-class LazyImageLoader {
-    constructor() {
-        this.imageObserver = null;
-        this.init();
-    }
+    // ====== TODO: PERFORMANCE OPTIMIZATIONS ======
 
-    init() {
-        if ('IntersectionObserver' in window) {
-            this.imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.classList.remove('lazy');
-                        }
-                        observer.unobserve(img);
-                    }
-                });
-            });
-        }
-    }
+    // TODO: LazyImageLoading - добави при 50+ постове със снимки за по-бързо зареждане
+    // setupLazyImageLoading() - IntersectionObserver за снимки
+    // observeNewImages(postElement) - добави нови снимки към observer
 
-    observe(img) {
-        if (this.imageObserver && img.dataset.src) {
-            this.imageObserver.observe(img);
-        }
-    }
-}
+    // TODO: VirtualScrolling - добави при 500+ постове за перфектен performance
+    // setupVirtualScrolling() - рендира само видимите постове (10-15 DOM елемента)
+    // renderPostsVirtual(posts) - замести renderPosts() за големи списъци
 
-// Viewport optimization - Only render visible posts
-class VirtualScrollManager {
-    constructor(container, itemHeight = 400) {
-        this.container = container;
-        this.itemHeight = itemHeight;
-        this.visibleItems = [];
-        this.scrollTop = 0;
-        this.containerHeight = 0;
-
-        this.init();
-    }
-
-    init() {
-        if (!this.container) return;
-
-        this.updateContainerHeight();
-        this.setupScrollListener();
-        window.addEventListener('resize', () => this.updateContainerHeight());
-    }
-
-    updateContainerHeight() {
-        this.containerHeight = window.innerHeight;
-    }
-
-    setupScrollListener() {
-        let ticking = false;
-
-        window.addEventListener('scroll', () => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    this.handleScroll();
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        });
-    }
-
-    handleScroll() {
-        this.scrollTop = window.pageYOffset;
-        // Virtual scrolling logic would go here for very large lists
-        // For now, we rely on browser optimization
-    }
+    // TODO: Други оптимизации при голям трафик:
+    // - Image compression (WebP, thumbnails)
+    // - Service Worker (offline режим)
+    // - IndexedDB caching
+    // - Code splitting
 }
 
 // Enhanced error handling
@@ -689,8 +793,6 @@ class ErrorHandler {
         if (this.errorQueue.length > this.maxErrors) {
             this.errorQueue.shift();
         }
-
-        // Could send errors to monitoring service here
     }
 
     getErrors() {
@@ -723,8 +825,6 @@ class AnalyticsTracker {
         };
 
         this.events.push(event);
-
-        // Could send to analytics service
     }
 
     trackPageView() {
@@ -779,22 +879,34 @@ window.utils = {
 
     copyToClipboard(text) {
         return navigator.clipboard.writeText(text);
-    },
+    }
+};
 
-    preloadImage(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = src;
-        });
+// Global functions
+window.startInlineEdit = function(postId) {
+    window.publicationsManager?.startInlineEdit(postId);
+};
+
+window.saveInlineEdit = function(postId) {
+    window.publicationsManager?.saveInlineEdit(postId);
+};
+
+window.cancelInlineEdit = function(postId) {
+    window.publicationsManager?.cancelInlineEdit(postId);
+};
+
+window.showLikesModal = function(postId) {
+    // TODO: Implement likes modal showing users who liked the post
+    if (window.postInteractions) {
+        window.postInteractions.showToast('Функцията за показване на харесали ще бъде добавена скоро', 'info');
+    } else {
+        console.log('Show likes modal for post:', postId);
     }
 };
 
 // Initialize everything
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize managers in order
-    window.lazyImageLoader = new LazyImageLoader();
+    // Initialize managers
     window.errorHandler = new ErrorHandler();
     window.analyticsTracker = new AnalyticsTracker();
 
@@ -803,12 +915,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize main publications manager
     window.publicationsManager = new PublicationsManager();
-
-    // Setup virtual scrolling for large lists
-    const postsContainer = document.getElementById('postsContainer');
-    if (postsContainer) {
-        window.virtualScrollManager = new VirtualScrollManager(postsContainer);
-    }
 
     // Performance monitoring
     if ('performance' in window) {
@@ -826,13 +932,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-        // Ctrl/Cmd + R to refresh
         if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
             e.preventDefault();
             window.publicationsManager.refresh();
         }
 
-        // Escape to close modals/menus
         if (e.key === 'Escape') {
             document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
                 menu.style.display = 'none';
@@ -843,15 +947,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
 });
 
 // Export for modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         PublicationsManager,
-        LazyImageLoader,
-        VirtualScrollManager,
         ErrorHandler,
         AnalyticsTracker
     };

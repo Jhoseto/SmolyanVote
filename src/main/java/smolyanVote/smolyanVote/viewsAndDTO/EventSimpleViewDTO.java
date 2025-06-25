@@ -1,7 +1,5 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;

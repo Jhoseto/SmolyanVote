@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
-import smolyanVote.smolyanVote.models.enums.EventStatus;
+import smolyanVote.smolyanVote.models.enums.PublicationStatus;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
@@ -52,6 +52,10 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
+        // ЗАЩИТА: Проверка за последна публикация в МИНУТИ
+        if (publicationRepository.hasRecentPost(author, 1)) {
+            throw new RuntimeException("Можете да публикувате само една публикация на минута.");
+        }
         PublicationEntity publication = new PublicationEntity();
 
         // Задаваме датите първо
@@ -65,10 +69,10 @@ public class PublicationServiceImpl implements PublicationService {
 
         // Set status based on request
         if ("PUBLISHED".equals(request.getStatus())) {
-            publication.setStatus(EventStatus.ACTIVE);
+            publication.setStatus(PublicationStatus.PUBLISHED);
             publication.publish(); // Sets publishedAt
         } else {
-            publication.setStatus(EventStatus.DRAFT);
+            publication.setStatus(PublicationStatus.PENDING);
         }
 
         // Set image URL if provided
@@ -100,9 +104,16 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional
     public PublicationEntity update(PublicationEntity publication, PublicationRequestDTO request) {
+        // Запазваме оригиналния статус за проверка
+        PublicationStatus originalStatus = publication.getStatus();
+
         publication.setTitle(request.getTitle());
         publication.setContent(request.getContent());
-        publication.setCategory(request.getCategory());
+
+        // ПОПРАВКА: Задаваме категорията от request-а (ако е подадена)
+        if (request.getCategory() != null) {
+            publication.setCategory(request.getCategory());
+        }
 
         if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
             publication.setImageUrl(request.getImageUrl());
@@ -111,6 +122,13 @@ public class PublicationServiceImpl implements PublicationService {
         // Update emotion
         publication.setEmotion(request.getEmotion());
         publication.setEmotionText(request.getEmotionText());
+
+        // ПОПРАВКА: Ако публикацията беше публикувана, сега става редактирана
+        if (originalStatus == PublicationStatus.PUBLISHED) {
+            publication.setStatus(PublicationStatus.EDITED);
+        }
+
+        publication.setModified(java.time.Instant.now());
 
         publication.generateExcerpt();
         publication.calculateReadingTime();
@@ -122,7 +140,7 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional
     public void delete(Long id) {
         PublicationEntity publication = findById(id);
-        if (publication != null && publication.getStatus() == EventStatus.ACTIVE) {
+        if (publication != null && publication.getStatus() == PublicationStatus.PUBLISHED) {
             // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
             UserEntity author = publication.getAuthor();
             author.setPublicationsCount(author.getPublicationsCount() - 1);
@@ -142,32 +160,32 @@ public class PublicationServiceImpl implements PublicationService {
                                                    Authentication auth) {
         try {
             // Конвертираме параметрите
-            EventStatus eventStatus = convertStatusFilter(status);
+            PublicationStatus publicationStatus = convertStatusFilter(status);
             CategoryEnum categoryEnum = convertCategoryFilter(category);
             Instant timeFilter = calculateTimeFilter(time);
             Long authorId = calculateAuthorFilter(author, auth);
 
             // Използваме repository метода с филтри
             return publicationRepository.findWithFilters(
-                    search, categoryEnum, eventStatus, timeFilter, authorId, pageable
+                    search, categoryEnum, publicationStatus, timeFilter, authorId, pageable
             );
 
         } catch (Exception e) {
             // Fallback към всички активни публикации
-            return publicationRepository.findByStatusWithAuthorOrderByCreatedDesc(EventStatus.ACTIVE, pageable);
+            return publicationRepository.findByStatusWithAuthorOrderByCreatedDesc(PublicationStatus.PUBLISHED, pageable);
         }
     }
 
-    private EventStatus convertStatusFilter(String status) {
+    private PublicationStatus convertStatusFilter(String status) {
         if (status == null || status.isEmpty()) return null;
 
         switch (status.toLowerCase()) {
             case "published":
-                return EventStatus.ACTIVE;
-            case "review":
-                return EventStatus.PENDING;
-            case "draft":
-                return EventStatus.DRAFT;
+                return PublicationStatus.PUBLISHED;
+            case "pending":
+                return PublicationStatus.PENDING;
+            case "edited":
+                return PublicationStatus.EDITED;
             default:
                 return null;
         }
@@ -218,34 +236,34 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalCount() {
-        return publicationRepository.countByStatus(EventStatus.ACTIVE);
+        return publicationRepository.countPublicPublications();
     }
 
     @Override
     @Transactional(readOnly = true)
     public long getCountByCategory(CategoryEnum category) {
-        return publicationRepository.countByCategoryAndStatus(category, EventStatus.ACTIVE);
+        return publicationRepository.countByCategoryAndStatus(category, PublicationStatus.PUBLISHED);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long getTodayCount() {
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
-        return publicationRepository.countByCreatedAfterAndStatus(startOfDay, EventStatus.ACTIVE);
+        return publicationRepository.countByCreatedAfterAndStatus(startOfDay, PublicationStatus.PUBLISHED);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long getWeekCount() {
         Instant weekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
-        return publicationRepository.countByCreatedAfterAndStatus(weekAgo, EventStatus.ACTIVE);
+        return publicationRepository.countByCreatedAfterAndStatus(weekAgo, PublicationStatus.PUBLISHED);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long getMonthCount() {
         Instant monthAgo = Instant.now().minus(30, ChronoUnit.DAYS);
-        return publicationRepository.countByCreatedAfterAndStatus(monthAgo, EventStatus.ACTIVE);
+        return publicationRepository.countByCreatedAfterAndStatus(monthAgo, PublicationStatus.PUBLISHED);
     }
 
     // ====== ВЗАИМОДЕЙСТВИЯ (САМО USERNAME) ======
@@ -382,7 +400,7 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional(readOnly = true)
     public boolean canViewPublication(PublicationEntity publication, Authentication auth) {
         // Публичните публикации могат да се виждат от всички
-        if (publication.getStatus() == EventStatus.ACTIVE) {
+        if (publication.getStatus() == PublicationStatus.PUBLISHED) {
             return true;
         }
 
@@ -408,5 +426,12 @@ public class PublicationServiceImpl implements PublicationService {
 
         // Авторите могат да редактират своите публикации
         return publication.getAuthor().getId().equals(user.getId());
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<UserEntity> getTodayTopAuthors(int limit) {
+
+        return publicationRepository.findTodayTopAuthors(limit);
     }
 }

@@ -68,7 +68,7 @@ public class PublicationsController {
             model.addAttribute("otherCount", publicationService.getCountByCategory(CategoryEnum.OTHER));
 
             // Допълнителни данни за страницата
-            model.addAttribute("recentAuthors", publicationService.getActiveAuthors(5));
+            model.addAttribute("todayTopAuthors", publicationService.getActiveAuthors(5));
             model.addAttribute("todayPublications", publicationService.getTodayCount());
             model.addAttribute("weekPublications", publicationService.getWeekCount());
             model.addAttribute("activeUsers", 0);
@@ -83,7 +83,7 @@ public class PublicationsController {
             model.addAttribute("initiativesCount", 0);
             model.addAttribute("cultureCount", 0);
             model.addAttribute("otherCount", 0);
-            model.addAttribute("recentAuthors", List.of());
+            model.addAttribute("todayTopAuthors", List.of());  // ← ПОПРАВЕНО!
             model.addAttribute("todayPublications", 0);
             model.addAttribute("weekPublications", 0);
             model.addAttribute("activeUsers", 0);
@@ -182,9 +182,35 @@ public class PublicationsController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("id", publication.getId());
+            response.put("title", publication.getTitle());
+            response.put("content", publication.getContent());
+            response.put("excerpt", publication.getExcerpt());
+            response.put("category", publication.getCategory());
+            response.put("emotion", publication.getEmotion());
+            response.put("emotionText", publication.getEmotionText());
+            response.put("imageUrl", publication.getImageUrl());
+            response.put("status", publication.getStatus());
+            response.put("createdAt", publication.getCreated());
+            response.put("likesCount", publication.getLikesCount());
+            response.put("commentsCount", publication.getCommentsCount());
+            response.put("sharesCount", publication.getSharesCount());
+
+            // ВАЖНО: Добави author данните
+            Map<String, Object> authorData = new HashMap<>();
+            authorData.put("id", publication.getAuthor().getId());
+            authorData.put("username", publication.getAuthor().getUsername());
+            authorData.put("imageUrl", publication.getAuthor().getImageUrl());
+            response.put("author", authorData);
+
             response.put("message", "Публикацията е създадена успешно");
 
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // ЗАЩИТА: Специално handling за rate limiting
+            if (e.getMessage().contains("минута")) {
+                return ResponseEntity.status(429).body(createErrorResponse(e.getMessage()));
+            }
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията: " + e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията: " + e.getMessage()));
         }
