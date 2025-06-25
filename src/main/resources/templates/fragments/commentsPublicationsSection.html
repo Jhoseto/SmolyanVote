@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+
+<!-- Comments Publications Section Fragment -->
+<div th:fragment="commentsSection">
+    <!-- Comment Input Section -->
+    <div class="comment-input-section" th:if="${#authorization.expression('isAuthenticated()')}">
+        <div class="comment-input-header">
+            <div class="comment-user-avatar" id="commentUserAvatar">
+                <!-- Avatar ще се попълни от JavaScript -->
+            </div>
+            <div class="comment-input-container">
+                <textarea
+                        id="commentTextarea"
+                        class="comment-textarea"
+                        placeholder="Напишете коментар..."
+                        rows="1"></textarea>
+                <div class="comment-input-actions" id="commentInputActions" style="display: none;">
+                    <div class="comment-options">
+                        <button class="comment-option-btn" id="commentEmojiBtn" title="Емотикони">
+                            <i class="bi bi-emoji-smile"></i>
+                        </button>
+                    </div>
+                    <div class="comment-submit-actions">
+                        <button class="comment-cancel-btn" id="commentCancelBtn">Отказ</button>
+                        <button class="comment-submit-btn" id="commentSubmitBtn" disabled>Коментирай</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emoji Picker -->
+        <div class="comment-emoji-picker" id="commentEmojiPicker" style="display: none;">
+            <div class="emoji-grid">
+                <button class="emoji-btn" data-emoji="😊">😊</button>
+                <button class="emoji-btn" data-emoji="😂">😂</button>
+                <button class="emoji-btn" data-emoji="😍">😍</button>
+                <button class="emoji-btn" data-emoji="😭">😭</button>
+                <button class="emoji-btn" data-emoji="😡">😡</button>
+                <button class="emoji-btn" data-emoji="😱">😱</button>
+                <button class="emoji-btn" data-emoji="🤔">🤔</button>
+                <button class="emoji-btn" data-emoji="👍">👍</button>
+                <button class="emoji-btn" data-emoji="👎">👎</button>
+                <button class="emoji-btn" data-emoji="❤️">❤️</button>
+                <button class="emoji-btn" data-emoji="🔥">🔥</button>
+                <button class="emoji-btn" data-emoji="💯">💯</button>
+            </div>
+        </div>
+
+        <!-- Hidden file input -->
+        <input type="file" id="commentImageInput" accept="image/*" style="display: none;">
+    </div>
+
+    <!-- Login Prompt for Guests -->
+    <div class="comment-login-prompt" th:if="${#authorization.expression('!isAuthenticated()')}">
+        <div class="login-prompt-content">
+            <i class="bi bi-person-circle"></i>
+            <p>Влезте в профила си за да коментирате</p>
+            <div class="login-prompt-actions">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" class="comment-login-btn">Вход</a>
+                <a href="/register" class="comment-register-btn">Регистрация</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments List -->
+    <div class="comments-container">
+        <!-- Comments Header with Toggle -->
+        <div class="comments-toggle-header" id="commentsToggleHeader">
+            <button class="comments-toggle-btn" id="commentsToggleBtn">
+                <i class="bi bi-chevron-down"></i>
+                <span>Скрий коментарите</span>
+            </button>
+        </div>
+
+        <div class="comments-list" id="commentsList">
+            <!-- Comments ще се зареждат динамично от JavaScript -->
+
+            <!-- Loading Indicator -->
+            <div class="comments-loading" id="commentsLoading" style="display: none;">
+                <div class="comments-spinner">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Зареждане...</span>
+                    </div>
+                    <span>Зареждане на коментари...</span>
+                </div>
+            </div>
+
+            <!-- No Comments Message -->
+            <div class="no-comments-message" id="noCommentsMessage" style="display: none;">
+                <div class="no-comments-content">
+                    <i class="bi bi-chat-dots"></i>
+                    <h4>Все още няма коментари</h4>
+                    <p th:if="${#authorization.expression('isAuthenticated()')}">Бъдете първият, който ще коментира!</p>
+                    <p th:if="${#authorization.expression('!isAuthenticated()')}">Влезте в профила си за да коментирате.</p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div class="comments-error" id="commentsError" style="display: none;">
+                <div class="error-content">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h4>Възникна грешка</h4>
+                    <p>Не успяхме да заредим коментарите.</p>
+                    <button class="retry-comments-btn" id="retryCommentsBtn">Опитай отново</button>
+                </div>
+            </div>
+
+            <!-- Load More Comments -->
+            <div class="load-more-comments" id="loadMoreComments" style="display: none;">
+                <button class="load-more-btn" id="loadMoreBtn">
+                    Покажи още коментари
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Template (Hidden) -->
+    <template id="commentTemplate">
+        <div class="comment-item" data-comment-id="">
+            <div class="comment-main">
+                <div class="comment-avatar">
+                    <!-- Avatar ще се попълни от JavaScript -->
+                </div>
+                <div class="comment-content">
+                    <div class="comment-bubble">
+                        <div class="comment-header">
+                            <a href="#" class="comment-author"></a>
+                            <span class="comment-time"></span>
+                            <i class="bi bi-circle comment-online-status"></i>
+                        </div>
+                        <div class="comment-text"></div>
+                    </div>
+                    <div class="comment-actions">
+                        <button class="comment-action-btn comment-like-btn">
+                            <i class="bi bi-hand-thumbs-up"></i>
+                            <span class="comment-likes-count">0</span>
+                        </button>
+                        <button class="comment-action-btn comment-dislike-btn">
+                            <i class="bi bi-hand-thumbs-down"></i>
+                            <span class="comment-dislikes-count">0</span>
+                        </button>
+                        <button class="comment-action-btn comment-reply-btn">
+                            Отговори
+                        </button>
+                        <span class="comment-time-separator">•</span>
+                        <span class="comment-full-time"></span>
+                        <button class="comment-action-btn comment-menu-btn">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comment Menu (Owner only) -->
+            <div class="comment-menu-dropdown" style="display: none;">
+                <button class="comment-menu-item edit-comment-btn">
+                    <i class="bi bi-pencil"></i> Редактирай
+                </button>
+                <button class="comment-menu-item delete-comment-btn text-danger">
+                    <i class="bi bi-trash"></i> Изтрий
+                </button>
+            </div>
+
+            <!-- Reply Input (Hidden by default) -->
+            <div class="reply-input-section" style="display: none;">
+                <div class="reply-input-container">
+                    <div class="reply-user-avatar">
+                        <!-- Avatar ще се попълни от JavaScript -->
+                    </div>
+                    <div class="reply-input-wrapper">
+                        <textarea class="reply-textarea" placeholder="Напишете отговор..." rows="1"></textarea>
+                        <div class="reply-actions">
+                            <button class="reply-cancel-btn">Отказ</button>
+                            <button class="reply-submit-btn" disabled>Отговори</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replies List -->
+            <div class="replies-list" style="display: none;">
+                <!-- Replies ще се зареждат динамично -->
+            </div>
+
+            <!-- Replies Controls -->
+            <div class="replies-controls">
+                <!-- Show Replies Button (shown when replies exist but are hidden) -->
+                <button class="show-replies-btn" style="display: none;">
+                    <i class="bi bi-corner-down-right"></i>
+                    Покажи <span class="replies-count">0</span> отговора
+                </button>
+
+                <!-- Hide Replies Button (shown when replies are visible) -->
+                <button class="hide-replies-btn" style="display: none;">
+                    <i class="bi bi-corner-down-right"></i>
+                    Скрий отговорите
+                </button>
+
+                <!-- Load More Replies (when there are more replies to load) -->
+                <button class="load-more-replies-btn" style="display: none;">
+                    Покажи още <span class="remaining-replies-count">0</span> отговора
+                </button>
+            </div>
+
+            <!-- Edit Comment Form (Hidden by default) -->
+            <div class="edit-comment-form" style="display: none;">
+                <div class="edit-input-container">
+                    <textarea class="edit-comment-textarea" rows="2"></textarea>
+                    <div class="edit-comment-actions">
+                        <button class="edit-cancel-btn">Отказ</button>
+                        <button class="edit-save-btn">Запази</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Reply Template (Hidden) -->
+    <template id="replyTemplate">
+        <div class="reply-item" data-reply-id="">
+            <div class="reply-main">
+                <div class="reply-avatar">
+                    <!-- Avatar ще се попълни от JavaScript -->
+                </div>
+                <div class="reply-content">
+                    <div class="reply-bubble">
+                        <div class="reply-header">
+                            <a href="#" class="reply-author"></a>
+                            <span class="reply-time"></span>
+                            <i class="bi bi-circle reply-online-status"></i>
+                        </div>
+                        <div class="reply-text"></div>
+                    </div>
+                    <div class="reply-actions">
+                        <button class="reply-action-btn reply-like-btn">
+                            <i class="bi bi-hand-thumbs-up"></i>
+                            <span class="reply-likes-count">0</span>
+                        </button>
+                        <button class="reply-action-btn reply-dislike-btn">
+                            <i class="bi bi-hand-thumbs-down"></i>
+                            <span class="reply-dislikes-count">0</span>
+                        </button>
+                        <span class="reply-time-separator">•</span>
+                        <span class="reply-full-time"></span>
+                        <button class="reply-action-btn reply-menu-btn">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reply Menu (Owner only) -->
+            <div class="reply-menu-dropdown" style="display: none;">
+                <button class="reply-menu-item edit-reply-btn">
+                    <i class="bi bi-pencil"></i> Редактирай
+                </button>
+                <button class="reply-menu-item delete-reply-btn text-danger">
+                    <i class="bi bi-trash"></i> Изтрий
+                </button>
+            </div>
+
+            <!-- Edit Reply Form (Hidden by default) -->
+            <div class="edit-reply-form" style="display: none;">
+                <div class="edit-reply-container">
+                    <textarea class="edit-reply-textarea" rows="1"></textarea>
+                    <div class="edit-reply-actions">
+                        <button class="edit-reply-cancel-btn">Отказ</button>
+                        <button class="edit-reply-save-btn">Запази</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+
+</html>

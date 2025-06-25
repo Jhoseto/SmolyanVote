@@ -11,6 +11,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/publications.css">
   <link rel="stylesheet" href="/css/createPublication.css">
+  <link rel="stylesheet" href="/css/publicationsDetailModal.css">
+  <link rel="stylesheet" href="/css/commentsPublications.css">
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
 
   <!-- Thymeleaf data for JavaScript -->
@@ -239,7 +241,7 @@
       <div class="create-post-header">
         <!-- ПРОМЯНА 1: Заменяме img с div който ще се попълни от avatarUtils -->
         <div class="user-avatar avatar-placeholder"
-             th:attr="data-user-image=${currentUser?.imageUrl ?: '/images/default-avatar.png'},data-username=${currentUser?.username ?: 'потребител'}">
+             th:attr="data-user-image=${currentUser.getImageUrl()},data-username=${currentUser.username}">
         </div>
         <div class="create-post-input" onclick="expandCreateForm()">
           <span class="placeholder-text">Какво мислите, <span th:text="${currentUser?.username ?: 'потребител'}">потребител</span>?</span>
@@ -478,15 +480,19 @@
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
+<!-- Post Detail Modal Fragment -->
+<div th:replace="~{fragments/post-detail-modal :: postModal}"></div>
 <!-- Scripts -->
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+
 
 <script src="/js/publications/filtersManager.js"></script>
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
 
-
+<script src="/js/publications/publicationDetailModal.js"></script>
+<script src="/js/publications/commentsManager.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Инициализираме avatar placeholders

@@ -235,7 +235,7 @@ class PublicationsManager {
             ${isOwner ? this.createPostMenu(post.id) : ''}
         </div>
         
-        <div class="post-content">
+        <div class="post-content" onclick="openPostModal(${post.id})" style="cursor: pointer;">
             <div class="post-category">
                 <i class="${this.getCategoryIcon(category)}"></i>
                 <span>${this.getCategoryText(category)}</span>
@@ -246,21 +246,25 @@ class PublicationsManager {
         </div>
 
         <div class="post-stats">
-            <div class="stats-item">
-                <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
-                <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
+            <div class="stats-left">
+                <div class="stats-item">
+                    <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
+                    <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
+                    <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
+                </div>
             </div>
-            <div class="stats-item">
-                <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
-                <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
-            </div>
-            <div class="stats-item">
-                <i class="bi bi-chat-fill stats-icon"></i>
-                <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
-            </div>
-            <div class="stats-item">
-                <i class="bi bi-share-fill stats-icon"></i>
-                <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
+            <div class="stats-right">
+                <div class="stats-item">
+                    <i class="bi bi-chat-fill stats-icon"></i>
+                    <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <i class="bi bi-share-fill stats-icon"></i>
+                    <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
+                </div>
             </div>
         </div>
 
@@ -273,7 +277,7 @@ class PublicationsManager {
                 <i class="bi ${isDisliked ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'}"></i>
                 <span>Не харесвам</span>
             </button>
-            <a href="/publications/${post.id}" class="post-action comment-btn">
+            <a href="javascript:void(0)" class="post-action comment-btn" onclick="openPostModal(${post.id})">
                 <i class="bi bi-chat"></i>
                 <span>Коментирай</span>
             </a>
