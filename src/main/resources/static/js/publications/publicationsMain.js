@@ -222,7 +222,7 @@ class PublicationsManager {
         const authorImageUrl = post.author?.imageUrl || '/images/default-avatar.png';
         const authorId = post.author?.id || 0;
 
-        const isOwner = this.isCurrentUserOwner(authorId);
+        const canManage = this.canManagePost(authorId);
         const isLiked = window.postInteractions ? window.postInteractions.isPostLiked(post.id) : false;
         const isDisliked = window.postInteractions ? window.postInteractions.isPostDisliked(post.id) : false;
 
@@ -249,7 +249,7 @@ class PublicationsManager {
                     ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                 </div>
             </div>
-            ${isOwner ? this.createPostMenu(post.id) : ''}
+                ${canManage ? this.createPostMenu(post.id) : ''}
         </div>
         
         <div class="post-content" onclick="openPostModal(${post.id})" style="cursor: pointer;">
@@ -634,8 +634,8 @@ class PublicationsManager {
         return div.innerHTML;
     }
 
-    isCurrentUserOwner(authorId) {
-        return window.currentUserId && window.currentUserId == authorId;
+    canManagePost(authorId) {
+        return (window.currentUserId && window.currentUserId === authorId) || window.isAdmin;
     }
 
     normalizeStatus(status) {
