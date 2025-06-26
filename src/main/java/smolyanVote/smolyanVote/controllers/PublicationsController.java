@@ -15,10 +15,12 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
+import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,14 +33,17 @@ public class PublicationsController {
     private final PublicationService publicationService;
     private final UserService userService;
     private final ImageCloudinaryServiceImpl imageService;
+    private final PublicationDetailService publicationDetailService;
 
     @Autowired
     public PublicationsController(PublicationService publicationService,
                                   UserService userService,
-                                  ImageCloudinaryServiceImpl imageService) {
+                                  ImageCloudinaryServiceImpl imageService,
+                                  PublicationDetailService publicationDetailService) {
         this.publicationService = publicationService;
         this.userService = userService;
         this.imageService = imageService;
+        this.publicationDetailService = publicationDetailService;
     }
 
     // ====== MAIN PAGE ======
@@ -616,4 +621,34 @@ public class PublicationsController {
         response.put("hasPrevious", false);
         return response;
     }
+
+    // ====== PUBLICATION DETAIL API ======
+
+    @GetMapping(value = "/detail/api/{id}", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<?> getPublicationDetail(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        try {
+            PublicationResponseDTO dto = publicationDetailService.getPublicationForModal(id, auth);
+
+            // Wrap in success response for consistency with existing API
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("publication", dto);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("не е намерена")) {
+                return ResponseEntity.notFound().build();
+            } else if (e.getMessage().contains("права")) {
+                return ResponseEntity.status(403).body(createErrorResponse(e.getMessage()));
+            }
+            return ResponseEntity.status(500).body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на публикацията"));
+        }
+    }
+
 }

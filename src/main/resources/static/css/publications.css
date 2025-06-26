@@ -92,7 +92,7 @@
     position: sticky;
     top: 80px;
     height: fit-content;
-    max-height: 2100px;
+    max-height: 800px;
     overflow-y: auto;
 }
 

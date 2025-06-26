@@ -33,6 +33,7 @@ public class UserProfileViewModel {
     private int onlineStatus;
     private Instant created;
     private int userOfferCount;
+    private int userPublicationCount;
     private UserRole role;
 
 
@@ -124,6 +125,14 @@ public class UserProfileViewModel {
     public UserProfileViewModel setUserOfferCount(int userOfferCount) {
         this.userOfferCount = userOfferCount;
         return this;
+    }
+
+    public int getUserPublicationCount() {
+        return userPublicationCount;
+    }
+
+    public void setUserPublicationCount(int userPublicationCount) {
+        this.userPublicationCount = userPublicationCount;
     }
 
     public UserRole getRole() {

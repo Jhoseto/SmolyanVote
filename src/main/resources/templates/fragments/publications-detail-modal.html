@@ -8,14 +8,6 @@
         <div class="modal-container">
             <!-- Modal Header -->
             <div class="modal-header">
-                <div class="modal-navigation">
-                    <button class="nav-btn prev-btn" id="prevPostBtn" title="Предишна публикация">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <button class="nav-btn next-btn" id="nextPostBtn" title="Следваща публикация">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                </div>
                 <button class="close-modal-btn" id="closeModalBtn" title="Затвори">
                     <i class="bi bi-x-lg"></i>
                 </button>
@@ -23,7 +15,7 @@
 
             <!-- Modal Content -->
             <div class="modal-content">
-                <!-- Left Side - Post Content -->
+                <!-- Post Content -->
                 <div class="modal-left-side">
                     <!-- Post Image -->
                     <div class="modal-post-image-container" id="modalPostImageContainer" style="display: none;">
@@ -120,7 +112,7 @@
                     </div>
                 </div>
 
-                <!-- Right Side - Comments Section -->
+                <!-- Comments Section -->
                 <div class="modal-right-side">
                     <div class="comments-header">
                         <h3>
@@ -152,6 +144,16 @@
                 </div>
                 <span>Зареждане на публикацията...</span>
             </div>
+        </div>
+    </div>
+
+    <!-- Image Fullscreen Overlay -->
+    <div id="imageFullscreenOverlay" class="image-fullscreen-overlay">
+        <div class="fullscreen-image-container">
+            <img id="fullscreenImage" class="fullscreen-image" alt="Fullscreen image">
+            <button class="fullscreen-close-btn" id="fullscreenCloseBtn">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
     </div>
 </div>
