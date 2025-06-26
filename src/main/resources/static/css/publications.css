@@ -517,7 +517,7 @@
 .posts-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 50px;
 }
 
 /* ====== POST CARD ====== */
@@ -833,9 +833,7 @@
     gap: 8px;
     padding: 10px 5px;
     background: none;
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
+    border: none;
     border-radius: 6px;
     color: var(--fb-text-secondary);
     font-size: 15px;
@@ -847,19 +845,20 @@
     position: relative;
 }
 
-/* Hover ефекти за всички бутони */
-.post-action:hover {
+/* Hover ефекти за бутони, които не са в активно състояние */
+.post-action:not(.liked):not(.disliked):hover {
     background-color: rgba(75, 177, 92, 0.1);
     color: var(--primary-color);
     text-decoration: none;
     transform: translateY(-1px);
 }
 
-/* Премахваме само border/outline при focus и active */
-.post-action:focus, .post-action:focus-visible, .post-action:active {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
+.post-action:focus,
+.post-action:focus-visible,
+.post-action:active {
+    border: none;
+    box-shadow: none;
+    outline: none;
 }
 
 .post-action i {
@@ -868,61 +867,51 @@
     transition: all 0.2s ease;
 }
 
-.post-action:hover i {
+.post-action:not(.liked):not(.disliked):hover i {
     color: var(--primary-dark);
     transform: scale(1.1);
 }
 
-/* ====== АКТИВНИ СЪСТОЯНИЯ НА БУТОНИТЕ ====== */
+/* Активни състояния на бутоните */
 .like-btn.liked {
-    color: var(--primary-color) !important;
+    color: var(--primary-color);
     background: rgba(75, 177, 92, 0.1);
+    animation: pulseGreen 0.3s ease;
+}
+
+.like-btn.liked i {
+    color: var(--primary-color);
 }
 
 .like-btn.liked:hover {
     background: rgba(75, 177, 92, 0.15);
-    color: var(--primary-dark) !important;
+    color: var(--primary-dark);
 }
 
-.like-btn.liked:focus, .like-btn.liked:active {
-    border: none !important;
-    outline: none !important;
-}
-
-.like-btn.liked i {
-    color: var(--primary-color) !important;
-    text-shadow: 0 0 8px rgba(75, 177, 92, 0.3);
+.like-btn.liked:hover i {
+    color: var(--primary-dark);
 }
 
 .dislike-btn.disliked {
-    color: #e74c3c !important;
+    color: var(--fb-red);
     background: rgba(231, 76, 60, 0.1);
+    animation: pulseRed 0.3s ease;
+}
+
+.dislike-btn.disliked i {
+    color: var(--fb-red);
 }
 
 .dislike-btn.disliked:hover {
     background: rgba(231, 76, 60, 0.15);
-    color: #c0392b !important;
+    color: #c0392b;
 }
 
-.dislike-btn.disliked:focus, .dislike-btn.disliked:active {
-    border: none !important;
-    outline: none !important;
+.dislike-btn.disliked:hover i {
+    color: #c0392b;
 }
 
-.dislike-btn.disliked i {
-    color: #e74c3c !important;
-    text-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
-}
-
-/* Анимации при клик */
-.like-btn.liked {
-    animation: pulseGreen 0.3s ease;
-}
-
-.dislike-btn.disliked {
-    animation: pulseRed 0.3s ease;
-}
-
+/* Анимации за реакции */
 @keyframes pulseGreen {
     0% { transform: scale(1); }
     50% { transform: scale(1.1); }

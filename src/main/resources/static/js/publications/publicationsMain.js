@@ -73,6 +73,7 @@ class PublicationsManager {
         this.renderFilteredPosts();
     }
 
+    // ПРОМЕНЕН МЕТОД - с добавка за обновяване на реакциите
     renderFilteredPosts() {
         const postsContainer = document.getElementById('postsContainer');
         if (!postsContainer) return;
@@ -90,6 +91,13 @@ class PublicationsManager {
         });
 
         this.hideNoResults();
+
+        // НОВА ПРОМЯНА: Обновяваме реакциите след филтриране
+        if (window.postInteractions && window.isAuthenticated) {
+            setTimeout(() => {
+                window.postInteractions.updateAllPostsUI();
+            }, 50);
+        }
     }
 
     debouncedServerLoad() {
@@ -183,6 +191,7 @@ class PublicationsManager {
         return JSON.stringify({ ...filters, page });
     }
 
+    // ПРОМЕНЕН МЕТОД - с добавка за обновяване на реакциите
     renderPosts(posts) {
         const postsContainer = document.getElementById('postsContainer');
         if (!postsContainer) return;
@@ -193,6 +202,14 @@ class PublicationsManager {
         });
 
         this.hideNoResults();
+
+        // НОВА ПРОМЯНА: Обновяваме реакциите след добавяне на постовете
+        if (window.postInteractions && window.isAuthenticated) {
+            // Малка пауза за да се завърши DOM операцията
+            setTimeout(() => {
+                window.postInteractions.updateAllPostsUI();
+            }, 50);
+        }
     }
 
     createPostElement(post) {
@@ -257,6 +274,10 @@ class PublicationsManager {
                 </div>
             </div>
             <div class="stats-right">
+                <div class="view-item">
+                    <i class="bi bi-eye-fill stats-icon"></i>
+                    <span class="stats-count view-stats-count">${post.commentsCount || 0}</span>
+                </div>
                 <div class="stats-item">
                     <i class="bi bi-chat-fill stats-icon"></i>
                     <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
@@ -683,6 +704,7 @@ class PublicationsManager {
         this.loadInitialPosts();
     }
 
+    // ПРОМЕНЕН МЕТОД - с добавка за обновяване на UI
     addPost(post) {
         if (!this.loadedPosts.has(post.id)) {
             this.allLoadedPosts.unshift(post);
@@ -692,6 +714,13 @@ class PublicationsManager {
             if (postsContainer) {
                 const postElement = this.createPostElement(post);
                 postsContainer.insertBefore(postElement, postsContainer.firstChild);
+
+                // НОВА ПРОМЯНА: Обновяваме UI на новия пост
+                if (window.postInteractions && window.isAuthenticated) {
+                    setTimeout(() => {
+                        window.postInteractions.updateSinglePostUI(postElement, post.id);
+                    }, 50);
+                }
             }
         }
     }

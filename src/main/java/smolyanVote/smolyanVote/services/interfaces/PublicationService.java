@@ -66,4 +66,13 @@ public interface PublicationService {
 
     @Transactional(readOnly = true)
     List<UserEntity> getTodayTopAuthors(int limit);
+
+    @Transactional(readOnly = true)
+    List<Long> getLikedPublicationIdsByUsername(String username);
+
+    @Transactional(readOnly = true)
+    List<Long> getDislikedPublicationIdsByUsername(String username);
+
+    @Transactional(readOnly = true)
+    List<Long> getBookmarkedPublicationIdsByUsername(String username);
 }

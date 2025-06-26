@@ -466,9 +466,55 @@ public class PublicationServiceImpl implements PublicationService {
         return publication.getAuthor().getId().equals(user.getId());
     }
 
-    @Transactional(readOnly = true)
     @Override
     public List<UserEntity> getTodayTopAuthors(int limit) {
-        return publicationRepository.findTodayTopAuthors(limit);
+        return List.of();
+    }
+
+    // ====== USER PREFERENCES IMPLEMENTATION ======
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Long> getLikedPublicationIdsByUsername(String username) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return List.of();
+            }
+            return publicationRepository.findLikedPublicationIdsByUsername(username);
+        } catch (Exception e) {
+            // Log error if you have a logger
+            // logger.error("Грешка при извличане на харесани публикации за потребител: " + username, e);
+            return List.of();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Long> getDislikedPublicationIdsByUsername(String username) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return List.of();
+            }
+            return publicationRepository.findDislikedPublicationIdsByUsername(username);
+        } catch (Exception e) {
+            // Log error if you have a logger
+            // logger.error("Грешка при извличане на нехаресани публикации за потребител: " + username, e);
+            return List.of();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Long> getBookmarkedPublicationIdsByUsername(String username) {
+        try {
+            if (username == null || username.trim().isEmpty()) {
+                return List.of();
+            }
+            return publicationRepository.findBookmarkedPublicationIdsByUsername(username);
+        } catch (Exception e) {
+            // Log error if you have a logger
+            // logger.error("Грешка при извличане на запазени публикации за потребител: " + username, e);
+            return List.of();
+        }
     }
 }
