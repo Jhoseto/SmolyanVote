@@ -376,6 +376,7 @@ class PostInteractions {
         }
     }
 
+    // ПРОМЕНЕН МЕТОД - с добавка за обновяване на UI
     async loadUserPreferences() {
         if (!window.isAuthenticated) return;
         try {
@@ -384,8 +385,72 @@ class PostInteractions {
             this.dislikedPosts = new Set(response.dislikedPosts || []);
             this.bookmarkedPosts = new Set(response.bookmarkedPosts || []);
             this.followedAuthors = new Set(response.followedAuthors || []);
+
+            // НОВА ПРОМЯНА: Обновяваме UI след зареждане на данните
+            this.updateAllPostsUI();
+
         } catch (error) {
             console.error('Error loading user preferences:', error);
+        }
+    }
+
+    // НОВИ МЕТОДИ за обновяване на UI:
+
+    /**
+     * Обновява UI на всички постове след зареждане на предпочитанията
+     */
+    updateAllPostsUI() {
+        document.querySelectorAll('[data-post-id]').forEach(postElement => {
+            const postId = parseInt(postElement.dataset.postId);
+            this.updateSinglePostUI(postElement, postId);
+        });
+    }
+
+    /**
+     * Обновява UI на един конкретен пост
+     */
+    updateSinglePostUI(postElement, postId) {
+        const isLiked = this.isPostLiked(postId);
+        const isDisliked = this.isPostDisliked(postId);
+        const isBookmarked = this.isPostBookmarked(postId);
+
+        // Обновяваме like бутона
+        const likeBtn = postElement.querySelector('.like-btn');
+        const likeIcon = likeBtn?.querySelector('i');
+        if (likeBtn && likeIcon) {
+            if (isLiked) {
+                likeBtn.classList.add('liked');
+                likeIcon.className = 'bi bi-hand-thumbs-up-fill';
+            } else {
+                likeBtn.classList.remove('liked');
+                likeIcon.className = 'bi bi-hand-thumbs-up';
+            }
+        }
+
+        // Обновяваме dislike бутона
+        const dislikeBtn = postElement.querySelector('.dislike-btn');
+        const dislikeIcon = dislikeBtn?.querySelector('i');
+        if (dislikeBtn && dislikeIcon) {
+            if (isDisliked) {
+                dislikeBtn.classList.add('disliked');
+                dislikeIcon.className = 'bi bi-hand-thumbs-down-fill';
+            } else {
+                dislikeBtn.classList.remove('disliked');
+                dislikeIcon.className = 'bi bi-hand-thumbs-down';
+            }
+        }
+
+        // Обновяваме bookmark бутона (ако съществува)
+        const bookmarkBtn = postElement.querySelector('.bookmark-btn');
+        if (bookmarkBtn) {
+            const bookmarkIcon = bookmarkBtn.querySelector('i');
+            if (isBookmarked) {
+                bookmarkBtn.classList.add('bookmarked');
+                if (bookmarkIcon) bookmarkIcon.className = 'bi bi-bookmark-fill';
+            } else {
+                bookmarkBtn.classList.remove('bookmarked');
+                if (bookmarkIcon) bookmarkIcon.className = 'bi bi-bookmark';
+            }
         }
     }
 

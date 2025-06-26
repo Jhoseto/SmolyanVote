@@ -90,4 +90,37 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
         Instant timeLimit = Instant.now().minus(minutesLimit, ChronoUnit.MINUTES);
         return countRecentPostsByAuthor(author, timeLimit) > 0;
     }
+
+    // ====== USER PREFERENCES QUERIES ======
+
+    /**
+     * Намира всички публикации които потребителят е харесал
+     */
+    @Query("SELECT p.id FROM PublicationEntity p WHERE p.likedByUsers LIKE :userPattern")
+    List<Long> findLikedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
+
+    /**
+     * Намира всички публикации които потребителят е дислайкнал
+     */
+    @Query("SELECT p.id FROM PublicationEntity p WHERE p.dislikedByUsers LIKE :userPattern")
+    List<Long> findDislikedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
+
+    /**
+     * Намира всички публикации които потребителят е bookmark-нал
+     */
+    @Query("SELECT p.id FROM PublicationEntity p WHERE p.bookmarkedByUsers LIKE :userPattern")
+    List<Long> findBookmarkedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
+
+    // Default методи за лесно използване
+    default List<Long> findLikedPublicationIdsByUsername(String username) {
+        return findLikedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
+    }
+
+    default List<Long> findDislikedPublicationIdsByUsername(String username) {
+        return findDislikedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
+    }
+
+    default List<Long> findBookmarkedPublicationIdsByUsername(String username) {
+        return findBookmarkedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
+    }
 }

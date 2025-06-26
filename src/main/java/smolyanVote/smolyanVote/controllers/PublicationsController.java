@@ -99,37 +99,7 @@ public class PublicationsController {
         return "publications";
     }
 
-    @GetMapping("/{id}")
-    public String publicationDetail(@PathVariable Long id, Model model, Authentication auth) {
-        PublicationEntity publication = publicationService.findById(id);
-        if (publication == null) {
-            return "redirect:/publications";
-        }
 
-        if (!publicationService.canViewPublication(publication, auth)) {
-            return "redirect:/publications";
-        }
-
-        publicationService.incrementViewCount(id);
-        model.addAttribute("publication", publication);
-        return "publicationDetail";
-    }
-
-    @Transactional(readOnly = true)
-    @GetMapping("/{id}/edit")
-    public String editPublicationPage(@PathVariable Long id, Model model, Authentication auth) {
-        if (auth == null) {
-            return "redirect:/login?returnUrl=/publications/" + id + "/edit";
-        }
-
-        PublicationEntity publication = publicationService.findById(id);
-        if (publication == null || !publicationService.canEditPublication(publication, auth)) {
-            return "redirect:/publications";
-        }
-
-        model.addAttribute("publication", publication);
-        return "editPublication";
-    }
 
     // ====== REST API ENDPOINTS ======
 
@@ -158,16 +128,14 @@ public class PublicationsController {
             Map<String, Object> response = new HashMap<>();
             response.put("publications", publicationsPage.getContent());
             response.put("totalElements", publicationsPage.getTotalElements());
-            response.put("totalPages", publicationsPage.getTotalPages());
-            response.put("currentPage", page);
-            response.put("hasNext", publicationsPage.hasNext());
-            response.put("hasPrevious", publicationsPage.hasPrevious());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на публикациите", page));
         }
     }
+
+
 
     @PostMapping(value = "/api", produces = "application/json")
     @ResponseBody
@@ -401,7 +369,7 @@ public class PublicationsController {
         }
     }
 
-    @PostMapping(value = "/api/{id}/bookmark", produces = "application/json")
+    @PostMapping(value = "/api/{id}/followPublication", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleBookmark(
             @PathVariable Long id,
@@ -417,7 +385,7 @@ public class PublicationsController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("isBookmarked", isBookmarked);
-            response.put("message", isBookmarked ? "Добавено в любими" : "Премахнато от любими");
+            response.put("message", isBookmarked ? "Добавено са известия относно публикациата" : "Премахнати са известията за публикацията");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -491,7 +459,7 @@ public class PublicationsController {
                 return ResponseEntity.status(400).body(createErrorResponse("Не можете да следвате себе си"));
             }
 
-            // За сега симулираме follow/unfollow логиката
+            // TODO За сега симулираме follow/unfollow логиката
             // В бъдеще ще се имплементира правилно с UserFollowing entity
             boolean isFollowing = false; // Placeholder логика
 
@@ -516,13 +484,20 @@ public class PublicationsController {
 
         try {
             UserEntity user = userService.getCurrentUser();
+            String username = user.getUsername();
+
             Map<String, Object> preferences = new HashMap<>();
 
-            // За сега връщаме празни масиви - по-късно ще се имплементира правилно
-            preferences.put("likedPosts", List.of());
-            preferences.put("dislikedPosts", List.of());
-            preferences.put("bookmarkedPosts", List.of());
-            preferences.put("followedAuthors", List.of());
+            // Извличаме реалните данни на потребителя
+            List<Long> likedPosts = publicationService.getLikedPublicationIdsByUsername(username);
+            List<Long> dislikedPosts = publicationService.getDislikedPublicationIdsByUsername(username);
+            List<Long> bookmarkedPosts = publicationService.getBookmarkedPublicationIdsByUsername(username);
+            List<Long> followedAuthors = List.of(); // За сега празен, няма follow система
+
+            preferences.put("likedPosts", likedPosts);
+            preferences.put("dislikedPosts", dislikedPosts);
+            preferences.put("bookmarkedPosts", bookmarkedPosts);
+            preferences.put("followedAuthors", followedAuthors);
 
             return ResponseEntity.ok(preferences);
         } catch (Exception e) {
