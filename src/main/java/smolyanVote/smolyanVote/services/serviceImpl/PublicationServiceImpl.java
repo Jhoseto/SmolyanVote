@@ -32,13 +32,16 @@ public class PublicationServiceImpl implements PublicationService {
     private final PublicationRepository publicationRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final ReportsServiceImpl reportsService;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
-                                  UserService userService, UserRepository userRepository) {
+                                  UserService userService, UserRepository userRepository,
+                                  ReportsServiceImpl reportsService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.reportsService = reportsService;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -349,15 +352,7 @@ public class PublicationServiceImpl implements PublicationService {
         return !isBookmarked;
     }
 
-    @Override
-    @Transactional
-    public void incrementViewCount(Long publicationId) {
-        PublicationEntity publication = findById(publicationId);
-        if (publication != null) {
-            publication.incrementViews();
-            publicationRepository.save(publication);
-        }
-    }
+
 
     @Override
     @Transactional
@@ -376,24 +371,6 @@ public class PublicationServiceImpl implements PublicationService {
         return publication != null ? publication.getSharesCount() : 0;
     }
 
-    @Override
-    @Transactional
-    public void reportPublication(Long publicationId, UserEntity user, String reason) {
-        PublicationEntity publication = findById(publicationId);
-        if (publication == null) return;
-
-        // Опростено добавяне на доклад
-        String currentReports = publication.getReportedByUsers();
-        String newReport = "{\"userId\":" + user.getId() + ",\"username\":\"" + user.getUsername() + "\",\"reason\":\"" + reason + "\",\"timestamp\":\"" + LocalDateTime.now() + "\"}";
-
-        if (currentReports == null || currentReports.isEmpty()) {
-            publication.setReportedByUsers("[" + newReport + "]");
-        } else {
-            publication.setReportedByUsers(currentReports.substring(0, currentReports.length() - 1) + "," + newReport + "]");
-        }
-
-        publicationRepository.save(publication);
-    }
 
     // ====== АКТИВНИ АВТОРИ ======
 
@@ -466,10 +443,7 @@ public class PublicationServiceImpl implements PublicationService {
         return publication.getAuthor().getId().equals(user.getId());
     }
 
-    @Override
-    public List<UserEntity> getTodayTopAuthors(int limit) {
-        return List.of();
-    }
+
 
     // ====== USER PREFERENCES IMPLEMENTATION ======
 
@@ -517,4 +491,5 @@ public class PublicationServiceImpl implements PublicationService {
             return List.of();
         }
     }
+
 }

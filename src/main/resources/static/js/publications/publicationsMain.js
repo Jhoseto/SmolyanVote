@@ -249,7 +249,7 @@ class PublicationsManager {
                     ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                 </div>
             </div>
-                ${canManage ? this.createPostMenu(post.id) : ''}
+                 ${canManage ? this.createPostMenu(post.id) : (this.shouldShowReportMenu(authorId) ? this.createReportMenu(post.id) : '')}
         </div>
         
         <div class="post-content" onclick="openPostModal(${post.id})" style="cursor: pointer;">
@@ -346,18 +346,35 @@ class PublicationsManager {
 
     createPostMenu(postId) {
         return `
-            <div class="post-menu">
-                <i class="bi bi-three-dots"></i>
-                <div class="post-menu-dropdown" style="display: none;">
-                    <a href="javascript:void(0)" class="menu-item" onclick="startInlineEdit(${postId})">
-                        <i class="bi bi-pencil"></i> Редактирай
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item text-danger" onclick="confirmDelete(${postId})">
-                        <i class="bi bi-trash"></i> Изтрий
-                    </a>
-                </div>
+        <div class="post-menu">
+            <i class="bi bi-three-dots"></i>
+            <div class="post-menu-dropdown" style="display: none;">
+                <a href="javascript:void(0)" class="menu-item" onclick="startInlineEdit(${postId})">
+                    <i class="bi bi-pencil"></i> Редактирай
+                </a>
+                <a href="javascript:void(0)" class="menu-item text-danger" onclick="confirmDelete(${postId})">
+                    <i class="bi bi-trash"></i> Изтрий
+                </a>
+                <div class="menu-divider"></div>
+                <a href="javascript:void(0)" class="menu-item text-warning" onclick="showReportModal(${postId})">
+                    <i class="bi bi-flag"></i> Докладвай
+                </a>
             </div>
-        `;
+        </div>
+    `;
+    }
+
+    createReportMenu(postId) {
+        return `
+        <div class="post-menu">
+            <i class="bi bi-three-dots"></i>
+            <div class="post-menu-dropdown" style="display: none;">
+                <a href="javascript:void(0)" class="menu-item text-warning" onclick="showReportModal(${postId})">
+                    <i class="bi bi-flag"></i> Докладвай
+                </a>
+            </div>
+        </div>
+    `;
     }
 
     // Останалите методи остават същите...
@@ -735,17 +752,14 @@ class PublicationsManager {
         }
     }
 
-    updatePost(updatedPost) {
-        const index = this.allLoadedPosts.findIndex(post => post.id === updatedPost.id);
-        if (index !== -1) {
-            this.allLoadedPosts[index] = updatedPost;
-
-            const postElement = document.querySelector(`[data-post-id="${updatedPost.id}"]`);
-            if (postElement) {
-                const newElement = this.createPostElement(updatedPost);
-                postElement.parentNode.replaceChild(newElement, postElement);
-            }
-        }
+    shouldShowReportMenu(authorId) {
+        // Показвай report само ако:
+        // 1. Потребителят е логнат
+        // 2. НЕ е собственик на поста
+        // 3. НЕ е админ (админите не трябва да докладват)
+        return window.isAuthenticated &&
+            window.currentUserId != authorId &&
+            !window.isAdmin;
     }
 
     getLoadedPostsCount() {

@@ -49,10 +49,8 @@ public interface PublicationService {
     boolean toggleDislike(Long publicationId, UserEntity user);
 
     int getLikesCount(Long publicationId);
-    void incrementViewCount(Long publicationId);
     void incrementShareCount(Long publicationId);
     int getSharesCount(Long publicationId);
-    void reportPublication(Long publicationId, UserEntity user, String reason);
 
     // ====== АКТИВНИ АВТОРИ И TRENDING ======
 
@@ -64,8 +62,7 @@ public interface PublicationService {
     boolean canViewPublication(PublicationEntity publication, Authentication auth);
     boolean canEditPublication(PublicationEntity publication, Authentication auth);
 
-    @Transactional(readOnly = true)
-    List<UserEntity> getTodayTopAuthors(int limit);
+
 
     @Transactional(readOnly = true)
     List<Long> getLikedPublicationIdsByUsername(String username);

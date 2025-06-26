@@ -25,6 +25,8 @@ class PublicationDetailModal {
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();
         });
+        document.getElementById('modalReportBtn')?.addEventListener('click', () =>
+            window.showReportModal(this.currentPost?.id));
 
         // Post actions - директни заявки към postInteractions
         document.getElementById('modalLikeBtn')?.addEventListener('click', () => this.toggleLike());
@@ -149,9 +151,28 @@ class PublicationDetailModal {
 
         // Menu visibility
         const menu = document.getElementById('modalPostMenu');
-        if (menu) {
+        if (menu && window.isAuthenticated) {
+            menu.style.display = 'block';
+
             const canManage = (window.currentUserId && window.currentUserId === post.authorId) || window.isAdmin;
-            menu.style.display = canManage ? 'block' : 'none';
+            const editBtn = document.getElementById('modalEditBtn');
+            const deleteBtn = document.getElementById('modalDeleteBtn');
+            const reportBtn = document.getElementById('modalReportBtn');
+
+            if (canManage) {
+                // Собственик или админ - показваме edit/delete, скриваме report
+                if (editBtn) editBtn.style.display = 'block';
+                if (deleteBtn) deleteBtn.style.display = 'block';
+                if (reportBtn) reportBtn.style.display = 'none';
+            } else {
+                // Чужда публикация - скриваме edit/delete, показваме report
+                if (editBtn) editBtn.style.display = 'none';
+                if (deleteBtn) deleteBtn.style.display = 'none';
+                if (reportBtn) reportBtn.style.display = 'block';
+            }
+        } else {
+            // Нелогнат потребител - скриваме цялото меню
+            if (menu) menu.style.display = 'none';
         }
     }
 
