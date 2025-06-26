@@ -149,7 +149,10 @@ class PublicationDetailModal {
 
         // Menu visibility
         const menu = document.getElementById('modalPostMenu');
-        if (menu) menu.style.display = post.isOwner ? 'block' : 'none';
+        if (menu) {
+            const canManage = (window.currentUserId && window.currentUserId === post.authorId) || window.isAdmin;
+            menu.style.display = canManage ? 'block' : 'none';
+        }
     }
 
     // ====== INLINE EDIT FUNCTIONALITY ======

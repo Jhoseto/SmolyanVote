@@ -21,12 +21,14 @@
     window.currentUserId = /*[[${currentUserId}]]*/ null;
     window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
     window.currentUserImage = /*[[${currentUserImage ?: '/images/default-avatar.png'}]]*/ '/images/default-avatar.png';
+    window.isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;  //
 
     window.appData = {
       isAuthenticated: window.isAuthenticated,
       currentUserId: window.currentUserId,
       currentUsername: window.currentUsername,
       currentUserImage: window.currentUserImage,
+      isAdmin: window.isAdmin,  // <-- И ТОЗИ РЕД
       csrfToken: /*[[${_csrf.token}]]*/ '',
       csrfHeader: /*[[${_csrf.headerName}]]*/ '',
       totalPublications: /*[[${totalPublications ?: 0}]]*/ 0,
