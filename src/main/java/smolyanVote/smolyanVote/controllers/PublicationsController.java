@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
+import smolyanVote.smolyanVote.services.interfaces.ReportsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
@@ -34,16 +35,18 @@ public class PublicationsController {
     private final UserService userService;
     private final ImageCloudinaryServiceImpl imageService;
     private final PublicationDetailService publicationDetailService;
+    private final ReportsService reportsService;
 
     @Autowired
     public PublicationsController(PublicationService publicationService,
                                   UserService userService,
                                   ImageCloudinaryServiceImpl imageService,
-                                  PublicationDetailService publicationDetailService) {
+                                  PublicationDetailService publicationDetailService, ReportsService reportsService) {
         this.publicationService = publicationService;
         this.userService = userService;
         this.imageService = imageService;
         this.publicationDetailService = publicationDetailService;
+        this.reportsService = reportsService;
     }
 
     // ====== MAIN PAGE ======
@@ -428,13 +431,19 @@ public class PublicationsController {
                 return ResponseEntity.status(400).body(createErrorResponse("Моля, посочете причина за докладването"));
             }
 
-            publicationService.reportPublication(id, user, reason);
+            // ПРОМЯНА: Използвай директно reportsService
+            reportsService.createReport(id, user, reason, null);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Докладът е изпратен успешно");
 
             return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            // За rate limiting и други бизнес правила
+            return ResponseEntity.status(429).body(createErrorResponse(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при докладването"));
         }
