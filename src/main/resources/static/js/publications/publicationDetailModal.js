@@ -1,57 +1,42 @@
-// ====== PUBLICATION DETAIL MODAL JS ======
+// ====== SIMPLIFIED PUBLICATION DETAIL MODAL ======
 // Файл: src/main/resources/static/js/publications/publicationDetailModal.js
 
 class PublicationDetailModal {
     constructor() {
-        this.modal = null;
-        this.currentPostId = null;
+        this.modal = document.getElementById('postDetailModal');
         this.currentPost = null;
-        this.allPosts = [];
-        this.currentIndex = 0;
-        this.isLoading = false;
-        this.keyboardNavigationEnabled = true;
+        this.isVisible = false;
 
         this.init();
     }
 
     init() {
-        this.modal = document.getElementById('postDetailModal');
         if (!this.modal) {
             console.error('Post detail modal not found!');
             return;
         }
-
         this.setupEventListeners();
-        this.setupKeyboardNavigation();
+        this.setupImageZoom();
     }
 
     setupEventListeners() {
-        // Close modal events
-        const closeBtn = document.getElementById('closeModalBtn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closeModal());
-        }
-
-        // Click outside to close
+        // Close modal
+        document.getElementById('closeModalBtn')?.addEventListener('click', () => this.close());
         this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.closeModal();
-            }
+            if (e.target === this.modal) this.close();
         });
 
-        // Navigation buttons
-        const prevBtn = document.getElementById('prevPostBtn');
-        const nextBtn = document.getElementById('nextPostBtn');
+        // Post actions - директни заявки към postInteractions
+        document.getElementById('modalLikeBtn')?.addEventListener('click', () => this.toggleLike());
+        document.getElementById('modalDislikeBtn')?.addEventListener('click', () => this.toggleDislike());
+        document.getElementById('modalShareBtn')?.addEventListener('click', () => this.sharePost());
 
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => this.navigateToPrevious());
-        }
+        // Menu actions
+        document.getElementById('modalEditBtn')?.addEventListener('click', () => this.startInlineEdit());
+        document.getElementById('modalDeleteBtn')?.addEventListener('click', () =>
+            window.confirmDelete(this.currentPost?.id));
 
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => this.navigateToNext());
-        }
-
-        // Post menu
+        // Post menu toggle
         const menuBtn = this.modal.querySelector('.modal-menu-btn');
         if (menuBtn) {
             menuBtn.addEventListener('click', (e) => {
@@ -60,476 +45,380 @@ class PublicationDetailModal {
             });
         }
 
-        // Post actions
-        const likeBtn = document.getElementById('modalLikeBtn');
-        const dislikeBtn = document.getElementById('modalDislikeBtn');
-        const shareBtn = document.getElementById('modalShareBtn');
-
-        if (likeBtn) {
-            likeBtn.addEventListener('click', () => this.toggleLike());
-        }
-
-        if (dislikeBtn) {
-            dislikeBtn.addEventListener('click', () => this.toggleDislike());
-        }
-
-        if (shareBtn) {
-            shareBtn.addEventListener('click', () => this.sharePost());
-        }
-
-        // Edit and delete buttons
-        const editBtn = document.getElementById('modalEditBtn');
-        const deleteBtn = document.getElementById('modalDeleteBtn');
-
-        if (editBtn) {
-            editBtn.addEventListener('click', () => this.editPost());
-        }
-
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => this.deletePost());
-        }
-
         // Close menu when clicking outside
-        document.addEventListener('click', () => {
-            this.closePostMenu();
-        });
+        document.addEventListener('click', () => this.closePostMenu());
 
-        // Image zoom (future feature)
-        const postImage = document.getElementById('modalPostImage');
-        if (postImage) {
-            postImage.addEventListener('click', () => this.zoomImage());
-        }
-    }
-
-    setupKeyboardNavigation() {
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (!this.isVisible() || !this.keyboardNavigationEnabled) return;
-
-            switch (e.key) {
-                case 'Escape':
-                    this.closeModal();
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    this.navigateToPrevious();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    this.navigateToNext();
-                    break;
-                case 'l':
-                case 'L':
-                    if (!e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        this.toggleLike();
-                    }
-                    break;
-                case 'd':
-                case 'D':
-                    if (!e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        this.toggleDislike();
-                    }
-                    break;
-                case 's':
-                case 'S':
-                    if (!e.ctrlKey && !e.metaKey) {
-                        e.preventDefault();
-                        this.sharePost();
-                    }
-                    break;
+            if (!this.isVisible) return;
+            if (e.key === 'Escape') {
+                // Ако има активен edit, отказваме го
+                if (this.modal.querySelector('.modal-edit-form')) {
+                    this.cancelInlineEdit();
+                } else {
+                    this.close();
+                }
             }
+            if (e.key === 'l' && !e.ctrlKey) { e.preventDefault(); this.toggleLike(); }
+            if (e.key === 'd' && !e.ctrlKey) { e.preventDefault(); this.toggleDislike(); }
         });
     }
 
-    async openModal(postId, allPosts = []) {
-        if (this.isLoading) return;
+    setupImageZoom() {
+        const imageContainer = document.getElementById('modalPostImageContainer');
+        const fullscreenOverlay = document.getElementById('imageFullscreenOverlay');
 
+        imageContainer?.addEventListener('click', () => this.showImageFullscreen());
+
+        document.getElementById('fullscreenCloseBtn')?.addEventListener('click', () =>
+            fullscreenOverlay?.classList.remove('show'));
+
+        fullscreenOverlay?.addEventListener('click', (e) => {
+            if (e.target === fullscreenOverlay) fullscreenOverlay.classList.remove('show');
+        });
+    }
+
+    async open(postId) {
         try {
             this.showLoading();
-            this.currentPostId = postId;
-            this.allPosts = allPosts;
-            this.currentIndex = allPosts.findIndex(post => post.id == postId);
 
-            // Load post data
-            await this.loadPostData(postId);
+            // Fetch publication data
+            const response = await fetch(`/publications/detail/api/${postId}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            this.currentPost = data.publication;
+
+            // Populate modal content
+            this.populateContent();
 
             // Show modal
-            this.showModal();
-            this.updateNavigationButtons();
+            this.show();
 
             // Load comments
-            if (window.commentsManager) {
-                window.commentsManager.loadComments(postId);
-            }
-
-            // Track analytics
-            this.trackModalOpen(postId);
+            window.commentsManager?.loadComments(postId);
 
         } catch (error) {
             console.error('Error opening modal:', error);
-            this.showError('Възникна грешка при зареждането на публикацията');
+            window.postInteractions?.showError('Възникна грешка при зареждането');
         } finally {
             this.hideLoading();
         }
     }
 
-    async loadPostData(postId) {
+    populateContent() {
+        const post = this.currentPost;
+        if (!post) return;
+
+        // Author info
+        this.setText('modalAuthorName', post.authorUsername);
+        this.setHtml('modalAuthorAvatar', this.createAvatar(post.authorImageUrl, post.authorUsername));
+        this.setText('modalPostTime', this.formatTimeAgo(post.createdAt));
+
+        // Content
+        this.setText('modalPostTitle', post.title);
+        this.setText('modalPostText', post.content);
+        this.setText('modalCategoryText', this.getCategoryText(post.category));
+
+        // Image
+        const imageContainer = document.getElementById('modalPostImageContainer');
+        const postImage = document.getElementById('modalPostImage');
+        if (post.imageUrl && postImage) {
+            postImage.src = post.imageUrl;
+            imageContainer.style.display = 'block';
+        } else {
+            imageContainer.style.display = 'none';
+        }
+
+        // Stats
+        this.setText('modalLikesCount', post.likesCount || 0);
+        this.setText('modalDislikesCount', post.dislikesCount || 0);
+        this.setText('modalCommentsCount', post.commentsCount || 0);
+        this.setText('modalSharesCount', post.sharesCount || 0);
+        this.setText('commentsHeaderCount', post.commentsCount || 0);
+
+        // Buttons state
+        this.updateButton('modalLikeBtn', post.isLiked, 'bi-hand-thumbs-up-fill', 'bi-hand-thumbs-up', 'liked');
+        this.updateButton('modalDislikeBtn', post.isDisliked, 'bi-hand-thumbs-down-fill', 'bi-hand-thumbs-down', 'disliked');
+
+        // Menu visibility
+        const menu = document.getElementById('modalPostMenu');
+        if (menu) menu.style.display = post.isOwner ? 'block' : 'none';
+    }
+
+    // ====== INLINE EDIT FUNCTIONALITY ======
+
+    startInlineEdit() {
+        if (!this.currentPost || this.modal.querySelector('.modal-edit-form')) return;
+
+        const titleElement = document.getElementById('modalPostTitle');
+        const textElement = document.getElementById('modalPostText');
+        const contentContainer = this.modal.querySelector('.modal-post-content');
+
+        if (!titleElement || !textElement || !contentContainer) return;
+
+        // Подготвяме пълното съдържание
+        const fullContent = this.currentPost.content ||
+            ((this.currentPost.title || '') + '\n\n' + (this.currentPost.excerpt || '')).trim();
+
+        // Скриваме оригиналното съдържание
+        titleElement.style.display = 'none';
+        textElement.style.display = 'none';
+
+        // Създаваме edit форма
+        const editForm = document.createElement('div');
+        editForm.className = 'modal-edit-form';
+        editForm.innerHTML = `
+            <textarea class="modal-edit-textarea" rows="8" placeholder="Напишете вашия текст...">${this.escapeHtml(fullContent)}</textarea>
+            <div class="modal-edit-buttons">
+                <button class="modal-edit-save">
+                    <i class="bi bi-check"></i> Запази
+                </button>
+                <button class="modal-edit-cancel">
+                    <i class="bi bi-x"></i> Отказ
+                </button>
+            </div>
+        `;
+
+        // Добавяме след category
+        const categoryElement = this.modal.querySelector('.modal-post-category');
+        if (categoryElement && categoryElement.parentNode) {
+            categoryElement.parentNode.insertBefore(editForm, categoryElement.nextSibling);
+        } else {
+            contentContainer.insertBefore(editForm, contentContainer.firstChild);
+        }
+
+        // Event listeners за бутоните
+        const saveBtn = editForm.querySelector('.modal-edit-save');
+        const cancelBtn = editForm.querySelector('.modal-edit-cancel');
+        const textarea = editForm.querySelector('.modal-edit-textarea');
+
+        saveBtn.addEventListener('click', () => this.saveInlineEdit());
+        cancelBtn.addEventListener('click', () => this.cancelInlineEdit());
+
+        // Focus на textarea
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }, 100);
+
+        // Затваряме менюто
+        this.closePostMenu();
+    }
+
+    async saveInlineEdit() {
+        const textarea = this.modal.querySelector('.modal-edit-textarea');
+        if (!textarea) return;
+
+        const newContent = textarea.value.trim();
+        if (!newContent) {
+            window.postInteractions?.showError('Текстът не може да бъде празен!');
+            return;
+        }
+
+        const saveBtn = this.modal.querySelector('.modal-edit-save');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Запазване...';
+        }
+
         try {
-            // First try to find post in already loaded posts
-            let post = this.allPosts.find(p => p.id == postId);
+            // Split content into title and excerpt
+            const lines = newContent.split('\n');
+            const newTitle = lines[0].substring(0, 100);
+            const remainingContent = lines.slice(1).join('\n').trim();
+            const newExcerpt = remainingContent.substring(0, 200);
 
-            // If not found, fetch from server
-            if (!post) {
-                const response = await window.publicationsAPI.getPublication(postId);
-                post = response;
+            const updateData = {
+                title: newTitle,
+                content: newContent,
+                category: this.currentPost.category,
+                emotion: this.currentPost.emotion,
+                emotionText: this.currentPost.emotionText,
+                imageUrl: this.currentPost.imageUrl
+            };
 
-                // Add to posts array if fetched
-                if (post) {
-                    this.allPosts.unshift(post);
-                    this.currentIndex = 0;
+            await window.publicationsAPI.updatePublication(this.currentPost.id, updateData);
+
+            // Обновяваме данните в паметта
+            this.currentPost.title = newTitle;
+            this.currentPost.excerpt = newExcerpt;
+            this.currentPost.content = newContent;
+            this.currentPost.status = 'EDITED';
+
+            // Обновяваме DOM-а в модала
+            this.updateModalContentAfterEdit(newTitle, newContent);
+
+            // Обновяваме главния feed ако постът е там
+            this.updateMainFeedAfterEdit(newTitle, newExcerpt, newContent);
+
+            this.cancelInlineEdit();
+            window.postInteractions?.showToast('Публикацията е обновена успешно!', 'success');
+
+        } catch (error) {
+            console.error('Error updating post:', error);
+            window.postInteractions?.showError('Възникна грешка при запазването.');
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-check"></i> Запази';
+            }
+        }
+    }
+
+    updateModalContentAfterEdit(newTitle, newContent) {
+        const titleElement = document.getElementById('modalPostTitle');
+        const textElement = document.getElementById('modalPostText');
+
+        if (titleElement) {
+            titleElement.textContent = newTitle;
+        }
+        if (textElement) {
+            textElement.textContent = newContent;
+        }
+
+        // Обновяваме статуса
+        const statusElement = this.modal.querySelector('.modal-post-status');
+        if (statusElement) {
+            statusElement.className = 'modal-post-status status-edited';
+            statusElement.textContent = 'Редактирана';
+        }
+    }
+
+    updateMainFeedAfterEdit(newTitle, newExcerpt, newContent) {
+        const mainPost = document.querySelector(`[data-post-id="${this.currentPost.id}"]`);
+        if (mainPost) {
+            // Обновяваме заглавието
+            const mainTitle = mainPost.querySelector('.post-title');
+            if (mainTitle) {
+                mainTitle.textContent = newTitle;
+            }
+
+            // Обновяваме excerpt
+            const mainExcerpt = mainPost.querySelector('.post-excerpt');
+            if (mainExcerpt) {
+                if (newExcerpt && newExcerpt !== newTitle) {
+                    mainExcerpt.textContent = newExcerpt;
+                    mainExcerpt.style.display = 'block';
+                } else {
+                    mainExcerpt.style.display = 'none';
+                }
+            } else if (newExcerpt && newExcerpt !== newTitle) {
+                // Създаваме нов excerpt ако не съществува
+                const excerptDiv = document.createElement('div');
+                excerptDiv.className = 'post-excerpt';
+                excerptDiv.textContent = newExcerpt;
+
+                const titleElement = mainPost.querySelector('.post-title');
+                if (titleElement && titleElement.nextSibling) {
+                    titleElement.parentNode.insertBefore(excerptDiv, titleElement.nextSibling);
                 }
             }
 
-            if (!post) {
-                throw new Error('Публикацията не е намерена');
-            }
-
-            this.currentPost = post;
-            this.populateModalContent(post);
-
-        } catch (error) {
-            console.error('Error loading post data:', error);
-            throw error;
-        }
-    }
-
-    populateModalContent(post) {
-        try {
-            // Author info
-            this.updateAuthorInfo(post);
-
-            // Post category
-            this.updatePostCategory(post);
-
-            // Post content
-            this.updatePostContent(post);
-
-            // Post image
-            this.updatePostImage(post);
-
-            // Post stats
-            this.updatePostStats(post);
-
-            // Post actions
-            this.updatePostActions(post);
-
-            // Post menu (if owner)
-            this.updatePostMenu(post);
-
-            // Comments count in header
-            this.updateCommentsHeader(post);
-
-        } catch (error) {
-            console.error('Error populating modal content:', error);
-        }
-    }
-
-    updateAuthorInfo(post) {
-        const authorName = document.getElementById('modalAuthorName');
-        const authorAvatar = document.getElementById('modalAuthorAvatar');
-        const postTime = document.getElementById('modalPostTime');
-        const onlineStatus = document.getElementById('modalOnlineStatus');
-        const postStatus = document.getElementById('modalPostStatus');
-        const postEmotion = document.getElementById('modalPostEmotion');
-
-        if (authorName && post.author) {
-            authorName.textContent = post.author.username || 'Анонимен';
-            authorName.href = `/users/${post.author.id}`;
-        }
-
-        if (authorAvatar && post.author) {
-            const avatarHTML = window.avatarUtils ?
-                window.avatarUtils.createAvatar(
-                    post.author.imageUrl || '/images/default-avatar.png',
-                    post.author.username || 'Анонимен',
-                    48,
-                    'modal-author-avatar'
-                ) :
-                `<img src="${post.author.imageUrl || '/images/default-avatar.png'}" 
-                      alt="${post.author.username}" style="width:48px;height:48px;border-radius:50%;">`;
-
-            authorAvatar.innerHTML = avatarHTML;
-        }
-
-        if (postTime) {
-            postTime.textContent = this.formatTimeAgo(post.createdAt || post.created);
-        }
-
-        if (onlineStatus && post.author) {
-            const status = this.getOnlineStatus(post.author);
-            onlineStatus.className = `bi bi-circle online-status-indicator ${status}`;
-            onlineStatus.title = this.getOnlineStatusText(post.author);
-        }
-
-        if (postStatus) {
-            const status = this.normalizeStatus(post.status);
-            postStatus.textContent = this.getStatusText(status);
-            postStatus.className = `modal-post-status ${this.getStatusClass(status)}`;
-        }
-
-        if (postEmotion) {
-            if (post.emotion && post.emotionText) {
-                postEmotion.innerHTML = `<span>•</span><span>${post.emotion} ${post.emotionText}</span>`;
-                postEmotion.style.display = 'inline';
-            } else {
-                postEmotion.style.display = 'none';
+            // Обновяваме статуса
+            const mainStatus = mainPost.querySelector('.post-status');
+            if (mainStatus) {
+                mainStatus.className = 'post-status status-edited';
+                mainStatus.textContent = 'Редактирана';
             }
         }
     }
 
-    updatePostCategory(post) {
-        const categoryIcon = document.getElementById('modalCategoryIcon');
-        const categoryText = document.getElementById('modalCategoryText');
+    cancelInlineEdit() {
+        const editForm = this.modal.querySelector('.modal-edit-form');
+        const titleElement = document.getElementById('modalPostTitle');
+        const textElement = document.getElementById('modalPostText');
 
-        const category = this.normalizeCategory(post.category);
+        // Премахваме edit форма
+        if (editForm) editForm.remove();
 
-        if (categoryIcon) {
-            categoryIcon.className = this.getCategoryIcon(category);
-        }
-
-        if (categoryText) {
-            categoryText.textContent = this.getCategoryText(category);
-        }
+        // Показваме оригиналното съдържание
+        if (titleElement) titleElement.style.display = 'block';
+        if (textElement) textElement.style.display = 'block';
     }
 
-    updatePostContent(post) {
-        const postTitle = document.getElementById('modalPostTitle');
-        const postText = document.getElementById('modalPostText');
+    // ====== SIMPLE HELPERS ======
 
-        if (postTitle) {
-            postTitle.textContent = post.title || 'Без заглавие';
-        }
-
-        if (postText) {
-            const content = post.content || post.excerpt || '';
-            postText.textContent = content;
-        }
+    setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
     }
 
-    updatePostImage(post) {
-        const imageContainer = document.getElementById('modalPostImageContainer');
-        const postImage = document.getElementById('modalPostImage');
-
-        if (post.imageUrl && imageContainer && postImage) {
-            postImage.src = post.imageUrl;
-            postImage.alt = post.title || 'Post image';
-            imageContainer.style.display = 'block';
-        } else if (imageContainer) {
-            imageContainer.style.display = 'none';
-        }
+    setHtml(id, html) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
     }
 
-    updatePostStats(post) {
-        const likesCount = document.getElementById('modalLikesCount');
-        const dislikesCount = document.getElementById('modalDislikesCount');
-        const commentsCount = document.getElementById('modalCommentsCount');
-        const sharesCount = document.getElementById('modalSharesCount');
+    updateButton(btnId, isActive, activeIcon, inactiveIcon, activeClass) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
 
-        if (likesCount) likesCount.textContent = post.likesCount || 0;
-        if (dislikesCount) dislikesCount.textContent = post.dislikesCount || 0;
-        if (commentsCount) commentsCount.textContent = post.commentsCount || 0;
-        if (sharesCount) sharesCount.textContent = post.sharesCount || 0;
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = `bi ${isActive ? activeIcon : inactiveIcon}`;
+        btn.classList.toggle(activeClass, isActive);
     }
 
-    updatePostActions(post) {
-        const likeBtn = document.getElementById('modalLikeBtn');
-        const dislikeBtn = document.getElementById('modalDislikeBtn');
-
-        if (!window.postInteractions) return;
-
-        const isLiked = window.postInteractions.isPostLiked(post.id);
-        const isDisliked = window.postInteractions.isPostDisliked(post.id);
-
-        if (likeBtn) {
-            const icon = likeBtn.querySelector('i');
-            if (isLiked) {
-                likeBtn.classList.add('liked');
-                icon.className = 'bi bi-hand-thumbs-up-fill';
-            } else {
-                likeBtn.classList.remove('liked');
-                icon.className = 'bi bi-hand-thumbs-up';
-            }
-        }
-
-        if (dislikeBtn) {
-            const icon = dislikeBtn.querySelector('i');
-            if (isDisliked) {
-                dislikeBtn.classList.add('disliked');
-                icon.className = 'bi bi-hand-thumbs-down-fill';
-            } else {
-                dislikeBtn.classList.remove('disliked');
-                icon.className = 'bi bi-hand-thumbs-down';
-            }
-        }
+    createAvatar(imageUrl, username) {
+        return window.avatarUtils ?
+            window.avatarUtils.createAvatar(imageUrl, username, 40, 'modal-author-avatar') :
+            `<img src="${imageUrl || '/images/default-avatar.png'}" alt="${username}" style="width:40px;height:40px;border-radius:50%;">`;
     }
 
-    updatePostMenu(post) {
-        const postMenu = document.getElementById('modalPostMenu');
+    formatTimeAgo(dateInput) {
+        const date = new Date(dateInput);
+        if (isNaN(date.getTime())) return 'неизвестно време';
 
-        if (postMenu) {
-            const isOwner = window.currentUserId && window.currentUserId == post.author?.id;
-            postMenu.style.display = isOwner ? 'block' : 'none';
-        }
+        const diffInSeconds = Math.floor((new Date() - date) / 1000);
+
+        if (diffInSeconds < 60) return 'преди малко';
+        if (diffInSeconds < 3600) return `преди ${Math.floor(diffInSeconds / 60)} мин`;
+        if (diffInSeconds < 86400) return `преди ${Math.floor(diffInSeconds / 3600)} ч`;
+        return date.toLocaleDateString('bg-BG');
     }
 
-    updateCommentsHeader(post) {
-        const headerCount = document.getElementById('commentsHeaderCount');
-        if (headerCount) {
-            headerCount.textContent = post.commentsCount || 0;
-        }
+    getCategoryText(category) {
+        const texts = {
+            'NEWS': 'Новини',
+            'INFRASTRUCTURE': 'Инфраструктура',
+            'MUNICIPAL': 'Община',
+            'INITIATIVES': 'Граждански инициативи',
+            'CULTURE': 'Културни събития'
+        };
+        return texts[category] || 'Други';
     }
 
-    showModal() {
-        if (this.modal) {
-            this.modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    closeModal() {
-        if (this.modal) {
-            this.modal.classList.remove('show');
-            document.body.style.overflow = '';
-
-            // Reset modal content after animation
-            setTimeout(() => {
-                this.resetModalContent();
-            }, 300);
-        }
-
-        // Notify components
-        if (window.commentsManager) {
-            window.commentsManager.clearComments();
-        }
-
-        this.currentPostId = null;
-        this.currentPost = null;
-    }
-
-    resetModalContent() {
-        // Reset all content to default values
-        const elementsToReset = [
-            'modalAuthorName', 'modalPostTitle', 'modalPostText',
-            'modalLikesCount', 'modalDislikesCount', 'modalCommentsCount', 'modalSharesCount'
-        ];
-
-        elementsToReset.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = '';
-            }
-        });
-
-        // Hide image
-        const imageContainer = document.getElementById('modalPostImageContainer');
-        if (imageContainer) {
-            imageContainer.style.display = 'none';
-        }
-
-        // Reset buttons
-        this.resetActionButtons();
-    }
-
-    resetActionButtons() {
-        const likeBtn = document.getElementById('modalLikeBtn');
-        const dislikeBtn = document.getElementById('modalDislikeBtn');
-
-        if (likeBtn) {
-            likeBtn.classList.remove('liked');
-            const icon = likeBtn.querySelector('i');
-            if (icon) icon.className = 'bi bi-hand-thumbs-up';
-        }
-
-        if (dislikeBtn) {
-            dislikeBtn.classList.remove('disliked');
-            const icon = dislikeBtn.querySelector('i');
-            if (icon) icon.className = 'bi bi-hand-thumbs-down';
-        }
-    }
-
-    updateNavigationButtons() {
-        const prevBtn = document.getElementById('prevPostBtn');
-        const nextBtn = document.getElementById('nextPostBtn');
-
-        if (prevBtn) {
-            prevBtn.disabled = this.currentIndex <= 0;
-        }
-
-        if (nextBtn) {
-            nextBtn.disabled = this.currentIndex >= this.allPosts.length - 1;
-        }
-    }
-
-    async navigateToPrevious() {
-        if (this.currentIndex > 0) {
-            const prevPost = this.allPosts[this.currentIndex - 1];
-            await this.openModal(prevPost.id, this.allPosts);
-        }
-    }
-
-    async navigateToNext() {
-        if (this.currentIndex < this.allPosts.length - 1) {
-            const nextPost = this.allPosts[this.currentIndex + 1];
-            await this.openModal(nextPost.id, this.allPosts);
-        }
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // ====== POST ACTIONS ======
 
     async toggleLike() {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
             await window.postInteractions.toggleLike(this.currentPost.id);
-
-            // Update current post data
-            this.currentPost.likesCount = parseInt(document.querySelector(`[data-post-id="${this.currentPost.id}"] .like-stats-count`)?.textContent || 0);
-            this.currentPost.dislikesCount = parseInt(document.querySelector(`[data-post-id="${this.currentPost.id}"] .dislike-stats-count`)?.textContent || 0);
-
-            // Update modal UI
-            this.updatePostStats(this.currentPost);
-            this.updatePostActions(this.currentPost);
-
+            this.syncFromMainFeed();
         } catch (error) {
             console.error('Error toggling like:', error);
         }
     }
 
     async toggleDislike() {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
             await window.postInteractions.toggleDislike(this.currentPost.id);
-
-            // Update current post data
-            this.currentPost.likesCount = parseInt(document.querySelector(`[data-post-id="${this.currentPost.id}"] .like-stats-count`)?.textContent || 0);
-            this.currentPost.dislikesCount = parseInt(document.querySelector(`[data-post-id="${this.currentPost.id}"] .dislike-stats-count`)?.textContent || 0);
-
-            // Update modal UI
-            this.updatePostStats(this.currentPost);
-            this.updatePostActions(this.currentPost);
-
+            this.syncFromMainFeed();
         } catch (error) {
             console.error('Error toggling dislike:', error);
         }
@@ -540,37 +429,64 @@ class PublicationDetailModal {
 
         try {
             await window.postInteractions.sharePublication(this.currentPost.id);
-
-            // Update shares count
-            this.currentPost.sharesCount = (this.currentPost.sharesCount || 0) + 1;
-            this.updatePostStats(this.currentPost);
-
+            this.syncFromMainFeed();
         } catch (error) {
             console.error('Error sharing post:', error);
         }
     }
 
-    editPost() {
-        if (!this.currentPost || !window.publicationsManager) return;
+    // Синхронизация с главния feed
+    syncFromMainFeed() {
+        const mainPost = document.querySelector(`[data-post-id="${this.currentPost.id}"]`);
+        if (!mainPost) return;
 
-        this.closeModal();
+        // Обнови counts от DOM-а
+        const likeCount = mainPost.querySelector('.like-stats-count')?.textContent;
+        const dislikeCount = mainPost.querySelector('.dislike-stats-count')?.textContent;
+        const shareCount = mainPost.querySelector('.share-stats-count')?.textContent;
 
-        // Start inline edit in main feed
-        setTimeout(() => {
-            window.publicationsManager.startInlineEdit(this.currentPost.id);
-        }, 300);
+        // Обнови button states
+        const isLiked = mainPost.querySelector('.like-btn')?.classList.contains('liked');
+        const isDisliked = mainPost.querySelector('.dislike-btn')?.classList.contains('disliked');
+
+        // Аплицирай в модала
+        if (likeCount !== undefined) {
+            this.setText('modalLikesCount', likeCount);
+            this.currentPost.likesCount = parseInt(likeCount) || 0;
+        }
+        if (dislikeCount !== undefined) {
+            this.setText('modalDislikesCount', dislikeCount);
+            this.currentPost.dislikesCount = parseInt(dislikeCount) || 0;
+        }
+        if (shareCount !== undefined) {
+            this.setText('modalSharesCount', shareCount);
+            this.currentPost.sharesCount = parseInt(shareCount) || 0;
+        }
+
+        // Обнови button визуали
+        this.updateButton('modalLikeBtn', isLiked, 'bi-hand-thumbs-up-fill', 'bi-hand-thumbs-up', 'liked');
+        this.updateButton('modalDislikeBtn', isDisliked, 'bi-hand-thumbs-down-fill', 'bi-hand-thumbs-down', 'disliked');
     }
 
-    async deletePost() {
-        if (!this.currentPost || !window.postInteractions) return;
+    show() {
+        this.modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        this.isVisible = true;
+    }
 
-        try {
-            await window.postInteractions.deletePost(this.currentPost.id);
-            this.closeModal();
-
-        } catch (error) {
-            console.error('Error deleting post:', error);
+    close() {
+        // Ако има активен edit, отказваме го
+        if (this.modal.querySelector('.modal-edit-form')) {
+            this.cancelInlineEdit();
         }
+
+        this.modal.classList.remove('show');
+        document.body.style.overflow = '';
+        this.isVisible = false;
+        this.currentPost = null;
+
+        // Clear comments
+        window.commentsManager?.clearComments();
     }
 
     togglePostMenu() {
@@ -588,185 +504,38 @@ class PublicationDetailModal {
         }
     }
 
-    zoomImage() {
-        // Future feature: full screen image view
-        console.log('Image zoom feature will be implemented');
+    showImageFullscreen() {
+        const postImage = document.getElementById('modalPostImage');
+        const fullscreenImage = document.getElementById('fullscreenImage');
+        const overlay = document.getElementById('imageFullscreenOverlay');
+
+        if (postImage && fullscreenImage && overlay) {
+            fullscreenImage.src = postImage.src;
+            overlay.classList.add('show');
+        }
     }
 
-    // ====== UTILITY METHODS ======
-
     showLoading() {
-        this.isLoading = true;
-        const loading = document.getElementById('modalLoading');
-        if (loading) {
-            loading.style.display = 'flex';
-        }
+        document.getElementById('modalLoading')?.style.setProperty('display', 'flex');
     }
 
     hideLoading() {
-        this.isLoading = false;
-        const loading = document.getElementById('modalLoading');
-        if (loading) {
-            loading.style.display = 'none';
-        }
-    }
-
-    showError(message) {
-        if (window.postInteractions) {
-            window.postInteractions.showError(message);
-        } else {
-            alert(message);
-        }
-    }
-
-    showLoginPrompt() {
-        if (window.postInteractions) {
-            window.postInteractions.showLoginPrompt();
-        }
-    }
-
-    isVisible() {
-        return this.modal && this.modal.classList.contains('show');
-    }
-
-    trackModalOpen(postId) {
-        if (window.analyticsTracker) {
-            window.analyticsTracker.track('modal_open', { postId: postId });
-        }
-    }
-
-    // Copy utility methods from publicationsMain.js
-    formatTimeAgo(dateInput) {
-        let date;
-
-        if (typeof dateInput === 'string') {
-            date = new Date(dateInput);
-        } else if (dateInput instanceof Date) {
-            date = dateInput;
-        } else if (Array.isArray(dateInput) && dateInput.length >= 6) {
-            date = new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3] || 0, dateInput[4] || 0, dateInput[5] || 0);
-        } else {
-            date = new Date();
-        }
-
-        if (isNaN(date.getTime())) {
-            return 'неизвестно време';
-        }
-
-        const now = new Date();
-        const diffInSeconds = Math.floor((now - date) / 1000);
-
-        if (diffInSeconds < 60) return 'преди малко';
-        if (diffInSeconds < 3600) return `преди ${Math.floor(diffInSeconds / 60)} мин`;
-        if (diffInSeconds < 86400) return `преди ${Math.floor(diffInSeconds / 3600)} ч`;
-        if (diffInSeconds < 2592000) return `преди ${Math.floor(diffInSeconds / 86400)} дни`;
-
-        return date.toLocaleDateString('bg-BG');
-    }
-
-    getOnlineStatus(author) {
-        if (!author) return 'offline';
-
-        if (author.onlineStatus === 1) {
-            return 'online';
-        }
-
-        if (author.lastOnline) {
-            const lastOnlineDate = new Date(author.lastOnline);
-            const now = new Date();
-            const diffMinutes = (now - lastOnlineDate) / (1000 * 60);
-
-            if (diffMinutes <= 5) {
-                return 'online';
-            } else if (diffMinutes <= 30) {
-                return 'away';
-            }
-        }
-
-        return 'offline';
-    }
-
-    getOnlineStatusText(author) {
-        const status = this.getOnlineStatus(author);
-        const texts = {
-            'online': 'Онлайн сега',
-            'away': 'Неактивен',
-            'offline': 'Офлайн'
-        };
-        return texts[status] || 'Неизвестен статус';
-    }
-
-    normalizeStatus(status) {
-        if (!status) return 'PUBLISHED';
-        return typeof status === 'string' ? status.toUpperCase() : status.toString().toUpperCase();
-    }
-
-    normalizeCategory(category) {
-        if (!category) return 'OTHER';
-        return typeof category === 'string' ? category.toLowerCase() : category.toString().toLowerCase();
-    }
-
-    getStatusClass(status) {
-        const classes = {
-            'PUBLISHED': 'status-published',
-            'PENDING': 'status-pending',
-            'EDITED': 'status-edited'
-        };
-        return classes[status] || '';
-    }
-
-    getStatusText(status) {
-        const texts = {
-            'PUBLISHED': 'Публикувана',
-            'PENDING': 'Изчаква преглед',
-            'EDITED': 'Редактирана'
-        };
-        return texts[status] || status;
-    }
-
-    getCategoryIcon(category) {
-        const icons = {
-            'news': 'bi bi-newspaper',
-            'infrastructure': 'bi bi-tools',
-            'municipal': 'bi bi-building',
-            'initiatives': 'bi bi-lightbulb',
-            'culture': 'bi bi-palette',
-            'other': 'bi bi-three-dots'
-        };
-        return icons[category] || 'bi bi-tag';
-    }
-
-    getCategoryText(category) {
-        const texts = {
-            'news': 'Новини',
-            'infrastructure': 'Инфраструктура',
-            'municipal': 'Община',
-            'initiatives': 'Граждански инициативи',
-            'culture': 'Културни събития',
-            'other': 'Други'
-        };
-        return texts[category] || category;
+        document.getElementById('modalLoading')?.style.setProperty('display', 'none');
     }
 }
 
-// Global function to open modal
+// ====== GLOBAL API ======
+
 window.openPostModal = function(postId) {
-    if (window.publicationDetailModal) {
-        const allPosts = window.publicationsManager ? window.publicationsManager.allLoadedPosts : [];
-        window.publicationDetailModal.openModal(postId, allPosts);
-    }
+    window.publicationDetailModal?.open(postId);
 };
 
-// Initialize on DOM ready
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    try {
-        window.publicationDetailModal = new PublicationDetailModal();
-    } catch (error) {
-        console.error('Failed to initialize PublicationDetailModal:', error);
-    }
+    window.publicationDetailModal = new PublicationDetailModal();
 });
 
-// Export for modules
+// Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PublicationDetailModal;
 }
