@@ -56,7 +56,11 @@ html {
 /* Hero Section */
 .hero {
   position: relative;
-  background-size: cover;
+  background:
+          linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0)),
+          url('/images/web/background2222.png') center/cover no-repeat !important;
+  background-size: cover !important;
+  background-attachment: fixed;
   min-height: 80vh;
   display: flex;
   align-items: flex-end;
@@ -98,7 +102,7 @@ html {
   right: 0;
   bottom: 0;
   background: url('/images/web/hero1.webp') center/cover no-repeat;
-  opacity: 0.2; /* ПРОМЕНЯЙ ТАЗИ СТОЙНОСТ: 0.1=прозрачна, 1.0=видима */
+  opacity: 0.3; /*  0.1=прозрачна, 1.0=видима */
   border-radius: 20px;
   pointer-events: none;
   z-index: 0;

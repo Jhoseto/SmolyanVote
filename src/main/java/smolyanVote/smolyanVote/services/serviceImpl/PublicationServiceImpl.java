@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.PublicationStatus;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
+import smolyanVote.smolyanVote.repositories.ReportsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
@@ -33,15 +34,17 @@ public class PublicationServiceImpl implements PublicationService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final ReportsServiceImpl reportsService;
+    private final ReportsRepository reportsRepository;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
                                   UserService userService, UserRepository userRepository,
-                                  ReportsServiceImpl reportsService) {
+                                  ReportsServiceImpl reportsService, ReportsRepository reportsRepository) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.reportsService = reportsService;
+        this.reportsRepository = reportsRepository;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -148,7 +151,9 @@ public class PublicationServiceImpl implements PublicationService {
             author.setPublicationsCount(author.getPublicationsCount() - 1);
             userRepository.save(author);
         }
-
+        if (reportsRepository.existsByPublicationId(id)) {
+            reportsRepository.deleteAllByPublicationId(id);
+        }
         publicationRepository.deleteById(id);
     }
 
