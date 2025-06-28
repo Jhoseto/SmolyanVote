@@ -183,8 +183,8 @@
 
 /* Vote Item Icon */
 .vote-item-icon-glass {
-    width: 45px;
-    height: 45px;
+    width: 35px;
+    height: 35px;
     background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
     border-radius: 12px;
     display: flex;

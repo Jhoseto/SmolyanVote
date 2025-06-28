@@ -20,8 +20,6 @@ class PodcastPlayer {
             return;
         }
 
-        console.log('🎵 Initializing Podcast Player...');
-
         this.saveOriginalOrder();
         this.initWaveSurfer();
         this.bindEvents();
@@ -29,7 +27,6 @@ class PodcastPlayer {
         this.loadFavorites();
         this.addNotificationStyles();
 
-        console.log('🎵 Podcast Player initialized successfully');
     }
 
     saveOriginalOrder() {
@@ -54,7 +51,6 @@ class PodcastPlayer {
         });
 
         this.wavesurfer.on('ready', () => {
-            console.log('🎵 WaveSurfer ready');
             this.isAudioReady = true;
             this.updateDuration();
             this.showPlayer();
@@ -64,7 +60,6 @@ class PodcastPlayer {
             }
 
             if (this.shouldAutoPlay) {
-                console.log('🎵 Starting auto-play');
                 this.shouldAutoPlay = false;
                 setTimeout(() => this.startPlayback(), 300);
             }
@@ -678,8 +673,6 @@ class PodcastPlayer {
         const episodes = this.getEpisodes();
         if (!episodes.length) return;
 
-        console.log('Сортиране по:', sortBy);
-
         // Клониране на елементите за сортиране
         const episodeData = episodes.map(episode => ({
             element: episode,
@@ -714,7 +707,6 @@ class PodcastPlayer {
         this.resetCarousel();
         this.showNotification(`Сортирано по ${this.getSortLabel(sortBy)}`, 'success');
 
-        console.log('Сортирането завърши успешно');
     }
 
     getSortLabel(sortBy) {

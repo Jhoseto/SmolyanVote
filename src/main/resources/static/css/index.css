@@ -52,11 +52,12 @@ html {
   scroll-behavior: smooth;
 }
 
+
 /* Hero Section */
 .hero {
   position: relative;
   background-size: cover;
-  min-height: 70vh;
+  min-height: 80vh;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -68,10 +69,11 @@ html {
 .hero .container {
   position: relative;
   z-index: 2;
-  backdrop-filter: blur(15px);
+  backdrop-filter: blur(5px);
   background:
-          linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%),
-          linear-gradient(225deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+          linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%),
+          linear-gradient(225deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background-blend-mode: soft-light, overlay;
   border-radius: 20px;
   padding: 1rem 2.5rem;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -82,11 +84,27 @@ html {
   animation: heroSlideUp 1.2s var(--ease-out-expo) forwards;
   transform: translateY(60px);
   opacity: 0;
-  max-width: 800px;
-  margin: 40px auto;
+  max-width: 1340px;
+  margin: 50px auto;
   overflow: hidden;
 }
 
+/* СНИМКАТА Е ТУК - променяй opacity за контрол */
+.hero .container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/images/web/hero1.webp') center/cover no-repeat;
+  opacity: 0.2; /* ПРОМЕНЯЙ ТАЗИ СТОЙНОСТ: 0.1=прозрачна, 1.0=видима */
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Shimmer ефектът */
 .hero .container::before {
   content: '';
   position: absolute;
@@ -97,6 +115,7 @@ html {
   background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
   animation: containerShimmer var(--container-shimmer-duration) ease-in-out infinite;
   pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes containerShimmer {
@@ -127,6 +146,7 @@ html {
   background-clip: text;
   animation: titleGlow var(--title-glow-duration) ease-in-out infinite alternate;
   position: relative;
+  z-index: 2;
 }
 
 .hero .display-4::after {
@@ -149,11 +169,9 @@ html {
 @keyframes titleGlow {
   0% {
     filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
-    transform: scale(1);
   }
   100% {
     filter: drop-shadow(0 0 25px rgba(255,255,255,0.9));
-    transform: scale(1.02);
   }
 }
 
@@ -172,6 +190,8 @@ html {
   animation: fadeInUp 1.4s var(--ease-out-expo) 0.4s forwards;
   opacity: 0;
   transform: translateY(40px);
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes fadeInUp {
@@ -206,6 +226,7 @@ html {
   transform: translateY(40px);
   text-shadow: 0 1px 2px rgba(0,0,0,0.2);
   border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
 }
 
 .hero .btn:hover {
