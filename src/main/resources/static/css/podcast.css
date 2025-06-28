@@ -1,7 +1,7 @@
-/* Podcast Page Styles - SmolyanVote */
+/* SmolyanVote Podcast Design - ПОПРАВЕНА ВЕРСИЯ */
 
-/* Variables from index.css */
 :root {
+    /* Core Colors */
     --primary-green: #19861c;
     --secondary-green: #a9a9a9;
     --accent-green: #48a24c;
@@ -13,12 +13,19 @@
     --dark-gray: #212529;
     --text-primary: #2C3E50;
     --text-secondary: #5A6C7D;
+
+    /* Gradients */
     --gradient-primary: linear-gradient(135deg, #0F7B59 0%, #4CAF50 100%);
     --gradient-secondary: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-    --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.2);
     --shadow-xl: 0 25px 50px rgba(0,0,0,0.25);
+
+    /* Transitions */
     --animation-normal: 0.3s;
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -28,11 +35,12 @@ body {
     font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: 1.6;
     margin: 0;
-    padding-bottom: 120px; /* Space for audio player */
+    padding-bottom: 120px;
+    background: var(--light-gray);
 }
 
 .container {
-    max-width: 1260px;
+    max-width: 84rem;
     margin: 0 auto;
     padding: 0 2rem;
 }
@@ -40,6 +48,7 @@ body {
 /* Hero Section */
 .hero {
     background: url('/images/web/podcast1.png') no-repeat center -50px;
+    background-size: cover;
     position: relative;
     min-height: 70vh;
     display: flex;
@@ -57,7 +66,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(1px);
 }
 
 .hero .container {
@@ -65,43 +75,58 @@ body {
     z-index: 2;
 }
 
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
 .hero .display-4 {
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
     margin-bottom: 1rem;
     text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    color: rgba(148, 119, 76, 0.68);
 }
 
 .hero .lead {
     font-size: clamp(1.1rem, 2.5vw, 1.5rem);
     margin-bottom: 3rem;
-    opacity: 0.9;
+    opacity: 0.95;
     color: white;
-    margin-right: 230px;
-    font-weight: 100;
+    font-weight: 400;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.admin-controls {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
 }
 
 .hero-stats {
-    margin-left: 220px;
     display: flex;
-    justify-content: left;
-    gap: 2rem;
+    justify-content: center;
+    gap: 3rem;
     flex-wrap: wrap;
+    margin-top: 2rem;
 }
 
 .hero-stats span {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
-    opacity: 0.8;
+    font-size: 0.95rem;
+    opacity: 0.9;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 /* Controls Section */
 .controls {
-    padding: 1rem 0;
-    background: var(--light-gray);
+    padding: 1.5rem 0;
+    background: var(--white);
     border-bottom: 1px solid #e0e0e0;
+    box-shadow: var(--shadow-sm);
 }
 
 .controls .container {
@@ -127,17 +152,19 @@ body {
 
 #searchInput {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 1px solid #ddd;
-    border-radius: 25px;
+    padding: 0.875rem 1rem 0.875rem 2.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
     font-size: 0.9rem;
     transition: all var(--animation-normal);
+    background: #f8fafc;
 }
 
 #searchInput:focus {
     outline: none;
     border-color: var(--primary-green);
     box-shadow: 0 0 0 3px rgba(25, 134, 28, 0.1);
+    background: var(--white);
 }
 
 .clear-search {
@@ -151,32 +178,46 @@ body {
     cursor: pointer;
     opacity: 0;
     transition: opacity var(--animation-normal);
+    padding: 0.25rem;
+    border-radius: 50%;
 }
 
 .clear-search.visible {
     opacity: 1;
 }
 
+.clear-search:hover {
+    background: #f1f5f9;
+    color: var(--primary-green);
+}
+
 .sort-select {
-    padding: 0.75rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: var(--white);
+    padding: 0.875rem 1.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
     cursor: pointer;
+    font-weight: 500;
+    transition: all var(--animation-normal);
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    background: var(--white);
 }
 
 /* Episodes Section */
 .episodes {
-    padding: 1rem 0;
-    margin-right: 20px;
-
+    padding: 2rem 0;
+    background: var(--light-gray);
 }
 
 .episodes-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
 }
 
 .episodes h2 {
@@ -198,48 +239,322 @@ body {
 }
 
 .carousel-btn {
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--medium-gray);
+    width: 44px;
+    height: 44px;
+    border: 2px solid #e2e8f0;
     background: var(--white);
-    border-radius: 50%;
+    border-radius: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--medium-gray);
     transition: all var(--animation-normal);
+    box-shadow: var(--shadow-sm);
 }
 
-.carousel-btn:hover {
+.carousel-btn:hover:not(:disabled) {
     border-color: var(--primary-green);
     color: var(--primary-green);
     background: var(--light-green);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .carousel-btn:disabled {
-    opacity: 0.3;
+    opacity: 0.4;
     cursor: not-allowed;
+    transform: none;
 }
 
-.carousel-btn:disabled:hover {
-    border-color: var(--medium-gray);
-    color: var(--medium-gray);
-    background: var(--white);
-}
-
+/* Episode Carousel */
 .episodes-carousel {
-    position: relative;
+    width: 100%;
     overflow: hidden;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    position: relative;
 }
 
-.episodes-grid {
+#episodesContainer {
     display: flex;
-    gap: 1.5rem;
-    transition: transform 0.5s var(--ease-out-quart);
-    will-change: transform;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    padding: 0.5rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 100%;
+}
+
+#episodesContainer::-webkit-scrollbar {
+    display: none;
+}
+
+/* ПО-МАЛКИ КАРТИ С КОМПАКТЕН ДИЗАЙН */
+.episode-card {
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    border: 1px solid #f0f0f0;
+
+    /* ПО-МАЛКИ РАЗМЕРИ */
+    flex: 0 0 240px;
+    min-width: 240px;
+    max-width: 240px;
+    width: 240px;
+    height: 320px;
+    min-height: 320px;
+    max-height: 320px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.episode-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-green);
+}
+
+.episode-card.playing {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(25, 134, 28, 0.2);
+}
+
+/* EXPANDED STATE - увеличава се */
+.episode-card.expanded {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 20px 40px rgba(25, 134, 28, 0.25);
+    border-color: var(--primary-green);
+    z-index: 10;
+    height: auto !important;
+    min-height: 350px;
+    max-height: none;
+}
+
+.episode-image {
+    position: relative;
+    flex-shrink: 0;
+    height: 164px;
+    overflow: hidden;
+}
+
+.episode-image img {
+    width: 100%;
+    height: 125px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.episode-card:hover .episode-image img {
+    transform: scale(1.05);
+}
+
+.episode-titleNumber,
+.episode-number {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--white);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    z-index: 3;
+}
+
+.episode-actions {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 3;
+}
+
+.play-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--animation-normal);
+    box-shadow: var(--shadow-sm);
+    margin-left: 0.6rem;
+}
+
+.play-btn:hover {
+    background: var(--primary-green);
+    transform: scale(1.1);
+}
+
+.play-btn i {
+    font-size: 0.9rem;
+    color: var(--primary-green);
+    margin-left: 1px;
+}
+
+.play-btn:hover i {
+    color: var(--white);
+}
+
+.favorite-btn,
+.share-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--animation-normal);
+    opacity: 0;
+}
+
+.episode-card:hover .favorite-btn,
+.episode-card:hover .share-btn {
+    opacity: 1;
+}
+
+.favorite-btn i,
+.share-btn i {
+    font-size: 0.7rem;
+    color: var(--medium-gray);
+}
+
+.favorite-btn:hover {
+    background: #ff4757;
+}
+
+.share-btn:hover {
+    background: var(--primary-green);
+}
+
+.favorite-btn:hover i,
+.share-btn:hover i {
+    color: var(--white);
+}
+
+/* КОМПАКТЕН СЪДЪРЖАНИЕ */
+.episode-content {
+    padding: 0.75rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.episode-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.65rem;
+    color: var(--medium-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+}
+
+/* КОМПАКТНО ЗАГЛАВИЕ - ТОЧНО 2 РЕДА */
+.episode-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    height: 2rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* КОМПАКТНО ОПИСАНИЕ - ТОЧНО 3 РЕДА С ... */
+.episode-description {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    height: 2.9rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.5rem;
+}
+
+/* EXPANDED STATE - показва повече текст */
+.episode-card.expanded .episode-title {
+    height: auto;
+    -webkit-line-clamp: unset;
+    max-height: none;
+}
+
+.episode-card.expanded .episode-description {
+    height: auto;
+    -webkit-line-clamp: unset;
+    max-height: none;
+}
+
+.episode-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: auto;
+}
+
+.episode-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.65rem;
+    color: var(--medium-gray);
+}
+
+.episode-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--primary-green);
+    text-transform: uppercase;
+}
+
+/* EXPAND ИНДИКАТОР */
+.episode-content::after {
+    content: '▼';
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.6rem;
+    color: var(--primary-green);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.episode-card.expanded .episode-content::after {
+    content: '▲';
+    opacity: 0.9;
+}
+
+/* Hidden class */
+.hidden {
+    display: none !important;
 }
 
 /* Audio Player */
@@ -248,12 +563,13 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--white);
-    border-top: 1px solid #e0e0e0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(25, 134, 28, 0.1);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     transform: translateY(100%);
-    transition: transform 0.5s var(--ease-out-quart);
+    transition: transform 0.6s var(--ease-out-quart);
 }
 
 .audio-player.visible {
@@ -280,8 +596,9 @@ body {
 #currentTrackImage {
     width: 50px;
     height: 50px;
-    border-radius: 6px;
+    border-radius: 8px;
     object-fit: cover;
+    box-shadow: var(--shadow-sm);
 }
 
 .track-info {
@@ -318,7 +635,7 @@ body {
     border: none;
     color: var(--text-primary);
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.75rem;
     border-radius: 50%;
     transition: all var(--animation-normal);
     display: flex;
@@ -329,6 +646,7 @@ body {
 .control-btn:hover {
     color: var(--primary-green);
     background: var(--light-green);
+    transform: scale(1.1);
 }
 
 .play-pause-btn {
@@ -337,11 +655,13 @@ body {
     background: var(--gradient-primary);
     color: var(--white);
     font-size: 1.2rem;
+    box-shadow: var(--shadow-md);
 }
 
 .play-pause-btn:hover {
     background: var(--gradient-secondary);
     transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
 }
 
 .progress-section {
@@ -358,38 +678,42 @@ body {
     color: var(--medium-gray);
     min-width: 40px;
     text-align: center;
+    font-weight: 500;
 }
 
 .progress-container {
     flex: 1;
     position: relative;
-    height: 4px;
+    height: 6px;
 }
 
 .progress-bar {
     width: 100%;
-    height: 4px;
-    background: #e0e0e0;
-    border-radius: 2px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
     background: var(--gradient-primary);
-    border-radius: 2px;
+    border-radius: 3px;
     width: 0%;
     transition: width 0.1s;
 }
 
 #waveform {
     position: absolute;
-    top: -18px;
+    top: -20px;
     left: 0;
     right: 0;
-    height: 40px;
+    height: 46px;
     opacity: 0;
     transition: opacity var(--animation-normal);
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .progress-container:hover #waveform {
@@ -397,21 +721,21 @@ body {
 }
 
 .progress-container:hover .progress-bar {
-    opacity: 0;
+    opacity: 0.3;
 }
 
 .volume-controls {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     flex: 0 0 120px;
 }
 
 .volume-slider {
     width: 80px;
-    height: 4px;
-    background: #e0e0e0;
-    border-radius: 2px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
     -webkit-appearance: none;
@@ -419,11 +743,12 @@ body {
 
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
     background: var(--primary-green);
     border-radius: 50%;
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
 }
 
 /* Subscribe Section */
@@ -432,40 +757,21 @@ body {
     background: var(--gradient-glass);
     backdrop-filter: blur(10px);
     text-align: center;
+    border-top: 1px solid rgba(25, 134, 28, 0.1);
 }
 
 .subscribe-section h3 {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.subscribe-section p {
-    color: var(--medium-gray);
     margin-bottom: 2rem;
 }
 
-.subscribe-form {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-#subscribeEmail {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
+/* Buttons */
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--animation-normal);
@@ -473,43 +779,43 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    font-size: 0.9rem;
 }
 
-.btn-green {
+.btn-primary {
     background: var(--gradient-primary);
     color: var(--white);
+    box-shadow: var(--shadow-sm);
 }
 
-.btn-green:hover {
+.btn-primary:hover {
     background: var(--gradient-secondary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
-.subscribe-message {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    font-weight: 500;
+.btn-secondary {
+    background: var(--light-gray);
+    color: var(--text-primary);
+    border: 1px solid #e2e8f0;
 }
 
-.subscribe-message.hidden {
-    display: none;
-}
-
-.subscribe-message.success {
+.btn-secondary:hover {
+    background: var(--white);
+    border-color: var(--primary-green);
     color: var(--primary-green);
 }
 
-.subscribe-message.error {
-    color: #e74c3c;
+/* Responsive Design - запазва 4 карти до минимум */
+@media (max-width: 1200px) {
+    .episode-card {
+        flex: 0 0 220px;
+        min-width: 220px;
+        max-width: 220px;
+        width: 220px;
+    }
 }
 
-/* Hidden class for filtering */
-.hidden {
-    display: none;
-}
-
-/* Responsive Design */
 @media (max-width: 1024px) {
     .episodes-header {
         flex-direction: column;
@@ -517,8 +823,11 @@ body {
         align-items: flex-start;
     }
 
-    .carousel-nav {
-        align-self: flex-end;
+    .episode-card {
+        flex: 0 0 280px;
+        min-width: 280px;
+        max-width: 280px;
+        width: 280px;
     }
 }
 
@@ -527,28 +836,16 @@ body {
         padding: 0 1rem;
     }
 
-    .hero-stats {
-        gap: 1rem;
-        font-size: 0.8rem;
-    }
-
     .controls .container {
         flex-direction: column;
         gap: 1rem;
     }
 
-    .search-box {
-        max-width: 100%;
-    }
-
-    .episodes-header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-
-    .carousel-nav {
-        align-self: flex-end;
+    .episode-card {
+        flex: 0 0 300px;
+        min-width: 300px;
+        max-width: 300px;
+        width: 300px;
     }
 
     .player-container {
@@ -557,31 +854,18 @@ body {
         gap: 1rem;
     }
 
-    .now-playing {
-        flex: none;
-        width: 100%;
-    }
-
-    .progress-section {
-        width: 100%;
-    }
-
-    .volume-controls {
-        flex: none;
-    }
-
-    .subscribe-form {
-        flex-direction: column;
-        gap: 1rem;
+    .admin-controls {
+        position: static;
+        margin-bottom: 2rem;
+        text-align: center;
     }
 }
 
 @media (max-width: 480px) {
-    .hero .display-4 {
-        font-size: 2rem;
-    }
-
-    .hero .lead {
-        font-size: 1rem;
+    .episode-card {
+        flex: 0 0 calc(100vw - 3rem);
+        min-width: calc(100vw - 3rem);
+        max-width: calc(100vw - 3rem);
+        width: calc(100vw - 3rem);
     }
 }

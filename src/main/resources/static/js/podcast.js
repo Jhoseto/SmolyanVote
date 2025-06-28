@@ -1,15 +1,15 @@
-// SmolyanVote Podcast Player - Final Fix
 class PodcastPlayer {
     constructor() {
         this.wavesurfer = null;
         this.currentEpisode = null;
         this.isPlaying = false;
-        this.isAudioReady = false; // Our own ready flag
+        this.isAudioReady = false;
         this.favorites = JSON.parse(localStorage.getItem('podcast-favorites')) || [];
         this.currentSlide = 0;
         this.cardsPerView = 4;
         this.previousVolume = 1;
         this.shouldAutoPlay = false;
+        this.originalOrder = [];
 
         this.init();
     }
@@ -20,14 +20,21 @@ class PodcastPlayer {
             return;
         }
 
-        console.log('🎵 Initializing PodcastPlayer...');
+        console.log('🎵 Initializing Podcast Player...');
 
+        this.saveOriginalOrder();
         this.initWaveSurfer();
         this.bindEvents();
         this.initCarousel();
         this.loadFavorites();
+        this.addNotificationStyles();
 
-        console.log('🎵 PodcastPlayer initialized successfully');
+        console.log('🎵 Podcast Player initialized successfully');
+    }
+
+    saveOriginalOrder() {
+        const episodes = this.getEpisodes();
+        this.originalOrder = episodes.map(ep => ep.cloneNode(true));
     }
 
     initWaveSurfer() {
@@ -47,8 +54,8 @@ class PodcastPlayer {
         });
 
         this.wavesurfer.on('ready', () => {
-            console.log('🎵 WaveSurfer ready event fired');
-            this.isAudioReady = true; // Set our flag
+            console.log('🎵 WaveSurfer ready');
+            this.isAudioReady = true;
             this.updateDuration();
             this.showPlayer();
 
@@ -56,63 +63,37 @@ class PodcastPlayer {
                 this.hideLoadingState(this.currentEpisode.element);
             }
 
-            console.log('🎵 Audio is ready, shouldAutoPlay:', this.shouldAutoPlay);
-
-            // Auto-play if requested
             if (this.shouldAutoPlay) {
                 console.log('🎵 Starting auto-play');
                 this.shouldAutoPlay = false;
-                setTimeout(() => {
-                    this.startPlayback();
-                }, 300);
+                setTimeout(() => this.startPlayback(), 300);
             }
         });
 
         this.wavesurfer.on('play', () => {
-            console.log('🎵 WaveSurfer play event - audio started');
             this.isPlaying = true;
             this.updatePlayButton();
         });
 
         this.wavesurfer.on('pause', () => {
-            console.log('🎵 WaveSurfer pause event - audio paused');
             this.isPlaying = false;
             this.updatePlayButton();
         });
 
         this.wavesurfer.on('finish', () => {
-            console.log('🎵 Audio finished');
             this.isPlaying = false;
             this.updatePlayButton();
             this.playNext();
         });
 
-        this.wavesurfer.on('audioprocess', () => {
-            this.updateProgress();
-        });
-
-        this.wavesurfer.on('timeupdate', () => {
-            this.updateProgress();
-        });
-
-        this.wavesurfer.on('error', (error) => {
-            console.error('WaveSurfer error:', error);
-            this.handleAudioError(error);
-        });
-
-        this.wavesurfer.on('load', (url) => {
-            console.log('Loading audio:', url);
-        });
+        this.wavesurfer.on('audioprocess', () => this.updateProgress());
+        this.wavesurfer.on('timeupdate', () => this.updateProgress());
+        this.wavesurfer.on('error', (error) => this.handleAudioError(error));
     }
 
     startPlayback() {
-        if (!this.wavesurfer || !this.isAudioReady) {
-            console.warn('🎵 Cannot start playback - not ready');
-            return;
-        }
-
+        if (!this.wavesurfer || !this.isAudioReady) return;
         try {
-            console.log('🎵 Attempting to start playback');
             this.wavesurfer.play();
         } catch (error) {
             console.error('🎵 Error starting playback:', error);
@@ -130,13 +111,13 @@ class PodcastPlayer {
             this.hideLoadingState(this.currentEpisode.element);
         }
 
-        this.showNotification('Грешка при зареждане на аудиото: ' + (error.message || 'Неизвестна грешка'));
+        this.showNotification('Грешка при зареждане на аудиото', 'error');
     }
 
     bindEvents() {
-        // Search
         const searchInput = document.getElementById('searchInput');
         const clearSearch = document.getElementById('clearSearch');
+        const sortSelect = document.getElementById('sortSelect');
 
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.searchEpisodes(e.target.value));
@@ -146,55 +127,62 @@ class PodcastPlayer {
             clearSearch.addEventListener('click', () => this.clearSearch());
         }
 
-        // Sort
-        const sortSelect = document.getElementById('sortSelect');
         if (sortSelect) {
             sortSelect.addEventListener('change', (e) => this.sortEpisodes(e.target.value));
         }
 
-        // Episode interactions
         document.addEventListener('click', (e) => {
             if (e.target.closest('.play-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 const episodeCard = e.target.closest('.episode-card');
                 if (episodeCard) {
-                    console.log('🎵 Play button clicked');
-
                     if (this.currentEpisode?.element === episodeCard) {
-                        console.log('🎵 Same episode - toggling play/pause');
                         this.togglePlayPause();
                     } else {
-                        console.log('🎵 Different episode - loading new');
                         this.loadEpisode(episodeCard, true);
                     }
                 }
+                return;
             }
 
             if (e.target.closest('.favorite-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleFavorite(e.target.closest('.favorite-btn'));
+                return;
             }
 
             if (e.target.closest('.share-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 const episodeCard = e.target.closest('.episode-card');
-                if (episodeCard) {
-                    this.shareEpisode(episodeCard);
-                }
+                if (episodeCard) this.shareEpisode(episodeCard);
+                return;
             }
+
+            if (e.target.closest('.episode-card')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const episodeCard = e.target.closest('.episode-card');
+                if (episodeCard) this.toggleCardExpansion(episodeCard);
+                return;
+            }
+
+            this.collapseAllCards();
         });
 
         this.bindPlayerControls();
         this.bindCarouselControls();
-        this.bindSubscribeForm();
         this.bindKeyboardShortcuts();
 
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            this.updateCardsPerView();
-            this.updateCarousel();
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.updateCardsPerView();
+                this.updateCarousel();
+            }, 250);
         });
     }
 
@@ -234,49 +222,6 @@ class PodcastPlayer {
         if (nextCarousel) {
             nextCarousel.addEventListener('click', () => this.nextSlide());
         }
-
-        // Touch support
-        const carousel = document.getElementById('episodesCarousel');
-        if (carousel) {
-            let startX = 0;
-            let currentX = 0;
-
-            carousel.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            });
-
-            carousel.addEventListener('touchmove', (e) => {
-                currentX = e.touches[0].clientX;
-            });
-
-            carousel.addEventListener('touchend', () => {
-                const diffX = startX - currentX;
-                if (Math.abs(diffX) > 50) {
-                    if (diffX > 0) {
-                        this.nextSlide();
-                    } else {
-                        this.previousSlide();
-                    }
-                }
-            });
-        }
-    }
-
-    bindSubscribeForm() {
-        const subscribeBtn = document.getElementById('subscribeBtn');
-        const subscribeEmail = document.getElementById('subscribeEmail');
-
-        if (subscribeBtn) {
-            subscribeBtn.addEventListener('click', () => this.handleSubscribe());
-        }
-
-        if (subscribeEmail) {
-            subscribeEmail.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    this.handleSubscribe();
-                }
-            });
-        }
     }
 
     bindKeyboardShortcuts() {
@@ -304,6 +249,10 @@ class PodcastPlayer {
                         this.playNext();
                     }
                     break;
+                case 'Escape':
+                    e.preventDefault();
+                    this.collapseAllCards();
+                    break;
             }
         });
     }
@@ -316,7 +265,6 @@ class PodcastPlayer {
         return this.getEpisodes().filter(ep => !ep.classList.contains('hidden'));
     }
 
-    // Carousel functionality
     updateCardsPerView() {
         const width = window.innerWidth;
         if (width <= 480) {
@@ -331,75 +279,84 @@ class PodcastPlayer {
     }
 
     updateCarousel() {
-        const container = document.getElementById('episodesContainer');
-        if (!container) return;
-
-        const cardWidth = 100 / this.cardsPerView;
-        const translateX = -(this.currentSlide * cardWidth);
-        container.style.transform = `translateX(${translateX}%)`;
+        const visibleEpisodes = this.getVisibleEpisodes();
+        const totalVisible = visibleEpisodes.length;
 
         const prevBtn = document.getElementById('prevCarousel');
         const nextBtn = document.getElementById('nextCarousel');
+        const container = document.getElementById('episodesContainer');
 
-        if (prevBtn) prevBtn.disabled = this.currentSlide === 0;
+        if (!container) return;
 
-        const visibleEpisodes = this.getVisibleEpisodes();
-        const maxSlides = Math.max(0, visibleEpisodes.length - this.cardsPerView);
-        if (nextBtn) nextBtn.disabled = this.currentSlide >= maxSlides;
+        if (totalVisible <= this.cardsPerView) {
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+        } else {
+            if (prevBtn) prevBtn.style.display = 'flex';
+            if (nextBtn) nextBtn.style.display = 'flex';
+
+            const scrollLeft = container.scrollLeft;
+            const maxScroll = container.scrollWidth - container.clientWidth;
+
+            if (prevBtn) prevBtn.disabled = scrollLeft <= 5;
+            if (nextBtn) nextBtn.disabled = scrollLeft >= maxScroll - 5;
+        }
     }
 
     nextSlide() {
-        const visibleEpisodes = this.getVisibleEpisodes();
-        const maxSlides = Math.max(0, visibleEpisodes.length - this.cardsPerView);
-
-        if (this.currentSlide < maxSlides) {
-            this.currentSlide++;
-            this.updateCarousel();
+        const container = document.getElementById('episodesContainer');
+        if (container) {
+            const scrollAmount = 250 * 2;
+            container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            setTimeout(() => this.updateCarousel(), 300);
         }
     }
 
     previousSlide() {
-        if (this.currentSlide > 0) {
-            this.currentSlide--;
-            this.updateCarousel();
+        const container = document.getElementById('episodesContainer');
+        if (container) {
+            const scrollAmount = 250 * 2;
+            container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            setTimeout(() => this.updateCarousel(), 300);
         }
     }
 
     resetCarousel() {
-        this.currentSlide = 0;
-        this.updateCarousel();
+        const container = document.getElementById('episodesContainer');
+        if (container) {
+            container.scrollTo({ left: 0, behavior: 'smooth' });
+            setTimeout(() => this.updateCarousel(), 300);
+        }
     }
 
     initCarousel() {
         this.updateCardsPerView();
         this.updateCarousel();
+
+        const container = document.getElementById('episodesContainer');
+        if (container) {
+            let scrollTimeout;
+            container.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => this.updateCarousel(), 150);
+            });
+        }
     }
 
-    // Load episode
     async loadEpisode(episodeCard, autoPlay = false) {
         const playBtn = episodeCard.querySelector('.play-btn');
         const audioUrl = playBtn?.dataset.audio;
 
         if (!audioUrl) {
-            this.showNotification('Няма наличен аудио файл');
-            return;
-        }
-
-        if (!this.isValidAudioUrl(audioUrl)) {
-            this.showNotification('Невалиден аудио файл');
+            this.showNotification('Няма наличен аудио файл', 'error');
             return;
         }
 
         const title = episodeCard.querySelector('.episode-title')?.textContent || 'Неизвестен епизод';
         const description = episodeCard.querySelector('.episode-description')?.textContent || '';
-        const episodeNumber = episodeCard.querySelector('.episode-titleNumber')?.textContent || '';
+        const episodeNumber = episodeCard.querySelector('.episode-titleNumber, .episode-number')?.textContent || '';
         const imageElement = episodeCard.querySelector('.episode-image img');
-        let imageUrl = imageElement?.src || '';
-
-        // Fix placeholder image URL
-        if (!imageUrl || imageUrl.includes('ffffff:') || imageUrl.startsWith('ffffff') || !imageUrl.trim()) {
-            imageUrl = "https://via.placeholder.com/60x60/19861c/ffffff?text=♪";
-        }
+        let imageUrl = imageElement?.src || '/images/podcast-default.jpg';
 
         this.currentEpisode = {
             element: episodeCard,
@@ -410,7 +367,6 @@ class PodcastPlayer {
             episodeNumber
         };
 
-        // Reset flags
         this.isAudioReady = false;
         this.shouldAutoPlay = autoPlay;
 
@@ -418,38 +374,13 @@ class PodcastPlayer {
         this.showLoadingState(episodeCard);
 
         try {
-            console.log('🎵 Loading episode:', title);
-            console.log('🎵 Audio URL:', audioUrl);
-            console.log('🎵 Auto play requested:', autoPlay);
-
             await this.loadAudioWithTimeout(audioUrl);
-            console.log('🎵 Audio loaded successfully');
-
         } catch (error) {
-            console.error('🎵 Load episode error:', error);
             this.handleAudioError(error);
             this.hideLoadingState(episodeCard);
         }
 
         this.updateActiveEpisode(episodeCard);
-    }
-
-    isValidAudioUrl(url) {
-        if (!url || typeof url !== 'string') return false;
-
-        try {
-            new URL(url);
-        } catch {
-            return false;
-        }
-
-        const audioExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
-        const hasValidExtension = audioExtensions.some(ext =>
-            url.toLowerCase().includes(ext)
-        );
-
-        const isArchiveUrl = url.includes('archive.org');
-        return hasValidExtension || isArchiveUrl;
     }
 
     loadAudioWithTimeout(audioUrl, timeout = 15000) {
@@ -489,9 +420,7 @@ class PodcastPlayer {
         const playBtn = episodeCard.querySelector('.play-btn');
         if (playBtn) {
             const icon = playBtn.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-spinner fa-spin';
-            }
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
             playBtn.disabled = true;
         }
     }
@@ -500,9 +429,7 @@ class PodcastPlayer {
         const playBtn = episodeCard.querySelector('.play-btn');
         if (playBtn) {
             const icon = playBtn.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-play';
-            }
+            if (icon) icon.className = 'fas fa-play';
             playBtn.disabled = false;
         }
     }
@@ -512,46 +439,30 @@ class PodcastPlayer {
         const descriptionElement = document.getElementById('currentTrackDescription');
         const imageElement = document.getElementById('currentTrackImage');
 
-        // Add episode number to title if available
-        const displayTitle = episodeNumber ? `Епизод ${episodeNumber}: ${title}` : title;
+        const displayTitle = episodeNumber ? `${episodeNumber}: ${title}` : title;
 
         if (titleElement) titleElement.textContent = displayTitle;
         if (descriptionElement) descriptionElement.textContent = description;
-        if (imageElement) imageElement.src = imageUrl;
+        if (imageElement) imageElement.src = imageUrl || '/images/podcast-default.jpg';
     }
 
     updateActiveEpisode(activeCard) {
-        this.getEpisodes().forEach(card => {
-            card.classList.remove('playing');
-        });
+        this.getEpisodes().forEach(card => card.classList.remove('playing'));
         activeCard.classList.add('playing');
     }
 
     showPlayer() {
         const player = document.getElementById('audioPlayer');
-        if (player) {
-            player.classList.add('visible');
-        }
+        if (player) player.classList.add('visible');
     }
 
-    // Player controls
     togglePlayPause() {
-        if (!this.wavesurfer) {
-            console.warn('🎵 WaveSurfer not initialized');
-            return;
-        }
-
-        if (!this.isAudioReady) {
-            console.warn('🎵 Audio not ready yet');
-            return;
-        }
+        if (!this.wavesurfer || !this.isAudioReady) return;
 
         try {
             if (this.isPlaying) {
-                console.log('🎵 Pausing audio');
                 this.wavesurfer.pause();
             } else {
-                console.log('🎵 Starting audio');
                 this.wavesurfer.play();
             }
         } catch (error) {
@@ -560,7 +471,6 @@ class PodcastPlayer {
     }
 
     updatePlayButton() {
-        // Update main player button
         const playBtn = document.getElementById('playPauseBtn');
         const icon = playBtn?.querySelector('i');
 
@@ -568,7 +478,6 @@ class PodcastPlayer {
             icon.className = this.isPlaying ? 'fas fa-pause' : 'fas fa-play';
         }
 
-        // Update episode play buttons
         this.getEpisodes().forEach(card => {
             const playIcon = card.querySelector('.play-btn i');
             if (playIcon && !playIcon.classList.contains('fa-spinner')) {
@@ -605,7 +514,6 @@ class PodcastPlayer {
         }
     }
 
-    // Volume controls
     setVolume(volume) {
         if (this.wavesurfer) {
             this.wavesurfer.setVolume(volume);
@@ -643,19 +551,13 @@ class PodcastPlayer {
         }
     }
 
-    // Progress controls
     seekTo(event) {
-        if (!this.wavesurfer || !this.isAudioReady) {
-            console.warn('🎵 Cannot seek - audio not ready');
-            return;
-        }
+        if (!this.wavesurfer || !this.isAudioReady) return;
 
         try {
             const progressBar = event.currentTarget;
             const rect = progressBar.getBoundingClientRect();
             const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-
-            console.log('🎵 Seeking to:', percent * 100 + '%');
             this.wavesurfer.seekTo(percent);
         } catch (error) {
             console.error('🎵 Error seeking:', error);
@@ -703,7 +605,7 @@ class PodcastPlayer {
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    // Search functionality
+    // SEARCH FUNCTIONALITY - РАБОТИ ПРАВИЛНО
     searchEpisodes(query) {
         const clearBtn = document.getElementById('clearSearch');
         if (clearBtn) {
@@ -713,7 +615,10 @@ class PodcastPlayer {
         const episodes = this.getEpisodes();
 
         if (!query.trim()) {
-            episodes.forEach(episode => episode.classList.remove('hidden'));
+            episodes.forEach(episode => {
+                episode.classList.remove('hidden');
+                episode.style.display = '';
+            });
             this.updateEpisodeCount();
             this.resetCarousel();
             return;
@@ -725,15 +630,28 @@ class PodcastPlayer {
         episodes.forEach(episode => {
             const title = episode.querySelector('.episode-title')?.textContent?.toLowerCase() || '';
             const description = episode.querySelector('.episode-description')?.textContent?.toLowerCase() || '';
+            const episodeNumber = episode.querySelector('.episode-titleNumber, .episode-number')?.textContent?.toLowerCase() || '';
 
-            const matches = title.includes(searchTerm) || description.includes(searchTerm);
-            episode.classList.toggle('hidden', !matches);
+            const matches = title.includes(searchTerm) ||
+                description.includes(searchTerm) ||
+                episodeNumber.includes(searchTerm);
 
-            if (matches) visibleCount++;
+            if (matches) {
+                episode.classList.remove('hidden');
+                episode.style.display = '';
+                visibleCount++;
+            } else {
+                episode.classList.add('hidden');
+                episode.style.display = 'none';
+            }
         });
 
         this.updateEpisodeCount(visibleCount);
         this.resetCarousel();
+
+        if (visibleCount === 0) {
+            this.showNotification('Няма намерени епизоди', 'info');
+        }
     }
 
     clearSearch() {
@@ -743,34 +661,69 @@ class PodcastPlayer {
         if (searchInput) searchInput.value = '';
         if (clearBtn) clearBtn.classList.remove('visible');
 
-        this.getEpisodes().forEach(episode => episode.classList.remove('hidden'));
+        this.getEpisodes().forEach(episode => {
+            episode.classList.remove('hidden');
+            episode.style.display = '';
+        });
+
         this.updateEpisodeCount();
         this.resetCarousel();
     }
 
-    // Sort episodes
+    // SORT FUNCTIONALITY - ФИКСИРАНО
     sortEpisodes(sortBy) {
         const container = document.getElementById('episodesContainer');
         if (!container) return;
 
         const episodes = this.getEpisodes();
+        if (!episodes.length) return;
 
-        episodes.sort((a, b) => {
+        console.log('Сортиране по:', sortBy);
+
+        // Клониране на елементите за сортиране
+        const episodeData = episodes.map(episode => ({
+            element: episode,
+            date: new Date(episode.dataset.date || '1970-01-01T00:00:00Z'),
+            duration: parseInt(episode.dataset.duration || '0'),
+            title: episode.querySelector('.episode-title')?.textContent || ''
+        }));
+
+        // Сортиране на данните
+        episodeData.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
-                    return new Date(b.dataset.date || 0) - new Date(a.dataset.date || 0);
+                    return b.date - a.date;
                 case 'oldest':
-                    return new Date(a.dataset.date || 0) - new Date(b.dataset.date || 0);
+                    return a.date - b.date;
                 case 'duration':
-                    return parseInt(b.dataset.duration || 0) - parseInt(a.dataset.duration || 0);
+                    return b.duration - a.duration;
                 default:
                     return 0;
             }
         });
 
+        // Пренареждане на DOM елементите
+        const fragment = document.createDocumentFragment();
+        episodeData.forEach(item => {
+            fragment.appendChild(item.element);
+        });
+
         container.innerHTML = '';
-        episodes.forEach(episode => container.appendChild(episode));
+        container.appendChild(fragment);
+
         this.resetCarousel();
+        this.showNotification(`Сортирано по ${this.getSortLabel(sortBy)}`, 'success');
+
+        console.log('Сортирането завърши успешно');
+    }
+
+    getSortLabel(sortBy) {
+        const labels = {
+            newest: 'най-нови',
+            oldest: 'най-стари',
+            duration: 'продължителност'
+        };
+        return labels[sortBy] || sortBy;
     }
 
     updateEpisodeCount(count = null) {
@@ -782,7 +735,42 @@ class PodcastPlayer {
         episodeCountElement.textContent = `(${displayCount})`;
     }
 
-    // Favorites functionality
+    toggleCardExpansion(episodeCard) {
+        const isExpanded = episodeCard.classList.contains('expanded');
+
+        if (isExpanded) {
+            this.collapseCard(episodeCard);
+        } else {
+            this.collapseAllCards();
+            this.expandCard(episodeCard);
+        }
+    }
+
+    expandCard(episodeCard) {
+        episodeCard.classList.add('expanded');
+
+        setTimeout(() => {
+            const rect = episodeCard.getBoundingClientRect();
+            const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+            if (!isVisible) {
+                episodeCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }, 300);
+    }
+
+    collapseCard(episodeCard) {
+        episodeCard.classList.remove('expanded');
+    }
+
+    collapseAllCards() {
+        const expandedCards = document.querySelectorAll('.episode-card.expanded');
+        expandedCards.forEach(card => this.collapseCard(card));
+    }
+
     toggleFavorite(button) {
         const episodeCard = button.closest('.episode-card');
         const episodeTitle = episodeCard?.querySelector('.episode-title')?.textContent;
@@ -816,7 +804,6 @@ class PodcastPlayer {
         });
     }
 
-    // Share episode
     shareEpisode(episodeCard) {
         const title = episodeCard.querySelector('.episode-title')?.textContent || 'Епизод';
         const description = episodeCard.querySelector('.episode-description')?.textContent || '';
@@ -839,142 +826,134 @@ class PodcastPlayer {
 
         if (navigator.clipboard) {
             navigator.clipboard.writeText(shareText).then(() => {
-                this.showNotification('Копирано в клипборда!');
+                this.showNotification('Копирано в клипборда!', 'success');
             }).catch(() => {
-                this.showNotification('Не може да се копира');
+                this.showNotification('Не може да се копира', 'error');
             });
         } else {
-            this.showNotification('Копиране не се поддържа');
+            this.showNotification('Копиране не се поддържа', 'error');
         }
     }
 
-    // Subscribe functionality
-    handleSubscribe() {
-        const emailInput = document.getElementById('subscribeEmail');
-        const email = emailInput?.value?.trim();
-
-        if (!email) {
-            this.showSubscribeMessage('Моля, въведете имейл адрес.', 'error');
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            this.showSubscribeMessage('Моля, въведете валиден имейл адрес.', 'error');
-            return;
-        }
-
-        this.showSubscribeMessage('Успешно се абонирахте! Ще получавате известия за нови епизоди.', 'success');
-        if (emailInput) emailInput.value = '';
-
-        const subscriptions = JSON.parse(localStorage.getItem('podcast-subscriptions')) || [];
-        if (!subscriptions.includes(email)) {
-            subscriptions.push(email);
-            localStorage.setItem('podcast-subscriptions', JSON.stringify(subscriptions));
-        }
-    }
-
-    showSubscribeMessage(text, type) {
-        const message = document.getElementById('subscribeMessage');
-        if (!message) return;
-
-        message.textContent = text;
-        message.className = `subscribe-message ${type}`;
-        message.classList.remove('hidden');
-
-        setTimeout(() => {
-            message.classList.add('hidden');
-        }, 5000);
-    }
-
-    // Notification system
-    showNotification(text) {
-        console.log('Notification:', text);
+    showNotification(text, type = 'info') {
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
 
         const notification = document.createElement('div');
-        notification.textContent = text;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #0F7B59 0%, #4CAF50 100%);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            z-index: 10000;
-            font-size: 0.9rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease;
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${this.getNotificationIcon(type)}"></i>
+                <span>${text}</span>
+            </div>
         `;
 
         document.body.appendChild(notification);
 
+        setTimeout(() => notification.classList.add('visible'), 100);
+
         setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease forwards';
+            notification.classList.remove('visible');
             setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        }, type === 'error' ? 5000 : 3000);
+
+        notification.addEventListener('click', () => {
+            notification.classList.remove('visible');
+            setTimeout(() => notification.remove(), 300);
+        });
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            info: 'info-circle',
+            warning: 'exclamation-triangle'
+        };
+        return icons[type] || 'info-circle';
+    }
+
+    addNotificationStyles() {
+        if (document.getElementById('notification-styles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            .notification {
+                position: fixed;
+                top: 2rem;
+                right: 2rem;
+                z-index: 10000;
+                transform: translateX(100%);
+                opacity: 0;
+                transition: all 0.3s ease;
+                min-width: 280px;
+                max-width: 400px;
+            }
+            
+            .notification.visible {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                font-weight: 500;
+                cursor: pointer;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+                backdrop-filter: blur(10px);
+            }
+            
+            .notification-success .notification-content {
+                background: #10b981;
+                color: white;
+            }
+            
+            .notification-error .notification-content {
+                background: #ef4444;
+                color: white;
+            }
+            
+            .notification-info .notification-content {
+                background: #3b82f6;
+                color: white;
+            }
+            
+            .notification-warning .notification-content {
+                background: #f59e0b;
+                color: white;
+            }
+            
+            .notification i {
+                font-size: 1rem;
+                flex-shrink: 0;
+            }
+            
+            @media (max-width: 768px) {
+                .notification {
+                    top: 1rem;
+                    right: 1rem;
+                    left: 1rem;
+                    min-width: auto;
+                    max-width: none;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.podcastPlayer = new PodcastPlayer();
 });
 
-// Add notification animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+window.addEventListener('beforeunload', () => {
+    if (window.podcastPlayer && window.podcastPlayer.wavesurfer) {
+        window.podcastPlayer.wavesurfer.destroy();
     }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    .episode-card.playing {
-        border-color: #19861c;
-        box-shadow: 0 0 0 2px rgba(25, 134, 28, 0.2);
-    }
-
-    .episodes-carousel {
-        scroll-behavior: smooth;
-    }
-
-    .episodes-grid {
-        scroll-snap-type: x mandatory;
-    }
-
-    .episode-card {
-        scroll-snap-align: start;
-    }
-    
-    .play-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    
-    .fa-spinner {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
+});

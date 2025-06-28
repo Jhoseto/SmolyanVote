@@ -6,41 +6,49 @@
   <title>SmolyanVote - Подкаст</title>
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+
   <!-- Font Awesome за икони -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- WaveSurfer.js -->
   <script src="https://unpkg.com/wavesurfer.js@7.8.0/dist/wavesurfer.min.js"></script>
+
   <!-- Персонализиран CSS -->
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/podcast.css">
-  <link rel="stylesheet" href="/css/podcastCard.css">
 </head>
 <body>
 
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-
-
-<!-- Hero секция -->
+<!-- Hero Section - С оригиналния background -->
 <section class="hero">
   <div class="container">
-    <!-- Admin Button -->
-    <div sec:authorize="hasRole('ADMIN')">
-      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-        Качи нов епизод
-      </button>
-    </div>
-    <p class="lead">Истории, новини и разговори за Смолян и областта</p>
-    <div class="hero-stats">
-      <span><i class="fas fa-headphones"></i> <span th:text="${totalListens}">1,234</span> слушания</span>
-      <span><i class="fas fa-microphone"></i> <span th:text="${episodeCount}">8</span> епизода</span>
-      <span><i class="fas fa-clock"></i> Актуализиран днес</span>
+    <div class="hero-content">
+      <!-- Admin Button -->
+      <div sec:authorize="hasRole('ADMIN')" class="admin-controls">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+          <i class="fas fa-plus"></i>
+          Качи нов епизод
+        </button>
+      </div>
+
+      <h1 class="display-4">SmolyanVote Подкаст</h1>
+      <p class="lead">Истории, новини и разговори за Смолян и областта</p>
+
+      <div class="hero-stats">
+        <span><i class="fas fa-headphones"></i> <span th:text="${totalListens}">1,234</span> слушания</span>
+        <span><i class="fas fa-microphone"></i> <span th:text="${episodeCount}">8</span> епизода</span>
+        <span><i class="fas fa-clock"></i> Актуализиран днес</span>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- Търсене и филтри -->
+<!-- Search and Controls -->
 <section class="controls">
   <div class="container">
     <div class="search-box">
@@ -73,7 +81,7 @@
       </div>
     </div>
 
-    <div class="episodes-carousel" id="episodesCarousel">
+    <div class="episodes-carousel">
       <div class="episodes-grid" id="episodesContainer">
         <div th:each="episode : ${episodes}">
           <div th:replace="~{fragments/podcastCard :: podcastCard(${episode})}"></div>

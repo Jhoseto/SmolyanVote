@@ -42,6 +42,7 @@ public class ReportsServiceImpl implements ReportsService {
     public void createReport(Long publicationId, UserEntity reporter, String reasonString, String description) {
         // Валидация
         if (!canUserReport(publicationId, reporter)) {
+            System.out.println("ERROR: canUserReport returned false");
             throw new IllegalStateException("Не можете да докладвате тази публикация");
         }
 
@@ -68,8 +69,7 @@ public class ReportsServiceImpl implements ReportsService {
             report.setDescription(description.trim());
         }
 
-        reportsRepository.save(report);
-    }
+        ReportsEntity saved = reportsRepository.save(report);}
 
     @Override
     @Transactional(readOnly = true)
@@ -103,7 +103,8 @@ public class ReportsServiceImpl implements ReportsService {
         long reportsLastHour = reportsRepository.countByReporterIdAndCreatedAtAfter(user.getId(), oneHourAgo);
         long reportsLastDay = reportsRepository.countByReporterIdAndCreatedAtAfter(user.getId(), oneDayAgo);
 
-        return reportsLastHour >= MAX_REPORTS_PER_HOUR || reportsLastDay >= MAX_REPORTS_PER_DAY;
+        boolean exceeded = reportsLastHour >= MAX_REPORTS_PER_HOUR || reportsLastDay >= MAX_REPORTS_PER_DAY;
+        return exceeded;
     }
 
     @Override
