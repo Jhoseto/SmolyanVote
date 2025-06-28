@@ -32,13 +32,13 @@
     );
     backdrop-filter: blur(5px);
     border-radius: 0;
-    padding: 1.0rem 14rem;
+    padding: 1.0rem 1rem;
     /* Само долен border */
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     transition: all 0.3s ease;
     width: 100%;
 }
@@ -134,7 +134,7 @@
 .nav-links-glass {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2.0rem;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -213,10 +213,7 @@
     flex-shrink: 0;
     position: relative;
     z-index: 1040;
-    /* Фиксирана позиция вдясно */
-    min-width: 200px; /* Минимална ширина за auth бутоните */
     justify-content: flex-end; /* Подравнява съдържанието вдясно */
-    padding-left: 2rem; /* Добавя разстояние от navigation */
     border-left: 0 solid rgba(255, 255, 255, 0.15); /* Визуално разграничение */
     margin-left: 1rem; /* Допълнително разстояние */
 }
