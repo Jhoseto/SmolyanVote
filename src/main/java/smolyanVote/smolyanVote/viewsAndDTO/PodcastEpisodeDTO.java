@@ -147,6 +147,7 @@ public class PodcastEpisodeDTO {
         if (imageUrl != null && !imageUrl.isEmpty()) {
             return imageUrl;
         }
+        // ПОПРАВЕНО - използва локален файл вместо external service
         return "/images/podcast-default.jpg";
     }
 }

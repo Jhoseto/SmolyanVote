@@ -154,7 +154,7 @@ class PublicationDetailModal {
         if (menu && window.isAuthenticated) {
             menu.style.display = 'block';
 
-            const canManage = (window.currentUserId && window.currentUserId === post.authorId) || window.isAdmin;
+            const canManage = (window.currentUserId && window.currentUserId !== post.authorId) || window.isAdmin;
             const editBtn = document.getElementById('modalEditBtn');
             const deleteBtn = document.getElementById('modalDeleteBtn');
             const reportBtn = document.getElementById('modalReportBtn');
