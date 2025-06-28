@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -52,4 +53,12 @@ public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
             "WHERE r.status = 'PENDING' GROUP BY r.publication.id " +
             "ORDER BY reportCount DESC")
     List<Object[]> getMostReportedPublications(Pageable pageable);
+
+
+
+    boolean existsByPublicationId(Long publicationId);
+
+    @Modifying
+    @Query("DELETE FROM ReportsEntity r WHERE r.publication.id = :publicationId")
+    void deleteAllByPublicationId(@Param("publicationId") Long publicationId);
 }
