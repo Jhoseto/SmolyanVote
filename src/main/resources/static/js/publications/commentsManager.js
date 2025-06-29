@@ -1,4 +1,4 @@
-// ====== COMMENTS MANAGER JS ======
+// ====== COMMENTS MANAGER JS С API ИНТЕГРАЦИЯ ======
 // Файл: src/main/resources/static/js/publications/commentsManager.js
 
 class CommentsManager {
@@ -15,6 +15,7 @@ class CommentsManager {
         this.dislikedComments = new Set();
         this.likedReplies = new Set();
         this.dislikedReplies = new Set();
+        this.currentSort = 'newest';
 
         this.init();
     }
@@ -73,6 +74,15 @@ class CommentsManager {
             retryBtn.addEventListener('click', () => this.retryLoadComments());
         }
 
+        // Comments sorting
+        const sortSelect = document.getElementById('commentsSortSelect');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                this.currentSort = e.target.value;
+                this.loadComments(this.currentPostId);
+            });
+        }
+
         // Close emoji picker when clicking outside
         document.addEventListener('click', (e) => {
             const emojiPicker = document.getElementById('commentEmojiPicker');
@@ -126,11 +136,11 @@ class CommentsManager {
         try {
             const response = await this.fetchComments(postId, 0);
 
-            if (response.comments && response.comments.length > 0) {
+            if (response.success && response.comments && response.comments.length > 0) {
                 response.comments.forEach(comment => this.comments.set(comment.id, comment));
                 this.renderComments();
                 this.currentPage++;
-                this.hasMoreComments = response.comments.length === this.commentsPerPage;
+                this.hasMoreComments = response.hasNext;
                 this.updateLoadMoreButton();
             } else {
                 this.showNoComments();
@@ -156,11 +166,11 @@ class CommentsManager {
         try {
             const response = await this.fetchComments(this.currentPostId, this.currentPage);
 
-            if (response.comments && response.comments.length > 0) {
+            if (response.success && response.comments && response.comments.length > 0) {
                 response.comments.forEach(comment => this.comments.set(comment.id, comment));
                 this.renderNewComments(response.comments);
                 this.currentPage++;
-                this.hasMoreComments = response.comments.length === this.commentsPerPage;
+                this.hasMoreComments = response.hasNext;
             } else {
                 this.hasMoreComments = false;
             }
@@ -177,43 +187,25 @@ class CommentsManager {
     }
 
     async fetchComments(postId, page) {
-        // Simulate API call - replace with actual API endpoint
-        // return await window.publicationsAPI.getComments(postId, page, this.commentsPerPage);
-
-        // Mock data for development
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const mockComments = this.generateMockComments(page);
-                resolve({ comments: mockComments });
-            }, 500);
-        });
-    }
-
-    generateMockComments(page) {
-        if (page > 2) return []; // Simulate no more comments after page 2
-
-        const comments = [];
-        const startId = page * this.commentsPerPage + 1;
-
-        for (let i = 0; i < Math.min(this.commentsPerPage, 5); i++) {
-            const commentId = startId + i;
-            comments.push({
-                id: commentId,
-                text: `Това е тестов коментар номер ${commentId}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-                author: {
-                    id: Math.floor(Math.random() * 100) + 1,
-                    username: `Потребител${commentId}`,
-                    imageUrl: '/images/default-avatar.png',
-                    onlineStatus: Math.random() > 0.5 ? 1 : 0
-                },
-                createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-                likesCount: Math.floor(Math.random() * 20),
-                dislikesCount: Math.floor(Math.random() * 5),
-                repliesCount: Math.floor(Math.random() * 8)
+        try {
+            const url = `/api/comments/publication/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
-        }
 
-        return comments;
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error fetching comments:', error);
+            throw error;
+        }
     }
 
     // ====== COMMENT INPUT HANDLING ======
@@ -271,27 +263,31 @@ class CommentsManager {
         submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Публикуване...';
 
         try {
-            const newComment = await this.createComment(this.currentPostId, text);
+            const response = await this.createComment(this.currentPostId, text);
 
-            // Add to comments map
-            this.comments.set(newComment.id, newComment);
+            if (response.success) {
+                // Add to comments map
+                this.comments.set(response.comment.id, response.comment);
 
-            // Render new comment at top
-            this.prependComment(newComment);
+                // Render new comment at top
+                this.prependComment(response.comment);
 
-            // Clear input
-            textarea.value = '';
-            this.hideCommentActions();
-            this.autoResizeTextarea(textarea);
+                // Clear input
+                textarea.value = '';
+                this.hideCommentActions();
+                this.autoResizeTextarea(textarea);
 
-            // Update comments count in modal
-            this.updateCommentsCount(1);
+                // Update comments count in modal
+                this.updateCommentsCount(1);
 
-            this.showToast('Коментарът е добавен успешно!', 'success');
+                this.showToast(response.message || 'Коментарът е добавен успешно!', 'success');
+            } else {
+                throw new Error(response.error || 'Възникна грешка');
+            }
 
         } catch (error) {
             console.error('Error creating comment:', error);
-            this.showToast('Възникна грешка при добавянето на коментара', 'error');
+            this.showToast(error.message || 'Възникна грешка при добавянето на коментара', 'error');
         } finally {
             // Reset button
             submitBtn.disabled = false;
@@ -300,29 +296,30 @@ class CommentsManager {
     }
 
     async createComment(postId, text) {
-        // Simulate API call - replace with actual API endpoint
-        // return await window.publicationsAPI.createComment(postId, { text });
+        try {
+            const response = await fetch('/api/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [window.appData.csrfHeader]: window.appData.csrfToken
+                },
+                body: new URLSearchParams({
+                    targetId: postId,
+                    text: text
+                })
+            });
 
-        // Mock response for development
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newComment = {
-                    id: Date.now(),
-                    text: text,
-                    author: {
-                        id: window.currentUserId,
-                        username: window.currentUsername || 'Вие',
-                        imageUrl: window.currentUserImage || '/images/default-avatar.png',
-                        onlineStatus: 1
-                    },
-                    createdAt: new Date(),
-                    likesCount: 0,
-                    dislikesCount: 0,
-                    repliesCount: 0
-                };
-                resolve(newComment);
-            }, 500);
-        });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error creating comment:', error);
+            throw error;
+        }
     }
 
     cancelComment() {
@@ -375,7 +372,6 @@ class CommentsManager {
 
         // Render all comments
         Array.from(this.comments.values())
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
             .forEach(comment => this.renderComment(comment));
     }
 
@@ -453,18 +449,18 @@ class CommentsManager {
         if (avatar) {
             const avatarHTML = window.avatarUtils ?
                 window.avatarUtils.createAvatar(
-                    comment.author.imageUrl,
-                    comment.author.username,
+                    comment.authorImage,
+                    comment.author,
                     32,
                     'comment-avatar'
                 ) :
-                `<img src="${comment.author.imageUrl}" alt="${comment.author.username}" style="width:32px;height:32px;border-radius:50%;">`;
+                `<img src="${comment.authorImage}" alt="${comment.author}" style="width:32px;height:32px;border-radius:50%;">`;
             avatar.innerHTML = avatarHTML;
         }
 
         if (authorLink) {
-            authorLink.textContent = comment.author.username;
-            authorLink.href = `/users/${comment.author.id}`;
+            authorLink.textContent = comment.author;
+            authorLink.href = `/users/${comment.author}`;
         }
 
         if (timeSpan) {
@@ -472,9 +468,8 @@ class CommentsManager {
         }
 
         if (onlineStatus) {
-            const status = this.getOnlineStatus(comment.author);
-            onlineStatus.className = `bi bi-circle comment-online-status ${status}`;
-            onlineStatus.title = this.getOnlineStatusText(comment.author);
+            onlineStatus.className = `bi bi-circle comment-online-status online`;
+            onlineStatus.title = 'Онлайн';
         }
     }
 
@@ -491,7 +486,7 @@ class CommentsManager {
         }
 
         // Check if own comment
-        if (window.currentUserId && comment.author.id == window.currentUserId) {
+        if (window.currentUserId && comment.canEdit) {
             const bubble = commentElement.querySelector('.comment-bubble');
             if (bubble) {
                 bubble.classList.add('own');
@@ -511,7 +506,7 @@ class CommentsManager {
         const dislikeBtn = commentElement.querySelector('.comment-dislike-btn');
 
         if (likeBtn) {
-            const isLiked = this.likedComments.has(comment.id);
+            const isLiked = comment.userReaction === 'LIKE';
             if (isLiked) {
                 likeBtn.classList.add('liked');
                 likeBtn.querySelector('i').className = 'bi bi-hand-thumbs-up-fill';
@@ -519,7 +514,7 @@ class CommentsManager {
         }
 
         if (dislikeBtn) {
-            const isDisliked = this.dislikedComments.has(comment.id);
+            const isDisliked = comment.userReaction === 'DISLIKE';
             if (isDisliked) {
                 dislikeBtn.classList.add('disliked');
                 dislikeBtn.querySelector('i').className = 'bi bi-hand-thumbs-down-fill';
@@ -528,7 +523,7 @@ class CommentsManager {
 
         // Show/hide menu for owner
         const menuBtn = commentElement.querySelector('.comment-menu-btn');
-        if (menuBtn && window.currentUserId && comment.author.id == window.currentUserId) {
+        if (menuBtn && comment.canEdit) {
             menuBtn.style.display = 'flex';
         } else if (menuBtn) {
             menuBtn.style.display = 'none';
@@ -664,29 +659,17 @@ class CommentsManager {
         }
 
         try {
-            const isLiked = this.likedComments.has(commentId);
-            const comment = this.comments.get(commentId);
+            const response = await this.reactToComment(commentId, 'LIKE');
 
-            if (!comment) return;
-
-            if (isLiked) {
-                this.likedComments.delete(commentId);
-                comment.likesCount = Math.max(0, comment.likesCount - 1);
-            } else {
-                this.likedComments.add(commentId);
-                comment.likesCount = (comment.likesCount || 0) + 1;
-
-                // Remove dislike if present
-                if (this.dislikedComments.has(commentId)) {
-                    this.dislikedComments.delete(commentId);
-                    comment.dislikesCount = Math.max(0, comment.dislikesCount - 1);
+            if (response.success) {
+                const comment = this.comments.get(commentId);
+                if (comment) {
+                    comment.likesCount = response.likesCount;
+                    comment.dislikesCount = response.dislikesCount;
+                    comment.userReaction = response.userReaction;
                 }
+                this.updateCommentActions(commentId);
             }
-
-            this.updateCommentActions(commentId);
-
-            // Call API - replace with actual endpoint
-            // await window.publicationsAPI.toggleCommentLike(commentId);
 
         } catch (error) {
             console.error('Error toggling comment like:', error);
@@ -701,33 +684,44 @@ class CommentsManager {
         }
 
         try {
-            const isDisliked = this.dislikedComments.has(commentId);
-            const comment = this.comments.get(commentId);
+            const response = await this.reactToComment(commentId, 'DISLIKE');
 
-            if (!comment) return;
-
-            if (isDisliked) {
-                this.dislikedComments.delete(commentId);
-                comment.dislikesCount = Math.max(0, comment.dislikesCount - 1);
-            } else {
-                this.dislikedComments.add(commentId);
-                comment.dislikesCount = (comment.dislikesCount || 0) + 1;
-
-                // Remove like if present
-                if (this.likedComments.has(commentId)) {
-                    this.likedComments.delete(commentId);
-                    comment.likesCount = Math.max(0, comment.likesCount - 1);
+            if (response.success) {
+                const comment = this.comments.get(commentId);
+                if (comment) {
+                    comment.likesCount = response.likesCount;
+                    comment.dislikesCount = response.dislikesCount;
+                    comment.userReaction = response.userReaction;
                 }
+                this.updateCommentActions(commentId);
             }
-
-            this.updateCommentActions(commentId);
-
-            // Call API - replace with actual endpoint
-            // await window.publicationsAPI.toggleCommentDislike(commentId);
 
         } catch (error) {
             console.error('Error toggling comment dislike:', error);
             this.showToast('Възникна грешка при дислайкването', 'error');
+        }
+    }
+
+    async reactToComment(commentId, type) {
+        try {
+            const response = await fetch(`/api/comments/${commentId}/reaction/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [window.appData.csrfHeader]: window.appData.csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error reacting to comment:', error);
+            throw error;
         }
     }
 
@@ -750,7 +744,7 @@ class CommentsManager {
         const dislikeBtn = commentDiv.querySelector('.comment-dislike-btn');
 
         if (likeBtn) {
-            const isLiked = this.likedComments.has(commentId);
+            const isLiked = comment.userReaction === 'LIKE';
             likeBtn.classList.toggle('liked', isLiked);
             const icon = likeBtn.querySelector('i');
             if (icon) {
@@ -759,7 +753,7 @@ class CommentsManager {
         }
 
         if (dislikeBtn) {
-            const isDisliked = this.dislikedComments.has(commentId);
+            const isDisliked = comment.userReaction === 'DISLIKE';
             dislikeBtn.classList.toggle('disliked', isDisliked);
             const icon = dislikeBtn.querySelector('i');
             if (icon) {
@@ -767,6 +761,8 @@ class CommentsManager {
             }
         }
     }
+
+    // ====== ОСТНАЛИТЕ МЕТОДИ ОСТАВАТ СЪЩИТЕ ======
 
     showReplyInput(commentId) {
         const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
@@ -846,38 +842,70 @@ class CommentsManager {
         submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Отговаряне...';
 
         try {
-            const newReply = await this.createReply(commentId, text);
+            const response = await this.createReply(this.currentPostId, commentId, text);
 
-            // Add to replies
-            if (!this.replies.has(commentId)) {
-                this.replies.set(commentId, []);
+            if (response.success) {
+                // Add to replies
+                if (!this.replies.has(commentId)) {
+                    this.replies.set(commentId, []);
+                }
+                this.replies.get(commentId).push(response.comment);
+
+                // Update comment replies count
+                const comment = this.comments.get(commentId);
+                if (comment) {
+                    comment.repliesCount = (comment.repliesCount || 0) + 1;
+                }
+
+                // Show replies if hidden
+                await this.showReplies(commentId);
+
+                // Render new reply
+                this.renderReply(commentDiv, response.comment);
+
+                // Clear input
+                textarea.value = '';
+                this.cancelReply(commentId);
+
+                this.showToast(response.message || 'Отговорът е добавен успешно!', 'success');
+            } else {
+                throw new Error(response.error || 'Възникна грешка');
             }
-            this.replies.get(commentId).push(newReply);
-
-            // Update comment replies count
-            const comment = this.comments.get(commentId);
-            if (comment) {
-                comment.repliesCount = (comment.repliesCount || 0) + 1;
-            }
-
-            // Show replies if hidden
-            await this.showReplies(commentId);
-
-            // Render new reply
-            this.renderReply(commentDiv, newReply);
-
-            // Clear input
-            textarea.value = '';
-            this.cancelReply(commentId);
-
-            this.showToast('Отговорът е добавен успешно!', 'success');
 
         } catch (error) {
             console.error('Error creating reply:', error);
-            this.showToast('Възникна грешка при добавянето на отговора', 'error');
+            this.showToast(error.message || 'Възникна грешка при добавянето на отговора', 'error');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Отговори';
+        }
+    }
+
+    async createReply(postId, commentId, text) {
+        try {
+            const response = await fetch('/api/comments/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [window.appData.csrfHeader]: window.appData.csrfToken
+                },
+                body: new URLSearchParams({
+                    targetId: postId,
+                    text: text,
+                    parentId: commentId
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error creating reply:', error);
+            throw error;
         }
     }
 
@@ -974,33 +1002,62 @@ class CommentsManager {
         }
 
         try {
-            // Update comment in memory
-            const comment = this.comments.get(commentId);
-            if (comment) {
-                comment.text = newText;
+            const response = await this.updateComment(commentId, newText);
+
+            if (response.success) {
+                // Update comment in memory
+                const comment = this.comments.get(commentId);
+                if (comment) {
+                    comment.text = newText;
+                    comment.edited = true;
+                }
+
+                // Update UI
+                const textDiv = commentDiv.querySelector('.comment-text');
+                if (textDiv) {
+                    textDiv.textContent = newText;
+                }
+
+                // Hide edit form, show bubble
+                const bubble = commentDiv.querySelector('.comment-bubble');
+                if (bubble) {
+                    bubble.style.display = 'block';
+                    editForm.style.display = 'none';
+                }
+
+                this.showToast(response.message || 'Коментарът е обновен успешно!', 'success');
+            } else {
+                throw new Error(response.error || 'Възникна грешка');
             }
-
-            // Update UI
-            const textDiv = commentDiv.querySelector('.comment-text');
-            if (textDiv) {
-                textDiv.textContent = newText;
-            }
-
-            // Hide edit form, show bubble
-            const bubble = commentDiv.querySelector('.comment-bubble');
-            if (bubble) {
-                bubble.style.display = 'block';
-                editForm.style.display = 'none';
-            }
-
-            this.showToast('Коментарът е обновен успешно!', 'success');
-
-            // Call API - replace with actual endpoint
-            // await window.publicationsAPI.updateComment(commentId, { text: newText });
 
         } catch (error) {
             console.error('Error updating comment:', error);
-            this.showToast('Възникна грешка при обновяването', 'error');
+            this.showToast(error.message || 'Възникна грешка при обновяването', 'error');
+        }
+    }
+
+    async updateComment(commentId, text) {
+        try {
+            const response = await fetch(`/api/comments/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [window.appData.csrfHeader]: window.appData.csrfToken
+                },
+                body: JSON.stringify({ text: text })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error updating comment:', error);
+            throw error;
         }
     }
 
@@ -1032,33 +1089,57 @@ class CommentsManager {
 
             if (!result.isConfirmed) return;
 
-            // Remove from UI
-            const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-            if (commentDiv) {
-                commentDiv.style.animation = 'slideOutRight 0.3s ease-out';
-                setTimeout(() => {
-                    commentDiv.remove();
-                }, 300);
+            const response = await this.deleteCommentFromAPI(commentId);
+
+            if (response.success) {
+                // Remove from UI
+                const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
+                if (commentDiv) {
+                    commentDiv.style.animation = 'slideOutRight 0.3s ease-out';
+                    setTimeout(() => {
+                        commentDiv.remove();
+                    }, 300);
+                }
+
+                // Remove from memory
+                this.comments.delete(commentId);
+
+                // Update comments count
+                this.updateCommentsCount(-1);
+
+                this.showToast(response.message || 'Коментарът е изтрит успешно', 'success');
+            } else {
+                throw new Error(response.error || 'Възникна грешка');
             }
-
-            // Remove from memory
-            this.comments.delete(commentId);
-
-            // Update comments count
-            this.updateCommentsCount(-1);
-
-            this.showToast('Коментарът е изтрит успешно', 'success');
-
-            // Call API - replace with actual endpoint
-            // await window.publicationsAPI.deleteComment(commentId);
 
         } catch (error) {
             console.error('Error deleting comment:', error);
-            this.showToast('Възникна грешка при изтриването', 'error');
+            this.showToast(error.message || 'Възникна грешка при изтриването', 'error');
         }
     }
 
-    // ====== COMMENTS TOGGLE ======
+    async deleteCommentFromAPI(commentId) {
+        try {
+            const response = await fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [window.appData.csrfHeader]: window.appData.csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error deleting comment:', error);
+            throw error;
+        }
+    }
 
     // ====== COMMENTS TOGGLE ======
 
@@ -1271,38 +1352,6 @@ class CommentsManager {
         });
     }
 
-    getOnlineStatus(author) {
-        if (!author) return 'offline';
-
-        if (author.onlineStatus === 1) {
-            return 'online';
-        }
-
-        if (author.lastOnline) {
-            const lastOnlineDate = new Date(author.lastOnline);
-            const now = new Date();
-            const diffMinutes = (now - lastOnlineDate) / (1000 * 60);
-
-            if (diffMinutes <= 5) {
-                return 'online';
-            } else if (diffMinutes <= 30) {
-                return 'away';
-            }
-        }
-
-        return 'offline';
-    }
-
-    getOnlineStatusText(author) {
-        const status = this.getOnlineStatus(author);
-        const texts = {
-            'online': 'Онлайн сега',
-            'away': 'Неактивен',
-            'offline': 'Офлайн'
-        };
-        return texts[status] || 'Неизвестен статус';
-    }
-
     showToast(message, type = 'success') {
         if (window.postInteractions) {
             window.postInteractions.showToast(message, type);
@@ -1411,16 +1460,38 @@ class CommentsManager {
 
     async loadReplies(commentId) {
         try {
-            // Simulate API call - replace with actual endpoint
-            // const response = await window.publicationsAPI.getReplies(commentId);
+            const response = await this.fetchReplies(commentId, 0);
 
-            // Mock data for development
-            const mockReplies = this.generateMockReplies(commentId);
-            this.replies.set(commentId, mockReplies);
+            if (response.success && response.comments) {
+                this.replies.set(commentId, response.comments);
+                return response.comments;
+            }
 
-            return mockReplies;
+            return [];
         } catch (error) {
             console.error('Error loading replies:', error);
+            throw error;
+        }
+    }
+
+    async fetchReplies(commentId, page) {
+        try {
+            const url = `/api/comments/${commentId}/replies?page=${page}&size=5`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API Error fetching replies:', error);
             throw error;
         }
     }
@@ -1428,54 +1499,6 @@ class CommentsManager {
     async loadMoreReplies(commentId) {
         // TODO: Implement load more replies
         console.log('Load more replies for comment:', commentId);
-    }
-
-    generateMockReplies(commentId) {
-        const repliesCount = Math.floor(Math.random() * 4) + 1; // 1-4 replies
-        const replies = [];
-
-        for (let i = 0; i < repliesCount; i++) {
-            replies.push({
-                id: `${commentId}-reply-${i + 1}`,
-                text: `Това е отговор ${i + 1} на коментар ${commentId}. Интересна гледна точка!`,
-                author: {
-                    id: Math.floor(Math.random() * 100) + 1,
-                    username: `Отговарящ${i + 1}`,
-                    imageUrl: '/images/default-avatar.png',
-                    onlineStatus: Math.random() > 0.5 ? 1 : 0
-                },
-                createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000),
-                likesCount: Math.floor(Math.random() * 10),
-                dislikesCount: Math.floor(Math.random() * 3)
-            });
-        }
-
-        return replies;
-    }
-
-    async createReply(commentId, text) {
-        // Simulate API call - replace with actual endpoint
-        // return await window.publicationsAPI.createReply(commentId, { text });
-
-        // Mock response for development
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newReply = {
-                    id: `${commentId}-reply-${Date.now()}`,
-                    text: text,
-                    author: {
-                        id: window.currentUserId,
-                        username: window.currentUsername || 'Вие',
-                        imageUrl: window.currentUserImage || '/images/default-avatar.png',
-                        onlineStatus: 1
-                    },
-                    createdAt: new Date(),
-                    likesCount: 0,
-                    dislikesCount: 0
-                };
-                resolve(newReply);
-            }, 300);
-        });
     }
 
     renderReply(commentDiv, reply) {
@@ -1511,12 +1534,12 @@ class CommentsManager {
         if (avatar) {
             const avatarHTML = window.avatarUtils ?
                 window.avatarUtils.createAvatar(
-                    reply.author.imageUrl,
-                    reply.author.username,
+                    reply.authorImage,
+                    reply.author,
                     28,
                     'reply-avatar'
                 ) :
-                `<img src="${reply.author.imageUrl}" alt="${reply.author.username}" style="width:28px;height:28px;border-radius:50%;">`;
+                `<img src="${reply.authorImage}" alt="${reply.author}" style="width:28px;height:28px;border-radius:50%;">`;
             avatar.innerHTML = avatarHTML;
         }
 
@@ -1527,8 +1550,8 @@ class CommentsManager {
         const fullTime = replyElement.querySelector('.reply-full-time');
 
         if (authorLink) {
-            authorLink.textContent = reply.author.username;
-            authorLink.href = `/users/${reply.author.id}`;
+            authorLink.textContent = reply.author;
+            authorLink.href = `/users/${reply.author}`;
         }
 
         if (timeSpan) {
@@ -1536,9 +1559,8 @@ class CommentsManager {
         }
 
         if (onlineStatus) {
-            const status = this.getOnlineStatus(reply.author);
-            onlineStatus.className = `bi bi-circle reply-online-status ${status}`;
-            onlineStatus.title = this.getOnlineStatusText(reply.author);
+            onlineStatus.className = `bi bi-circle reply-online-status online`;
+            onlineStatus.title = 'Онлайн';
         }
 
         if (fullTime) {
@@ -1559,7 +1581,7 @@ class CommentsManager {
         if (dislikesCount) dislikesCount.textContent = reply.dislikesCount || 0;
 
         // Check if own reply
-        if (window.currentUserId && reply.author.id == window.currentUserId) {
+        if (reply.canEdit) {
             const bubble = replyElement.querySelector('.reply-bubble');
             if (bubble) {
                 bubble.classList.add('own');
@@ -1598,13 +1620,14 @@ class CommentsManager {
 
     async toggleReplyLike(replyId) {
         // Similar to comment like but for replies
-        // Implementation similar to toggleCommentLike
         console.log('Toggle reply like:', replyId);
+        // Implement using same API as comments
     }
 
     async toggleReplyDislike(replyId) {
         // Similar to comment dislike but for replies
         console.log('Toggle reply dislike:', replyId);
+        // Implement using same API as comments
     }
 
     toggleReplyMenu(replyId) {
@@ -1643,4 +1666,3 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to initialize CommentsManager:', error);
     }
 });
-

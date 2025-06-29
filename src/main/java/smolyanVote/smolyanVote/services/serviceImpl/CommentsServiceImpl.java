@@ -4,9 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
@@ -21,7 +24,6 @@ import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 import java.time.Instant;
 import java.util.*;
 
-
 @Service
 public class CommentsServiceImpl implements CommentsService {
 
@@ -33,25 +35,24 @@ public class CommentsServiceImpl implements CommentsService {
     private final UserService userService;
     private final CommentVoteRepository commentVoteRepository;
     private final MultiPollRepository multiPollRepository;
-    ;
-
-
+    private final PublicationRepository publicationRepository;
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
                                ReferendumRepository referendumRepository,
                                UserService userService,
-                               CommentVoteRepository commentVoteRepository, MultiPollRepository multiPollRepository) {
+                               CommentVoteRepository commentVoteRepository,
+                               MultiPollRepository multiPollRepository,
+                               PublicationRepository publicationRepository) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.userService = userService;
         this.commentVoteRepository = commentVoteRepository;
         this.multiPollRepository = multiPollRepository;
+        this.publicationRepository = publicationRepository;
     }
-
-
 
     @Transactional
     @Override
@@ -82,6 +83,11 @@ public class CommentsServiceImpl implements CommentsService {
                         .orElseThrow(() -> new IllegalArgumentException("MultiPoll not found with ID: " + targetId));
                 comment.setMultiPoll(poll);
             }
+            case PUBLICATION -> {
+                PublicationEntity publication = publicationRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("Publication not found with ID: " + targetId));
+                comment.setPublication(publication);
+            }
             default -> throw new UnsupportedOperationException("Unsupported target type: " + eventType);
         }
 
@@ -91,14 +97,10 @@ public class CommentsServiceImpl implements CommentsService {
             comment.setParent(parent);
         }
 
-
         return commentsRepository.save(comment);
     }
 
-
-
-
-    @Retryable(interceptor = "commentRetryInterceptor") // Решава проблема ми с DeadLock при реакциите
+    @Retryable(interceptor = "commentRetryInterceptor")
     @Transactional
     @Override
     public CommentsEntity commentReaction(Long commentId, String type, String username) {
@@ -146,8 +148,6 @@ public class CommentsServiceImpl implements CommentsService {
         return commentsRepository.save(comment);
     }
 
-
-
     @Transactional
     @Override
     public String getUserReaction(Long commentId, String username) {
@@ -185,7 +185,6 @@ public class CommentsServiceImpl implements CommentsService {
         return reactionsMap;
     }
 
-
     @Transactional
     @Override
     public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
@@ -193,7 +192,8 @@ public class CommentsServiceImpl implements CommentsService {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
             case SIMPLEEVENT -> commentsRepository.findRootCommentsWithRepliesByEventId(targetId);
             case MULTI_POLL -> commentsRepository.findRootCommentsWithRepliesByMultiPollId(targetId);
-            case POLL -> null;
+            case PUBLICATION -> commentsRepository.findRootCommentsWithRepliesByPublicationId(targetId);
+            default -> new ArrayList<>();
         };
     }
 
@@ -203,17 +203,23 @@ public class CommentsServiceImpl implements CommentsService {
         boolean isReferendum = referendumRepository.existsById(targetId);
         boolean isEvent = simpleEventRepository.existsById(targetId);
         boolean isMultiPoll = multiPollRepository.existsById(targetId);
+        boolean isPublication = publicationRepository.existsById(targetId);
 
-        logger.debug("Checking target type for ID {}: referendum={}, event={}", targetId, isReferendum, isEvent);
+        logger.debug("Checking target type for ID {}: referendum={}, event={}, multiPoll={}, publication={}",
+                targetId, isReferendum, isEvent, isMultiPoll, isPublication);
 
-        if (isReferendum && isEvent) {
-            throw new IllegalStateException("Conflict: ID съществува и като събитие, и като референдум");
+        int count = (isReferendum ? 1 : 0) + (isEvent ? 1 : 0) + (isMultiPoll ? 1 : 0) + (isPublication ? 1 : 0);
+
+        if (count > 1) {
+            throw new IllegalStateException("Conflict: ID съществува в повече от една таблица");
         } else if (isReferendum) {
             return EventType.REFERENDUM;
         } else if (isEvent) {
             return EventType.SIMPLEEVENT;
         } else if (isMultiPoll) {
             return EventType.MULTI_POLL;
+        } else if (isPublication) {
+            return EventType.PUBLICATION;
         } else {
             throw new IllegalArgumentException("Target ID not found: " + targetId);
         }
@@ -224,8 +230,6 @@ public class CommentsServiceImpl implements CommentsService {
     public void deleteAllComments() {
         commentsRepository.deleteAll();
     }
-
-
 
     @Transactional
     @Override
@@ -255,19 +259,80 @@ public class CommentsServiceImpl implements CommentsService {
         commentsRepository.delete(comment);
     }
 
-    //It's OK!!!
+    // ====== НОВИТЕ МЕТОДИ ЗА ПУБЛИКАЦИИ ======
+
+    @Transactional
+    @Override
+    public Page<CommentsEntity> getCommentsForPublication(Long publicationId, int page, int size, String sort) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+
+        // Създаваме правилното сортиране
+        Sort sortOrder = createSortForComments(sort);
+        Pageable pageable = PageRequest.of(page, size, sortOrder);
+
+        return commentsRepository.findRootCommentsByPublicationId(publicationId, pageable);
+    }
+
+    @Transactional
+    @Override
+    public Page<CommentsEntity> getRepliesForComment(Long commentId, int page, int size) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 20); // По-малко replies на страница
+
+        // Replies винаги се сортират по дата създаване (най-стари първи)
+        Sort sortOrder = Sort.by(Sort.Direction.ASC, "createdAt");
+        Pageable pageable = PageRequest.of(page, size, sortOrder);
+
+        return commentsRepository.findRepliesByParentId(commentId, pageable);
+    }
+
+    @Transactional
+    @Override
+    public long countReplies(Long commentId) {
+        return commentsRepository.countRepliesByCommentId(commentId);
+    }
+
+    @Transactional
+    @Override
+    public Page<CommentsEntity> getCommentsForTargetPaginated(Long targetId, EventType targetType, Pageable pageable) {
+        return switch (targetType) {
+            case PUBLICATION -> commentsRepository.findRootCommentsByPublicationId(targetId, pageable);
+            case REFERENDUM -> throw new UnsupportedOperationException("Pagination not implemented for REFERENDUM");
+            case SIMPLEEVENT -> throw new UnsupportedOperationException("Pagination not implemented for SIMPLEEVENT");
+            case MULTI_POLL -> throw new UnsupportedOperationException("Pagination not implemented for MULTI_POLL");
+            default -> Page.empty();
+        };
+    }
+
+    // ====== HELPER METHODS ======
+
     private boolean canModifyComment(@NotNull CommentsEntity comment, @NotNull UserEntity user) {
         return comment.getAuthor().equals(user.getUsername()) ||
                 user.getRole().equals(UserRole.ADMIN);
     }
 
+    /**
+     * Създава Sort обект за коментари според избрания тип сортиране
+     */
+    private Sort createSortForComments(String sortType) {
+        return switch (sortType != null ? sortType.toLowerCase() : "newest") {
+            case "newest" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "popular" -> {
+                // Сортиране по популярност - комбинация от likes и dislikes
+                yield Sort.by(Sort.Direction.DESC, "likeCount")
+                        .and(Sort.by(Sort.Direction.DESC, "unlikeCount"));
+            }
+            case "longest" -> {
+                // Сортиране по дължина на текста - най-дългите първи
+                yield Sort.by(Sort.Direction.DESC, "text");
+            }
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+    }
 
-
-
-
-
-
-    // на края
+    // Recovery method за retry mechanism
     @Recover
     public CommentsEntity recoverFromDeadlock(Exception e, Long commentId, String type, String username) {
         logger.error("Failed to apply comment reaction after retries: {}", e.getMessage(), e);

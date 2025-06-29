@@ -56,10 +56,6 @@ html {
 /* Hero Section */
 .hero {
   position: relative;
-  background:
-          linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0)),
-          url('/images/web/background22232.png') no-repeat center -335px;!important;
-  background-size: cover !important;
   min-height: 80vh;
   display: flex;
   align-items: flex-end;
@@ -67,6 +63,35 @@ html {
   text-align: center;
   overflow: hidden;
   padding: 2rem 0 0 0;
+}
+
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  --controls: none;
+  --media-object-fit: cover;
+
+  mask-size: cover;
+  mask-position: center;
+  mask-repeat: no-repeat;
+
+  -webkit-mask-size: cover;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.hero-video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: -1;
 }
 
 .hero .container {
@@ -88,7 +113,7 @@ html {
   transform: translateY(60px);
   opacity: 0;
   max-width: 1340px;
-  margin: 30px auto;
+  margin: 110px auto;
   overflow: hidden;
 }
 

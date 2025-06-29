@@ -216,7 +216,7 @@
     align-items: center;
     gap: 0.3rem;
     font-weight: 500;
-    padding-bottom: 3px;
+    padding-bottom: 7px;
 }
 
 .vote-toggle-glass:hover {
@@ -443,13 +443,13 @@
     border: none;
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.89);
     backdrop-filter: blur(10px);
     overflow: hidden;
-    padding: 0.5rem;
+    padding: 0;
     margin-top: 0.5rem;
     z-index: 1060; /* Най-висок z-index за видимост */
-    min-width: 150px;
+    min-width: 100px;
 }
 
 .dropdown-menu-glass.show {
