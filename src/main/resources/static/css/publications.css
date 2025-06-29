@@ -3,17 +3,6 @@
 
 /* ====== CSS VARIABLES ====== */
 :root {
-    /* цветове */
-    --fb-blue: rgba(75, 159, 62, 0);
-    --fb-blue-hover: #1e8d92;
-    --fb-bg: #f0f2f5;
-    --fb-white: #ffffff;
-    --fb-text: #1c1e21;
-    --fb-text-secondary: #65676b;
-    --fb-border: #e4e6ea;
-    --fb-hover: #f0f2f5;
-    --fb-green: #42b883;
-    --fb-red: #e74c3c;
 
     /* SmolyanVote цветове */
     --primary-color: #4cb15c;
