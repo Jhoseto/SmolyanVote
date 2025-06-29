@@ -22,7 +22,9 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentsServiceImpl implements CommentsService {
@@ -87,6 +89,10 @@ public class CommentsServiceImpl implements CommentsService {
                 PublicationEntity publication = publicationRepository.findById(targetId)
                         .orElseThrow(() -> new IllegalArgumentException("Publication not found with ID: " + targetId));
                 comment.setPublication(publication);
+
+                // ✅ ПОПРАВКА: Увеличаваме commentsCount
+                publication.incrementComments();
+                publicationRepository.save(publication);
             }
             default -> throw new UnsupportedOperationException("Unsupported target type: " + eventType);
         }
@@ -337,5 +343,21 @@ public class CommentsServiceImpl implements CommentsService {
     public CommentsEntity recoverFromDeadlock(Exception e, Long commentId, String type, String username) {
         logger.error("Failed to apply comment reaction after retries: {}", e.getMessage(), e);
         throw new RuntimeException("Системна грешка при запазване на реакцията. Моля, опитайте отново.");
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean hasRecentComment(UserEntity user, int minutesLimit) {
+        if (user == null) return false;
+
+        Instant timeLimit = Instant.now().minus(minutesLimit, ChronoUnit.MINUTES);
+
+        // Проверяваме дали има коментар от този потребител в последните X минути
+        List<CommentsEntity> recentComments = commentsRepository.findAll().stream()
+                .filter(comment -> comment.getAuthor().equals(user.getUsername()) &&
+                        comment.getCreatedAt().isAfter(timeLimit))
+                .collect(Collectors.toList());
+
+        return !recentComments.isEmpty();
     }
 }
