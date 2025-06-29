@@ -58,9 +58,8 @@ html {
   position: relative;
   background:
           linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0)),
-          url('/images/web/background2222.png') center/cover no-repeat !important;
+          url('/images/web/background22232.png') no-repeat center -335px;!important;
   background-size: cover !important;
-  background-attachment: fixed;
   min-height: 80vh;
   display: flex;
   align-items: flex-end;
@@ -89,7 +88,7 @@ html {
   transform: translateY(60px);
   opacity: 0;
   max-width: 1340px;
-  margin: 50px auto;
+  margin: 30px auto;
   overflow: hidden;
 }
 

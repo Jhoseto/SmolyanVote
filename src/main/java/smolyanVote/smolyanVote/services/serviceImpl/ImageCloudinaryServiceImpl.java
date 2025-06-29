@@ -80,20 +80,24 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
             // Добавяне на воден знак, ако е необходимо
             if (addWatermark) {
                 transformation.overlay("text:Arial_30:SmolyanVote.com")
-                        .gravity("south")  // Позициониране по-близо до долната част
-                        .y(120)             // Изместване малко нагоре
-                        .opacity(20)       // Блед воден знак
+                        .gravity("south")
+                        .y(120)
+                        .opacity(20)
                         .color("white")
                         .flags("relative");
             }
 
-            // Качване в Cloudinary
-            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+            // 🛡️ БЛОКИРАНЕ НА НЕПОДХОДЯЩИ СНИМКИ
+            Map<String, Object> uploadOptions = ObjectUtils.asMap(
                     "public_id", publicId,
                     "folder", folder,
-                    "transformation", transformation
-            ));
+                    "transformation", transformation,
+                    "moderation", "aws_rek" // Автоматично блокира porn/violence/inappropriate content
+            );
+
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadOptions);
             return (String) uploadResult.get("url");
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to save image in Cloudinary", e);
         }
