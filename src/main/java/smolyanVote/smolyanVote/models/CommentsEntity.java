@@ -129,6 +129,14 @@ public class CommentsEntity {
         this.multiPoll = multiPoll;
     }
 
+    public PublicationEntity getPublication() {
+        return publication;
+    }
+
+    public void setPublication(PublicationEntity publication) {
+        this.publication = publication;
+    }
+
     public CommentsEntity getParent() {
         return parent;
     }

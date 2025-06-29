@@ -7,7 +7,9 @@ public enum EventType {
 
     MULTI_POLL("АНКЕТА С МНОЖЕСТВЕН ИЗБОР"),
 
-    POLL("АНКЕТА");
+    POLL("АНКЕТА"),
+
+    PUBLICATION("ПУБЛИКАЦИЯ");
 
 
     private final String BG;

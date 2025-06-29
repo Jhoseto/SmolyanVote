@@ -1,5 +1,7 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -31,4 +33,16 @@ public interface CommentsService {
     void deleteComment(Long commentId, UserEntity user);
 
     void deleteAllComments();
+
+    @Transactional
+    Page<CommentsEntity> getCommentsForPublication(Long publicationId, int page, int size, String sort);
+
+    @Transactional
+    Page<CommentsEntity> getRepliesForComment(Long commentId, int page, int size);
+
+    @Transactional
+    long countReplies(Long commentId);
+
+    @Transactional
+    Page<CommentsEntity> getCommentsForTargetPaginated(Long targetId, EventType targetType, Pageable pageable);
 }
