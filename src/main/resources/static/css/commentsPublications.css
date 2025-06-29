@@ -762,7 +762,8 @@
 
 /* ====== REPLIES CONTROLS ====== */
 .replies-controls {
-    margin: 8px 0 8px 40px;
+    margin-top: 0.5rem;
+    padding-left: 2rem; /* Align with comment content */
 }
 
 .show-replies-btn,
@@ -770,28 +771,42 @@
 .load-more-replies-btn {
     background: none;
     border: none;
-    color: var(--comment-text-secondary);
-    font-size: 13px;
-    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
     cursor: pointer;
-    padding: 4px 0;
-    transition: var(--comment-transition);
-    display: flex;
+    padding: 0.25rem 0;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.25rem;
 }
 
 .show-replies-btn:hover,
 .hide-replies-btn:hover,
 .load-more-replies-btn:hover {
-    color: var(--comment-text);
-    text-decoration: underline;
+    color: #007bff;
 }
 
-.show-replies-btn i,
-.hide-replies-btn i {
-    font-size: 14px;
-    opacity: 0.7;
+.replies-list {
+    margin-left: 2rem;
+    margin-top: 0.5rem;
+    border-left: 2px solid #e9ecef;
+    padding-left: 1rem;
+}
+
+/* ✅ View count анимация */
+.view-stats-count,
+.modal-view-count {
+    transition: transform 0.2s ease;
+}
+
+.stats-count {
+    transition: transform 0.2s ease;
+}
+
+/* ✅ Comment count sync анимация */
+.comment-stats-count,
+#commentsHeaderCount {
+    transition: transform 0.2s ease;
 }
 
 /* ====== EDIT FORMS ====== */

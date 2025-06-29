@@ -957,24 +957,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 0);
         });
     }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-            e.preventDefault();
-            window.publicationsManager.refresh();
-        }
-
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-                menu.style.display = 'none';
-            });
-
-            if (window.filtersManager) {
-                window.filtersManager.closeMobileFilters();
-            }
-        }
-    });
 });
 
 // Export for modules

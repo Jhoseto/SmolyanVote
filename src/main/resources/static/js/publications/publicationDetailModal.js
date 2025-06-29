@@ -50,20 +50,6 @@ class PublicationDetailModal {
         // Close menu when clicking outside
         document.addEventListener('click', () => this.closePostMenu());
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (!this.isVisible) return;
-            if (e.key === 'Escape') {
-                // Ако има активен edit, отказваме го
-                if (this.modal.querySelector('.modal-edit-form')) {
-                    this.cancelInlineEdit();
-                } else {
-                    this.close();
-                }
-            }
-            if (e.key === 'l' && !e.ctrlKey) { e.preventDefault(); this.toggleLike(); }
-            if (e.key === 'd' && !e.ctrlKey) { e.preventDefault(); this.toggleDislike(); }
-        });
     }
 
     setupImageZoom() {
@@ -492,10 +478,16 @@ class PublicationDetailModal {
         this.updateButton('modalDislikeBtn', isDisliked, 'bi-hand-thumbs-down-fill', 'bi-hand-thumbs-down', 'disliked');
     }
 
-    show() {
+    async show(postId) {
         this.modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         this.isVisible = true;
+        this.currentPost = postData; // Съхрани post данните
+        this.isVisible = true;
+        if (!window.commentsManager) {
+            window.commentsManager = new CommentsManager();
+        }
+        await window.commentsManager.loadComments(postId);
     }
 
     close() {
@@ -508,6 +500,9 @@ class PublicationDetailModal {
         document.body.style.overflow = '';
         this.isVisible = false;
         this.currentPost = null;
+        if (window.commentsManager) {
+            window.commentsManager.cleanup();
+        }
 
         // Clear comments
         window.commentsManager?.clearComments();
