@@ -45,4 +45,7 @@ public interface CommentsService {
 
     @Transactional
     Page<CommentsEntity> getCommentsForTargetPaginated(Long targetId, EventType targetType, Pageable pageable);
+
+    @Transactional(readOnly = true)
+    boolean hasRecentComment(UserEntity user, int minutesLimit);
 }
