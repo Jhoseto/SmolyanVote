@@ -161,28 +161,6 @@ function getCurrentSearchValue() {
     return searchInput ? searchInput.value.trim() : '';
 }
 
-/**
- * Инициализира keyboard shortcuts
- */
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', (event) => {
-        const key = event.key.toLowerCase();
-        const isCtrl = event.ctrlKey || event.metaKey;
-
-        // Ctrl/Cmd + K за фокус върху търсенето
-        if (isCtrl && key === 'k') {
-            event.preventDefault();
-            focusSearchInput();
-            return;
-        }
-
-        // Escape за изчистване на търсенето
-        if (key === 'escape' && document.activeElement?.id === 'eventSearch') {
-            clearSearch();
-            return;
-        }
-    });
-}
 
 /**
  * Почиства ресурси при напускане на страницата

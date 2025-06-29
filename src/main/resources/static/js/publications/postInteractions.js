@@ -469,13 +469,6 @@ class PostInteractions {
                 menu.style.display = 'none';
             });
         });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isFormExpanded) {
-                this.collapseCreateForm();
-            }
-        });
     }
 
     handlePostMenuClick(menuElement) {

@@ -505,6 +505,18 @@
         window.avatarUtils.updateAll();
       }
     }, 300);
+
+    if (window.PublicationsManager) {
+      window.publicationsManager = new PublicationsManager();
+    }
+
+    if (window.PublicationDetailModal) {
+      window.publicationModal = new PublicationDetailModal();
+    }
+
+    if (window.PostInteractions) {
+      window.postInteractions = new PostInteractions();
+    }
   });
 
   // Функция за инициализация на avatar placeholders
