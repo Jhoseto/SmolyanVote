@@ -1,5 +1,5 @@
-// ====== COMPLETE COMMENTS MANAGER - БЕЗ KEYBOARD + VIEW COUNT + REPLIES ======
-// Файл: src/main/resources/static/js/publications/commentsManager.js
+// ====== COMMENTS MANAGER - FIXED VERSION ======
+// src/main/resources/static/js/publications/commentsManager.js
 
 class CommentsManager {
     constructor() {
@@ -10,24 +10,10 @@ class CommentsManager {
         this.hasMoreComments = true;
         this.currentPage = 0;
         this.commentsPerPage = 10;
-        this.isCommentsVisible = true;
         this.currentSort = 'newest';
         this.isInitialized = false;
 
-        console.log('📝 CommentsManager created (not initialized yet)');
-    }
-
-    /**
-     * Инициализира системата след като DOM елементите са налични
-     */
-    initialize() {
-        if (this.isInitialized) return;
-
-        console.log('📝 Initializing CommentsManager...');
-        this.setupEventListeners();
-        this.setupAutoResize();
-        this.isInitialized = true;
-        console.log('✅ CommentsManager initialized successfully');
+        console.log('🔧 DEBUG: CommentsManager created');
     }
 
     /**
@@ -37,44 +23,81 @@ class CommentsManager {
         const requiredElements = [
             'commentTextarea',
             'commentSubmitBtn',
-            'commentsList'
+            'commentsList',
+            'commentTemplate'
         ];
 
-        const missing = requiredElements.filter(id => !document.getElementById(id));
+        const missing = [];
+        const found = [];
 
+        requiredElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                found.push(id);
+            } else {
+                missing.push(id);
+            }
+        });
+
+        console.log('🔧 DEBUG: DOM Elements found:', found);
         if (missing.length > 0) {
-            console.warn('⚠️ Missing DOM elements:', missing);
+            console.error('❌ DEBUG: Missing DOM elements:', missing);
             return false;
         }
 
         return true;
     }
 
+    /**
+     * Инициализира системата
+     */
+    initialize() {
+        if (this.isInitialized) {
+            console.log('🔧 DEBUG: Already initialized');
+            return;
+        }
+
+        console.log('🔧 DEBUG: Initializing CommentsManager...');
+
+        if (!this.checkDOMElements()) {
+            console.error('❌ DEBUG: Cannot initialize - missing DOM elements');
+            return;
+        }
+
+        this.setupEventListeners();
+        this.isInitialized = true;
+        console.log('✅ DEBUG: CommentsManager initialized successfully');
+    }
+
     setupEventListeners() {
-        // ✅ БЕЗ keyboard shortcuts - само основни click събития
+        console.log('🔧 DEBUG: Setting up event listeners...');
 
         // Comment input events
         const commentTextarea = document.getElementById('commentTextarea');
         if (commentTextarea) {
             commentTextarea.addEventListener('input', () => this.handleCommentInput());
             commentTextarea.addEventListener('focus', () => this.showCommentActions());
+            console.log('✅ DEBUG: Comment textarea events added');
         }
 
-        // Comment actions
+        // Comment action buttons
         const submitBtn = document.getElementById('commentSubmitBtn');
         const cancelBtn = document.getElementById('commentCancelBtn');
         const emojiBtn = document.getElementById('commentEmojiBtn');
 
         if (submitBtn) {
             submitBtn.addEventListener('click', () => this.submitComment());
+            console.log('✅ DEBUG: Submit button event added');
         }
 
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => this.cancelComment());
+            console.log('✅ DEBUG: Cancel button event added');
         }
 
         if (emojiBtn) {
             emojiBtn.addEventListener('click', () => this.toggleEmojiPicker());
+            console.log('✅ DEBUG: Emoji button event added');
         }
 
         // Emoji picker events
@@ -86,12 +109,14 @@ class CommentsManager {
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         if (loadMoreBtn) {
             loadMoreBtn.addEventListener('click', () => this.loadMoreComments());
+            console.log('✅ DEBUG: Load more button event added');
         }
 
         // Retry button
         const retryBtn = document.getElementById('retryCommentsBtn');
         if (retryBtn) {
             retryBtn.addEventListener('click', () => this.retryLoadComments());
+            console.log('✅ DEBUG: Retry button event added');
         }
 
         // Comments sorting
@@ -99,54 +124,71 @@ class CommentsManager {
         if (sortSelect) {
             sortSelect.addEventListener('change', (e) => {
                 this.currentSort = e.target.value;
+                console.log('🔧 DEBUG: Sort changed to:', this.currentSort);
                 this.loadComments(this.currentPostId);
             });
+            console.log('✅ DEBUG: Sort select event added');
         }
 
-        // Event delegation за comment actions
+        // Event delegation
         this.setupEventDelegation();
     }
 
     /**
-     * Event delegation за по-ефективно handling
+     * Event delegation за всички comment actions
      */
     setupEventDelegation() {
         const commentsSection = document.getElementById('commentsSection');
-        if (!commentsSection) return;
+        if (!commentsSection) {
+            console.error('❌ DEBUG: commentsSection not found');
+            return;
+        }
 
         commentsSection.addEventListener('click', (e) => {
+            console.log('🔧 DEBUG: Click event in comments section:', e.target);
+
             e.stopPropagation();
 
-            // Emoji picker затваряне
+            // Comment actions with data-action
+            const target = e.target.closest('[data-action]');
+            if (target) {
+                const action = target.dataset.action;
+                console.log('🔧 DEBUG: Found action:', action);
+                this.handleCommentAction(target, e);
+                return;
+            }
+
+            // Emoji picker close
             if (!e.target.closest('#commentEmojiPicker') && !e.target.closest('#commentEmojiBtn')) {
                 const emojiPicker = document.getElementById('commentEmojiPicker');
                 if (emojiPicker && emojiPicker.style.display === 'block') {
                     emojiPicker.style.display = 'none';
+                    console.log('🔧 DEBUG: Emoji picker closed');
                 }
             }
 
-            // Comment menu затваряне
+            // Comment menu close
             if (!e.target.closest('.comment-menu-btn')) {
-                document.querySelectorAll('.comment-menu-dropdown').forEach(menu => {
-                    menu.style.display = 'none';
-                });
-            }
-
-            // Comment actions
-            const target = e.target.closest('[data-action]');
-            if (target) {
-                this.handleCommentAction(target, e);
+                const openMenus = document.querySelectorAll('.comment-menu-dropdown[style*="block"]');
+                if (openMenus.length > 0) {
+                    openMenus.forEach(menu => menu.style.display = 'none');
+                    console.log('🔧 DEBUG: Comment menus closed');
+                }
             }
         });
+
+        console.log('✅ DEBUG: Event delegation setup complete');
     }
 
     /**
-     * Унифициран handler за всички comment actions
+     * Обработва всички comment actions
      */
     handleCommentAction(element, event) {
         const action = element.dataset.action;
         const commentId = element.closest('[data-comment-id]')?.dataset.commentId;
         const replyId = element.closest('[data-reply-id]')?.dataset.replyId;
+
+        console.log('🔧 DEBUG: Handling action:', action, 'commentId:', commentId, 'replyId:', replyId);
 
         switch (action) {
             case 'like-comment':
@@ -174,41 +216,27 @@ class CommentsManager {
                 if (replyId) this.toggleReplyDislike(replyId);
                 break;
             default:
-                console.warn('Unknown comment action:', action);
+                console.warn('🔧 DEBUG: Unknown action:', action);
         }
     }
 
-    setupAutoResize() {
-        const commentsSection = document.getElementById('commentsSection');
-        if (!commentsSection) return;
-
-        commentsSection.addEventListener('input', (e) => {
-            if (e.target.matches('.comment-textarea, .reply-textarea, .edit-comment-textarea, .edit-reply-textarea')) {
-                this.autoResizeTextarea(e.target);
-            }
-        });
-    }
-
-    autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        const maxHeight = 120;
-        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-        textarea.style.height = newHeight + 'px';
-        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'scroll' : 'hidden';
-    }
-
-    // ====== MAIN LOAD COMMENTS WITH VIEW COUNT ======
+    // ====== MAIN LOAD COMMENTS ======
 
     async loadComments(postId) {
-        if (this.isLoading) return;
+        if (this.isLoading) {
+            console.log('🔧 DEBUG: Already loading comments');
+            return;
+        }
+
+        console.log('🔧 DEBUG: Loading comments for post:', postId);
 
         // Инициализираме ако не е направено
         if (!this.isInitialized) {
-            if (!this.checkDOMElements()) {
-                console.error('❌ Cannot load comments - missing DOM elements');
+            this.initialize();
+            if (!this.isInitialized) {
+                console.error('❌ DEBUG: Failed to initialize');
                 return;
             }
-            this.initialize();
         }
 
         this.currentPostId = postId;
@@ -222,39 +250,46 @@ class CommentsManager {
         this.hideError();
 
         try {
-            // ✅ 1. Първо зареждаме коментарите
+            console.log('🔧 DEBUG: Fetching comments...');
             const response = await this.fetchComments(postId, 0);
+            console.log('🔧 DEBUG: Comments response:', response);
 
             if (response.success && response.comments && response.comments.length > 0) {
-                response.comments.forEach(comment => this.comments.set(comment.id, comment));
+                response.comments.forEach(comment => {
+                    console.log('🔧 DEBUG: Adding comment to map:', comment.id);
+                    this.comments.set(comment.id, comment);
+                });
+
                 this.renderComments();
                 this.currentPage++;
                 this.hasMoreComments = response.hasNext;
                 this.updateLoadMoreButton();
+
+                console.log('✅ DEBUG: Comments loaded successfully:', this.comments.size);
             } else {
+                console.log('🔧 DEBUG: No comments found');
                 this.showNoComments();
             }
 
-            // ✅ 2. След това обновяваме view count (API го прави автоматично)
+            // Update view count
             await this.updateViewCount(postId);
 
-            // ✅ 3. Обновяваме avatar-а
+            // Update avatar
             this.updateCommentInputAvatar();
 
         } catch (error) {
-            console.error('❌ Error loading comments:', error);
+            console.error('❌ DEBUG: Error loading comments:', error);
             this.showError(error.message);
         } finally {
             this.hideLoading();
         }
     }
 
-    /**
-     * ✅ Обновява view count във всички места
-     */
+    // ====== VIEW COUNT UPDATE ======
+
     async updateViewCount(postId) {
         try {
-            // Fetch актуалните данни за публикацията (включва новия view count)
+            console.log('🔧 DEBUG: Updating view count for post:', postId);
             const response = await fetch(`/api/publications/${postId}`, {
                 method: 'GET',
                 headers: {
@@ -265,97 +300,37 @@ class CommentsManager {
 
             if (response.ok) {
                 const publicationData = await response.json();
+                console.log('🔧 DEBUG: Publication data:', publicationData);
 
-                // ✅ Обновяваме view count на стената
+                // Update view count on wall
                 this.updateViewCountOnWall(postId, publicationData.viewsCount);
 
-                // ✅ Обновяваме view count в модала
+                // Update view count in modal
                 this.updateViewCountInModal(publicationData.viewsCount);
 
-                console.log('✅ View count updated:', publicationData.viewsCount);
+                console.log('✅ DEBUG: View count updated:', publicationData.viewsCount);
             }
         } catch (error) {
-            console.warn('⚠️ Failed to update view count:', error);
+            console.warn('⚠️ DEBUG: Failed to update view count:', error);
         }
     }
 
-    /**
-     * ✅ Обновява view count на стената (в publications списъка)
-     */
     updateViewCountOnWall(postId, viewCount) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
             const viewStatsCount = postElement.querySelector('.view-stats-count');
             if (viewStatsCount) {
                 viewStatsCount.textContent = viewCount || 0;
-                // Анимация при обновяване
-                viewStatsCount.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    viewStatsCount.style.transform = '';
-                }, 200);
+                console.log('✅ DEBUG: Updated view count on wall:', viewCount);
             }
         }
     }
 
-    /**
-     * ✅ Обновява view count в модала
-     */
     updateViewCountInModal(viewCount) {
         const modalViewCount = document.querySelector('#modalViewCount, .modal-view-count');
         if (modalViewCount) {
             modalViewCount.textContent = viewCount || 0;
-        }
-    }
-
-    // ====== COMMENTS COUNT SYNC ======
-
-    /**
-     * ✅ Обновява comment count навсякъде (стена + модал)
-     */
-    updateCommentsCountEverywhere(postId, delta) {
-        // Обновяваме в модала
-        this.updateCommentsCountInModal(delta);
-
-        // Обновяваме на стената
-        this.updateCommentsCountOnWall(postId, delta);
-    }
-
-    /**
-     * ✅ Обновява comment count в модала
-     */
-    updateCommentsCountInModal(delta) {
-        const headerCount = document.getElementById('commentsHeaderCount');
-        if (headerCount) {
-            const current = parseInt(headerCount.textContent) || 0;
-            const newCount = Math.max(0, current + delta);
-            headerCount.textContent = newCount;
-
-            // Анимация
-            headerCount.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                headerCount.style.transform = '';
-            }, 200);
-        }
-    }
-
-    /**
-     * ✅ Обновява comment count на стената
-     */
-    updateCommentsCountOnWall(postId, delta) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const commentStatsCount = postElement.querySelector('.comment-stats-count');
-            if (commentStatsCount) {
-                const current = parseInt(commentStatsCount.textContent) || 0;
-                const newCount = Math.max(0, current + delta);
-                commentStatsCount.textContent = newCount;
-
-                // Анимация
-                commentStatsCount.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    commentStatsCount.style.transform = '';
-                }, 200);
-            }
+            console.log('✅ DEBUG: Updated view count in modal:', viewCount);
         }
     }
 
@@ -368,7 +343,7 @@ class CommentsManager {
         if (textarea && submitBtn) {
             const hasText = textarea.value.trim().length > 0;
             submitBtn.disabled = !hasText;
-            this.autoResizeTextarea(textarea);
+            console.log('🔧 DEBUG: Comment input changed, has text:', hasText);
         }
     }
 
@@ -376,6 +351,7 @@ class CommentsManager {
         const actions = document.getElementById('commentInputActions');
         if (actions) {
             actions.style.display = 'flex';
+            console.log('🔧 DEBUG: Comment actions shown');
         }
     }
 
@@ -383,11 +359,13 @@ class CommentsManager {
         const actions = document.getElementById('commentInputActions');
         if (actions) {
             actions.style.display = 'none';
+            console.log('🔧 DEBUG: Comment actions hidden');
         }
     }
 
     async submitComment() {
         if (!window.isAuthenticated) {
+            console.log('🔧 DEBUG: User not authenticated');
             this.showLoginPrompt();
             return;
         }
@@ -395,10 +373,18 @@ class CommentsManager {
         const textarea = document.getElementById('commentTextarea');
         const submitBtn = document.getElementById('commentSubmitBtn');
 
-        if (!textarea || !this.currentPostId) return;
+        if (!textarea || !this.currentPostId) {
+            console.error('❌ DEBUG: Missing textarea or currentPostId');
+            return;
+        }
 
         const text = textarea.value.trim();
-        if (!text) return;
+        if (!text) {
+            console.log('🔧 DEBUG: Empty comment text');
+            return;
+        }
+
+        console.log('🔧 DEBUG: Submitting comment:', text);
 
         // Show loading state
         submitBtn.disabled = true;
@@ -406,6 +392,7 @@ class CommentsManager {
 
         try {
             const response = await this.createComment(this.currentPostId, text);
+            console.log('🔧 DEBUG: Comment created:', response);
 
             if (response.success) {
                 // Add to comments map
@@ -417,17 +404,15 @@ class CommentsManager {
                 // Clear input
                 textarea.value = '';
                 this.hideCommentActions();
-                this.autoResizeTextarea(textarea);
 
-                // ✅ Обновяваме comment count навсякъде
+                // Update comment count
                 this.updateCommentsCountEverywhere(this.currentPostId, 1);
 
-                this.showToast(response.message || 'Коментарът е добавен успешно!', 'success');
+                console.log('✅ DEBUG: Comment submitted successfully');
             }
 
         } catch (error) {
-            console.error('❌ Error creating comment:', error);
-            this.showToast('Възникна грешка при добавянето на коментара', 'error');
+            console.error('❌ DEBUG: Error creating comment:', error);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Коментирай';
@@ -438,318 +423,46 @@ class CommentsManager {
         const textarea = document.getElementById('commentTextarea');
         if (textarea) {
             textarea.value = '';
-            this.autoResizeTextarea(textarea);
         }
         this.hideCommentActions();
+        console.log('🔧 DEBUG: Comment cancelled');
     }
 
-    // ====== REPLIES FUNCTIONALITY ======
+    // ====== COMMENT COUNT SYNC ======
 
-    async showReplies(commentId) {
-        const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentDiv) return;
+    updateCommentsCountEverywhere(postId, delta) {
+        console.log('🔧 DEBUG: Updating comment count by:', delta);
+        this.updateCommentsCountInModal(delta);
+        this.updateCommentsCountOnWall(postId, delta);
+    }
 
-        try {
-            // Зареждаме replies ако не са заредени
-            if (!this.replies.has(commentId)) {
-                const response = await this.fetchReplies(commentId, 0);
-                if (response.success && response.comments) {
-                    this.replies.set(commentId, response.comments);
-                }
-            }
-
-            const replies = this.replies.get(commentId) || [];
-            const repliesList = commentDiv.querySelector('.replies-list');
-
-            if (repliesList) {
-                // Clear existing replies
-                repliesList.innerHTML = '';
-
-                // Render all replies
-                replies.forEach(reply => {
-                    const replyElement = this.createReplyElement(reply);
-                    if (replyElement) {
-                        repliesList.appendChild(replyElement);
-                    }
-                });
-
-                // Show replies list
-                repliesList.style.display = 'block';
-            }
-
-            // Update replies controls
-            this.updateRepliesControls(commentDiv, replies.length);
-
-        } catch (error) {
-            console.error('❌ Error showing replies:', error);
-            this.showToast('Възникна грешка при зареждането на отговорите', 'error');
+    updateCommentsCountInModal(delta) {
+        const headerCount = document.getElementById('commentsHeaderCount');
+        if (headerCount) {
+            const current = parseInt(headerCount.textContent) || 0;
+            const newCount = Math.max(0, current + delta);
+            headerCount.textContent = newCount;
+            console.log('🔧 DEBUG: Modal comment count updated to:', newCount);
         }
     }
 
-    hideReplies(commentId) {
-        const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentDiv) return;
-
-        const repliesList = commentDiv.querySelector('.replies-list');
-        if (repliesList) {
-            repliesList.style.display = 'none';
-        }
-
-        // Update replies controls
-        const comment = this.comments.get(commentId);
-        const repliesCount = comment?.repliesCount || 0;
-        this.updateRepliesControls(commentDiv, repliesCount, false);
-    }
-
-    updateRepliesControls(commentDiv, repliesCount, isVisible = true) {
-        const showBtn = commentDiv.querySelector('.show-replies-btn');
-        const hideBtn = commentDiv.querySelector('.hide-replies-btn');
-        const repliesCountSpan = commentDiv.querySelector('.replies-count');
-
-        if (repliesCount > 0) {
-            if (repliesCountSpan) {
-                repliesCountSpan.textContent = repliesCount;
-            }
-
-            if (isVisible) {
-                if (showBtn) showBtn.style.display = 'none';
-                if (hideBtn) hideBtn.style.display = 'inline-block';
-            } else {
-                if (showBtn) showBtn.style.display = 'inline-block';
-                if (hideBtn) hideBtn.style.display = 'none';
-            }
-        } else {
-            if (showBtn) showBtn.style.display = 'none';
-            if (hideBtn) hideBtn.style.display = 'none';
-        }
-    }
-
-    showReplyInput(commentId) {
-        const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentDiv) return;
-
-        const replyInput = commentDiv.querySelector('.reply-input-section');
-        if (replyInput) {
-            replyInput.style.display = 'block';
-
-            // Focus textarea
-            const textarea = replyInput.querySelector('.reply-textarea');
-            if (textarea) {
-                textarea.focus();
-            }
-
-            // Update reply avatar
-            this.updateReplyInputAvatar(replyInput);
-
-            // Setup reply form event listeners
-            this.setupReplyForm(commentId, replyInput);
-        }
-    }
-
-    setupReplyForm(commentId, replyInput) {
-        const textarea = replyInput.querySelector('.reply-textarea');
-        const submitBtn = replyInput.querySelector('.reply-submit-btn');
-        const cancelBtn = replyInput.querySelector('.reply-cancel-btn');
-
-        if (textarea) {
-            // Auto-resize and validation
-            textarea.addEventListener('input', () => {
-                this.autoResizeTextarea(textarea);
-                const hasText = textarea.value.trim().length > 0;
-                if (submitBtn) submitBtn.disabled = !hasText;
-            });
-        }
-
-        if (submitBtn) {
-            submitBtn.onclick = () => this.submitReply(commentId);
-        }
-
-        if (cancelBtn) {
-            cancelBtn.onclick = () => this.cancelReply(commentId);
-        }
-    }
-
-    async submitReply(commentId) {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
-        const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentDiv) return;
-
-        const replyInput = commentDiv.querySelector('.reply-input-section');
-        const textarea = replyInput?.querySelector('.reply-textarea');
-        const submitBtn = replyInput?.querySelector('.reply-submit-btn');
-
-        if (!textarea) return;
-
-        const text = textarea.value.trim();
-        if (!text) return;
-
-        // Show loading
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Отговаряне...';
-
-        try {
-            const newReply = await this.createReply(commentId, text);
-
-            if (newReply.success) {
-                // Add to replies
-                if (!this.replies.has(commentId)) {
-                    this.replies.set(commentId, []);
-                }
-                this.replies.get(commentId).push(newReply.comment);
-
-                // Update comment replies count
-                const comment = this.comments.get(commentId);
-                if (comment) {
-                    comment.repliesCount = (comment.repliesCount || 0) + 1;
-                }
-
-                // Show replies if hidden
-                await this.showReplies(commentId);
-
-                // Clear input
-                textarea.value = '';
-                this.cancelReply(commentId);
-
-                // ✅ Обновяваме общия comment count (replies също са коментари)
-                this.updateCommentsCountEverywhere(this.currentPostId, 1);
-
-                this.showToast('Отговорът е добавен успешно!', 'success');
-            }
-
-        } catch (error) {
-            console.error('❌ Error creating reply:', error);
-            this.showToast('Възникна грешка при добавянето на отговора', 'error');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Отговори';
-        }
-    }
-
-    cancelReply(commentId) {
-        const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentDiv) return;
-
-        const replyInput = commentDiv.querySelector('.reply-input-section');
-        if (replyInput) {
-            replyInput.style.display = 'none';
-
-            const textarea = replyInput.querySelector('.reply-textarea');
-            if (textarea) {
-                textarea.value = '';
-                this.autoResizeTextarea(textarea);
+    updateCommentsCountOnWall(postId, delta) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            const commentStatsCount = postElement.querySelector('.comment-stats-count');
+            if (commentStatsCount) {
+                const current = parseInt(commentStatsCount.textContent) || 0;
+                const newCount = Math.max(0, current + delta);
+                commentStatsCount.textContent = newCount;
+                console.log('🔧 DEBUG: Wall comment count updated to:', newCount);
             }
         }
     }
 
-    // ====== REPLY REACTIONS ======
-
-    async toggleReplyLike(replyId) {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
-        try {
-            const response = await this.reactToComment(replyId, 'LIKE');
-
-            if (response.success) {
-                // Update reply in memory
-                this.updateReplyInMemory(replyId, response);
-                // Update reply UI
-                this.updateReplyActions(replyId);
-            }
-
-        } catch (error) {
-            console.error('❌ Error toggling reply like:', error);
-            this.showToast('Възникна грешка при харесването', 'error');
-        }
-    }
-
-    async toggleReplyDislike(replyId) {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
-        try {
-            const response = await this.reactToComment(replyId, 'DISLIKE');
-
-            if (response.success) {
-                // Update reply in memory
-                this.updateReplyInMemory(replyId, response);
-                // Update reply UI
-                this.updateReplyActions(replyId);
-            }
-
-        } catch (error) {
-            console.error('❌ Error toggling reply dislike:', error);
-            this.showToast('Възникна грешка при дислайкването', 'error');
-        }
-    }
-
-    updateReplyInMemory(replyId, response) {
-        // Find and update the reply in our replies map
-        for (const [commentId, replies] of this.replies.entries()) {
-            const reply = replies.find(r => r.id == replyId);
-            if (reply) {
-                reply.likesCount = response.likesCount;
-                reply.dislikesCount = response.dislikesCount;
-                reply.userReaction = response.userReaction;
-                break;
-            }
-        }
-    }
-
-    updateReplyActions(replyId) {
-        const replyDiv = document.querySelector(`[data-reply-id="${replyId}"]`);
-        if (!replyDiv) return;
-
-        // Find reply data
-        let replyData = null;
-        for (const replies of this.replies.values()) {
-            replyData = replies.find(r => r.id == replyId);
-            if (replyData) break;
-        }
-
-        if (!replyData) return;
-
-        // Update counts
-        const likesCount = replyDiv.querySelector('.reply-likes-count');
-        const dislikesCount = replyDiv.querySelector('.reply-dislikes-count');
-
-        if (likesCount) likesCount.textContent = replyData.likesCount || 0;
-        if (dislikesCount) dislikesCount.textContent = replyData.dislikesCount || 0;
-
-        // Update button states
-        const likeBtn = replyDiv.querySelector('.reply-like-btn');
-        const dislikeBtn = replyDiv.querySelector('.reply-dislike-btn');
-
-        if (likeBtn) {
-            const isLiked = replyData.userReaction === 'LIKE';
-            likeBtn.classList.toggle('liked', isLiked);
-            const icon = likeBtn.querySelector('i');
-            if (icon) {
-                icon.className = isLiked ? 'bi bi-hand-thumbs-up-fill' : 'bi bi-hand-thumbs-up';
-            }
-        }
-
-        if (dislikeBtn) {
-            const isDisliked = replyData.userReaction === 'DISLIKE';
-            dislikeBtn.classList.toggle('disliked', isDisliked);
-            const icon = dislikeBtn.querySelector('i');
-            if (icon) {
-                icon.className = isDisliked ? 'bi bi-hand-thumbs-down-fill' : 'bi bi-hand-thumbs-down';
-            }
-        }
-    }
-
-    // ====== COMMENT REACTIONS ======
+    // ====== REACTIONS (SIMPLIFIED FOR NOW) ======
 
     async toggleCommentLike(commentId) {
+        console.log('🔧 DEBUG: Toggle comment like:', commentId);
         if (!window.isAuthenticated) {
             this.showLoginPrompt();
             return;
@@ -766,15 +479,16 @@ class CommentsManager {
                     comment.userReaction = response.userReaction;
                 }
                 this.updateCommentActions(commentId);
+                console.log('✅ DEBUG: Comment like toggled');
             }
 
         } catch (error) {
-            console.error('❌ Error toggling comment like:', error);
-            this.showToast('Възникна грешка при харесването', 'error');
+            console.error('❌ DEBUG: Error toggling comment like:', error);
         }
     }
 
     async toggleCommentDislike(commentId) {
+        console.log('🔧 DEBUG: Toggle comment dislike:', commentId);
         if (!window.isAuthenticated) {
             this.showLoginPrompt();
             return;
@@ -791,11 +505,11 @@ class CommentsManager {
                     comment.userReaction = response.userReaction;
                 }
                 this.updateCommentActions(commentId);
+                console.log('✅ DEBUG: Comment dislike toggled');
             }
 
         } catch (error) {
-            console.error('❌ Error toggling comment dislike:', error);
-            this.showToast('Възникна грешка при дислайкването', 'error');
+            console.error('❌ DEBUG: Error toggling comment dislike:', error);
         }
     }
 
@@ -837,6 +551,7 @@ class CommentsManager {
     }
 
     toggleCommentMenu(commentId) {
+        console.log('🔧 DEBUG: Toggle comment menu:', commentId);
         const commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
         if (!commentDiv) return;
 
@@ -853,95 +568,88 @@ class CommentsManager {
         }
     }
 
-    // ====== COMMENTS LOADING ======
+    // ====== REPLIES (SIMPLIFIED FOR NOW) ======
 
-    async loadMoreComments() {
-        if (this.isLoading || !this.hasMoreComments || !this.currentPostId) return;
-
-        this.isLoading = true;
-        this.showLoadMoreLoading();
-
-        try {
-            const response = await this.fetchComments(this.currentPostId, this.currentPage);
-
-            if (response.success && response.comments) {
-                response.comments.forEach(comment => this.comments.set(comment.id, comment));
-                this.renderNewComments(response.comments);
-                this.currentPage++;
-                this.hasMoreComments = response.hasNext;
-                this.updateLoadMoreButton();
-            }
-
-        } catch (error) {
-            console.error('❌ Error loading more comments:', error);
-            this.showToast('Възникна грешка при зареждане на повече коментари', 'error');
-        } finally {
-            this.isLoading = false;
-            this.hideLoadMoreLoading();
-        }
+    showReplyInput(commentId) {
+        console.log('🔧 DEBUG: Show reply input:', commentId);
+        // TODO: Implement
     }
 
-    retryLoadComments() {
-        if (this.currentPostId) {
-            this.loadComments(this.currentPostId);
-        }
+    async showReplies(commentId) {
+        console.log('🔧 DEBUG: Show replies for comment:', commentId);
+        // TODO: Implement
+    }
+
+    hideReplies(commentId) {
+        console.log('🔧 DEBUG: Hide replies for comment:', commentId);
+        // TODO: Implement
+    }
+
+    async toggleReplyLike(replyId) {
+        console.log('🔧 DEBUG: Toggle reply like:', replyId);
+        // TODO: Implement
+    }
+
+    async toggleReplyDislike(replyId) {
+        console.log('🔧 DEBUG: Toggle reply dislike:', replyId);
+        // TODO: Implement
     }
 
     // ====== RENDERING ======
 
     renderComments() {
+        console.log('🔧 DEBUG: Rendering comments...');
         const commentsList = document.getElementById('commentsList');
-        if (!commentsList) return;
+        if (!commentsList) {
+            console.error('❌ DEBUG: commentsList not found');
+            return;
+        }
 
-        // Clear existing comments (except templates and static elements)
+        // Clear existing comments
         const existingComments = commentsList.querySelectorAll('.comment-item');
         existingComments.forEach(comment => comment.remove());
+        console.log('🔧 DEBUG: Cleared existing comments:', existingComments.length);
 
         // Render all comments
-        Array.from(this.comments.values())
-            .forEach(comment => this.renderComment(comment));
-    }
+        let rendered = 0;
+        Array.from(this.comments.values()).forEach(comment => {
+            const commentElement = this.createCommentElement(comment);
+            if (commentElement) {
+                commentsList.appendChild(commentElement);
+                rendered++;
+            }
+        });
 
-    renderNewComments(newComments) {
-        newComments.forEach(comment => this.renderComment(comment));
+        console.log('✅ DEBUG: Rendered comments:', rendered);
     }
 
     prependComment(comment) {
+        console.log('🔧 DEBUG: Prepending comment:', comment.id);
         const commentsList = document.getElementById('commentsList');
         if (!commentsList) return;
 
         const commentElement = this.createCommentElement(comment);
+        if (!commentElement) return;
 
-        // Insert at the beginning, after loading/error messages
+        // Insert at the beginning
         const firstComment = commentsList.querySelector('.comment-item');
         if (firstComment) {
             commentsList.insertBefore(commentElement, firstComment);
         } else {
-            // Insert after static elements
-            const staticElements = commentsList.querySelectorAll('.comments-loading, .no-comments-message, .comments-error');
-            const lastStatic = staticElements[staticElements.length - 1];
-            if (lastStatic && lastStatic.nextSibling) {
-                commentsList.insertBefore(commentElement, lastStatic.nextSibling);
-            } else {
-                commentsList.appendChild(commentElement);
-            }
+            commentsList.appendChild(commentElement);
         }
 
-        // Hide no comments message if visible
         this.hideNoComments();
-    }
-
-    renderComment(comment) {
-        const commentsList = document.getElementById('commentsList');
-        if (!commentsList) return;
-
-        const commentElement = this.createCommentElement(comment);
-        commentsList.appendChild(commentElement);
+        console.log('✅ DEBUG: Comment prepended successfully');
     }
 
     createCommentElement(comment) {
+        console.log('🔧 DEBUG: Creating comment element for:', comment.id);
         const template = document.getElementById('commentTemplate');
-        if (!template) return null;
+        if (!template) {
+            console.error('❌ DEBUG: commentTemplate not found');
+            return null;
+        }
 
         const commentElement = template.content.cloneNode(true);
         const commentDiv = commentElement.querySelector('.comment-item');
@@ -949,61 +657,48 @@ class CommentsManager {
         // Set comment ID
         commentDiv.dataset.commentId = comment.id;
 
-        // Fill comment content
+        // Fill basic content
         this.fillCommentContent(commentElement, comment);
 
-        // Update replies controls based on replies count
-        this.updateRepliesControls(commentDiv, comment.repliesCount || 0, false);
-
+        console.log('✅ DEBUG: Comment element created for:', comment.id);
         return commentElement;
     }
 
     fillCommentContent(commentElement, comment) {
-        // Avatar
+        console.log('🔧 DEBUG: Filling comment content for:', comment.id);
+
+        // Avatar - simplified
         const avatar = commentElement.querySelector('.comment-avatar');
         if (avatar) {
-            const avatarHTML = window.avatarUtils ?
-                window.avatarUtils.createAvatar(
-                    comment.authorImage,
-                    comment.author,
-                    32,
-                    'comment-avatar'
-                ) :
-                `<img src="${comment.authorImage}" alt="${comment.author}" style="width:32px;height:32px;border-radius:50%;">`;
-            avatar.innerHTML = avatarHTML;
+            avatar.innerHTML = `<img src="${comment.authorImage || '/images/default-avatar.png'}" alt="${comment.author}" style="width:32px;height:32px;border-radius:50%;">`;
         }
 
-        // Author info
+        // Author
         const authorLink = commentElement.querySelector('.comment-author');
-        const timeSpan = commentElement.querySelector('.comment-time');
-        const onlineStatus = commentElement.querySelector('.comment-online-status');
-        const fullTime = commentElement.querySelector('.comment-full-time');
-
         if (authorLink) {
             authorLink.textContent = comment.author;
             authorLink.href = `/users/${comment.author}`;
         }
 
+        // Time
+        const timeSpan = commentElement.querySelector('.comment-time');
         if (timeSpan) {
             timeSpan.textContent = this.formatTimeAgo(comment.createdAt);
         }
 
-        if (onlineStatus) {
-            onlineStatus.className = `bi bi-circle comment-online-status online`;
-            onlineStatus.title = 'Онлайн';
-        }
-
+        // Full time
+        const fullTime = commentElement.querySelector('.comment-full-time');
         if (fullTime) {
             fullTime.textContent = this.formatFullTime(comment.createdAt);
         }
 
-        // Comment text
+        // Text
         const textDiv = commentElement.querySelector('.comment-text');
         if (textDiv) {
             textDiv.textContent = comment.text;
         }
 
-        // Comment counts
+        // Counts
         const likesCount = commentElement.querySelector('.comment-likes-count');
         const dislikesCount = commentElement.querySelector('.comment-dislikes-count');
 
@@ -1039,147 +734,54 @@ class CommentsManager {
                 menuBtn.style.display = 'flex';
             }
         }
-    }
 
-    createReplyElement(reply) {
-        const template = document.getElementById('replyTemplate');
-        if (!template) return null;
-
-        const replyElement = template.content.cloneNode(true);
-        const replyDiv = replyElement.querySelector('.reply-item');
-
-        // Set reply ID
-        replyDiv.dataset.replyId = reply.id;
-
-        // Fill reply content
-        this.fillReplyContent(replyElement, reply);
-
-        return replyElement;
-    }
-
-    fillReplyContent(replyElement, reply) {
-        // Avatar
-        const avatar = replyElement.querySelector('.reply-avatar');
-        if (avatar) {
-            const avatarHTML = window.avatarUtils ?
-                window.avatarUtils.createAvatar(
-                    reply.authorImage,
-                    reply.author,
-                    28,
-                    'reply-avatar'
-                ) :
-                `<img src="${reply.authorImage}" alt="${reply.author}" style="width:28px;height:28px;border-radius:50%;">`;
-            avatar.innerHTML = avatarHTML;
-        }
-
-        // Author info
-        const authorLink = replyElement.querySelector('.reply-author');
-        const timeSpan = replyElement.querySelector('.reply-time');
-        const onlineStatus = replyElement.querySelector('.reply-online-status');
-        const fullTime = replyElement.querySelector('.reply-full-time');
-
-        if (authorLink) {
-            authorLink.textContent = reply.author;
-            authorLink.href = `/users/${reply.author}`;
-        }
-
-        if (timeSpan) {
-            timeSpan.textContent = this.formatTimeAgo(reply.createdAt);
-        }
-
-        if (onlineStatus) {
-            onlineStatus.className = `bi bi-circle reply-online-status online`;
-            onlineStatus.title = 'Онлайн';
-        }
-
-        if (fullTime) {
-            fullTime.textContent = this.formatFullTime(reply.createdAt);
-        }
-
-        // Reply text
-        const textDiv = replyElement.querySelector('.reply-text');
-        if (textDiv) {
-            textDiv.textContent = reply.text;
-        }
-
-        // Reply counts
-        const likesCount = replyElement.querySelector('.reply-likes-count');
-        const dislikesCount = replyElement.querySelector('.reply-dislikes-count');
-
-        if (likesCount) likesCount.textContent = reply.likesCount || 0;
-        if (dislikesCount) dislikesCount.textContent = reply.dislikesCount || 0;
-
-        // Button states
-        const likeBtn = replyElement.querySelector('.reply-like-btn');
-        const dislikeBtn = replyElement.querySelector('.reply-dislike-btn');
-
-        if (likeBtn) {
-            const isLiked = reply.userReaction === 'LIKE';
-            likeBtn.classList.toggle('liked', isLiked);
-            const icon = likeBtn.querySelector('i');
-            if (icon) {
-                icon.className = isLiked ? 'bi bi-hand-thumbs-up-fill' : 'bi bi-hand-thumbs-up';
-            }
-        }
-
-        if (dislikeBtn) {
-            const isDisliked = reply.userReaction === 'DISLIKE';
-            dislikeBtn.classList.toggle('disliked', isDisliked);
-            const icon = dislikeBtn.querySelector('i');
-            if (icon) {
-                icon.className = isDisliked ? 'bi bi-hand-thumbs-down-fill' : 'bi bi-hand-thumbs-down';
-            }
-        }
-
-        // Show menu for owner
-        if (reply.canEdit) {
-            const menuBtn = replyElement.querySelector('.reply-menu-btn');
-            if (menuBtn) {
-                menuBtn.style.display = 'flex';
-            }
-        }
+        console.log('✅ DEBUG: Comment content filled for:', comment.id);
     }
 
     // ====== CLEANUP ======
 
     cleanup() {
-        console.log('🧹 Cleaning up CommentsManager...');
-
-        // Премахваме делегираните събития
-        const commentsSection = document.getElementById('commentsSection');
-        if (commentsSection) {
-            const newSection = commentsSection.cloneNode(true);
-            commentsSection.parentNode.replaceChild(newSection, commentsSection);
-        }
-
+        console.log('🔧 DEBUG: Cleaning up CommentsManager...');
         this.isInitialized = false;
-        console.log('✅ CommentsManager cleanup completed');
+        console.log('✅ DEBUG: CommentsManager cleanup completed');
     }
 
     // ====== UI STATE MANAGEMENT ======
 
     showLoading() {
         const loading = document.getElementById('commentsLoading');
-        if (loading) loading.style.display = 'flex';
+        if (loading) {
+            loading.style.display = 'flex';
+            console.log('🔧 DEBUG: Loading shown');
+        }
         this.hideNoComments();
         this.hideError();
     }
 
     hideLoading() {
         const loading = document.getElementById('commentsLoading');
-        if (loading) loading.style.display = 'none';
+        if (loading) {
+            loading.style.display = 'none';
+            console.log('🔧 DEBUG: Loading hidden');
+        }
     }
 
     showNoComments() {
         const noComments = document.getElementById('noCommentsMessage');
-        if (noComments) noComments.style.display = 'flex';
+        if (noComments) {
+            noComments.style.display = 'flex';
+            console.log('🔧 DEBUG: No comments message shown');
+        }
         this.hideLoading();
         this.hideError();
     }
 
     hideNoComments() {
         const noComments = document.getElementById('noCommentsMessage');
-        if (noComments) noComments.style.display = 'none';
+        if (noComments) {
+            noComments.style.display = 'none';
+            console.log('🔧 DEBUG: No comments message hidden');
+        }
     }
 
     showError(message = 'Възникна грешка при зареждане на коментарите') {
@@ -1188,6 +790,7 @@ class CommentsManager {
             error.style.display = 'flex';
             const errorText = error.querySelector('p');
             if (errorText) errorText.textContent = message;
+            console.log('🔧 DEBUG: Error shown:', message);
         }
         this.hideLoading();
         this.hideNoComments();
@@ -1195,22 +798,9 @@ class CommentsManager {
 
     hideError() {
         const error = document.getElementById('commentsError');
-        if (error) error.style.display = 'none';
-    }
-
-    showLoadMoreLoading() {
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (loadMoreBtn) {
-            loadMoreBtn.disabled = true;
-            loadMoreBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Зареждане...';
-        }
-    }
-
-    hideLoadMoreLoading() {
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (loadMoreBtn) {
-            loadMoreBtn.disabled = false;
-            loadMoreBtn.innerHTML = 'Покажи още коментари';
+        if (error) {
+            error.style.display = 'none';
+            console.log('🔧 DEBUG: Error hidden');
         }
     }
 
@@ -1218,12 +808,26 @@ class CommentsManager {
         const loadMoreContainer = document.getElementById('loadMoreComments');
         if (loadMoreContainer) {
             loadMoreContainer.style.display = this.hasMoreComments ? 'block' : 'none';
+            console.log('🔧 DEBUG: Load more button updated, hasMore:', this.hasMoreComments);
+        }
+    }
+
+    async loadMoreComments() {
+        console.log('🔧 DEBUG: Load more comments requested');
+        // TODO: Implement
+    }
+
+    retryLoadComments() {
+        console.log('🔧 DEBUG: Retry load comments');
+        if (this.currentPostId) {
+            this.loadComments(this.currentPostId);
         }
     }
 
     // ====== HELPER METHODS ======
 
     showLoginPrompt() {
+        console.log('🔧 DEBUG: Showing login prompt');
         if (window.showLoginModal) {
             window.showLoginModal();
         } else {
@@ -1231,22 +835,11 @@ class CommentsManager {
         }
     }
 
-    showToast(message, type = 'info') {
-        console.log(`📝 ${type.toUpperCase()}: ${message}`);
-        // TODO: Implement proper toast notifications
-    }
-
     updateCommentInputAvatar() {
         const avatarContainer = document.getElementById('commentUserAvatar');
         if (avatarContainer && window.currentUserImage) {
             avatarContainer.innerHTML = `<img src="${window.currentUserImage}" alt="Avatar" class="comment-avatar-img">`;
-        }
-    }
-
-    updateReplyInputAvatar(replyInput) {
-        const avatarContainer = replyInput.querySelector('.reply-user-avatar');
-        if (avatarContainer && window.currentUserImage) {
-            avatarContainer.innerHTML = `<img src="${window.currentUserImage}" alt="Avatar" class="reply-avatar-img">`;
+            console.log('🔧 DEBUG: Comment input avatar updated');
         }
     }
 
@@ -1255,6 +848,7 @@ class CommentsManager {
         if (emojiPicker) {
             const isVisible = emojiPicker.style.display === 'block';
             emojiPicker.style.display = isVisible ? 'none' : 'block';
+            console.log('🔧 DEBUG: Emoji picker toggled, visible:', !isVisible);
         }
     }
 
@@ -1307,6 +901,8 @@ class CommentsManager {
     async fetchComments(postId, page) {
         try {
             const url = `/api/comments/publication/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;
+            console.log('🔧 DEBUG: Fetching from URL:', url);
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -1320,37 +916,18 @@ class CommentsManager {
                 throw new Error(errorData.error || `HTTP ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('🔧 DEBUG: API response:', data);
+            return data;
         } catch (error) {
-            console.error('❌ API Error fetching comments:', error);
-            throw error;
-        }
-    }
-
-    async fetchReplies(commentId, page) {
-        try {
-            const url = `/api/comments/${commentId}/replies?page=${page}&size=5`;
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('❌ API Error fetching replies:', error);
+            console.error('❌ DEBUG: API Error fetching comments:', error);
             throw error;
         }
     }
 
     async createComment(postId, text) {
         try {
+            console.log('🔧 DEBUG: Creating comment API call');
             const formData = new FormData();
             formData.append('targetId', postId);
             formData.append('text', text);
@@ -1369,37 +946,11 @@ class CommentsManager {
                 throw new Error(errorData.error || `HTTP ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('🔧 DEBUG: Comment created API response:', data);
+            return data;
         } catch (error) {
-            console.error('❌ API Error creating comment:', error);
-            throw error;
-        }
-    }
-
-    async createReply(commentId, text) {
-        try {
-            const formData = new FormData();
-            formData.append('targetId', this.currentPostId);
-            formData.append('parentId', commentId);
-            formData.append('text', text);
-
-            const response = await fetch('/api/comments/reply', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    [window.appData.csrfHeader]: window.appData.csrfToken
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('❌ API Error creating reply:', error);
+            console.error('❌ DEBUG: API Error creating comment:', error);
             throw error;
         }
     }
@@ -1422,11 +973,11 @@ class CommentsManager {
 
             return await response.json();
         } catch (error) {
-            console.error('❌ API Error reacting to comment:', error);
+            console.error('❌ DEBUG: API Error reacting to comment:', error);
             throw error;
         }
     }
 }
 
-// ✅ НЕ инициализираме глобално - ще се инициализира при отваряне на модал
+// НЕ инициализираме глобално
 window.CommentsManager = CommentsManager;
