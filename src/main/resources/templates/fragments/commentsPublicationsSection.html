@@ -43,12 +43,9 @@
                 <button class="emoji-btn" data-emoji="👎">👎</button>
                 <button class="emoji-btn" data-emoji="❤️">❤️</button>
                 <button class="emoji-btn" data-emoji="🔥">🔥</button>
-                <button class="emoji-btn" data-emoji="💯">💯</button>
+                <button class="emoji-btn" data-emoji="⭐">⭐</button>
             </div>
         </div>
-
-        <!-- Hidden file input -->
-        <input type="file" id="commentImageInput" accept="image/*" style="display: none;">
     </div>
 
     <!-- Login Prompt for Guests -->
@@ -63,26 +60,14 @@
         </div>
     </div>
 
-    <!-- Comments List -->
-    <div class="comments-container">
-        <!-- Comments Header with Toggle -->
-        <div class="comments-toggle-header" id="commentsToggleHeader">
-            <button class="comments-toggle-btn" id="commentsToggleBtn">
-                <i class="bi bi-chevron-down"></i>
-                <span>Скрий коментарите</span>
-            </button>
-        </div>
-
-        <div class="comments-list" id="commentsList">
-            <!-- Comments ще се зареждат динамично от JavaScript -->
-
-            <!-- Loading Indicator -->
+    <!-- Comments List Container -->
+    <div class="comments-list-container">
+        <div id="commentsList" class="comments-list">
+            <!-- Loading State -->
             <div class="comments-loading" id="commentsLoading" style="display: none;">
-                <div class="comments-spinner">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Зареждане...</span>
-                    </div>
-                    <span>Зареждане на коментари...</span>
+                <div class="loading-content">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span>Зареждане на коментарите...</span>
                 </div>
             </div>
 
@@ -115,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Comment Template (Hidden) -->
+    <!-- Comment Template -->
     <template id="commentTemplate">
         <div class="comment-item" data-comment-id="">
             <div class="comment-main">
@@ -132,27 +117,27 @@
                         <div class="comment-text"></div>
                     </div>
                     <div class="comment-actions">
-                        <button class="comment-action-btn comment-like-btn">
+                        <button class="comment-action-btn comment-like-btn" data-action="like-comment">
                             <i class="bi bi-hand-thumbs-up"></i>
                             <span class="comment-likes-count">0</span>
                         </button>
-                        <button class="comment-action-btn comment-dislike-btn">
+                        <button class="comment-action-btn comment-dislike-btn" data-action="dislike-comment">
                             <i class="bi bi-hand-thumbs-down"></i>
                             <span class="comment-dislikes-count">0</span>
                         </button>
-                        <button class="comment-action-btn comment-reply-btn">
+                        <button class="comment-action-btn comment-reply-btn" data-action="reply-comment">
                             Отговори
                         </button>
                         <span class="comment-time-separator">•</span>
                         <span class="comment-full-time"></span>
-                        <button class="comment-action-btn comment-menu-btn">
+                        <button class="comment-action-btn comment-menu-btn" data-action="menu-comment">
                             <i class="bi bi-three-dots"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Comment Menu (Owner only) -->
+            <!-- Comment Menu -->
             <div class="comment-menu-dropdown" style="display: none;">
                 <button class="comment-menu-item edit-comment-btn">
                     <i class="bi bi-pencil"></i> Редактирай
@@ -162,7 +147,7 @@
                 </button>
             </div>
 
-            <!-- Reply Input (Hidden by default) -->
+            <!-- Reply Input -->
             <div class="reply-input-section" style="display: none;">
                 <div class="reply-input-container">
                     <div class="reply-user-avatar">
@@ -185,25 +170,17 @@
 
             <!-- Replies Controls -->
             <div class="replies-controls">
-                <!-- Show Replies Button (shown when replies exist but are hidden) -->
-                <button class="show-replies-btn" style="display: none;">
+                <button class="show-replies-btn" data-action="show-replies" style="display: none;">
                     <i class="bi bi-corner-down-right"></i>
                     Покажи <span class="replies-count">0</span> отговора
                 </button>
-
-                <!-- Hide Replies Button (shown when replies are visible) -->
-                <button class="hide-replies-btn" style="display: none;">
+                <button class="hide-replies-btn" data-action="hide-replies" style="display: none;">
                     <i class="bi bi-corner-down-right"></i>
                     Скрий отговорите
                 </button>
-
-                <!-- Load More Replies (when there are more replies to load) -->
-                <button class="load-more-replies-btn" style="display: none;">
-                    Покажи още <span class="remaining-replies-count">0</span> отговора
-                </button>
             </div>
 
-            <!-- Edit Comment Form (Hidden by default) -->
+            <!-- Edit Comment Form -->
             <div class="edit-comment-form" style="display: none;">
                 <div class="edit-input-container">
                     <textarea class="edit-comment-textarea" rows="2"></textarea>
@@ -216,7 +193,7 @@
         </div>
     </template>
 
-    <!-- Reply Template (Hidden) -->
+    <!-- Reply Template -->
     <template id="replyTemplate">
         <div class="reply-item" data-reply-id="">
             <div class="reply-main">
@@ -233,24 +210,24 @@
                         <div class="reply-text"></div>
                     </div>
                     <div class="reply-actions">
-                        <button class="reply-action-btn reply-like-btn">
+                        <button class="reply-action-btn reply-like-btn" data-action="like-reply">
                             <i class="bi bi-hand-thumbs-up"></i>
                             <span class="reply-likes-count">0</span>
                         </button>
-                        <button class="reply-action-btn reply-dislike-btn">
+                        <button class="reply-action-btn reply-dislike-btn" data-action="dislike-reply">
                             <i class="bi bi-hand-thumbs-down"></i>
                             <span class="reply-dislikes-count">0</span>
                         </button>
                         <span class="reply-time-separator">•</span>
                         <span class="reply-full-time"></span>
-                        <button class="reply-action-btn reply-menu-btn">
+                        <button class="reply-action-btn reply-menu-btn" data-action="menu-reply">
                             <i class="bi bi-three-dots"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Reply Menu (Owner only) -->
+            <!-- Reply Menu -->
             <div class="reply-menu-dropdown" style="display: none;">
                 <button class="reply-menu-item edit-reply-btn">
                     <i class="bi bi-pencil"></i> Редактирай
@@ -260,13 +237,13 @@
                 </button>
             </div>
 
-            <!-- Edit Reply Form (Hidden by default) -->
+            <!-- Edit Reply Form -->
             <div class="edit-reply-form" style="display: none;">
-                <div class="edit-reply-container">
-                    <textarea class="edit-reply-textarea" rows="1"></textarea>
+                <div class="edit-input-container">
+                    <textarea class="edit-reply-textarea" rows="2"></textarea>
                     <div class="edit-reply-actions">
-                        <button class="edit-reply-cancel-btn">Отказ</button>
-                        <button class="edit-reply-save-btn">Запази</button>
+                        <button class="edit-cancel-btn">Отказ</button>
+                        <button class="edit-save-btn">Запази</button>
                     </div>
                 </div>
             </div>
