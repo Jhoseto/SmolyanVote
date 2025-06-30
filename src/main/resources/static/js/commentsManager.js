@@ -2,7 +2,8 @@
 // Файл: src/main/resources/static/js/publications/commentsManager.js
 
 class CommentsManager {
-    constructor() {
+    constructor(entityType = 'publication', entityId = null) {
+        this.entityType = entityType;
         this.currentPostId = null;
         this.comments = new Map();
         this.replies = new Map();
@@ -16,9 +17,9 @@ class CommentsManager {
         this.likedReplies = new Set();
         this.dislikedReplies = new Set();
         this.currentSort = 'newest';
-        this.totalComments = 0; // Добавен за правилно броене
-        this.repliesPages = new Map(); // Track current page for each comment's replies
-        this.repliesHasMore = new Map(); // Track if more replies available
+        this.totalComments = 0;
+        this.repliesPages = new Map();
+        this.repliesHasMore = new Map();
 
         this.init();
     }
@@ -178,7 +179,7 @@ class CommentsManager {
 
     async fetchComments(postId, page) {
         try {
-            const url = `/api/comments/publication/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;
+            const url = `/api/comments/${this.entityType}/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;  // ← ПРОМЕНЕНА ЛИНИЯ
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -1579,7 +1580,7 @@ class CommentsManager {
 
     // ====== API METHODS ======
 
-    async createComment(postId, text) {
+    async createComment(targetId, text) {
         try {
             const response = await fetch('/api/comments', {
                 method: 'POST',
@@ -1589,7 +1590,8 @@ class CommentsManager {
                     [window.appData.csrfHeader]: window.appData.csrfToken
                 },
                 body: new URLSearchParams({
-                    targetId: postId,
+                    targetId: targetId,
+                    targetType: this.entityType,  // ← ПРОМЕНЕНА ЛИНИЯ
                     text: text
                 })
             });
@@ -2020,7 +2022,11 @@ if (!document.querySelector('#comments-animations')) {
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        window.commentsManager = new CommentsManager();
+        // Publications все още се инициализира автоматично за backward compatibility
+        if (window.location.pathname.includes('/publications')) {
+            window.commentsManager = new CommentsManager('publication');
+        }
+        // За другите страници ще се инициализира мануално
     } catch (error) {
         console.error('Failed to initialize CommentsManager:', error);
     }
