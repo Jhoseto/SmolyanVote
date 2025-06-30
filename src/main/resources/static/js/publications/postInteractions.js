@@ -318,7 +318,7 @@ class PostInteractions {
                     emotionText: response.emotionText || publicationData.emotionText,
                     imageUrl: response.imageUrl || publicationData.imageUrl,
                     status: response.status || publicationData.status,
-                    createdAt: response.createdAt || new Date().toISOString(),
+                    created: response.created || new Date().toISOString(),
                     likesCount: response.likesCount || 0,
                     dislikesCount: response.dislikesCount || 0,
                     commentsCount: response.commentsCount || 0,

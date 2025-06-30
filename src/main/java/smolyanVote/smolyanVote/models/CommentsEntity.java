@@ -22,8 +22,6 @@ public class CommentsEntity extends BaseEntity{
     @NotBlank
     private String text;
 
-    private Instant createdAt;
-
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CommentVoteEntity> votes = new ArrayList<>();
 
@@ -52,7 +50,7 @@ public class CommentsEntity extends BaseEntity{
     private CommentsEntity parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @OrderBy("createdAt ASC")
+    @OrderBy("created ASC")
     private List<CommentsEntity> replies = new ArrayList<>();
 
     private int likeCount;
@@ -92,14 +90,6 @@ public class CommentsEntity extends BaseEntity{
 
     public void setText(String text) {
         this.text = text;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 
     public boolean isEdited() {return edited;}

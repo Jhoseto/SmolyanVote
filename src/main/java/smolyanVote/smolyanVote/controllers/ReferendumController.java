@@ -22,8 +22,6 @@ import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
-import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -135,15 +133,12 @@ public class ReferendumController {
         try {
             ReferendumDetailViewDTO detailDto = referendumService.getReferendumDetail(id);
             UserEntity currentUser = userService.getCurrentUser();
-            String currentUsername = currentUser != null ? currentUser.getUsername() : null;
 
             List<CommentsEntity> comments = detailDto.getComments();
-            Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUsername);
 
             model.addAttribute("referendumDetail", detailDto);
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("comments", comments);
-            model.addAttribute("reactionsMap", reactionsMap);
             model.addAttribute("currentUrl", "/referendum/" + id);
 
             return "referendumDetailView";
