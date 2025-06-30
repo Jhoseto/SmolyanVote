@@ -11,11 +11,9 @@ import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
-import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
 import java.util.Map;
@@ -53,13 +51,11 @@ public class SimpleEventController {
 
             // Коментари и реакции
             List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
-            Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUser.getUsername());
 
             model.addAttribute("userVote", pageData.getCurrentUserVote());
             model.addAttribute("eventDetail", pageData);
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("comments", comments);
-            model.addAttribute("reactionsMap", reactionsMap);
 
             return "simpleEventDetailView";
         } catch (IllegalArgumentException e) {

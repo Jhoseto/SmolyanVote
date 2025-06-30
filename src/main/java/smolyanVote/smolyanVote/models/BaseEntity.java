@@ -4,20 +4,13 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import java.time.Instant;
 
-
 @Getter
 @MappedSuperclass
 public class BaseEntity {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     protected Long id;
-
-
-//    //Оправлява конкурентноста при гласувания
-//    @Version
-//    protected long version;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant created;
@@ -25,6 +18,17 @@ public class BaseEntity {
     @Column(nullable = false, columnDefinition = "TIMESTAMP")
     protected Instant modified;
 
+    @PrePersist
+    protected void onCreate() {
+        Instant now = Instant.now();
+        created = now;
+        modified = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        modified = Instant.now();
+    }
 
     public Long getId() {
         return id;
@@ -49,7 +53,4 @@ public class BaseEntity {
     public void setModified(Instant modified) {
         this.modified = modified;
     }
-
-
-
 }

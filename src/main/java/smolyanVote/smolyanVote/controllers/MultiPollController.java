@@ -15,10 +15,8 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
-import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ReactionCountDto;
 
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/multipoll")
@@ -31,7 +29,9 @@ public class MultiPollController {
 
     @Autowired
     public MultiPollController(MultiPollService multiPollService,
-                               CommentsService commentsService, UserService userService, VoteService voteService) {
+                               CommentsService commentsService,
+                               UserService userService,
+                               VoteService voteService) {
         this.multiPollService = multiPollService;
         this.commentsService = commentsService;
         this.userService = userService;
@@ -103,13 +103,11 @@ public class MultiPollController {
 
             // Коментари и реакции
             List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.MULTI_POLL);
-            Map<Long, ReactionCountDto> reactionsMap = commentsService.getReactionsForAllCommentsWithReplies(comments, currentUser.getUsername());
 
 
             model.addAttribute("multiPoll", multiPollDetail);
             model.addAttribute("currentUser", currentUser);
             model.addAttribute("comments", comments);
-            model.addAttribute("reactionsMap", reactionsMap);
             return "multiPollDetailView";
         } catch (IllegalArgumentException e) {
             return "error/404";
