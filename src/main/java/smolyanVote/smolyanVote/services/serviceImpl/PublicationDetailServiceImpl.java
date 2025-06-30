@@ -41,14 +41,9 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
             throw new RuntimeException("Публикацията не е намерена");
         }
 
-        // Check permissions using entity method
-        UserEntity currentUser = null;
-        if (auth != null && auth.isAuthenticated()) {
-            currentUser = userService.getCurrentUser();
-        }
-
-        if (!publication.canBeViewedBy(currentUser)) {
-            throw new RuntimeException("Нямате права за гледане на тази публикация");
+        // Check if user is authenticated
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Необходима е автентикация");
         }
 
         // Increment view count using entity method

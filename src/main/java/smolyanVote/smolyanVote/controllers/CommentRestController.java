@@ -13,9 +13,7 @@ import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
-import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ErrorDto;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
@@ -200,7 +198,7 @@ public class CommentRestController {
         }
 
         try {
-            if (request.getText() == null || request.getText().trim().length() < 3) {
+            if (request.getText() == null || request.getText().trim().isEmpty()) {
                 return ResponseEntity.status(400).body(createErrorResponse("Коментарът трябва да бъде поне 3 символа"));
             }
 
@@ -269,7 +267,7 @@ public class CommentRestController {
      */
     private ResponseEntity<?> handleCommentSubmission(Long targetId, String text, Long parentId) {
         try {
-            if (text == null || text.trim().length() < 3) {
+            if (text == null || text.trim().isEmpty()) {
                 return ResponseEntity.status(400).body(createErrorResponse("Коментарът трябва да бъде поне 3 символа"));
             }
 
