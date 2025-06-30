@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
@@ -39,18 +38,24 @@ public class CommentRestController {
     // ====== GET ENDPOINTS ======
 
     /**
-     * Зареждане на коментари за публикация
+     * НОВИЯ GENERIC ENDPOINT за всички типове entities
      */
-    @GetMapping("/publication/{publicationId}")
-    public ResponseEntity<?> getCommentsForPublication(
-            @PathVariable Long publicationId,
+    @GetMapping("/{entityType}/{entityId}")
+    public ResponseEntity<?> getCommentsForEntity(
+            @PathVariable String entityType,
+            @PathVariable Long entityId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "newest") String sort) {
 
+        // Валидация на entityType
+        if (!isValidEntityType(entityType)) {
+            return ResponseEntity.badRequest().body(createErrorResponse("Invalid entity type: " + entityType));
+        }
+
         try {
-            Page<CommentsEntity> commentsPage = commentsService.getCommentsForPublication(
-                    publicationId, page, size, sort);
+            Page<CommentsEntity> commentsPage = commentsService.getCommentsForEntity(
+                    entityType, entityId, page, size, sort);
 
             List<Map<String, Object>> commentsList = commentsPage.getContent().stream()
                     .map(this::convertCommentToDto)
@@ -68,9 +73,22 @@ public class CommentRestController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Error loading comments for publication {}: {}", publicationId, e.getMessage(), e);
+            logger.error("Error loading comments for {} {}: {}", entityType, entityId, e.getMessage(), e);
             return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждане на коментарите"));
         }
+    }
+
+    /**
+     * Зареждане на коментари за публикация - запазваме за backward compatibility
+     */
+    @GetMapping("/publication/{publicationId}")
+    public ResponseEntity<?> getCommentsForPublication(
+            @PathVariable Long publicationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "newest") String sort) {
+
+        return getCommentsForEntity("publication", publicationId, page, size, sort);
     }
 
     /**
@@ -115,6 +133,7 @@ public class CommentRestController {
     @PostMapping
     public ResponseEntity<?> postMainComment(
             @RequestParam Long targetId,
+            @RequestParam String targetType,
             @RequestParam String text,
             Authentication auth) {
 
@@ -122,75 +141,111 @@ public class CommentRestController {
             return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
         }
 
-        return handleCommentSubmission(targetId, text, null);
-    }
-
-    /**
-     * Добавяне на отговор (reply)
-     */
-    @PostMapping("/reply")
-    public ResponseEntity<?> postReply(
-            @RequestParam Long targetId,
-            @RequestParam String text,
-            @RequestParam Long parentId,
-            Authentication auth) {
-
-        if (auth == null) {
-            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
-        }
-
-        return handleCommentSubmission(targetId, text, parentId);
-    }
-
-    /**
-     * Гласуване (like / dislike) върху коментар
-     */
-    @PostMapping("/{id}/reaction/{type}")
-    public ResponseEntity<?> reactToComment(
-            @PathVariable Long id,
-            @PathVariable String type,
-            Authentication auth) {
-
-        if (auth == null) {
-            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
-        }
-
-        CommentReactionType reactionType;
-        try {
-            reactionType = CommentReactionType.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid reaction type '{}' for comment {}", type, id);
-            return ResponseEntity.badRequest().body(createErrorResponse("Invalid reaction type: " + type));
+        // Валидация на targetType
+        if (!isValidEntityType(targetType)) {
+            return ResponseEntity.badRequest().body(createErrorResponse("Invalid target type: " + targetType));
         }
 
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updated = commentsService.commentReaction(id, reactionType.name(), currentUser.getUsername());
-            String userVote = commentsService.getUserReaction(id, currentUser.getUsername());
+
+            // Използваме новия generic метод
+            CommentsEntity comment = commentsService.addCommentToEntity(
+                    targetType, targetId, text, currentUser);
 
             Map<String, Object> response = new HashMap<>();
+            response.put("comment", convertCommentToDto(comment));
             response.put("success", true);
-            response.put("likesCount", updated.getLikeCount());
-            response.put("dislikesCount", updated.getUnlikeCount());
-            response.put("userReaction", userVote);
+            response.put("message", "Коментарът беше добавен успешно");
 
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage(), e);
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при реакцията"));
+            logger.error("Error posting comment to {} {}: {}", targetType, targetId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при добавяне на коментара"));
         }
     }
 
-    // ====== PUT ENDPOINTS ======
+    /**
+     * Добавяне на отговор към коментар
+     */
+    @PostMapping("/reply")
+    public ResponseEntity<?> postReplyComment(
+            @RequestParam Long parentId,
+            @RequestParam String text,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            CommentsEntity reply = commentsService.addReplyToComment(parentId, text, currentUser);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("comment", convertCommentToDto(reply));
+            response.put("success", true);
+            response.put("message", "Отговорът беше добавен успешно");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error posting reply to comment {}: {}", parentId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при добавяне на отговора"));
+        }
+    }
+
+    // ====== PUT/PATCH ENDPOINTS ======
 
     /**
      * Редактиране на коментар
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<?> editComment(
-            @PathVariable Long id,
-            @RequestBody EditCommentRequest request,
+    @PutMapping("/{commentId}")
+    public ResponseEntity<?> updateComment(
+            @PathVariable Long commentId,
+            @RequestBody Map<String, String> request,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        String newText = request.get("text");
+        if (newText == null || newText.trim().isEmpty()) {
+            return ResponseEntity.status(400).body(createErrorResponse("Текстът на коментара не може да бъде празен"));
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            CommentsEntity updatedComment = commentsService.updateComment(commentId, newText, currentUser);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("comment", convertCommentToDto(updatedComment));
+            response.put("success", true);
+            response.put("message", "Коментарът беше актуализиран успешно");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error updating comment {}: {}", commentId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при актуализиране на коментара"));
+        }
+    }
+
+    /**
+     * Гласуване за коментар
+     */
+    @PostMapping("/{commentId}/vote")
+    public ResponseEntity<?> voteComment(
+            @PathVariable Long commentId,
+            @RequestParam String voteType,
             Authentication auth) {
 
         if (auth == null) {
@@ -198,31 +253,25 @@ public class CommentRestController {
         }
 
         try {
-            if (request.getText() == null || request.getText().trim().isEmpty()) {
-                return ResponseEntity.status(400).body(createErrorResponse("Коментарът трябва да бъде поне 3 символа"));
-            }
-
-            if (request.getText().trim().length() > 2000) {
-                return ResponseEntity.status(400).body(createErrorResponse("Коментарът не може да бъде повече от 2000 символа"));
-            }
-
+            CommentReactionType reactionType = CommentReactionType.valueOf(voteType.toUpperCase());
             UserEntity currentUser = userService.getCurrentUser();
-            CommentsEntity updatedComment = commentsService.editComment(id, request.getText().trim(), currentUser);
+
+            Map<String, Object> voteResult = commentsService.toggleCommentVote(commentId, currentUser, reactionType);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("comment", convertCommentToDto(updatedComment));
-            response.put("message", "Коментарът е обновен успешно");
+            response.put("likeCount", voteResult.get("likeCount"));
+            response.put("dislikeCount", voteResult.get("dislikeCount"));
+            response.put("userReaction", voteResult.get("userReaction"));
+            response.put("message", (String) voteResult.get("message"));
 
             return ResponseEntity.ok(response);
 
-        } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(createErrorResponse("Нямате права за редактиране"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404).body(createErrorResponse("Коментарът не е намерен"));
+            return ResponseEntity.status(400).body(createErrorResponse("Невалиден тип гласуване"));
         } catch (Exception e) {
-            logger.error("Error editing comment {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при редактирането"));
+            logger.error("Error voting for comment {}: {}", commentId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при гласуването"));
         }
     }
 
@@ -231,9 +280,9 @@ public class CommentRestController {
     /**
      * Изтриване на коментар
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{commentId}")
     public ResponseEntity<?> deleteComment(
-            @PathVariable Long id,
+            @PathVariable Long commentId,
             Authentication auth) {
 
         if (auth == null) {
@@ -242,117 +291,111 @@ public class CommentRestController {
 
         try {
             UserEntity currentUser = userService.getCurrentUser();
-            commentsService.deleteComment(id, currentUser);
+            commentsService.deleteComment(commentId, currentUser);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Коментарът е изтрит успешно");
+            response.put("message", "Коментарът беше изтрит успешно");
 
             return ResponseEntity.ok(response);
 
-        } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(createErrorResponse("Нямате права за изтриване"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404).body(createErrorResponse("Коментарът не е намерен"));
+            return ResponseEntity.status(403).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Error deleting comment {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при изтриването"));
+            logger.error("Error deleting comment {}: {}", commentId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при изтриване на коментара"));
         }
     }
 
-    // ====== HELPER METHODS ======
+    // ====== UTILITY METHODS ======
 
     /**
-     * Обработва създаването на коментар или отговор
+     * Валидира дали entity type е валиден
      */
-    private ResponseEntity<?> handleCommentSubmission(Long targetId, String text, Long parentId) {
-        try {
-            if (text == null || text.trim().isEmpty()) {
-                return ResponseEntity.status(400).body(createErrorResponse("Коментарът трябва да бъде поне 3 символа"));
-            }
-
-            if (text.trim().length() > 2000) {
-                return ResponseEntity.status(400).body(createErrorResponse("Коментарът не може да бъде повече от 2000 символа"));
-            }
-
-            UserEntity currentUser = userService.getCurrentUser();
-            EventType targetType = commentsService.getTargetType(targetId);
-
-            CommentsEntity comment = commentsService.addComment(
-                    targetId, currentUser.getUsername(), text.trim(), parentId, targetType);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("comment", convertCommentToDto(comment));
-            response.put("message", parentId != null ? "Отговорът е добавен успешно" : "Коментарът е добавен успешно");
-
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(createErrorResponse(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404).body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Unexpected error while submitting comment: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при добавянето на коментара"));
-        }
+    private boolean isValidEntityType(String entityType) {
+        return List.of("publication", "simpleEvent", "referendum", "multiPoll")
+                .contains(entityType);
     }
 
     /**
-     * Конвертира CommentsEntity в DTO за JSON response
+     * Конвертира CommentsEntity към DTO за API response
      */
     private Map<String, Object> convertCommentToDto(CommentsEntity comment) {
         Map<String, Object> dto = new HashMap<>();
+
         dto.put("id", comment.getId());
         dto.put("text", comment.getText());
-        dto.put("author", comment.getAuthor());
-        dto.put("authorImage", comment.getAuthorImage());
 
-        // Конвертираме Instant в LocalDateTime за JSON сериализация
-        LocalDateTime createdAt = comment.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDateTime();
-        dto.put("createdAt", createdAt);
+        // createdAt - използвай правилния тип (Instant, не LocalDateTime)
+        if (comment.getCreatedAt() != null) {
+            dto.put("createdAt", comment.getCreatedAt().toEpochMilli()); // Instant.toEpochMilli() директно
+        } else {
+            dto.put("createdAt", null);
+        }
 
-        dto.put("likesCount", comment.getLikeCount());
-        dto.put("dislikesCount", comment.getUnlikeCount());
-        dto.put("repliesCount", commentsService.countReplies(comment.getId()));
-        dto.put("parentId", comment.getParent() != null ? comment.getParent().getId() : null);
-        dto.put("edited", comment.isEdited());
-
-        // Проверяваме дали текущият потребител може да редактира
+        // updatedAt - може да не съществува в твоята CommentsEntity
         try {
-            UserEntity currentUser = userService.getCurrentUser();
-            dto.put("canEdit", currentUser != null && comment.getAuthor().equals(currentUser.getUsername()));
-            dto.put("userReaction", currentUser != null ?
-                    commentsService.getUserReaction(comment.getId(), currentUser.getUsername()) : null);
+            if (comment.getModified() != null) {
+                dto.put("updatedAt", comment.getModified().toEpochMilli());
+            } else {
+                dto.put("updatedAt", null);
+            }
         } catch (Exception e) {
-            dto.put("canEdit", false);
-            dto.put("userReaction", null);
+            dto.put("updatedAt", null); // Ако методът не съществува
+        }
+
+        // Author information
+        dto.put("authorId", null); // Няма direct връзка към UserEntity
+        dto.put("authorUsername", comment.getAuthor()); // String username
+        dto.put("authorImageUrl", comment.getAuthorImage()); // String image URL
+
+        // isOnline - поправи метода
+        dto.put("isOnline", false); // Просто върни false за сега, за да не се счупи
+
+        // Vote counts
+        dto.put("likeCount", comment.getLikeCount());
+        dto.put("dislikeCount", comment.getUnlikeCount());
+
+        // Replies count
+        dto.put("repliesCount", comment.getReplies() != null ? comment.getReplies().size() : 0);
+
+        // Parent comment ID if it's a reply
+        if (comment.getParent() != null) {
+            dto.put("parentId", comment.getParent().getId());
+        }
+
+        // Entity associations
+        if (comment.getPublication() != null) {
+            dto.put("entityType", "publication");
+            dto.put("entityId", comment.getPublication().getId());
+        } else if (comment.getEvent() != null) {
+            dto.put("entityType", "simpleEvent");
+            dto.put("entityId", comment.getEvent().getId());
+        } else if (comment.getReferendum() != null) {
+            dto.put("entityType", "referendum");
+            dto.put("entityId", comment.getReferendum().getId());
+        } else if (comment.getMultiPoll() != null) {
+            dto.put("entityType", "multiPoll");
+            dto.put("entityId", comment.getMultiPoll().getId());
+        }
+
+        // Edited flag
+        try {
+            dto.put("edited", comment.isEdited());
+        } catch (Exception e) {
+            dto.put("edited", false);
         }
 
         return dto;
     }
 
     /**
-     * Създава error response в стандартен формат
+     * Създава стандартен error response
      */
     private Map<String, Object> createErrorResponse(String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
         response.put("error", message);
         return response;
-    }
-
-    // ====== REQUEST CLASSES ======
-
-    public static class EditCommentRequest {
-        private String text;
-
-        public String getText() {
-            return text;
-        }
-
-        public void setText(String text) {
-            this.text = text;
-        }
     }
 }

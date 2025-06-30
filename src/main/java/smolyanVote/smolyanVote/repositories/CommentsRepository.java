@@ -37,10 +37,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Query("SELECT c FROM CommentsEntity c WHERE c.parent.id = :parentId")
     Page<CommentsEntity> findRepliesByParentId(@Param("parentId") Long parentId, Pageable pageable);
 
-    // За броене на replies
-    @Query("SELECT COUNT(c) FROM CommentsEntity c WHERE c.parent.id = :commentId")
-    long countRepliesByCommentId(@Param("commentId") Long commentId);
-
+   
     @Transactional
     void deleteAllByEvent_Id(Long eventId);
 
@@ -50,6 +47,40 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Transactional
     void deleteAllByMultiPoll_Id(Long multiPollId);
 
-    @Transactional
-    void deleteAllByPublication_Id(Long publicationId);
+
+// ====== REFERENDUM METHODS ======
+
+    /**
+     * Намира коментари за referendum
+     */
+    @Query("SELECT c FROM CommentsEntity c WHERE c.referendum.id = :referendumId AND c.parent IS NULL ORDER BY c.createdAt DESC")
+    Page<CommentsEntity> findByReferendumIdOrderByCreatedAtDesc(@Param("referendumId") Long referendumId, Pageable pageable);
+
+    /**
+     * Брои коментарите за referendum
+     */
+    @Query("SELECT COUNT(c) FROM CommentsEntity c WHERE c.referendum.id = :referendumId")
+    long countByReferendumId(@Param("referendumId") Long referendumId);
+
+// ====== MULTI POLL METHODS ======
+
+    /**
+     * Намира коментари за multiPoll
+     */
+    @Query("SELECT c FROM CommentsEntity c WHERE c.multiPoll.id = :multiPollId AND c.parent IS NULL ORDER BY c.createdAt DESC")
+    Page<CommentsEntity> findByMultiPollIdOrderByCreatedAtDesc(@Param("multiPollId") Long multiPollId, Pageable pageable);
+
+    /**
+     * Брои коментарите за multiPoll
+     */
+    @Query("SELECT COUNT(c) FROM CommentsEntity c WHERE c.multiPoll.id = :multiPollId")
+    long countByMultiPollId(@Param("multiPollId") Long multiPollId);
+
+// ====== GENERIC QUERIES WITH SORTING ======
+
+    Page<CommentsEntity> findByEventIdOrderByCreatedAtDesc(Long simpleEventId, Pageable pageable);
+
+    long countByEventId(Long simpleEventId);
+
+    long countByPublicationId(Long publicationId);
 }

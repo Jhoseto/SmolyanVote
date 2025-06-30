@@ -32,33 +32,179 @@ public class CommentsServiceImpl implements CommentsService {
     private final CommentsRepository commentsRepository;
     private final SimpleEventRepository simpleEventRepository;
     private final ReferendumRepository referendumRepository;
-    private final UserService userService;
-    private final CommentVoteRepository commentVoteRepository;
     private final MultiPollRepository multiPollRepository;
     private final PublicationRepository publicationRepository;
+    private final CommentVoteRepository commentVoteRepository;
+    private final UserService userService;
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
                                ReferendumRepository referendumRepository,
-                               UserService userService,
-                               CommentVoteRepository commentVoteRepository,
                                MultiPollRepository multiPollRepository,
-                               PublicationRepository publicationRepository) {
+                               PublicationRepository publicationRepository,
+                               CommentVoteRepository commentVoteRepository,
+                               UserService userService) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
-        this.userService = userService;
-        this.commentVoteRepository = commentVoteRepository;
         this.multiPollRepository = multiPollRepository;
         this.publicationRepository = publicationRepository;
+        this.commentVoteRepository = commentVoteRepository;
+        this.userService = userService;
     }
+
+    // ====== GENERIC МЕТОДИ - НОВИТЕ ======
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentsEntity> getCommentsForEntity(String entityType, Long entityId, int page, int size, String sort) {
+        return switch (entityType) {
+            case "publication" -> getCommentsForPublication(entityId, page, size, sort);
+            case "simpleEvent" -> getCommentsForSimpleEvent(entityId, page, size, sort);
+            case "referendum" -> getCommentsForReferendum(entityId, page, size, sort);
+            case "multiPoll" -> getCommentsForMultiPoll(entityId, page, size, sort);
+            default -> throw new IllegalArgumentException("Invalid entity type: " + entityType);
+        };
+    }
+
+    @Override
+    @Transactional
+    public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
+        return switch (entityType) {
+            case "publication" -> addCommentToPublication(entityId, text, author);
+            case "simpleEvent" -> addCommentToSimpleEvent(entityId, text, author);
+            case "referendum" -> addCommentToReferendum(entityId, text, author);
+            case "multiPoll" -> addCommentToMultiPoll(entityId, text, author);
+            default -> throw new IllegalArgumentException("Invalid entity type: " + entityType);
+        };
+    }
+
+    // ====== SPECIFIC МЕТОДИ ЗА ВСЕКИ ТИП ======
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentsEntity> getCommentsForSimpleEvent(Long simpleEventId, int page, int size, String sort) {
+        Pageable pageable = createPageable(page, size, sort);
+        return commentsRepository.findByEventIdOrderByCreatedAtDesc(simpleEventId, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentsEntity> getCommentsForReferendum(Long referendumId, int page, int size, String sort) {
+        Pageable pageable = createPageable(page, size, sort);
+        return commentsRepository.findByReferendumIdOrderByCreatedAtDesc(referendumId, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentsEntity> getCommentsForMultiPoll(Long multiPollId, int page, int size, String sort) {
+        Pageable pageable = createPageable(page, size, sort);
+        return commentsRepository.findByMultiPollIdOrderByCreatedAtDesc(multiPollId, pageable);
+    }
+
+    @Override
+    @Transactional
+    public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
+        SimpleEventEntity simpleEvent = simpleEventRepository.findById(simpleEventId)
+                .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with id: " + simpleEventId));
+
+        CommentsEntity comment = new CommentsEntity();
+        comment.setText(text);
+        comment.setAuthor(author.getUsername());
+        comment.setAuthorImage(author.getImageUrl());
+        comment.setEvent(simpleEvent);
+        comment.setCreatedAt(Instant.now());
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
+
+        return commentsRepository.save(comment);
+    }
+
+    @Override
+    @Transactional
+    public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
+        ReferendumEntity referendum = referendumRepository.findById(referendumId)
+                .orElseThrow(() -> new IllegalArgumentException("Referendum not found with id: " + referendumId));
+
+        CommentsEntity comment = new CommentsEntity();
+        comment.setText(text);
+        comment.setAuthor(author.getUsername());
+        comment.setAuthorImage(author.getImageUrl());
+        comment.setReferendum(referendum);
+        comment.setCreatedAt(Instant.now());
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
+
+        return commentsRepository.save(comment);
+    }
+
+    @Override
+    @Transactional
+    public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
+        MultiPollEntity multiPoll = multiPollRepository.findById(multiPollId)
+                .orElseThrow(() -> new IllegalArgumentException("MultiPoll not found with id: " + multiPollId));
+
+        CommentsEntity comment = new CommentsEntity();
+        comment.setText(text);
+        comment.setAuthor(author.getUsername());
+        comment.setAuthorImage(author.getImageUrl());
+        comment.setMultiPoll(multiPoll);
+        comment.setCreatedAt(Instant.now());
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
+
+        return commentsRepository.save(comment);
+    }
+
+    @Override
+    @Transactional
+    public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
+        PublicationEntity publication = publicationRepository.findById(publicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Publication not found with id: " + publicationId));
+
+        CommentsEntity comment = new CommentsEntity();
+        comment.setText(text);
+        comment.setAuthor(author.getUsername());
+        comment.setAuthorImage(author.getImageUrl());
+        comment.setPublication(publication);
+        comment.setCreatedAt(Instant.now());
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
+
+        return commentsRepository.save(comment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countCommentsForSimpleEvent(Long simpleEventId) {
+        return commentsRepository.countByEventId(simpleEventId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countCommentsForReferendum(Long referendumId) {
+        return commentsRepository.countByReferendumId(referendumId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countCommentsForMultiPoll(Long multiPollId) {
+        return commentsRepository.countByMultiPollId(multiPollId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countCommentsForPublication(Long publicationId) {
+        return commentsRepository.countByPublicationId(publicationId);
+    }
+
+    // ====== СЪЩЕСТВУВАЩИ МЕТОДИ ======
 
     @Transactional
     @Override
     public CommentsEntity addComment(Long targetId, String author, String text, Long parentId, EventType targetType) {
         UserEntity user = userService.getCurrentUser();
-
         EventType eventType = getTargetType(targetId);
 
         CommentsEntity comment = new CommentsEntity();
@@ -66,6 +212,8 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setAuthorImage(user.getImageUrl());
         comment.setText(text);
         comment.setCreatedAt(Instant.now());
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
 
         switch (eventType) {
             case REFERENDUM -> {
@@ -111,82 +259,63 @@ public class CommentsServiceImpl implements CommentsService {
                 ? CommentReactionType.LIKE
                 : CommentReactionType.DISLIKE;
 
-        Optional<CommentVoteEntity> existingVoteOpt = commentVoteRepository.findByCommentIdAndUsername(commentId, username);
+        Optional<CommentVoteEntity> existingVote = commentVoteRepository.findByCommentIdAndUsername(commentId, username);
 
-        if (existingVoteOpt.isPresent()) {
-            CommentVoteEntity existingVote = existingVoteOpt.get();
-
-            if (existingVote.getReaction() != newReaction) {
-                // Промяна на гласа
-                if (existingVote.getReaction() == CommentReactionType.LIKE) {
-                    comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1));
-                    comment.setUnlikeCount(comment.getUnlikeCount() + 1);
-                } else {
-                    comment.setUnlikeCount(Math.max(0, comment.getUnlikeCount() - 1));
-                    comment.setLikeCount(comment.getLikeCount() + 1);
-                }
-
-                existingVote.setReaction(newReaction);
-                commentVoteRepository.save(existingVote);
-            }
-
-        } else {
-            // Нов глас
-            CommentVoteEntity vote = new CommentVoteEntity();
-            vote.setComment(comment);
-            vote.setUsername(username);
-            vote.setReaction(newReaction);
-            commentVoteRepository.save(vote);
-
-            if (newReaction == CommentReactionType.LIKE) {
-                comment.setLikeCount(comment.getLikeCount() + 1);
+        if (existingVote.isPresent()) {
+            CommentVoteEntity vote = existingVote.get();
+            if (vote.getReaction().equals(newReaction)) {
+                // Remove vote if same reaction
+                commentVoteRepository.delete(vote);
             } else {
-                comment.setUnlikeCount(comment.getUnlikeCount() + 1);
+                // Change reaction
+                vote.setReaction(newReaction);
+                commentVoteRepository.save(vote);
             }
+        } else {
+            // Add new vote
+            CommentVoteEntity newVote = new CommentVoteEntity();
+            newVote.setComment(comment);
+            newVote.setUsername(username);
+            newVote.setReaction(newReaction);
+            commentVoteRepository.save(newVote);
         }
 
+        // Update counters based on actual votes
+        updateCommentCounters(comment);
         return commentsRepository.save(comment);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public String getUserReaction(Long commentId, String username) {
         return commentVoteRepository.findByCommentIdAndUsername(commentId, username)
-                .map(vote -> vote.getReaction().name()) // "LIKE" или "DISLIKE"
+                .map(vote -> vote.getReaction().name())
                 .orElse(null);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public Map<Long, ReactionCountDto> getReactionsForAllCommentsWithReplies(List<CommentsEntity> comments, String username) {
-        Map<Long, ReactionCountDto> reactionsMap = new HashMap<>();
+        Map<Long, ReactionCountDto> reactions = new HashMap<>();
 
         for (CommentsEntity comment : comments) {
-            String userVote = username != null ? getUserReaction(comment.getId(), username) : null;
-            ReactionCountDto reactionDto = new ReactionCountDto(
-                    comment.getLikeCount(),
-                    comment.getUnlikeCount(),
-                    userVote
-            );
-            reactionsMap.put(comment.getId(), reactionDto);
+            ReactionCountDto reactionDto = getReactionCountForComment(comment.getId(), username);
+            reactions.put(comment.getId(), reactionDto);
 
-            if (comment.getReplies() != null) {
+            // Process replies
+            if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
                 for (CommentsEntity reply : comment.getReplies()) {
-                    userVote = username != null ? getUserReaction(reply.getId(), username) : null;
-                    reactionDto = new ReactionCountDto(
-                            reply.getLikeCount(),
-                            reply.getUnlikeCount(),
-                            userVote
-                    );
-                    reactionsMap.put(reply.getId(), reactionDto);
+                    ReactionCountDto replyReactionDto = getReactionCountForComment(reply.getId(), username);
+                    reactions.put(reply.getId(), replyReactionDto);
                 }
             }
         }
-        return reactionsMap;
+
+        return reactions;
     }
 
-    @Transactional
     @Override
+    @Transactional(readOnly = true)
     public List<CommentsEntity> getCommentsForTarget(Long targetId, EventType targetType) {
         return switch (targetType) {
             case REFERENDUM -> commentsRepository.findRootCommentsWithRepliesByReferendumId(targetId);
@@ -197,16 +326,13 @@ public class CommentsServiceImpl implements CommentsService {
         };
     }
 
-    @Transactional
     @Override
-    public EventType getTargetType(Long targetId) {
-        boolean isReferendum = referendumRepository.existsById(targetId);
-        boolean isEvent = simpleEventRepository.existsById(targetId);
-        boolean isMultiPoll = multiPollRepository.existsById(targetId);
-        boolean isPublication = publicationRepository.existsById(targetId);
-
-        logger.debug("Checking target type for ID {}: referendum={}, event={}, multiPoll={}, publication={}",
-                targetId, isReferendum, isEvent, isMultiPoll, isPublication);
+    @Transactional(readOnly = true)
+    public EventType getTargetType(Long id) {
+        boolean isReferendum = referendumRepository.existsById(id);
+        boolean isEvent = simpleEventRepository.existsById(id);
+        boolean isMultiPoll = multiPollRepository.existsById(id);
+        boolean isPublication = publicationRepository.existsById(id);
 
         int count = (isReferendum ? 1 : 0) + (isEvent ? 1 : 0) + (isMultiPoll ? 1 : 0) + (isPublication ? 1 : 0);
 
@@ -221,23 +347,17 @@ public class CommentsServiceImpl implements CommentsService {
         } else if (isPublication) {
             return EventType.PUBLICATION;
         } else {
-            throw new IllegalArgumentException("Target ID not found: " + targetId);
+            throw new IllegalArgumentException("Target ID not found: " + id);
         }
     }
 
     @Transactional
     @Override
-    public void deleteAllComments() {
-        commentsRepository.deleteAll();
-    }
-
-    @Transactional
-    @Override
-    public CommentsEntity editComment(Long commentId, String newText, UserEntity user) {
+    public CommentsEntity updateComment(Long commentId, String newText, UserEntity user) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
 
-        if (!canModifyComment(comment, user)) {
+        if (!canUserEditComment(commentId, user)) {
             throw new SecurityException("Нямате права за редактиране.");
         }
 
@@ -252,57 +372,133 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Коментарът не е намерен."));
 
-        if (!canModifyComment(comment, user)) {
-            throw new SecurityException("Нямате права.");
+        if (!canUserDeleteComment(commentId, user)) {
+            throw new SecurityException("Нямате права за изтриване.");
         }
 
         commentsRepository.delete(comment);
     }
 
-    // ====== НОВИТЕ МЕТОДИ ЗА ПУБЛИКАЦИИ ======
-
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public Page<CommentsEntity> getCommentsForPublication(Long publicationId, int page, int size, String sort) {
-        page = Math.max(0, page);
-        size = Math.min(Math.max(1, size), 50);
-
-        // Създаваме правилното сортиране
-        Sort sortOrder = createSortForComments(sort);
-        Pageable pageable = PageRequest.of(page, size, sortOrder);
-
+        Pageable pageable = createPageable(page, size, sort);
         return commentsRepository.findRootCommentsByPublicationId(publicationId, pageable);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public Page<CommentsEntity> getRepliesForComment(Long commentId, int page, int size) {
         page = Math.max(0, page);
-        size = Math.min(Math.max(1, size), 20); // По-малко replies на страница
+        size = Math.min(Math.max(1, size), 20);
 
-        // Replies винаги се сортират по дата създаване (най-стари първи)
         Sort sortOrder = Sort.by(Sort.Direction.ASC, "createdAt");
         Pageable pageable = PageRequest.of(page, size, sortOrder);
 
         return commentsRepository.findRepliesByParentId(commentId, pageable);
     }
 
-    @Transactional
     @Override
-    public long countReplies(Long commentId) {
-        return commentsRepository.countRepliesByCommentId(commentId);
+    @Transactional
+    public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
+        CommentsEntity parentComment = commentsRepository.findById(parentCommentId)
+                .orElseThrow(() -> new IllegalArgumentException("Parent comment not found"));
+
+        CommentsEntity reply = new CommentsEntity();
+        reply.setText(text);
+        reply.setAuthor(author.getUsername());
+        reply.setAuthorImage(author.getImageUrl());
+        reply.setParent(parentComment);
+        reply.setCreatedAt(Instant.now());
+        reply.setLikeCount(0);
+        reply.setUnlikeCount(0);
+
+        // Set the same target entity as parent
+        if (parentComment.getPublication() != null) {
+            reply.setPublication(parentComment.getPublication());
+        } else if (parentComment.getEvent() != null) {
+            reply.setEvent(parentComment.getEvent());
+        } else if (parentComment.getReferendum() != null) {
+            reply.setReferendum(parentComment.getReferendum());
+        } else if (parentComment.getMultiPoll() != null) {
+            reply.setMultiPoll(parentComment.getMultiPoll());
+        }
+
+        return commentsRepository.save(reply);
     }
 
-    @Transactional
     @Override
-    public Page<CommentsEntity> getCommentsForTargetPaginated(Long targetId, EventType targetType, Pageable pageable) {
-        return switch (targetType) {
-            case PUBLICATION -> commentsRepository.findRootCommentsByPublicationId(targetId, pageable);
-            case REFERENDUM -> throw new UnsupportedOperationException("Pagination not implemented for REFERENDUM");
-            case SIMPLEEVENT -> throw new UnsupportedOperationException("Pagination not implemented for SIMPLEEVENT");
-            case MULTI_POLL -> throw new UnsupportedOperationException("Pagination not implemented for MULTI_POLL");
-            default -> Page.empty();
-        };
+    @Transactional
+    public Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reactionType) {
+        CommentsEntity comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+
+        Optional<CommentVoteEntity> existingVote = commentVoteRepository.findByCommentIdAndUsername(commentId, user.getUsername());
+
+        String userReaction = null;
+
+        if (existingVote.isPresent()) {
+            CommentVoteEntity vote = existingVote.get();
+            if (vote.getReaction().equals(reactionType)) {
+                // Remove vote if same reaction
+                commentVoteRepository.delete(vote);
+                userReaction = null;
+            } else {
+                // Change reaction
+                vote.setReaction(reactionType);
+                commentVoteRepository.save(vote);
+                userReaction = reactionType.name();
+            }
+        } else {
+            // Add new vote
+            CommentVoteEntity newVote = new CommentVoteEntity();
+            newVote.setComment(comment);
+            newVote.setUsername(user.getUsername());
+            newVote.setReaction(reactionType);
+            commentVoteRepository.save(newVote);
+            userReaction = reactionType.name();
+        }
+
+        // Update counters based on actual votes
+        updateCommentCounters(comment);
+        commentsRepository.save(comment);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("likeCount", comment.getLikeCount());
+        result.put("dislikeCount", comment.getUnlikeCount());
+        result.put("userReaction", userReaction);
+        result.put("message", userReaction != null ? "Реакцията е записана" : "Реакцията е премахната");
+
+        return result;
+    }
+
+    // ====== UTILITY METHODS ======
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean commentExists(Long commentId) {
+        return commentsRepository.existsById(commentId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommentsEntity getCommentById(Long commentId) {
+        return commentsRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canUserEditComment(Long commentId, UserEntity user) {
+        CommentsEntity comment = commentsRepository.findById(commentId).orElse(null);
+        return comment != null && canModifyComment(comment, user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canUserDeleteComment(Long commentId, UserEntity user) {
+        CommentsEntity comment = commentsRepository.findById(commentId).orElse(null);
+        return comment != null && canModifyComment(comment, user);
     }
 
     // ====== HELPER METHODS ======
@@ -312,27 +508,54 @@ public class CommentsServiceImpl implements CommentsService {
                 user.getRole().equals(UserRole.ADMIN);
     }
 
-    /**
-     * Създава Sort обект за коментари според избрания тип сортиране
-     */
     private Sort createSortForComments(String sortType) {
         return switch (sortType != null ? sortType.toLowerCase() : "newest") {
-            case "newest" -> Sort.by(Sort.Direction.DESC, "createdAt");
             case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt");
-            case "popular" -> {
-                // Сортиране по популярност - комбинация от likes и dislikes
-                yield Sort.by(Sort.Direction.DESC, "likeCount")
-                        .and(Sort.by(Sort.Direction.DESC, "unlikeCount"));
-            }
-            case "longest" -> {
-                // Сортиране по дължина на текста - най-дългите първи
-                yield Sort.by(Sort.Direction.DESC, "text");
-            }
+            case "newest" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
+            case "popular" -> Sort.by(Sort.Direction.DESC, "likeCount")
+                    .and(Sort.by(Sort.Direction.ASC, "unlikeCount"));
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
     }
 
-    // Recovery method за retry mechanism
+    private Pageable createPageable(int page, int size, String sort) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+
+        Sort sortBy = createSortForComments(sort);
+        return PageRequest.of(page, size, sortBy);
+    }
+
+    @Transactional(readOnly = true)
+    protected ReactionCountDto getReactionCountForComment(Long commentId, String username) {
+        CommentsEntity comment = commentsRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        String userReaction = username != null ? getUserReaction(commentId, username) : null;
+
+        return new ReactionCountDto(
+                comment.getLikeCount(),
+                comment.getUnlikeCount(),
+                userReaction
+        );
+    }
+
+    /**
+     * Update-ва counter-ите на коментар на база актуалните votes
+     */
+    @Transactional
+    protected void updateCommentCounters(CommentsEntity comment) {
+        long likeCount = commentVoteRepository.countByCommentIdAndReaction(comment.getId(), CommentReactionType.LIKE);
+        long dislikeCount = commentVoteRepository.countByCommentIdAndReaction(comment.getId(), CommentReactionType.DISLIKE);
+
+        comment.setLikeCount((int) likeCount);
+        comment.setUnlikeCount((int) dislikeCount);
+    }
+
+    /**
+     * Recovery method за retry mechanism
+     */
     @Recover
     public CommentsEntity recoverFromDeadlock(Exception e, Long commentId, String type, String username) {
         logger.error("Failed to apply comment reaction after retries: {}", e.getMessage(), e);
