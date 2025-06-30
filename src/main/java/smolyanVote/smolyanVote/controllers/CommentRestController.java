@@ -8,13 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.CommentsEntity;
-import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
-import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.commentsDTO.ErrorDto;
 
@@ -34,18 +31,11 @@ public class CommentRestController {
 
     private final CommentsService commentsService;
     private final UserService userService;
-    private final PublicationRepository publicationRepository;
-    private final PublicationService publicationService;
 
     @Autowired
-    public CommentRestController(CommentsService commentsService,
-                                 UserService userService,
-                                 PublicationRepository publicationRepository,
-                                 PublicationService publicationService) {
+    public CommentRestController(CommentsService commentsService, UserService userService) {
         this.commentsService = commentsService;
         this.userService = userService;
-        this.publicationRepository = publicationRepository;
-        this.publicationService = publicationService;
     }
 
     // ====== GET ENDPOINTS ======
@@ -128,45 +118,13 @@ public class CommentRestController {
     public ResponseEntity<?> postMainComment(
             @RequestParam Long targetId,
             @RequestParam String text,
-            @RequestParam(required = false) Long parentId,
             Authentication auth) {
 
         if (auth == null) {
             return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
         }
 
-        try {
-            UserEntity user = userService.getCurrentUser();
-            if (user == null) {
-                return ResponseEntity.status(401).body(createErrorResponse("Потребителят не е намерен"));
-            }
-
-            // Създаваме коментара
-            CommentsEntity comment = commentsService.addComment(
-                    targetId, user.getUsername(), text, parentId, EventType.PUBLICATION);
-
-            // ✅ ПОПРАВКА: Вземаме актуализираната публикация и връщаме новия брой коментари
-            PublicationEntity publication = publicationRepository.findById(targetId)
-                    .orElse(null);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Коментарът е добавен успешно");
-            response.put("comment", convertCommentToDto(comment));
-
-            // ✅ ВАЖНО: Връщаме актуализирания брой коментари
-            if (publication != null) {
-                response.put("newCommentsCount", publication.getCommentsCount());
-            }
-
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error creating comment: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на коментара"));
-        }
+        return handleCommentSubmission(targetId, text, null);
     }
 
     /**
@@ -189,38 +147,39 @@ public class CommentRestController {
     /**
      * Гласуване (like / dislike) върху коментар
      */
-    @PostMapping("/{commentId}/react")
+    @PostMapping("/{id}/reaction/{type}")
     public ResponseEntity<?> reactToComment(
-            @PathVariable Long commentId,
-            @RequestParam String type,
+            @PathVariable Long id,
+            @PathVariable String type,
             Authentication auth) {
 
         if (auth == null) {
             return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
         }
 
+        CommentReactionType reactionType;
         try {
-            UserEntity user = userService.getCurrentUser();
-            if (user == null) {
-                return ResponseEntity.status(401).body(createErrorResponse("Потребителят не е намерен"));
-            }
+            reactionType = CommentReactionType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid reaction type '{}' for comment {}", type, id);
+            return ResponseEntity.badRequest().body(createErrorResponse("Invalid reaction type: " + type));
+        }
 
-            // Използваме съществуващия метод commentReaction
-            CommentsEntity updatedComment = commentsService.commentReaction(commentId, type, user.getUsername());
-
-            // Получаваме user reaction
-            String userReaction = commentsService.getUserReaction(commentId, user.getUsername());
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            CommentsEntity updated = commentsService.commentReaction(id, reactionType.name(), currentUser.getUsername());
+            String userVote = commentsService.getUserReaction(id, currentUser.getUsername());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("userReaction", userReaction);
-            response.put("likesCount", updatedComment.getLikeCount());
-            response.put("dislikesCount", updatedComment.getUnlikeCount());
+            response.put("likesCount", updated.getLikeCount());
+            response.put("dislikesCount", updated.getUnlikeCount());
+            response.put("userReaction", userVote);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Error reacting to comment {}: {}", commentId, e.getMessage(), e);
+            logger.error("Error reacting to comment {} with type {}: {}", id, type, e.getMessage(), e);
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при реакцията"));
         }
     }
@@ -338,55 +297,6 @@ public class CommentRestController {
         } catch (Exception e) {
             logger.error("Unexpected error while submitting comment: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при добавянето на коментара"));
-        }
-    }
-
-// ====== STATS ENDPOINT (БЕЗ УВЕЛИЧАВАНЕ НА ПРЕГЛЕДИ) ======
-
-    @GetMapping(value = "/api/{id}/stats", produces = "application/json")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> getPublicationStats(
-            @PathVariable Long id,
-            Authentication auth) {
-
-        try {
-            PublicationEntity publication = publicationService.findById(id);
-            if (publication == null) {
-                return ResponseEntity.status(404).body(createErrorResponse("Публикацията не е намерена"));
-            }
-
-            // Check viewing permissions
-            if (!publicationService.canViewPublication(publication, auth)) {
-                return ResponseEntity.status(403).body(createErrorResponse("Нямате права за гледане на тази публикация"));
-            }
-
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("id", publication.getId());
-            stats.put("viewsCount", publication.getViewsCount());
-            stats.put("likesCount", publication.getLikesCount());
-            stats.put("dislikesCount", publication.getDislikesCount());
-            stats.put("commentsCount", publication.getCommentsCount());
-            stats.put("sharesCount", publication.getSharesCount());
-
-            // Add user interaction flags if authenticated
-            if (auth != null && auth.isAuthenticated()) {
-                try {
-                    UserEntity currentUser = userService.getCurrentUser();
-                    if (currentUser != null) {
-                        String username = currentUser.getUsername();
-                        stats.put("isLiked", publication.isLikedBy(username));
-                        stats.put("isDisliked", publication.isDislikedBy(username));
-                        stats.put("isBookmarked", publication.isBookmarkedBy(username));
-                    }
-                } catch (Exception e) {
-                    // Ignore user interaction errors
-                }
-            }
-
-            return ResponseEntity.ok(stats);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на статистиките"));
         }
     }
 
