@@ -15,6 +15,7 @@ public class CommentsEntity {
     private Long id;
 
     private String author;
+    @Column(length = 1000)
     private String authorImage;
 
     @Column(length = 2000)
