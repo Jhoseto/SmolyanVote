@@ -88,7 +88,7 @@
                 </div>
 
                 <!-- Comments -->
-                <div th:replace="~{fragments/comments :: comments(${eventDetail.id}, ${comments}, ${currentUser})}"></div>
+                <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
 
             </div>
 
@@ -275,7 +275,8 @@
 
 
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
-<script type="module" src="/js/comments/main.js"></script>
 <script src="/js/simpleEventDetail.js"></script>
+<script type="module" src="/js/commentsManager.js"></script>
+
 </body>
 </html>

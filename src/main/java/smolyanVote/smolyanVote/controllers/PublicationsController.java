@@ -128,9 +128,11 @@ public class PublicationsController {
                     search, category, status, time, author, pageable, auth
             );
 
+
             Map<String, Object> response = new HashMap<>();
             response.put("publications", publicationsPage.getContent());
             response.put("totalElements", publicationsPage.getTotalElements());
+
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
