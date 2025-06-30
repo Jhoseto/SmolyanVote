@@ -1,9 +1,10 @@
 // ====== COMMENTS MANAGER JS С API ИНТЕГРАЦИЯ ======
-// Файл: src/main/resources/static/js/publications/commentsManager.js
+// Файл: src/main/resources/static/js/commentsManager.js
 
 class CommentsManager {
     constructor(entityType = 'publication', entityId = null) {
         this.entityType = entityType;
+        this.entityId = entityId;
         this.currentPostId = null;
         this.comments = new Map();
         this.replies = new Map();
@@ -17,9 +18,9 @@ class CommentsManager {
         this.likedReplies = new Set();
         this.dislikedReplies = new Set();
         this.currentSort = 'newest';
-        this.totalComments = 0;
-        this.repliesPages = new Map();
-        this.repliesHasMore = new Map();
+        this.totalComments = 0; // Добавен за правилно броене
+        this.repliesPages = new Map(); // Track current page for each comment's replies
+        this.repliesHasMore = new Map(); // Track if more replies available
 
         this.init();
     }
@@ -179,7 +180,7 @@ class CommentsManager {
 
     async fetchComments(postId, page) {
         try {
-            const url = `/api/comments/${this.entityType}/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;  // ← ПРОМЕНЕНА ЛИНИЯ
+            const url = `/api/comments/${this.entityType}/${postId}?page=${page}&size=${this.commentsPerPage}&sort=${this.currentSort}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -823,7 +824,7 @@ class CommentsManager {
             }
         }
 
-          // Show/hide menu based on permissions
+        // Show/hide menu based on permissions
         const menuBtn = replyElement.querySelector('.reply-menu-btn');
         if (menuBtn) {
             menuBtn.style.display = reply.canEdit ? 'flex' : 'none';
@@ -1193,7 +1194,7 @@ class CommentsManager {
 
     async reactToComment(commentId, type) {
         try {
-            const response = await fetch(`/api/comments/${commentId}/reaction/${type}`, {
+            const response = await fetch(`/api/comments/${commentId}/vote/${type}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1374,17 +1375,15 @@ class CommentsManager {
 
     async createReply(postId, commentId, text) {
         try {
-            const response = await fetch('/api/comments/reply', {
+            const response = await fetch(`/api/comments/${commentId}/reply`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     [window.appData.csrfHeader]: window.appData.csrfToken
                 },
-                body: new URLSearchParams({
-                    targetId: postId,
-                    text: text,
-                    parentId: commentId
+                body: JSON.stringify({
+                    text: text
                 })
             });
 
@@ -1580,18 +1579,16 @@ class CommentsManager {
 
     // ====== API METHODS ======
 
-    async createComment(targetId, text) {
+    async createComment(postId, text) {
         try {
-            const response = await fetch('/api/comments', {
+            const response = await fetch(`/api/comments/${this.entityType}/${postId}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     [window.appData.csrfHeader]: window.appData.csrfToken
                 },
-                body: new URLSearchParams({
-                    targetId: targetId,
-                    targetType: this.entityType,  // ← ПРОМЕНЕНА ЛИНИЯ
+                body: JSON.stringify({
                     text: text
                 })
             });
@@ -1741,8 +1738,6 @@ class CommentsManager {
         const errorDiv = document.getElementById('commentsError');
         if (errorDiv) errorDiv.style.display = 'none';
     }
-
-    // ====== EMOJI FUNCTIONALITY ======
 
     // ====== EMOJI FUNCTIONALITY ======
 
@@ -2019,15 +2014,24 @@ if (!document.querySelector('#comments-animations')) {
     document.head.appendChild(style);
 }
 
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        // Publications все още се инициализира автоматично за backward compatibility
-        if (window.location.pathname.includes('/publications')) {
-            window.commentsManager = new CommentsManager('publication');
-        }
-        // За другите страници ще се инициализира мануално
-    } catch (error) {
-        console.error('Failed to initialize CommentsManager:', error);
+// ====== GLOBAL FUNCTIONS FOR MANUAL INITIALIZATION ======
+window.initCommentsManager = function(entityType, entityId) {
+    if (window.commentsManager) {
+        window.commentsManager.cleanup();
     }
-});
+
+    window.commentsManager = new CommentsManager(entityType, entityId);
+
+    if (entityId) {
+        window.commentsManager.loadComments(entityId);
+    }
+
+    return window.commentsManager;
+};
+
+// ====== GLOBAL EMOJI FUNCTIONS ======
+window.insertCommentEmoji = function(emoji) {
+    if (window.commentsManager) {
+        window.commentsManager.insertEmoji(emoji);
+    }
+};
