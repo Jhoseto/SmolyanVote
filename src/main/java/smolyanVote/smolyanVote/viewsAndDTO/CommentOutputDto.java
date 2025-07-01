@@ -1,6 +1,11 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
-public class CommentDto {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * DTO за изходящи данни на коментари
+ */
+public class CommentOutputDto {
     private Long id;
     private String text;
     private Long createdAt;
@@ -16,14 +21,16 @@ public class CommentDto {
     private Long entityId;
     private boolean edited;
 
-    // Празен конструктор за JSON десериализация
-    public CommentDto() {
+    @JsonProperty("userReaction")
+    private String userReaction; // "LIKE", "DISLIKE", "NONE"
+
+    // Конструктори
+    public CommentOutputDto() {
     }
 
-    // Конструктор за ръчно създаване (например при добавяне/редактиране)
-    public CommentDto(Long id, String text, Long createdAt, Long updatedAt, String authorUsername,
-                      String authorImageUrl, boolean isOnline, int likeCount, int dislikeCount,
-                      int repliesCount, Long parentId, String entityType, Long entityId, boolean edited) {
+    public CommentOutputDto(Long id, String text, Long createdAt, Long updatedAt, String authorUsername,
+                            String authorImageUrl, boolean isOnline, int likeCount, int dislikeCount,
+                            int repliesCount, Long parentId, String entityType, Long entityId, boolean edited) {
         this.id = id;
         this.text = text;
         this.createdAt = createdAt;
@@ -38,35 +45,75 @@ public class CommentDto {
         this.entityType = entityType;
         this.entityId = entityId;
         this.edited = edited;
+        this.userReaction = "NONE";
     }
 
-    // Гетъри и сетъри
+    public CommentOutputDto(Long id, String text, Long createdAt, Long updatedAt, String authorUsername,
+                            String authorImageUrl, boolean isOnline, int likeCount, int dislikeCount,
+                            int repliesCount, Long parentId, String entityType, Long entityId, boolean edited,
+                            String userReaction) {
+        this.id = id;
+        this.text = text;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.authorUsername = authorUsername;
+        this.authorImageUrl = authorImageUrl;
+        this.isOnline = isOnline;
+        this.likeCount = likeCount;
+        this.dislikeCount = dislikeCount;
+        this.repliesCount = repliesCount;
+        this.parentId = parentId;
+        this.entityType = entityType;
+        this.entityId = entityId;
+        this.edited = edited;
+        this.userReaction = userReaction != null ? userReaction : "NONE";
+    }
+
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }
+
     public Long getCreatedAt() { return createdAt; }
     public void setCreatedAt(Long createdAt) { this.createdAt = createdAt; }
+
     public Long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Long updatedAt) { this.updatedAt = updatedAt; }
+
     public String getAuthorUsername() { return authorUsername; }
     public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
+
     public String getAuthorImageUrl() { return authorImageUrl; }
     public void setAuthorImageUrl(String authorImageUrl) { this.authorImageUrl = authorImageUrl; }
+
     public boolean isOnline() { return isOnline; }
-    public void setOnline(boolean online) { this.isOnline = isOnline; }
+    public void setOnline(boolean online) { isOnline = online; }
+
     public int getLikeCount() { return likeCount; }
     public void setLikeCount(int likeCount) { this.likeCount = likeCount; }
+
     public int getDislikeCount() { return dislikeCount; }
     public void setDislikeCount(int dislikeCount) { this.dislikeCount = dislikeCount; }
+
     public int getRepliesCount() { return repliesCount; }
     public void setRepliesCount(int repliesCount) { this.repliesCount = repliesCount; }
+
     public Long getParentId() { return parentId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
+
     public String getEntityType() { return entityType; }
     public void setEntityType(String entityType) { this.entityType = entityType; }
+
     public Long getEntityId() { return entityId; }
     public void setEntityId(Long entityId) { this.entityId = entityId; }
+
     public boolean isEdited() { return edited; }
     public void setEdited(boolean edited) { this.edited = edited; }
+
+    public String getUserReaction() { return userReaction; }
+    public void setUserReaction(String userReaction) {
+        this.userReaction = userReaction != null ? userReaction : "NONE";
+    }
 }

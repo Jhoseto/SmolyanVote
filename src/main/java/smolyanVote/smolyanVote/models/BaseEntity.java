@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+
 import java.time.Instant;
 
 @Getter
