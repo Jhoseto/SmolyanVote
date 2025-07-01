@@ -109,9 +109,7 @@ public interface CommentsService {
 
     // ====== UTILITY МЕТОДИ ======
 
-    /**
-     * Проверява дали коментар съществува
-     */
+
     boolean commentExists(Long commentId);
 
     /**
@@ -124,8 +122,6 @@ public interface CommentsService {
      */
     boolean canUserEditComment(Long commentId, UserEntity user);
 
-    /**
-     * Проверява дали потребител може да изтрие коментар
-     */
+
     boolean canUserDeleteComment(Long commentId, UserEntity user);
 }

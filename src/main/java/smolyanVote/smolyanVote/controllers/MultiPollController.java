@@ -101,13 +101,10 @@ public class MultiPollController {
             MultiPollDetailViewDTO multiPollDetail = multiPollService.getMultiPollDetail(id);
             UserEntity currentUser = userService.getCurrentUser();
 
-            // Коментари и реакции
-            List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.MULTI_POLL);
 
 
             model.addAttribute("multiPoll", multiPollDetail);
             model.addAttribute("currentUser", currentUser);
-            model.addAttribute("comments", comments);
             return "multiPollDetailView";
         } catch (IllegalArgumentException e) {
             return "error/404";

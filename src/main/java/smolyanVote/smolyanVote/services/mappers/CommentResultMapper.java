@@ -3,8 +3,9 @@ package smolyanVote.smolyanVote.services.mappers;
 import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
 
-import java.sql.Timestamp;
 import java.math.BigInteger;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 /**
  * Utility клас за mapping на резултати от native SQL заявки към CommentOutputDto
@@ -31,7 +32,7 @@ public class CommentResultMapper {
      * [12] entity_type (String)
      * [13] entity_id (BigInteger)
      */
-    public CommentOutputDto mapOptimizedQueryResult(Object[] row) {
+    public CommentOutputDto mapOptimizedQueryResult(Object[] row, String currentUsername) {
         if (row == null || row.length < 14) {
             throw new IllegalArgumentException("Invalid query result row");
         }
@@ -39,24 +40,25 @@ public class CommentResultMapper {
         try {
             Long id = convertToLong(row[0]);
             String text = (String) row[1];
-            Long createdAt = convertTimestampToEpochMilli((Timestamp) row[2]);
-            Long updatedAt = convertTimestampToEpochMilli((Timestamp) row[3]);
-            String authorUsername = (String) row[4];
-            String authorImageUrl = (String) row[5];
-            int likeCount = convertToInt(row[6]);
-            int dislikeCount = convertToInt(row[7]);
+            LocalDateTime createdAt = convertTimestampToLocalDateTime((Timestamp) row[2]);
+            LocalDateTime updatedAt = convertTimestampToLocalDateTime((Timestamp) row[3]);
+            String author = (String) row[4];
+            String authorImage = row[5] != null ? (String) row[5] : "/default-avatar.jpg";
+            int likesCount = convertToInt(row[6]);
+            int dislikesCount = convertToInt(row[7]);
             boolean edited = convertToBoolean(row[8]);
             Long parentId = convertToLong(row[9]);
             int repliesCount = convertToInt(row[10]);
-            String userReaction = (String) row[11];
+            String userReaction = normalizeUserReaction((String) row[11]);
             String entityType = (String) row[12];
             Long entityId = convertToLong(row[13]);
+            boolean canEdit = currentUsername != null && currentUsername.equals(author);
 
             return new CommentOutputDto(
-                    id, text, createdAt, updatedAt, authorUsername, authorImageUrl,
+                    id, text, createdAt, updatedAt, author, authorImage,
                     false, // isOnline - винаги false за сега
-                    likeCount, dislikeCount, repliesCount, parentId,
-                    entityType, entityId, edited, userReaction
+                    likesCount, dislikesCount, repliesCount, parentId,
+                    entityType, entityId, edited, canEdit, userReaction
             );
 
         } catch (Exception e) {
@@ -73,7 +75,7 @@ public class CommentResultMapper {
      * [10] replies_count (винаги 0), [11] user_reaction,
      * [12] parent_publication_id, [13] parent_event_id, [14] parent_referendum_id, [15] parent_multi_poll_id
      */
-    public CommentOutputDto mapRepliesQueryResult(Object[] row) {
+    public CommentOutputDto mapRepliesQueryResult(Object[] row, String currentUsername) {
         if (row == null || row.length < 16) {
             throw new IllegalArgumentException("Invalid replies query result row");
         }
@@ -81,16 +83,17 @@ public class CommentResultMapper {
         try {
             Long id = convertToLong(row[0]);
             String text = (String) row[1];
-            Long createdAt = convertTimestampToEpochMilli((Timestamp) row[2]);
-            Long updatedAt = convertTimestampToEpochMilli((Timestamp) row[3]);
-            String authorUsername = (String) row[4];
-            String authorImageUrl = (String) row[5];
-            int likeCount = convertToInt(row[6]);
-            int dislikeCount = convertToInt(row[7]);
+            LocalDateTime createdAt = convertTimestampToLocalDateTime((Timestamp) row[2]);
+            LocalDateTime updatedAt = convertTimestampToLocalDateTime((Timestamp) row[3]);
+            String author = (String) row[4];
+            String authorImage = row[5] != null ? (String) row[5] : "/default-avatar.jpg";
+            int likesCount = convertToInt(row[6]);
+            int dislikesCount = convertToInt(row[7]);
             boolean edited = convertToBoolean(row[8]);
             Long parentId = convertToLong(row[9]);
             int repliesCount = 0; // Replies don't have replies
-            String userReaction = (String) row[11];
+            String userReaction = normalizeUserReaction((String) row[11]);
+            boolean canEdit = currentUsername != null && currentUsername.equals(author);
 
             // Determine entity type and ID from parent comment
             String entityType = null;
@@ -111,10 +114,10 @@ public class CommentResultMapper {
             }
 
             return new CommentOutputDto(
-                    id, text, createdAt, updatedAt, authorUsername, authorImageUrl,
+                    id, text, createdAt, updatedAt, author, authorImage,
                     false, // isOnline
-                    likeCount, dislikeCount, repliesCount, parentId,
-                    entityType, entityId, edited, userReaction
+                    likesCount, dislikesCount, repliesCount, parentId,
+                    entityType, entityId, edited, canEdit, userReaction
             );
 
         } catch (Exception e) {
@@ -150,18 +153,14 @@ public class CommentResultMapper {
         throw new IllegalArgumentException("Cannot convert " + value.getClass() + " to Boolean");
     }
 
-    private Long convertTimestampToEpochMilli(Timestamp timestamp) {
-        return timestamp != null ? timestamp.toInstant().toEpochMilli() : null;
+    private LocalDateTime convertTimestampToLocalDateTime(Timestamp timestamp) {
+        return timestamp != null ? timestamp.toLocalDateTime() : null;
     }
 
-    /**
-     * Валидира дали userReaction е валидна стойност
-     */
     private String normalizeUserReaction(String userReaction) {
         if (userReaction == null || userReaction.trim().isEmpty()) {
             return "NONE";
         }
-
         return switch (userReaction.toUpperCase()) {
             case "LIKE", "DISLIKE", "NONE" -> userReaction.toUpperCase();
             default -> "NONE";
