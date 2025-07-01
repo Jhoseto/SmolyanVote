@@ -71,17 +71,11 @@ public class CommentsServiceImpl implements CommentsService {
             case "publication":
                 return getOptimizedCommentsForPublication(entityId, page, size, sort, currentUsername);
             case "simpleEvent":
-                Pageable pageable = createPageable(page, size, sort);
-                Page<CommentsEntity> commentsPage = commentsRepository.findRootCommentsDtoByEventId(entityId, pageable);
-                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
+                return getOptimizedCommentsForEvent(entityId, page, size, sort, currentUsername);
             case "referendum":
-                pageable = createPageable(page, size, sort);
-                commentsPage = commentsRepository.findRootCommentsDtoByReferendumId(entityId, pageable);
-                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
+                return getOptimizedCommentsForReferendum(entityId, page, size, sort, currentUsername);
             case "multiPoll":
-                pageable = createPageable(page, size, sort);
-                commentsPage = commentsRepository.findRootCommentsDtoByMultiPollId(entityId, pageable);
-                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
+                return getOptimizedCommentsForMultiPoll(entityId, page, size, sort, currentUsername);
             default:
                 throw new IllegalArgumentException("Invalid entity type: " + entityType);
         }
@@ -95,6 +89,42 @@ public class CommentsServiceImpl implements CommentsService {
 
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForPublication(
                 publicationId, currentUsername, sort, pageable);
+
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CommentOutputDto> getOptimizedCommentsForEvent(Long eventId, int page, int size, String sort, String currentUsername) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForEvent(
+                eventId, currentUsername, sort, pageable);
+
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CommentOutputDto> getOptimizedCommentsForReferendum(Long referendumId, int page, int size, String sort, String currentUsername) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForReferendum(
+                referendumId, currentUsername, sort, pageable);
+
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CommentOutputDto> getOptimizedCommentsForMultiPoll(Long multiPollId, int page, int size, String sort, String currentUsername) {
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForMultiPoll(
+                multiPollId, currentUsername, sort, pageable);
 
         return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
     }
@@ -353,7 +383,8 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     public CommentOutputDto convertEntityToDto(CommentsEntity comment) {
-        return null;
+        String currentUsername = getCurrentUsername();
+        return convertEntityToDto(comment, currentUsername);
     }
 
     // ====== CONVERSION МЕТОДИ ======
@@ -364,13 +395,13 @@ public class CommentsServiceImpl implements CommentsService {
         Long entityId = determineEntityId(comment);
         long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
         boolean canEdit = currentUsername != null && (currentUsername.equals(comment.getAuthor()) ||
-                userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
+                                                      userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
 
         return new CommentOutputDto(
                 comment.getId(),
                 comment.getText(),
-                comment.getCreated() != null ? comment.getCreated().atZone(ZoneId.from(LocalDateTime.now())).toLocalDateTime() : null,
-                comment.getModified() != null ? comment.getModified().atZone(ZoneId.from(LocalDateTime.now())).toLocalDateTime() : null,
+                comment.getCreated() != null ? LocalDateTime.ofInstant(comment.getCreated(), ZoneId.systemDefault()) : null,
+                comment.getModified() != null ? LocalDateTime.ofInstant(comment.getModified(), ZoneId.systemDefault()) : null,
                 comment.getAuthor(),
                 comment.getAuthorImage() != null ? comment.getAuthorImage() : "/default-avatar.jpg",
                 false, // isOnline временно е false
@@ -416,14 +447,14 @@ public class CommentsServiceImpl implements CommentsService {
 
     private boolean canModifyComment(@NotNull CommentsEntity comment, @NotNull UserEntity user) {
         return comment.getAuthor().equals(user.getUsername()) ||
-                user.getRole().equals(UserRole.ADMIN);
+               user.getRole().equals(UserRole.ADMIN);
     }
 
     private Sort createSortForComments(String sortType) {
         return switch (sortType != null ? sortType.toLowerCase() : "newest") {
             case "oldest" -> Sort.by(Sort.Direction.ASC, "created");
             case "newest" -> Sort.by(Sort.Direction.DESC, "created");
-            case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
+            case "likes" -> Sort.by(Sort.Direction.DESC, "text");  // Сортиране по дължина ще се прави в SQL
             case "popular" -> Sort.by(Sort.Direction.DESC, "likeCount")
                     .and(Sort.by(Sort.Direction.ASC, "unlikeCount"));
             default -> Sort.by(Sort.Direction.DESC, "created");

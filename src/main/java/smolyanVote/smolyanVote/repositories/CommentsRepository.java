@@ -51,7 +51,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
         ORDER BY 
             CASE WHEN :sort = 'newest' THEN c.created END DESC,
             CASE WHEN :sort = 'oldest' THEN c.created END ASC,
-            CASE WHEN :sort = 'likes' THEN c.like_count END DESC,
+            CASE WHEN :sort = 'likes' THEN LENGTH(c.text) END DESC,
             CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlike_count) END DESC
         """,
             countQuery = """
@@ -150,7 +150,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
         ORDER BY 
             CASE WHEN :sort = 'newest' THEN c.created END DESC,
             CASE WHEN :sort = 'oldest' THEN c.created END ASC,
-            CASE WHEN :sort = 'likes' THEN c.like_count END DESC,
+            CASE WHEN :sort = 'likes' THEN LENGTH(c.text) END DESC,
             CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlike_count) END DESC
         """,
             countQuery = "SELECT COUNT(*) FROM comments_entity c WHERE c.event_id = :eventId AND c.parent_id IS NULL",
@@ -182,7 +182,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
         ORDER BY 
             CASE WHEN :sort = 'newest' THEN c.created END DESC,
             CASE WHEN :sort = 'oldest' THEN c.created END ASC,
-            CASE WHEN :sort = 'likes' THEN c.like_count END DESC,
+            CASE WHEN :sort = 'likes' THEN LENGTH(c.text) END DESC,
             CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlike_count) END DESC
         """,
             countQuery = "SELECT COUNT(*) FROM comments_entity c WHERE c.referendum_id = :referendumId AND c.parent_id IS NULL",
@@ -214,8 +214,8 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
         ORDER BY 
             CASE WHEN :sort = 'newest' THEN c.created END DESC,
             CASE WHEN :sort = 'oldest' THEN c.created END ASC,
-            CASE WHEN :sort = 'likes' THEN c.like_count END DESC,
-            CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlikely_count) END DESC
+            CASE WHEN :sort = 'likes' THEN LENGTH(c.text) END DESC,
+            CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlike_count) END DESC
         """,
             countQuery = "SELECT COUNT(*) FROM comments_entity c WHERE c.multi_poll_id = :multiPollId AND c.parent_id IS NULL",
             nativeQuery = true)
