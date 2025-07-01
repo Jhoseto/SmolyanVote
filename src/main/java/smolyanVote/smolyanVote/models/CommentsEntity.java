@@ -3,16 +3,12 @@ package smolyanVote.smolyanVote.models;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 public class CommentsEntity extends BaseEntity{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     private String author;
     @Column(length = 1000)
@@ -58,16 +54,6 @@ public class CommentsEntity extends BaseEntity{
     private int unlikeCount;
 
 
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getAuthor() {
         return author;
     }
@@ -92,9 +78,21 @@ public class CommentsEntity extends BaseEntity{
         this.text = text;
     }
 
-    public boolean isEdited() {return edited;}
+    public List<CommentVoteEntity> getVotes() {
+        return votes;
+    }
 
-    public void setEdited(boolean edited) {this.edited = edited;}
+    public void setVotes(List<CommentVoteEntity> votes) {
+        this.votes = votes;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
+    }
 
     public SimpleEventEntity getEvent() {
         return event;
@@ -104,13 +102,13 @@ public class CommentsEntity extends BaseEntity{
         this.event = event;
     }
 
-    public ReferendumEntity getReferendum() {return referendum;}
+    public ReferendumEntity getReferendum() {
+        return referendum;
+    }
 
-    public void setReferendum(ReferendumEntity referendum) {this.referendum = referendum;}
-
-    public List<CommentVoteEntity> getVotes() {return votes;}
-
-    public void setVotes(List<CommentVoteEntity> votes) {this.votes = votes;}
+    public void setReferendum(ReferendumEntity referendum) {
+        this.referendum = referendum;
+    }
 
     public MultiPollEntity getMultiPoll() {
         return multiPoll;
