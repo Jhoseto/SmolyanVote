@@ -32,14 +32,6 @@ public enum CategoryEnum {
         return icon;
     }
 
-    public static CategoryEnum fromValue(String value) {
-        for (CategoryEnum category : values()) {
-            if (category.value.equals(value)) {
-                return category;
-            }
-        }
-        return OTHER; // Default fallback
-    }
 
     @Override
     public String toString() {
