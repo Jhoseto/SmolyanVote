@@ -274,7 +274,7 @@ class PublicationsManager {
                 </div>
             </div>
             <div class="stats-right">
-                <div class="view-item">
+                <div class="stats-item">
                     <i class="bi bi-eye-fill stats-icon"></i>
                     <span class="stats-count view-stats-count">${post.commentsCount || 0}</span>
                 </div>

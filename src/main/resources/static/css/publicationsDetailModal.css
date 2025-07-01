@@ -4,12 +4,12 @@
 /* ====== CSS VARIABLES ====== */
 :root {
     /* Modal colors - Facebook inspired */
-    --modal-bg: #ffffff;
+    --modal-bg: rgba(255, 255, 255, 0.77);
     --modal-overlay-bg: rgba(0, 0, 0, 0.3);
     --modal-border: #dadde1;
     --modal-text: #1c1e21;
     --modal-text-secondary: #65676b;
-    --modal-hover: #f0f2f5;
+    --modal-hover: rgba(240, 242, 245, 0);
     --modal-active: #e4e6ea;
 
     /* SmolyanVote colors */
@@ -85,9 +85,9 @@
 /* ====== MODAL HEADER ====== */
 .modal-header {
     display: flex;
-    justify-content: end;
+    justify-content: right !important;
     align-items: center;
-    padding: 20px;
+    padding-right: 1.0rem !important;
     height: var(--modal-header-height);
     border-bottom: 1px solid var(--modal-border);
     background: var(--modal-bg);
@@ -152,6 +152,7 @@
     overflow: hidden;
     cursor: pointer;
     position: relative;
+    padding-left: 0.4rem;
 }
 
 .modal-post-image {
@@ -640,12 +641,14 @@
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
 }
 
 .comments-header h3 i {
     color: var(--primary-color);
     font-size: 16px;
+    margin-right: 0.3rem;
+    margin-left: 0.3rem;
 }
 
 .comments-sort select {

@@ -253,7 +253,7 @@
 
 .filter-option .count {
     font-size: 14px;
-    background: var(--fb-border);
+    background: rgba(255, 255, 255, 0);
     color: var(--fb-text-secondary);
     padding: 2px 8px;
     border-radius: 12px;
@@ -263,7 +263,7 @@
 }
 
 .filter-option.active .count {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0);
     color: var(--fb-white);
 }
 
@@ -714,8 +714,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 120px;
+    gap: 3.88rem;
     padding-left: 20px;
+    margin-right: 0.6rem;
 }
 
 .stats-item {

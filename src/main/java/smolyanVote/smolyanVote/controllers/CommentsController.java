@@ -124,7 +124,7 @@ public class CommentsController {
             response.put("message", "Коментарът е добавен успешно");
             logger.info("Successfully added comment with id: {} for entityType: {}, entityId: {}",
                     comment.getId(), entityType, entityId);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(201).body(response);
         } catch (Exception e) {
             logger.error("Error adding comment for entityType: {}, entityId: {}. Error: {}",
                     entityType, entityId, e.getMessage(), e);
