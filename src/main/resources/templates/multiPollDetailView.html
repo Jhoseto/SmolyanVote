@@ -88,7 +88,7 @@
                 </div>
 
                 <!-- Comments -->
-                <div th:replace="~{fragments/comments :: comments(${multiPoll.id}, ${comments}, ${currentUser})}"></div>
+                <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
 
             </div>
 
@@ -261,7 +261,16 @@
 </div>
 
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
-<script type="module" src="/js/comments/main.js"></script>
 <script src="/js/multiPollDetail.js"></script>
+<script src="/js/commentsManager.js"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализиране на коментарите за multiPoll
+        if (window.initCommentsManager) {
+            const multiPollId = /*[[${multiPoll.id}]]*/ 0;
+            window.commentsManager = window.initCommentsManager('multiPoll', multiPollId);
+        }
+    });
+</script>
 </body>
 </html>
