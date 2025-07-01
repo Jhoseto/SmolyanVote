@@ -88,29 +88,26 @@
                 </div>
 
                 <!-- Comments -->
+                <div class="comments-header">
+                    <h3>
+                        <i class="bi bi-chat-dots"></i>
+                        Коментари (<span id="commentsHeaderCount">0</span>)
+                    </h3>
+                    <div class="comments-sort">
+                        <select id="commentsSortSelect">
+                            <option value="newest">Най-нови</option>
+                            <option value="oldest">Най-стари</option>
+                            <option value="popular">Най-популярни</option>
+                            <option value="likes">Най-изчерпателни</option>
+                        </select>
+                    </div>
+                </div>
                 <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
 
             </div>
 
             <!-- Right Column -->
             <div class="right-column">
-
-                <!-- Voting Results -->
-                <div class="voting-card">
-                    <h3 class="card-title">Резултати</h3>
-
-                    <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-result">
-                        <div class="vote-label">
-                            <span th:text="${opt}">Опция</span>
-                            <span class="vote-count" th:text="${referendumDetail.votes[iterStat.index]} + ' гласа'">0 гласа</span>
-                        </div>
-                        <div class="vote-bar">
-                            <div class="bar bar-option" th:style="'width:' + ${referendumDetail.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
-                                <span class="bar-percent" th:text="${referendumDetail.votePercentages[iterStat.index]} + '%'">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Voting Actions -->
                 <div class="voting-actions-card">
@@ -142,14 +139,6 @@
                     </div>
                 </div>
 
-                <!-- Messages -->
-                <div th:if="${successMessage}" class="message-card message-success">
-                    <span th:text="${successMessage}">Успешно съобщение</span>
-                </div>
-                <div th:if="${errorMessage}" class="message-card message-error">
-                    <span th:text="${errorMessage}">Съобщение за грешка</span>
-                </div>
-
                 <!-- Navigation -->
                 <div class="navigation-card">
                     <a href="/mainEvents" class="back-btn">
@@ -160,6 +149,31 @@
                         Към събитията
                     </a>
                 </div>
+                <!-- Voting Results -->
+                <div class="voting-card">
+                    <h3 class="card-title">Резултати</h3>
+
+                    <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-result">
+                        <div class="vote-label">
+                            <span th:text="${opt}">Опция</span>
+                            <span class="vote-count" th:text="${referendumDetail.votes[iterStat.index]} + ' гласа'">0 гласа</span>
+                        </div>
+                        <div class="vote-bar">
+                            <div class="bar bar-option" th:style="'width:' + ${referendumDetail.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
+                                <span class="bar-percent" th:text="${referendumDetail.votePercentages[iterStat.index]} + '%'">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div th:if="${successMessage}" class="message-card message-success">
+                    <span th:text="${successMessage}">Успешно съобщение</span>
+                </div>
+                <div th:if="${errorMessage}" class="message-card message-error">
+                    <span th:text="${errorMessage}">Съобщение за грешка</span>
+                </div>
+
 
             </div>
         </div>

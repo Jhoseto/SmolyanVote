@@ -88,6 +88,20 @@
                 </div>
 
                 <!-- Comments -->
+                <div class="comments-header">
+                    <h3>
+                        <i class="bi bi-chat-dots"></i>
+                        Коментари (<span id="commentsHeaderCount">0</span>)
+                    </h3>
+                    <div class="comments-sort">
+                        <select id="commentsSortSelect">
+                            <option value="newest">Най-нови</option>
+                            <option value="oldest">Най-стари</option>
+                            <option value="popular">Най-популярни</option>
+                            <option value="likes">Най-изчерпателни</option>
+                        </select>
+                    </div>
+                </div>
                 <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
 
             </div>

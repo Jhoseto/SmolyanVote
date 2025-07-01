@@ -79,10 +79,9 @@ public class MainEventsController {
                 eventTypeEnum = switch (type.toLowerCase()) {
                     case "event" -> EventType.SIMPLEEVENT;
                     case "referendum" -> EventType.REFERENDUM;
-                    case "poll" -> EventType.POLL;
+                    case "poll" -> EventType.MULTI_POLL;
                     default -> null;
                 };
-                logger.info("Converting type '{}' to EventType enum '{}'", type, eventTypeEnum);
             } catch (Exception e) {
                 logger.warn("Error converting type '{}' to enum: {}", type, e.getMessage());
                 type = null;
