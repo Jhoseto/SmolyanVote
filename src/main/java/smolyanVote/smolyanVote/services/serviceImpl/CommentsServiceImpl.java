@@ -64,8 +64,6 @@ public class CommentsServiceImpl implements CommentsService {
     @Transactional(readOnly = true)
     public Page<CommentOutputDto> getCommentsForEntity(String entityType, Long entityId, int page, int size, String sort) {
         String currentUsername = getCurrentUsername();
-        logger.info("Fetching comments for entityType: {}, entityId: {}, page: {}, size: {}, sort: {}, user: {}",
-                entityType, entityId, page, size, sort, currentUsername);
 
         switch (entityType) {
             case "publication":

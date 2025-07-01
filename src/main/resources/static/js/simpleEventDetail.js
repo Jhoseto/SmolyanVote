@@ -80,24 +80,65 @@ function initializeGalleryModal() {
         }
     });
 
+    // Touch/swipe support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    modal.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    modal.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                navigateImage(1); // Swipe left - next image
+            } else {
+                navigateImage(-1); // Swipe right - previous image
+            }
+        }
+    }
+
     function openModal(index) {
         currentImageIndex = index;
         isModalOpen = true;
-        modal.style.display = 'flex';
-        modal.classList.add('active');
+
+        // Show modal
+        modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
+
+        // Trigger animations
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+            setTimeout(() => {
+                modal.classList.add('show-hint');
+            }, 1000);
+        });
+
         updateModalImage();
+        updateNavigationButtons();
     }
 
     function closeModal() {
         isModalOpen = false;
-        modal.classList.remove('active');
-        modal.style.display = 'none';
+        modal.classList.remove('active', 'show-hint');
         document.body.style.overflow = '';
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 400);
     }
 
     function navigateImage(direction) {
         const newIndex = currentImageIndex + direction;
+
         if (newIndex >= 0 && newIndex < galleryImages.length) {
             currentImageIndex = newIndex;
             updateModalImage();
@@ -189,85 +230,101 @@ function initializeVotingForm() {
             if (selectedVote === '1') {
                 selectedOptionText.style.background = 'linear-gradient(135deg, var(--success-green), var(--accent-green))';
             } else if (selectedVote === '2') {
-                selectedOptionText.style.background = 'linear-gradient(135deg, var(--error-red), #c0392b)';
-            } else {
-                selectedOptionText.style.background = 'linear-gradient(135deg, var(--neutral-gray), #475569)';
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--error-red), #ef4444)';
+            } else if (selectedVote === '3') {
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--neutral-gray), #6b7280)';
             }
         }
 
-        // Update selected vote text in modal
-        const selectedVoteModalText = document.getElementById('selectedVoteText');
-        if (selectedVoteModalText) {
-            selectedVoteModalText.textContent = selectedVoteText;
-        }
-
-        // Show confirmation modal
-        const confirmModal = document.getElementById('voteConfirmModal');
-        if (confirmModal) {
-            confirmModal.style.display = 'flex';
-            confirmModal.classList.add('active');
+        // Show modal
+        const modal = document.getElementById('voteConfirmModal');
+        if (modal) {
+            modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
+
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+        }
+    }
+
+    function initializeVoteConfirmationModal() {
+        const modal = document.getElementById('voteConfirmModal');
+        const cancelBtn = document.getElementById('cancelVote');
+        const confirmBtn = document.getElementById('confirmVote');
+
+        if (!modal || !cancelBtn || !confirmBtn) return;
+
+        // Cancel vote
+        cancelBtn.addEventListener('click', () => {
+            closeVoteConfirmationModal();
+            selectedVote = null;
+            selectedVoteText = '';
+        });
+
+        // Confirm vote - submit form
+        confirmBtn.addEventListener('click', () => {
+            if (!selectedVote) return;
+
+            // Show loading state
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Гласуване...
+            `;
+
+            // Set the vote value and submit
+            const selectedVoteInput = document.getElementById('selectedVoteValue');
+            if (selectedVoteInput) {
+                selectedVoteInput.value = selectedVote;
+            }
+
+            // Submit the form after short delay
+            setTimeout(() => {
+                voteForm.submit();
+            }, 500);
+        });
+
+        // Close modal when clicking overlay
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+                closeVoteConfirmationModal();
+            }
+        });
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeVoteConfirmationModal();
+            }
+        });
+
+        function closeVoteConfirmationModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+
+            setTimeout(() => {
+                modal.style.display = 'none';
+                // Reset confirm button
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Потвърждавам гласа си
+                `;
+            }, 300);
         }
     }
 }
 
 /**
- * Vote Confirmation Modal
- */
-function initializeVoteConfirmationModal() {
-    const confirmModal = document.getElementById('voteConfirmModal');
-    const cancelBtn = document.getElementById('cancelVote');
-    const confirmBtn = document.getElementById('confirmVote');
-
-    if (!confirmModal) return;
-
-    // Cancel button
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', closeVoteModal);
-    }
-
-    // Confirm button
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', handleVoteSubmission);
-    }
-
-    // Close on backdrop click
-    confirmModal.addEventListener('click', (e) => {
-        if (e.target === confirmModal) {
-            closeVoteModal();
-        }
-    });
-
-    // Close on Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && confirmModal.classList.contains('active')) {
-            closeVoteModal();
-        }
-    });
-
-    function closeVoteModal() {
-        confirmModal.classList.remove('active');
-        document.body.style.overflow = '';
-        setTimeout(() => {
-            confirmModal.style.display = 'none';
-        }, 200);
-    }
-
-    function handleVoteSubmission() {
-        // Implementation would go here
-        console.log('Vote submitted');
-        closeVoteModal();
-    }
-}
-
-/**
- * Animation System
+ * Smooth Animations and Interactions
  */
 function initializeAnimations() {
-    // Smooth scroll behavior
-    document.documentElement.style.scrollBehavior = 'smooth';
-
-    // Add intersection observer for fade-in animations
+    // Animate cards on scroll
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -282,22 +339,110 @@ function initializeAnimations() {
         });
     }, observerOptions);
 
-    // Observe elements for animation
-    const animatedElements = document.querySelectorAll('.description-card, .gallery-card, .voting-card, .voting-actions-card');
-    animatedElements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
+    // Observe all cards
+    const cards = document.querySelectorAll('.description-card, .gallery-card, .voting-card, .voting-actions-card, .navigation-card');
+    cards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
     });
+
+    // Animate vote bars
+    animateVoteBars();
+
+    // Add enhanced hover effects
+    enhanceInteractiveElements();
 }
 
 /**
- * Utility Functions
+ * Animate voting result bars
  */
-function createRippleEffect(button, event) {
+function animateVoteBars() {
+    const voteBars = document.querySelectorAll('.bar');
+
+    // Reset bars to 0 width initially
+    voteBars.forEach(bar => {
+        const targetWidth = bar.style.width;
+        bar.style.width = '0%';
+        bar.dataset.targetWidth = targetWidth;
+    });
+
+    // Animate bars after a short delay
+    setTimeout(() => {
+        voteBars.forEach((bar, index) => {
+            setTimeout(() => {
+                bar.style.width = bar.dataset.targetWidth;
+            }, index * 200); // Stagger animation
+        });
+    }, 500);
+}
+
+/**
+ * Enhanced interactions for elements
+ */
+function enhanceInteractiveElements() {
+    // Enhanced gallery image hover
+    const galleryImages = document.querySelectorAll('.gallery-img');
+    galleryImages.forEach(img => {
+        img.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+            this.style.zIndex = '10';
+        });
+
+        img.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.zIndex = '';
+        });
+    });
+
+    // Creator avatar enhanced effect
+    const creatorLink = document.querySelector('.creator-link');
+    if (creatorLink) {
+        creatorLink.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(4px)';
+            const avatar = this.querySelector('.creator-avatar');
+            if (avatar) {
+                avatar.style.transform = 'scale(1.05) rotate(2deg)';
+            }
+        });
+
+        creatorLink.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0)';
+            const avatar = this.querySelector('.creator-avatar');
+            if (avatar) {
+                avatar.style.transform = 'scale(1) rotate(0deg)';
+            }
+        });
+    }
+
+    // Back button enhanced effect
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) {
+        backBtn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(-4px)';
+            const svg = this.querySelector('svg');
+            if (svg) {
+                svg.style.transform = 'translateX(-2px)';
+            }
+        });
+
+        backBtn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0)';
+            const svg = this.querySelector('svg');
+            if (svg) {
+                svg.style.transform = 'translateX(0)';
+            }
+        });
+    }
+}
+
+/**
+ * Create ripple effect for vote buttons
+ */
+function createRippleEffect(element, event) {
     const ripple = document.createElement('span');
-    const rect = button.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = event.clientX - rect.left - size / 2;
     const y = event.clientY - rect.top - size / 2;
@@ -313,12 +458,13 @@ function createRippleEffect(button, event) {
         transform: scale(0);
         animation: ripple 0.6s linear;
         pointer-events: none;
+        z-index: 1;
     `;
 
-    // Add ripple animation CSS if not already added
-    if (!document.querySelector('#ripple-animation')) {
+    // Add ripple keyframe if not exists
+    if (!document.querySelector('#ripple-styles')) {
         const style = document.createElement('style');
-        style.id = 'ripple-animation';
+        style.id = 'ripple-styles';
         style.textContent = `
             @keyframes ripple {
                 to {
@@ -326,41 +472,56 @@ function createRippleEffect(button, event) {
                     opacity: 0;
                 }
             }
+            .animate-spin {
+                animation: spin 1s linear infinite;
+            }
         `;
         document.head.appendChild(style);
     }
 
-    button.style.position = 'relative';
-    button.style.overflow = 'hidden';
-    button.appendChild(ripple);
+    element.style.position = 'relative';
+    element.style.overflow = 'hidden';
+    element.appendChild(ripple);
 
+    // Remove ripple after animation
     setTimeout(() => {
-        ripple.remove();
+        if (ripple.parentNode) {
+            ripple.parentNode.removeChild(ripple);
+        }
     }, 600);
 }
 
 /**
- * Debounce utility
+ * Utility Functions
  */
-function debounce(func, wait, immediate) {
+
+/**
+ * Debounce function to limit rapid function calls
+ */
+function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
-            timeout = null;
-            if (!immediate) func(...args);
+            clearTimeout(timeout);
+            func(...args);
         };
-        const callNow = immediate && !timeout;
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
-        if (callNow) func(...args);
     };
 }
 
 /**
- * Show notification utility
+ * Show notification to user
  */
-function showNotification(message, type = 'info', duration = 4000) {
+function showNotification(message, type = 'info', duration = 5000) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        notification.remove();
+    });
+
     const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -483,10 +644,25 @@ function initializeEnhancements() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         document.body.classList.add('reduced-motion');
     }
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (e) => {
+        // Close any open modals when navigating back
+        const openModals = document.querySelectorAll('.premium-modal.active, .vote-confirm-modal.active');
+        openModals.forEach(modal => {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        });
+        document.body.style.overflow = '';
+    });
 }
 
-// Initialize enhancements
-initializeEnhancements();
+// Initialize enhancements after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEnhancements);
+} else {
+    initializeEnhancements();
+}
 
 // Export functions for potential external use
 window.SimpleEventDetail = {

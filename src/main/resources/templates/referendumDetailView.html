@@ -254,7 +254,51 @@
         </div>
     </div>
 </div>
+<script th:inline="javascript">
+    // Authentication data for JavaScript
+    window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+    window.currentUserId = /*[[${currentUser?.id}]]*/ null;
+    window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
+    window.currentUserImage = /*[[${currentUser?.imageUrl ?: '/images/default-avatar.png'}]]*/ '/images/default-avatar.png';
+    window.isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;
 
+    // CSRF tokens and app data
+    window.appData = {
+        isAuthenticated: window.isAuthenticated,
+        currentUserId: window.currentUserId,
+        currentUsername: window.currentUsername,
+        currentUserImage: window.currentUserImage,
+        isAdmin: window.isAdmin,
+        csrfToken: /*[[${_csrf.token}]]*/ '',
+        csrfHeader: /*[[${_csrf.headerName}]]*/ ''
+    };
+
+    // Global function for login warning
+    window.showLoginWarning = function() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Моля, влезте в системата',
+                text: 'Трябва да сте влезли в профила си, за да коментирате.',
+                showCancelButton: true,
+                confirmButtonText: 'Вход',
+                cancelButtonText: 'Затвори',
+                confirmButtonColor: '#4b9f3e',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const modal = document.getElementById('loginModal');
+                    if (modal && typeof bootstrap !== 'undefined') {
+                        const bsModal = new bootstrap.Modal(modal);
+                        bsModal.show();
+                    }
+                }
+            });
+        } else {
+            alert('Моля, влезте в системата за да коментирате.');
+        }
+    };
+</script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="/js/referendumDetail.js"></script>
 <script src="/js/commentsManager.js"></script>
@@ -262,7 +306,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Инициализиране на коментарите за referendum
         if (window.initCommentsManager) {
-            const referendumId = /*[[${referendum.id}]]*/ 0;
+            const referendumId = /*[[${referendumDetail.id}]]*/ 0;
             window.commentsManager = window.initCommentsManager('referendum', referendumId);
         }
     });
