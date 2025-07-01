@@ -80,65 +80,24 @@ function initializeGalleryModal() {
         }
     });
 
-    // Touch/swipe support for mobile
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    modal.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    });
-
-    modal.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    });
-
-    function handleSwipe() {
-        const swipeThreshold = 50;
-        const diff = touchStartX - touchEndX;
-
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0) {
-                navigateImage(1); // Swipe left - next image
-            } else {
-                navigateImage(-1); // Swipe right - previous image
-            }
-        }
-    }
-
     function openModal(index) {
         currentImageIndex = index;
         isModalOpen = true;
-
-        // Show modal
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
-
-        // Trigger animations
-        requestAnimationFrame(() => {
-            modal.classList.add('active');
-            setTimeout(() => {
-                modal.classList.add('show-hint');
-            }, 1000);
-        });
-
         updateModalImage();
-        updateNavigationButtons();
     }
 
     function closeModal() {
         isModalOpen = false;
-        modal.classList.remove('active', 'show-hint');
+        modal.classList.remove('active');
+        modal.style.display = 'none';
         document.body.style.overflow = '';
-
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 400);
     }
 
     function navigateImage(direction) {
         const newIndex = currentImageIndex + direction;
-
         if (newIndex >= 0 && newIndex < galleryImages.length) {
             currentImageIndex = newIndex;
             updateModalImage();
@@ -230,101 +189,85 @@ function initializeVotingForm() {
             if (selectedVote === '1') {
                 selectedOptionText.style.background = 'linear-gradient(135deg, var(--success-green), var(--accent-green))';
             } else if (selectedVote === '2') {
-                selectedOptionText.style.background = 'linear-gradient(135deg, var(--error-red), #ef4444)';
-            } else if (selectedVote === '3') {
-                selectedOptionText.style.background = 'linear-gradient(135deg, var(--neutral-gray), #6b7280)';
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--error-red), #c0392b)';
+            } else {
+                selectedOptionText.style.background = 'linear-gradient(135deg, var(--neutral-gray), #475569)';
             }
         }
 
-        // Show modal
-        const modal = document.getElementById('voteConfirmModal');
-        if (modal) {
-            modal.style.display = 'block';
+        // Update selected vote text in modal
+        const selectedVoteModalText = document.getElementById('selectedVoteText');
+        if (selectedVoteModalText) {
+            selectedVoteModalText.textContent = selectedVoteText;
+        }
+
+        // Show confirmation modal
+        const confirmModal = document.getElementById('voteConfirmModal');
+        if (confirmModal) {
+            confirmModal.style.display = 'flex';
+            confirmModal.classList.add('active');
             document.body.style.overflow = 'hidden';
-
-            requestAnimationFrame(() => {
-                modal.classList.add('active');
-            });
-        }
-    }
-
-    function initializeVoteConfirmationModal() {
-        const modal = document.getElementById('voteConfirmModal');
-        const cancelBtn = document.getElementById('cancelVote');
-        const confirmBtn = document.getElementById('confirmVote');
-
-        if (!modal || !cancelBtn || !confirmBtn) return;
-
-        // Cancel vote
-        cancelBtn.addEventListener('click', () => {
-            closeVoteConfirmationModal();
-            selectedVote = null;
-            selectedVoteText = '';
-        });
-
-        // Confirm vote - submit form
-        confirmBtn.addEventListener('click', () => {
-            if (!selectedVote) return;
-
-            // Show loading state
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin">
-                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Гласуване...
-            `;
-
-            // Set the vote value and submit
-            const selectedVoteInput = document.getElementById('selectedVoteValue');
-            if (selectedVoteInput) {
-                selectedVoteInput.value = selectedVote;
-            }
-
-            // Submit the form after short delay
-            setTimeout(() => {
-                voteForm.submit();
-            }, 500);
-        });
-
-        // Close modal when clicking overlay
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('modal-overlay')) {
-                closeVoteConfirmationModal();
-            }
-        });
-
-        // Close modal with ESC key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeVoteConfirmationModal();
-            }
-        });
-
-        function closeVoteConfirmationModal() {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-
-            setTimeout(() => {
-                modal.style.display = 'none';
-                // Reset confirm button
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 13l4 4L19 7"/>
-                    </svg>
-                    Потвърждавам гласа си
-                `;
-            }, 300);
         }
     }
 }
 
 /**
- * Smooth Animations and Interactions
+ * Vote Confirmation Modal
+ */
+function initializeVoteConfirmationModal() {
+    const confirmModal = document.getElementById('voteConfirmModal');
+    const cancelBtn = document.getElementById('cancelVote');
+    const confirmBtn = document.getElementById('confirmVote');
+
+    if (!confirmModal) return;
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeVoteModal);
+    }
+
+    // Confirm button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', handleVoteSubmission);
+    }
+
+    // Close on backdrop click
+    confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal) {
+            closeVoteModal();
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && confirmModal.classList.contains('active')) {
+            closeVoteModal();
+        }
+    });
+
+    function closeVoteModal() {
+        confirmModal.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(() => {
+            confirmModal.style.display = 'none';
+        }, 200);
+    }
+
+    function handleVoteSubmission() {
+        // Implementation would go here
+        console.log('Vote submitted');
+        closeVoteModal();
+    }
+}
+
+/**
+ * Animation System
  */
 function initializeAnimations() {
-    // Animate cards on scroll
+    // Smooth scroll behavior
+    document.documentElement.style.scrollBehavior = 'smooth';
+
+    // Add intersection observer for fade-in animations
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -339,110 +282,22 @@ function initializeAnimations() {
         });
     }, observerOptions);
 
-    // Observe all cards
-    const cards = document.querySelectorAll('.description-card, .gallery-card, .voting-card, .voting-actions-card, .navigation-card');
-    cards.forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(card);
+    // Observe elements for animation
+    const animatedElements = document.querySelectorAll('.description-card, .gallery-card, .voting-card, .voting-actions-card');
+    animatedElements.forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
     });
-
-    // Animate vote bars
-    animateVoteBars();
-
-    // Add enhanced hover effects
-    enhanceInteractiveElements();
 }
 
 /**
- * Animate voting result bars
+ * Utility Functions
  */
-function animateVoteBars() {
-    const voteBars = document.querySelectorAll('.bar');
-
-    // Reset bars to 0 width initially
-    voteBars.forEach(bar => {
-        const targetWidth = bar.style.width;
-        bar.style.width = '0%';
-        bar.dataset.targetWidth = targetWidth;
-    });
-
-    // Animate bars after a short delay
-    setTimeout(() => {
-        voteBars.forEach((bar, index) => {
-            setTimeout(() => {
-                bar.style.width = bar.dataset.targetWidth;
-            }, index * 200); // Stagger animation
-        });
-    }, 500);
-}
-
-/**
- * Enhanced interactions for elements
- */
-function enhanceInteractiveElements() {
-    // Enhanced gallery image hover
-    const galleryImages = document.querySelectorAll('.gallery-img');
-    galleryImages.forEach(img => {
-        img.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-8px) scale(1.02)';
-            this.style.zIndex = '10';
-        });
-
-        img.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-            this.style.zIndex = '';
-        });
-    });
-
-    // Creator avatar enhanced effect
-    const creatorLink = document.querySelector('.creator-link');
-    if (creatorLink) {
-        creatorLink.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateX(4px)';
-            const avatar = this.querySelector('.creator-avatar');
-            if (avatar) {
-                avatar.style.transform = 'scale(1.05) rotate(2deg)';
-            }
-        });
-
-        creatorLink.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateX(0)';
-            const avatar = this.querySelector('.creator-avatar');
-            if (avatar) {
-                avatar.style.transform = 'scale(1) rotate(0deg)';
-            }
-        });
-    }
-
-    // Back button enhanced effect
-    const backBtn = document.querySelector('.back-btn');
-    if (backBtn) {
-        backBtn.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateX(-4px)';
-            const svg = this.querySelector('svg');
-            if (svg) {
-                svg.style.transform = 'translateX(-2px)';
-            }
-        });
-
-        backBtn.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateX(0)';
-            const svg = this.querySelector('svg');
-            if (svg) {
-                svg.style.transform = 'translateX(0)';
-            }
-        });
-    }
-}
-
-/**
- * Create ripple effect for vote buttons
- */
-function createRippleEffect(element, event) {
+function createRippleEffect(button, event) {
     const ripple = document.createElement('span');
-    const rect = element.getBoundingClientRect();
+    const rect = button.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = event.clientX - rect.left - size / 2;
     const y = event.clientY - rect.top - size / 2;
@@ -458,13 +313,12 @@ function createRippleEffect(element, event) {
         transform: scale(0);
         animation: ripple 0.6s linear;
         pointer-events: none;
-        z-index: 1;
     `;
 
-    // Add ripple keyframe if not exists
-    if (!document.querySelector('#ripple-styles')) {
+    // Add ripple animation CSS if not already added
+    if (!document.querySelector('#ripple-animation')) {
         const style = document.createElement('style');
-        style.id = 'ripple-styles';
+        style.id = 'ripple-animation';
         style.textContent = `
             @keyframes ripple {
                 to {
@@ -472,56 +326,41 @@ function createRippleEffect(element, event) {
                     opacity: 0;
                 }
             }
-            .animate-spin {
-                animation: spin 1s linear infinite;
-            }
         `;
         document.head.appendChild(style);
     }
 
-    element.style.position = 'relative';
-    element.style.overflow = 'hidden';
-    element.appendChild(ripple);
+    button.style.position = 'relative';
+    button.style.overflow = 'hidden';
+    button.appendChild(ripple);
 
-    // Remove ripple after animation
     setTimeout(() => {
-        if (ripple.parentNode) {
-            ripple.parentNode.removeChild(ripple);
-        }
+        ripple.remove();
     }, 600);
 }
 
 /**
- * Utility Functions
+ * Debounce utility
  */
-
-/**
- * Debounce function to limit rapid function calls
- */
-function debounce(func, wait) {
+function debounce(func, wait, immediate) {
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
-            clearTimeout(timeout);
-            func(...args);
+            timeout = null;
+            if (!immediate) func(...args);
         };
+        const callNow = immediate && !timeout;
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
+        if (callNow) func(...args);
     };
 }
 
 /**
- * Show notification to user
+ * Show notification utility
  */
-function showNotification(message, type = 'info', duration = 5000) {
-    // Remove existing notifications
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => {
-        notification.remove();
-    });
-
+function showNotification(message, type = 'info', duration = 4000) {
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -644,25 +483,10 @@ function initializeEnhancements() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         document.body.classList.add('reduced-motion');
     }
-
-    // Handle browser back/forward buttons
-    window.addEventListener('popstate', (e) => {
-        // Close any open modals when navigating back
-        const openModals = document.querySelectorAll('.premium-modal.active, .vote-confirm-modal.active');
-        openModals.forEach(modal => {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        });
-        document.body.style.overflow = '';
-    });
 }
 
-// Initialize enhancements after DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeEnhancements);
-} else {
-    initializeEnhancements();
-}
+// Initialize enhancements
+initializeEnhancements();
 
 // Export functions for potential external use
 window.SimpleEventDetail = {
