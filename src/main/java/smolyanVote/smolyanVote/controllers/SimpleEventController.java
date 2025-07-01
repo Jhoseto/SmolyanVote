@@ -49,13 +49,10 @@ public class SimpleEventController {
             SimpleEventDetailViewDTO pageData = simpleEventService.getSimpleEventDetails(id);
             UserEntity currentUser = userService.getCurrentUser();
 
-            // Коментари и реакции
-            List<CommentsEntity> comments = commentsService.getCommentsForTarget(id, EventType.SIMPLEEVENT);
 
             model.addAttribute("userVote", pageData.getCurrentUserVote());
             model.addAttribute("eventDetail", pageData);
             model.addAttribute("currentUser", currentUser);
-            model.addAttribute("comments", comments);
 
             return "simpleEventDetailView";
         } catch (IllegalArgumentException e) {

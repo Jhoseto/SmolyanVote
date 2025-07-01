@@ -20,8 +20,9 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.CommentResultMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
 
-
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -63,104 +64,56 @@ public class CommentsServiceImpl implements CommentsService {
     @Transactional(readOnly = true)
     public Page<CommentOutputDto> getCommentsForEntity(String entityType, Long entityId, int page, int size, String sort) {
         String currentUsername = getCurrentUsername();
+        logger.info("Fetching comments for entityType: {}, entityId: {}, page: {}, size: {}, sort: {}, user: {}",
+                entityType, entityId, page, size, sort, currentUsername);
 
         switch (entityType) {
             case "publication":
-                // 🚀 СУПЕР БЪРЗА native заявка за publications!
                 return getOptimizedCommentsForPublication(entityId, page, size, sort, currentUsername);
             case "simpleEvent":
-                // Legacy заявка (за сега)
                 Pageable pageable = createPageable(page, size, sort);
                 Page<CommentsEntity> commentsPage = commentsRepository.findRootCommentsDtoByEventId(entityId, pageable);
-                return commentsPage.map(this::convertEntityToDto);
+                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
             case "referendum":
-                // Legacy заявка (за сега)
                 pageable = createPageable(page, size, sort);
                 commentsPage = commentsRepository.findRootCommentsDtoByReferendumId(entityId, pageable);
-                return commentsPage.map(this::convertEntityToDto);
+                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
             case "multiPoll":
-                // Legacy заявка (за сега)
                 pageable = createPageable(page, size, sort);
                 commentsPage = commentsRepository.findRootCommentsDtoByMultiPollId(entityId, pageable);
-                return commentsPage.map(this::convertEntityToDto);
+                return commentsPage.map(comment -> convertEntityToDto(comment, currentUsername));
             default:
                 throw new IllegalArgumentException("Invalid entity type: " + entityType);
         }
     }
 
-    /**
-     * 🚀 СУПЕР БЪРЗА заявка за publication коментари
-     * Една заявка вместо N+1 заявки!
-     */
     @Transactional(readOnly = true)
     public Page<CommentOutputDto> getOptimizedCommentsForPublication(Long publicationId, int page, int size, String sort, String currentUsername) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
         Pageable pageable = PageRequest.of(page, size);
 
-        // Една супер бърза native заявка с всички данни!
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForPublication(
                 publicationId, currentUsername, sort, pageable);
 
-        // Мапваме резултатите към DTO-та
-        return rawResults.map(resultMapper::mapOptimizedQueryResult);
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
     }
-
-    // ====== БЪДЕЩИ ОПТИМИЗИРАНИ МЕТОДИ ======
-    // Тези методи ще се активират когато добавим native заявки за останалите entity типове
-
-    /*
-    @Transactional(readOnly = true)
-    public Page<CommentOutputDto> getOptimizedCommentsForEvent(Long eventId, int page, int size, String sort, String currentUsername) {
-        page = Math.max(0, page);
-        size = Math.min(Math.max(1, size), 50);
-        Pageable pageable = PageRequest.of(page, size);
-
-        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForEvent(
-            eventId, currentUsername, sort, pageable);
-
-        return rawResults.map(resultMapper::mapOptimizedQueryResult);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<CommentOutputDto> getOptimizedCommentsForReferendum(Long referendumId, int page, int size, String sort, String currentUsername) {
-        page = Math.max(0, page);
-        size = Math.min(Math.max(1, size), 50);
-        Pageable pageable = PageRequest.of(page, size);
-
-        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForReferendum(
-            referendumId, currentUsername, sort, pageable);
-
-        return rawResults.map(resultMapper::mapOptimizedQueryResult);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<CommentOutputDto> getOptimizedCommentsForMultiPoll(Long multiPollId, int page, int size, String sort, String currentUsername) {
-        page = Math.max(0, page);
-        size = Math.min(Math.max(1, size), 50);
-        Pageable pageable = PageRequest.of(page, size);
-
-        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForMultiPoll(
-            multiPollId, currentUsername, sort, pageable);
-
-        return rawResults.map(resultMapper::mapOptimizedQueryResult);
-    }
-    */
 
     @Override
     @Transactional(readOnly = true)
     public Page<CommentOutputDto> getRepliesForComment(Long commentId, int page, int size) {
         String currentUsername = getCurrentUsername();
+        logger.info("Fetching replies for commentId: {}, page: {}, size: {}, user: {}",
+                commentId, page, size, currentUsername);
 
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 20);
         Pageable pageable = PageRequest.of(page, size);
 
-        // 🚀 СУПЕР БЪРЗА native заявка за replies!
         Page<Object[]> rawResults = commentsRepository.findOptimizedRepliesForComment(
                 commentId, currentUsername, pageable);
 
-        return rawResults.map(resultMapper::mapRepliesQueryResult);
+        return rawResults.map(row -> resultMapper.mapRepliesQueryResult(row, currentUsername));
     }
 
     // ====== СЪЗДАВАНЕ НА КОМЕНТАРИ ======
@@ -168,6 +121,8 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
+        logger.info("Adding comment to entityType: {}, entityId: {}, text: {}, author: {}",
+                entityType, entityId, text, author.getUsername());
         return switch (entityType) {
             case "publication" -> addCommentToPublication(entityId, text, author);
             case "simpleEvent" -> addCommentToSimpleEvent(entityId, text, author);
@@ -186,7 +141,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl());
+        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setPublication(publication);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -205,7 +160,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl());
+        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setEvent(simpleEvent);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -224,7 +179,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl());
+        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setReferendum(referendum);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -243,7 +198,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl());
+        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setMultiPoll(multiPoll);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -256,20 +211,21 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
+        logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
+                parentCommentId, text, author.getUsername());
         CommentsEntity parentComment = commentsRepository.findById(parentCommentId)
                 .orElseThrow(() -> new IllegalArgumentException("Parent comment not found"));
 
         CommentsEntity reply = new CommentsEntity();
         reply.setText(text);
         reply.setAuthor(author.getUsername());
-        reply.setAuthorImage(author.getImageUrl());
+        reply.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         reply.setParent(parentComment);
         reply.setLikeCount(0);
         reply.setUnlikeCount(0);
         reply.setCreated(Instant.now());
         reply.setEdited(false);
 
-        // Set the same target entity as parent
         if (parentComment.getPublication() != null) {
             reply.setPublication(parentComment.getPublication());
         } else if (parentComment.getEvent() != null) {
@@ -330,18 +286,15 @@ public class CommentsServiceImpl implements CommentsService {
         if (existingVote.isPresent()) {
             CommentVoteEntity vote = existingVote.get();
             if (vote.getReaction().equals(reactionType)) {
-                // Remove vote if same reaction
                 commentVoteRepository.delete(vote);
                 comment.getVotes().remove(vote);
                 userReaction = "NONE";
             } else {
-                // Change reaction
                 vote.setReaction(reactionType);
                 commentVoteRepository.save(vote);
                 userReaction = reactionType.name();
             }
         } else {
-            // Add new vote
             CommentVoteEntity newVote = new CommentVoteEntity();
             newVote.setComment(comment);
             newVote.setUsername(user.getUsername());
@@ -351,15 +304,13 @@ public class CommentsServiceImpl implements CommentsService {
             userReaction = reactionType.name();
         }
 
-        // Update counters based on actual votes
         updateCommentCounters(comment);
         commentsRepository.save(comment);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("likeCount", comment.getLikeCount());
-        result.put("dislikeCount", comment.getUnlikeCount());
+        result.put("likesCount", comment.getLikeCount());
+        result.put("dislikesCount", comment.getUnlikeCount());
         result.put("userReaction", userReaction);
-        result.put("success", true);
         result.put("message", userReaction != null && !"NONE".equals(userReaction) ?
                 "Реакцията е записана" : "Реакцията е премахната");
 
@@ -400,36 +351,37 @@ public class CommentsServiceImpl implements CommentsService {
         return commentsRepository.countByMultiPollId(multiPollId);
     }
 
+    @Override
+    public CommentOutputDto convertEntityToDto(CommentsEntity comment) {
+        return null;
+    }
+
     // ====== CONVERSION МЕТОДИ ======
 
-    /**
-     * Конвертира CommentsEntity към CommentOutputDto
-     * Включва user reaction за текущия потребител
-     */
-    public CommentOutputDto convertEntityToDto(CommentsEntity comment) {
-        String currentUsername = getCurrentUsername();
+    public CommentOutputDto convertEntityToDto(CommentsEntity comment, String currentUsername) {
         String userReaction = getUserReaction(comment.getId(), currentUsername);
-
-        Long parentId = comment.getParent() != null ? comment.getParent().getId() : null;
         String entityType = determineEntityType(comment);
         Long entityId = determineEntityId(comment);
         long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
+        boolean canEdit = currentUsername != null && (currentUsername.equals(comment.getAuthor()) ||
+                userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
 
         return new CommentOutputDto(
                 comment.getId(),
                 comment.getText(),
-                comment.getCreated() != null ? comment.getCreated().toEpochMilli() : null,
-                comment.getModified() != null ? comment.getModified().toEpochMilli() : null,
+                comment.getCreated() != null ? comment.getCreated().atZone(ZoneId.from(LocalDateTime.now())).toLocalDateTime() : null,
+                comment.getModified() != null ? comment.getModified().atZone(ZoneId.from(LocalDateTime.now())).toLocalDateTime() : null,
                 comment.getAuthor(),
-                comment.getAuthorImage(),
+                comment.getAuthorImage() != null ? comment.getAuthorImage() : "/default-avatar.jpg",
                 false, // isOnline временно е false
                 comment.getLikeCount(),
                 comment.getUnlikeCount(),
                 (int) repliesCount,
-                parentId,
+                comment.getParent() != null ? comment.getParent().getId() : null,
                 entityType,
                 entityId,
                 comment.isEdited(),
+                canEdit,
                 userReaction
         );
     }
@@ -441,6 +393,7 @@ public class CommentsServiceImpl implements CommentsService {
             UserEntity currentUser = userService.getCurrentUser();
             return currentUser != null ? currentUser.getUsername() : null;
         } catch (Exception e) {
+            logger.warn("Error getting current username: {}", e.getMessage());
             return null; // Guest user
         }
     }
@@ -499,9 +452,8 @@ public class CommentsServiceImpl implements CommentsService {
         throw new RuntimeException("Системна грешка при запазване на реакцията. Моля, опитайте отново.");
     }
 
-    // ====== LEGACY МЕТОДИ (за compatibility) ======
+    // ====== LEGACY МЕТОДИ ======
 
-    // Тези методи остават за съвместимост ако някъде ги има
     @Override
     public boolean commentExists(Long commentId) {
         return commentsRepository.existsById(commentId);

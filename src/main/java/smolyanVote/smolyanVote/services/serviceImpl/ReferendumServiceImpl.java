@@ -160,9 +160,6 @@ public class ReferendumServiceImpl implements ReferendumService {
             }
         }
 
-        // Коментари
-        List<CommentsEntity> comments = commentsService.getCommentsForTarget(referendumId, EventType.REFERENDUM);
-        dto.setComments(comments);
 
         return dto;
     }
