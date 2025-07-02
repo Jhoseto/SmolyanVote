@@ -176,6 +176,9 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setCreated(Instant.now());
         comment.setEdited(false);
 
+        publication.incrementComments();
+        publicationRepository.save(publication);
+
         return commentsRepository.save(comment);
     }
 
@@ -294,6 +297,13 @@ public class CommentsServiceImpl implements CommentsService {
 
         if (!canModifyComment(comment, user)) {
             throw new IllegalArgumentException("User cannot delete this comment");
+        }
+
+        // ПОПРАВКА: Намаляване на брояча при изтриване на коментар към публикация
+        if (comment.getPublication() != null) {
+            PublicationEntity publication = comment.getPublication();
+            publication.decrementComments();
+            publicationRepository.save(publication);
         }
 
         commentsRepository.delete(comment);
