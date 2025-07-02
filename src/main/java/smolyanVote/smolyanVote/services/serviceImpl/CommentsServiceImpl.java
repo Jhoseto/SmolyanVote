@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentsServiceImpl implements CommentsService {
@@ -176,10 +177,15 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setCreated(Instant.now());
         comment.setEdited(false);
 
+        // ✅ ПОПРАВКА: Първо запазваме коментара
+        CommentsEntity savedComment = commentsRepository.save(comment);
+
+        // ✅ ПОПРАВКА: После инкрементираме брояча
         publication.incrementComments();
         publicationRepository.save(publication);
 
-        return commentsRepository.save(comment);
+        logger.info("Comment added to publication {}, new count: {}", publicationId, publication.getCommentsCount());
+        return savedComment;
     }
 
     @Override
@@ -267,7 +273,19 @@ public class CommentsServiceImpl implements CommentsService {
             reply.setMultiPoll(parentComment.getMultiPoll());
         }
 
-        return commentsRepository.save(reply);
+        // ✅ ПОПРАВКА: Запазваме отговора първо
+        CommentsEntity savedReply = commentsRepository.save(reply);
+
+        // ✅ ПОПРАВКА: И отговорите се броят в общата бройка!
+        if (parentComment.getPublication() != null) {
+            PublicationEntity publication = parentComment.getPublication();
+            publication.incrementComments();
+            publicationRepository.save(publication);
+            logger.info("Reply added to publication {}, new count: {}",
+                    publication.getId(), publication.getCommentsCount());
+        }
+
+        return savedReply;
     }
 
     // ====== РЕДАКТИРАНЕ И ИЗТРИВАНЕ ======
@@ -299,11 +317,21 @@ public class CommentsServiceImpl implements CommentsService {
             throw new IllegalArgumentException("User cannot delete this comment");
         }
 
-        // ПОПРАВКА: Намаляване на брояча при изтриване на коментар към публикация
+        // ✅ ПОПРАВКА: Броим ВСИЧКИ коментари които ще се изтрият
+        int totalCommentsToDelete = countCommentsToDelete(comment);
+
+        // Декрементираме общата бройка
         if (comment.getPublication() != null) {
             PublicationEntity publication = comment.getPublication();
-            publication.decrementComments();
+
+            // Декрементираме с общия брой коментари които ще се изтрият
+            for (int i = 0; i < totalCommentsToDelete; i++) {
+                publication.decrementComments();
+            }
             publicationRepository.save(publication);
+
+            logger.info("Deleting {} comments from publication {}, new count: {}",
+                    totalCommentsToDelete, publication.getId(), publication.getCommentsCount());
         }
 
         commentsRepository.delete(comment);
@@ -403,7 +431,7 @@ public class CommentsServiceImpl implements CommentsService {
         Long entityId = determineEntityId(comment);
         long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
         boolean canEdit = currentUsername != null && (currentUsername.equals(comment.getAuthor()) ||
-                                                      userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
+                userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
 
         return new CommentOutputDto(
                 comment.getId(),
@@ -455,7 +483,51 @@ public class CommentsServiceImpl implements CommentsService {
 
     private boolean canModifyComment(@NotNull CommentsEntity comment, @NotNull UserEntity user) {
         return comment.getAuthor().equals(user.getUsername()) ||
-               user.getRole().equals(UserRole.ADMIN);
+                user.getRole().equals(UserRole.ADMIN);
+    }
+
+    /**
+     * ✅ НОВА ПОПРАВКА: Брои колко общо коментари ще се изтрият (главен + всички подкоментари)
+     */
+    private int countCommentsToDelete(CommentsEntity comment) {
+        int count = 1; // Самия коментар
+
+        // Ако това е главен коментар, добавяме и всичките му отговори
+        if (comment.getParent() == null) {
+            long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
+            count += (int) repliesCount;
+            logger.debug("Comment {} has {} replies, total to delete: {}",
+                    comment.getId(), repliesCount, count);
+        }
+
+        return count;
+    }
+
+    /**
+     * ✅ БОНУС: Метод за синхронизация на съществуващи публикации
+     * Извикай го веднъж за да поправиш старите данни
+     */
+    @Transactional
+    public void synchronizeCommentsCountForAllPublications() {
+        logger.info("Starting comments count synchronization...");
+
+        List<PublicationEntity> allPublications = publicationRepository.findAll();
+        int updatedCount = 0;
+
+        for (PublicationEntity publication : allPublications) {
+            long actualCommentsCount = commentsRepository.countByPublicationId(publication.getId());
+
+            if (publication.getCommentsCount() != actualCommentsCount) {
+                logger.info("Publication {}: stored count = {}, actual count = {}",
+                        publication.getId(), publication.getCommentsCount(), actualCommentsCount);
+
+                publication.setCommentsCount((int) actualCommentsCount);
+                publicationRepository.save(publication);
+                updatedCount++;
+            }
+        }
+
+        logger.info("Comments count synchronization completed. Updated {} publications.", updatedCount);
     }
 
     private Sort createSortForComments(String sortType) {
@@ -512,5 +584,41 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     public boolean canUserDeleteComment(Long commentId, UserEntity user) {
         return canUserEditComment(commentId, user);
+    }
+
+    @Transactional
+    @Override
+    public void fillCommentsCountsForAllPublications(List<PublicationEntity> publications) {
+        if (publications == null || publications.isEmpty()) {
+            return;
+        }
+
+        try {
+            // Извличаме всички publication IDs
+            List<Long> publicationIds = publications.stream()
+                    .map(PublicationEntity::getId)
+                    .collect(Collectors.toList());
+
+            // Batch заявка за comments counts
+            List<Object[]> results = commentsRepository.findCommentsCountsForPublications(publicationIds);
+
+            // Създаваме Map за бърз lookup
+            Map<Long, Integer> countsMap = new HashMap<>();
+            for (Object[] row : results) {
+                Long publicationId = ((Number) row[0]).longValue();
+                Integer count = ((Number) row[1]).intValue();
+                countsMap.put(publicationId, count);
+            }
+
+            // Попълваме commentsCount за всяка публикация
+            for (PublicationEntity publication : publications) {
+                Integer count = countsMap.getOrDefault(publication.getId(), 0);
+                publication.setCommentsCount(count);
+            }
+
+        } catch (Exception e) {
+            // Fallback - оставяме commentsCount както е
+            System.err.println("Error filling comments counts: " + e.getMessage());
+        }
     }
 }
