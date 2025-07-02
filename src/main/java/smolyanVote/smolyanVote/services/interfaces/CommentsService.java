@@ -1,11 +1,14 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
 
+import java.util.List;
 import java.util.Map;
 
 public interface CommentsService {
@@ -124,4 +127,7 @@ public interface CommentsService {
 
 
     boolean canUserDeleteComment(Long commentId, UserEntity user);
+
+    @Transactional
+    void fillCommentsCountsForAllPublications(List<PublicationEntity> publications);
 }
