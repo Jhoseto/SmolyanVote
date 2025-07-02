@@ -263,31 +263,31 @@ class PublicationsManager {
         </div>
 
         <div class="post-stats">
-            <div class="stats-left">
-                <div class="stats-item">
-                    <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
-                    <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
-                </div>
-                <div class="stats-item">
-                    <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
-                    <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
-                </div>
-            </div>
-            <div class="stats-right">
-                <div class="stats-item">
-                    <i class="bi bi-eye-fill stats-icon"></i>
-                    <span class="stats-count view-stats-count">${post.commentsCount || 0}</span>
-                </div>
-                <div class="stats-item">
-                    <i class="bi bi-chat-fill stats-icon"></i>
-                    <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
-                </div>
-                <div class="stats-item">
-                    <i class="bi bi-share-fill stats-icon"></i>
-                    <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
-                </div>
-            </div>
+    <div class="stats-left">
+        <div class="stats-item">
+            <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
+            <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
         </div>
+        <div class="stats-item">
+            <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
+            <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
+        </div>
+    </div>
+    <div class="stats-right">
+        <div class="stats-item">
+            <i class="bi bi-eye-fill stats-icon"></i>
+            <span class="stats-count view-stats-count">${post.viewsCount || 0}</span>
+        </div>
+        <div class="stats-item">
+            <i class="bi bi-chat-fill stats-icon"></i>
+            <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
+        </div>  
+        <div class="stats-item">
+            <i class="bi bi-share-fill stats-icon"></i>
+            <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
+        </div>
+    </div>
+</div>
 
         <div class="post-actions">
             <button class="post-action like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">

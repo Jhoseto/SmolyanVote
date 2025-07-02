@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.PublicationStatus;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.repositories.ReportsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -444,8 +445,13 @@ public class PublicationServiceImpl implements PublicationService {
         UserEntity user = userService.getCurrentUser();
         if (user == null) return false;
 
-        // Авторите могат да редактират своите публикации
-        return publication.getAuthor().getId().equals(user.getId());
+        // Админите могат да редактират всички публикации
+        if (user.getRole() == UserRole.ADMIN) {
+            return true;
+        }
+
+        Long authorId = publicationRepository.findAuthorIdByPublicationId(publication.getId());
+        return authorId != null && authorId.equals(user.getId());
     }
 
 

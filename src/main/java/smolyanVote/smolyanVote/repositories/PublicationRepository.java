@@ -123,4 +123,7 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
     default List<Long> findBookmarkedPublicationIdsByUsername(String username) {
         return findBookmarkedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
     }
+
+    @Query(value = "SELECT author_id FROM publications WHERE id = :publicationId", nativeQuery = true)
+    Long findAuthorIdByPublicationId(@Param("publicationId") Long publicationId);
 }
