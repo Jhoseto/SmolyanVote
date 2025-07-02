@@ -15,10 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
-import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
-import smolyanVote.smolyanVote.services.interfaces.PublicationService;
-import smolyanVote.smolyanVote.services.interfaces.ReportsService;
-import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
@@ -36,18 +33,19 @@ public class PublicationsController {
     private final ImageCloudinaryServiceImpl imageService;
     private final PublicationDetailService publicationDetailService;
     private final ReportsService reportsService;
+    private final CommentsService commentsService;
 
     @Autowired
     public PublicationsController(PublicationService publicationService,
                                   UserService userService,
                                   ImageCloudinaryServiceImpl imageService,
-                                  PublicationDetailService publicationDetailService,
-                                  ReportsService reportsService) {
+                                  PublicationDetailService publicationDetailService, ReportsService reportsService, CommentsService commentsService) {
         this.publicationService = publicationService;
         this.userService = userService;
         this.imageService = imageService;
         this.publicationDetailService = publicationDetailService;
         this.reportsService = reportsService;
+        this.commentsService = commentsService;
     }
 
     // ====== MAIN PAGE ======
@@ -61,6 +59,7 @@ public class PublicationsController {
                     model.addAttribute("currentUserId", currentUser.getId());
                     model.addAttribute("currentUser", currentUser);
                     model.addAttribute("currentUserImage", currentUser.getImageUrl());
+
                 } else {
                     model.addAttribute("currentUserId", null);
                 }
@@ -102,6 +101,8 @@ public class PublicationsController {
         return "publications";
     }
 
+
+
     // ====== REST API ENDPOINTS ======
 
     @GetMapping(value = "/api", produces = "application/json")
@@ -121,19 +122,21 @@ public class PublicationsController {
             page = Math.max(0, page);
             size = Math.min(Math.max(1, size), 50);
 
+
             Pageable pageable = createPageable(page, size, sort);
             Page<PublicationEntity> publicationsPage = publicationService.findWithFilters(
                     search, category, status, time, author, pageable, auth
             );
 
-            // ПОПРАВКА: Ръчно форматиране на publications за да включим всички полета
-            List<Map<String, Object>> formattedPublications = publicationsPage.getContent().stream()
-                    .map(this::formatPublicationForAPI)
-                    .collect(java.util.stream.Collectors.toList());
+
+            //  commentsCount за всички публикации
+            List<PublicationEntity> publications = publicationsPage.getContent();
+            commentsService.fillCommentsCountsForAllPublications(publications);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("publications", formattedPublications);
+            response.put("publications", publicationsPage.getContent());
             response.put("totalElements", publicationsPage.getTotalElements());
+
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -141,44 +144,7 @@ public class PublicationsController {
         }
     }
 
-    // НОВ HELPER МЕТОД за форматиране на публикациите
-    private Map<String, Object> formatPublicationForAPI(PublicationEntity publication) {
-        Map<String, Object> formatted = new HashMap<>();
 
-        formatted.put("id", publication.getId());
-        formatted.put("title", publication.getTitle());
-        formatted.put("content", publication.getContent());
-        formatted.put("excerpt", publication.getExcerpt());
-        formatted.put("category", publication.getCategory());
-        formatted.put("status", publication.getStatus());
-        formatted.put("imageUrl", publication.getImageUrl());
-        formatted.put("emotion", publication.getEmotion());
-        formatted.put("emotionText", publication.getEmotionText());
-
-        // ВАЖНО: Включваме всички count полета
-        formatted.put("viewsCount", publication.getViewsCount());
-        formatted.put("likesCount", publication.getLikesCount());
-        formatted.put("dislikesCount", publication.getDislikesCount());
-        formatted.put("commentsCount", publication.getCommentsCount());
-        formatted.put("sharesCount", publication.getSharesCount());
-
-        formatted.put("created", publication.getCreated());
-        formatted.put("createdAt", publication.getCreated());
-        formatted.put("publishedAt", publication.getPublishedAt());
-
-        // Author данни
-        if (publication.getAuthor() != null) {
-            Map<String, Object> authorData = new HashMap<>();
-            authorData.put("id", publication.getAuthor().getId());
-            authorData.put("username", publication.getAuthor().getUsername());
-            authorData.put("imageUrl", publication.getAuthor().getImageUrl());
-            authorData.put("onlineStatus", publication.getAuthor().getOnlineStatus());
-            authorData.put("lastOnline", publication.getAuthor().getLastOnline());
-            formatted.put("author", authorData);
-        }
-
-        return formatted;
-    }
 
     @PostMapping(value = "/api", produces = "application/json")
     @ResponseBody
@@ -210,8 +176,6 @@ public class PublicationsController {
             response.put("dislikesCount", publication.getDislikesCount());
             response.put("commentsCount", publication.getCommentsCount());
             response.put("sharesCount", publication.getSharesCount());
-            // ПОПРАВКА: Добавяме viewsCount
-            response.put("viewsCount", publication.getViewsCount());
 
             // Добави author данните
             Map<String, Object> authorData = new HashMap<>();
@@ -430,8 +394,7 @@ public class PublicationsController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("isBookmarked", isBookmarked);
-            response.put("message", isBookmarked ?
-                    "Добавено са известия относно публикациата" : "Премахнати са известията за публикацията");
+            response.put("message", isBookmarked ? "Добавено са известия относно публикациата" : "Премахнати са известията за публикацията");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -492,19 +455,92 @@ public class PublicationsController {
         }
     }
 
+    // ====== FOLLOW/UNFOLLOW ENDPOINTS ======
+
+    @PostMapping(value = "/api/users/{authorId}/follow", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleFollowAuthor(
+            @PathVariable Long authorId,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+
+            if (currentUser.getId().equals(authorId)) {
+                return ResponseEntity.status(400).body(createErrorResponse("Не можете да следвате себе си"));
+            }
+
+            // TODO За сега симулираме follow/unfollow логиката
+            // В бъдеще ще се имплементира правилно с UserFollowing entity
+            boolean isFollowing = false; // Placeholder логика
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isFollowing", !isFollowing);
+            response.put("message", !isFollowing ? "Сега следвате този автор" : "Не следвате този автор");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при следването"));
+        }
+    }
+
+    // ====== USER PREFERENCES ENDPOINT ======
+
+    @GetMapping(value = "/api/user/preferences", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getUserPreferences(Authentication auth) {
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity user = userService.getCurrentUser();
+            String username = user.getUsername();
+
+            Map<String, Object> preferences = new HashMap<>();
+
+            // Извличаме реалните данни на потребителя
+            List<Long> likedPosts = publicationService.getLikedPublicationIdsByUsername(username);
+            List<Long> dislikedPosts = publicationService.getDislikedPublicationIdsByUsername(username);
+            List<Long> bookmarkedPosts = publicationService.getBookmarkedPublicationIdsByUsername(username);
+            List<Long> followedAuthors = List.of(); // За сега празен, няма follow система
+
+            preferences.put("likedPosts", likedPosts);
+            preferences.put("dislikedPosts", dislikedPosts);
+            preferences.put("bookmarkedPosts", bookmarkedPosts);
+            preferences.put("followedAuthors", followedAuthors);
+
+            return ResponseEntity.ok(preferences);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на предпочитанията"));
+        }
+    }
+
+    // ====== DATA ENDPOINTS ======
+
     @GetMapping(value = "/api/statistics", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getStatistics() {
         try {
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalPublications", publicationService.getTotalCount());
-            stats.put("todayCount", publicationService.getTodayCount());
-            stats.put("weekCount", publicationService.getWeekCount());
-            stats.put("monthCount", publicationService.getMonthCount());
+            stats.put("todayPublications", publicationService.getTodayCount());
+            stats.put("weekPublications", publicationService.getWeekCount());
+            stats.put("monthPublications", publicationService.getMonthCount());
 
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на статистиките"));
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("totalPublications", 0);
+            errorStats.put("todayPublications", 0);
+            errorStats.put("weekPublications", 0);
+            errorStats.put("monthPublications", 0);
+            errorStats.put("activeUsers", 0);
+            return ResponseEntity.status(500).body(errorStats);
         }
     }
 
@@ -527,35 +563,6 @@ public class PublicationsController {
             return ResponseEntity.ok(authors);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(List.of());
-        }
-    }
-
-    // ====== PUBLICATION DETAIL API ======
-
-    @GetMapping(value = "/detail/api/{id}", produces = "application/json")
-    @ResponseBody
-    public ResponseEntity<?> getPublicationDetail(
-            @PathVariable Long id,
-            Authentication auth) {
-
-        try {
-            PublicationResponseDTO dto = publicationDetailService.getPublicationForModal(id, auth);
-
-            // Wrap in success response for consistency with existing API
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("publication", dto);
-
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("не е намерена")) {
-                return ResponseEntity.notFound().build();
-            } else if (e.getMessage().contains("права")) {
-                return ResponseEntity.status(403).body(createErrorResponse(e.getMessage()));
-            }
-            return ResponseEntity.status(500).body(createErrorResponse(e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на публикацията"));
         }
     }
 
@@ -604,4 +611,34 @@ public class PublicationsController {
         response.put("hasPrevious", false);
         return response;
     }
+
+    // ====== PUBLICATION DETAIL API ======
+
+    @GetMapping(value = "/detail/api/{id}", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<?> getPublicationDetail(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        try {
+            PublicationResponseDTO dto = publicationDetailService.getPublicationForModal(id, auth);
+
+            // Wrap in success response for consistency with existing API
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("publication", dto);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("не е намерена")) {
+                return ResponseEntity.notFound().build();
+            } else if (e.getMessage().contains("права")) {
+                return ResponseEntity.status(403).body(createErrorResponse(e.getMessage()));
+            }
+            return ResponseEntity.status(500).body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на публикацията"));
+        }
+    }
+
 }
