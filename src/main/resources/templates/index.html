@@ -87,6 +87,20 @@
   </div>
 </section>
 
+<div class="container title-section">
+  <div class="clickable-title" onclick="scrollToFeatures()">
+    <div class="title-question">Какво е SmolyanVote?</div>
+    <div class="title-description">
+      Гражданска платформа, създадена&nbsp;
+      <span class="dynamic-text-box">
+        <span class="dynamic-text">от хората</span>
+        <span class="dynamic-text">за хората</span>
+        <span class="dynamic-text">с мисъл за града</span>
+      </span>
+    </div>
+  </div>
+</div>
+
 <section class="video-section py-5">
   <div class="container">
     <div class="video-stats-wrapper">
@@ -138,27 +152,50 @@
 <script src="https://unpkg.com/@mux/mux-player"></script>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const texts = document.querySelectorAll(".dynamic-text");
-    const delays = [2000, 2000, 5000];
-    let index = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    // Анимация за статистиката
+    const statsContainer = document.querySelector('.stats-container');
+    const statItems = document.querySelectorAll('.stat-item');
+    let statsAnimated = false;
 
-    function showText(i) {
-      texts.forEach((text) => {
-        text.classList.remove("active");
+    const animateNumber = (element, target) => {
+      let start = 0;
+      const duration = 2000;
+      const startTime = performance.now();
+
+      const update = (currentTime) => {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+        const value = Math.floor(progress * target);
+        element.textContent = value;
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          element.textContent = target;
+        }
+      };
+      requestAnimationFrame(update);
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !statsAnimated) {
+          statItems.forEach(item => {
+            const number = item.querySelector('.stat-number');
+            const target = parseInt(number.dataset.target);
+            animateNumber(number, target);
+          });
+          statsAnimated = true;
+          observer.disconnect();
+        }
       });
+    }, { threshold: 0.5 });
 
-      texts[i].classList.add("active");
-
-      setTimeout(() => {
-        index = (i + 1) % texts.length;
-        showText(index);
-      }, delays[i]);
+    if (statsContainer) {
+      observer.observe(statsContainer);
     }
-
-    showText(index);
   });
-
   function scrollToFeatures() {
     const featuresSection = document.getElementById('platform-features-carousel');
     if (featuresSection) {

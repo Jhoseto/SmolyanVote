@@ -82,7 +82,7 @@
     position: absolute;
     bottom: -2px;
     left: 0;
-    width: 40px;
+    width: 2.7rem;
     height: 2px;
     background: linear-gradient(45deg, var(--primary-green), var(--accent-green));
     border-radius: 1px;
@@ -90,7 +90,7 @@
 }
 
 .vote-section-glass:hover .vote-section-title-glass::after {
-    width: 80px;
+    width: 31.4rem !important;
 }
 
 .vote-section-title-glass i {
@@ -99,6 +99,7 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-size: 1.2rem;
+    margin-left: 0.6rem;
 }
 
 /* Vote Items Container */

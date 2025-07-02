@@ -6,9 +6,10 @@
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 
-    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
-    <link rel="stylesheet" href="/css/eventSimpleCard.css">
     <link rel="stylesheet" href="/css/userProfile.css">
+    <link rel="stylesheet" href="/css/eventSimpleCard.css">
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+
 </head>
 <body>
 <!-- Навигация -->
@@ -29,7 +30,7 @@
         </div>
         <div class="profile-details">
             <h2 class="username" th:text="${currentUser.username}">Име на потребителя</h2>
-            <p class="bio" th:text="${currentUser.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия.“</p>
+            <p class="bio" th:text="${currentUser.bio}">„Тук може да добавите кратко описание за себе си, интереси или лична мисия."</p>
             <div class="stats">
                 <span><strong th:text="${currentUser.userEventsCount}"></strong> събития</span>
                 <span><strong th:text="${currentUser.totalVotes}"></strong> гласа</span>
@@ -64,25 +65,48 @@
     </div>
 </div>
 
-<!-- Модал за редактиране -->
+<!-- ФИКСИРАН МОДАЛ ЗА РЕДАКТИРАНЕ -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <span class="close" data-bs-dismiss="modal" aria-label="Close">×</span>
-            <h3>Редакция на профила</h3>
-            <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}" th:max="240">
-                <label>Профилна снимка:</label>
-                <input type="file" name="profileImage"><br><br>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                <label for="location">Локация:</label>
-                <select class="form-select" id="location" name="location" required>
-                    <option value="NONE">Избери локация</option>
-                    <option th:each="loc : ${locations}" th:value="${loc.name()}" th:text="${loc.toBG()}"></option>
-                </select><br><br>
-                <label>Био:</label>
-                <textarea name="bio" th:text="${currentUser.bio}"></textarea><br><br>
-                <button type="submit" class="save-btn">Запази</button>
-            </form>
+            <div class="modal-header">
+                <h3 class="modal-title" id="editModalLabel">Редакция на профила</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                    <div class="mb-3">
+                        <label for="profileImage" class="form-label">Профилна снимка:</label>
+                        <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Локация:</label>
+                        <select class="form-select" id="location" name="location" required>
+                            <option value="NONE">Избери локация</option>
+                            <option th:each="loc : ${locations}"
+                                    th:value="${loc.name()}"
+                                    th:text="${loc.toBG()}"
+                                    th:selected="${currentUser.location != null && currentUser.location.name() == loc.name()}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Био:</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="4" maxlength="240"
+                                  th:text="${currentUser.bio}" placeholder="Разкажете нещо за себе си..."></textarea>
+                        <div class="form-text">Максимум 240 символа</div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                        <button type="submit" class="btn btn-primary save-btn">Запази промените</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
