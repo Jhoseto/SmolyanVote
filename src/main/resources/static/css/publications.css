@@ -266,7 +266,7 @@
     background: rgba(255, 255, 255, 0);
     color: var(--fb-white);
 }
-
+F
 /* ====== CLEAR FILTERS BUTTON ====== */
 .clear-all-filters {
     width: 100%;
@@ -1764,17 +1764,8 @@
     }
 }
 
-/* ====== DARK MODE SUPPORT (FUTURE) ====== */
+/* ====== (FUTURE) ====== */
 @media (prefers-color-scheme: dark) {
-    :root {
-        --fb-bg: #18191a;
-        --fb-white: #242526;
-        --fb-text: #e4e6ea;
-        --fb-text-secondary: #b0b3b8;
-        --fb-border: #3a3b3c;
-        --fb-hover: #3a3b3c;
-    }
-
     .post-actions {
         border-top-color: #3a3b3c;
     }

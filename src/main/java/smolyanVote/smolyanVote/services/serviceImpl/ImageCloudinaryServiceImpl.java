@@ -91,8 +91,8 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
             Map<String, Object> uploadOptions = ObjectUtils.asMap(
                     "public_id", publicId,
                     "folder", folder,
-                    "transformation", transformation,
-                    "moderation", "aws_rek" // Автоматично блокира porn/violence/inappropriate content
+                    "transformation", transformation
+//               TODO     "moderation", "aws_rek" // Автоматично блокира porn/violence/inappropriate content
             );
 
             Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadOptions);

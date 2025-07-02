@@ -5,7 +5,7 @@
 /* Modal Backdrop with Enhanced Glassmorphism */
 .modal {
     backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0);
 }
 
 .modal.fade {
@@ -14,7 +14,7 @@
 
 .modal.show {
     backdrop-filter: blur(15px);
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0);
 }
 
 /* Modal Dialog */
