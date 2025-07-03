@@ -233,8 +233,7 @@ class PostInteractions {
         const hasImage = document.getElementById('postImage')?.files.length > 0;
         const submitBtn = document.getElementById('submitPost');
 
-        const isValid = (content.length > 0 || hasImage) && category;
-
+        const isValid = content.length >= 1 && category;
         if (submitBtn) {
             submitBtn.disabled = !isValid;
         }

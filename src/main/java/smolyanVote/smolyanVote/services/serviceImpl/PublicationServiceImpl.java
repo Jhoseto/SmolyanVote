@@ -60,9 +60,9 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         // ЗАЩИТА: Проверка за последна публикация в МИНУТИ
-        if (publicationRepository.hasRecentPost(author, 1)) {
-            throw new RuntimeException("Можете да публикувате само една публикация на минута.");
-        }
+//        TODO if (publicationRepository.hasRecentPost(author, 0.083)) {
+//            throw new RuntimeException("Можете да публикувате само една публикация на минута.");
+//        }
         PublicationEntity publication = new PublicationEntity();
 
         // Задаваме датите първо

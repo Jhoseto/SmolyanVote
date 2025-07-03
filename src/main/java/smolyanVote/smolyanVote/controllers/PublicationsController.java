@@ -157,8 +157,16 @@ public class PublicationsController {
         }
 
         try {
+            System.out.println("🔄 Започвам създаване на публикация...");
+            System.out.println("📄 Request данни: " + request);
+            System.out.println("🖼️ Image URL: " + request.getImageUrl());
+
             UserEntity user = userService.getCurrentUser();
+            System.out.println("👤 Потребител: " + user.getUsername());
+
+            System.out.println("🚀 Извиквам publicationService.create()...");
             PublicationEntity publication = publicationService.create(request, user);
+            System.out.println("✅ Публикация създадена с ID: " + publication.getId());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -186,14 +194,21 @@ public class PublicationsController {
 
             response.put("message", "Публикацията е създадена успешно");
 
+            System.out.println("✅ Response готов, връщам резултат");
             return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
+            System.err.println("❌ RuntimeException в контролера: " + e.getMessage());
+            e.printStackTrace();
+
             // ЗАЩИТА: Специално handling за rate limiting
             if (e.getMessage().contains("минута")) {
                 return ResponseEntity.status(429).body(createErrorResponse(e.getMessage()));
             }
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията: " + e.getMessage()));
         } catch (Exception e) {
+            System.err.println("❌ Exception в контролера: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при създаването на публикацията: " + e.getMessage()));
         }
     }
@@ -220,10 +235,12 @@ public class PublicationsController {
                 return ResponseEntity.status(400).body(createErrorResponse("Файлът е твърде голям (максимум 10MB)"));
             }
 
-            if (!file.getContentType().startsWith("image/")) {
-                return ResponseEntity.status(400).body(createErrorResponse("Моля, изберете снимка"));
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.status(400).body(createErrorResponse("Файлът трябва да е изображение"));
             }
 
+            // 🛡️ КАЧВАМЕ СЪС МОДЕРАЦИЯ
             UserEntity user = userService.getCurrentUser();
             String imageUrl = imageService.savePublicationImage(file, user.getUsername());
 
@@ -233,8 +250,11 @@ public class PublicationsController {
             response.put("message", "Снимката е качена успешно");
 
             return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при качването на снимката: " + e.getMessage()));
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при качване на снимка"));
         }
     }
 
