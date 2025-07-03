@@ -97,8 +97,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
     @Override
     public boolean isImageSafe(String imageUrl) {
         try {
-            System.out.println("🔍 Проверявам URL със SightEngine: " + imageUrl);
-
             RestTemplate restTemplate = new RestTemplate();
 
             // Изграждаме URL за SightEngine API
@@ -128,7 +126,7 @@ public class ImageModerationServiceImpl implements ImageModerationService {
     }
 
     /**
-     * 📊 ПОПРАВЕН анализ на отговора от SightEngine API
+     * 📊 анализ на отговора от SightEngine API
      */
     private boolean analyzeResponse(Map<String, Object> body) {
         if (body == null) {
@@ -149,12 +147,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
             double verySuggestive = getScore(nudity, "very_suggestive");
             double suggestive = getScore(nudity, "suggestive");
 
-            System.out.println("📊 SightEngine scores:");
-            System.out.println("  - Sexual Activity: " + sexualActivity);
-            System.out.println("  - Sexual Display: " + sexualDisplay);
-            System.out.println("  - Erotica: " + erotica);
-            System.out.println("  - Very Suggestive: " + verySuggestive);
-            System.out.println("  - Suggestive: " + suggestive);
 
             // 🚫 СТРОГИ условия за explicit съдържание
             if (sexualActivity > EXPLICIT_THRESHOLD ||
@@ -162,14 +154,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
                     erotica > EROTICA_THRESHOLD ||
                     verySuggestive > VERY_SUGGESTIVE_THRESHOLD ||
                     suggestive > SUGGESTIVE_THRESHOLD) {
-
-                System.out.println("🚫 Снимка БЛОКИРАНА - неподходящо съдържание");
-                System.out.println("🔍 Причина:");
-                if (sexualActivity > EXPLICIT_THRESHOLD) System.out.println("  - Sexual Activity: " + sexualActivity + " > " + EXPLICIT_THRESHOLD);
-                if (sexualDisplay > EXPLICIT_THRESHOLD) System.out.println("  - Sexual Display: " + sexualDisplay + " > " + EXPLICIT_THRESHOLD);
-                if (erotica > EROTICA_THRESHOLD) System.out.println("  - Erotica: " + erotica + " > " + EROTICA_THRESHOLD);
-                if (verySuggestive > VERY_SUGGESTIVE_THRESHOLD) System.out.println("  - Very Suggestive: " + verySuggestive + " > " + VERY_SUGGESTIVE_THRESHOLD);
-                if (suggestive > SUGGESTIVE_THRESHOLD) System.out.println("  - Suggestive: " + suggestive + " > " + SUGGESTIVE_THRESHOLD);
 
                 return false;
             }
@@ -187,12 +171,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
                 double miniskirt = getScore(suggestiveClasses, "miniskirt");
                 double minishort = getScore(suggestiveClasses, "minishort");
 
-                System.out.println("👙 Suggestive Classes:");
-                System.out.println("  - Bikini: " + bikini + " (лимит: " + BIKINI_THRESHOLD + ")");
-                System.out.println("  - Cleavage: " + cleavage + " (лимит: " + CLEAVAGE_THRESHOLD + ")");
-                System.out.println("  - Lingerie: " + lingerie + " (лимит: " + LINGERIE_THRESHOLD + ")");
-                System.out.println("  - Male Chest: " + maleChest + " (лимит: " + MALE_CHEST_THRESHOLD + ")");
-                System.out.println("  - Suggestive Pose: " + suggestivePose + " (лимит: " + POSE_THRESHOLD + ")");
 
                 // 🚫 Блокираме неподходящи класове
                 if (lingerie > LINGERIE_THRESHOLD ||           // Бельо - строго
@@ -211,10 +189,8 @@ public class ImageModerationServiceImpl implements ImageModerationService {
 
                 // ✅ Разрешаваме разумни неща
                 if (bikini > 0 && bikini <= BIKINI_THRESHOLD) {
-                    System.out.println("👙 Разрешавам бански костюм: " + bikini);
                 }
                 if (maleChest > 0 && maleChest <= MALE_CHEST_THRESHOLD) {
-                    System.out.println("💪 Разрешавам мъжки гърди: " + maleChest);
                 }
             }
         }

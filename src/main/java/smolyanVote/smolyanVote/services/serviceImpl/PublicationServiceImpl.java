@@ -36,16 +36,19 @@ public class PublicationServiceImpl implements PublicationService {
     private final UserRepository userRepository;
     private final ReportsServiceImpl reportsService;
     private final ReportsRepository reportsRepository;
+    private final ImageCloudinaryServiceImpl imageCloudinaryService;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
                                   UserService userService, UserRepository userRepository,
-                                  ReportsServiceImpl reportsService, ReportsRepository reportsRepository) {
+                                  ReportsServiceImpl reportsService, ReportsRepository reportsRepository,
+                                  ImageCloudinaryServiceImpl imageCloudinaryService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.reportsService = reportsService;
         this.reportsRepository = reportsRepository;
+        this.imageCloudinaryService = imageCloudinaryService;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -146,11 +149,19 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional
     public void delete(Long id) {
         PublicationEntity publication = findById(id);
-        if (publication != null && publication.getStatus() == PublicationStatus.PUBLISHED) {
-            // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
-            UserEntity author = publication.getAuthor();
-            author.setPublicationsCount(author.getPublicationsCount() - 1);
-            userRepository.save(author);
+        if (publication != null) {
+
+            // 🗑️ ИЗТРИВАМЕ СНИМКАТА (ако има)
+            if (publication.getImageUrl() != null && !publication.getImageUrl().isEmpty()) {
+                imageCloudinaryService.deleteImage(publication.getImageUrl());
+            }
+
+            if (publication.getStatus() == PublicationStatus.PUBLISHED) {
+                // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
+                UserEntity author = publication.getAuthor();
+                author.setPublicationsCount(author.getPublicationsCount() - 1);
+                userRepository.save(author);
+            }
         }
         if (reportsRepository.existsByPublicationId(id)) {
             reportsRepository.deleteAllByPublicationId(id);

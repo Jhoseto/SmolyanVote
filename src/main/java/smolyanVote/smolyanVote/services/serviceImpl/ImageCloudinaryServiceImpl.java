@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.ImageModerationService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,16 +60,27 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         return uploadImage(file, publicId, "smolyanVote/multipolls/poll_" + pollId, true); // с воден знак
     }
 
-    @Override
-    public void deleteImage(String imageUrl) {
-
-    }
-
     // 🌟 Метод за качване на снимка на публикация (БЕЗ воден знак)
     public String savePublicationImage(MultipartFile file, String username) {
         String publicId = "publications/user_" + username + "/" + UUID.randomUUID();
         return uploadImage(file, publicId, "smolyanVote/publications/user_" + username, false);
     }
+
+    @Override
+    public void deleteImage(String imageUrl) {
+        try {
+            // Извличаме public_id от URL-а
+            String publicId = extractPublicIdFromUrl(imageUrl);
+            if (publicId != null) {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+                System.out.println("✅ Изтрита снимка: " + publicId);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Грешка при изтриване на снимка: " + e.getMessage());
+        }
+    }
+
+
 
     // 🌟 Общ метод за качване на изображение в Cloudinary
     @SuppressWarnings("unchecked")
@@ -149,5 +161,25 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
     public String savePodcastImage(MultipartFile file, Long episodeId) {
         String publicId = "podcasts/episode_" + episodeId + "/" + UUID.randomUUID();
         return uploadImage(file, publicId, "smolyanVote/podcasts/episode_" + episodeId, false); // БЕЗ воден знак
+    }
+
+
+    // Helper метод
+    private String extractPublicIdFromUrl(String imageUrl) {
+        try {
+            // URL декодиране за %20 -> space
+            String decodedUrl = java.net.URLDecoder.decode(imageUrl, StandardCharsets.UTF_8);
+
+            if (decodedUrl.contains("/smolyanVote/")) {
+                int startIndex = decodedUrl.indexOf("/smolyanVote/") + 1; // +1 за да включи smolyanVote/
+                int endIndex = decodedUrl.lastIndexOf(".");
+                if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+                    return decodedUrl.substring(startIndex, endIndex);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Грешка при извличане на public_id: " + e.getMessage());
+        }
+        return null;
     }
 }
