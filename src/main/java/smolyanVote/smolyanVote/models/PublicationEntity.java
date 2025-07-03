@@ -18,12 +18,12 @@ import java.util.Set;
 public class PublicationEntity extends BaseEntity {
 
     @NotBlank(message = "Заглавието не може да бъде празно")
-    @Size(min = 5, max = 200, message = "Заглавието трябва да бъде между 5 и 200 символа")
+    @Size(min = 1, max = 200, message = "Заглавието трябва да бъде между 1 и 200 символа")
     @Column(name = "title", nullable = false, length = 200)
     private String title;
 
     @NotBlank(message = "Съдържанието не може да бъде празно")
-    @Size(min = 10, max = 10000, message = "Съдържанието трябва да бъде между 10 и 10000 символа")
+    @Size(min = 1, max = 10000, message = "Съдържанието трябва да бъде между 1 и 10000 символа")
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
