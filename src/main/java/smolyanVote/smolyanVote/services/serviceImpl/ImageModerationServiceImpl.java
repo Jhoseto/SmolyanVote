@@ -83,7 +83,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
             if (tempPublicId != null) {
                 try {
                     cloudinary.uploader().destroy(tempPublicId, ObjectUtils.asMap("type", "private"));
-                    System.out.println("🗑️ Временен файл изтрит: " + tempPublicId);
                 } catch (Exception e) {
                     System.err.println("⚠️ Грешка при изтриване на временен файл: " + e.getMessage());
                 }
@@ -133,9 +132,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
             System.out.println("⚠️ Празен отговор от SightEngine, БЛОКИРАМ за сигурност");
             return false; // 🔒 ПОПРАВКА: Блокираме при празен отговор
         }
-
-        // Debug - показваме пълния отговор
-        System.out.println("📋 SightEngine отговор: " + body);
 
         if (body.containsKey("nudity")) {
             Map<String, Object> nudity = (Map<String, Object>) body.get("nudity");
@@ -195,7 +191,6 @@ public class ImageModerationServiceImpl implements ImageModerationService {
             }
         }
 
-        System.out.println("✅ Снимка ОДОБРЕНА от модерацията");
         return true;
     }
 

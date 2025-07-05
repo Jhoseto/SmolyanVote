@@ -73,7 +73,6 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
             String publicId = extractPublicIdFromUrl(imageUrl);
             if (publicId != null) {
                 cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-                System.out.println("✅ Изтрита снимка: " + publicId);
             }
         } catch (Exception e) {
             System.err.println("❌ Грешка при изтриване на снимка: " + e.getMessage());
@@ -88,15 +87,12 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         try {
             // 💾 ПЪРВО запазваме байтовете
             byte[] fileBytes = file.getBytes();
-            System.out.println("💾 Запазени байтове: " + fileBytes.length);
 
             // 🛡️ МОДЕРАЦИЯ ПЪРВО
             if (!imageModerationService.isFileSafe(fileBytes)) {
                 throw new RuntimeException("⚠️ Изображението не премина модерацията");
             }
 
-            System.out.println("🎯 Модерацията премина, започвам реално качване...");
-            System.out.println("📁 Папка: " + folder + ", PublicId: " + publicId);
 
             // Трансформации
             Transformation transformation = new Transformation()
@@ -112,7 +108,6 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
                         .opacity(20)
                         .color("white")
                         .flags("relative");
-                System.out.println("💧 Воден знак добавен");
             }
 
             Map<String, Object> uploadOptions = ObjectUtils.asMap(
@@ -121,11 +116,9 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
                     "transformation", transformation
             );
 
-            System.out.println("🚀 Започвам качване в Cloudinary...");
             Map<String, Object> uploadResult = cloudinary.uploader().upload(fileBytes, uploadOptions);
 
             String finalUrl = (String) uploadResult.get("url");
-            System.out.println("✅ Успешно качване: " + finalUrl);
 
             return finalUrl;
 
