@@ -21,6 +21,6 @@ public class CustomErrorController implements ErrorController {
             // Може други: 403, 500 и т.н.
         }
 
-        return "general_error"; // резервна грешка, ако искаш
+        return "error/general_error"; // резервна грешка, ако искаш
     }
 }

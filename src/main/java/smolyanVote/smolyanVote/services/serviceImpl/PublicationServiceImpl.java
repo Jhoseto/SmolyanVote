@@ -457,7 +457,7 @@ public class PublicationServiceImpl implements PublicationService {
         if (user == null) return false;
 
         // Админите могат да редактират всички публикации
-        if (user.getRole() == UserRole.ADMIN) {
+        if (user.getRole().equals(UserRole.ADMIN) || user.getUsername().equals(publication.getAuthor().getUsername())){
             return true;
         }
 
