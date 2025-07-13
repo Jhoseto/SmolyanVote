@@ -316,29 +316,57 @@ public class PublicationsController {
             @PathVariable Long id,
             Authentication auth) {
 
+        // Добавяме логиране за debugging
+        System.out.println("=== DELETE PUBLICATION DEBUG ===");
+        System.out.println("Publication ID: " + id);
+        System.out.println("User authenticated: " + (auth != null));
+        if (auth != null) {
+            System.out.println("User: " + auth.getName());
+        }
+
         if (auth == null) {
+            System.out.println("ERROR: Authentication is null");
             return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
         }
 
         try {
+            System.out.println("Step 1: Finding publication...");
             PublicationEntity publication = publicationService.findById(id);
+
             if (publication == null) {
+                System.out.println("ERROR: Publication not found with ID: " + id);
                 return ResponseEntity.status(404).body(createErrorResponse("Публикацията не е намерена"));
             }
 
+            System.out.println("Step 2: Publication found - Title: " + publication.getTitle());
+            System.out.println("Step 3: Checking edit permissions...");
+
             if (!publicationService.canEditPublication(publication, auth)) {
+                System.out.println("ERROR: User doesn't have edit permissions");
                 return ResponseEntity.status(403).body(createErrorResponse("Нямате права за изтриване на тази публикация"));
             }
 
+            System.out.println("Step 4: Calling delete service...");
             publicationService.delete(id);
+
+            System.out.println("Step 5: Delete successful!");
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Публикацията е изтрита успешно");
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при изтриването на публикацията"));
+            // ВАЖНО: Логираме пълната грешка!
+            System.err.println("=== DELETE PUBLICATION ERROR ===");
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Exception message: " + e.getMessage());
+            System.err.println("Stack trace:");
+            e.printStackTrace();
+            System.err.println("=== END ERROR ===");
+
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при изтриването на публикацията: " + e.getMessage()));
         }
     }
 
@@ -658,6 +686,86 @@ public class PublicationsController {
             return ResponseEntity.status(500).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на публикацията"));
+        }
+    }
+
+
+    // ====== SHARE ======
+
+    @GetMapping("/{id}")
+    public String showPublicationWithOpenGraphForShare(@PathVariable Long id, Model model, Authentication auth) {
+        try {
+            // Използвай същия сервис както за API
+            PublicationResponseDTO publication = publicationDetailService.getPublicationForModal(id, auth);
+
+            if (publication == null) {
+                return "error/404";
+            }
+
+            // ====== ПОДГОТВИ OPEN GRAPH ДАННИ ======
+            String ogTitle = publication.getTitle();
+            if (ogTitle == null || ogTitle.trim().isEmpty()) {
+                ogTitle = publication.getContent();
+                if (ogTitle != null && ogTitle.length() > 60) {
+                    ogTitle = ogTitle.substring(0, 60) + "...";
+                }
+            }
+            if (ogTitle == null) ogTitle = "Публикация от SmolyanVote";
+
+            String ogDescription = publication.getContent();
+            if (ogDescription != null && ogDescription.length() > 160) {
+                ogDescription = ogDescription.substring(0, 160) + "...";
+            }
+            if (ogDescription == null) ogDescription = "Присъединете се към обсъждането в SmolyanVote.";
+
+            String ogImage = publication.getImageUrl();
+            if (ogImage == null || ogImage.trim().isEmpty()) {
+                ogImage = "/images/logo-social-share.png";
+            }
+            if (ogImage.startsWith("/")) {
+                ogImage = "https://smolyanvote.com" + ogImage; // Замени с твоя домейн
+            }
+
+            // ====== ДОБАВИ OPEN GRAPH КЪМ МОДЕЛА ======
+            model.addAttribute("hasOpenGraph", true);
+            model.addAttribute("ogTitle", ogTitle);
+            model.addAttribute("ogDescription", ogDescription);
+            model.addAttribute("ogImage", ogImage);
+            model.addAttribute("ogUrl", "https://smolyanvote.com/publications/" + id);
+            model.addAttribute("autoOpenModal", true);
+            model.addAttribute("modalPublicationId", id);
+
+            if (publication.getAuthorUsername() != null) {
+                model.addAttribute("ogAuthor", publication.getAuthorUsername());
+            }
+
+            // ====== ИЗПОЛЗВАЙ СЪЩАТА ЛОГИКА КАТО ОСНОВНИЯ @GetMapping ======
+            if (auth != null && auth.isAuthenticated()) {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    model.addAttribute("currentUserId", currentUser.getId());
+                    model.addAttribute("currentUser", currentUser);
+                    model.addAttribute("currentUserImage", currentUser.getImageUrl());
+                }
+            }
+
+            // Същите данни като основната страница
+            model.addAttribute("totalPublications", publicationService.getTotalCount());
+            model.addAttribute("newsCount", publicationService.getCountByCategory(CategoryEnum.NEWS));
+            model.addAttribute("infrastructureCount", publicationService.getCountByCategory(CategoryEnum.INFRASTRUCTURE));
+            model.addAttribute("municipalCount", publicationService.getCountByCategory(CategoryEnum.MUNICIPAL));
+            model.addAttribute("initiativesCount", publicationService.getCountByCategory(CategoryEnum.INITIATIVES));
+            model.addAttribute("cultureCount", publicationService.getCountByCategory(CategoryEnum.CULTURE));
+            model.addAttribute("otherCount", publicationService.getCountByCategory(CategoryEnum.OTHER));
+            model.addAttribute("todayTopAuthors", publicationService.getActiveAuthors(5));
+            model.addAttribute("todayPublications", publicationService.getTodayCount());
+            model.addAttribute("weekPublications", publicationService.getWeekCount());
+            model.addAttribute("activeUsers", 0);
+
+            return "publications"; // Същия template
+
+        } catch (Exception e) {
+            return "error/404";
         }
     }
 

@@ -253,6 +253,11 @@ class PublicationDetailModal {
     }
 
     async sharePost() {
+        if (!window.isAuthenticated) {
+            window.showLoginWarning();
+            return;
+        }
+
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
@@ -492,6 +497,12 @@ class PublicationDetailModal {
 // ====== GLOBAL API ======
 
 window.openPostModal = function(postId) {
+    // Проверка за authentication
+    if (!window.isAuthenticated) {
+        window.showLoginWarning();
+        return;
+    }
+
     if (window.publicationModal) {
         window.publicationModal.open(postId);
     }
