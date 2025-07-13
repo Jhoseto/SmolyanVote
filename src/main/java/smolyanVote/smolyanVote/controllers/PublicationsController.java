@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -693,79 +694,66 @@ public class PublicationsController {
     // ====== SHARE ======
 
     @GetMapping("/{id}")
-    public String showPublicationWithOpenGraphForShare(@PathVariable Long id, Model model, Authentication auth) {
+    public String showPublicationWithOpenGraphForShare(
+            @PathVariable Long id,
+            Model model,
+            Authentication auth,
+            HttpServletRequest request) {
+
         try {
-            // Използвай същия сервис както за API
             PublicationResponseDTO publication = publicationDetailService.getPublicationForModal(id, auth);
 
             if (publication == null) {
-                return "error/404";
+                return "redirect:/publications";
             }
 
-            // ====== ПОДГОТВИ OPEN GRAPH ДАННИ ======
-            String ogTitle = publication.getTitle();
-            if (ogTitle == null || ogTitle.trim().isEmpty()) {
-                ogTitle = publication.getContent();
-                if (ogTitle != null && ogTitle.length() > 60) {
-                    ogTitle = ogTitle.substring(0, 60) + "...";
+            String userAgent = request.getHeader("User-Agent");
+            boolean isFacebookBot = userAgent != null && userAgent.contains("facebookexternalhit");
+
+            if (isFacebookBot) {
+                // ====== ЗА FACEBOOK BOT - ПОДГОТВИ OG ДАННИ ======
+
+                String ogTitle = publication.getTitle();
+                if (ogTitle == null || ogTitle.trim().isEmpty()) {
+                    ogTitle = "Публикация от SmolyanVote";
                 }
-            }
-            if (ogTitle == null) ogTitle = "Публикация от SmolyanVote";
 
-            String ogDescription = publication.getContent();
-            if (ogDescription != null && ogDescription.length() > 160) {
-                ogDescription = ogDescription.substring(0, 160) + "...";
-            }
-            if (ogDescription == null) ogDescription = "Присъединете се към обсъждането в SmolyanVote.";
+                String ogDescription = publication.getContent();
+                if (ogDescription != null && ogDescription.length() > 160) {
+                    ogDescription = ogDescription.substring(0, 160) + "...";
+                }
+                if (ogDescription == null) {
+                    ogDescription = "Присъединете се към обсъждането в SmolyanVote.";
+                }
 
-            String ogImage = publication.getImageUrl();
-            if (ogImage == null || ogImage.trim().isEmpty()) {
-                ogImage = "/images/logo-social-share.png";
-            }
-            if (ogImage.startsWith("/")) {
-                ogImage = "https://smolyanvote.com" + ogImage; // Замени с твоя домейн
-            }
+                String ogImage = publication.getImageUrl();
+                if (ogImage == null || ogImage.trim().isEmpty()) {
+                    ogImage = "https://smolyanvote.com/images/logo1.png";
+                } else if (ogImage.startsWith("/")) {
+                    ogImage = "https://smolyanvote.com" + ogImage;
+                }
 
-            // ====== ДОБАВИ OPEN GRAPH КЪМ МОДЕЛА ======
-            model.addAttribute("hasOpenGraph", true);
-            model.addAttribute("ogTitle", ogTitle);
-            model.addAttribute("ogDescription", ogDescription);
-            model.addAttribute("ogImage", ogImage);
-            model.addAttribute("ogUrl", "https://smolyanvote.com/publications/" + id);
-            model.addAttribute("autoOpenModal", true);
-            model.addAttribute("modalPublicationId", id);
+                String ogUrl = "https://smolyanvote.com/publications/" + id;
 
-            if (publication.getAuthorUsername() != null) {
+                // ====== ПОДАЙ ДАННИТЕ КЪМ TEMPLATE-А ======
+                model.addAttribute("publication", publication);
+                model.addAttribute("ogTitle", ogTitle);
+                model.addAttribute("ogDescription", ogDescription);
+                model.addAttribute("ogImage", ogImage);
+                model.addAttribute("ogUrl", ogUrl);
                 model.addAttribute("ogAuthor", publication.getAuthorUsername());
+
+                return "publication-social";
+
+            } else {
+                // ====== ЗА НОРМАЛНИ ПОТРЕБИТЕЛИ ======
+
+                // Redirect към главната страница с параметър за modal
+                return "redirect:/publications?openModal=" + id;
             }
-
-            // ====== ИЗПОЛЗВАЙ СЪЩАТА ЛОГИКА КАТО ОСНОВНИЯ @GetMapping ======
-            if (auth != null && auth.isAuthenticated()) {
-                UserEntity currentUser = userService.getCurrentUser();
-                if (currentUser != null) {
-                    model.addAttribute("currentUserId", currentUser.getId());
-                    model.addAttribute("currentUser", currentUser);
-                    model.addAttribute("currentUserImage", currentUser.getImageUrl());
-                }
-            }
-
-            // Същите данни като основната страница
-            model.addAttribute("totalPublications", publicationService.getTotalCount());
-            model.addAttribute("newsCount", publicationService.getCountByCategory(CategoryEnum.NEWS));
-            model.addAttribute("infrastructureCount", publicationService.getCountByCategory(CategoryEnum.INFRASTRUCTURE));
-            model.addAttribute("municipalCount", publicationService.getCountByCategory(CategoryEnum.MUNICIPAL));
-            model.addAttribute("initiativesCount", publicationService.getCountByCategory(CategoryEnum.INITIATIVES));
-            model.addAttribute("cultureCount", publicationService.getCountByCategory(CategoryEnum.CULTURE));
-            model.addAttribute("otherCount", publicationService.getCountByCategory(CategoryEnum.OTHER));
-            model.addAttribute("todayTopAuthors", publicationService.getActiveAuthors(5));
-            model.addAttribute("todayPublications", publicationService.getTodayCount());
-            model.addAttribute("weekPublications", publicationService.getWeekCount());
-            model.addAttribute("activeUsers", 0);
-
-            return "publications"; // Същия template
 
         } catch (Exception e) {
-            return "error/404";
+            return "redirect:/publications";
         }
     }
 
