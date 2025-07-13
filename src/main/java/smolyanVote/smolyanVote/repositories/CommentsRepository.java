@@ -280,6 +280,10 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Transactional
     void deleteAllByMultiPoll_Id(Long multiPollId);
 
+    @Transactional
+    void deleteAllByPublicationId(Long publicationId);
+
+
     @Query(value = """
     SELECT c.publication_id, COUNT(*) as comments_count 
     FROM comments_entity c 
@@ -287,4 +291,6 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     GROUP BY c.publication_id
     """, nativeQuery = true)
     List<Object[]> findCommentsCountsForPublications(@Param("publicationIds") List<Long> publicationIds);
+
+    List<CommentsEntity> findByPublicationId(Long id);
 }

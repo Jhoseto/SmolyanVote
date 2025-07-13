@@ -6,21 +6,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.PublicationStatus;
 import smolyanVote.smolyanVote.models.enums.UserRole;
-import smolyanVote.smolyanVote.repositories.PublicationRepository;
-import smolyanVote.smolyanVote.repositories.ReportsRepository;
-import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -37,19 +35,29 @@ public class PublicationServiceImpl implements PublicationService {
     private final ReportsServiceImpl reportsService;
     private final ReportsRepository reportsRepository;
     private final ImageCloudinaryServiceImpl imageCloudinaryService;
+    private final CommentsRepository commentsRepository;
+    private final CommentVoteRepository commentVoteRepository;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
-                                  UserService userService, UserRepository userRepository,
-                                  ReportsServiceImpl reportsService, ReportsRepository reportsRepository,
-                                  ImageCloudinaryServiceImpl imageCloudinaryService) {
+                                  UserService userService,
+                                  UserRepository userRepository,
+                                  ReportsServiceImpl reportsService,
+                                  ReportsRepository reportsRepository,
+                                  ImageCloudinaryServiceImpl imageCloudinaryService,
+                                  CommentsRepository commentsRepository,
+                                  CommentVoteRepository commentVoteRepository) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.reportsService = reportsService;
         this.reportsRepository = reportsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
+        this.commentsRepository = commentsRepository;
+        this.commentVoteRepository = commentVoteRepository;
     }
+
+
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
 
@@ -63,7 +71,7 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         // ЗАЩИТА: Проверка за последна публикация в МИНУТИ
-//        TODO if (publicationRepository.hasRecentPost(author, 0.083)) {
+//        TODO if (publicationRepository.hasRecentPost(author, 1)) {
 //            throw new RuntimeException("Можете да публикувате само една публикация на минута.");
 //        }
         PublicationEntity publication = new PublicationEntity();
@@ -148,25 +156,95 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional
     public void delete(Long id) {
-        PublicationEntity publication = findById(id);
-        if (publication != null) {
+        System.out.println("=== SERVICE DELETE DEBUG ===");
+        System.out.println("Deleting publication with ID: " + id);
+
+        try {
+            PublicationEntity publication = findById(id);
+            if (publication == null) {
+                System.out.println("ERROR: Publication not found in service");
+                return;
+            }
+
+            System.out.println("Publication found: " + publication.getTitle());
 
             // 🗑️ ИЗТРИВАМЕ СНИМКАТА (ако има)
+            System.out.println("Step 1: Checking for image deletion...");
             if (publication.getImageUrl() != null && !publication.getImageUrl().isEmpty()) {
-                imageCloudinaryService.deleteImage(publication.getImageUrl());
+                try {
+                    System.out.println("Deleting image: " + publication.getImageUrl());
+                    imageCloudinaryService.deleteImage(publication.getImageUrl());
+                    System.out.println("Image deleted successfully");
+                } catch (Exception e) {
+                    System.out.println("Error deleting image: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
 
+            // 📉 НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА (ако публикацията беше публикувана)
+            System.out.println("Step 2: Updating author publications count...");
             if (publication.getStatus() == PublicationStatus.PUBLISHED) {
-                // НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА
                 UserEntity author = publication.getAuthor();
-                author.setPublicationsCount(author.getPublicationsCount() - 1);
-                userRepository.save(author);
+                if (author != null && author.getPublicationsCount() > 0) {
+                    System.out.println("Author: " + author.getUsername() + ", Current count: " + author.getPublicationsCount());
+                    author.setPublicationsCount(author.getPublicationsCount() - 1);
+                    userRepository.save(author);
+                    System.out.println("Author publications count updated");
+                }
             }
+
+            // 🗑️ ИЗТРИВАМЕ ВСИЧКИ КОМЕНТАРИ (ВАЖНО!)
+            System.out.println("Step 3: Deleting comments...");
+            try {
+                // Първо изтриваме comment votes
+                System.out.println("Step 3a: Finding comments...");
+                List<CommentsEntity> comments = commentsRepository.findByPublicationId(id);
+                System.out.println("Found " + comments.size() + " comments");
+
+                for (CommentsEntity comment : comments) {
+                    System.out.println("Deleting votes for comment: " + comment.getId());
+                    // Изтриваме всички votes за този коментар
+                    commentVoteRepository.deleteAllByCommentId(comment.getId());
+                }
+
+                System.out.println("Step 3b: Deleting comments...");
+                // Сега изтриваме коментарите
+                commentsRepository.deleteAllByPublicationId(id);
+                System.out.println("Comments deleted successfully");
+
+            } catch (Exception e) {
+                System.out.println("ERROR deleting comments: " + e.getMessage());
+                e.printStackTrace();
+                // Продължаваме, за да не блокираме изтриването
+            }
+
+            // 🗑️ ИЗТРИВАМЕ ВСИЧКИ ДОКЛАДВАНИЯ
+            System.out.println("Step 4: Deleting reports...");
+            try {
+                if (reportsRepository.existsByPublicationId(id)) {
+                    System.out.println("Reports found, deleting...");
+                    reportsRepository.deleteAllByPublicationId(id);
+                    System.out.println("Reports deleted successfully");
+                } else {
+                    System.out.println("No reports found");
+                }
+            } catch (Exception e) {
+                System.out.println("ERROR deleting reports: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            // 🗑️ НАКРАЯ ИЗТРИВАМЕ ПУБЛИКАЦИЯТА
+            System.out.println("Step 5: Deleting publication...");
+            publicationRepository.deleteById(id);
+            System.out.println("Publication deleted successfully!");
+
+        } catch (Exception e) {
+            System.err.println("FATAL ERROR in delete service:");
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Exception message: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Re-throw за да стигне до контролера
         }
-        if (reportsRepository.existsByPublicationId(id)) {
-            reportsRepository.deleteAllByPublicationId(id);
-        }
-        publicationRepository.deleteById(id);
     }
 
     // ====== ФИЛТРИРАНЕ ======

@@ -624,30 +624,161 @@ class PostInteractions {
         setTimeout(() => document.body.removeChild(heart), 1000);
     }
 
-    // ====== OTHER INTERACTIONS ======
+    // ====== SHARE FUNCTIONALITY ======
 
     async sharePublication(postId) {
+        if (!window.isAuthenticated) {
+            this.showLoginPrompt();
+            return;
+        }
+
         try {
             const url = `${window.location.origin}/publications/${postId}`;
 
-            if (navigator.share) {
-                await navigator.share({
-                    title: 'Публикация от SmolyanVote',
-                    url: url
-                });
-                this.trackInteraction('share_native', postId);
-            } else {
-                await navigator.clipboard.writeText(url);
-                this.showToast('Линкът е копиран!', 'success');
-                this.trackInteraction('share_clipboard', postId);
-            }
+            // Показваме диалог за споделяне
+            this.showShareDialog(url, postId);
 
+        } catch (error) {
+            console.error('Error sharing:', error);
+            this.showError('Възникна грешка при споделянето.');
+        }
+    }
+
+    showShareDialog(url, postId) {
+        Swal.fire({
+            title: 'Споделете публикацията',
+            html: `
+                <div style="margin: 20px 0;">
+                    <p style="margin-bottom: 15px;">Копирайте този линк за споделяне:</p>
+                    <div style="position: relative;">
+                        <input type="text" id="shareUrlInput" value="${url}" readonly 
+                               style="width: 100%; padding: 12px 50px 12px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background-color: #f8f9fa;"
+                               onclick="this.select()">
+                        <button id="copyUrlBtn" type="button" 
+                                style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #4b9f3e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            Копирай
+                        </button>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                        <button type="button" class="social-share-btn" data-platform="facebook" 
+                                style="background: #1877f2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            <i class="bi bi-facebook"></i> Facebook
+                        </button>
+                        <button type="button" class="social-share-btn" data-platform="twitter"
+                                style="background: #1da1f2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            <i class="bi bi-twitter"></i> Twitter
+                        </button>
+                        <button type="button" class="social-share-btn" data-platform="whatsapp"
+                                style="background: #25d366; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            <i class="bi bi-whatsapp"></i> WhatsApp
+                        </button>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            showConfirmButton: false,
+            cancelButtonText: 'Затвори',
+            cancelButtonColor: '#6c757d',
+            width: '500px',
+            didOpen: () => {
+                // Copy button функционалност
+                const copyBtn = document.getElementById('copyUrlBtn');
+                const urlInput = document.getElementById('shareUrlInput');
+
+                copyBtn.addEventListener('click', () => {
+                    try {
+                        urlInput.select();
+                        urlInput.setSelectionRange(0, 99999);
+
+                        const successful = document.execCommand('copy');
+                        if (successful) {
+                            copyBtn.textContent = '✓ Копирано';
+                            copyBtn.style.background = '#28a745';
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Копирай';
+                                copyBtn.style.background = '#4b9f3e';
+                            }, 2000);
+
+                            // Отчитаме споделянето
+                            this.recordShare(postId);
+                        } else {
+                            throw new Error('Copy command failed');
+                        }
+                    } catch (err) {
+                        console.error('Copy failed:', err);
+                        copyBtn.textContent = 'Ctrl+C';
+                        copyBtn.style.background = '#ffc107';
+                    }
+                });
+
+                // Social media buttons
+                document.querySelectorAll('.social-share-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const platform = e.currentTarget.dataset.platform;
+                        this.openSocialShare(platform, url, postId);
+                    });
+                });
+            }
+        });
+
+        this.trackInteraction('share_dialog', postId);
+    }
+
+    openSocialShare(platform, url, postId) {
+        const title = 'Публикация от SmolyanVote';
+        let shareUrl = '';
+
+        switch (platform) {
+            case 'facebook':
+                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+                break;
+            case 'twitter':
+                shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+                break;
+            case 'whatsapp':
+                shareUrl = `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`;
+                break;
+            default:
+                return;
+        }
+
+        const popup = window.open(shareUrl, '_blank', 'width=600,height=400,scrollbars=yes,resizable=yes');
+
+        if (popup) {
+            this.trackInteraction(`share_${platform}`, postId);
+            this.showToast(`Отварям ${platform} за споделяне...`, 'info');
+            // Отчитаме споделянето
+            this.recordShare(postId);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
+    }
+
+    async recordShare(postId) {
+        try {
             await window.publicationsAPI.sharePublication(postId);
             this.updateShareCount(postId);
         } catch (error) {
-            console.error('Error sharing:', error);
+            console.error('Error recording share:', error);
         }
     }
+
+    updateShareCount(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            const shareStatsCount = postElement.querySelector('.share-stats-count');
+            if (shareStatsCount) {
+                const currentCount = parseInt(shareStatsCount.textContent) || 0;
+                shareStatsCount.textContent = currentCount + 1;
+                shareStatsCount.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    shareStatsCount.style.transform = '';
+                }, 200);
+            }
+        }
+    }
+
+    // ====== OTHER INTERACTIONS ======
 
     showToast(message, type = 'success') {
         Swal.fire({
@@ -868,21 +999,6 @@ class PostInteractions {
         } catch (error) {
             console.error('Error deleting post:', error);
             this.showError('Възникна грешка при изтриването.');
-        }
-    }
-
-    updateShareCount(postId) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const shareStatsCount = postElement.querySelector('.share-stats-count');
-            if (shareStatsCount) {
-                const currentCount = parseInt(shareStatsCount.textContent) || 0;
-                shareStatsCount.textContent = currentCount + 1;
-                shareStatsCount.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    shareStatsCount.style.transform = '';
-                }, 200);
-            }
         }
     }
 

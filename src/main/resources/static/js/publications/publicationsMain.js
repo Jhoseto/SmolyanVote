@@ -252,7 +252,7 @@ class PublicationsManager {
                  ${canManage ? this.createPostMenu(post.id) : (this.shouldShowReportMenu(authorId) ? this.createReportMenu(post.id) : '')}
         </div>
         
-        <div class="post-content" onclick="openPostModal(${post.id})" style="cursor: pointer;">
+         <div class="post-content" onclick="checkAuthAndOpenModal(${post.id})" style="cursor: pointer;">
             <div class="post-category">
                 <i class="${this.getCategoryIcon(category)}"></i>
                 <span>${this.getCategoryText(category)}</span>
@@ -298,12 +298,12 @@ class PublicationsManager {
                 <i class="bi ${isDisliked ? 'bi-hand-thumbs-down-fill' : 'bi-hand-thumbs-down'}"></i>
                 <span>Не харесвам</span>
             </button>
-            <a href="javascript:void(0)" class="post-action comment-btn" onclick="openPostModal(${post.id})">
+            <a href="javascript:void(0)" class="post-action comment-btn" onclick="checkAuthAndOpenModal(${post.id})">
                 <i class="bi bi-chat"></i>
                 <span>Коментирай</span>
             </a>
-            <button class="post-action share-btn" onclick="sharePublication(${post.id})">
-                <i class="bi bi-share"></i>
+           <button class="post-action share-btn" onclick="checkAuthAndShare(${post.id})">
+                 <i class="bi bi-share"></i>
                 <span>Сподели</span>
             </button>
         </div>
@@ -311,6 +311,8 @@ class PublicationsManager {
 
         return postDiv;
     }
+
+
 
     getOnlineStatus(author) {
         if (!author) return 'offline';
@@ -958,6 +960,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+window.checkAuthAndOpenModal = function(postId) {
+    if (!window.isAuthenticated) {
+        window.showLoginWarning();
+        return;
+    }
+    openPostModal(postId);
+};
+
+window.checkAuthAndShare = function(postId) {
+    if (!window.isAuthenticated) {
+        window.showLoginWarning();
+        return;
+    }
+    sharePublication(postId);
+};
 
 // Export for modules
 if (typeof module !== 'undefined' && module.exports) {

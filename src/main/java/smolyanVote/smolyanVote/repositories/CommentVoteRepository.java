@@ -13,4 +13,6 @@ public interface CommentVoteRepository extends JpaRepository<CommentVoteEntity, 
 
 
     long countByCommentIdAndReaction(Long commentId, CommentReactionType commentReactionType);
+
+    void deleteAllByCommentId(Long id);
 }

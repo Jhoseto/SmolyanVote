@@ -3,17 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Публикации - SmolyanVote</title>
+
+  <!-- ====== DYNAMIC TITLE AND DESCRIPTION ====== -->
+  <title th:if="${hasOpenGraph}" th:text="${ogTitle + ' - SmolyanVote'}">Публикации - SmolyanVote</title>
+  <title th:unless="${hasOpenGraph}">Публикации - SmolyanVote</title>
+
+  <meta th:if="${hasOpenGraph}" name="description" th:content="${ogDescription}">
+  <meta th:unless="${hasOpenGraph}" name="description" content="Присъединете се към обсъждането в SmolyanVote - платформата за гражданско участие в Смолян.">
+
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+  <!-- ====== OPEN GRAPH META TAGS (само когато hasOpenGraph е true) ====== -->
+
+  <meta th:if="${hasOpenGraph}" property="og:type" content="article" />
+  <meta th:if="${hasOpenGraph}" property="og:site_name" content="SmolyanVote" />
+  <meta th:if="${hasOpenGraph}" property="og:title" th:content="${ogTitle}" />
+  <meta th:if="${hasOpenGraph}" property="og:description" th:content="${ogDescription}" />
+  <meta th:if="${hasOpenGraph}" property="og:url" th:content="${ogUrl}" />
+  <meta th:if="${hasOpenGraph}" property="og:image" th:content="${ogImage}" />
+  <meta th:if="${hasOpenGraph}" property="og:image:width" content="1200" />
+  <meta th:if="${hasOpenGraph}" property="og:image:height" content="630" />
+  <meta th:if="${hasOpenGraph}" property="og:image:alt" th:content="${ogTitle}" />
+  <meta th:if="${hasOpenGraph}" property="og:locale" content="bg_BG" />
+  <meta th:if="${ogAuthor}" property="article:author" th:content="${ogAuthor}" />
+  <meta th:if="${ogPublishedTime}" property="article:published_time" th:content="${ogPublishedTime}" />
+  <meta th:if="${ogSection}" property="article:section" th:content="${ogSection}" />
+  <meta property="article:tag" content="SmolyanVote" />
+  <meta property="article:tag" content="Смолян" />
+  <meta property="article:tag" content="Гражданско участие" />
+
+  <!-- Twitter Cards -->
+  <meta th:if="${hasOpenGraph}" name="twitter:card" content="summary_large_image" />
+  <meta th:if="${hasOpenGraph}" name="twitter:title" th:content="${ogTitle}" />
+  <meta th:if="${hasOpenGraph}" name="twitter:description" th:content="${ogDescription}" />
+  <meta th:if="${hasOpenGraph}" name="twitter:image" th:content="${ogImage}" />
+  <meta name="twitter:site" content="@SmolyanVote" />
+  <meta th:if="${ogAuthor}" name="twitter:creator" th:content="'@' + ${ogAuthor}" />
+
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/createPublication.css">
   <link rel="stylesheet" href="/css/publicationsDetailModal.css">
   <link rel="stylesheet" href="/css/comments.css">
-  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+  <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}" />
   <link rel="stylesheet" href="/css/publications.css">
-
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
@@ -21,14 +55,14 @@
     window.currentUserId = /*[[${currentUserId}]]*/ null;
     window.currentUsername = /*[[${#authentication.name ?: ''}]]*/ '';
     window.currentUserImage = /*[[${currentUserImage ?: '/images/default-avatar.png'}]]*/ '/images/default-avatar.png';
-    window.isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;  //
+    window.isAdmin = /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false;
 
     window.appData = {
       isAuthenticated: window.isAuthenticated,
       currentUserId: window.currentUserId,
       currentUsername: window.currentUsername,
       currentUserImage: window.currentUserImage,
-      isAdmin: window.isAdmin,  // <-- И ТОЗИ РЕД
+      isAdmin: window.isAdmin,
       csrfToken: /*[[${_csrf.token}]]*/ '',
       csrfHeader: /*[[${_csrf.headerName}]]*/ '',
       totalPublications: /*[[${totalPublications ?: 0}]]*/ 0,
@@ -108,12 +142,12 @@
           </div>
           <div class="filter-option" data-filter="category" data-value="initiatives">
             <i class="bi bi-lightbulb"></i>
-            <span>Граждански инициативи</span>
+            <span>Инициативи</span>
             <span class="count" th:text="${initiativesCount}">0</span>
           </div>
           <div class="filter-option" data-filter="category" data-value="culture">
             <i class="bi bi-palette"></i>
-            <span>Културни събития</span>
+            <span>Култура</span>
             <span class="count" th:text="${cultureCount}">0</span>
           </div>
           <div class="filter-option" data-filter="category" data-value="other">
@@ -124,62 +158,12 @@
         </div>
       </div>
 
-      <!-- Status Filter -->
-      <div class="filter-section">
-        <label class="filter-label">Статус</label>
-        <div class="filter-options">
-          <div class="filter-option active" data-filter="status" data-value="">
-            <i class="bi bi-eye"></i>
-            <span>Всички</span>
-          </div>
-          <div class="filter-option" data-filter="status" data-value="published">
-            <i class="bi bi-globe"></i>
-            <span>Публикувани</span>
-          </div>
-          <div class="filter-option" data-filter="status" data-value="review" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
-            <i class="bi bi-clock"></i>
-            <span>За преглед</span>
-          </div>
-          <div class="filter-option" data-filter="status" data-value="draft" th:if="${#authorization.expression('isAuthenticated()')}">
-            <i class="bi bi-file-earmark"></i>
-            <span>Моите чернови</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sort Options -->
-      <div class="filter-section">
-        <label class="filter-label">Сортиране</label>
-        <div class="filter-options">
-          <div class="filter-option active" data-filter="sort" data-value="date-desc">
-            <i class="bi bi-sort-down"></i>
-            <span>Най-нови</span>
-          </div>
-          <div class="filter-option" data-filter="sort" data-value="date-asc">
-            <i class="bi bi-sort-up"></i>
-            <span>Най-стари</span>
-          </div>
-          <div class="filter-option" data-filter="sort" data-value="likes">
-            <i class="bi bi-heart-fill"></i>
-            <span>Най-харесвани</span>
-          </div>
-          <div class="filter-option" data-filter="sort" data-value="views">
-            <i class="bi bi-eye-fill"></i>
-            <span>Най-гледани</span>
-          </div>
-          <div class="filter-option" data-filter="sort" data-value="comments">
-            <i class="bi bi-chat-fill"></i>
-            <span>Най-коментирани</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Time Filter -->
       <div class="filter-section">
         <label class="filter-label">Период</label>
         <div class="filter-options">
           <div class="filter-option active" data-filter="time" data-value="">
-            <i class="bi bi-infinity"></i>
+            <i class="bi bi-clock"></i>
             <span>Всички</span>
           </div>
           <div class="filter-option" data-filter="time" data-value="today">
@@ -194,59 +178,59 @@
             <i class="bi bi-calendar-month"></i>
             <span>Този месец</span>
           </div>
-          <div class="filter-option" data-filter="time" data-value="year">
-            <i class="bi bi-calendar-range"></i>
-            <span>Тази година</span>
-          </div>
         </div>
       </div>
 
-      <!-- Author Filter -->
-      <div class="filter-section" th:if="${#authorization.expression('isAuthenticated()')}">
-        <label class="filter-label">Автор</label>
-        <div class="filter-options">
-          <div class="filter-option active" data-filter="author" data-value="">
-            <i class="bi bi-people"></i>
-            <span>Всички автори</span>
-          </div>
-          <div class="filter-option" data-filter="author" data-value="me">
-            <i class="bi bi-person-circle"></i>
-            <span>Моите публикации</span>
-          </div>
-          <div class="filter-option" data-filter="author" data-value="following">
-            <i class="bi bi-person-plus"></i>
-            <span>Следвани автори</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Clear Filters -->
+      <!-- Sort Filter -->
       <div class="filter-section">
-        <button class="clear-all-filters" id="clearAllFilters">
-          <i class="bi bi-arrow-clockwise"></i>
-          Изчисти всички филтри
-        </button>
+        <label class="filter-label">Подредба</label>
+        <div class="filter-options">
+          <div class="filter-option active" data-filter="sort" data-value="date-desc">
+            <i class="bi bi-sort-down"></i>
+            <span>Най-нови</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="date-asc">
+            <i class="bi bi-sort-up"></i>
+            <span>Най-стари</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="likes">
+            <i class="bi bi-heart"></i>
+            <span>Най-харесвани</span>
+          </div>
+          <div class="filter-option" data-filter="sort" data-value="comments">
+            <i class="bi bi-chat"></i>
+            <span>Най-коментирани</span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Active Filters Summary -->
-    <div class="active-filters-summary" id="activeFiltersSummary" style="display: none;">
-      <h4>Активни филтри:</h4>
-      <div class="active-filters-list" id="activeFiltersList"></div>
+      <!-- Clear All Filters -->
+      <button class="clear-all-filters" id="clearAllFilters">
+        <i class="bi bi-arrow-clockwise"></i>
+        Изчисти всички филтри
+      </button>
+
+      <!-- Active Filters Summary -->
+      <div class="active-filters-summary" id="activeFiltersSummary" style="display: none;">
+        <h4>Активни филтри</h4>
+        <div class="active-filters-list" id="activeFiltersList">
+          <!-- Active filters will be shown here -->
+        </div>
+      </div>
     </div>
   </aside>
 
   <!-- Main Feed -->
-  <main class="main-feed">
-    <!-- Create Post Section -->
+  <main class="main-feed" id="mainFeed">
+    <!-- Create Post -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
+      <!-- Quick Actions Row -->
       <div class="create-post-header">
-        <!-- ПРОМЯНА 1: Заменяме img с div който ще се попълни от avatarUtils -->
-        <div class="user-avatar avatar-placeholder"
-             th:attr="data-user-image=${currentUser.getImageUrl()},data-username=${currentUser.username}">
+        <div class="user-avatar"
+             th:attr="data-user-image=${currentUserImage ?: '/images/default-avatar.png'},data-username=${currentUsername ?: 'потребител'}">
         </div>
         <div class="create-post-input" onclick="expandCreateForm()">
-          <span class="placeholder-text">Какво мислите, <span th:text="${currentUser?.username ?: 'потребител'}">потребител</span>?</span>
+          <span th:text="'Какво мислиш, ' + ${currentUsername ?: 'потребител'}">потребител</span>?</span>
         </div>
       </div>
 
@@ -359,8 +343,7 @@
 
     <!-- Posts Feed -->
     <div class="posts-container" id="postsContainer">
-      <!-- ПРОМЯНА 2: Добавяме data-avatar-container за автоматично обработване -->
-      <!-- Posts will be loaded here via JavaScript and avatarUtils will auto-process them -->
+      <!-- Posts will be loaded here via JavaScript -->
     </div>
 
     <!-- Loading Indicator -->
@@ -484,17 +467,17 @@
 
 <!-- Post Detail Modal Fragment -->
 <div th:replace="~{fragments/publications-detail-modal :: postModal}"></div>
+
 <!-- Scripts -->
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
-
 
 <script src="/js/publications/filtersManager.js"></script>
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
-
 <script src="/js/publications/publicationDetailModal.js"></script>
 <script src="/js/commentsManager.js"></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Инициализираме avatar placeholders
@@ -531,42 +514,80 @@
       if (window.createAvatar && username) {
         // Добавяме user-id атрибут ако съществува
         const avatarHtml = window.createAvatar(imageUrl, username, size, className);
-
-        // Създаваме временен div за да парсираме HTML-а
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = avatarHtml;
-        const avatarElement = tempDiv.firstElementChild;
-
-        // Добавяме data атрибути ако ги има
-        if (userId) {
-          avatarElement.setAttribute('data-user-id', userId);
-        }
-        if (imageUrl) {
-          avatarElement.setAttribute('data-user-image', imageUrl);
-        }
-        if (username) {
-          avatarElement.setAttribute('data-username', username);
-        }
-
-        // Заменяме placeholder-а
-        placeholder.outerHTML = avatarElement.outerHTML;
+        placeholder.outerHTML = avatarHtml;
       }
     });
   }
+</script>
 
-  // Функция за обновяване на avatars след AJAX заявки
-  function refreshAvatarsAfterAjax() {
-    setTimeout(() => {
-      initializeAvatarPlaceholders();
-      if (window.avatarUtils) {
-        window.avatarUtils.initializeAllAvatars();
+<!-- ====== AUTO OPEN MODAL SCRIPT ====== -->
+<script th:if="${autoOpenModal}">
+  document.addEventListener('DOMContentLoaded', function() {
+    // Изчакай да се заредят всички компоненти
+    setTimeout(function() {
+      const publicationId = /*[[${modalPublicationId}]]*/ null;
+
+      if (publicationId && window.openPostModal) {
+        console.log('🔄 Автоматично отваряне на модал за публикация:', publicationId);
+
+        // Отвори модала със съществуващата функция
+        window.openPostModal(publicationId);
+
+        // Показване на нотификация след 3 секунди
+        setTimeout(function() {
+          showAutoRedirectNotification();
+        }, 3000);
       }
-    }, 100);
-  }
+    }, 1500);
+  });
 
-  // Export функцията за използване в други скриптове
-  window.refreshAvatarsAfterAjax = refreshAvatarsAfterAjax;
-  window.initializeAvatarPlaceholders = initializeAvatarPlaceholders;
+  function showAutoRedirectNotification() {
+    // Създай notification за автоматично пренасочване
+    const notification = document.createElement('div');
+    notification.innerHTML = `
+        <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                    background: #4cb15c; color: white; padding: 16px 24px;
+                    border-radius: 12px; z-index: 10001; font-family: 'Inter', sans-serif;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 400px; text-align: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="bi bi-info-circle" style="font-size: 20px;"></i>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Споделена публикация</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Ще бъдете пренасочени към публикациите след 30 секунди</div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px; justify-content: center;">
+                <button onclick="window.location.href='/publications'"
+                        style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+                               color: white; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+                    Отиди сега
+                </button>
+                <button onclick="this.closest('div').style.display='none'"
+                        style="background: none; border: 1px solid rgba(255,255,255,0.3);
+                               color: white; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+                    Затвори
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Автоматично пренасочване след 30 секунди
+    setTimeout(function() {
+      window.location.href = '/publications';
+    }, 30000);
+  }
+</script>
+<script th:if="${autoOpenModal}" th:inline="javascript">
+  document.addEventListener('DOMContentLoaded', () => {
+    const postId = /*[[${modalPublicationId}]]*/ null;
+    if (postId && window.openPostModal) {
+      setTimeout(() => {
+        window.openPostModal(postId);
+      }, 500);
+    }
+  });
 </script>
 </body>
 </html>
