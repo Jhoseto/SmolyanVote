@@ -44,6 +44,8 @@ public class PublicationResponseDTO {
     private Boolean isDisliked;
     private Boolean isBookmarked;
     private Boolean isOwner;
+    private String linkUrl;
+    private String linkMetadata;
 
     // ====== CONSTRUCTORS ======
 
@@ -72,6 +74,7 @@ public class PublicationResponseDTO {
         this.commentsCount = publication.getCommentsCount();
         this.sharesCount = publication.getSharesCount();
 
+
         // Author data (if available)
         if (publication.getAuthor() != null) {
             this.authorId = publication.getAuthor().getId();
@@ -85,6 +88,8 @@ public class PublicationResponseDTO {
         this.isDisliked = false;
         this.isBookmarked = false;
         this.isOwner = false;
+        this.linkUrl = publication.getLinkUrl();
+        this.linkMetadata = publication.getLinkMetadata();
     }
 
     // ====== UTILITY METHODS ======
@@ -199,6 +204,14 @@ public class PublicationResponseDTO {
 
     public Boolean getIsOwner() { return isOwner; }
     public void setIsOwner(Boolean isOwner) { this.isOwner = isOwner; }
+
+    public String getLinkUrl() {return linkUrl;}
+
+    public void setLinkUrl(String linkUrl) {this.linkUrl = linkUrl;}
+
+    public String getLinkMetadata() {return linkMetadata;}
+
+    public void setLinkMetadata(String linkMetadata) {this.linkMetadata = linkMetadata;}
 
     @Override
     public String toString() {
