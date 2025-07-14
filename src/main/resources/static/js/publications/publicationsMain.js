@@ -824,7 +824,7 @@ class PublicationsManager {
         const postId = this.currentRenderingPost?.id || 'unknown';
         return `
         <div class="youtube-preview" onclick="openPostModal(${postId})" style="cursor: pointer;">
-            <div class="preview-thumbnail" style="background-image: url('${metadata.thumbnail}'); height: 200px; background-size: cover; background-position: center; position: relative; border-radius: 8px; overflow: hidden;">
+            <div class="preview-thumbnail" style="background-image: url('${metadata.thumbnail}'); height: 300px; background-size: cover; background-position: center; position: relative; border-radius: 8px; overflow: hidden;">
                 <div class="play-button" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                     <i class="bi bi-play-fill"></i>
                 </div>
@@ -846,15 +846,39 @@ class PublicationsManager {
 
     renderImagePreview(metadata) {
         const postId = this.currentRenderingPost?.id || 'unknown';
+        const title = metadata.title || 'Изображение';
+        const description = metadata.description || 'Кликнете за по-голям изглед';
+
         return `
-        <div class="image-preview" onclick="openPostModal(${postId})" style="cursor: pointer;">
-            <div class="preview-image" style="background-image: url('${metadata.url}'); height: 200px; background-size: cover; background-position: center; border-radius: 8px; position: relative; overflow: hidden;">
-                <div class="image-overlay" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 16px; color: white;">
-                    <div class="preview-title" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">
-                        ${metadata.title || 'Изображение'}
+        <div class="image-preview-large" onclick="openPostModal(${postId})" style="cursor: pointer; margin-top: 12px;">
+            <div class="image-large-display" style="
+                background-image: url('${metadata.url}'); 
+                height: 250px; 
+                background-size: cover; 
+                background-position: center; 
+                border-radius: 8px; 
+                position: relative; 
+                overflow: hidden;
+                border: 1px solid #e4e6eb;
+                transition: transform 0.2s ease;
+            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                <div class="image-overlay" style="
+                    position: absolute; 
+                    bottom: 0; 
+                    left: 0; 
+                    right: 0; 
+                    background: linear-gradient(transparent, rgba(0,0,0,0.6)); 
+                    padding: 16px; 
+                    color: white;
+                ">
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px; line-height: 1.3;">
+                        ${title}
                     </div>
-                    <div class="preview-description" style="font-size: 12px; opacity: 0.9;">
-                        ${metadata.description || 'Натиснете за по-голям изглед'}
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ${description}
+                    </div>
+                    <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">
+                        <i class="bi bi-image"></i> ИЗОБРАЖЕНИЕ
                     </div>
                 </div>
             </div>
@@ -864,24 +888,111 @@ class PublicationsManager {
 
     renderWebsitePreview(metadata) {
         const postId = this.currentRenderingPost?.id || 'unknown';
-        return `
-        <div class="website-preview" onclick="openPostModal(${postId})" style="cursor: pointer; display: flex; gap: 12px; padding: 12px; border: 1px solid #e4e6eb; border-radius: 8px; background: #f8f9fa;">
-            <div style="width: 48px; height: 48px; background: #e4e6eb; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i class="bi bi-link-45deg" style="font-size: 20px; color: #65676b;"></i>
+        const hasImage = metadata.image && metadata.image.length > 0;
+        const title = metadata.title || metadata.domain || 'Уебсайт';
+        const description = metadata.description || 'Кликнете за повече информация';
+        const domain = metadata.domain || 'УЕБСАЙТ';
+
+        if (hasImage) {
+            // Голям preview с изображение
+            return `
+            <div class="website-preview-large" onclick="openPostModal(${postId})" style="cursor: pointer;">
+                <div class="website-large-image" style="
+                    background-image: url('${metadata.image}'); 
+                    height: 360px; 
+                    background-size: cover; 
+                    background-position: center; 
+                    border-radius: 8px; 
+                    position: relative; 
+                    overflow: hidden;
+                    border: 1px solid #e4e6eb;
+                ">
+                    <div class="website-overlay" style="
+                        position: absolute; 
+                        bottom: 0; 
+                        left: 0; 
+                        right: 0; 
+                        background: linear-gradient(transparent, rgba(0,0,0,0.7)); 
+                        padding: 16px; 
+                        color: white;
+                    ">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px; line-height: 1.3;">
+                            ${title}
+                        </div>
+                        <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                            ${description}
+                        </div>
+                        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px; text-transform: uppercase;">
+                            ${domain}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div style="flex: 1; min-width: 0;">
-                <div class="preview-title" style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${metadata.title || 'Външен линк'}
+        `;
+        } else {
+            // Compact preview без изображение
+            return `
+            <div class="website-preview-compact" onclick="openPostModal(${postId})" style="
+                cursor: pointer; 
+                display: flex; 
+                gap: 12px; 
+                padding: 12px; 
+                border: 1px solid #e4e6eb; 
+                border-radius: 8px; 
+                background: #f8f9fa;
+                transition: box-shadow 0.2s ease;
+            " onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                <div style="
+                    width: 48px; 
+                    height: 48px; 
+                    background: #e4e6eb; 
+                    border-radius: 8px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    flex-shrink: 0;
+                ">
+                    ${metadata.favicon ?
+                `<img src="${metadata.favicon}" style="width: 24px; height: 24px; object-fit: contain;" alt="Favicon">` :
+                '<i class="bi bi-link-45deg" style="font-size: 20px; color: #65676b;"></i>'
+            }
                 </div>
-                <div class="preview-description" style="font-size: 12px; color: #65676b; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                    ${metadata.description || 'Натиснете за повече информация'}
-                </div>
-                <div class="preview-source" style="font-size: 11px; color: #8a8d91; text-transform: uppercase;">
-                    ${metadata.domain || 'УЕБСАЙТ'}
+                <div style="flex: 1; min-width: 0;">
+                    <div style="
+                        font-size: 14px; 
+                        font-weight: 600; 
+                        color: #1c1e21; 
+                        margin-bottom: 4px; 
+                        white-space: nowrap; 
+                        overflow: hidden; 
+                        text-overflow: ellipsis;
+                    ">
+                        ${title}
+                    </div>
+                    <div style="
+                        font-size: 12px; 
+                        color: #65676b; 
+                        margin-bottom: 4px; 
+                        overflow: hidden; 
+                        display: -webkit-box; 
+                        -webkit-line-clamp: 2; 
+                        -webkit-box-orient: vertical;
+                        line-height: 1.4;
+                    ">
+                        ${description}
+                    </div>
+                    <div style="
+                        font-size: 11px; 
+                        color: #8a8d91; 
+                        text-transform: uppercase;
+                        opacity: 0.8;
+                    ">
+                        ${domain}
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+        }
     }
     getLoadedPostsCount() {
         return this.allLoadedPosts.length;
