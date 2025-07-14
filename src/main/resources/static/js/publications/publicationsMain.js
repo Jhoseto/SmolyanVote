@@ -234,6 +234,12 @@ class PublicationsManager {
             window.avatarUtils.createAvatar(authorImageUrl, authorUsername, 40, 'user-avatar') :
             `<img class="user-avatar" src="${authorImageUrl}" alt="${authorUsername}" style="width:40px;height:40px;">`;
 
+        // NEW: Премахваме URL-а от текста ако има link preview
+        let postText = post.excerpt || post.content || '';
+        if (post.linkUrl && postText.includes(post.linkUrl)) {
+            postText = postText.replace(post.linkUrl, '').trim();
+        }
+
         postDiv.innerHTML = `
         <div class="post-header">
             ${authorAvatarHTML}
@@ -249,52 +255,53 @@ class PublicationsManager {
                     ${post.emotion ? `<span>•</span><span class="post-emotion">${post.emotion} ${post.emotionText || ''}</span>` : ''}
                 </div>
             </div>
-                 ${canManage ? this.createPostMenu(post.id) : (this.shouldShowReportMenu(authorId) ? this.createReportMenu(post.id) : '')}
+            ${canManage ? this.createPostMenu(post.id) : (this.shouldShowReportMenu(authorId) ? this.createReportMenu(post.id) : '')}
         </div>
         
-         <div class="post-content" onclick="checkAuthAndOpenModal(${post.id})" style="cursor: pointer;">
-         ${post.title ? `<h3 class="post-title">${this.escapeHtml(post.title)}</h3>` : ''}
-    <div class="post-text">
-        ${this.escapeHtml(post.excerpt || post.content || '')}
-    </div>
-    
-    <!-- NEW: Link Preview -->
-    ${this.generateLinkPreviewHTML(post)}
+        <div class="post-content" onclick="checkAuthAndOpenModal(${post.id})" style="cursor: pointer;">
+            
+            <!-- Post Text - само текстът без URL -->
+            ${postText ? `<div class="post-text">${this.escapeHtml(postText)}</div>` : ''}
+            
+            <!-- Link Preview -->
+            ${this.generateLinkPreviewHTML(post)}
+            
+            <!-- Image (ако има) -->
+            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
+            
+            <!-- Category -->
             <div class="post-category">
                 <i class="${this.getCategoryIcon(category)}"></i>
                 <span>${this.getCategoryText(category)}</span>
             </div>
-            <div class="post-title">${this.escapeHtml(post.title || 'Без заглавие')}</div>
-            ${post.excerpt && post.excerpt !== post.title ? `<div class="post-excerpt">${this.escapeHtml(post.excerpt)}</div>` : ''}
-            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Publication image" loading="lazy">` : ''}
         </div>
 
         <div class="post-stats">
-    <div class="stats-left">
-        <div class="stats-item">
-            <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
-            <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
+            <div class="stats-left">
+                <div class="stats-item">
+                    <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
+                    <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
+                    <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
+                </div>
+            </div>
+            <div class="stats-right">
+                <div class="stats-item">
+                    <i class="bi bi-eye-fill stats-icon"></i>
+                    <span class="stats-count view-stats-count">${post.viewsCount || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <i class="bi bi-chat-fill stats-icon"></i>
+                    <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
+                </div>  
+                <div class="stats-item">
+                    <i class="bi bi-share-fill stats-icon"></i>
+                    <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
+                </div>
+            </div>
         </div>
-        <div class="stats-item">
-            <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
-            <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
-        </div>
-    </div>
-    <div class="stats-right">
-        <div class="stats-item">
-            <i class="bi bi-eye-fill stats-icon"></i>
-            <span class="stats-count view-stats-count">${post.viewsCount || 0}</span>
-        </div>
-        <div class="stats-item">
-            <i class="bi bi-chat-fill stats-icon"></i>
-            <span class="stats-count comment-stats-count">${post.commentsCount || 0}</span>
-        </div>  
-        <div class="stats-item">
-            <i class="bi bi-share-fill stats-icon"></i>
-            <span class="stats-count share-stats-count">${post.sharesCount || 0}</span>
-        </div>
-    </div>
-</div>
 
         <div class="post-actions">
             <button class="post-action like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
@@ -309,8 +316,8 @@ class PublicationsManager {
                 <i class="bi bi-chat"></i>
                 <span>Коментирай</span>
             </a>
-           <button class="post-action share-btn" onclick="checkAuthAndShare(${post.id})">
-                 <i class="bi bi-share"></i>
+            <button class="post-action share-btn" onclick="checkAuthAndShare(${post.id})">
+                <i class="bi bi-share"></i>
                 <span>Сподели</span>
             </button>
         </div>
@@ -318,7 +325,6 @@ class PublicationsManager {
 
         return postDiv;
     }
-
 
 
     getOnlineStatus(author) {

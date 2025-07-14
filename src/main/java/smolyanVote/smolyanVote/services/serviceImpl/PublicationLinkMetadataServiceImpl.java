@@ -81,6 +81,40 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
 
         String videoId = extractYouTubeVideoId(url);
         if (videoId != null) {
+            try {
+                // Използваме YouTube oEmbed API за реални данни
+                String oembedUrl = "https://www.youtube.com/oembed?url=" + url + "&format=json";
+
+                String response = restTemplate.getForObject(oembedUrl, String.class);
+
+                if (response != null) {
+                    // Parse JSON response
+                    com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(response);
+
+                    String title = jsonNode.has("title") ? jsonNode.get("title").asText() : "YouTube Video";
+                    String authorName = jsonNode.has("author_name") ? jsonNode.get("author_name").asText() : "";
+                    String description = authorName.isEmpty() ?
+                            "Натиснете за възпроизвеждане" :
+                            "От " + authorName + " - Натиснете за възпроизвеждане";
+
+                    metadata.put("type", "youtube");
+                    metadata.put("url", url);
+                    metadata.put("videoId", videoId);
+                    metadata.put("title", title);
+                    metadata.put("description", description);
+                    metadata.put("authorName", authorName);
+                    metadata.put("thumbnail", "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg");
+                    metadata.put("embedUrl", "https://www.youtube.com/embed/" + videoId);
+
+                    return metadata;
+                }
+
+            } catch (Exception e) {
+                // Fallback при грешка
+                System.err.println("Грешка при извличане на YouTube данни: " + e.getMessage());
+            }
+
+            // Fallback - старата логика
             metadata.put("type", "youtube");
             metadata.put("url", url);
             metadata.put("videoId", videoId);
