@@ -253,6 +253,13 @@ class PublicationsManager {
         </div>
         
          <div class="post-content" onclick="checkAuthAndOpenModal(${post.id})" style="cursor: pointer;">
+         ${post.title ? `<h3 class="post-title">${this.escapeHtml(post.title)}</h3>` : ''}
+    <div class="post-text">
+        ${this.escapeHtml(post.excerpt || post.content || '')}
+    </div>
+    
+    <!-- NEW: Link Preview -->
+    ${this.generateLinkPreviewHTML(post)}
             <div class="post-category">
                 <i class="${this.getCategoryIcon(category)}"></i>
                 <span>${this.getCategoryText(category)}</span>
@@ -764,6 +771,103 @@ class PublicationsManager {
             !window.isAdmin;
     }
 
+    generateLinkPreviewHTML(post) {
+        if (!post.linkUrl || !post.linkMetadata) {
+            return '';
+        }
+
+        try {
+            const metadata = typeof post.linkMetadata === 'string'
+                ? JSON.parse(post.linkMetadata)
+                : post.linkMetadata;
+
+            if (!metadata || !metadata.type) {
+                return '';
+            }
+
+            return `
+            <div class="post-link-preview" style="margin-top: 12px;">
+                ${this.renderLinkPreviewByType(metadata)}
+            </div>
+        `;
+
+        } catch (error) {
+            console.error('Error parsing link metadata:', error);
+            return '';
+        }
+    }
+
+    renderLinkPreviewByType(metadata) {
+        switch (metadata.type) {
+            case 'youtube':
+                return this.renderYouTubePreview(metadata);
+            case 'image':
+                return this.renderImagePreview(metadata);
+            case 'website':
+            default:
+                return this.renderWebsitePreview(metadata);
+        }
+    }
+
+    renderYouTubePreview(metadata) {
+        return `
+        <div class="youtube-preview" onclick="openYouTubeLink('${metadata.url}')" style="cursor: pointer;">
+            <div class="preview-thumbnail" style="background-image: url('${metadata.thumbnail}'); height: 200px; background-size: cover; background-position: center; position: relative; border-radius: 8px; overflow: hidden;">
+                <div class="play-button" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                    <i class="bi bi-play-fill"></i>
+                </div>
+            </div>
+            <div class="preview-content" style="padding: 12px; background: #f8f9fa; border: 1px solid #e4e6eb; border-top: none; border-radius: 0 0 8px 8px;">
+                <div class="preview-title" style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 4px;">
+                    ${metadata.title || 'YouTube Video'}
+                </div>
+                <div class="preview-description" style="font-size: 12px; color: #65676b; margin-bottom: 4px;">
+                    ${metadata.description || 'Натиснете за възпроизвеждане'}
+                </div>
+                <div class="preview-source" style="font-size: 11px; color: #65676b; display: flex; align-items: center; gap: 4px;">
+                    <i class="bi bi-youtube" style="color: #ff0000;"></i> YouTube
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    renderImagePreview(metadata) {
+        return `
+        <div class="image-preview" onclick="openImageLink('${metadata.url}')" style="cursor: pointer; text-align: center; border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; background: #f8f9fa;">
+            <img src="${metadata.imageUrl || metadata.url}" 
+                 alt="${metadata.title || 'Изображение'}" 
+                 style="max-width: 100%; max-height: 400px; display: block; margin: 0 auto;"
+                 onerror="this.parentElement.innerHTML='<div style=\\'padding: 20px; color: #65676b;\\'>❌ Грешка при зареждане</div>'">
+            <div style="padding: 8px; font-size: 12px; color: #65676b; background: white; border-top: 1px solid #e4e6eb;">
+                ${metadata.url}
+            </div>
+        </div>
+    `;
+    }
+
+    renderWebsitePreview(metadata) {
+        return `
+        <div class="website-preview" onclick="openWebsiteLink('${metadata.url}')" style="cursor: pointer; display: flex; gap: 12px; padding: 12px; align-items: center; border: 1px solid #e4e6eb; border-radius: 8px; background: #f8f9fa;">
+            <div style="width: 48px; height: 48px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #e4e6eb;">
+                <img src="${metadata.favicon || 'https://www.google.com/s2/favicons?domain=' + (metadata.domain || 'website') + '&sz=32'}" 
+                     style="width: 24px; height: 24px;"
+                     onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'bi bi-globe\\' style=\\'color: #65676b; font-size: 20px;\\'></i>'">
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 2px;">
+                    ${metadata.title || metadata.domain || 'Уебсайт'}
+                </div>
+                <div style="font-size: 12px; color: #65676b; margin-bottom: 2px;">
+                    ${metadata.description || 'Кликнете за отваряне'}
+                </div>
+                <div style="font-size: 11px; color: #65676b; text-transform: uppercase;">
+                    ${metadata.domain || 'website'}
+                </div>
+            </div>
+        </div>
+    `;
+    }
     getLoadedPostsCount() {
         return this.allLoadedPosts.length;
     }
@@ -974,6 +1078,18 @@ window.checkAuthAndShare = function(postId) {
         return;
     }
     sharePublication(postId);
+};
+
+window.openYouTubeLink = function(url) {
+    window.open(url, '_blank');
+};
+
+window.openImageLink = function(url) {
+    window.open(url, '_blank');
+};
+
+window.openWebsiteLink = function(url) {
+    window.open(url, '_blank');
 };
 
 // Export for modules
