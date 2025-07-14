@@ -178,6 +178,15 @@ class PublicationDetailModal {
             imageContainer.style.display = 'none';
         }
 
+        // ====== НОВА ЛОГИКА ЗА ЛИНКОВЕ  ======
+        // Link content
+        if (post.linkUrl && post.linkMetadata) {
+            this.populateLinkContent(post.linkUrl, post.linkMetadata);
+        } else {
+            this.hideLinkContent();
+        }
+
+
         // Stats
         this.setText('modalLikesCount', post.likesCount || 0);
         this.setText('modalDislikesCount', post.dislikesCount || 0);
@@ -471,6 +480,144 @@ class PublicationDetailModal {
             'OTHER': 'bi bi-tag'
         };
         return icons[category] || 'bi bi-tag';
+    }
+
+    populateLinkContent(linkUrl, linkMetadata) {
+        try {
+            const metadata = typeof linkMetadata === 'string'
+                ? JSON.parse(linkMetadata)
+                : linkMetadata;
+
+            if (!metadata || !metadata.type) {
+                this.hideLinkContent();
+                return;
+            }
+
+            console.log('🔧 DEBUG: Populating link content:', metadata);
+
+            // Показваме link секцията
+            const linkContent = document.getElementById('modalLinkContent');
+            if (linkContent) {
+                linkContent.style.display = 'block';
+            }
+
+            // Скриваме всички preview типове
+            const youtubePlayer = document.getElementById('modalYouTubePlayer');
+            const imageDisplay = document.getElementById('modalImageDisplay');
+            const websitePreview = document.getElementById('modalWebsitePreview');
+
+            if (youtubePlayer) youtubePlayer.style.display = 'none';
+            if (imageDisplay) imageDisplay.style.display = 'none';
+            if (websitePreview) websitePreview.style.display = 'none';
+
+            // Показваме правилния тип според metadata
+            switch (metadata.type) {
+                case 'youtube':
+                    this.showYouTubePlayer(metadata);
+                    break;
+                case 'image':
+                    this.showImageDisplay(metadata);
+                    break;
+                case 'website':
+                default:
+                    this.showWebsitePreview(metadata);
+                    break;
+            }
+
+        } catch (error) {
+            console.error('❌ Error parsing link metadata:', error);
+            this.hideLinkContent();
+        }
+    }
+
+    showYouTubePlayer(metadata) {
+        const playerContainer = document.getElementById('modalYouTubePlayer');
+        const iframe = document.getElementById('modalYouTubeIframe');
+        const title = document.getElementById('modalYouTubeTitle');
+        const link = document.getElementById('modalYouTubeLink');
+        const linkText = document.getElementById('modalYouTubeLinkText');
+
+        if (!playerContainer || !iframe || !title || !link || !linkText) {
+            console.error('❌ YouTube player elements not found');
+            return;
+        }
+
+        // Задаваме embed URL
+        iframe.src = metadata.embedUrl || `https://www.youtube.com/embed/${metadata.videoId}`;
+
+        // Задаваме заглавие
+        title.textContent = metadata.title || 'YouTube Video';
+
+        // Задаваме линка
+        link.href = metadata.url;
+        linkText.textContent = metadata.title || 'Отвори в YouTube';
+
+        // Показваме контейнера
+        playerContainer.style.display = 'block';
+
+        console.log('✅ DEBUG: YouTube player populated');
+    }
+
+    showImageDisplay(metadata) {
+        const imageContainer = document.getElementById('modalImageDisplay');
+        const image = document.getElementById('modalLinkImage');
+        const title = document.getElementById('modalImageTitle');
+        const link = document.getElementById('modalImageLink');
+
+        if (!imageContainer || !image || !title || !link) {
+            console.error('❌ Image display elements not found');
+            return;
+        }
+
+        // Задаваме изображението
+        image.src = metadata.url;
+        image.alt = metadata.title || 'Изображение';
+
+        // Задаваме заглавието
+        title.textContent = metadata.title || 'Изображение';
+
+        // Задаваме линка
+        link.href = metadata.url;
+
+        // Показваме контейнера
+        imageContainer.style.display = 'block';
+
+        console.log('✅ DEBUG: Image display populated');
+    }
+
+    showWebsitePreview(metadata) {
+        const previewContainer = document.getElementById('modalWebsitePreview');
+        const title = document.getElementById('modalWebsiteTitle');
+        const description = document.getElementById('modalWebsiteDescription');
+        const domain = document.getElementById('modalWebsiteDomain');
+        const link = document.getElementById('modalWebsiteLink');
+
+        if (!previewContainer || !title || !description || !domain || !link) {
+            console.error('❌ Website preview elements not found');
+            return;
+        }
+
+        // Задаваме данните
+        title.textContent = metadata.title || 'Уебсайт';
+        description.textContent = metadata.description || 'Посетете уебсайта за повече информация';
+        domain.textContent = metadata.domain || 'УЕБСАЙТ';
+
+        // Задаваме линка
+        link.href = metadata.url;
+
+        // Показваме контейнера
+        previewContainer.style.display = 'block';
+
+        console.log('✅ DEBUG: Website preview populated');
+    }
+
+    hideLinkContent() {
+        const linkContent = document.getElementById('modalLinkContent');
+        if (linkContent) {
+            linkContent.style.display = 'none';
+        }
+
+        console.log('🔧 DEBUG: Link content hidden');
     }
 
     showLoading() {
