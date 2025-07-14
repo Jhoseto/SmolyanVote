@@ -791,6 +791,9 @@ class PublicationsManager {
                 return '';
             }
 
+            // Запазваме референция към текущия post за render методите
+            this.currentRenderingPost = post;
+
             return `
             <div class="post-link-preview" style="margin-top: 12px;">
                 ${this.renderLinkPreviewByType(metadata)}
@@ -814,10 +817,13 @@ class PublicationsManager {
                 return this.renderWebsitePreview(metadata);
         }
     }
-
+    setCurrentRenderingPost(post) {
+        this.currentRenderingPost = post;
+    }
     renderYouTubePreview(metadata) {
+        const postId = this.currentRenderingPost?.id || 'unknown';
         return `
-        <div class="youtube-preview" onclick="openYouTubeLink('${metadata.url}')" style="cursor: pointer;">
+        <div class="youtube-preview" onclick="openPostModal(${postId})" style="cursor: pointer;">
             <div class="preview-thumbnail" style="background-image: url('${metadata.thumbnail}'); height: 200px; background-size: cover; background-position: center; position: relative; border-radius: 8px; overflow: hidden;">
                 <div class="play-button" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(255, 0, 0, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                     <i class="bi bi-play-fill"></i>
@@ -830,8 +836,8 @@ class PublicationsManager {
                 <div class="preview-description" style="font-size: 12px; color: #65676b; margin-bottom: 4px;">
                     ${metadata.description || 'Натиснете за възпроизвеждане'}
                 </div>
-                <div class="preview-source" style="font-size: 11px; color: #65676b; display: flex; align-items: center; gap: 4px;">
-                    <i class="bi bi-youtube" style="color: #ff0000;"></i> YouTube
+                <div class="preview-source" style="font-size: 11px; color: #8a8d91; text-transform: uppercase;">
+                    YouTube
                 </div>
             </div>
         </div>
@@ -839,36 +845,39 @@ class PublicationsManager {
     }
 
     renderImagePreview(metadata) {
+        const postId = this.currentRenderingPost?.id || 'unknown';
         return `
-        <div class="image-preview" onclick="openImageLink('${metadata.url}')" style="cursor: pointer; text-align: center; border: 1px solid #e4e6eb; border-radius: 8px; overflow: hidden; background: #f8f9fa;">
-            <img src="${metadata.imageUrl || metadata.url}" 
-                 alt="${metadata.title || 'Изображение'}" 
-                 style="max-width: 100%; max-height: 400px; display: block; margin: 0 auto;"
-                 onerror="this.parentElement.innerHTML='<div style=\\'padding: 20px; color: #65676b;\\'>❌ Грешка при зареждане</div>'">
-            <div style="padding: 8px; font-size: 12px; color: #65676b; background: white; border-top: 1px solid #e4e6eb;">
-                ${metadata.url}
+        <div class="image-preview" onclick="openPostModal(${postId})" style="cursor: pointer;">
+            <div class="preview-image" style="background-image: url('${metadata.url}'); height: 200px; background-size: cover; background-position: center; border-radius: 8px; position: relative; overflow: hidden;">
+                <div class="image-overlay" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 16px; color: white;">
+                    <div class="preview-title" style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">
+                        ${metadata.title || 'Изображение'}
+                    </div>
+                    <div class="preview-description" style="font-size: 12px; opacity: 0.9;">
+                        ${metadata.description || 'Натиснете за по-голям изглед'}
+                    </div>
+                </div>
             </div>
         </div>
     `;
     }
 
     renderWebsitePreview(metadata) {
+        const postId = this.currentRenderingPost?.id || 'unknown';
         return `
-        <div class="website-preview" onclick="openWebsiteLink('${metadata.url}')" style="cursor: pointer; display: flex; gap: 12px; padding: 12px; align-items: center; border: 1px solid #e4e6eb; border-radius: 8px; background: #f8f9fa;">
-            <div style="width: 48px; height: 48px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #e4e6eb;">
-                <img src="${metadata.favicon || 'https://www.google.com/s2/favicons?domain=' + (metadata.domain || 'website') + '&sz=32'}" 
-                     style="width: 24px; height: 24px;"
-                     onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'bi bi-globe\\' style=\\'color: #65676b; font-size: 20px;\\'></i>'">
+        <div class="website-preview" onclick="openPostModal(${postId})" style="cursor: pointer; display: flex; gap: 12px; padding: 12px; border: 1px solid #e4e6eb; border-radius: 8px; background: #f8f9fa;">
+            <div style="width: 48px; height: 48px; background: #e4e6eb; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="bi bi-link-45deg" style="font-size: 20px; color: #65676b;"></i>
             </div>
-            <div style="flex: 1;">
-                <div style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 2px;">
-                    ${metadata.title || metadata.domain || 'Уебсайт'}
+            <div style="flex: 1; min-width: 0;">
+                <div class="preview-title" style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${metadata.title || 'Външен линк'}
                 </div>
-                <div style="font-size: 12px; color: #65676b; margin-bottom: 2px;">
-                    ${metadata.description || 'Кликнете за отваряне'}
+                <div class="preview-description" style="font-size: 12px; color: #65676b; margin-bottom: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                    ${metadata.description || 'Натиснете за повече информация'}
                 </div>
-                <div style="font-size: 11px; color: #65676b; text-transform: uppercase;">
-                    ${metadata.domain || 'website'}
+                <div class="preview-source" style="font-size: 11px; color: #8a8d91; text-transform: uppercase;">
+                    ${metadata.domain || 'УЕБСАЙТ'}
                 </div>
             </div>
         </div>
