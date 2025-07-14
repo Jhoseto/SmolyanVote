@@ -10,6 +10,7 @@ class PostInteractions {
         this.selectedEmotion = null;
         this.selectedEmotionText = '';
         this.isFormExpanded = false;
+        this.currentLinkData = null;
 
         this.init();
     }
@@ -20,6 +21,9 @@ class PostInteractions {
         this.setupCreatePostForm();
         this.requestNotificationPermission();
     }
+
+    // ПЪЛЕН setupCreatePostForm() метод с добавена link функционалност
+// Заместваш този метод в postInteractions.js класа
 
     setupCreatePostForm() {
         // Text area auto-resize and validation
@@ -45,6 +49,35 @@ class PostInteractions {
                 if (e.target.files[0]) {
                     this.handleImageUpload(e.target.files[0]);
                 }
+            });
+        }
+
+        // NEW: Link button functionality
+        const linkBtn = document.getElementById('linkBtn');
+        const linkInputSection = document.getElementById('linkInputSection');
+        const linkInput = document.getElementById('postLink');
+
+        if (linkBtn && linkInputSection && linkInput) {
+            // Toggle link input section
+            linkBtn.addEventListener('click', () => {
+                const isVisible = linkInputSection.style.display !== 'none';
+                if (isVisible) {
+                    this.hideLinkInput();
+                } else {
+                    this.showLinkInput();
+                }
+            });
+
+            // Handle link input changes
+            linkInput.addEventListener('input', (e) => {
+                this.handleLinkInput(e.target.value);
+            });
+
+            // Handle link input paste
+            linkInput.addEventListener('paste', (e) => {
+                setTimeout(() => {
+                    this.handleLinkInput(e.target.value);
+                }, 100);
             });
         }
 
@@ -1016,6 +1049,279 @@ class PostInteractions {
         }
     }
 
+    showLinkInput() {
+        const linkInputSection = document.getElementById('linkInputSection');
+        const linkInput = document.getElementById('postLink');
+
+        linkInputSection.style.display = 'block';
+        setTimeout(() => {
+            linkInput.focus();
+        }, 100);
+    }
+
+    hideLinkInput() {
+        const linkInputSection = document.getElementById('linkInputSection');
+        const linkInput = document.getElementById('postLink');
+        const linkPreviewContainer = document.getElementById('linkPreviewContainer');
+
+        linkInputSection.style.display = 'none';
+        linkInput.value = '';
+        linkPreviewContainer.style.display = 'none';
+
+        // Clear any stored link data
+        this.currentLinkData = null;
+    }
+
+    handleLinkInput(url) {
+        const trimmedUrl = url.trim();
+
+        if (!trimmedUrl) {
+            this.hideLinkPreview();
+            return;
+        }
+
+        // Basic URL validation
+        if (this.isValidURL(trimmedUrl)) {
+            this.processLink(trimmedUrl);
+        } else {
+            this.hideLinkPreview();
+        }
+    }
+
+    isValidURL(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    }
+
+    hideLinkPreview() {
+        const linkPreviewContainer = document.getElementById('linkPreviewContainer');
+        linkPreviewContainer.style.display = 'none';
+        this.currentLinkData = null;
+    }
+
+    processLink(url) {
+        // Show loading state
+        this.showLinkLoading();
+
+        // Determine link type and generate appropriate preview
+        const linkType = this.determineLinkType(url);
+
+        setTimeout(() => {
+            if (linkType === 'youtube') {
+                this.generateYouTubePreview(url);
+            } else if (linkType === 'image') {
+                this.generateImagePreview(url);
+            } else {
+                this.generateWebsitePreview(url);
+            }
+        }, 1000); // Simulate API delay
+    }
+
+    showLinkLoading() {
+        const linkPreviewContainer = document.getElementById('linkPreviewContainer');
+        const linkPreview = document.getElementById('linkPreview');
+
+        linkPreview.innerHTML = `
+        <div class="link-loading" style="padding: 12px; text-align: center;">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <span style="margin-left: 8px; color: #65676b; font-size: 14px;">Зареждане на информация...</span>
+        </div>
+    `;
+
+        linkPreviewContainer.style.display = 'block';
+    }
+
+    showLinkPreview(linkData) {
+        const linkPreviewContainer = document.getElementById('linkPreviewContainer');
+        const linkPreview = document.getElementById('linkPreview');
+
+        // Store link data for later use
+        this.currentLinkData = linkData;
+
+        // Generate preview HTML based on link type
+        let previewHTML = '';
+
+        if (linkData.type === 'youtube') {
+            previewHTML = `
+            <div class="youtube-preview">
+                <div class="preview-thumbnail" style="background-image: url('${linkData.thumbnail}')">
+                    <div class="play-button">
+                        <i class="bi bi-play-fill"></i>
+                    </div>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-title">${linkData.title}</div>
+                    <div class="preview-description">${linkData.description}</div>
+                    <div class="preview-source">
+                        <i class="bi bi-youtube" style="color: #ff0000;"></i>
+                        YouTube
+                    </div>
+                </div>
+            </div>
+        `;
+        } else if (linkData.type === 'image') {
+            previewHTML = `
+            <div class="image-preview">
+                <img src="${linkData.imageUrl}" 
+                     alt="${linkData.title}" 
+                     style="max-width: 100%; max-height: 300px; border-radius: 6px; display: block; margin: 8px auto;"
+                     onload="this.style.opacity='1'" 
+                     onerror="this.parentElement.innerHTML='<div style=\\'padding: 20px; text-align: center; color: #65676b; font-size: 14px;\\'>❌ Неуспешно зареждане на изображението</div>'">
+                <div style="padding: 8px 12px; font-size: 12px; color: #65676b; text-align: center;">
+                    ${linkData.url}
+                </div>
+            </div>
+        `;
+        } else if (linkData.type === 'website') {
+            previewHTML = `
+            <div class="website-preview" style="display: flex; gap: 12px; padding: 12px; align-items: center;">
+                <div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img src="${linkData.favicon}" 
+                         alt="favicon" 
+                         style="width: 24px; height: 24px;"
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'bi bi-globe\\' style=\\'color: #65676b; font-size: 20px;\\'></i>'">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 2px; word-break: break-word;">
+                        ${linkData.title}
+                    </div>
+                    <div style="font-size: 12px; color: #65676b; margin-bottom: 2px;">
+                        ${linkData.description}
+                    </div>
+                    <div style="font-size: 11px; color: #65676b; text-transform: uppercase;">
+                        ${linkData.domain}
+                    </div>
+                </div>
+            </div>
+        `;
+        } else if (linkData.type === 'loading') {
+            previewHTML = `
+            <div class="website-preview" style="display: flex; gap: 12px; padding: 12px; align-items: center;">
+                <div style="width: 48px; height: 48px; background: #f0f2f5; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1c1e21; margin-bottom: 2px;">
+                        ${linkData.title}
+                    </div>
+                    <div style="font-size: 12px; color: #65676b;">
+                        ${linkData.description}
+                    </div>
+                </div>
+            </div>
+        `;
+        }
+
+        linkPreview.innerHTML = previewHTML;
+        linkPreviewContainer.style.display = 'block';
+    }
+
+    determineLinkType(url) {
+        const urlLower = url.toLowerCase();
+
+        // YouTube detection
+        if (urlLower.includes('youtube.com/watch') ||
+            urlLower.includes('youtu.be/') ||
+            urlLower.includes('youtube.com/embed')) {
+            return 'youtube';
+        }
+
+        // Image detection
+        if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/)) {
+            return 'image';
+        }
+
+        // Default to website
+        return 'website';
+    }
+
+    generateYouTubePreview(url) {
+        const videoId = this.extractYouTubeVideoId(url);
+
+        if (!videoId) {
+            this.generateWebsitePreview(url);
+            return;
+        }
+
+        const previewData = {
+            type: 'youtube',
+            url: url,
+            videoId: videoId,
+            title: 'YouTube Video',
+            description: 'Натиснете за възпроизвеждане',
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            embedUrl: `https://www.youtube.com/embed/${videoId}`
+        };
+
+        this.showLinkPreview(previewData);
+    }
+
+    extractYouTubeVideoId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+
+        return null;
+    }
+
+    generateImagePreview(url) {
+        // Проверяваме дали URL-ът наистина е за снимка
+        const img = new Image();
+
+        img.onload = () => {
+            const previewData = {
+                type: 'image',
+                url: url,
+                title: 'Изображение',
+                imageUrl: url
+            };
+            this.showLinkPreview(previewData);
+        };
+
+        img.onerror = () => {
+            // Ако не е валидна снимка, покажи като website
+            this.generateWebsitePreview(url);
+        };
+
+        img.src = url;
+    }
+
+    generateWebsitePreview(url) {
+        const domain = this.extractDomain(url);
+
+        const previewData = {
+            type: 'website',
+            url: url,
+            title: domain,
+            description: `Линк към ${domain}`,
+            domain: domain,
+            favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+        };
+
+        this.showLinkPreview(previewData);
+    }
+
+    extractDomain(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.hostname.replace('www.', '');
+        } catch {
+            return 'Уебсайт';
+        }
+    }
+
     updateCommentCount(postId, count) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
@@ -1221,6 +1527,7 @@ animationStyles.textContent = `
     }
 `;
 document.head.appendChild(animationStyles);
+
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

@@ -96,6 +96,12 @@ public class PublicationEntity extends BaseEntity {
     @Column(name = "reported_by_users", columnDefinition = "TEXT")
     private String reportedByUsers; // JSON array of report objects
 
+    @Column(name = "link_url", length = 1000)
+    private String linkUrl;
+
+    @Column(name = "link_metadata", columnDefinition = "TEXT")
+    private String linkMetadata; // JSON string with link preview data
+
     // ====== CONSTRUCTORS ======
 
     public PublicationEntity() {
@@ -121,6 +127,10 @@ public class PublicationEntity extends BaseEntity {
     public void generateExcerpt() {
         if (content != null && !content.trim().isEmpty()) {
             String plainText = content.replaceAll("<[^>]*>", ""); // Remove HTML tags
+
+            // Remove URLs from excerpt to make it cleaner
+            plainText = plainText.replaceAll("https?://\\S+", "");
+
             if (plainText.length() > 200) {
                 this.excerpt = plainText.substring(0, 200) + "...";
             } else {
@@ -327,6 +337,19 @@ public class PublicationEntity extends BaseEntity {
         }
     }
 
+    // HELPER методи за work с link данните:
+
+    public boolean hasLink() {
+        return linkUrl != null && !linkUrl.trim().isEmpty();
+    }
+
+    public void clearLink() {
+        this.linkUrl = null;
+        this.linkMetadata = null;
+    }
+
+
+
     // ====== GETTERS AND SETTERS ======
 
     public String getTitle() { return title; }
@@ -388,4 +411,12 @@ public class PublicationEntity extends BaseEntity {
 
     public String getBookmarkedByUsers() { return bookmarkedByUsers; }
     public void setBookmarkedByUsers(String bookmarkedByUsers) { this.bookmarkedByUsers = bookmarkedByUsers; }
+
+    public String getLinkUrl() {return linkUrl;}
+
+    public void setLinkUrl(String linkUrl) {this.linkUrl = linkUrl;}
+
+    public String getLinkMetadata() {return linkMetadata;}
+
+    public void setLinkMetadata(String linkMetadata) {this.linkMetadata = linkMetadata;}
 }

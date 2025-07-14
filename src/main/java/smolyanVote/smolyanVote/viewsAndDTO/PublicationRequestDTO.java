@@ -27,6 +27,9 @@ public class PublicationRequestDTO {
     @Size(max = 20, message = "Статусът не може да бъде повече от 20 символа")
     private String status = "PUBLISHED";
 
+    private String linkUrl;
+    private String linkMetadata;
+
     // ====== CONSTRUCTORS ======
 
     public PublicationRequestDTO() {
@@ -95,6 +98,14 @@ public class PublicationRequestDTO {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getLinkUrl() {return linkUrl;}
+
+    public void setLinkUrl(String linkUrl) {this.linkUrl = linkUrl;}
+
+    public String getLinkMetadata() {return linkMetadata;}
+
+    public void setLinkMetadata(String linkMetadata) {this.linkMetadata = linkMetadata;}
 
     // ====== UTILITY METHODS ======
 

@@ -227,10 +227,10 @@
       <!-- Quick Actions Row -->
       <div class="create-post-header">
         <div class="user-avatar"
-             th:attr="data-user-image=${currentUserImage ?: '/images/default-avatar.png'},data-username=${currentUsername ?: 'потребител'}">
+             th:attr="data-user-image=${currentUserImage ?: '/images/default-avatar.png'},data-username=${currentUser.username ?: 'потребител'}">
         </div>
         <div class="create-post-input" onclick="expandCreateForm()">
-          <span th:text="'Какво мислиш, ' + ${currentUsername ?: 'потребител'}">потребител</span>?</span>
+          <span th:text="'Какво мислиш, ' + ${currentUser.username ?: 'потребител'}">потребител</span>?</span>
         </div>
       </div>
 
@@ -262,17 +262,32 @@
           </select>
         </div>
 
-        <!-- Options Row -->
-        <div class="post-options-row">
-          <span class="options-text">Добави към публикацията:</span>
-          <div class="options-buttons">
-            <button class="option-btn" id="imageBtn" title="Снимка">
-              <i class="bi bi-image"></i>
-            </button>
-            <button class="option-btn" id="emotionBtn" title="Настроение">
-              <i class="bi bi-emoji-smile"></i>
-            </button>
+        <!-- Link Input Section -->
+        <div class="link-input-section" id="linkInputSection" style="display: none;">
+          <div class="link-input-wrapper">
+            <input type="url" class="link-input" id="postLink"
+                   placeholder="Постави линк (YouTube, снимка, уебсайт...)">
           </div>
+
+          <!-- Link Preview Container -->
+          <div class="link-preview-container" id="linkPreviewContainer" style="display: none;">
+            <div class="link-preview" id="linkPreview">
+              <!-- Динамично съдържание ще се добавя тук -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Options Row -->
+        <div class="options-buttons">
+          <button class="option-btn" id="imageBtn" title="Снимка">
+            <i class="bi bi-image"></i>
+          </button>
+          <button class="option-btn" id="linkBtn" title="Линк">
+            <i class="bi bi-link-45deg"></i>
+          </button>
+          <button class="option-btn" id="emotionBtn" title="Настроение">
+            <i class="bi bi-emoji-smile"></i>
+          </button>
         </div>
 
         <!-- Emotion Picker -->
