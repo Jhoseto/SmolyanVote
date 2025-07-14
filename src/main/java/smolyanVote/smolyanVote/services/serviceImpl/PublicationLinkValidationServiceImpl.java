@@ -17,7 +17,7 @@ public class PublicationLinkValidationServiceImpl implements PublicationLinkVali
             "pornhub.com", "xvideos.com", "xnxx.com",
             "redtube.com", "youporn.com", "xhamster.com",
             "tube8.com", "drtuber.com", "spankbang.com"
-            // Добавяй още при нужда
+
     );
 
     private final RestTemplate restTemplate;
@@ -30,9 +30,17 @@ public class PublicationLinkValidationServiceImpl implements PublicationLinkVali
      * Проверява дали URL-ът е валиден и безопасен
      */
     @Override
-    public ValidationResult validateUrl(String url) {
+    public boolean isUrlValid(String url) {
+        return getValidationError(url) == null;
+    }
+
+    /**
+     * Връща error съобщение ако URL-ът е невалиден
+     */
+    @Override
+    public String getValidationError(String url) {
         if (url == null || url.trim().isEmpty()) {
-            return new ValidationResult(false, "URL е празен");
+            return "URL е празен";
         }
 
         try {
@@ -41,24 +49,24 @@ public class PublicationLinkValidationServiceImpl implements PublicationLinkVali
 
             // 1. Проверка за блокирани домейни
             if (isBlockedDomain(domain)) {
-                return new ValidationResult(false, "Този домейн е блокиран");
+                return "Този домейн е блокиран";
             }
 
             // 2. Проверка за валиден протокол
             if (!url.toLowerCase().startsWith("http://") &&
                     !url.toLowerCase().startsWith("https://")) {
-                return new ValidationResult(false, "Поддържат се само HTTP и HTTPS протоколи");
+                return "Поддържат се само HTTP и HTTPS протоколи";
             }
 
             // 3. Проверка дали URL-ът е достъпен (HTTP HEAD заявка)
             if (!isUrlAccessible(url)) {
-                return new ValidationResult(false, "URL-ът не е достъпен");
+                return "URL-ът не е достъпен";
             }
 
-            return new ValidationResult(true, "URL е валиден");
+            return null; // Няма грешка = валиден URL
 
         } catch (Exception e) {
-            return new ValidationResult(false, "Невалиден URL формат: " + e.getMessage());
+            return "Невалиден URL формат: " + e.getMessage();
         }
     }
 
@@ -90,27 +98,6 @@ public class PublicationLinkValidationServiceImpl implements PublicationLinkVali
         } catch (Exception e) {
             // Ако има грешка при достъпа, считаме URL-ът за недостъпен
             return false;
-        }
-    }
-
-    /**
-     * Резултат от валидацията
-     */
-    public static class ValidationResult {
-        private final boolean valid;
-        private final String message;
-
-        public ValidationResult(boolean valid, String message) {
-            this.valid = valid;
-            this.message = message;
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public String getMessage() {
-            return message;
         }
     }
 }

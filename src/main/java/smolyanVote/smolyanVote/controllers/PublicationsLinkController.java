@@ -1,11 +1,11 @@
 package smolyanVote.smolyanVote.controllers;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.services.interfaces.PublicationLinkMetadataService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationLinkValidationService;
-import smolyanVote.smolyanVote.services.serviceImpl.PublicationLinkValidationServiceImpl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +19,7 @@ public class PublicationsLinkController {
 
     @Autowired
     public PublicationsLinkController(PublicationLinkValidationService validationService,
-                          PublicationLinkMetadataService metadataService) {
+                                      PublicationLinkMetadataService metadataService) {
         this.validationService = validationService;
         this.metadataService = metadataService;
     }
@@ -43,11 +43,11 @@ public class PublicationsLinkController {
             }
 
             // Валидация на URL
-            PublicationLinkValidationServiceImpl.ValidationResult validation = validationService.validateUrl(url);
+            String validationError = validationService.getValidationError(url);
 
-            if (!validation.isValid()) {
+            if (validationError != null) {
                 response.put("success", false);
-                response.put("error", validation.getMessage());
+                response.put("error", validationError);
                 return ResponseEntity.badRequest().body(response);
             }
 
@@ -84,11 +84,17 @@ public class PublicationsLinkController {
                 return ResponseEntity.status(401).body(response);
             }
 
-            PublicationLinkValidationServiceImpl.ValidationResult validation = validationService.validateUrl(url);
+            boolean isValid = validationService.isUrlValid(url);
+            String errorMessage = validationService.getValidationError(url);
 
-            response.put("success", validation.isValid());
-            response.put("message", validation.getMessage());
+            response.put("success", isValid);
             response.put("url", url);
+
+            if (errorMessage != null) {
+                response.put("message", errorMessage);
+            } else {
+                response.put("message", "URL е валиден");
+            }
 
             return ResponseEntity.ok(response);
 

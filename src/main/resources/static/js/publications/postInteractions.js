@@ -180,6 +180,10 @@ class PostInteractions {
 
         // Reset validation
         this.validateForm();
+
+        // Reset link data
+        this.hideLinkInput();
+        this.currentLinkData = null;
     }
 
     handleImageUpload(file) {
@@ -333,7 +337,10 @@ class PostInteractions {
                 emotion: this.selectedEmotion,
                 emotionText: this.selectedEmotionText,
                 imageUrl: imageUrl,
-                status: 'PUBLISHED'
+                status: 'PUBLISHED',
+                // NEW: Add link data if exists
+                linkUrl: this.currentLinkData ? this.currentLinkData.url : null,
+                linkMetadata: this.currentLinkData ? JSON.stringify(this.currentLinkData) : null
             };
 
             const response = await window.publicationsAPI.createPublication(publicationData);
@@ -355,7 +362,9 @@ class PostInteractions {
                     dislikesCount: response.dislikesCount || 0,
                     commentsCount: response.commentsCount || 0,
                     sharesCount: response.sharesCount || 0,
-                    // Използвай целия author от response
+                    // NEW: Add link data
+                    linkUrl: response.linkUrl || publicationData.linkUrl,
+                    linkMetadata: response.linkMetadata || publicationData.linkMetadata,
                     author: response.author || {
                         id: window.currentUserId,
                         username: window.currentUser?.username || 'Неизвестен',
@@ -1107,18 +1116,57 @@ class PostInteractions {
         // Show loading state
         this.showLinkLoading();
 
-        // Determine link type and generate appropriate preview
-        const linkType = this.determineLinkType(url);
+        // Call real API instead of simulation
+        this.callLinkPreviewAPI(url);
+    }
 
-        setTimeout(() => {
-            if (linkType === 'youtube') {
-                this.generateYouTubePreview(url);
-            } else if (linkType === 'image') {
-                this.generateImagePreview(url);
+    async callLinkPreviewAPI(url) {
+        try {
+            const response = await fetch(`/api/links/preview?url=${encodeURIComponent(url)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Parse the metadata JSON string
+                const metadata = JSON.parse(data.metadata);
+
+                // Show the preview with real data
+                this.showLinkPreview(metadata);
             } else {
-                this.generateWebsitePreview(url);
+                // Show error message
+                this.showLinkError(data.error || 'Грешка при зареждане на линка');
             }
-        }, 1000); // Simulate API delay
+
+        } catch (error) {
+            console.error('Error calling link preview API:', error);
+            this.showLinkError('Възникна грешка при обработката на линка');
+        }
+    }
+
+    showLinkError(errorMessage) {
+        const linkPreviewContainer = document.getElementById('linkPreviewContainer');
+        const linkPreview = document.getElementById('linkPreview');
+
+        linkPreview.innerHTML = `
+        <div style="padding: 12px; text-align: center; color: #e74c3c;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 20px; margin-bottom: 8px;"></i>
+            <div style="font-size: 14px;">${errorMessage}</div>
+        </div>
+    `;
+
+        linkPreviewContainer.style.display = 'block';
+
+        // Hide error after 3 seconds
+        setTimeout(() => {
+            linkPreviewContainer.style.display = 'none';
+            this.currentLinkData = null;
+        }, 3000);
     }
 
     showLinkLoading() {
