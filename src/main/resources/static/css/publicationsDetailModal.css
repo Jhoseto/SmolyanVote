@@ -953,6 +953,49 @@
     font-weight: 500;
 }
 
+/* ====== WEBSITE PREVIEW IMAGES FIXES ====== */
+
+/* Website icon with image override */
+.website-icon.has-image {
+    background: none !important;
+    padding: 0 !important;
+}
+
+.website-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.website-icon .favicon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    margin: auto;
+}
+
+/* Website preview with large image */
+.website-preview-large {
+    margin-bottom: 16px;
+}
+
+.website-large-image {
+    width: 100%;
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--modal-border);
+}
+
+.website-content-below {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--modal-border);
+    margin-bottom: 8px;
+}
+
 /* ====== RESPONSIVE DESIGN ====== */
 @media (max-width: 900px) {
     .modal-container {

@@ -157,8 +157,7 @@ class PublicationDetailModal {
         ));
         this.setText('modalPostTime', this.formatTimeAgo(post.createdAt));
 
-        // Content
-        this.setText('modalPostTitle', post.title);
+        // Content - ПРЕМАХНАХ РЕДА ЗА modalPostTitle
         this.setText('modalPostText', post.content);
         this.setText('modalCategoryText', this.getCategoryText(post.category));
 
@@ -185,7 +184,6 @@ class PublicationDetailModal {
         } else {
             this.hideLinkContent();
         }
-
 
         // Stats
         this.setText('modalLikesCount', post.likesCount || 0);
@@ -532,30 +530,82 @@ class PublicationDetailModal {
 
     showYouTubePlayer(metadata) {
         const playerContainer = document.getElementById('modalYouTubePlayer');
+
+        if (!playerContainer) {
+            console.error('❌ YouTube player container not found');
+            return;
+        }
+
+        // За localhost показваме само thumbnail
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.showYouTubeThumbnail(playerContainer, metadata);
+            return;
+        }
+
+        // За production показваме iframe
         const iframe = document.getElementById('modalYouTubeIframe');
         const title = document.getElementById('modalYouTubeTitle');
         const link = document.getElementById('modalYouTubeLink');
         const linkText = document.getElementById('modalYouTubeLinkText');
 
-        if (!playerContainer || !iframe || !title || !link || !linkText) {
-            console.error('❌ YouTube player elements not found');
-            return;
+        if (iframe && title && link && linkText) {
+            iframe.src = metadata.embedUrl;
+            title.textContent = metadata.title || 'YouTube Video';
+            link.href = metadata.url;
+            linkText.textContent = metadata.title || 'Отвори в YouTube';
+            playerContainer.style.display = 'block';
         }
+    }
 
-        // Задаваме embed URL
-        iframe.src = metadata.embedUrl || `https://www.youtube.com/embed/${metadata.videoId}`;
 
-        // Задаваме заглавие
-        title.textContent = metadata.title || 'YouTube Video';
-
-        // Задаваме линка
-        link.href = metadata.url;
-        linkText.textContent = metadata.title || 'Отвори в YouTube';
-
-        // Показваме контейнера
-        playerContainer.style.display = 'block';
-
-        console.log('✅ DEBUG: YouTube player populated');
+    showYouTubeThumbnail(container, metadata) {
+        container.innerHTML = `
+        <div class="youtube-thumbnail" onclick="window.open('${metadata.url}', '_blank')" style="
+            position: relative; 
+            cursor: pointer;
+            background-image: url('${metadata.thumbnail}');
+            background-size: cover;
+            background-position: center;
+            height: 200px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="
+                width: 68px; 
+                height: 48px; 
+                background: rgba(255, 0, 0, 0.9);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            ">▶</div>
+        </div>
+        <div style="padding: 12px 0; border-bottom: 1px solid #e4e6eb; margin-bottom: 8px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1c1e21;">${metadata.title}</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px; color: #65676b;">Кликни за гледане в YouTube</span>
+                <a href="${metadata.url}" target="_blank" style="
+                    color: #ff0000; 
+                    text-decoration: none; 
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                ">
+                    <i class="bi bi-youtube"></i>
+                    <span>YouTube</span>
+                </a>
+            </div>
+        </div>
+    `;
+        container.style.display = 'block';
     }
 
     showImageDisplay(metadata) {
@@ -587,28 +637,97 @@ class PublicationDetailModal {
 
     showWebsitePreview(metadata) {
         const previewContainer = document.getElementById('modalWebsitePreview');
-        const title = document.getElementById('modalWebsiteTitle');
-        const description = document.getElementById('modalWebsiteDescription');
-        const domain = document.getElementById('modalWebsiteDomain');
-        const link = document.getElementById('modalWebsiteLink');
 
-        if (!previewContainer || !title || !description || !domain || !link) {
-            console.error('❌ Website preview elements not found');
+        if (!previewContainer) {
+            console.error('❌ Website preview container not found');
             return;
         }
 
-        // Задаваме данните
-        title.textContent = metadata.title || 'Уебсайт';
-        description.textContent = metadata.description || 'Посетете уебсайта за повече информация';
-        domain.textContent = metadata.domain || 'УЕБСАЙТ';
+        const hasImage = metadata.image && metadata.image.length > 0;
+        const title = metadata.title || metadata.domain || 'Уебсайт';
+        const description = metadata.description || 'Посетете уебсайта за повече информация';
+        const domain = metadata.domain || 'УЕБСАЙТ';
 
-        // Задаваме линка
-        link.href = metadata.url;
+        if (hasImage) {
+            // Показваме голямо изображение като YouTube
+            previewContainer.innerHTML = `
+            <div class="website-preview-large">
+                <div class="website-large-image" 
+                     style="background-image: url('${metadata.image}'); cursor: pointer;"
+                     onclick="window.open('${metadata.url}', '_blank')">
+                </div>
+                <div class="website-content-below">
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1c1e21;">
+                        ${title}
+                    </h3>
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #65676b; line-height: 1.4;">
+                        ${description}
+                    </p>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 12px; color: #8a8d91; text-transform: uppercase;">
+                            ${domain}
+                        </div>
+                        <a href="${metadata.url}" target="_blank" style="
+                            color: #1877f2; 
+                            text-decoration: none; 
+                            font-weight: 500;
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                            font-size: 14px;
+                        ">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                            <span>Посети</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        } else {
+            // Показваме compact preview без изображение
+            previewContainer.innerHTML = `
+            <div class="website-card">
+                <div class="website-header">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="website-icon">
+                            ${metadata.favicon ?
+                `<img src="${metadata.favicon}" class="favicon" alt="Favicon">` :
+                '<i class="bi bi-link-45deg" style="font-size: 20px; color: #65676b;"></i>'
+            }
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #1c1e21;">
+                                ${title}
+                            </h3>
+                            <p style="margin: 0; font-size: 14px; color: #65676b; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                ${description}
+                            </p>
+                            <div style="margin-top: 4px; font-size: 12px; color: #8a8d91; text-transform: uppercase;">
+                                ${domain}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="website-actions">
+                    <a href="${metadata.url}" target="_blank" style="
+                        color: #1877f2; 
+                        text-decoration: none; 
+                        font-weight: 500;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        width: fit-content;
+                    ">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span>Посети уебсайта</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        }
 
         // Показваме контейнера
         previewContainer.style.display = 'block';
-
-        console.log('✅ DEBUG: Website preview populated');
     }
 
     hideLinkContent() {
@@ -636,7 +755,6 @@ class PublicationDetailModal {
 
     showError(message) {
         console.error('Modal error:', message);
-        // TODO: Implement proper error display
         alert(message);
     }
 }

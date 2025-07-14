@@ -72,6 +72,7 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
         return PublicationsLinkType.WEBSITE;
     }
 
+
     /**
      * Извлича YouTube metadata
      */
@@ -97,6 +98,20 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
                             "Натиснете за възпроизвеждане" :
                             "От " + authorName + " - Натиснете за възпроизвеждане";
 
+                    // ====== ИЗПОЛЗВАМЕ ОФИЦИАЛНИЯ EMBED URL ОТ OEMBED ======
+                    String embedUrl = "https://www.youtube.com/embed/" + videoId + "?feature=oembed";
+
+                    // Ако oEmbed върна HTML, извличаме src от iframe-а
+                    if (jsonNode.has("html")) {
+                        String htmlContent = jsonNode.get("html").asText();
+                        // Извличаме src от iframe-а в HTML-а
+                        Pattern srcPattern = Pattern.compile("src=\"([^\"]+)\"");
+                        Matcher matcher = srcPattern.matcher(htmlContent);
+                        if (matcher.find()) {
+                            embedUrl = matcher.group(1);
+                        }
+                    }
+
                     metadata.put("type", "youtube");
                     metadata.put("url", url);
                     metadata.put("videoId", videoId);
@@ -104,7 +119,7 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
                     metadata.put("description", description);
                     metadata.put("authorName", authorName);
                     metadata.put("thumbnail", "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg");
-                    metadata.put("embedUrl", "https://www.youtube.com/embed/" + videoId);
+                    metadata.put("embedUrl", embedUrl);
 
                     return metadata;
                 }
@@ -114,14 +129,14 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
                 System.err.println("Грешка при извличане на YouTube данни: " + e.getMessage());
             }
 
-            // Fallback - старата логика
+            // Fallback - основен embed URL без допълнителни параметри
             metadata.put("type", "youtube");
             metadata.put("url", url);
             metadata.put("videoId", videoId);
             metadata.put("title", "YouTube Video");
             metadata.put("description", "Натиснете за възпроизвеждане");
             metadata.put("thumbnail", "https://img.youtube.com/vi/" + videoId + "/maxresdefault.jpg");
-            metadata.put("embedUrl", "https://www.youtube.com/embed/" + videoId);
+            metadata.put("embedUrl", "https://www.youtube.com/embed/" + videoId + "?feature=oembed");
         }
 
         return metadata;
@@ -173,19 +188,66 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
             URL urlObj = new URL(url);
             String domain = urlObj.getHost().replace("www.", "");
 
+            // Започваме с basic данни
             metadata.put("type", "website");
             metadata.put("url", url);
-            metadata.put("title", domain);
-            metadata.put("description", "Кликнете за отваряне на уебсайта");
-            metadata.put("domain", domain);
+            metadata.put("domain", domain.toUpperCase());
+
+            try {
+                // Опитваме се да извлечем Open Graph metadata
+                String htmlContent = restTemplate.getForObject(url, String.class);
+
+                if (htmlContent != null) {
+                    // Извличаме title
+                    String title = extractFromHtml(htmlContent,
+                            "<meta property=\"og:title\" content=\"([^\"]+)\"",
+                            "<title>([^<]+)</title>");
+
+                    // Извличаме description
+                    String description = extractFromHtml(htmlContent,
+                            "<meta property=\"og:description\" content=\"([^\"]+)\"",
+                            "<meta name=\"description\" content=\"([^\"]+)\"");
+
+                    // Извличаме image
+                    String image = extractFromHtml(htmlContent,
+                            "<meta property=\"og:image\" content=\"([^\"]+)\"");
+
+                    // Задаваме извлечените данни
+                    metadata.put("title", title != null ? title : domain);
+                    metadata.put("description", description != null ? description : "Посетете уебсайта за повече информация");
+
+                    if (image != null && !image.isEmpty()) {
+                        // Ако image URL е relative, правим го absolute
+                        if (image.startsWith("/")) {
+                            image = urlObj.getProtocol() + "://" + urlObj.getHost() + image;
+                        } else if (!image.startsWith("http")) {
+                            image = url + "/" + image;
+                        }
+                        metadata.put("image", image);
+                    }
+
+                } else {
+                    // Fallback ако не можем да извлечем HTML
+                    metadata.put("title", domain);
+                    metadata.put("description", "Кликнете за отваряне на уебсайта");
+                }
+
+            } catch (Exception scrapingException) {
+                // Ако scraping-ът се провали, използваме fallback данни
+                metadata.put("title", domain);
+                metadata.put("description", "Кликнете за отваряне на уебсайта");
+            }
+
+            // Добавяме favicon
             metadata.put("favicon", "https://www.google.com/s2/favicons?domain=" + domain + "&sz=32");
 
         } catch (Exception e) {
+            // Fallback при грешка в URL parsing
             metadata.put("type", "website");
             metadata.put("url", url);
             metadata.put("title", "Уебсайт");
             metadata.put("description", "Външен линк");
-            metadata.put("domain", "website");
+            metadata.put("domain", "УЕБСАЙТ");
         }
 
         return metadata;
@@ -209,4 +271,27 @@ public class PublicationLinkMetadataServiceImpl implements PublicationLinkMetada
         }
     }
 
+    private String extractFromHtml(String html, String... patterns) {
+        for (String patternStr : patterns) {
+            try {
+                Pattern pattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+                Matcher matcher = pattern.matcher(html);
+                if (matcher.find()) {
+                    String result = matcher.group(1).trim();
+                    // Decode HTML entities
+                    result = result.replace("&amp;", "&")
+                            .replace("&lt;", "<")
+                            .replace("&gt;", ">")
+                            .replace("&quot;", "\"")
+                            .replace("&#39;", "'");
+                    if (!result.isEmpty()) {
+                        return result;
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore regex errors and try next pattern
+            }
+        }
+        return null;
+    }
 }
