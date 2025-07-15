@@ -1,0 +1,282 @@
+/* Terms and Conditions CSS */
+
+.terms-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+}
+
+.main-title {
+    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.terms-section {
+    margin-bottom: 3rem;
+}
+
+.privacy-section {
+    margin-bottom: 3rem;
+}
+
+.separator {
+    height: 2px;
+    background: #e9ecef;
+    margin: 3rem 0;
+}
+
+.last-updated {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #4b9f3e;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.last-updated strong {
+    color: #4b9f3e;
+    font-weight: 600;
+}
+
+.section {
+    margin-bottom: 3rem;
+}
+
+.section {
+    margin-bottom: 2rem;
+}
+
+.section h2 {
+    color: #2c3e50;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #4b9f3e;
+}
+
+.section p {
+    color: #6c757d;
+    line-height: 1.7;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.section ul {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.section li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    line-height: 1.6;
+}
+
+.section strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.section a {
+    color: #4b9f3e;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.section a:hover {
+    text-decoration: underline;
+}
+
+.contact-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+    border-left: 4px solid #4b9f3e;
+}
+
+.contact-section p {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.contact-section a {
+    color: #4b9f3e;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.contact-section a:hover {
+    text-decoration: underline;
+}
+
+.final-note {
+    background: #e8f5e8;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.final-note p {
+    margin-bottom: 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.navigation-links {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-back,
+.btn-about {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-back:hover {
+    background: #5a6268;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-about {
+    background: #4b9f3e;
+    color: white;
+}
+
+.btn-about:hover {
+    background: #5cb85c;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .terms-container {
+        padding: 1rem 0.5rem;
+    }
+
+    .main-title {
+        font-size: 1.6rem;
+    }
+
+    .section h2 {
+        font-size: 1.2rem;
+    }
+
+    .section p {
+        font-size: 0.95rem;
+    }
+
+    .navigation-links {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-back,
+    .btn-about {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .terms-container {
+        padding: 1rem 0.25rem;
+    }
+
+    .main-title {
+        font-size: 1.4rem;
+    }
+
+    .section h2 {
+        font-size: 1.1rem;
+    }
+
+    .section p {
+        font-size: 0.9rem;
+    }
+
+    .last-updated {
+        font-size: 0.9rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .terms-container {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .navigation-links {
+        display: none;
+    }
+
+    .last-updated {
+        border-left: none;
+        background: none;
+        padding: 0.5rem 0;
+    }
+
+    .contact-section {
+        background: none;
+        border: 1px solid #ccc;
+    }
+
+    .final-note {
+        background: none;
+        border: 1px solid #ccc;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .separator {
+        background: #000;
+        height: 3px;
+    }
+
+    .section h2 {
+        border-bottom: 3px solid #000;
+    }
+
+    .last-updated {
+        border-left: 5px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .btn-back,
+    .btn-about {
+        transition: none;
+    }
+
+    .btn-back:hover,
+    .btn-about:hover {
+        transform: none;
+    }
+}

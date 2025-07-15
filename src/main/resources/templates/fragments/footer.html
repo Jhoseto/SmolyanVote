@@ -3,16 +3,103 @@
     <footer class="footer-modern">
         <div class="container">
             <div class="footer-main-content">
-                <div class="footer-contact">
-                    <p class="footer-copy">&copy; 2025 SmolyanVote. Всички права запазени.</p>
-                    <p class="footer-contact-info">
-                        Имейл:
-                        <a href="mailto:smolyanvote@gmail.com" class="footer-link">smolyanvote@gmail.com</a> | Телефон:
-                        <a href="tel:+359888123456" class="footer-link">+359 888 123 456</a>
+
+                <!-- Колона 1: За проекта -->
+                <div class="footer-about">
+                    <h4 class="footer-title">SmolyanVote</h4>
+                    <p class="footer-description">
+                        Платформа за Свободно изразяване на гражданското мнение с неформална цел. Вашият глас има значение за развитието на нашия град.
                     </p>
+                    <div class="footer-sign">
+                        <div class="stat-signIn">
+                            <a href="/viewLogin" class="footer-link">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                ВХОД
+                            </a>
+                            <a href="/register" class="footer-link">
+                                <i class="bi bi-house-check"></i>
+                                Регистрация
+                            </a>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Колона 2: Навигация -->
+                <div class="footer-navigation">
+                    <h4 class="footer-title">Навигация</h4>
+                    <nav class="footer-nav">
+                        <a href="/mainEvents" class="footer-link">
+                            <i class="bi bi-calendar-event"></i>
+                            Събития
+                        </a>
+                        <a href="/publications" class="footer-link">
+                            <i class="bi bi-chat-square-text"></i>
+                            Публикации
+                        </a>
+                        <a href="/aboutUs" class="footer-link">
+                            <i class="bi bi-info-circle"></i>
+                            За нас
+                        </a>
+                        <a href="/faq" class="footer-link">
+                            <i class="bi bi-question-circle"></i>
+                            FAQ
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Колона 3: Правна информация -->
+                <div class="footer-legal">
+                    <h4 class="footer-title">Правна информация</h4>
+                    <nav class="footer-nav">
+                        <a href="/terms-and-conditions" class="footer-link">
+                            <i class="bi bi-file-text"></i>
+                            Условия за ползване и Политика за поверителност
+                        </a>
+                        <a href="/terms-and-conditions#cookies" class="footer-link">
+                            <i class="bi bi-cookie"></i>
+                            Cookies политика
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Колона 4: Контакти -->
+                <div class="footer-contact">
+                    <h4 class="footer-title">Контакти</h4>
+                    <div class="contact-item">
+                        <i class="bi bi-envelope"></i>
+                        <a href="mailto:smolyanvote@gmail.com" class="footer-link">smolyanvote@gmail.com</a>
+                    </div>
+                    <div class="contact-item">
+                        <i class="bi bi-person-lines-fill"></i>
+                        <a href="/contacts" class="footer-link">Свържи се с нас</a>
+                    </div>
+                    <div class="contact-item">
+                        <i class="bi bi-geo-alt"></i>
+                        <span class="footer-text">Смолян, България</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Нова секция за Newsletter и системна информация -->
+            <div class="footer-extended">
+                <!-- Newsletter -->
+                <div class="footer-newsletter">
+                    <p class="newsletter-description">Получавай уведомления за нови събития и важни обновления</p>
+                    <form class="newsletter-form" id="newsletterForm">
+                        <div class="newsletter-input">
+                            <input type="email" id="newsletterEmail" placeholder="твоят@email.bg" required>
+                            <button type="submit" class="newsletter-btn">
+                                <i class="bi bi-envelope-plus"></i>
+                                Абонирай се
+                            </button>
+                        </div>
+                        <div class="newsletter-status" id="newsletterStatus"></div>
+                    </form>
+                </div>
+
                 <div class="footer-security">
-                    <h4 class="security-title">Оценки и тестове за ниво на сигурност на Платформата. </h4>
+                    <h4 class="security-title">Оценки и тестове за ниво на сигурност на Платформата</h4>
                     <nav class="security-links">
                         <a href="https://www.ssllabs.com/ssltest/analyze.html?d=smolyanvote.com" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                             <img src="https://img.shields.io/badge/SSL_Labs-A%2B-brightgreen" alt="SSL Labs Grade A+" />
@@ -23,9 +110,19 @@
                         <a href="https://hstspreload.org/?domain=smolyanvote.com" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                             <img src="https://img.shields.io/badge/HSTS--Preload--Pending-orange" alt="HSTS Preload Pending" />
                         </a>
-
                     </nav>
                 </div>
+            </div>
+
+            <!-- Сигурност и Copyright -->
+            <div class="footer-bottom">
+                <div class="footer-bottom-center">
+                    <p class="footer-copy">&copy; 2025 SmolyanVote. Всички права запазени.</p>
+                    <p class="footer-info">
+                        Гражданска платформа за инициативи от област Смолян
+                    </p>
+                </div>
+
             </div>
         </div>
     </footer>

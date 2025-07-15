@@ -22,6 +22,20 @@ public class MainController {
         return "aboutUs";
     }
 
+    @GetMapping("/terms-and-conditions")
+    public String termsAndConditionsPage(Model model) {
+
+        return "terms-and-conditions";
+    }
+
+    @GetMapping("/faq")
+    public String showFAQPage(Model model) {
+        model.addAttribute("pageTitle", "Често задавани въпроси");
+        model.addAttribute("metaDescription", "Отговори на най-често задаваните въпроси за SmolyanVote платформата");
+
+        return "faq";
+    }
+
     @GetMapping("/error/general")
     public String showGeneralError(HttpServletRequest request, Model model) {
         String message = (String) request.getAttribute("errorMessage");

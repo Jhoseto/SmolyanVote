@@ -1155,7 +1155,8 @@ window.cancelInlineEdit = function(postId) {
     window.publicationsManager?.cancelInlineEdit(postId);
 };
 
-window.showLikesModal = function(postId) {
+
+window.showReactionModal = function(postId) {
     // TODO: Implement likes modal showing users who liked the post
     if (window.postInteractions) {
         window.postInteractions.showToast('Функцията за показване на харесали ще бъде добавена скоро', 'info');

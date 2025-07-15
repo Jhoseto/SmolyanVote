@@ -168,8 +168,9 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendSubscriptionConfirmation(UserEntity user, Set<SubscriptionType> subscriptions) {
-        // TODO: Implement later
+
     }
+
 
     @Override
     public void sendUnsubscribeConfirmation(UserEntity user, SubscriptionType type) {
