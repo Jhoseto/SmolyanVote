@@ -317,10 +317,6 @@ public class PublicationsController {
             @PathVariable Long id,
             Authentication auth) {
 
-        // Добавяме логиране за debugging
-        System.out.println("=== DELETE PUBLICATION DEBUG ===");
-        System.out.println("Publication ID: " + id);
-        System.out.println("User authenticated: " + (auth != null));
         if (auth != null) {
             System.out.println("User: " + auth.getName());
         }
@@ -331,7 +327,6 @@ public class PublicationsController {
         }
 
         try {
-            System.out.println("Step 1: Finding publication...");
             PublicationEntity publication = publicationService.findById(id);
 
             if (publication == null) {
@@ -339,18 +334,12 @@ public class PublicationsController {
                 return ResponseEntity.status(404).body(createErrorResponse("Публикацията не е намерена"));
             }
 
-            System.out.println("Step 2: Publication found - Title: " + publication.getTitle());
-            System.out.println("Step 3: Checking edit permissions...");
-
             if (!publicationService.canEditPublication(publication, auth)) {
                 System.out.println("ERROR: User doesn't have edit permissions");
                 return ResponseEntity.status(403).body(createErrorResponse("Нямате права за изтриване на тази публикация"));
             }
 
-            System.out.println("Step 4: Calling delete service...");
             publicationService.delete(id);
-
-            System.out.println("Step 5: Delete successful!");
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -359,7 +348,7 @@ public class PublicationsController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            // ВАЖНО: Логираме пълната грешка!
+
             System.err.println("=== DELETE PUBLICATION ERROR ===");
             System.err.println("Exception type: " + e.getClass().getName());
             System.err.println("Exception message: " + e.getMessage());

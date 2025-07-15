@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Често задавани въпроси - SmolyanVote</title>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/images/logo1.png">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/fonts.css">
+  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+  <link rel="stylesheet" href="/css/footer.css">
+  <link rel="stylesheet" href="/css/faq.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+<!-- Навигация -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="faq-container">
+  <!-- Header -->
+  <div class="faq-header">
+    <h1>Често задавани въпроси</h1>
+    <p class="subtitle">Отговори на най-важните въпроси за SmolyanVote</p>
+  </div>
+
+  <!-- Search -->
+  <div class="faq-search">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" id="faqSearch" placeholder="Търсете въпрос или отговор...">
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-links">
+    <h3>Бързи връзки</h3>
+    <div class="quick-links-grid">
+      <a href="#basics" class="quick-link">
+        <i class="bi bi-info-circle"></i>
+        <span>Основни въпроси</span>
+      </a>
+      <a href="#registration" class="quick-link">
+        <i class="bi bi-person-plus"></i>
+        <span>Регистрация</span>
+      </a>
+      <a href="#voting" class="quick-link">
+        <i class="bi bi-check-circle"></i>
+        <span>Гласуване</span>
+      </a>
+      <a href="#creating" class="quick-link">
+        <i class="bi bi-plus-circle"></i>
+        <span>Създаване на събития</span>
+      </a>
+      <a href="#technical" class="quick-link">
+        <i class="bi bi-gear"></i>
+        <span>Технически въпроси</span>
+      </a>
+      <a href="#legal" class="quick-link">
+        <i class="bi bi-shield-lock"></i>
+        <span>Правни въпроси</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- FAQ Categories -->
+  <div class="faq-categories">
+
+    <!-- Основни въпроси -->
+    <div class="faq-category" id="basics">
+      <h2>Основни въпроси</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Какво е SmolyanVote?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>SmolyanVote е платформа за свободно изразяване на гражданското мнение с неформална цел. Тя позволява на жителите на област Смолян да участват в анкети, референдуми и обществени дискусии по важни за града теми.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Официална ли е платформата?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Не, SmolyanVote е неофициална гражданска инициатива. Тя не е свързана с държавни или общински органи и не представлява официален канал за провеждане на избори или референдуми с правна тежест.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Безплатна ли е платформата?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Да, SmolyanVote е изцяло безплатна за всички потребители. Не генерира приходи и не извършва стопанска дейност.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Регистрация -->
+    <div class="faq-category" id="registration">
+      <h2>Регистрация и акаунт</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Как да се регистрирам?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Кликнете върху "Регистрация" в горния десен ъгъл, попълнете формата с валиден имейл адрес и създайте силна парола (съдържаща малки и големи букви, цифри и символи). След това потвърдете регистрацията чрез имейла си.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Каква информация се съхранява за мен?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Съхраняваме само: имейл адрес, хеширана парола, псевдоним, профилна снимка (опционално), данни за действия в платформата и IP адрес. Подробности можете да намерите в <a href="/terms-and-conditions#privacy">Политиката за поверителност</a>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Как да променя паролата си?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Влезте в профила си и кликнете върху "Настройки". Там ще намерите опцията "Промяна на парола". Въведете старата парола и новата парола два пъти за потвърждение.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Гласуване -->
+    <div class="faq-category" id="voting">
+      <h2>Гласуване</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Как да гласувам в референдум?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Отидете в секцията "Събития", намерете референдума и кликнете върху него. Прочетете внимателно информацията, изберете вашата опция и кликнете "Гласувай" за потвърждение.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Мога ли да променя гласа си?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Не, след като гласувате, не можете да променяте избора си. Това е за да се гарантира честността на процеса. Помислете внимателно преди да гласувате.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Колко пъти мога да гласувам?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Всеки потребител може да гласува само веднъж за всяко събитие. Системата автоматично предотвратява повторни гласувания.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Създаване на събития -->
+    <div class="faq-category" id="creating">
+      <h2>Създаване на събития</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Какви типове събития мога да създам?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Можете да създавате: опростено събитие (гласуване с "За", "Против" или "Неутрален"), референдум (до 10 опции, избира се 1), анкета с множествен избор (до 10 опции, максимум 3 избора) и публикации (свободна форма).</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Има ли ограничения при създаването?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Да, съществуват ограничения: максимум 10 опции за референдуми и анкети, максимум 3 избора за анкети с множествен избор. Всички събития трябва да спазват правилата за съдържание и закона.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Мога ли да редактирам събитието след публикуването?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Не, след публикуването събитието не може да бъде редактирано. Това е за да се гарантира честността на процеса. Моля, проверете внимателно всички детайли преди публикуване.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Технически въпроси -->
+    <div class="faq-category" id="technical">
+      <h2>Технически въпроси</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Какви браузъри се поддържат?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Платформата работи с всички модерни браузъри: Chrome, Firefox, Safari, Edge (последните версии). Препоръчваме да използвате актуализиран браузър за най-добро изживяване.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Работи ли на мобилни устройства?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Да, SmolyanVote е изцяло адаптирана за мобилни устройства. Можете да я използвате на телефон, таблет или компютър с еднакво удобство.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Колко сигурна е платформата?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Използваме SSL криптиране, хеширане на паролите и регулярни проверки за уязвимости. Можете да видите нашите сигурностни оценки в долната част на страницата.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Правни въпроси -->
+    <div class="faq-category" id="legal">
+      <h2>Правни въпроси</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Каква е правната стойност на резултатите?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Всички резултати от анкети и референдуми са с неофициален и информативен характер. Те не пораждат правни последици и не подлежат на използване като официална обществена позиция.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Какво не мога да публикувам?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Забранено е съдържание, което нарушава българското законодателство, подбужда към насилие, дискриминация или омраза, включва обидно или клеветническо съдържание, или създава фалшиво впечатление за официална позиция.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <i class="bi bi-question-circle"></i>
+          <span>Как да изтрия акаунта си?</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          <p>Свържете се с нас на <a href="mailto:smolyanvote@gmail.com">smolyanvote@gmail.com</a> с искане за изтриване на акаунта. Ще обработим заявката ви в рамките на 30 дни съгласно GDPR.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Section -->
+  <div class="faq-contact">
+    <h2>Не намерихте отговор?</h2>
+    <p>Свържете се с нас и ще отговорим на вашия въпрос</p>
+    <div class="contact-buttons">
+      <a href="mailto:smolyanvote@gmail.com" class="contact-btn">
+        <i class="bi bi-envelope"></i>
+        <span>Изпрати имейл</span>
+      </a>
+      <a href="/contacts" class="contact-btn">
+        <i class="bi bi-telephone"></i>
+        <span>Контакти</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Scripts -->
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+<script src="/js/faq.js"></script>
+</body>
+</html>

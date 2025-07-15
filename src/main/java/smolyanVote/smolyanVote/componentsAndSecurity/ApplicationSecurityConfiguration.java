@@ -59,7 +59,8 @@ public class ApplicationSecurityConfiguration {
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
                                 "/eventDetailView", "/posts","/podcast", "/error/**", "/favicon.ico", "/robots.txt",
-                                "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**"
+                                "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
+                                "/terms-and-conditions","/faq"
                         ).permitAll()
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
