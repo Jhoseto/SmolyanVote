@@ -1,5 +1,6 @@
 /**
  * FAQ Page JavaScript
+ * Управлява търсенето, accordion функционалността и навигацията
  */
 
 document.addEventListener('DOMContentLoaded', function() {
