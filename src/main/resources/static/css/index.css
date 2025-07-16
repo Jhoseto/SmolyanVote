@@ -146,7 +146,7 @@ body {
 .hero .display-4 {
   font-family: var(--font-primary);
   font-size: clamp(2.5rem, 8vw, 4.5rem);
-  font-weight: 800;
+  font-weight: 400;
   color: var(--white);
   margin-bottom: 1rem;
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -843,7 +843,7 @@ mux-player {
   color: var(--text-secondary);
   line-height: 1.7;
   margin-bottom: 1.5rem;
-  text-align: left;
+  text-align: center;
 }
 
 .btn-suggest {
@@ -931,7 +931,11 @@ mux-player {
   max-width: 1200px;
   margin: 0 auto;
   text-align: center;
-  background: rgba(255, 255, 255, 0.95);
+  background-image: url("https://res.cloudinary.com/dgescxzjk/image/upload/v1752654982/indexReg_a56hhz.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 20vh;
   border-radius: 24px;
   padding: 3rem 2.5rem;
   box-shadow:
