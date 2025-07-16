@@ -470,26 +470,43 @@ public class PublicationsController {
         try {
             UserEntity user = userService.getCurrentUser();
             String reason = request.get("reason");
+            String description = request.get("description");
 
             if (reason == null || reason.trim().isEmpty()) {
                 return ResponseEntity.status(400).body(createErrorResponse("Моля, посочете причина за докладването"));
             }
 
-            // ПРОМЯНА: Използвай директно reportsService
-            reportsService.createReport(id, user, reason, null);
+            // Предварителни проверки за по-добро error handling
+
+
+            if (!reportsService.canUserReport(id, user)) {
+                return ResponseEntity.status(403).body(createErrorResponse("Не можете да докладвате тази публикация"));
+            }
+
+            if (reportsService.hasUserReportedPublication(id, user.getId())) {
+                return ResponseEntity.status(409).body(createErrorResponse("Вече сте докладвали тази публикация"));
+            }
+
+            if (reportsService.hasUserExceededReportLimit(user)) {
+                return ResponseEntity.status(429).body(createErrorResponse("Превишили сте лимита за доклади (максимум 5 на час, 20 на ден)"));
+            }
+
+            reportsService.createReport(id, user, reason, description);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "Докладът е изпратен успешно");
+            response.put("message", "Докладът е изпратен успешно. Благодарим ви!");
 
             return ResponseEntity.ok(response);
-        } catch (IllegalStateException e) {
-            // За rate limiting и други бизнес правила
-            return ResponseEntity.status(429).body(createErrorResponse(e.getMessage()));
+
         } catch (IllegalArgumentException e) {
+
             return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при докладването"));
+            // Generic грешки
+            System.err.println("Unexpected error in reportPublication: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна неочаквана грешка при докладването"));
         }
     }
 

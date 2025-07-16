@@ -144,74 +144,115 @@ body {
 }
 
 .hero .display-4 {
-  font-family: var(--font-primary);
-  font-size: clamp(2.5rem, 8vw, 4.5rem);
-  font-weight: 400;
+  font-family: var(--font-secondary), serif;
+  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  font-weight: 800;
   color: var(--white);
-  margin-bottom: 1rem;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.hero .lead {
-  font-size: clamp(1.1rem, 4vw, 1.4rem);
-  color: rgba(255, 255, 255, 0.95);
-  margin-bottom: 2rem;
-  font-weight: 500;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-}
-
-/* Hero Button with Green Theme and Pulse Animation */
-.hero .btn {
-  padding: 1rem 2.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 50px;
-  transition: all 0.3s var(--ease-out-quart);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: var(--shadow-lg);
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
-  color: var(--white);
-  border: none;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  text-shadow:
+          0 4px 8px rgba(0,0,0,0.4),
+          0 2px 4px rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0F8FF 50%, #E8F5E8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGlow var(--title-glow-duration) ease-in-out infinite alternate;
   position: relative;
-  overflow: hidden;
-  animation: heroButtonPulse 3s ease-in-out infinite;
+  z-index: 2;
 }
 
-.hero .btn::before {
+.hero .display-4::after {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.3) 50%, transparent 55%);
+  animation: titleShimmer var(--title-shimmer-duration) ease-in-out infinite;
+  pointer-events: none;
+}
+
+
+.hero .lead {
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 0.5rem;
+  font-style: normal;
+  letter-spacing: 0;
+  line-height: 1.6;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  animation: fadeInUp 1.4s var(--ease-out-expo) 0.4s forwards;
+  opacity: 0;
+  transform: translateY(40px);
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero .btn {
+  background: linear-gradient(135deg, #0F7B59 0%, #4CAF50 50%, #66BB6A 100%);
+  color: var(--white);
+  padding: 0.8rem 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 50px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--animation-normal) var(--ease-out-quart);
+  box-shadow:
+          0 8px 25px rgba(15, 123, 89, 0.4),
+          0 4px 12px rgba(0, 0, 0, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+  animation:
+          buttonPulse var(--button-pulse-duration) ease-in-out infinite,
+          fadeInUp 1.6s var(--ease-out-expo) 0.8s forwards;
+  opacity: 0;
+  transform: translateY(40px);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
 }
 
 .hero .btn:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-xl);
-  background: linear-gradient(135deg, var(--accent-green) 0%, var(--primary-green) 100%);
-  animation-play-state: paused;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow:
+          0 15px 35px rgba(15, 123, 89, 0.5),
+          0 8px 20px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 50%, #81C784 100%);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
-.hero .btn:hover::before {
-  left: 100%;
-}
-
-@keyframes heroButtonPulse {
+@keyframes buttonPulse {
   0%, 100% {
     box-shadow:
-            0 10px 25px rgba(0,0,0,0.15),
-            0 0 0 0 rgba(25, 134, 28, 0.7);
+            0 8px 25px rgba(15, 123, 89, 0.4),
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 0 0 rgba(76, 175, 80, 0.4);
   }
   50% {
     box-shadow:
-            0 10px 25px rgba(0,0,0,0.15),
-            0 0 0 10px rgba(25, 134, 28, 0);
+            0 8px 25px rgba(15, 123, 89, 0.4),
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 0 25px rgba(76, 175, 80, 0);
   }
 }
 
