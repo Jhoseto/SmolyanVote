@@ -1,0 +1,111 @@
+package smolyanVote.smolyanVote.repositories;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import smolyanVote.smolyanVote.models.ReportsEntity;
+import smolyanVote.smolyanVote.models.enums.ReportReasonEnum;
+import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
+
+    // ===== ОСНОВНИ МЕТОДИ ЗА ENTITY REPORTING =====
+
+    /**
+     * Проверява дали потребител вече е докладвал конкретен entity
+     */
+    boolean existsByEntityTypeAndEntityIdAndReporterUsername(
+            ReportableEntityType entityType,
+            Long entityId,
+            String reporterUsername
+    );
+
+    /**
+     * Намиране на всички доклади за конкретен entity
+     */
+    List<ReportsEntity> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(
+            ReportableEntityType entityType,
+            Long entityId
+    );
+
+    /**
+     * Броене на доклади за конкретен entity
+     */
+    long countByEntityTypeAndEntityId(ReportableEntityType entityType, Long entityId);
+
+    /**
+     * Намиране на конкретен доклад за entity от потребител
+     */
+    Optional<ReportsEntity> findByEntityTypeAndEntityIdAndReporterUsername(
+            ReportableEntityType entityType,
+            Long entityId,
+            String reporterUsername
+    );
+
+    /**
+     * Изтриване на всички доклади за конкретен entity
+     */
+    @Modifying
+    @Query("DELETE FROM ReportsEntity r WHERE r.entityType = :entityType AND r.entityId = :entityId")
+    void deleteAllByEntityTypeAndEntityId(
+            @Param("entityType") ReportableEntityType entityType,
+            @Param("entityId") Long entityId
+    );
+
+    // ===== МЕТОДИ ЗА АДМИНИСТРАТОРИ =====
+
+    /**
+     * Намиране на доклади по статус
+     */
+    Page<ReportsEntity> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    /**
+     * Броене на доклади от потребител за период
+     */
+    long countByReporterUsernameAndCreatedAtAfter(String reporterUsername, LocalDateTime after);
+
+    /**
+     * Намиране на доклади от определен потребител
+     */
+    Page<ReportsEntity> findByReporterUsernameOrderByCreatedAtDesc(String reporterUsername, Pageable pageable);
+
+    // ===== СТАТИСТИКИ =====
+
+    /**
+     * Статистики по причини
+     */
+    @Query("SELECT r.reason, COUNT(r) FROM ReportsEntity r WHERE r.status = :status GROUP BY r.reason")
+    List<Object[]> getReportsCountByReason(@Param("status") String status);
+
+    /**
+     * Броене на доклади от определена дата
+     */
+    @Query("SELECT COUNT(r) FROM ReportsEntity r WHERE r.createdAt >= :since")
+    long countReportsSince(@Param("since") LocalDateTime since);
+
+    /**
+     * Entities с най-много доклади
+     */
+    @Query("SELECT r.entityType, r.entityId, COUNT(r) as reportCount FROM ReportsEntity r " +
+            "WHERE r.status = 'PENDING' " +
+            "GROUP BY r.entityType, r.entityId " +
+            "ORDER BY reportCount DESC")
+    List<Object[]> getMostReportedEntities(Pageable pageable);
+
+    /**
+     * Статистики по типове entities
+     */
+    @Query("SELECT r.entityType, COUNT(r) FROM ReportsEntity r " +
+            "WHERE r.status = :status " +
+            "GROUP BY r.entityType")
+    List<Object[]> getReportsCountByEntityType(@Param("status") String status);
+}
