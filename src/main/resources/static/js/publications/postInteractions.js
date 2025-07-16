@@ -948,58 +948,251 @@ class PostInteractions {
         });
     }
 
-    async reportPost(postId, reason) {
-        if (!window.isAuthenticated) {
-            this.showLoginPrompt();
-            return;
-        }
-
+    async reportPost(postId, reason, description = null) {
         try {
-            await window.publicationsAPI.reportPublication(postId, reason);
+            // Взимаме CSRF точно като в publicationsApi.js
+            const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Докладът е изпратен',
-                text: 'Благодарим за докладването. Ще прегледаме публикацията.',
-                confirmButtonColor: '#4b9f3e',
-                timer: 3000
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(csrfToken && { [csrfHeader]: csrfToken })
+            };
+
+            // Подготваме request body с description ако има
+            const requestBody = { reason };
+            if (description && description.trim()) {
+                requestBody.description = description.trim();
+            }
+
+            console.log('🔄 Изпращам report с данни:', requestBody);
+
+            const response = await fetch(`/publications/api/${postId}/report`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(requestBody)
             });
 
-            this.trackInteraction('report', postId);
+            const data = await response.json();
+
+            // Handle различните responses според статус кода
+            switch (response.status) {
+                case 200:
+                    let successMessage = data.message || 'Благодарим ви за доклада. Ще прегледаме публикацията.';
+
+                    // Добавяме специално съобщение ако има описание
+                    if (description && description.trim()) {
+                        successMessage += ' Вашето подробно описание ще помогне за по-бързо решаване.';
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Докладът е изпратен!',
+                        text: successMessage,
+                        confirmButtonColor: '#4b9f3e',
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                    this.trackInteraction('report', postId);
+                    break;
+
+                case 409:
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Вече сте докладвали',
+                        text: 'Вече сте докладвали тази публикация. Можете да докладвате една публикация само веднъж.',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'Разбрах'
+                    });
+                    break;
+
+                case 429:
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Превишен лимит',
+                        text: 'Превишили сте лимита за доклади. Можете да изпращате максимум 5 доклада на час и 20 на ден.',
+                        confirmButtonColor: '#f39c12',
+                        confirmButtonText: 'Разбрах'
+                    });
+                    break;
+
+                case 403:
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Не можете да докладвате',
+                        text: 'Не можете да докладвате тази публикация.',
+                        confirmButtonColor: '#e74c3c',
+                        confirmButtonText: 'Разбрах'
+                    });
+                    break;
+
+                case 401:
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Необходимо влизане',
+                        text: 'Моля влезте в профила си за да докладвате публикации.',
+                        confirmButtonColor: '#e74c3c',
+                        confirmButtonText: 'Разбрах'
+                    }).then(() => {
+                        window.location.href = '/login';
+                    });
+                    break;
+
+                case 400:
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Грешка при докладването',
+                        text: data.error || 'Възникна грешка при обработката на заявката.',
+                        confirmButtonColor: '#e74c3c',
+                        confirmButtonText: 'Опитай отново'
+                    });
+                    break;
+
+                default:
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Възникна грешка',
+                        text: data.error || 'Възникна неочаквана грешка при докладването.',
+                        confirmButtonColor: '#e74c3c',
+                        confirmButtonText: 'Опитай отново'
+                    });
+                    break;
+            }
+
         } catch (error) {
             console.error('Error reporting post:', error);
-            this.showError('Възникна грешка при докладването.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Проблем с връзката',
+                text: 'Възникна проблем с връзката. Моля проверете интернет връзката си и опитайте отново.',
+                confirmButtonColor: '#e74c3c',
+                confirmButtonText: 'Опитай отново'
+            });
         }
     }
 
     showReportModal(postId) {
         Swal.fire({
             title: 'Докладвай публикация',
-            text: 'Защо докладвате тази публикация?',
-            input: 'select',
-            inputOptions: {
-                'spam': 'Спам',
-                'harassment': 'Тормоз или заплахи',
-                'hate_speech': 'Език на омразата',
-                'misinformation': 'Дезинформация',
-                'inappropriate': 'Неподходящо съдържание',
-                'copyright': 'Нарушение на авторски права',
-                'other': 'Друго'
-            },
-            inputPlaceholder: 'Изберете причина',
+            html: `
+            <div style="text-align: left; margin-bottom: 20px;">
+                <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Защо докладвате тази публикация?</p>
+                <select id="reportReason" class="swal2-select" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                    <option value="">Изберете причина...</option>
+                    <option value="spam">🚫 Спам или нежелано съдържание</option>
+                    <option value="harassment">⚠️ Тормоз или заплахи</option>
+                    <option value="hate_speech">😡 Език на омразата</option>
+                    <option value="misinformation">❌ Дезинформация или фалшиви новини</option>
+                    <option value="inappropriate">🔞 Неподходящо съдържание</option>
+                    <option value="copyright">📝 Нарушение на авторски права</option>
+                    <option value="other">❓ Друго</option>
+                </select>
+                
+                <!-- Поле за описание - показва се само при "Друго" -->
+                <div id="descriptionContainer" style="margin-top: 15px; display: none;">
+                    <label for="reportDescription" style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">
+                        Опишете проблема:
+                    </label>
+                    <textarea 
+                        id="reportDescription" 
+                        placeholder="Моля, опишете подробно защо докладвате тази публикация..."
+                        style="width: 85%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical; font-family: inherit;"
+                        maxlength="500"
+                    ></textarea>
+                    <div style="text-align: right; font-size: 12px; color: #999; margin-top: 5px;">
+                        <span id="charCounter">0/500 знака</span>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                    Вашият доклад ще бъде прегледан от нашия екип в рамките на 24 часа.
+                </p>
+            </div>
+        `,
             showCancelButton: true,
-            confirmButtonText: 'Докладвай',
-            cancelButtonText: 'Отказ',
+            confirmButtonText: '<i class="bi bi-flag-fill"></i> Изпрати доклад',
+            cancelButtonText: '<i class="bi bi-x"></i> Отказ',
             confirmButtonColor: '#e74c3c',
             cancelButtonColor: '#6c757d',
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'Моля, изберете причина!';
+            buttonsStyling: true,
+            customClass: {
+                popup: 'animated fadeInDown',
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-secondary'
+            },
+            preConfirm: () => {
+                const reason = document.getElementById('reportReason').value;
+                const description = document.getElementById('reportDescription').value.trim();
+
+                if (!reason) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Моля, изберете причина за докладването!');
+                    return false;
                 }
+
+                // Валидация за описанието при избор "Друго"
+                if (reason === 'other' && !description) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Моля, опишете причината за докладването!');
+                    return false;
+                }
+
+                // Валидация за дължина на описанието
+                if (description && description.length < 10) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Описанието трябва да е поне 10 знака!');
+                    return false;
+                }
+
+                return { reason, description };
+            },
+            didOpen: () => {
+                const reasonSelect = document.getElementById('reportReason');
+                const descriptionContainer = document.getElementById('descriptionContainer');
+                const descriptionTextarea = document.getElementById('reportDescription');
+                const charCounter = document.getElementById('charCounter');
+
+                // Focus на select-а за по-добро UX
+                reasonSelect.focus();
+
+                // Event listener за показване/скриване на описанието
+                reasonSelect.addEventListener('change', function() {
+                    if (this.value === 'other') {
+                        descriptionContainer.style.display = 'block';
+                        // Плавно появяване
+                        descriptionContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            descriptionContainer.style.transition = 'opacity 0.3s ease';
+                            descriptionContainer.style.opacity = '1';
+                            descriptionTextarea.focus();
+                        }, 10);
+                    } else {
+                        descriptionContainer.style.display = 'none';
+                        descriptionTextarea.value = ''; // Изчистваме полето
+                        charCounter.textContent = '0/500 знака';
+                    }
+                });
+
+                // Character counter за textarea
+                descriptionTextarea.addEventListener('input', function() {
+                    const currentLength = this.value.length;
+                    charCounter.textContent = `${currentLength}/500 знака`;
+
+                    // Променяме цвета при приближаване до лимита
+                    if (currentLength > 450) {
+                        charCounter.style.color = '#e74c3c';
+                    } else if (currentLength > 400) {
+                        charCounter.style.color = '#f39c12';
+                    } else {
+                        charCounter.style.color = '#999';
+                    }
+                });
+
+                // Добави animation клас
+                document.querySelector('.swal2-popup').style.animation = 'fadeInDown 0.3s ease';
             }
         }).then((result) => {
-            if (result.isConfirmed) {
-                this.reportPost(postId, result.value);
+            if (result.isConfirmed && result.value) {
+                // Изпращаме и reason и description
+                this.reportPost(postId, result.value.reason, result.value.description);
             }
         });
     }
