@@ -968,7 +968,7 @@ class PostInteractions {
 
             console.log('🔄 Изпращам report с данни:', requestBody);
 
-            const response = await fetch(`/publications/api/${postId}/report`, {
+            const response = await fetch(`/api/reports/PUBLICATION/${postId}`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestBody)
@@ -1078,15 +1078,14 @@ class PostInteractions {
             html: `
             <div style="text-align: left; margin-bottom: 20px;">
                 <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Защо докладвате тази публикация?</p>
-                <select id="reportReason" class="swal2-select" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
-                    <option value="">Изберете причина...</option>
-                    <option value="spam">🚫 Спам или нежелано съдържание</option>
-                    <option value="harassment">⚠️ Тормоз или заплахи</option>
-                    <option value="hate_speech">😡 Език на омразата</option>
-                    <option value="misinformation">❌ Дезинформация или фалшиви новини</option>
-                    <option value="inappropriate">🔞 Неподходящо съдържание</option>
-                    <option value="copyright">📝 Нарушение на авторски права</option>
-                    <option value="other">❓ Друго</option>
+                <select id="reportReason" class="swal2-select" style="width: 85%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                    <option value="SPAM">🚫 Спам или нежелано съдържание</option>
+                    <option value="HARASSMENT">⚠️ Тормоз или заплахи</option>
+                    <option value="HATE_SPEECH">😡 Език на омразата</option>
+                    <option value="MISINFORMATION">❌ Дезинформация или фалшиви новини</option>
+                    <option value="INAPPROPRIATE">🔞 Неподходящо съдържание</option>
+                    <option value="COPYRIGHT">📝 Нарушение на авторски права</option>
+                    <option value="OTHER">❓ Друго</option>
                 </select>
                 
                 <!-- Поле за описание - показва се само при "Друго" -->
@@ -1131,7 +1130,7 @@ class PostInteractions {
                 }
 
                 // Валидация за описанието при избор "Друго"
-                if (reason === 'other' && !description) {
+                if (reason === 'OTHER' && !description) {
                     Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Моля, опишете причината за докладването!');
                     return false;
                 }
@@ -1155,7 +1154,7 @@ class PostInteractions {
 
                 // Event listener за показване/скриване на описанието
                 reasonSelect.addEventListener('change', function() {
-                    if (this.value === 'other') {
+                    if (this.value === 'OTHER') {
                         descriptionContainer.style.display = 'block';
                         // Плавно появяване
                         descriptionContainer.style.opacity = '0';
