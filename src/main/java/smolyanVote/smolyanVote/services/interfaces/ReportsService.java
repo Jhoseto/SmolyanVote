@@ -11,109 +11,44 @@ import java.util.Map;
 
 public interface ReportsService {
 
-    // ===== LEGACY PUBLICATION METHODS (запазени за обратна съвместимост) =====
+    // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
 
     /**
-     * Създава доклад за публикация (legacy метод)
+     * Създава доклад за конкретен entity (универсален метод за всички типове)
      */
-    void createReport(Long publicationId, UserEntity reporter, String reasonString, String description);
+    void createReport(ReportableEntityType entityType, Long entityId, UserEntity reporter,
+                      String reasonString, String description);
+
+    // ===== ПРОВЕРКИ =====
 
     /**
-     * Проверява дали потребител може да докладва публикация
-     */
-    boolean canUserReport(Long publicationId, UserEntity user);
-
-    /**
-     * Проверява дали потребител е докладвал публикация
-     */
-    boolean hasUserReportedPublication(Long publicationId, Long userId);
-
-    /**
-     * Връща доклади за публикация
-     */
-    List<ReportsEntity> getReportsForPublication(Long publicationId);
-
-    /**
-     * Брои доклади за публикация
-     */
-    long getReportsCountForPublication(Long publicationId);
-
-    // ===== NEW GENERIC METHODS =====
-
-    /**
-     * Създава доклад за произволен entity (универсален метод)
-     */
-    void createEntityReport(ReportableEntityType entityType, Long entityId, UserEntity reporter,
-                            String reasonString, String description);
-
-    /**
-     * Проверява дали потребител може да докладва произволен entity
+     * Проверява дали потребител може да докладва конкретен entity
      */
     boolean canUserReportEntity(ReportableEntityType entityType, Long entityId, UserEntity user);
 
     /**
-     * Проверява дали потребител е докладвал произволен entity
+     * Проверява дали потребител е докладвал конкретен entity
      */
-    boolean hasUserReportedEntity(ReportableEntityType entityType, Long entityId, Long userId);
+    boolean hasUserReportedEntity(ReportableEntityType entityType, Long entityId, String username);
 
     /**
-     * Връща доклади за произволен entity
+     * Rate limiting проверка
+     */
+    boolean hasUserExceededReportLimit(UserEntity user);
+
+    // ===== ИЗВЛИЧАНЕ НА ДОКЛАДИ =====
+
+    /**
+     * Връща всички доклади за конкретен entity
      */
     List<ReportsEntity> getReportsForEntity(ReportableEntityType entityType, Long entityId);
 
     /**
-     * Брои доклади за произволен entity
+     * Връща броя доклади за конкретен entity
      */
     long getReportsCountForEntity(ReportableEntityType entityType, Long entityId);
 
-    // ===== SPECIFIC EVENT METHODS =====
-
-    /**
-     * Създава доклад за SimpleEvent
-     */
-    void createSimpleEventReport(Long eventId, UserEntity reporter, String reasonString, String description);
-
-    /**
-     * Създава доклад за Referendum
-     */
-    void createReferendumReport(Long referendumId, UserEntity reporter, String reasonString, String description);
-
-    /**
-     * Създава доклад за MultiPoll
-     */
-    void createMultiPollReport(Long multiPollId, UserEntity reporter, String reasonString, String description);
-
-    /**
-     * Проверява дали потребител може да докладва SimpleEvent
-     */
-    boolean canUserReportSimpleEvent(Long eventId, UserEntity user);
-
-    /**
-     * Проверява дали потребител може да докладва Referendum
-     */
-    boolean canUserReportReferendum(Long referendumId, UserEntity user);
-
-    /**
-     * Проверява дали потребител може да докладва MultiPoll
-     */
-    boolean canUserReportMultiPoll(Long multiPollId, UserEntity user);
-
-    /**
-     * Проверява дали потребител е докладвал SimpleEvent
-     */
-    boolean hasUserReportedSimpleEvent(Long eventId, Long userId);
-
-    /**
-     * Проверява дали потребител е докладвал Referendum
-     */
-    boolean hasUserReportedReferendum(Long referendumId, Long userId);
-
-    /**
-     * Проверява дали потребител е докладвал MultiPoll
-     */
-    boolean hasUserReportedMultiPoll(Long multiPollId, Long userId);
-
-    // ===== COMMON ADMIN METHODS =====
+    // ===== АДМИН МЕТОДИ =====
 
     /**
      * Връща pending доклади за админи
@@ -126,17 +61,14 @@ public interface ReportsService {
     ReportsEntity reviewReport(Long reportId, UserEntity admin, String status, String adminNotes);
 
     /**
-     * Rate limiting проверка
-     */
-    boolean hasUserExceededReportLimit(UserEntity user);
-
-    /**
      * Статистики за докладите
      */
     Map<String, Object> getReportsStatistics();
 
+    // ===== ИЗТРИВАНЕ НА ДОКЛАДИ =====
+
     /**
-     * Разширени статистики с breakdown по типове entities
+     * Изтрива всички доклади за конкретен entity (използва се при изтриване на entity)
      */
-    Map<String, Object> getExtendedReportsStatistics();
+    void deleteAllReportsForEntity(ReportableEntityType entityType, Long entityId);
 }

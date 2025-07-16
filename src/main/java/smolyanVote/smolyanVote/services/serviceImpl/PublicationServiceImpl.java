@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.PublicationStatus;
+import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
@@ -171,10 +172,7 @@ public class PublicationServiceImpl implements PublicationService {
                 return;
             }
 
-
-
             //  ИЗТРИВАМЕ СНИМКАТА (ако има)
-
             if (publication.getImageUrl() != null && !publication.getImageUrl().isEmpty()) {
                 try {
                     imageCloudinaryService.deleteImage(publication.getImageUrl());
@@ -185,7 +183,6 @@ public class PublicationServiceImpl implements PublicationService {
             }
 
             //  НАМАЛЯВАМЕ БРОЯЧА НА АВТОРА (ако публикацията беше публикувана)
-
             if (publication.getStatus() == PublicationStatus.PUBLISHED) {
                 UserEntity author = publication.getAuthor();
                 if (author != null && author.getPublicationsCount() > 0) {
@@ -213,16 +210,13 @@ public class PublicationServiceImpl implements PublicationService {
                 // Продължаваме, за да не блокираме изтриването
             }
 
-            //  ИЗТРИВАМЕ ВСИЧКИ ДОКЛАДВАНИЯ
+            //  ИЗТРИВАМЕ ВСИЧКИ ДОКЛАДВАНИЯ (НОВА СИСТЕМА)
             try {
-                if (reportsRepository.existsByPublicationId(id)) {
-                    reportsRepository.deleteAllByPublicationId(id);
-                } else {
-                    System.out.println("No reports found");
-                }
+                reportsService.deleteAllReportsForEntity(ReportableEntityType.PUBLICATION, id);
             } catch (Exception e) {
                 System.out.println("ERROR deleting reports: " + e.getMessage());
                 e.printStackTrace();
+                // Продължаваме, за да не блокираме изтриването
             }
 
             // ИЗТРИВАМЕ ПУБЛИКАЦИЯТА
