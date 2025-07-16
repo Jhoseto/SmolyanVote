@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
 import smolyanVote.smolyanVote.models.enums.ReportReasonEnum;
+import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 
 import java.time.LocalDateTime;
 
@@ -13,10 +14,20 @@ public class ReportsEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ===== LEGACY PUBLICATION SUPPORT =====
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "publication_id", nullable = false)
+    @JoinColumn(name = "publication_id", nullable = true) // Nullable за обратна съвместимост
     private PublicationEntity publication;
 
+    // ===== NEW POLYMORPHIC SUPPORT =====
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entity_type", nullable = true) // Nullable за съществуващи записи
+    private ReportableEntityType entityType;
+
+    @Column(name = "entity_id", nullable = true) // Nullable за съществуващи записи
+    private Long entityId;
+
+    // ===== COMMON FIELDS =====
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = false)
     private UserEntity reporter;
@@ -44,19 +55,78 @@ public class ReportsEntity {
     @Column(name = "admin_notes", length = 1000)
     private String adminNotes;
 
-    // Constructors
+    // ===== CONSTRUCTORS =====
     public ReportsEntity() {
         this.createdAt = LocalDateTime.now();
     }
 
+    // Legacy constructor for publications (обратна съвместимост)
     public ReportsEntity(PublicationEntity publication, UserEntity reporter, ReportReasonEnum reason) {
         this();
         this.publication = publication;
         this.reporter = reporter;
         this.reason = reason;
+        // За legacy, също попълваме новите полета
+        this.entityType = ReportableEntityType.PUBLICATION;
+        this.entityId = publication.getId();
     }
 
-    // Getters and Setters
+    // New generic constructor
+    public ReportsEntity(ReportableEntityType entityType, Long entityId, UserEntity reporter, ReportReasonEnum reason) {
+        this();
+        this.entityType = entityType;
+        this.entityId = entityId;
+        this.reporter = reporter;
+        this.reason = reason;
+
+        // За публикации, също попълваме legacy полето ако е възможно
+        if (entityType == ReportableEntityType.PUBLICATION) {
+            // publication полето ще се попълни от service-а ако е нужно
+        }
+    }
+
+    // ===== UTILITY METHODS =====
+
+    /**
+     * Проверява дали докладът е за публикация
+     */
+    public boolean isPublicationReport() {
+        return entityType == ReportableEntityType.PUBLICATION || publication != null;
+    }
+
+    /**
+     * Проверява дали докладът е за събитие
+     */
+    public boolean isEventReport() {
+        return entityType == ReportableEntityType.SIMPLE_EVENT ||
+                entityType == ReportableEntityType.REFERENDUM ||
+                entityType == ReportableEntityType.MULTI_POLL;
+    }
+
+    /**
+     * Връща ID на докладваният обект (универсално)
+     */
+    public Long getReportedEntityId() {
+        if (entityId != null) {
+            return entityId;
+        }
+        // Fallback за legacy записи
+        return publication != null ? publication.getId() : null;
+    }
+
+    /**
+     * Връща типа на докладваният обект (универсално)
+     */
+    public ReportableEntityType getReportedEntityType() {
+        if (entityType != null) {
+            return entityType;
+        }
+        // Fallback за legacy записи
+        return publication != null ? ReportableEntityType.PUBLICATION : null;
+    }
+
+    // ===== GETTERS AND SETTERS =====
+
     public Long getId() {
         return id;
     }
@@ -71,6 +141,27 @@ public class ReportsEntity {
 
     public void setPublication(PublicationEntity publication) {
         this.publication = publication;
+        // Автоматично попълване на новите полета при set на publication
+        if (publication != null) {
+            this.entityType = ReportableEntityType.PUBLICATION;
+            this.entityId = publication.getId();
+        }
+    }
+
+    public ReportableEntityType getEntityType() {
+        return entityType;
+    }
+
+    public void setEntityType(ReportableEntityType entityType) {
+        this.entityType = entityType;
+    }
+
+    public Long getEntityId() {
+        return entityId;
+    }
+
+    public void setEntityId(Long entityId) {
+        this.entityId = entityId;
     }
 
     public UserEntity getReporter() {

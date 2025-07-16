@@ -3,29 +3,24 @@ package smolyanVote.smolyanVote.controllers;
 import jakarta.persistence.EntityNotFoundException;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.repositories.VoteReferendumRepository;
-import smolyanVote.smolyanVote.services.interfaces.CommentsService;
-import smolyanVote.smolyanVote.services.interfaces.ReferendumService;
-import smolyanVote.smolyanVote.services.interfaces.UserService;
-import smolyanVote.smolyanVote.services.interfaces.VoteService;
+import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+
+import java.util.*;
 
 @Controller
 public class ReferendumController {
@@ -37,13 +32,16 @@ public class ReferendumController {
     private final ReferendumRepository referendumRepository;
     private final VoteService voteService;
     private final VoteReferendumRepository voteReferendumRepository;
+    private final ReportsService reportsService;
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
                                 UserService userService, UserRepository userRepository,
                                 CommentsService commentsService,
                                 ReferendumRepository referendumRepository,
-                                VoteService voteService, VoteReferendumRepository voteReferendumRepository) {
+                                VoteService voteService,
+                                VoteReferendumRepository voteReferendumRepository,
+                                ReportsService reportsService) {
         this.referendumService = referendumService;
         this.userService = userService;
         this.userRepository = userRepository;
@@ -51,6 +49,7 @@ public class ReferendumController {
         this.referendumRepository = referendumRepository;
         this.voteService = voteService;
         this.voteReferendumRepository = voteReferendumRepository;
+        this.reportsService = reportsService;
     }
 
     @GetMapping("/referendum")
@@ -148,4 +147,60 @@ public class ReferendumController {
     }
 
 
+    @PostMapping(value = "/api/{id}/report", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> reportReferendum(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication auth) {
+
+        if (auth == null) {
+            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+        }
+
+        try {
+            UserEntity user = userService.getCurrentUser();
+            String reason = request.get("reason");
+            String description = request.get("description");
+
+            if (reason == null || reason.trim().isEmpty()) {
+                return ResponseEntity.status(400).body(createErrorResponse("Моля, посочете причина за докладването"));
+            }
+
+            if (!reportsService.canUserReportEntity(ReportableEntityType.REFERENDUM, id, user)) {
+                return ResponseEntity.status(403).body(createErrorResponse("Не можете да докладвате този референдум"));
+            }
+
+            if (reportsService.hasUserReportedEntity(ReportableEntityType.REFERENDUM, id, user.getId())) {
+                return ResponseEntity.status(409).body(createErrorResponse("Вече сте докладвали този референдум"));
+            }
+
+            if (reportsService.hasUserExceededReportLimit(user)) {
+                return ResponseEntity.status(429).body(createErrorResponse("Превишили сте лимита за доклади (максимум 5 на час, 20 на ден)"));
+            }
+
+            reportsService.createEntityReport(ReportableEntityType.REFERENDUM, id, user, reason, description);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Докладът е изпратен успешно. Благодарим ви!");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Unexpected error in reportReferendum: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна неочаквана грешка при докладването"));
+        }
+    }
+
+    // HELPER МЕТОД (добави ако не съществува):
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("error", message);
+        return response;
+    }
 }
