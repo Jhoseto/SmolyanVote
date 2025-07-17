@@ -61,7 +61,7 @@
                     </div>
                 </div>
 
-                <!-- ✅ ДОБАВЕНО: Referendum Options Menu -->
+                <!-- Referendum Options Menu -->
                 <div class="referendum-options-menu" th:if="${#authorization.expression('isAuthenticated()')}">
                     <button class="options-btn" id="referendumOptionsBtn">
                         <span>Опции</span>
@@ -127,35 +127,51 @@
 
             </div>
 
-            <!-- Right Column -->
+            <!-- Right Column - ПОПРАВЕНА ВЕРСИЯ -->
             <div class="right-column">
 
                 <!-- Voting Actions -->
                 <div class="voting-actions-card">
+                    <!-- Ако потребителят НЕ Е гласувал - показваме формата -->
                     <div th:if="${referendumDetail.currentUserVote == null}">
-                        <h3 class="card-title">Избери опция</h3>
-                        <form th:action="@{/referendumVote}" method="post" class="vote-form" id="referendumVoteForm">
-                            <input type="hidden" name="referendumId" th:value="${referendumDetail.id}" />
-                            <input type="hidden" name="userEmail" th:value="${currentUser.email}" />
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <h3 class="card-title">Гласувайте</h3>
+                        <div class="vote-form-container">
+                            <form id="referendumVoteForm" th:action="@{/referendumVote}" method="post">
+                                <!-- CSRF Token -->
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
-                            <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-option">
-                                <input class="vote-checkbox" type="checkbox" name="selectedOption" th:id="'option-' + ${iterStat.index}" th:value="${iterStat.index + 1}" />
-                                <label class="vote-option-label" th:for="'option-' + ${iterStat.index}">
-                                    <div class="option-indicator"></div>
-                                    <span class="option-text" th:text="${opt}">Опция</span>
-                                </label>
-                            </div>
+                                <!-- Скрити полета за referendumId и userEmail -->
+                                <input type="hidden" name="referendumId" th:value="${referendumDetail.id}" />
+                                <input type="hidden" name="userEmail" th:value="${currentUser?.email}" />
 
-                            <button type="button" class="vote-btn vote-btn-submit" id="voteSubmitBtn">Гласувай</button>
-                        </form>
+                                <div class="vote-form">
+                                    <!-- Опции за гласуване - поправени стойности (започват от 0) -->
+                                    <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-option">
+                                        <input class="vote-checkbox"
+                                               type="checkbox"
+                                               name="vote"
+                                               th:id="'option-' + ${iterStat.index}"
+                                               th:value="${iterStat.index}" />
+                                        <label class="vote-option-label" th:for="'option-' + ${iterStat.index}">
+                                            <div class="option-indicator"></div>
+                                            <span class="option-text" th:text="${opt}">Опция</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Submit бутон -->
+                                    <button type="submit" class="vote-btn vote-btn-submit" id="voteSubmitBtn" disabled>Гласувай</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
-                    <div th:if="${referendumDetail.currentUserVote != null}" class="vote-status">
+                    <!-- Ако потребителят Е гласувал - показваме статуса -->
+                    <div th:if="${referendumDetail.currentUserVote != null}">
                         <h3 class="card-title">Твоят глас</h3>
                         <div class="current-vote">
                             <span class="vote-text">Гласувахте за:</span>
-                            <span class="vote-choice" th:text="${referendumDetail.options[referendumDetail.currentUserVote - 1]}">Опция</span>
+                            <!-- currentUserVote се връща 0-based от backend-а -->
+                            <span class="vote-choice" th:text="${referendumDetail.options[referendumDetail.currentUserVote]}">Опция</span>
                         </div>
                     </div>
                 </div>
@@ -170,6 +186,7 @@
                         Към събитията
                     </a>
                 </div>
+
                 <!-- Voting Results -->
                 <div class="voting-card">
                     <h3 class="card-title">Резултати</h3>
@@ -194,7 +211,6 @@
                 <div th:if="${errorMessage}" class="message-card message-error">
                     <span th:text="${errorMessage}">Съобщение за грешка</span>
                 </div>
-
 
             </div>
         </div>
@@ -273,13 +289,13 @@
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" id="cancelVote">
+                <button type="button" class="btn btn-cancel" id="cancelVote">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 6L6 18M6 6l12 12"/>
                     </svg>
                     Отказ
                 </button>
-                <button type="button" class="btn-confirm" id="confirmVote">
+                <button type="button" class="btn btn-confirm" id="confirmVote">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 13l4 4L19 7"/>
                     </svg>

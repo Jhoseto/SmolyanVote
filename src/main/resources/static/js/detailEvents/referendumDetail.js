@@ -1,5 +1,5 @@
 /**
- * Referendum Detail View JavaScript
+ * Referendum Detail View JavaScript - Напълно поправена версия
  * Adapted from Simple Event Detail for referendum-specific functionality
  */
 
@@ -175,7 +175,7 @@ function initializeGalleryModal() {
 }
 
 /**
- * Voting Form Functionality
+ * Voting Form Functionality - Напълно преработена
  */
 function initializeVotingForm() {
     const voteForm = document.getElementById('referendumVoteForm');
@@ -185,6 +185,8 @@ function initializeVotingForm() {
     if (!voteForm || !submitBtn) {
         return; // No voting form found
     }
+
+    console.log('Initializing voting form with', checkboxes.length, 'options');
 
     // Ensure only one checkbox can be selected (radio button behavior)
     checkboxes.forEach(checkbox => {
@@ -196,16 +198,15 @@ function initializeVotingForm() {
                         cb.checked = false;
                     }
                 });
-
-                // Enable submit button
-                updateSubmitButton();
             }
+            // Enable/disable submit button based on selection
+            updateSubmitButton();
         });
     });
 
-    // Handle vote button click - show confirmation modal
-    submitBtn.addEventListener('click', function(e) {
-        e.preventDefault();
+    // Handle form submission - показваме modal за потвърждение
+    voteForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Спираме нормалната форма
 
         if (!validateSingleVote()) {
             showValidationError('Моля изберете точно една опция.');
@@ -232,18 +233,19 @@ function initializeVotingForm() {
     }
 
     function showValidationError(message) {
-        // Create or update error message
-        let errorDiv = document.querySelector('.validation-error');
-
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.className = 'validation-error message-card message-error';
-            errorDiv.style.marginTop = '1rem';
-            voteForm.appendChild(errorDiv);
+        // Remove existing error messages
+        const existingError = document.querySelector('.validation-error');
+        if (existingError) {
+            existingError.remove();
         }
 
+        // Create new error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'validation-error message-card message-error';
+        errorDiv.style.marginTop = '1rem';
         errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
+
+        voteForm.appendChild(errorDiv);
 
         // Animate in
         errorDiv.style.opacity = '0';
@@ -257,12 +259,10 @@ function initializeVotingForm() {
 
         // Auto hide after 5 seconds
         setTimeout(() => {
-            if (errorDiv) {
+            if (errorDiv && errorDiv.parentNode) {
                 errorDiv.style.opacity = '0';
                 setTimeout(() => {
-                    if (errorDiv && errorDiv.parentNode) {
-                        errorDiv.parentNode.removeChild(errorDiv);
-                    }
+                    errorDiv.remove();
                 }, 300);
             }
         }, 5000);
@@ -284,73 +284,122 @@ function initializeVotingForm() {
         const modal = document.getElementById('voteConfirmModal');
         if (modal) {
             modal.style.display = 'block';
+            modal.classList.add('active');
             document.body.style.overflow = 'hidden';
-
-            requestAnimationFrame(() => {
-                modal.classList.add('active');
-            });
         }
     }
 
+    /**
+     * Vote Confirmation Modal Logic - Поправена версия
+     */
     function initializeVoteConfirmationModal() {
         const modal = document.getElementById('voteConfirmModal');
-        const cancelBtn = document.getElementById('cancelVote');
-        const confirmBtn = document.getElementById('confirmVote');
+        const confirmBtn = document.getElementById('confirmVote'); // правилното ID
+        const cancelBtn = document.getElementById('cancelVote'); // правилното ID
 
-        if (!modal || !cancelBtn || !confirmBtn) return;
+        if (!modal || !confirmBtn || !cancelBtn) {
+            console.warn('Vote confirmation modal elements not found');
+            return;
+        }
 
         // Cancel vote
-        cancelBtn.addEventListener('click', () => {
-            closeVoteConfirmationModal();
+        cancelBtn.addEventListener('click', closeVoteModal);
+
+        // Confirm vote - тук правилно изпращаме формата
+        confirmBtn.addEventListener('click', function() {
+            console.log('Confirming vote...');
+            submitVote();
         });
 
-        // Confirm vote - submit form
-        confirmBtn.addEventListener('click', () => {
-            // Show loading state
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin">
-                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    <path d="M9 12l2 2 4-4"/>
-                </svg>
-                Гласуване...
-            `;
-
-            // Submit the form
-            setTimeout(() => {
-                voteForm.submit();
-            }, 500);
-        });
-
-        // Close modal when clicking overlay
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('modal-overlay')) {
-                closeVoteConfirmationModal();
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeVoteModal();
             }
         });
 
-        // Close modal with ESC key
-        document.addEventListener('keydown', (e) => {
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeVoteConfirmationModal();
+                closeVoteModal();
             }
         });
 
-        function closeVoteConfirmationModal() {
+        function closeVoteModal() {
             modal.classList.remove('active');
             document.body.style.overflow = '';
 
             setTimeout(() => {
                 modal.style.display = 'none';
-                // Reset confirm button
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = `
+            }, 300);
+        }
+
+        function submitVote() {
+            const selectedCheckbox = document.querySelector('.vote-checkbox:checked');
+            if (!selectedCheckbox) {
+                showValidationError('Няма избрана опция.');
+                closeVoteModal();
+                return;
+            }
+
+            // Деактивираме бутона за да не се натиска многократно
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M8 12l2 2 4-4"/>
+                </svg>
+                Изпращане...
+            `;
+
+            // Правилно изпращаме формата
+            const formData = new FormData(voteForm);
+
+            console.log('Submitting vote with data:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key + ': ' + value);
+            }
+
+            fetch(voteForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (response.redirected) {
+                        // Ако има redirect, следваме го
+                        window.location.href = response.url;
+                        return;
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    // Ако няма redirect, обработваме отговора
+                    if (data) {
+                        console.log('Vote submitted successfully');
+                        showNotification('Гласът ви беше успешно записан!', 'success');
+                        // Презареждаме страницата за да видим новите резултати
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting vote:', error);
+                    showNotification('Възникна грешка при гласуването. Моля опитайте отново.', 'error');
+                    closeVoteModal();
+
+                    // Възстановяваме бутона
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = `
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 13l4 4L19 7"/>
                     </svg>
-                    Потвърждавам гласа си
+                    Потвърждавам гласа
                 `;
-            }, 300);
+                });
         }
     }
 
@@ -823,12 +872,6 @@ function closeAllDropdowns() {
     });
 }
 
-// ====== INITIALIZE ON DOM READY ======
-document.addEventListener('DOMContentLoaded', function() {
-    initializeDropdownMenu();
-});
-
-
 /**
  * Initialize all enhancements
  */
@@ -836,6 +879,7 @@ function initializeEnhancements() {
     initializeLazyLoading();
     enhanceAccessibility();
     progressiveEnhancement();
+    initializeDropdownMenu();
 }
 
 // Initialize enhancements after DOM is ready
