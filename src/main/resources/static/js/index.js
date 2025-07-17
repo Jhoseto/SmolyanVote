@@ -329,7 +329,7 @@ function initializePerformanceOptimizations() {
  * Scroll to Features Function (Preserved from original)
  */
 function scrollToFeatures() {
-    const featuresSection = document.getElementById('platform-features-carousel');
+    const featuresSection = document.getElementById('motivation-section');
     if (featuresSection) {
         featuresSection.scrollIntoView({
             behavior: 'smooth',
