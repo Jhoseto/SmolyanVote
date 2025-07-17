@@ -9,7 +9,7 @@
 
   <!-- SEO Meta Tags -->
   <meta name="description" th:content="${metaDescription}">
-  <meta name="keywords" content="SmolyanVote, граждански сигнали, проблеми, Смолянска област, интерактивна карта, инфраструктура, околна среда, комунални услуги">
+  <meta name="keywords" content="SmolyanVote, граждански сигнали, проблеми, Смолянска област, интерактивна карта">
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/images/logo1.png">
@@ -30,241 +30,210 @@
   <link rel="stylesheet" href="/css/map/smolyan-map.css">
 </head>
 <body>
+
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<!-- Hero Section -->
-<section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -250px;">
+<!-- Компактен Header -->
+<section class="map-header">
   <div class="container">
-    <h1 class="display-4 fw-bold">Граждански сигнали</h1>
-    <p class="lead">
-      Докладвайте проблеми в Смолянска област с точна локация на картата.<br>
-      Вашият глас има значение за подобряване на живота в общността.<br>
-      Всеки сигнал се проследява и се предава до съответните институции.<br>
-      <strong>Заедно можем да направим Смолянска област по-добро място за живот!</strong>
-    </p>
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Граждански сигнали</h1>
+        <p>Докладвайте проблеми в Смолянска област • Вашият глас има значение</p>
+      </div>
+      <div class="header-stats">
+        <div class="stat-item">
+          <span class="stat-number" id="totalSignals">0</span>
+          <span class="stat-label">Общо сигнали</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="activeSignals">0</span>
+          <span class="stat-label">Активни</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="resolvedSignals">0</span>
+          <span class="stat-label">Решени</span>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- Main Container -->
-<div class="main-container">
+<!-- Main Map Container -->
+<div class="map-container">
+  <!-- Map -->
+  <div id="map" class="map-section"></div>
 
-  <!-- Left Panel - Create Signal -->
-  <div class="left-panel">
-    <div class="panel-header" onclick="toggleLeftPanel()">
-      <h3>
-        <i class="bi bi-plus-circle"></i>
-        Нов сигнал
-        <i class="bi bi-chevron-down panel-arrow" id="leftPanelArrow"></i>
-      </h3>
-      <p>Докладвайте проблем с точна локация</p>
-    </div>
+  <!-- Floating Controls - Ляво -->
+  <div class="floating-controls">
 
-    <div class="panel-content" id="leftPanelContent">
-      <form id="createSignalForm" class="signal-form">
-        <div class="form-group">
-          <label for="signalTitle">Заглавие на проблема</label>
-          <input type="text" id="signalTitle" placeholder="Напр. Дупка в пътя на ул. Централна" required>
+    <!-- Нов сигнал -->
+    <div class="control-card" id="newSignalCard">
+      <div class="control-header" onclick="toggleCard('newSignalCard')">
+        <div class="control-title">
+          <i class="bi bi-plus-circle"></i>
+          <span>Нов сигнал</span>
         </div>
+        <i class="bi bi-chevron-down control-arrow"></i>
+      </div>
+      <div class="control-content">
+        <form id="createSignalForm" class="signal-form">
+          <div class="form-group">
+            <label for="signalTitle">Заглавие</label>
+            <input type="text" id="signalTitle" placeholder="Кратко описание на проблема" required>
+          </div>
 
-        <div class="form-group">
-          <label for="signalCategory">Категория</label>
-          <select id="signalCategory" required>
-            <option value="">Изберете категория</option>
-            <optgroup label="Инфраструктура">
-              <option value="road_damage">Дупки в пътищата</option>
-              <option value="sidewalk_damage">Счупени тротоари</option>
-              <option value="lighting">Неработещо осветление</option>
-              <option value="traffic_signs">Повредени пътни знаци</option>
-              <option value="water_sewer">Водопровод/канализация</option>
-            </optgroup>
-            <optgroup label="Околна среда">
-              <option value="illegal_waste">Незаконни сметища</option>
-              <option value="dangerous_trees">Мъртви/опасни дървета</option>
-              <option value="air_pollution">Замърсяване на въздуха</option>
-              <option value="noise">Шум</option>
-              <option value="parks_issues">Проблеми с паркове</option>
-            </optgroup>
-            <optgroup label="Обществен ред">
-              <option value="illegal_parking">Незаконно паркиране</option>
-              <option value="vandalism">Вандализъм</option>
-              <option value="abandoned_vehicles">Изоставени автомобили</option>
-              <option value="security_issues">Проблеми с безопасност</option>
-            </optgroup>
-            <optgroup label="Комунални услуги">
-              <option value="waste_collection">Проблеми със сметосъбиране</option>
-              <option value="bus_stops">Неработещи автобусни спирки</option>
-              <option value="public_transport">Проблеми с обществен транспорт</option>
-            </optgroup>
-            <optgroup label="Социални проблеми">
-              <option value="accessibility">Недостъпност за хора с увреждания</option>
-              <option value="playgrounds">Опасни детски площадки</option>
-              <option value="stray_animals">Бездомни животни</option>
-            </optgroup>
-          </select>
-        </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="signalCategory">Категория</label>
+              <select id="signalCategory" required>
+                <option value="">Изберете категория</option>
+                <option value="road_damage">Дупки в пътищата</option>
+                <option value="sidewalk_damage">Счупени тротоари</option>
+                <option value="lighting">Неработещо осветление</option>
+                <option value="water_sewer">Водопровод/канализация</option>
+                <option value="illegal_waste">Незаконни сметища</option>
+                <option value="dangerous_trees">Опасни дървета</option>
+                <option value="illegal_parking">Незаконно паркиране</option>
+                <option value="other">Друго</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="signalUrgency">Спешност</label>
+              <select id="signalUrgency" required>
+                <option value="low">Ниска</option>
+                <option value="medium">Средна</option>
+                <option value="high">Висока</option>
+              </select>
+            </div>
+          </div>
 
-        <div class="form-group">
-          <label for="signalDescription">Описание на проблема</label>
-          <textarea id="signalDescription" placeholder="Опишете подробно проблема..." required></textarea>
-        </div>
+          <div class="form-group">
+            <label for="signalDescription">Описание</label>
+            <textarea id="signalDescription" placeholder="Подробно описание на проблема..." rows="3" required></textarea>
+          </div>
 
-        <div class="form-group">
-          <label for="signalUrgency">Степен на спешност</label>
-          <select id="signalUrgency" required>
-            <option value="">Изберете спешност</option>
-            <option value="low">Ниска - може да изчака</option>
-            <option value="medium">Средна - нужно внимание</option>
-            <option value="high">Висока - спешен проблем</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="signalPhoto">Снимка на проблема</label>
-          <input type="file" id="signalPhoto" accept="image/*">
-          <small>Препоръчително за по-бързо решаване</small>
-        </div>
-
-        <div class="form-group">
-          <label>Местоположение</label>
-          <div class="location-selector">
+          <div class="form-group">
+            <label>Местоположение</label>
             <button type="button" id="selectLocationBtn" class="location-btn">
-              <i class="bi bi-geo-alt"></i> Кликнете на картата
+              <i class="bi bi-geo-alt"></i>
+              <span>Кликнете на картата</span>
             </button>
             <div id="selectedCoords" class="coords-display">
               Няма избрано местоположение
             </div>
           </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="resetForm()">
+              <i class="bi bi-arrow-counterclockwise"></i>
+              Изчисти
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="bi bi-send"></i>
+              Изпрати сигнал
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Филтри -->
+    <div class="control-card" id="filtersCard">
+      <div class="control-header" onclick="toggleCard('filtersCard')">
+        <div class="control-title">
+          <i class="bi bi-funnel"></i>
+          <span>Филтри</span>
+        </div>
+        <i class="bi bi-chevron-down control-arrow"></i>
+      </div>
+      <div class="control-content">
+        <div class="filter-group">
+          <label for="categoryFilter">Категория</label>
+          <select id="categoryFilter">
+            <option value="all">Всички категории</option>
+            <option value="road_damage">Дупки в пътищата</option>
+            <option value="sidewalk_damage">Счупени тротоари</option>
+            <option value="lighting">Неработещо осветление</option>
+            <option value="water_sewer">Водопровод/канализация</option>
+            <option value="illegal_waste">Незаконни сметища</option>
+            <option value="dangerous_trees">Опасни дървета</option>
+            <option value="illegal_parking">Незаконно паркиране</option>
+            <option value="other">Друго</option>
+          </select>
         </div>
 
-        <div class="form-actions">
-          <button type="reset" class="btn-secondary">Изчисти</button>
-          <button type="submit" class="btn-primary">
-            <i class="bi bi-send"></i> Изпрати сигнал
-          </button>
+        <div class="filter-group">
+          <label for="urgencyFilter">Спешност</label>
+          <select id="urgencyFilter">
+            <option value="all">Всички нива</option>
+            <option value="high">Висока</option>
+            <option value="medium">Средна</option>
+            <option value="low">Ниска</option>
+          </select>
         </div>
-      </form>
+
+        <div class="filter-group">
+          <label for="statusFilter">Статус</label>
+          <select id="statusFilter">
+            <option value="all">Всички статуси</option>
+            <option value="new">Нови</option>
+            <option value="in_progress">В процес</option>
+            <option value="resolved">Решени</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-secondary btn-full" onclick="clearFilters()">
+          <i class="bi bi-x-circle"></i>
+          Изчисти филтрите
+        </button>
+      </div>
     </div>
+
   </div>
 
-  <!-- Map Container -->
-  <div class="map-section">
-    <div id="map" class="map-container"></div>
-
-    <!-- Map Controls -->
-    <div class="map-controls">
-      <button id="centerMapBtn" class="control-btn" title="Центрирай картата">
-        <i class="bi bi-house"></i>
-      </button>
-      <button id="myLocationBtn" class="control-btn" title="Моята локация">
-        <i class="bi bi-geo-alt"></i>
-      </button>
-      <button id="fullscreenBtn" class="control-btn" title="Цял екран">
-        <i class="bi bi-arrows-fullscreen"></i>
-      </button>
-    </div>
+  <!-- Map Controls -->
+  <div class="map-controls">
+    <button class="control-btn" id="centerMapBtn" title="Центрирай картата">
+      <i class="bi bi-house"></i>
+    </button>
+    <button class="control-btn" id="myLocationBtn" title="Моята локация">
+      <i class="bi bi-geo-alt"></i>
+    </button>
+    <button class="control-btn" id="fullscreenBtn" title="Цял екран">
+      <i class="bi bi-fullscreen"></i>
+    </button>
   </div>
 
-  <!-- Right Panel - Signals List -->
-  <div class="right-panel">
-    <div class="panel-header" onclick="toggleRightPanel()">
+  <!-- Right Sidebar - Списък със сигнали -->
+  <div class="signals-sidebar">
+    <div class="sidebar-header">
       <h3>
         <i class="bi bi-list-ul"></i>
-        Подадени сигнали
-        <i class="bi bi-chevron-down panel-arrow" id="rightPanelArrow"></i>
+        Сигнали
+        <span class="signals-count" id="signalsCount">0</span>
       </h3>
-      <div class="signals-count">
-        <span id="signalsCount">0</span> активни сигнала
+      <div class="sort-controls">
+        <select id="sortFilter" class="sort-select">
+          <option value="newest">Най-нови</option>
+          <option value="oldest">Най-стари</option>
+          <option value="urgency">По спешност</option>
+          <option value="category">По категория</option>
+        </select>
       </div>
     </div>
 
-    <div class="panel-content" id="rightPanelContent">
-      <!-- Filters -->
-      <div class="filters-section">
-        <div class="filters-header" onclick="toggleFilters()">
-          <h4>
-            <i class="bi bi-funnel"></i>
-            Филтри
-            <i class="bi bi-chevron-down filter-arrow" id="filtersArrow"></i>
-          </h4>
-        </div>
-
-        <div class="filters-content" id="filtersContent">
-          <div class="filter-group">
-            <label>Филтрирай по категория:</label>
-            <select id="categoryFilter">
-              <option value="all">Всички категории</option>
-              <optgroup label="Инфраструктура">
-                <option value="road_damage">Дупки в пътищата</option>
-                <option value="sidewalk_damage">Счупени тротоари</option>
-                <option value="lighting">Неработещо осветление</option>
-                <option value="traffic_signs">Повредени пътни знаци</option>
-                <option value="water_sewer">Водопровод/канализация</option>
-              </optgroup>
-              <optgroup label="Околна среда">
-                <option value="illegal_waste">Незаконни сметища</option>
-                <option value="dangerous_trees">Мъртви/опасни дървета</option>
-                <option value="air_pollution">Замърсяване на въздуха</option>
-                <option value="noise">Шум</option>
-                <option value="parks_issues">Проблеми с паркове</option>
-              </optgroup>
-              <optgroup label="Обществен ред">
-                <option value="illegal_parking">Незаконно паркиране</option>
-                <option value="vandalism">Вандализъм</option>
-                <option value="abandoned_vehicles">Изоставени автомобили</option>
-                <option value="security_issues">Проблеми с безопасност</option>
-              </optgroup>
-              <optgroup label="Комунални услуги">
-                <option value="waste_collection">Проблеми със сметосъбиране</option>
-                <option value="bus_stops">Неработещи автобусни спирки</option>
-                <option value="public_transport">Проблеми с обществен транспорт</option>
-              </optgroup>
-              <optgroup label="Социални проблеми">
-                <option value="accessibility">Недостъпност за хора с увреждания</option>
-                <option value="playgrounds">Опасни детски площадки</option>
-                <option value="stray_animals">Бездомни животни</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Спешност:</label>
-            <select id="urgencyFilter">
-              <option value="all">Всички</option>
-              <option value="high">Висока</option>
-              <option value="medium">Средна</option>
-              <option value="low">Ниска</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Статус:</label>
-            <select id="statusFilter">
-              <option value="all">Всички</option>
-              <option value="new">Нови</option>
-              <option value="in_progress">В процес</option>
-              <option value="resolved">Решени</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Сортиране:</label>
-            <select id="sortFilter">
-              <option value="newest">Най-нови първо</option>
-              <option value="oldest">Най-стари първо</option>
-              <option value="urgency">По спешност</option>
-              <option value="category">По категория</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Signals List -->
-      <div class="signals-list" id="signalsList">
-        <!-- Dynamic content will be inserted here -->
-      </div>
+    <div class="signals-list" id="signalsList">
+      <!-- Dynamic content -->
     </div>
   </div>
+
+  <!-- Floating Action Button за мобилни -->
+  <button class="fab" id="mobileFab" onclick="toggleMobileControls()">
+    <i class="bi bi-plus"></i>
+  </button>
+
 </div>
 
 <!-- Signal Details Modal -->
@@ -282,6 +251,9 @@
   </div>
 </div>
 
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
@@ -298,5 +270,6 @@
 
 <!-- Map JS -->
 <script src="/js/map/smolyan-map.js"></script>
+
 </body>
 </html>
