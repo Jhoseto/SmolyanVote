@@ -89,13 +89,36 @@
               <label for="signalCategory">Категория</label>
               <select id="signalCategory" required>
                 <option value="">Изберете категория</option>
-                <option value="road_damage">Дупки в пътищата</option>
-                <option value="sidewalk_damage">Счупени тротоари</option>
-                <option value="lighting">Неработещо осветление</option>
-                <option value="water_sewer">Водопровод/канализация</option>
-                <option value="illegal_waste">Незаконни сметища</option>
-                <option value="dangerous_trees">Опасни дървета</option>
-                <option value="illegal_parking">Незаконно паркиране</option>
+                <optgroup label="Инфраструктура">
+                  <option value="road_damage">Дупки в пътищата</option>
+                  <option value="sidewalk_damage">Счупени тротоари</option>
+                  <option value="lighting">Неработещо осветление</option>
+                  <option value="traffic_signs">Повредени пътни знаци</option>
+                  <option value="water_sewer">Водопровод/канализация</option>
+                </optgroup>
+                <optgroup label="Околна среда">
+                  <option value="illegal_waste">Незаконни сметища</option>
+                  <option value="dangerous_trees">Мъртви/опасни дървета</option>
+                  <option value="air_pollution">Замърсяване на въздуха</option>
+                  <option value="noise">Шум</option>
+                  <option value="parks_issues">Проблеми с паркове</option>
+                </optgroup>
+                <optgroup label="Обществен ред">
+                  <option value="illegal_parking">Незаконно паркиране</option>
+                  <option value="vandalism">Вандализъм</option>
+                  <option value="abandoned_vehicles">Изоставени автомобили</option>
+                  <option value="security_issues">Проблеми с безопасност</option>
+                </optgroup>
+                <optgroup label="Комунални услуги">
+                  <option value="waste_collection">Проблеми със сметосъбиране</option>
+                  <option value="bus_stops">Неработещи автобусни спирки</option>
+                  <option value="public_transport">Проблеми с обществен транспорт</option>
+                </optgroup>
+                <optgroup label="Социални проблеми">
+                  <option value="accessibility">Недостъпност за хора с увреждания</option>
+                  <option value="playgrounds">Опасни детски площадки</option>
+                  <option value="stray_animals">Бездомни животни</option>
+                </optgroup>
                 <option value="other">Друго</option>
               </select>
             </div>
