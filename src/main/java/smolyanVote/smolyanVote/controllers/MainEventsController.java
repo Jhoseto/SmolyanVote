@@ -21,7 +21,6 @@ import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 
 @Controller
 public class MainEventsController {
-    private static final Logger logger = LoggerFactory.getLogger(MainEventsController.class);
 
     private final MainEventsService mainEventsService;
     private final UserService userService;
@@ -45,9 +44,6 @@ public class MainEventsController {
             @RequestParam(value = "reset", required = false) String reset,
             Model model) {
 
-        logger.info("Search query: search={}, location={}, type={}, status={}, sort={}, page={}, size={}",
-                search, location, type, status, sort, page, size);
-
         // Ако има reset параметър, пренасочваме без параметри
         if ("true".equals(reset)) {
             return "redirect:/mainEvents";
@@ -64,7 +60,6 @@ public class MainEventsController {
             try {
                 Locations.valueOf(location.toUpperCase());
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid location: {}", location);
                 location = null;
             }
         } else {
@@ -83,11 +78,9 @@ public class MainEventsController {
                     default -> null;
                 };
             } catch (Exception e) {
-                logger.warn("Error converting type '{}' to enum: {}", type, e.getMessage());
                 type = null;
             }
         } else if (type != null) {
-            logger.warn("Invalid type: {}", type);
             type = null;
         }
 
@@ -97,20 +90,16 @@ public class MainEventsController {
         if (status != null && isValidStatus(status)) {
             try {
                 eventStatusEnum = status.equalsIgnoreCase("active") ? EventStatus.ACTIVE : EventStatus.INACTIVE;
-                logger.info("Converting status '{}' to EventStatus enum '{}'", status, eventStatusEnum);
             } catch (Exception e) {
-                logger.warn("Error converting status '{}' to enum: {}", status, e.getMessage());
                 status = null;
             }
         } else if (status != null) {
-            logger.warn("Invalid status: {}", status);
             status = null;
         }
 
         // Валидация на сортирането
         sort = cleanParam(sort);
         if (sort != null && !isValidSort(sort)) {
-            logger.warn("Invalid sort: {}", sort);
             sort = null;
         }
 
@@ -126,12 +115,8 @@ public class MainEventsController {
 
         try {
             // Извличане на събития
-            long startTime = System.currentTimeMillis();
             Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
                     search, location, eventTypeEnum, eventStatusEnum, pageable);
-            logger.info("Query executed in {} ms. Found {} events with type '{}' and status '{}'",
-                    System.currentTimeMillis() - startTime, events.getTotalElements(),
-                    eventTypeEnum, eventStatusEnum);
             UserEntity currentUser = userService.getCurrentUser();
 
             // Основни атрибути за události
@@ -172,14 +157,8 @@ public class MainEventsController {
                 model.addAttribute("noResultsMessage", noResultsMessage);
             }
 
-            // Debug logging
-            if (type != null || status != null) {
-                logger.info("Filters applied: HTML type='{}', EventType='{}', HTML status='{}', EventStatus='{}', Results={}",
-                        type, eventTypeEnum, status, eventStatusEnum, events.getTotalElements());
-            }
 
         } catch (Exception e) {
-            logger.error("Error retrieving events", e);
             model.addAttribute("error", "Възникна грешка при зареждането на събитията. Моля, опитайте отново.");
             // Добавяме празна страница при грешка
             model.addAttribute("events", Page.empty());
@@ -254,10 +233,6 @@ public class MainEventsController {
             model.addAttribute("startResult", 0L);
             model.addAttribute("endResult", 0L);
         }
-
-        // Debug logging за пагинацията
-        logger.debug("Pagination info: totalPages={}, currentPage={}, startPage={}, endPage={}",
-                totalPages, currentPage, startPage, endPage);
     }
 
     /**
