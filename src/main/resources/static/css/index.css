@@ -318,7 +318,7 @@ body {
 
 .dynamic-text {
   position: absolute;
-  top: 0;
+  top: 9%;
   left: 50%;
   transform: translateX(-50%);
   opacity: 0;
