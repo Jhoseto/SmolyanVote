@@ -27,29 +27,13 @@ public class ReferendumController {
 
     private final ReferendumService referendumService;
     private final UserService userService;
-    private final UserRepository userRepository;
-    private final CommentsService commentsService;
-    private final ReferendumRepository referendumRepository;
-    private final VoteService voteService;
-    private final VoteReferendumRepository voteReferendumRepository;
-    private final ReportsService reportsService;
+
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
-                                UserService userService, UserRepository userRepository,
-                                CommentsService commentsService,
-                                ReferendumRepository referendumRepository,
-                                VoteService voteService,
-                                VoteReferendumRepository voteReferendumRepository,
-                                ReportsService reportsService) {
+                                UserService userService) {
         this.referendumService = referendumService;
         this.userService = userService;
-        this.userRepository = userRepository;
-        this.commentsService = commentsService;
-        this.referendumRepository = referendumRepository;
-        this.voteService = voteService;
-        this.voteReferendumRepository = voteReferendumRepository;
-        this.reportsService = reportsService;
     }
 
     @GetMapping("/referendum")

@@ -60,6 +60,27 @@
                         <span class="stat-value stat-highlight" th:text="${multiPoll.totalVotes}">0</span>
                     </div>
                 </div>
+
+                <!-- ✅ ДОБАВЕНО: Poll Options Menu -->
+                <div class="poll-options-menu" th:if="${#authorization.expression('isAuthenticated()')}">
+                    <button class="options-btn" id="pollOptionsBtn">
+                        <span>Опции</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div class="options-dropdown" id="pollOptionsDropdown">
+                        <!-- Докладвай - винаги видим за автентикирани потребители -->
+                        <button class="option-item report-option" th:onclick="'reportPoll(' + ${multiPoll.id} + ')'">
+                            <i class="bi bi-flag"></i> Докладвай
+                        </button>
+
+                        <!-- Изтрий - само за автор или админ -->
+                        <button th:if="${#authorization.expression('hasRole(''ADMIN'')') or (currentUser != null and multiPoll.creator.username == currentUser.username)}"
+                                class="option-item delete-option"
+                                th:onclick="'confirmDeletePoll(' + ${multiPoll.id} + ')'">
+                            <i class="bi bi-trash"></i> Изтрий
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <h1 class="multipoll-title" th:text="${multiPoll.title}">Заглавие на анкетата</h1>
@@ -276,6 +297,8 @@
         </div>
     </div>
 </div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
 
 <script th:inline="javascript">
     // Authentication data for JavaScript

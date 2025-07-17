@@ -27,7 +27,7 @@
         <!-- Event Header Card -->
         <div class="event-header-card">
             <!-- Event Type Badge -->
-            <div class= "bi-pencil-square2">
+            <div class="bi-pencil-square2">
                 <span class="badge-text">Опростен вид събитие</span>
             </div>
 
@@ -58,6 +58,27 @@
                     <div class="stat-item">
                         <span class="stat-label">Гласове</span>
                         <span class="stat-value stat-highlight" th:text="${eventDetail.totalVotes}">0</span>
+                    </div>
+                </div>
+
+                <!--  Options Menu -->
+                <div class="event-options-menu" th:if="${#authorization.expression('isAuthenticated()')}">
+                    <button class="options-btn" id="eventOptionsBtn">
+                        <span>Опции</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div class="options-dropdown" id="eventOptionsDropdown">
+                        <!-- Докладвай - винаги видим за автентикирани потребители -->
+                        <button class="option-item report-option" th:onclick="'reportEvent(' + ${eventDetail.id} + ')'">
+                            <i class="bi bi-flag"></i> Докладвай
+                        </button>
+
+                        <!-- Изтрий - само за автор или админ -->
+                        <button th:if="${#authorization.expression('hasRole(''ADMIN'')') or (currentUser != null and eventDetail.creator.username == currentUser.username)}"
+                                class="option-item delete-option"
+                                th:onclick="'confirmDeleteEvent(' + ${eventDetail.id} + ')'">
+                            <i class="bi bi-trash"></i> Изтрий
+                        </button>
                     </div>
                 </div>
             </div>
