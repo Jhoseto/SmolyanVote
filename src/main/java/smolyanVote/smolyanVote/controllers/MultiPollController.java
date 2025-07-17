@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,14 +28,17 @@ public class MultiPollController {
     private final MultiPollService multiPollService;
     private final UserService userService;
     private final VoteService voteService;
+    private final DeleteEventsService deleteEventsService;
 
     @Autowired
     public MultiPollController(MultiPollService multiPollService,
                                UserService userService,
-                               VoteService voteService) {
+                               VoteService voteService,
+                               DeleteEventsService deleteEventsService) {
         this.multiPollService = multiPollService;
         this.userService = userService;
         this.voteService = voteService;
+        this.deleteEventsService = deleteEventsService;
     }
 
     @GetMapping("/createMultiPoll")
@@ -134,4 +138,31 @@ public class MultiPollController {
         return "redirect:/multipoll/" + pollId;
     }
 
+    @PostMapping("/multipoll/{id}/delete")
+    public String deleteMultiPoll(@PathVariable Long id,
+                                  RedirectAttributes redirectAttributes,
+                                  Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Необходима е автентикация за изтриване.");
+            return "redirect:/multipoll/" + id;
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+
+            if (!deleteEventsService.canUserDeleteEvent(id, currentUser)) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Нямате права за изтриване на тази анкета.");
+                return "redirect:/multipoll/" + id;
+            }
+
+            deleteEventsService.deleteEvent(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Анкетата беше изтрита успешно.");
+            return "redirect:/mainEvents";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
+            return "redirect:/multipoll/" + id;
+        }
+    }
 }

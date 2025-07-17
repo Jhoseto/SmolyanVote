@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,13 +28,16 @@ public class ReferendumController {
 
     private final ReferendumService referendumService;
     private final UserService userService;
+    private final DeleteEventsService deleteEventsService;
 
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
-                                UserService userService) {
+                                UserService userService,
+                                DeleteEventsService deleteEventsService) {
         this.referendumService = referendumService;
         this.userService = userService;
+        this.deleteEventsService = deleteEventsService;
     }
 
     @GetMapping("/referendum")
@@ -127,6 +131,36 @@ public class ReferendumController {
             return "referendumDetailView";
         } catch (EntityNotFoundException e) {
             return "redirect:/404";
+        }
+    }
+
+
+
+    @PostMapping("/referendum/{id}/delete")
+    public String deleteReferendum(@PathVariable Long id,
+                                   RedirectAttributes redirectAttributes,
+                                   Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Необходима е автентикация за изтриване.");
+            return "redirect:/referendum/" + id;
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+
+            if (!deleteEventsService.canUserDeleteEvent(id, currentUser)) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Нямате права за изтриване на този референдум.");
+                return "redirect:/referendum/" + id;
+            }
+
+            deleteEventsService.deleteEvent(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Референдумът беше изтрит успешно.");
+            return "redirect:/mainEvents";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
+            return "redirect:/referendum/" + id;
         }
     }
 

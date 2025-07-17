@@ -6,14 +6,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.EventType;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
-import smolyanVote.smolyanVote.services.interfaces.DeleteService;
+import smolyanVote.smolyanVote.services.interfaces.DeleteEventsService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
+import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
 import java.util.List;
 
 @Service
-public class DeleteServiceImpl implements DeleteService {
+public class DeleteEventsServiceImpl implements DeleteEventsService {
 
     private final SimpleEventRepository simpleEventRepository;
     private final ReferendumRepository referendumRepository;
@@ -26,16 +30,25 @@ public class DeleteServiceImpl implements DeleteService {
     private final MultiPollRepository multiPollRepository;
     private final VoteMultiPollRepository voteMultiPollRepository;
     private final MultiPollImageRepository multiPollImageRepository;
+    private final SimpleEventServiceImpl simpleEventService;
+    private final ReferendumServiceImpl referendumService;
+    private final MultiPollServiceImpl multiPollService;
 
     @Autowired
-    public DeleteServiceImpl(SimpleEventRepository simpleEventRepository,
-                             ReferendumRepository referendumRepository,
-                             VoteSimpleEventRepository voteSimpleEventRepository,
-                             VoteReferendumRepository voteReferendumRepository,
-                             SimpleEventImageRepository simpleEventImageRepository,
-                             ReferendumImageRepository referendumImageRepository,
-                             CommentsRepository commentsRepository,
-                             ImageCloudinaryService imageCloudinaryService, MultiPollRepository multiPollRepository, VoteMultiPollRepository voteMultiPollRepository, MultiPollImageRepository multiPollImageRepository) {
+    public DeleteEventsServiceImpl(SimpleEventRepository simpleEventRepository,
+                                   ReferendumRepository referendumRepository,
+                                   VoteSimpleEventRepository voteSimpleEventRepository,
+                                   VoteReferendumRepository voteReferendumRepository,
+                                   SimpleEventImageRepository simpleEventImageRepository,
+                                   ReferendumImageRepository referendumImageRepository,
+                                   CommentsRepository commentsRepository,
+                                   ImageCloudinaryService imageCloudinaryService,
+                                   MultiPollRepository multiPollRepository,
+                                   VoteMultiPollRepository voteMultiPollRepository,
+                                   MultiPollImageRepository multiPollImageRepository,
+                                   SimpleEventServiceImpl simpleEventService,
+                                   ReferendumServiceImpl referendumService,
+                                   MultiPollServiceImpl multiPollService) {
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -47,6 +60,9 @@ public class DeleteServiceImpl implements DeleteService {
         this.multiPollRepository = multiPollRepository;
         this.voteMultiPollRepository = voteMultiPollRepository;
         this.multiPollImageRepository = multiPollImageRepository;
+        this.simpleEventService = simpleEventService;
+        this.referendumService = referendumService;
+        this.multiPollService = multiPollService;
     }
 
     public EventType getEventTypeById(Long id) {
@@ -115,6 +131,45 @@ public class DeleteServiceImpl implements DeleteService {
                 break;
             default:
                 throw new UnsupportedOperationException("Тип на събитието не е поддържан за изтриване: " + type);
+        }
+    }
+
+
+    @Override
+    public boolean canUserDeleteEvent(Long eventId, UserEntity user) {
+        if (user == null) {
+            return false;
+        }
+
+        // Админите могат да изтриват всичко
+        if (user.getRole().equals(UserRole.ADMIN)) {
+            return true;
+        }
+
+        try {
+            EventType eventType = getEventTypeById(eventId);
+
+            switch (eventType) {
+                case SIMPLEEVENT:
+                    SimpleEventDetailViewDTO event = simpleEventService.getSimpleEventDetails(eventId);
+                    return event.getCreator() != null &&
+                            user.getUsername().equals(event.getCreator().getUsername());
+
+                case REFERENDUM:
+                    ReferendumDetailViewDTO referendum = referendumService.getReferendumDetail(eventId);
+                    return referendum.getCreator() != null &&
+                            user.getUsername().equals(referendum.getCreator().getUsername());
+
+                case MULTI_POLL:
+                    MultiPollDetailViewDTO multiPoll = multiPollService.getMultiPollDetail(eventId);
+                    return multiPoll.getCreator() != null &&
+                            user.getUsername().equals(multiPoll.getCreator().getUsername());
+
+                default:
+                    return false;
+            }
+        } catch (Exception e) {
+            return false;
         }
     }
 }

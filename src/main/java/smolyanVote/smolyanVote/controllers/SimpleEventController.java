@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -9,18 +8,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 public class SimpleEventController {
@@ -28,7 +22,7 @@ public class SimpleEventController {
     private final SimpleEventService simpleEventService;
     private final CommentsService commentsService;
     private final UserService userService;
-    private final DeleteService deleteService;
+    private final DeleteEventsService deleteEventsService;
     private final ReportsService reportsService;
 
 
@@ -36,12 +30,12 @@ public class SimpleEventController {
     public SimpleEventController(SimpleEventService simpleEventService,
                                  CommentsService commentsService,
                                  UserService userService,
-                                 DeleteService deleteService,
+                                 DeleteEventsService deleteEventsService,
                                  ReportsService reportsService) {
         this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
-        this.deleteService = deleteService;
+        this.deleteEventsService = deleteEventsService;
         this.reportsService = reportsService;
     }
 
@@ -103,11 +97,31 @@ public class SimpleEventController {
 
 
     @PostMapping("/event/{id}/delete")
-    @PreAuthorize("hasRole('ADMIN')")
-    public String deleteEvent(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        deleteService.deleteEvent(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Събитието беше изтрито успешно.");
-        return "redirect:/mainEvents";
+    public String deleteEvent(@PathVariable Long id,
+                              RedirectAttributes redirectAttributes,
+                              Authentication auth) {
+
+        if (auth == null || !auth.isAuthenticated()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Необходима е автентикация за изтриване.");
+            return "redirect:/event/" + id;
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+
+            if (!deleteEventsService.canUserDeleteEvent(id, currentUser)) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Нямате права за изтриване на това събитие.");
+                return "redirect:/event/" + id;
+            }
+
+            deleteEventsService.deleteEvent(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Събитието беше изтрито успешно.");
+            return "redirect:/mainEvents";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
+            return "redirect:/event/" + id;
+        }
     }
 
 }
