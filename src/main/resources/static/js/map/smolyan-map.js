@@ -14,17 +14,35 @@ const SMOLYAN_BOUNDS = {
 
 // Категории със SmolyanVote стил
 const SIGNAL_CATEGORIES = {
-    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle', color: '#e74c3c' },
-    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-exclamation-circle', color: '#e67e22' },
-    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#f39c12' },
-    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#d35400' },
-    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#3498db' },
-    illegal_waste: { name: 'Незаконни сметища', icon: 'bi-trash', color: '#8b4513' },
-    dangerous_trees: { name: 'Мъртви/опасни дървета', icon: 'bi-tree', color: '#27ae60' },
-    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#95a5a6' },
-    noise: { name: 'Шум', icon: 'bi-volume-up', color: '#9b59b6' },
-    illegal_parking: { name: 'Незаконно паркиране', icon: 'bi-car-front', color: '#e67e22' },
-    other: { name: 'Друго', icon: 'bi-question-circle', color: '#6c757d' }
+    // Инфраструктура
+    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle', color: '#e74c3c', group: 'infrastructure' },
+    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-exclamation-circle', color: '#e67e22', group: 'infrastructure' },
+    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#f39c12', group: 'infrastructure' },
+    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#d35400', group: 'infrastructure' },
+    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#3498db', group: 'infrastructure' },
+
+    // Околна среда
+    illegal_waste: { name: 'Незаконни сметища', icon: 'bi-trash', color: '#8b4513', group: 'environment' },
+    dangerous_trees: { name: 'Мъртви/опасни дървета', icon: 'bi-tree', color: '#27ae60', group: 'environment' },
+    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#95a5a6', group: 'environment' },
+    noise: { name: 'Шум', icon: 'bi-volume-up', color: '#9b59b6', group: 'environment' },
+    parks_issues: { name: 'Проблеми с паркове', icon: 'bi-tree-fill', color: '#2ecc71', group: 'environment' },
+
+    // Обществен ред
+    illegal_parking: { name: 'Незаконно паркиране', icon: 'bi-car-front', color: '#e67e22', group: 'public_order' },
+    vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#c0392b', group: 'public_order' },
+    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front-fill', color: '#7f8c8d', group: 'public_order' },
+    security_issues: { name: 'Проблеми с безопасност', icon: 'bi-shield-exclamation', color: '#c0392b', group: 'public_order' },
+
+    // Комунални услуги
+    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash3', color: '#795548', group: 'municipal' },
+    bus_stops: { name: 'Неработещи автобусни спирки', icon: 'bi-bus-front', color: '#2980b9', group: 'municipal' },
+    public_transport: { name: 'Проблеми с обществен транспорт', icon: 'bi-bus-front-fill', color: '#3498db', group: 'municipal' },
+
+    // Социални проблеми
+    accessibility: { name: 'Недостъпност за хора с увреждания', icon: 'bi-person-wheelchair', color: '#8e44ad', group: 'social' },
+    playgrounds: { name: 'Опасни детски площадки', icon: 'bi-exclamation-triangle-fill', color: '#e74c3c', group: 'social' },
+    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart', color: '#e91e63', group: 'social' }
 };
 
 const URGENCY_LEVELS = {
