@@ -1,6 +1,6 @@
 /* =================================================================
-   UNIFIED DETAIL VIEW - EVENTS, MULTIPOLLS & REFERENDUMS
-   Обединен CSS файл за запазване на абсолютно същата визия
+   UNIFIED DETAIL EVENTS CSS
+   SimpleEvent + MultiPoll + Referendum
    ================================================================= */
 
 :root {
@@ -13,17 +13,12 @@
     --error-red: #dc2626;
     --neutral-gray: #64748b;
 
-    /* Event Specific Colors (Green Theme) */
-    --event-primary: #157655;
-    --event-secondary: #1a704f;
-    --event-accent: var(--accent-green);
-
-    /* MultiPoll Specific Colors (Cyan Theme) */
+    /* MultiPoll Colors */
     --multipoll-primary: #17CBEA;
     --multipoll-secondary: #0EA5E9;
     --multipoll-dark: #0284C7;
 
-    /* Referendum Specific Colors (Orange Theme) */
+    /* Referendum Colors */
     --referendum-primary: #FB7E14;
     --referendum-secondary: #E86A11;
     --referendum-dark: #D65E0E;
@@ -63,7 +58,7 @@
 }
 
 /* =================================================================
-   GLOBAL STYLES (COMMON TO ALL)
+   GLOBAL STYLES
    ================================================================= */
 
 * {
@@ -82,7 +77,7 @@ body {
 }
 
 /* =================================================================
-   MAIN LAYOUT (COMMON TO ALL)
+   MAIN LAYOUT
    ================================================================= */
 
 .main-wrapper {
@@ -99,34 +94,12 @@ body {
     gap: 1.5rem;
 }
 
-.content-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 1.5rem;
-    align-items: start;
-}
-
-.left-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    position: sticky;
-    top: 6rem;
-}
-
 /* =================================================================
-   HEADER CARDS (COMMON STRUCTURE, DIFFERENT COLORS)
+   HEADER CARDS - ТОЧНО СПОРЕД HTML
    ================================================================= */
 
-.event-header-card,
-.multipoll-header-card,
-.referendum-header-card {
+/* Event Header Card */
+.event-header-card {
     margin-top: 5px;
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(16px) saturate(180%);
@@ -150,6 +123,20 @@ body {
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
+/* MultiPoll Header Card */
+.multipoll-header-card {
+    margin-top: 5px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s var(--ease);
+}
+
 .multipoll-header-card::before {
     content: '';
     position: absolute;
@@ -159,6 +146,20 @@ body {
     height: 4px;
     background: var(--multipoll-primary);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* Referendum Header Card */
+.referendum-header-card {
+    margin-top: 5px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s var(--ease);
 }
 
 .referendum-header-card::before {
@@ -172,14 +173,65 @@ body {
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
-.event-header-card:hover,
-.multipoll-header-card:hover,
-.referendum-header-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.15);
+/* =================================================================
+   BADGES
+   ================================================================= */
+
+.bi-pencil-square2 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--accent-green);
+    color: white;
+    padding: 0.1rem 1rem 0.1rem 1rem;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* Meta sections */
+.bi-poll-check {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--multipoll-primary);
+    color: white;
+    padding: 0.1rem 1rem 0.1rem 1rem;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bi-ballot-check {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--referendum-primary);
+    color: white;
+    padding: 0.1rem 1rem 0.1rem 1rem;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* =================================================================
+   META SECTIONS
+   ================================================================= */
+
 .event-meta,
 .multipoll-meta,
 .referendum-meta {
@@ -190,51 +242,34 @@ body {
     gap: 2rem;
 }
 
-/* Creator sections (common to all) */
 .creator-section {
-    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .creator-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
     text-decoration: none;
-    color: inherit;
     transition: all 0.2s var(--ease);
     padding: 0.5rem;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
 }
 
 .creator-link:hover {
-    background: rgba(255, 255, 255, 0.4);
-    color: var(--primary-green);
-    transform: translateX(2px);
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .creator-avatar {
-    width: 3rem;
-    height: 3rem;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s var(--ease);
-}
-
-.event-header-card .creator-link:hover .creator-avatar {
-    border-color: var(--accent-green);
-    transform: scale(1.05);
-}
-
-.multipoll-header-card .creator-link:hover .creator-avatar {
-    border-color: var(--multipoll-primary);
-    transform: scale(1.05);
-}
-
-.referendum-header-card .creator-link:hover .creator-avatar {
-    border-color: var(--referendum-primary);
-    transform: scale(1.05);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.2s var(--ease);
 }
 
 .creator-info {
@@ -245,105 +280,18 @@ body {
 .creator-label {
     font-size: 0.75rem;
     color: var(--gray-500);
-    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-bottom: 0.125rem;
 }
 
 .creator-name {
-    font-size: 0.95rem;
     font-weight: 600;
     color: var(--gray-900);
 }
 
 /* =================================================================
-   TYPE BADGES (SPECIFIC TO EACH TYPE)
-   ================================================================= */
-
-.bi-pencil-square2,
-.bi-poll-check,
-.bi-ballot-check {
-    top: -1.99rem;
-    left: -1.8rem;
-    display: inline;
-    align-items: center;
-    gap: 0.5rem;
-    backdrop-filter: blur(8px);
-    border-radius: var(--radius-lg);
-    padding: 0.2rem 1rem;
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s var(--ease);
-    position: relative;
-    overflow: hidden;
-    flex: 0 0 auto;
-}
-
-/* Event Badge (Green) */
-.bi-pencil-square2 {
-    background: var(--event-primary);
-    border: 3px solid var(--event-secondary);
-}
-
-.bi-pencil-square2:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(22, 163, 74, 0.25);
-    border-color: rgba(22, 163, 74, 0.3);
-}
-
-/* MultiPoll Badge (Cyan) */
-.bi-poll-check {
-    background: var(--multipoll-primary);
-    border: 3px solid var(--multipoll-secondary);
-}
-
-.bi-poll-check:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(23, 203, 234, 0.25);
-    border-color: var(--multipoll-dark);
-}
-
-/* Referendum Badge (Orange) */
-.bi-ballot-check {
-    background: var(--referendum-primary);
-    border: 3px solid var(--referendum-secondary);
-}
-
-.bi-ballot-check:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(251, 126, 20, 0.25);
-    border-color: var(--referendum-dark);
-}
-
-.bi-pencil-square2::before,
-.bi-poll-check::before,
-.bi-ballot-check::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.6s var(--ease);
-}
-
-.bi-pencil-square2:hover::before,
-.bi-poll-check:hover::before,
-.bi-ballot-check:hover::before {
-    left: 100%;
-}
-
-.badge-text,
-.bi-pencil-square2-text {
-    white-space: nowrap;
-    letter-spacing: 0.025em;
-}
-
-/* =================================================================
-   STATS SECTIONS (COMMON TO ALL)
+   STATS SECTIONS
    ================================================================= */
 
 .event-stats,
@@ -393,7 +341,7 @@ body {
 }
 
 /* =================================================================
-   TITLES (COMMON TO ALL)
+   TITLES
    ================================================================= */
 
 .event-title,
@@ -409,807 +357,7 @@ body {
 }
 
 /* =================================================================
-   CARD BASE STYLES (COMMON TO ALL)
-   ================================================================= */
-
-.description-card,
-.gallery-card,
-.voting-card,
-.voting-actions-card,
-.navigation-card,
-.message-card,
-.comments-card {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s var(--ease);
-}
-
-.description-card:hover,
-.gallery-card:hover,
-.voting-card:hover,
-.voting-actions-card:hover,
-.navigation-card:hover,
-.comments-card:hover {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-1px);
-}
-
-.card-title {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary-green);
-    margin: 0 0 1rem 0;
-    position: relative;
-    padding-bottom: 0.5rem;
-}
-
-.card-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 40px;
-    height: 2px;
-    background: var(--primary-green);
-    border-radius: 1px;
-}
-
-/* =================================================================
-   DESCRIPTION CARDS (COMMON TO ALL)
-   ================================================================= */
-
-.description-content p {
-    margin: 0;
-    color: var(--gray-700);
-    font-size: 1rem;
-    line-height: 1.7;
-}
-
-/* =================================================================
-   GALLERY CARDS (COMMON TO ALL)
-   ================================================================= */
-
-.gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.75rem;
-}
-
-.gallery-img {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: var(--shadow-sm);
-}
-
-.gallery-img:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary-green);
-}
-
-/* =================================================================
-   VOTING CARDS (DIFFERENT BACKGROUNDS)
-   ================================================================= */
-
-.voting-card {
-    background: linear-gradient(135deg, rgba(30, 61, 50, 0.05), rgba(15, 123, 89, 0.03));
-}
-
-.multipoll-header-card ~ .content-grid .voting-card {
-    background: linear-gradient(135deg, rgba(23, 203, 234, 0.03), rgba(14, 165, 233, 0.02));
-}
-
-.referendum-header-card ~ .content-grid .voting-card {
-    background: linear-gradient(135deg, rgba(251, 126, 20, 0.03), rgba(232, 106, 17, 0.02));
-}
-
-/* =================================================================
-   VOTE RESULTS (COMMON STRUCTURE)
-   ================================================================= */
-
-.vote-result {
-    margin-bottom: 1.25rem;
-}
-
-.vote-result:last-child {
-    margin-bottom: 0;
-}
-
-.vote-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 500;
-    color: var(--gray-700);
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.vote-count {
-    font-size: 0.8rem;
-    color: var(--gray-500);
-}
-
-.vote-percentage {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--gray-600);
-}
-
-.vote-bar {
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 20px;
-    height: 32px;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.bar {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 1rem;
-    position: relative;
-    transition: width 2s var(--ease);
-    border-radius: 20px;
-}
-
-.bar-percent {
-    color: white;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Simple Event Vote Bars */
-.bar-for {
-    background: linear-gradient(135deg, var(--success-green), var(--accent-green));
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
-}
-
-.bar-against {
-    background: linear-gradient(135deg, #dc2626, #ef4444);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
-}
-
-.bar-neutral {
-    background: linear-gradient(135deg, var(--gray-500), #6b7280);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
-}
-
-/* MultiPoll & Referendum Option Bars */
-.bar-option[data-option="0"] {
-    background: var(--primary-green);
-}
-
-.bar-option[data-option="1"] {
-    background: var(--secondary-green);
-}
-
-.bar-option[data-option="2"] {
-    background: var(--accent-green);
-}
-
-.bar-option[data-option="3"] {
-    background: var(--multipoll-primary);
-}
-
-.bar-option[data-option="4"] {
-    background: var(--multipoll-secondary);
-}
-
-.bar-option[data-option="5"] {
-    background: var(--neutral-gray);
-}
-
-.bar-option:nth-child(n+7) {
-    background: var(--gray-500);
-}
-
-.referendum-header-card ~ .content-grid .bar-option[data-option="3"] {
-    background: var(--referendum-primary);
-}
-
-.referendum-header-card ~ .content-grid .bar-option[data-option="4"] {
-    background: var(--referendum-secondary);
-}
-
-/* =================================================================
-   VOTE FORMS (DIFFERENT FOR EACH TYPE)
-   ================================================================= */
-
-.vote-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-/* Selection Counter (MultiPoll only) */
-.selection-info {
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.selection-counter {
-    display: inline-block;
-    background: linear-gradient(135deg, rgba(23, 203, 234, 0.1), rgba(14, 165, 233, 0.05));
-    border: 1px solid rgba(23, 203, 234, 0.2);
-    color: var(--multipoll-primary);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.2s var(--ease);
-}
-
-/* =================================================================
-   ELEGANT VOTE BUTTONS (Simple Events)
-   ================================================================= */
-
-.vote-buttons {
-    font-family: var(--font-primary);
-    font-size: 0.95rem;
-    font-weight: 600;
-    padding: 1rem 1.5rem;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    min-height: 56px;
-    backdrop-filter: blur(10px);
-    text-transform: none;
-    letter-spacing: 0.025em;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1rem;
-}
-
-.vote-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-    transition: left 0.6s ease;
-}
-
-.vote-btn:hover::before {
-    left: 100%;
-}
-
-.vote-btn svg {
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-.vote-btn span {
-    font-weight: 600;
-    transition: all 0.3s ease;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.vote-btn-for {
-    background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
-    color: white;
-    border-color: rgba(22, 163, 74, 0.3);
-    box-shadow: 0 4px 20px rgba(22, 163, 74, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.vote-btn-for:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(22, 163, 74, 0.35), 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: rgba(22, 163, 74, 0.5);
-}
-
-.vote-btn-against {
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
-    color: white;
-    border-color: rgba(220, 38, 38, 0.3);
-    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.vote-btn-against:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.35), 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: rgba(220, 38, 38, 0.5);
-}
-
-.vote-btn-neutral {
-    background: linear-gradient(135deg, #64748b 0%, #94a3b8 50%, #cbd5e1 100%);
-    color: white;
-    border-color: rgba(100, 116, 139, 0.3);
-    box-shadow: 0 4px 20px rgba(100, 116, 139, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.vote-btn-neutral:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(100, 116, 139, 0.35), 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: rgba(100, 116, 139, 0.5);
-}
-
-/* =================================================================
-   CHECKBOX/RADIO STYLE VOTING (MultiPoll & Referendum)
-   ================================================================= */
-
-.vote-option {
-    position: relative;
-}
-
-.vote-checkbox {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.vote-option-label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1rem;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
-    background: rgba(255, 255, 255, 0.4);
-    position: relative;
-    overflow: hidden;
-}
-
-.vote-option-label::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    transition: left 0.5s var(--ease);
-}
-
-/* MultiPoll specific hover effects */
-.multipoll-header-card ~ .content-grid .vote-option-label::before {
-    background: linear-gradient(90deg, transparent, rgba(23, 203, 234, 0.08), transparent);
-}
-
-.multipoll-header-card ~ .content-grid .vote-option-label:hover {
-    border-color: var(--multipoll-primary);
-    background: rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label {
-    border-color: var(--multipoll-primary);
-    background: linear-gradient(135deg, rgba(23, 203, 234, 0.08), rgba(14, 165, 233, 0.04));
-    box-shadow: 0 0 0 3px rgba(23, 203, 234, 0.1);
-}
-
-/* Referendum specific hover effects */
-.referendum-header-card ~ .content-grid .vote-option-label::before {
-    background: linear-gradient(90deg, transparent, rgba(30, 61, 50, 0.05), transparent);
-}
-
-.referendum-header-card ~ .content-grid .vote-option-label:hover {
-    border-color: var(--primary-green);
-    background: rgba(255, 255, 255, 0.6);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label {
-    border-color: var(--primary-green);
-    background: linear-gradient(135deg, rgba(30, 61, 50, 0.08), rgba(15, 123, 89, 0.04));
-    box-shadow: 0 0 0 3px rgba(30, 61, 50, 0.1);
-}
-
-.vote-option-label:hover::before {
-    left: 100%;
-}
-
-/* Option Indicators */
-.option-indicator {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--gray-400);
-    transition: all 0.2s var(--ease);
-    position: relative;
-    flex-shrink: 0;
-}
-
-/* MultiPoll - Square indicators */
-.multipoll-header-card ~ .content-grid .option-indicator {
-    border-radius: 4px;
-}
-
-.multipoll-header-card ~ .content-grid .option-indicator::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    background: var(--multipoll-primary);
-    border-radius: 2px;
-    transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.2s var(--ease);
-}
-
-.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator {
-    border-color: var(--multipoll-primary);
-    background: rgba(23, 203, 234, 0.1);
-}
-
-.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator::after {
-    transform: translate(-50%, -50%) scale(1);
-}
-
-/* Referendum - Round indicators */
-.referendum-header-card ~ .content-grid .option-indicator {
-    border-radius: 50%;
-}
-
-.referendum-header-card ~ .content-grid .option-indicator::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    background: var(--primary-green);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.2s var(--ease);
-}
-
-.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator {
-    border-color: var(--primary-green);
-}
-
-.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator::after {
-    transform: translate(-50%, -50%) scale(1);
-}
-
-/* Option Text */
-.option-text {
-    font-weight: 500;
-    color: var(--gray-700);
-    transition: color 0.2s var(--ease);
-}
-
-.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-text {
-    color: var(--multipoll-primary);
-    font-weight: 600;
-}
-
-.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-text {
-    color: var(--primary-green);
-    font-weight: 600;
-}
-
-/* =================================================================
-   SUBMIT BUTTONS (MultiPoll & Referendum)
-   ================================================================= */
-
-.vote-btn-submit {
-    font-family: var(--font-primary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 1rem 1.5rem;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
-    position: relative;
-    overflow: hidden;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: white;
-    margin-top: 0.5rem;
-}
-
-.vote-btn-submit::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s var(--ease);
-}
-
-.vote-btn-submit:hover::before {
-    left: 100%;
-}
-
-.vote-btn-submit:hover {
-    transform: translateY(-2px);
-}
-
-.vote-btn-submit:active {
-    transform: translateY(0);
-}
-
-.vote-btn-submit:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-/* MultiPoll submit button */
-.multipoll-header-card ~ .content-grid .vote-btn-submit {
-    background: var(--multipoll-primary);
-    box-shadow: 0 4px 14px 0 rgba(23, 203, 234, 0.25);
-}
-
-.multipoll-header-card ~ .content-grid .vote-btn-submit:hover {
-    box-shadow: 0 8px 25px 0 rgba(23, 203, 234, 0.35);
-}
-
-/* Referendum submit button */
-.referendum-header-card ~ .content-grid .vote-btn-submit {
-    background: var(--referendum-primary);
-    box-shadow: 0 4px 14px 0 rgba(251, 126, 20, 0.25);
-}
-
-.referendum-header-card ~ .content-grid .vote-btn-submit:hover {
-    box-shadow: 0 8px 25px 0 rgba(251, 126, 20, 0.35);
-}
-
-/* =================================================================
-   VOTE STATUS (COMMON STRUCTURE)
-   ================================================================= */
-
-.vote-status {
-    text-align: center;
-}
-
-.current-vote,
-.current-votes {
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    border: 1px solid;
-}
-
-.vote-text {
-    display: block;
-    font-size: 0.9rem;
-    color: var(--gray-600);
-    margin-bottom: 0.5rem;
-}
-
-/* Simple Event Vote Status */
-.current-vote {
-    background: var(--gray-100);
-    border-color: var(--gray-200);
-}
-
-.vote-choice {
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.choice-for { color: var(--success-green); }
-.choice-against { color: var(--error-red); }
-.choice-neutral { color: var(--neutral-gray); }
-
-/* MultiPoll Vote Status */
-.multipoll-header-card ~ .content-grid .current-votes {
-    background: linear-gradient(135deg, rgba(23, 203, 234, 0.08), rgba(14, 165, 233, 0.04));
-    border-color: rgba(23, 203, 234, 0.15);
-}
-
-.selected-choices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
-}
-
-.choice-badge {
-    background: var(--multipoll-primary);
-    color: white;
-    padding: 0.375rem 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
-}
-
-/* Referendum Vote Status */
-.referendum-header-card ~ .content-grid .current-vote {
-    background: linear-gradient(135deg, rgba(251, 126, 20, 0.08), rgba(232, 106, 17, 0.04));
-    border-color: rgba(251, 126, 20, 0.15);
-}
-
-.referendum-header-card ~ .content-grid .vote-choice {
-    color: var(--referendum-primary);
-}
-
-/* =================================================================
-   ERROR AND SUCCESS MESSAGES (COMMON TO ALL)
-   ================================================================= */
-
-.validation-error {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.08), rgba(185, 28, 28, 0.04));
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    color: var(--error-red);
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 500;
-    text-align: center;
-}
-
-.success-message {
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(21, 128, 61, 0.04));
-    border: 1px solid rgba(22, 163, 74, 0.2);
-    color: var(--success-green);
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 500;
-    text-align: center;
-}
-
-.message-card {
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    font-weight: 500;
-}
-
-.message-success {
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.1), rgba(15, 123, 89, 0.05));
-    border: 1px solid rgba(22, 163, 74, 0.2);
-    color: var(--success-green);
-}
-
-.message-error {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(239, 68, 68, 0.05));
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    color: var(--error-red);
-}
-
-/* =================================================================
-   NAVIGATION (COMMON TO ALL)
-   ================================================================= */
-
-.navigation-card {
-    padding: 1rem;
-}
-
-.back-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--gray-600);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s var(--ease);
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
-}
-
-.back-btn:hover {
-    color: var(--primary-green);
-    background: var(--gray-100);
-    transform: translateX(-2px);
-}
-
-.back-btn svg {
-    transition: transform 0.2s var(--ease);
-}
-
-.back-btn:hover svg {
-    transform: translateX(-2px);
-}
-
-/* =================================================================
-   COMMENTS SECTION (COMMON TO ALL)
-   ================================================================= */
-
-.comments-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.comments-header h3 {
-    font-family: var(--font-primary);
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary-green);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.comments-header h3 i {
-    font-size: 1rem;
-}
-
-.event-header-card ~ .content-grid .comments-header h3 i {
-    color: var(--accent-green);
-}
-
-.multipoll-header-card ~ .content-grid .comments-header h3 i {
-    color: var(--multipoll-primary);
-}
-
-.referendum-header-card ~ .content-grid .comments-header h3 i {
-    color: var(--accent-green);
-}
-
-.comments-sort {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.comments-sort select {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--radius-sm);
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-    color: var(--gray-700);
-    cursor: pointer;
-    outline: none;
-    transition: all 0.2s var(--ease);
-    min-width: 140px;
-}
-
-.comments-sort select:focus,
-.comments-sort select:hover {
-    border-color: var(--accent-green);
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.event-header-card ~ .content-grid .comments-sort select:focus,
-.event-header-card ~ .content-grid .comments-sort select:hover {
-    border-color: var(--accent-green);
-    box-shadow: 0 0 0 2px rgba(15, 123, 89, 0.1);
-}
-
-.multipoll-header-card ~ .content-grid .comments-sort select:focus,
-.multipoll-header-card ~ .content-grid .comments-sort select:hover {
-    border-color: var(--multipoll-primary);
-    box-shadow: 0 0 0 2px rgba(23, 203, 234, 0.1);
-}
-
-.referendum-header-card ~ .content-grid .comments-sort select:focus,
-.referendum-header-card ~ .content-grid .comments-sort select:hover {
-    border-color: var(--accent-green);
-    box-shadow: 0 0 0 2px rgba(15, 123, 89, 0.1);
-}
-
-/* =================================================================
-   OPTIONS MENU (DIFFERENT COLORS FOR EACH TYPE)
+   OPTIONS MENUS
    ================================================================= */
 
 .event-options-menu,
@@ -1227,7 +375,7 @@ body {
     gap: 0.5rem;
     padding: 0.75rem 1rem;
     background: rgba(255, 255, 255, 0.7);
-    border: 1px solid;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--radius-md);
     font-family: var(--font-primary);
     font-size: 0.9rem;
@@ -1238,43 +386,44 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-/* Event options (Green) */
+/* Event options button */
 .event-options-menu .options-btn {
-    border-color: rgba(30, 61, 50, 0.2);
-    color: var(--primary-green);
+    color: var(--accent-green);
+    border-color: rgba(15, 123, 89, 0.2);
 }
 
 .event-options-menu .options-btn:hover {
     background: rgba(255, 255, 255, 0.9);
-    border-color: var(--accent-green);
-    color: var(--accent-green);
+    border-color: var(--secondary-green);
+    color: var(--secondary-green);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
-/* MultiPoll options (Cyan) */
+/* MultiPoll options button */
 .poll-options-menu .options-btn {
-    border-color: rgba(56, 178, 172, 0.2);
     color: var(--multipoll-primary);
+    border-color: rgba(23, 203, 234, 0.2);
 }
 
 .poll-options-menu .options-btn:hover {
     background: rgba(255, 255, 255, 0.9);
     border-color: var(--multipoll-secondary);
     color: var(--multipoll-secondary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
-/* Referendum options (Orange) */
+/* Referendum options button */
 .referendum-options-menu .options-btn {
-    border-color: rgba(251, 126, 20, 0.2);
     color: var(--referendum-primary);
+    border-color: rgba(251, 126, 20, 0.2);
 }
 
 .referendum-options-menu .options-btn:hover {
     background: rgba(255, 255, 255, 0.9);
     border-color: var(--referendum-secondary);
     color: var(--referendum-secondary);
-}
-
-.options-btn:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
@@ -1351,7 +500,7 @@ body {
 
 /* MultiPoll option items */
 .poll-options-menu .option-item:hover {
-    background: rgba(56, 178, 172, 0.05);
+    background: rgba(23, 203, 234, 0.05);
     color: var(--multipoll-primary);
 }
 
@@ -1384,7 +533,871 @@ body {
 }
 
 /* =================================================================
-   GALLERY MODAL (COMMON TO ALL)
+   CONTENT GRID
+   ================================================================= */
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 6rem;
+}
+
+/* =================================================================
+   CARD BASE STYLES
+   ================================================================= */
+
+.description-card,
+.gallery-card,
+.voting-card,
+.voting-actions-card,
+.navigation-card,
+.message-card,
+.comments-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s var(--ease);
+}
+
+.description-card:hover,
+.gallery-card:hover,
+.voting-card:hover,
+.voting-actions-card:hover,
+.navigation-card:hover,
+.comments-card:hover {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.card-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin: 0 0 1rem 0;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.card-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background: var(--primary-green);
+    border-radius: 1px;
+}
+
+/* Specific voting card backgrounds */
+.multipoll-header-card ~ .content-grid .voting-card {
+    background: linear-gradient(135deg, rgba(23, 203, 234, 0.03), rgba(14, 165, 233, 0.02));
+}
+
+/* =================================================================
+   DESCRIPTION CARDS
+   ================================================================= */
+
+.description-content p {
+    margin: 0;
+    color: var(--gray-700);
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+/* =================================================================
+   GALLERY
+   ================================================================= */
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+}
+
+.gallery-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: var(--shadow-sm);
+}
+
+.gallery-img:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-green);
+}
+
+/* =================================================================
+   VOTE RESULTS - СПОРЕД РЕАЛНАТА HTML СТРУКТУРА
+   ================================================================= */
+
+.vote-result {
+    margin-bottom: 1.25rem;
+}
+
+.vote-result:last-child {
+    margin-bottom: 0;
+}
+
+.vote-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.vote-count {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+.vote-bar {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 20px;
+    height: 32px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 1rem;
+    position: relative;
+    transition: width 2s var(--ease);
+    border-radius: 20px;
+}
+
+.bar-percent {
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== SIMPLE EVENT VOTE BARS - СПОРЕД HTML КЛАСОВЕТЕ ===== */
+.bar-for {
+    background: linear-gradient(135deg, var(--success-green), var(--accent-green));
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.bar-against {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.bar-neutral {
+    background: linear-gradient(135deg, var(--gray-500), #6b7280);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* ===== MULTIPOLL & REFERENDUM OPTION BARS ===== */
+.bar-option[data-option="0"] {
+    background: var(--primary-green);
+}
+
+.bar-option[data-option="1"] {
+    background: var(--secondary-green);
+}
+
+.bar-option[data-option="2"] {
+    background: var(--accent-green);
+}
+
+.bar-option[data-option="3"] {
+    background: var(--multipoll-primary);
+}
+
+.bar-option[data-option="4"] {
+    background: var(--multipoll-secondary);
+}
+
+.bar-option[data-option="5"] {
+    background: var(--neutral-gray);
+}
+
+.bar-option:nth-child(n+7) {
+    background: var(--gray-500);
+}
+
+/* Referendum specific colors for options 3 and 4 */
+.referendum-header-card ~ .content-grid .bar-option[data-option="3"] {
+    background: var(--referendum-primary);
+}
+
+.referendum-header-card ~ .content-grid .bar-option[data-option="4"] {
+    background: var(--referendum-secondary);
+}
+
+/* =================================================================
+   SIMPLE EVENT - ELEGANT VOTE BUTTONS
+   ================================================================= */
+
+.vote-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.vote-buttons {
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 56px;
+    backdrop-filter: blur(10px);
+    text-transform: none;
+    letter-spacing: 0.025em;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1rem;
+}
+
+.vote-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transition: left 0.6s ease;
+}
+
+.vote-btn:hover::before {
+    left: 100%;
+}
+
+.vote-btn svg {
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.vote-btn span {
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* For Vote Button */
+.vote-btn-for {
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
+    color: white;
+    border-color: rgba(22, 163, 74, 0.3);
+    box-shadow:
+            0 4px 20px rgba(22, 163, 74, 0.25),
+            0 1px 3px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.vote-btn-for:hover {
+    transform: translateY(-3px);
+    box-shadow:
+            0 8px 32px rgba(22, 163, 74, 0.35),
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(22, 163, 74, 0.5);
+}
+
+.vote-btn-for:hover svg {
+    transform: scale(1.1) rotate(-2deg);
+}
+
+.vote-btn-for:active {
+    transform: translateY(-1px);
+    transition: transform 0.1s ease;
+}
+
+/* Against Vote Button */
+.vote-btn-against {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
+    color: white;
+    border-color: rgba(220, 38, 38, 0.3);
+    box-shadow:
+            0 4px 20px rgba(220, 38, 38, 0.25),
+            0 1px 3px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.vote-btn-against:hover {
+    transform: translateY(-3px);
+    box-shadow:
+            0 8px 32px rgba(220, 38, 38, 0.35),
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(220, 38, 38, 0.5);
+}
+
+.vote-btn-against:hover svg {
+    transform: scale(1.1) rotate(2deg);
+}
+
+.vote-btn-against:active {
+    transform: translateY(-1px);
+    transition: transform 0.1s ease;
+}
+
+/* Neutral Vote Button */
+.vote-btn-neutral {
+    background: linear-gradient(135deg, #64748b 0%, #94a3b8 50%, #cbd5e1 100%);
+    color: white;
+    border-color: rgba(100, 116, 139, 0.3);
+    box-shadow:
+            0 4px 20px rgba(100, 116, 139, 0.25),
+            0 1px 3px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.vote-btn-neutral:hover {
+    transform: translateY(-3px);
+    box-shadow:
+            0 8px 32px rgba(100, 116, 139, 0.35),
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: rgba(100, 116, 139, 0.5);
+}
+
+.vote-btn-neutral:hover svg {
+    transform: scale(1.05);
+}
+
+.vote-btn-neutral:active {
+    transform: translateY(-1px);
+    transition: transform 0.1s ease;
+}
+
+/* Active State for all buttons */
+.vote-btn.active {
+    transform: translateY(-2px);
+    box-shadow:
+            0 6px 24px rgba(0, 0, 0, 0.15),
+            0 0 0 3px rgba(255, 255, 255, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.vote-btn.active::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.4), transparent, rgba(255, 255, 255, 0.4));
+    border-radius: 14px;
+    z-index: -1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.02);
+    }
+}
+
+/* Disabled State */
+.vote-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    pointer-events: none;
+}
+
+.vote-btn:disabled:hover {
+    transform: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Focus State for Accessibility */
+.vote-btn:focus {
+    outline: none;
+    box-shadow:
+            0 4px 20px rgba(0, 0, 0, 0.15),
+            0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+/* Loading State */
+.vote-btn.loading {
+    pointer-events: none;
+    position: relative;
+}
+
+.vote-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.vote-btn.loading span,
+.vote-btn.loading svg {
+    opacity: 0.3;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =================================================================
+   MULTIPOLL & REFERENDUM - CHECKBOXES
+   ================================================================= */
+
+/* Selection Counter (MultiPoll only) */
+.selection-info {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.selection-counter {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(23, 203, 234, 0.1), rgba(14, 165, 233, 0.05));
+    border: 1px solid rgba(23, 203, 234, 0.2);
+    color: var(--multipoll-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s var(--ease);
+}
+
+.vote-option {
+    position: relative;
+}
+
+.vote-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.vote-option-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    background: rgba(255, 255, 255, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.vote-option-label::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    transition: left 0.5s var(--ease);
+}
+
+/* MultiPoll styles */
+.multipoll-header-card ~ .content-grid .vote-option-label::before {
+    background: linear-gradient(90deg, transparent, rgba(23, 203, 234, 0.08), transparent);
+}
+
+.multipoll-header-card ~ .content-grid .vote-option-label:hover::before {
+    left: 100%;
+}
+
+.multipoll-header-card ~ .content-grid .vote-option-label:hover {
+    border-color: var(--multipoll-primary);
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label {
+    border-color: var(--multipoll-primary);
+    background: linear-gradient(135deg, rgba(23, 203, 234, 0.08), rgba(14, 165, 233, 0.04));
+    box-shadow: 0 0 0 3px rgba(23, 203, 234, 0.1);
+}
+
+/* Referendum styles */
+.referendum-header-card ~ .content-grid .vote-option-label::before {
+    background: linear-gradient(90deg, transparent, rgba(251, 126, 20, 0.08), transparent);
+}
+
+.referendum-header-card ~ .content-grid .vote-option-label:hover::before {
+    left: 100%;
+}
+
+.referendum-header-card ~ .content-grid .vote-option-label:hover {
+    border-color: var(--referendum-primary);
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label {
+    border-color: var(--referendum-primary);
+    background: linear-gradient(135deg, rgba(251, 126, 20, 0.08), rgba(232, 106, 17, 0.04));
+    box-shadow: 0 0 0 3px rgba(251, 126, 20, 0.1);
+}
+
+.option-indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gray-400);
+    border-radius: 4px;
+    transition: all 0.2s var(--ease);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.option-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.2s var(--ease);
+}
+
+/* MultiPoll indicators */
+.multipoll-header-card ~ .content-grid .option-indicator::after {
+    background: var(--multipoll-primary);
+}
+
+.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator {
+    border-color: var(--multipoll-primary);
+    background: rgba(23, 203, 234, 0.1);
+}
+
+.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator::after {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Referendum indicators */
+.referendum-header-card ~ .content-grid .option-indicator::after {
+    background: var(--referendum-primary);
+}
+
+.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator {
+    border-color: var(--referendum-primary);
+    background: rgba(251, 126, 20, 0.1);
+}
+
+.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-indicator::after {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.option-text {
+    font-weight: 500;
+    color: var(--gray-700);
+    transition: color 0.2s var(--ease);
+}
+
+/* MultiPoll option text */
+.multipoll-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-text {
+    color: var(--multipoll-primary);
+    font-weight: 600;
+}
+
+/* Referendum option text */
+.referendum-header-card ~ .content-grid .vote-checkbox:checked + .vote-option-label .option-text {
+    color: var(--referendum-primary);
+    font-weight: 600;
+}
+
+/* Submit button */
+.vote-btn-submit {
+    font-family: var(--font-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: white;
+    margin-top: 0.5rem;
+}
+
+/* MultiPoll submit button */
+.multipoll-header-card ~ .content-grid .vote-btn-submit {
+    background: var(--multipoll-primary);
+    box-shadow: 0 4px 14px 0 rgba(23, 203, 234, 0.25);
+}
+
+.multipoll-header-card ~ .content-grid .vote-btn-submit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s var(--ease);
+}
+
+.multipoll-header-card ~ .content-grid .vote-btn-submit:hover::before {
+    left: 100%;
+}
+
+.multipoll-header-card ~ .content-grid .vote-btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px 0 rgba(23, 203, 234, 0.35);
+}
+
+/* Referendum submit button */
+.referendum-header-card ~ .content-grid .vote-btn-submit {
+    background: var(--referendum-primary);
+    box-shadow: 0 4px 14px 0 rgba(251, 126, 20, 0.25);
+}
+
+.referendum-header-card ~ .content-grid .vote-btn-submit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s var(--ease);
+}
+
+.referendum-header-card ~ .content-grid .vote-btn-submit:hover::before {
+    left: 100%;
+}
+
+.referendum-header-card ~ .content-grid .vote-btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px 0 rgba(251, 126, 20, 0.35);
+}
+
+.vote-btn-submit:active {
+    transform: translateY(0);
+}
+
+.vote-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* =================================================================
+   VOTE STATUS - СПОРЕД HTML СТРУКТУРАТА
+   ================================================================= */
+
+.vote-status {
+    text-align: center;
+}
+
+.current-vote {
+    background: var(--gray-100);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.vote-text {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 0.5rem;
+}
+
+.vote-choice {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.choice-for { color: var(--success-green); }
+.choice-against { color: var(--error-red); }
+.choice-neutral { color: var(--neutral-gray); }
+
+/* MultiPoll Vote Status */
+.current-votes {
+    background: var(--gray-100);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.multipoll-header-card ~ .content-grid .current-votes {
+    background: linear-gradient(135deg, rgba(23, 203, 234, 0.08), rgba(14, 165, 233, 0.04));
+    border-color: rgba(23, 203, 234, 0.15);
+}
+
+.selected-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.choice-badge {
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.multipoll-header-card ~ .content-grid .choice-badge {
+    background: var(--multipoll-primary);
+}
+
+/* Referendum Vote Status */
+.referendum-header-card ~ .content-grid .current-vote {
+    background: linear-gradient(135deg, rgba(251, 126, 20, 0.08), rgba(232, 106, 17, 0.04));
+    border-color: rgba(251, 126, 20, 0.15);
+}
+
+.referendum-header-card ~ .content-grid .vote-choice {
+    color: var(--referendum-primary);
+}
+
+.referendum-header-card ~ .content-grid .choice-badge {
+    background: var(--referendum-primary);
+}
+
+/* =================================================================
+   MESSAGES & ERRORS
+   ================================================================= */
+
+.validation-error {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.08), rgba(185, 28, 28, 0.04));
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    color: var(--error-red);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.success-message {
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(21, 128, 61, 0.04));
+    border: 1px solid rgba(22, 163, 74, 0.2);
+    color: var(--success-green);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.message-card {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+
+.message-success {
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.1), rgba(15, 123, 89, 0.05));
+    border: 1px solid rgba(22, 163, 74, 0.2);
+    color: var(--success-green);
+}
+
+.message-error {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(239, 68, 68, 0.05));
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    color: var(--error-red);
+}
+
+/* =================================================================
+   NAVIGATION
+   ================================================================= */
+
+.navigation-card {
+    padding: 1rem;
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-600);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s var(--ease);
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.back-btn:hover {
+    color: var(--primary-green);
+    background: var(--gray-100);
+    transform: translateX(-2px);
+}
+
+.back-btn svg {
+    transition: transform 0.2s var(--ease);
+}
+
+.back-btn:hover svg {
+    transform: translateX(-2px);
+}
+
+/* =================================================================
+   GALLERY MODAL
    ================================================================= */
 
 .premium-modal {
@@ -1462,37 +1475,22 @@ body {
 .modal-close:hover {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.1) rotate(90deg);
+    transform: scale(1.1);
 }
 
 .modal-close:active {
-    transform: scale(0.95) rotate(90deg);
+    transform: scale(0.95);
 }
 
 .modal-image-frame {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 100%;
-    max-height: calc(100vh - 200px);
+    max-width: 90vw;
+    max-height: 85vh;
     margin-bottom: 2rem;
-}
-
-.modal-image {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    border-radius: 12px;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0;
-    transform: scale(0.9);
-}
-
-.modal-image.loaded {
-    opacity: 1;
-    transform: scale(1);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-image-frame::before {
@@ -1502,23 +1500,30 @@ body {
     left: 50%;
     width: 40px;
     height: 40px;
-    margin: -20px 0 0 -20px;
     border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
+    border-top: 3px solid white;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     opacity: 1;
     transition: opacity 0.3s ease;
+    transform: translate(-50%, -50%);
+    z-index: 2;
 }
 
 .modal-image-frame.loaded::before {
     opacity: 0;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+.modal-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.modal-image.loaded {
+    opacity: 1;
 }
 
 .modal-controls {
@@ -1595,7 +1600,7 @@ body {
     color: white;
     font-size: 0.95rem;
     font-weight: 500;
-    font-family: var(--font-primary, 'Inter', sans-serif);
+    font-family: var(--font-primary);
     min-width: 80px;
     justify-content: center;
 }
@@ -1638,7 +1643,7 @@ body {
 }
 
 /* =================================================================
-   VOTE CONFIRMATION MODAL (COMMON TO ALL)
+   VOTE CONFIRMATION MODAL - СПОРЕД РЕАЛНАТА HTML СТРУКТУРА
    ================================================================= */
 
 .vote-confirm-modal {
@@ -1652,9 +1657,6 @@ body {
     visibility: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(0px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .vote-confirm-modal.active {
@@ -1741,16 +1743,20 @@ body {
     font-weight: 500;
 }
 
-.selected-option,
-.selected-options {
+/* Selected option (SimpleEvent & Referendum) */
+.selected-option {
     display: flex;
     justify-content: center;
     margin-bottom: 1rem;
 }
 
+/* Selected options (MultiPoll) */
 .selected-options {
+    display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 1rem;
 }
 
 .option-badge {
@@ -1759,45 +1765,51 @@ body {
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 1rem;
-    box-shadow: 0 4px 14px 0 rgba(251, 126, 20, 0.25);
     text-align: center;
     max-width: 300px;
     word-break: break-word;
 }
 
-/* Simple Event confirmation badge */
-.event-header-card ~ .content-grid .option-badge {
+/* SimpleEvent option badge (GREEN) */
+.event-header-card ~ * .option-badge {
     background: linear-gradient(135deg, var(--success-green), var(--accent-green));
-    box-shadow: 0 4px 12px rgba(15, 123, 89, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px 0 rgba(22, 163, 74, 0.25);
 }
 
-/* MultiPoll confirmation badges */
-.multipoll-header-card ~ .content-grid .option-badge {
+/* MultiPoll option badge (CYAN) */
+.multipoll-header-card ~ * .option-badge {
     background: linear-gradient(135deg, var(--multipoll-primary), var(--multipoll-secondary));
-    box-shadow: 0 4px 12px rgba(23, 203, 234, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    box-shadow: 0 4px 14px 0 rgba(23, 203, 234, 0.25);
 }
 
-/* Referendum confirmation badge */
-.referendum-header-card ~ .content-grid .option-badge {
+/* Referendum option badge (ORANGE) */
+.referendum-header-card ~ * .option-badge {
     background: linear-gradient(135deg, var(--referendum-primary), var(--referendum-secondary));
     box-shadow: 0 4px 14px 0 rgba(251, 126, 20, 0.25);
 }
 
 .warning-message {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.03));
-    border: 1px solid rgba(239, 68, 68, 0.15);
     border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 1.5rem;
 }
 
-.referendum-header-card ~ .content-grid .warning-message {
+/* MultiPoll warning */
+.multipoll-header-card ~ * .warning-message {
+    background: linear-gradient(135deg, rgba(23, 203, 234, 0.05), rgba(14, 165, 233, 0.03));
+    border: 1px solid rgba(23, 203, 234, 0.15);
+}
+
+/* Referendum warning */
+.referendum-header-card ~ * .warning-message {
     background: linear-gradient(135deg, rgba(251, 126, 20, 0.05), rgba(232, 106, 17, 0.03));
     border: 1px solid rgba(251, 126, 20, 0.15);
+}
+
+/* Simple Event warning (default) */
+.event-header-card ~ * .warning-message {
+    background: linear-gradient(135deg, rgba(15, 123, 89, 0.05), rgba(30, 61, 50, 0.03));
+    border: 1px solid rgba(15, 123, 89, 0.15);
 }
 
 .warning-content {
@@ -1807,13 +1819,23 @@ body {
 }
 
 .warning-content svg {
-    color: var(--error-red);
     flex-shrink: 0;
     margin-top: 0.125rem;
 }
 
-.referendum-header-card ~ .content-grid .warning-content svg {
+/* MultiPoll warning icon */
+.multipoll-header-card ~ * .warning-content svg {
+    color: var(--multipoll-primary);
+}
+
+/* Referendum warning icon */
+.referendum-header-card ~ * .warning-content svg {
     color: var(--referendum-primary);
+}
+
+/* Simple Event warning icon */
+.event-header-card ~ * .warning-content svg {
+    color: var(--accent-green);
 }
 
 .warning-text {
@@ -1823,32 +1845,42 @@ body {
 }
 
 .warning-text strong {
-    color: var(--error-red);
     font-weight: 600;
 }
 
-.referendum-header-card ~ .content-grid .warning-text strong {
+/* MultiPoll warning text */
+.multipoll-header-card ~ * .warning-text strong {
+    color: var(--multipoll-primary);
+}
+
+/* Referendum warning text */
+.referendum-header-card ~ * .warning-text strong {
     color: var(--referendum-primary);
+}
+
+/* Simple Event warning text */
+.event-header-card ~ * .warning-text strong {
+    color: var(--accent-green);
 }
 
 .modal-footer {
     padding: 1rem 2rem 2rem;
     display: flex;
     gap: 1rem;
-    justify-content: flex-end;
-    border-top: 1px solid var(--gray-200);
+    justify-content: center;
 }
 
-.btn {
-    display: inline-flex;
+.btn-cancel,
+.btn-confirm {
+    display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.875rem 1.5rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
     border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s var(--ease);
     position: relative;
@@ -1857,7 +1889,63 @@ body {
     justify-content: center;
 }
 
-.btn::before {
+.btn-cancel {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--gray-600);
+    border: 2px solid var(--gray-300);
+}
+
+.btn-cancel:hover {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: var(--gray-400);
+    transform: translateY(-1px);
+}
+
+.btn-confirm {
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Event confirm button (GREEN) */
+.event-header-card ~ * .btn-confirm {
+    background: var(--primary-green);
+    border: 2px solid var(--secondary-green);
+    box-shadow: 0 4px 12px rgba(30, 61, 50, 0.3);
+}
+
+.event-header-card ~ * .btn-confirm:hover {
+    background: var(--secondary-green);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(30, 61, 50, 0.4);
+}
+
+/* MultiPoll confirm button (CYAN) */
+.multipoll-header-card ~ * .btn-confirm {
+    background: var(--multipoll-primary);
+    border: 2px solid var(--multipoll-secondary);
+    box-shadow: 0 4px 12px rgba(23, 203, 234, 0.3);
+}
+
+.multipoll-header-card ~ * .btn-confirm:hover {
+    background: var(--multipoll-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(23, 203, 234, 0.4);
+}
+
+/* Referendum confirm button (ORANGE) */
+.referendum-header-card ~ * .btn-confirm {
+    background: var(--referendum-primary);
+    border: 2px solid var(--referendum-secondary);
+    box-shadow: 0 4px 12px rgba(251, 126, 20, 0.3);
+}
+
+.referendum-header-card ~ * .btn-confirm:hover {
+    background: var(--referendum-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(251, 126, 20, 0.4);
+}
+
+.btn-confirm::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1868,35 +1956,12 @@ body {
     transition: left 0.5s var(--ease);
 }
 
-.btn:hover::before {
+.btn-confirm:hover::before {
     left: 100%;
 }
 
-.btn-cancel {
-    background: var(--gray-100);
-    color: var(--gray-700);
-    border: 1px solid var(--gray-300);
-}
-
-.btn-cancel:hover {
-    background: var(--gray-200);
-    color: var(--gray-800);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.btn-confirm {
-    background: linear-gradient(135deg, var(--referendum-primary), var(--referendum-secondary));
-    color: white;
-    box-shadow: 0 4px 14px 0 rgba(251, 126, 20, 0.25);
-}
-
-.btn-confirm:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px 0 rgba(251, 126, 20, 0.35);
-}
-
-.btn-confirm:active {
+.btn-confirm:active,
+.btn-cancel:active {
     transform: translateY(0);
 }
 
@@ -1907,7 +1972,95 @@ body {
 }
 
 /* =================================================================
-   RESPONSIVE DESIGN (COMMON TO ALL)
+   COMMENTS SECTION
+   ================================================================= */
+
+.comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.comments-header h3 {
+    font-family: var(--font-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comments-header h3 i {
+    color: var(--accent-green);
+    font-size: 1rem;
+}
+
+/* MultiPoll comments icon */
+.multipoll-header-card ~ .content-grid .comments-header h3 i {
+    color: var(--multipoll-primary);
+}
+
+/* Referendum comments icon */
+.referendum-header-card ~ .content-grid .comments-header h3 i {
+    color: var(--referendum-primary);
+}
+
+.comments-sort {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comments-sort select {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s var(--ease);
+    min-width: 140px;
+}
+
+.comments-sort select:focus {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(15, 123, 89, 0.1);
+}
+
+.comments-sort select:hover {
+    border-color: var(--accent-green);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* MultiPoll comments select */
+.multipoll-header-card ~ .content-grid .comments-sort select:focus {
+    border-color: var(--multipoll-primary);
+    box-shadow: 0 0 0 2px rgba(23, 203, 234, 0.1);
+}
+
+.multipoll-header-card ~ .content-grid .comments-sort select:hover {
+    border-color: var(--multipoll-primary);
+}
+
+/* Referendum comments select */
+.referendum-header-card ~ .content-grid .comments-sort select:focus {
+    border-color: var(--referendum-primary);
+    box-shadow: 0 0 0 2px rgba(251, 126, 20, 0.1);
+}
+
+.referendum-header-card ~ .content-grid .comments-sort select:hover {
+    border-color: var(--referendum-primary);
+}
+
+/* =================================================================
+   ПЕРФЕКТЕН RESPONSIVE DESIGN
    ================================================================= */
 
 @media (max-width: 1024px) {
@@ -1929,15 +2082,6 @@ body {
         position: relative;
     }
 
-    .event-options-menu,
-    .poll-options-menu,
-    .referendum-options-menu {
-        position: absolute;
-        top: 0;
-        right: 0;
-        margin-left: 0;
-    }
-
     .creator-section {
         order: 1;
     }
@@ -1947,6 +2091,15 @@ body {
     .referendum-stats {
         gap: 1rem;
         order: 2;
+    }
+
+    .event-options-menu,
+    .poll-options-menu,
+    .referendum-options-menu {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin-left: 0;
     }
 
     .options-btn {
@@ -2022,30 +2175,23 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 
-    .comments-header {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: stretch;
+    .event-options-menu,
+    .poll-options-menu,
+    .referendum-options-menu {
+        position: static;
+        align-self: flex-end;
+        margin-top: 1rem;
     }
 
-    .comments-sort {
-        justify-content: flex-end;
+    .options-btn {
+        padding: 0.6rem 0.9rem;
+        font-size: 0.85rem;
     }
 
-    .comments-sort select {
-        min-width: 120px;
-    }
-
-    .vote-btn {
-        padding: 0.875rem 1.25rem;
-        font-size: 0.9rem;
-        min-height: 52px;
-        gap: 0.5rem;
-    }
-
-    .vote-btn svg {
-        width: 16px;
-        height: 16px;
+    .options-dropdown {
+        right: auto;
+        left: 0;
+        min-width: 150px;
     }
 
     .vote-confirm-modal .modal-overlay {
@@ -2078,28 +2224,45 @@ body {
         flex-direction: column;
     }
 
-    .btn {
+    .btn-cancel,
+    .btn-confirm {
         width: 100%;
         justify-content: center;
     }
 
-    .event-options-menu,
-    .poll-options-menu,
-    .referendum-options-menu {
-        position: static;
-        align-self: flex-end;
-        margin-top: 1rem;
+    .modal-frame::after {
+        content: 'Плъзнете наляво/надясно или натиснете ESC';
+        font-size: 0.75rem;
     }
 
-    .options-btn {
-        padding: 0.6rem 0.9rem;
-        font-size: 0.85rem;
+    .comments-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
     }
 
-    .options-dropdown {
-        right: auto;
-        left: 0;
-        min-width: 150px;
+    .comments-sort {
+        justify-content: flex-end;
+    }
+
+    .comments-sort select {
+        min-width: 120px;
+    }
+
+    .modal-controls {
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 20px;
+    }
+
+    .control-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .image-counter {
+        font-size: 0.9rem;
+        min-width: 70px;
     }
 }
 
@@ -2110,12 +2273,14 @@ body {
 
     .content-container {
         gap: 1rem;
+        padding: 0 0.5rem;
     }
 
     .event-header-card,
     .multipoll-header-card,
     .referendum-header-card {
         padding: 1rem;
+        margin: 0 0.25rem;
     }
 
     .event-title,
@@ -2141,6 +2306,7 @@ body {
     .message-card,
     .comments-card {
         padding: 1rem;
+        margin: 0 0.25rem;
     }
 
     .creator-link {
@@ -2167,72 +2333,15 @@ body {
         height: 6px;
     }
 
-    .vote-btn {
-        padding: 0.75rem 1rem;
+    .vote-buttons {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.9rem;
+        min-height: 50px;
+    }
+
+    .vote-btn-submit {
+        padding: 0.875rem 1.25rem;
         font-size: 0.85rem;
-        min-height: 48px;
-    }
-
-    .vote-form {
-        gap: 0.5rem;
-    }
-
-    .selected-choices {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .choice-badge {
-        width: 100%;
-        text-align: center;
-    }
-
-    .modal-header {
-        padding: 1rem;
-    }
-
-    .modal-body {
-        padding: 1rem;
-    }
-
-    .modal-footer {
-        padding: 1rem;
-    }
-
-    .warning-icon {
-        width: 48px;
-        height: 48px;
-    }
-
-    .modal-title {
-        font-size: 1.1rem;
-    }
-
-    .confirmation-main {
-        font-size: 1rem;
-    }
-
-    .option-badge {
-        padding: 0.5rem 1rem;
-        font-size: 1rem;
-    }
-
-    .modal-frame::after {
-        content: 'Плъзнете наляво/надясно или натиснете ESC';
-        bottom: -40px;
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
-        font-size: 0.7rem;
-    }
-
-    .comments-header h3 {
-        font-size: 1.1rem;
-    }
-
-    .comments-sort select {
-        font-size: 0.8rem;
-        padding: 0.25rem 0.5rem;
-        min-width: 100px;
     }
 
     .event-options-menu,
@@ -2256,168 +2365,91 @@ body {
     .options-dropdown.show {
         transform: translateX(-50%) translateY(0);
     }
-}
 
-/* =================================================================
-   ACCESSIBILITY & PERFORMANCE
-   ================================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+    .modal-overlay {
+        padding: 0.5rem;
     }
 
-    .control-btn::before,
-    .vote-option-label::before,
-    .vote-btn-submit::before,
-    .btn::before,
-    .vote-btn::before {
-        display: none;
+    .modal-close {
+        top: -50px;
+        width: 44px;
+        height: 44px;
     }
 
-    @keyframes spin {
-        to {
-            transform: none;
-        }
+    .modal-image-frame {
+        max-height: calc(100vh - 140px);
+        margin-bottom: 1rem;
     }
-}
 
-.premium-modal.active .modal-close:focus,
-.premium-modal.active .control-btn:focus {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-}
+    .modal-controls {
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 16px;
+    }
 
-.vote-option-label:focus-within {
-    outline: 2px solid var(--neutral-gray);
-    outline-offset: 2px;
-}
+    .control-btn {
+        width: 40px;
+        height: 40px;
+    }
 
-.vote-btn-submit:focus,
-.vote-btn:focus,
-.btn:focus {
-    outline: 2px solid var(--neutral-gray);
-    outline-offset: 2px;
-}
+    .control-btn svg {
+        width: 14px;
+        height: 14px;
+    }
 
-@media print {
-    .premium-modal,
-    .vote-confirm-modal {
-        display: none !important;
+    .image-counter {
+        font-size: 0.85rem;
+        min-width: 60px;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .vote-bar {
+        height: 28px;
+    }
+
+    .bar-percent {
+        font-size: 0.8rem;
+        padding-right: 0.75rem;
     }
 }
 
-/* =================================================================
-   LOADING ANIMATIONS
-   ================================================================= */
-
-.vote-btn.loading {
-    pointer-events: none;
-    position: relative;
-}
-
-.vote-btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.vote-btn.loading span,
-.vote-btn.loading svg {
-    opacity: 0.3;
-}
-
-.animate-spin {
-    animation: spin 1s linear infinite;
-}
-
-/* Active states for buttons */
-.vote-btn.active {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(255, 255, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
-}
-
-.vote-btn.active::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, rgba(255, 255, 255, 0.4), transparent, rgba(255, 255, 255, 0.4));
-    border-radius: 14px;
-    z-index: -1;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-        transform: scale(1);
+/* Финални UX подобрения */
+@media (hover: none) and (pointer: coarse) {
+    .vote-btn:hover::before,
+    .vote-option-label:hover::before,
+    .control-btn:hover::before {
+        transform: none;
     }
-    50% {
-        opacity: 0.8;
-        transform: scale(1.02);
+
+    .gallery-img:hover {
+        transform: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .creator-link:hover,
+    .vote-btn:hover,
+    .vote-option-label:hover {
+        transform: none;
     }
 }
 
-.vote-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    pointer-events: none;
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
 }
 
-.vote-btn:disabled:hover {
-    transform: none;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
+@media (prefers-color-scheme: dark) {
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.95);
+    }
 
-.vote-btn-for:hover svg {
-    transform: scale(1.1) rotate(-2deg);
-}
-
-.vote-btn-against:hover svg {
-    transform: scale(1.1) rotate(2deg);
-}
-
-.vote-btn-neutral:hover svg {
-    transform: scale(1.05);
-}
-
-.vote-btn-for:active,
-.vote-btn-against:active,
-.vote-btn-neutral:active {
-    transform: translateY(-1px);
-    transition: transform 0.1s ease;
-}
-
-/* Vote fill styles for simple events */
-.vote-fill {
-    height: 100%;
-    border-radius: 12px;
-    transition: width 1.5s var(--ease);
-    position: relative;
-}
-
-.vote-fill.positive {
-    background: linear-gradient(135deg, var(--success-green), var(--accent-green));
-}
-
-.vote-fill.negative {
-    background: linear-gradient(135deg, #dc2626, #ef4444);
-}
-
-.vote-fill.neutral {
-    background: linear-gradient(135deg, var(--gray-500), #6b7280);
+    .modal-container {
+        background: rgba(20, 20, 30, 0.95);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
 }
