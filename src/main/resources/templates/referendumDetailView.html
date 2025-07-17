@@ -60,6 +60,27 @@
                         <span class="stat-value stat-highlight" th:text="${referendumDetail.totalVotes}">0</span>
                     </div>
                 </div>
+
+                <!-- ✅ ДОБАВЕНО: Referendum Options Menu -->
+                <div class="referendum-options-menu" th:if="${#authorization.expression('isAuthenticated()')}">
+                    <button class="options-btn" id="referendumOptionsBtn">
+                        <span>Опции</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div class="options-dropdown" id="referendumOptionsDropdown">
+                        <!-- Докладвай - винаги видим за автентикирани потребители -->
+                        <button class="option-item report-option" th:onclick="'reportReferendum(' + ${referendumDetail.id} + ')'">
+                            <i class="bi bi-flag"></i> Докладвай
+                        </button>
+
+                        <!-- Изтрий - само за автор или админ -->
+                        <button th:if="${#authorization.expression('hasRole(''ADMIN'')') or (currentUser != null and referendumDetail.creator.username == currentUser.username)}"
+                                class="option-item delete-option"
+                                th:onclick="'confirmDeleteReferendum(' + ${referendumDetail.id} + ')'">
+                            <i class="bi bi-trash"></i> Изтрий
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <h1 class="referendum-title" th:text="${referendumDetail.title}">Заглавие на референдума</h1>
@@ -268,6 +289,9 @@
         </div>
     </div>
 </div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
 <script th:inline="javascript">
     // Authentication data for JavaScript
     window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
