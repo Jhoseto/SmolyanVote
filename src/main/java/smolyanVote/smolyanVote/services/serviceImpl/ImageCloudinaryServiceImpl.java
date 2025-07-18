@@ -66,6 +66,13 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         return uploadImage(file, publicId, "smolyanVote/publications/user_" + username, false);
     }
 
+    // 🌟 Метод за качване на сигнал  (с воден знак)
+    @Override
+    public String saveSingleSignalImage(MultipartFile file, Long signalId) {
+        String publicId = "signals/signal_" + signalId + "/" + UUID.randomUUID();
+        return uploadImage(file, publicId, "smolyanVote/signals/signal_" + signalId, true); // с воден знак
+    }
+
     @Override
     public void deleteImage(String imageUrl) {
         try {

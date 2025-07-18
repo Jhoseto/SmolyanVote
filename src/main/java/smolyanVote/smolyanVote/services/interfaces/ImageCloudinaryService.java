@@ -7,10 +7,12 @@ public interface ImageCloudinaryService {
     String saveUserImage(MultipartFile file, String username);
 
     String saveSingleImage(MultipartFile file, Long eventId);
+    String saveSingleSignalImage(MultipartFile file, Long signalId);
 
     String saveSingleReferendumImage(MultipartFile file, Long eventId);
 
     String saveMultiPollImage(MultipartFile file, Long pollId);
+
 
     void deleteImage(String imageUrl);
 
