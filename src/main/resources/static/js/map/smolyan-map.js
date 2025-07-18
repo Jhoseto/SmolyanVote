@@ -12,13 +12,13 @@ let filtersExpanded = false;
 let isMobile = window.innerWidth <= 768;
 
 // ===== MAP CONSTANTS =====
-const SMOLYAN_CENTER = [41.5766, 24.7014];
-const DEFAULT_ZOOM = 13;
+const SMOLYAN_CENTER = [41.65, 24.7]; // Център на областта
+const DEFAULT_ZOOM = 10; // По-малък zoom за цялата област
 const SMOLYAN_BOUNDS = {
-    north: 41.6200,
-    south: 41.5300,
-    east: 24.7800,
-    west: 24.6200
+    north: 42.0,    // Включва Чепеларе и северните общини
+    south: 41.3,    // Включва Златоград и границата с Гърция
+    east: 25.2,     // Включва Златоград и източните части
+    west: 24.2      // Включва Девин и западните части
 };
 
 // ===== SIGNAL CATEGORIES (БЕЗ СТАТУСИ) =====
@@ -331,7 +331,7 @@ function initializeMap() {
         zoom: DEFAULT_ZOOM,
         maxBounds: bounds,
         maxBoundsViscosity: 1.0,
-        minZoom: 10,
+        minZoom: 8,  // По-малък минимален zoom за цялата област
         maxZoom: 18,
         attributionControl: false,
         zoomControl: false
@@ -752,7 +752,7 @@ window.clearFilters = clearFilters;
 // ===== MAP CONTROLS =====
 function centerMap() {
     map.setView(SMOLYAN_CENTER, DEFAULT_ZOOM);
-    showNotification('Картата е центрирана', 'info');
+    showNotification('Картата е центрирана към област Смолян', 'info');
 }
 
 function getMyLocation() {

@@ -207,6 +207,7 @@
 
 /* Section Styles */
 .signal-description-section,
+.signal-image-section,
 .signal-location-section,
 .signal-date-section {
     margin-bottom: 24px;
@@ -238,6 +239,46 @@
     line-height: 1.6;
     color: var(--gray-700);
     font-size: 15px;
+}
+
+/* Signal Image Section */
+.signal-image-container {
+    position: relative;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.signal-image {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.no-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--gray-400);
+    font-size: 14px;
+    padding: 40px 20px;
+}
+
+.no-image-placeholder i {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.no-image-placeholder span {
+    font-weight: 500;
 }
 
 /* Location Section */
@@ -296,54 +337,6 @@
     font-size: 16px;
 }
 
-/* Modal Footer */
-.modal-footer {
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-200);
-    padding: 16px 24px;
-}
-
-.footer-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: var(--radius-lg);
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: var(--transition);
-    border: none;
-}
-
-.secondary-btn {
-    background: var(--white);
-    color: var(--gray-700);
-    border: 2px solid var(--gray-300);
-}
-
-.secondary-btn:hover {
-    background: var(--gray-100);
-    border-color: var(--gray-400);
-}
-
-.primary-btn {
-    background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
-    color: var(--white);
-}
-
-.primary-btn:hover {
-    background: linear-gradient(135deg, var(--dark-green), var(--primary-green));
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .modal-container {
@@ -382,12 +375,20 @@
         align-items: flex-start;
     }
 
-    .footer-actions {
-        flex-direction: column-reverse;
+    .signal-image-container {
+        min-height: 150px;
     }
 
-    .action-btn {
-        justify-content: center;
+    .signal-image {
+        max-height: 200px;
+    }
+
+    .no-image-placeholder {
+        padding: 30px 15px;
+    }
+
+    .no-image-placeholder i {
+        font-size: 36px;
     }
 }
 
@@ -409,5 +410,13 @@
 
     .signal-title {
         font-size: 1.25rem;
+    }
+
+    .signal-image-container {
+        min-height: 120px;
+    }
+
+    .signal-image {
+        max-height: 150px;
     }
 }
