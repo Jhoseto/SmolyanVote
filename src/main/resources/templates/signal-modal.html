@@ -48,6 +48,21 @@
                     </div>
                 </div>
 
+                <!-- Signal Image -->
+                <div class="signal-image-section">
+                    <h3 class="section-title">
+                        <i class="bi bi-camera"></i>
+                        Снимка
+                    </h3>
+                    <div class="signal-image-container">
+                        <img id="modalSignalImage" class="signal-image" src="" alt="Снимка на сигнала" style="display: none;">
+                        <div class="no-image-placeholder" id="noImagePlaceholder">
+                            <i class="bi bi-camera-slash"></i>
+                            <span>Няма прикачена снимка</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Location Section -->
                 <div class="signal-location-section">
                     <h3 class="section-title">
@@ -75,20 +90,6 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="modal-footer">
-            <div class="footer-actions">
-                <button class="action-btn secondary-btn" onclick="closeSignalModal()">
-                    <i class="bi bi-x-circle"></i>
-                    <span>Затвори</span>
-                </button>
-                <button class="action-btn primary-btn" onclick="centerMapOnSignal()">
-                    <i class="bi bi-geo-alt"></i>
-                    <span>Покажи на картата</span>
-                </button>
             </div>
         </div>
     </div>

@@ -12,6 +12,206 @@ const SAMPLE_SIGNALS = [
         createdAt: '2025-01-15T10:30:00.000Z'
     },
     {
+        id: 61,
+        title: 'Дупки на главния път във Златоград',
+        category: 'road_damage',
+        description: 'На главната улица в Златоград има множество дупки, които затрудняват движението.',
+        coordinates: [41.3824, 25.0944],
+        urgency: 'medium',
+        reporter: 'Златоградчани',
+        createdAt: '2024-11-16T08:00:00.000Z'
+    },
+    {
+        id: 62,
+        title: 'Неработещо осветление в центъра на Рудозем',
+        category: 'lighting',
+        description: 'Уличното осветление в центъра на Рудозем не работи от дни.',
+        coordinates: [41.4890, 24.8320],
+        urgency: 'medium',
+        reporter: 'Жители на Рудозем',
+        createdAt: '2024-11-15T19:30:00.000Z'
+    },
+    {
+        id: 63,
+        title: 'Проблем с водопровода в Мадан',
+        category: 'water_sewer',
+        description: 'В центъра на Мадан водопроводът е аварийно, няма вода от сутринта.',
+        coordinates: [41.4848, 24.9275],
+        urgency: 'high',
+        reporter: 'Общ Мадан',
+        createdAt: '2024-11-14T07:30:00.000Z'
+    },
+    {
+        id: 64,
+        title: 'Замърсяване на реката в Девин',
+        category: 'waste_management',
+        description: 'Река Девинска е замърсена с отпадъци и пластмасови бутилки.',
+        coordinates: [41.7421, 24.4017],
+        urgency: 'medium',
+        reporter: 'Еколози Девин',
+        createdAt: '2024-11-13T14:20:00.000Z'
+    },
+    {
+        id: 65,
+        title: 'Счупен ски лифт в Чепеларе',
+        category: 'public_transport',
+        description: 'Ски лифтът в Чепеларе не работи поради техническа повреда.',
+        coordinates: [41.7275, 24.6950],
+        urgency: 'high',
+        reporter: 'Ски курорт Чепеларе',
+        createdAt: '2024-11-12T10:15:00.000Z'
+    },
+    {
+        id: 66,
+        title: 'Опасно дърво в Неделино',
+        category: 'tree_issues',
+        description: 'Голямо дърво се е наклонило опасно над главната улица в Неделино.',
+        coordinates: [41.6830, 24.8730],
+        urgency: 'high',
+        reporter: 'Кметство Неделино',
+        createdAt: '2024-11-11T12:45:00.000Z'
+    },
+    {
+        id: 67,
+        title: 'Препълнени контейнери в Ардино',
+        category: 'waste_collection',
+        description: 'Контейнерите за боклук в Ардино не се изпразват редовно.',
+        coordinates: [41.5832, 25.1347],
+        urgency: 'medium',
+        reporter: 'Жители на Ардино',
+        createdAt: '2024-11-10T16:00:00.000Z'
+    },
+    {
+        id: 68,
+        title: 'Неработещ семафор в Доспат',
+        category: 'traffic_signs',
+        description: 'Единственият семафор в Доспат не работи от седмици.',
+        coordinates: [41.6389, 24.1583],
+        urgency: 'medium',
+        reporter: 'Местна полиция',
+        createdAt: '2024-11-09T11:30:00.000Z'
+    },
+    {
+        id: 69,
+        title: 'Изоставени автомобили в Борино',
+        category: 'abandoned_vehicles',
+        description: 'В Борино има няколко изоставени автомобила по главната улица.',
+        coordinates: [41.6167, 24.2833],
+        urgency: 'low',
+        reporter: 'Общинска администрация',
+        createdAt: '2024-11-08T13:20:00.000Z'
+    },
+    {
+        id: 70,
+        title: 'Шум от каменна кариера край Рудозем',
+        category: 'noise_pollution',
+        description: 'Каменната кариера край Рудозем работи и през нощта, създавайки шум.',
+        coordinates: [41.4750, 24.8500],
+        urgency: 'medium',
+        reporter: 'Съседни села',
+        createdAt: '2024-11-07T22:00:00.000Z'
+    },
+    {
+        id: 71,
+        title: 'Липсва достъп за инвалиди в Златоград',
+        category: 'accessibility',
+        description: 'Общинската сграда в Златоград няма рампа за инвалидни колички.',
+        coordinates: [41.3820, 25.0940],
+        urgency: 'medium',
+        reporter: 'Хора с увреждания',
+        createdAt: '2024-11-06T15:45:00.000Z'
+    },
+    {
+        id: 72,
+        title: 'Вандализъм в парка на Девин',
+        category: 'vandalism',
+        description: 'Пейките в градския парк на Девин са изрисувани и счупени.',
+        coordinates: [41.7400, 24.4000],
+        urgency: 'low',
+        reporter: 'Градинар',
+        createdAt: '2024-11-05T09:10:00.000Z'
+    },
+    {
+        id: 73,
+        title: 'Протекъл водопровод в село Триград',
+        category: 'water_sewer',
+        description: 'В село Триград има голям протекъл водопровод на главния път.',
+        coordinates: [41.6150, 24.3630],
+        urgency: 'high',
+        reporter: 'Кмет на село',
+        createdAt: '2024-11-04T06:30:00.000Z'
+    },
+    {
+        id: 74,
+        title: 'Агресивни бездомни кучета в Мадан',
+        category: 'stray_animals',
+        description: 'В центъра на Мадан има група агресивни бездомни кучета.',
+        coordinates: [41.4850, 24.9270],
+        urgency: 'high',
+        reporter: 'Граждани',
+        createdAt: '2024-11-03T14:00:00.000Z'
+    },
+    {
+        id: 75,
+        title: 'Дупки на пътя към Ягодина',
+        category: 'road_damage',
+        description: 'Пътят от Борино към пещера Ягодина е в много лошо състояние.',
+        coordinates: [41.6100, 24.3200],
+        urgency: 'medium',
+        reporter: 'Туроператори',
+        createdAt: '2024-11-02T12:30:00.000Z'
+    },
+    {
+        id: 76,
+        title: 'Неработещи лампи на ски пистата в Чепеларе',
+        category: 'lighting',
+        description: 'Нощното осветление на ски пистата "Студенец" не работи.',
+        coordinates: [41.7250, 24.6900],
+        urgency: 'medium',
+        reporter: 'Ски инструктори',
+        createdAt: '2024-11-01T18:45:00.000Z'
+    },
+    {
+        id: 77,
+        title: 'Замърсяване от мина в Мадан',
+        category: 'air_pollution',
+        description: 'Миньорската дейност в Мадан създава прах и замърсява въздуха.',
+        coordinates: [41.4900, 24.9350],
+        urgency: 'medium',
+        reporter: 'Местни жители',
+        createdAt: '2024-10-31T16:20:00.000Z'
+    },
+    {
+        id: 78,
+        title: 'Обрушен мост в село Широка лъка',
+        category: 'traffic_signs',
+        description: 'Малкият мост в Широка лъка е частично обрушен и опасен.',
+        coordinates: [41.6483, 24.6833],
+        urgency: 'high',
+        reporter: 'Селяни',
+        createdAt: '2024-10-30T08:15:00.000Z'
+    },
+    {
+        id: 79,
+        title: 'Проблем с автобусния транспорт до Златоград',
+        category: 'public_transport',
+        description: 'Автобусът до Златоград закъснява постоянно с часове.',
+        coordinates: [41.3800, 25.0900],
+        urgency: 'medium',
+        reporter: 'Пътници',
+        createdAt: '2024-10-29T17:30:00.000Z'
+    },
+    {
+        id: 80,
+        title: 'Опасна детска площадка в Рудозем',
+        category: 'playgrounds',
+        description: 'Детската площадка в Рудозем има счупени съоръжения.',
+        coordinates: [41.4880, 24.8310],
+        urgency: 'high',
+        reporter: 'Родители',
+        createdAt: '2024-10-28T11:00:00.000Z'
+    },
+    {
         id: 31,
         title: 'Дупка на пътя към село Славейно',
         category: 'road_damage',
