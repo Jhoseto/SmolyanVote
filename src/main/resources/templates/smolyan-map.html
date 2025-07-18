@@ -17,6 +17,9 @@
   <!-- Project CSS -->
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
 
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -34,7 +37,7 @@
 <!-- Навигация -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<!-- Компактен Header -->
+<!-- Modern Header с Search -->
 <section class="map-header">
   <div class="container">
     <div class="header-content">
@@ -42,25 +45,31 @@
         <h1>Граждански сигнали</h1>
         <p>Докладвайте проблеми в Смолянска област • Вашият глас има значение</p>
       </div>
-      <div class="header-stats">
-        <div class="stat-item">
-          <span class="stat-number" id="totalSignals">0</span>
-          <span class="stat-label">Общо сигнали</span>
+
+      <!-- Real-time Search Bar -->
+      <div class="search-container">
+        <div class="search-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input
+                  type="text"
+                  id="signalSearch"
+                  class="search-input"
+                  placeholder="Търсене на сигнали..."
+                  autocomplete="off"
+          >
+          <button class="search-clear" id="clearSearch" style="display: none;">
+            <i class="bi bi-x-circle"></i>
+          </button>
         </div>
-        <div class="stat-item">
-          <span class="stat-number" id="activeSignals">0</span>
-          <span class="stat-label">Активни</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number" id="resolvedSignals">0</span>
-          <span class="stat-label">Решени</span>
+        <div class="search-results" id="searchResults" style="display: none;">
+          <!-- Real-time search results -->
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Main Map Container -->
+<!-- Full Screen Map Container -->
 <div class="map-container">
   <!-- Map -->
   <div id="map" class="map-section"></div>
@@ -68,37 +77,38 @@
   <!-- Compact Left Controls -->
   <div class="left-controls">
 
-    <!-- Нов сигнал - компактен табче -->
-    <div class="control-tab" id="newSignalTab" onclick="togglePanel('newSignal')">
+    <!-- Нов сигнал - компактен таб -->
+    <div class="control-tab" onclick="togglePanel('newSignal')">
       <div class="tab-icon">
         <i class="bi bi-plus-circle-fill"></i>
       </div>
       <div class="tab-text">
-        <span class="tab-title">Нов сигнал</span>
-        <span class="tab-desc">Докладвай проблем</span>
+        <div class="tab-title">Нов сигнал</div>
+        <div class="tab-desc">Докладвай проблем</div>
       </div>
       <i class="bi bi-chevron-right tab-arrow"></i>
     </div>
 
   </div>
 
-  <!-- Expandable Panel за нов сигнал -->
-  <div class="floating-panel left-panel" id="newSignalPanel">
+  <!-- Floating Panel за нов сигнал -->
+  <div id="newSignalPanel" class="floating-panel">
     <div class="panel-header">
       <div class="panel-title">
         <i class="bi bi-plus-circle"></i>
-        <span>Нов сигнал</span>
+        Нов сигнал
       </div>
       <button class="panel-close" onclick="closePanel('newSignal')">
         <i class="bi bi-x"></i>
       </button>
     </div>
-
     <div class="panel-content">
-      <form id="createSignalForm" class="signal-form">
-        <div class="form-group">
-          <label for="signalTitle">Заглавие</label>
-          <input type="text" id="signalTitle" placeholder="Кратко описание на проблема" required>
+      <form id="createSignalForm" onsubmit="handleCreateSignal(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signalTitle">Заглавие</label>
+            <input type="text" id="signalTitle" placeholder="Кратко описание на проблема..." required>
+          </div>
         </div>
 
         <div class="form-row">
@@ -107,38 +117,38 @@
             <div class="custom-select">
               <select id="signalCategory" required>
                 <option value="">Изберете категория</option>
-                <optgroup label="🏗️ Инфраструктура">
+                <optgroup label="Инфраструктура">
                   <option value="road_damage">Дупки в пътищата</option>
                   <option value="sidewalk_damage">Счупени тротоари</option>
                   <option value="lighting">Неработещо осветление</option>
                   <option value="traffic_signs">Повредени пътни знаци</option>
                   <option value="water_sewer">Водопровод/канализация</option>
                 </optgroup>
-                <optgroup label="🌿 Околна среда">
-                  <option value="illegal_waste">Незаконни сметища</option>
-                  <option value="dangerous_trees">Мъртви/опасни дървета</option>
+                <optgroup label="Околна среда">
+                  <option value="waste_management">Замърсяване на околната среда</option>
+                  <option value="illegal_dumping">Незаконно изхвърляне на отпадъци</option>
+                  <option value="tree_issues">Проблеми с дървета и растителност</option>
                   <option value="air_pollution">Замърсяване на въздуха</option>
-                  <option value="noise">Шум</option>
-                  <option value="parks_issues">Проблеми с паркове</option>
+                  <option value="noise_pollution">Шумово замърсяване</option>
                 </optgroup>
-                <optgroup label="👮 Обществен ред">
-                  <option value="illegal_parking">Незаконно паркиране</option>
+                <optgroup label="Сигурност">
                   <option value="vandalism">Вандализъм</option>
                   <option value="abandoned_vehicles">Изоставени автомобили</option>
                   <option value="security_issues">Проблеми с безопасност</option>
                 </optgroup>
-                <optgroup label="🏛️ Комунални услуги">
+                <optgroup label="Комунални услуги">
                   <option value="waste_collection">Проблеми със сметосъбиране</option>
                   <option value="bus_stops">Неработещи автобусни спирки</option>
                   <option value="public_transport">Проблеми с обществен транспорт</option>
                 </optgroup>
-                <optgroup label="👥 Социални проблеми">
+                <optgroup label="Социални проблеми">
                   <option value="accessibility">Недостъпност за хора с увреждания</option>
                   <option value="playgrounds">Опасни детски площадки</option>
                   <option value="stray_animals">Бездомни животни</option>
                 </optgroup>
               </select>
-              <i class="bi bi-chevron-down"></i>
+              <i class="bi bi-chevron-down select-arrow"></i>
+              <i class="bi bi-chevron-down select-arrow"></i>
             </div>
           </div>
           <div class="form-group">
@@ -149,7 +159,7 @@
                 <option value="medium">Средна</option>
                 <option value="high">Висока</option>
               </select>
-              <i class="bi bi-chevron-down"></i>
+              <i class="bi bi-chevron-down select-arrow"></i>
             </div>
           </div>
         </div>
@@ -245,14 +255,13 @@
                     <option value="water_sewer">Водопровод/канализация</option>
                   </optgroup>
                   <optgroup label="🌿 Околна среда">
-                    <option value="illegal_waste">Незаконни сметища</option>
-                    <option value="dangerous_trees">Мъртви/опасни дървета</option>
+                    <option value="waste_management">Замърсяване на околната среда</option>
+                    <option value="illegal_dumping">Незаконно изхвърляне на отпадъци</option>
+                    <option value="tree_issues">Проблеми с дървета и растителност</option>
                     <option value="air_pollution">Замърсяване на въздуха</option>
-                    <option value="noise">Шум</option>
-                    <option value="parks_issues">Проблеми с паркове</option>
+                    <option value="noise_pollution">Шумово замърсяване</option>
                   </optgroup>
-                  <optgroup label="👮 Обществен ред">
-                    <option value="illegal_parking">Незаконно паркиране</option>
+                  <optgroup label="🚔 Сигурност">
                     <option value="vandalism">Вандализъм</option>
                     <option value="abandoned_vehicles">Изоставени автомобили</option>
                     <option value="security_issues">Проблеми с безопасност</option>
@@ -268,7 +277,7 @@
                     <option value="stray_animals">Бездомни животни</option>
                   </optgroup>
                 </select>
-                <i class="bi bi-chevron-down"></i>
+                <i class="bi bi-caret-down-fill select-arrow"></i>
               </div>
             </div>
 
@@ -281,20 +290,7 @@
                   <option value="medium">Средна</option>
                   <option value="low">Ниска</option>
                 </select>
-                <i class="bi bi-chevron-down"></i>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <label for="statusFilter">Статус</label>
-              <div class="custom-select compact">
-                <select id="statusFilter">
-                  <option value="all">Всички</option>
-                  <option value="new">Нови</option>
-                  <option value="in_progress">В процес</option>
-                  <option value="resolved">Решени</option>
-                </select>
-                <i class="bi bi-chevron-down"></i>
+                <i class="bi bi-chevron-down select-arrow"></i>
               </div>
             </div>
 
@@ -307,7 +303,7 @@
                   <option value="urgency">По спешност</option>
                   <option value="category">По категория</option>
                 </select>
-                <i class="bi bi-chevron-down"></i>
+                <i class="bi bi-chevron-down select-arrow"></i>
               </div>
             </div>
 
@@ -334,23 +330,104 @@
 
 </div>
 
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
 <!-- Signal Details Modal -->
-<div id="signalModal" class="modal">
-  <div class="modal-content">
+<div id="signalModal" class="signal-modal">
+  <div class="modal-overlay" onclick="closeSignalModal()"></div>
+
+  <div class="modal-container">
+    <!-- Modal Header -->
     <div class="modal-header">
-      <h3 id="modalTitle">Детайли за сигнала</h3>
-      <button id="closeSignalModal" class="close-btn">
+      <div class="modal-header-content">
+        <div class="modal-category-badge" id="modalCategoryBadge">
+          <i id="modalCategoryIcon" class="bi bi-info-circle"></i>
+          <span id="modalCategoryName">Категория</span>
+        </div>
+        <div class="modal-urgency-badge" id="modalUrgencyBadge">
+          <i id="modalUrgencyIcon" class="bi bi-exclamation-circle"></i>
+          <span id="modalUrgencyName">Спешност</span>
+        </div>
+      </div>
+
+      <button class="modal-close-btn" onclick="closeSignalModal()" title="Затвори">
         <i class="bi bi-x"></i>
       </button>
     </div>
-    <div class="modal-body" id="modalBody">
-      <!-- Signal details will be inserted here -->
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <div class="modal-content-wrapper">
+
+        <!-- Signal Title -->
+        <div class="signal-title-section">
+          <h2 id="modalSignalTitle" class="signal-title-card">Заглавие на сигнала</h2>
+          <div class="signal-meta-info">
+            <span class="signal-id">ID: <span id="modalSignalId">#0000</span></span>
+            <span class="signal-date">
+              <i class="bi bi-calendar3"></i>
+              <span id="modalSignalDate">01.01.2025</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Signal Description -->
+        <div class="signal-description-section">
+          <h3 class="section-title">
+            <i class="bi bi-file-text"></i>
+            Описание
+          </h3>
+          <div class="signal-description-content" id="modalSignalDescription">
+            Описание на сигнала ще се появи тук...
+          </div>
+        </div>
+
+        <!-- Location Section -->
+        <div class="signal-location-section">
+          <h3 class="section-title">
+            <i class="bi bi-geo-alt"></i>
+            Местоположение
+          </h3>
+          <div class="location-info">
+            <button class="location-action-btn" onclick="centerMapOnSignal()" id="centerMapBtn">
+              <i class="bi bi-pin-map-fill"></i>
+              <span>Покажи на картата</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Date Section -->
+        <div class="signal-date-section">
+          <h3 class="section-title">
+            <i class="bi bi-clock"></i>
+            Дата на подаване
+          </h3>
+          <div class="date-info">
+            <div class="date-detail">
+              <span class="detail-value" id="modalFullDate">01.01.2025, 12:00</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <div class="footer-actions">
+        <button class="action-btn secondary-btn" onclick="closeSignalModal()">
+          <i class="bi bi-x-circle"></i>
+          <span>Затвори</span>
+        </button>
+        <button class="action-btn primary-btn" onclick="centerMapOnSignal()">
+          <i class="bi bi-geo-alt"></i>
+          <span>Покажи на картата</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
-
-<!-- Notification Container -->
-<div id="notificationContainer" class="notification-container"></div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
@@ -365,6 +442,15 @@
 
 <!-- Markercluster JS -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<!-- Signals Data -->
+<script src="/js/map/signals-data.js"></script>
+
+<!-- Signal Modal Styles -->
+<link rel="stylesheet" href="/css/map/signal-modal.css">
+
+<!-- Signal Modal JS -->
+<script src="/js/map/signal-modal.js"></script>
 
 <!-- Map JS -->
 <script src="/js/map/smolyan-map.js"></script>

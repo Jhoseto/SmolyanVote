@@ -1,168 +1,219 @@
-// ===== MODERN COMPACT MAP JAVASCRIPT =====
-
-// ===== CONFIGURATION & CONSTANTS =====
-const SMOLYAN_CENTER = [41.5736, 24.7127];
-const DEFAULT_ZOOM = 11;
-
-// Граници на Смолянска област
-const SMOLYAN_BOUNDS = {
-    north: 41.7500,
-    south: 41.3500,
-    east: 24.9500,
-    west: 24.4500
-};
-
-// Категории със SmolyanVote стил - пълен списък
-const SIGNAL_CATEGORIES = {
-    // Инфраструктура
-    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle-fill', color: '#e74c3c', group: 'infrastructure' },
-    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-exclamation-circle-fill', color: '#e67e22', group: 'infrastructure' },
-    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb-fill', color: '#f39c12', group: 'infrastructure' },
-    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop-fill', color: '#d35400', group: 'infrastructure' },
-    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet-fill', color: '#3498db', group: 'infrastructure' },
-
-    // Околна среда
-    illegal_waste: { name: 'Незаконни сметища', icon: 'bi-trash-fill', color: '#8b4513', group: 'environment' },
-    dangerous_trees: { name: 'Мъртви/опасни дървета', icon: 'bi-tree-fill', color: '#27ae60', group: 'environment' },
-    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze-fill', color: '#95a5a6', group: 'environment' },
-    noise: { name: 'Шум', icon: 'bi-volume-up-fill', color: '#9b59b6', group: 'environment' },
-    parks_issues: { name: 'Проблеми с паркове', icon: 'bi-tree', color: '#2ecc71', group: 'environment' },
-
-    // Обществен ред
-    illegal_parking: { name: 'Незаконно паркиране', icon: 'bi-car-front-fill', color: '#e67e22', group: 'public_order' },
-    vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#c0392b', group: 'public_order' },
-    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front', color: '#7f8c8d', group: 'public_order' },
-    security_issues: { name: 'Проблеми с безопасност', icon: 'bi-shield-exclamation', color: '#c0392b', group: 'public_order' },
-
-    // Комунални услуги
-    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash3-fill', color: '#795548', group: 'municipal' },
-    bus_stops: { name: 'Неработещи автобусни спирки', icon: 'bi-bus-front', color: '#2980b9', group: 'municipal' },
-    public_transport: { name: 'Проблеми с обществен транспорт', icon: 'bi-bus-front-fill', color: '#3498db', group: 'municipal' },
-
-    // Социални проблеми
-    accessibility: { name: 'Недостъпност за хора с увреждания', icon: 'bi-person-wheelchair', color: '#8e44ad', group: 'social' },
-    playgrounds: { name: 'Опасни детски площадки', icon: 'bi-exclamation-triangle-fill', color: '#e74c3c', group: 'social' },
-    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart-fill', color: '#e91e63', group: 'social' }
-};
-
-const URGENCY_LEVELS = {
-    low: { name: 'Ниска', icon: 'bi-circle-fill', color: '#28a745' },
-    medium: { name: 'Средна', icon: 'bi-exclamation-circle-fill', color: '#ffc107' },
-    high: { name: 'Висока', icon: 'bi-exclamation-triangle-fill', color: '#dc3545' }
-};
-
-const STATUS_TYPES = {
-    new: { name: 'Нов', icon: 'bi-clock-fill', color: '#007bff' },
-    in_progress: { name: 'В процес', icon: 'bi-gear-fill', color: '#fd7e14' },
-    resolved: { name: 'Решен', icon: 'bi-check-circle-fill', color: '#28a745' }
-};
-
-// Sample data с разнообразни категории
-const SAMPLE_SIGNALS = [
-    {
-        id: 1,
-        title: "Голяма дупка на главния път",
-        category: "road_damage",
-        description: "Опасна дупка на пътя към центъра, създава риск за автомобилите",
-        coordinates: [41.5750, 24.7150],
-        urgency: "high",
-        status: "new",
-        reporter: "Жител на Смолян",
-        createdAt: "2025-01-15T10:30:00Z"
-    },
-    {
-        id: 2,
-        title: "Неработещо улично осветление",
-        category: "lighting",
-        description: "Няколко лампи на ул. Централна не светят от седмици",
-        coordinates: [41.5720, 24.7100],
-        urgency: "medium",
-        status: "in_progress",
-        reporter: "Анонимно",
-        createdAt: "2025-01-10T16:45:00Z"
-    },
-    {
-        id: 3,
-        title: "Незаконно сметище в гората",
-        category: "illegal_waste",
-        description: "Натрупани отпадъци в близост до туристическа пътека",
-        coordinates: [41.5680, 24.7200],
-        urgency: "high",
-        status: "new",
-        reporter: "Турист",
-        createdAt: "2025-01-12T14:20:00Z"
-    },
-    {
-        id: 4,
-        title: "Вандализъм в парка",
-        category: "vandalism",
-        description: "Счупени пейки и боядисани графити в централния парк",
-        coordinates: [41.5730, 24.7130],
-        urgency: "medium",
-        status: "new",
-        reporter: "Родител",
-        createdAt: "2025-01-14T09:15:00Z"
-    },
-    {
-        id: 5,
-        title: "Опасна детска площадка",
-        category: "playgrounds",
-        description: "Счупени люлки и острі ръбове, опасно за децата",
-        coordinates: [41.5710, 24.7080],
-        urgency: "high",
-        status: "resolved",
-        reporter: "Майка",
-        createdAt: "2025-01-08T14:30:00Z"
-    },
-    {
-        id: 6,
-        title: "Проблем с водопровода",
-        category: "water_sewer",
-        description: "Авария в тръбопровода, липсва вода от 2 дни",
-        coordinates: [41.5760, 24.7160],
-        urgency: "high",
-        status: "in_progress",
-        reporter: "Жител",
-        createdAt: "2025-01-16T08:00:00Z"
-    }
-];
+// ===== MODERN SMOLYANVOTE MAP JAVASCRIPT =====
 
 // ===== GLOBAL VARIABLES =====
-let map;
-let markersCluster;
-let currentSignals = [...SAMPLE_SIGNALS];
-let activeFilters = {
-    category: 'all',
-    urgency: 'all',
-    status: 'all'
-};
-let isSelectingLocation = false;
+let map = null;
+let markersCluster = null;
 let selectedCoordinates = null;
-let isMobile = window.innerWidth <= 768;
-
-// Panel states
+let locationSelectionMode = false;
+let temporaryMarker = null;
 let activePanel = null;
 let signalsPanelExpanded = false;
 let filtersExpanded = false;
+let isMobile = window.innerWidth <= 768;
+
+// ===== MAP CONSTANTS =====
+const SMOLYAN_CENTER = [41.5766, 24.7014];
+const DEFAULT_ZOOM = 13;
+const SMOLYAN_BOUNDS = {
+    north: 41.6200,
+    south: 41.5300,
+    east: 24.7800,
+    west: 24.6200
+};
+
+// ===== SIGNAL CATEGORIES (БЕЗ СТАТУСИ) =====
+const SIGNAL_CATEGORIES = {
+    road_damage: { name: 'Дупки в пътищата', icon: 'bi-cone-striped', color: '#ef4444' },
+    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-house-slash', color: '#f97316' },
+    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb-off', color: '#eab308' },
+    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#dc2626' },
+    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet-half', color: '#2563eb' },
+    waste_management: { name: 'Замърсяване на околната среда', icon: 'bi-trash3', color: '#16a34a' },
+    illegal_dumping: { name: 'Незаконно изхвърляне на отпадъци', icon: 'bi-recycle', color: '#059669' },
+    tree_issues: { name: 'Проблеми с дървета и растителност', icon: 'bi-tree', color: '#65a30d' },
+    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#6b7280' },
+    noise_pollution: { name: 'Шумово замърсяване', icon: 'bi-volume-up', color: '#7c2d12' },
+    vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#7c2d12' },
+    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front', color: '#374151' },
+    security_issues: { name: 'Проблеми с безопасност', icon: 'bi-shield-exclamation', color: '#991b1b' },
+    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash', color: '#0f766e' },
+    bus_stops: { name: 'Неработещи автобусни спирки', icon: 'bi-bus-front', color: '#1e40af' },
+    public_transport: { name: 'Проблеми с обществен транспорт', icon: 'bi-train-front', color: '#3730a3' },
+    accessibility: { name: 'Недостъпност за хора с увреждания', icon: 'bi-universal-access', color: '#7c3aed' },
+    playgrounds: { name: 'Опасни детски площадки', icon: 'bi-playground', color: '#be185d' },
+    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart', color: '#a21caf' }
+};
+
+const URGENCY_LEVELS = {
+    low: { name: 'Ниска', icon: 'bi-circle', color: '#16a34a' },
+    medium: { name: 'Средна', icon: 'bi-exclamation-circle', color: '#f97316' },
+    high: { name: 'Висока', icon: 'bi-exclamation-triangle', color: '#ef4444' }
+};
+
+// ===== SAMPLE DATA =====
+let currentSignals = [];
+
+// ===== FILTERS =====
+let activeFilters = {
+    category: 'all',
+    urgency: 'all',
+    search: ''
+};
+
+// ===== REAL-TIME SEARCH =====
+let searchTimeout = null;
+let searchResults = [];
+
+function initializeSearch() {
+    const searchInput = document.getElementById('signalSearch');
+    const clearButton = document.getElementById('clearSearch');
+    const resultsContainer = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', handleSearchInput);
+    clearButton.addEventListener('click', clearSearch);
+
+    // Затваряне на резултатите при клик извън тях
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+            hideSearchResults();
+        }
+    });
+}
+
+function handleSearchInput(e) {
+    const query = e.target.value.trim();
+    const clearButton = document.getElementById('clearSearch');
+
+    // Показване/скриване на clear бутона
+    if (query.length > 0) {
+        clearButton.style.display = 'block';
+    } else {
+        clearButton.style.display = 'none';
+        hideSearchResults();
+        activeFilters.search = '';
+        loadSignals();
+        return;
+    }
+
+    // Debounce search
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        performSearch(query);
+    }, 300);
+}
+
+function performSearch(query) {
+    if (query.length < 2) {
+        hideSearchResults();
+        return;
+    }
+
+    // Търсене в данните
+    searchResults = currentSignals.filter(signal => {
+        const titleMatch = signal.title.toLowerCase().includes(query.toLowerCase());
+        const descriptionMatch = signal.description.toLowerCase().includes(query.toLowerCase());
+        const categoryMatch = SIGNAL_CATEGORIES[signal.category].name.toLowerCase().includes(query.toLowerCase());
+        return titleMatch || descriptionMatch || categoryMatch;
+    });
+
+    activeFilters.search = query;
+    showSearchResults(searchResults, query);
+    loadSignals(); // Обновяване на картата и списъка
+}
+
+function showSearchResults(results, query) {
+    const resultsContainer = document.getElementById('searchResults');
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="search-result-item">
+                <div class="search-result-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="search-result-content">
+                    <div class="search-result-title">Няма намерени резултати</div>
+                    <div class="search-result-description">Опитайте с различни ключови думи</div>
+                </div>
+            </div>
+        `;
+    } else {
+        resultsContainer.innerHTML = results.slice(0, 5).map(signal => {
+            const category = SIGNAL_CATEGORIES[signal.category];
+            const highlightedTitle = highlightText(signal.title, query);
+
+            return `
+                <div class="search-result-item" onclick="selectSearchResult(${signal.id})">
+                    <div class="search-result-icon">
+                        <i class="${category.icon}" style="color: ${category.color}"></i>
+                    </div>
+                    <div class="search-result-content">
+                        <div class="search-result-title">${highlightedTitle}</div>
+                        <div class="search-result-description">${category.name}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (results.length > 5) {
+            resultsContainer.innerHTML += `
+                <div class="search-result-item" style="font-style: italic; color: var(--gray-500);">
+                    <div class="search-result-content">
+                        <div class="search-result-title">+${results.length - 5} още резултата</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    resultsContainer.style.display = 'block';
+}
+
+function highlightText(text, query) {
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<strong style="color: var(--primary-green);">$1</strong>');
+}
+
+function selectSearchResult(signalId) {
+    const signal = currentSignals.find(s => s.id === signalId);
+    if (signal) {
+        hideSearchResults();
+
+        // Центриране на картата към сигнала
+        map.setView(signal.coordinates, 18, {
+            animate: true,
+            duration: 1.0
+        });
+
+        // Показване на детайлите
+        setTimeout(() => {
+            openSignalModal(signal);
+        }, 500);
+    }
+}
+
+function hideSearchResults() {
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('signalSearch');
+    const clearButton = document.getElementById('clearSearch');
+
+    searchInput.value = '';
+    clearButton.style.display = 'none';
+    hideSearchResults();
+    activeFilters.search = '';
+    loadSignals();
+}
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', function() {
+    loadSignalsData();
     initializeMap();
-    initializeControls();
-    loadSignals();
-    updateStats();
-    initializeLayout();
+    initializeEventListeners();
+    initializeSearch();
 
-    // Handle window resize
-    window.addEventListener('resize', handleResize);
-});
-
-// ===== LAYOUT INITIALIZATION =====
-function initializeLayout() {
-    // Всички панели започват затворени
-    closePanels();
-
-    // Филтрите започват прибрани
+    // Настройка на филтрите да са свити в началото
     const filtersContent = document.getElementById('filtersContent');
     const filtersArrow = document.getElementById('filtersArrow');
 
@@ -176,6 +227,57 @@ function initializeLayout() {
     if (isMobile) {
         adaptForMobile();
     }
+});
+
+// ===== LOAD SIGNALS DATA =====
+async function loadSignalsData() {
+    try {
+        // Try to load from external file first
+        const response = await fetch('/js/map/signals-data.js');
+        if (response.ok) {
+            const scriptText = await response.text();
+            eval(scriptText);
+            if (typeof SAMPLE_SIGNALS !== 'undefined') {
+                currentSignals = SAMPLE_SIGNALS;
+            }
+        }
+    } catch (error) {
+        console.log('Could not load external signals data, using fallback');
+        // Fallback data in case file is not found
+        currentSignals = [
+            {
+                id: 1,
+                title: 'Примерен сигнал',
+                category: 'road_damage',
+                description: 'Това е примерен сигнал за тестване.',
+                coordinates: [41.5766, 24.7014],
+                urgency: 'medium',
+                reporter: 'Система',
+                createdAt: new Date().toISOString()
+            }
+        ];
+    }
+
+    // Load signals after data is ready
+    loadSignals();
+    updateStats();
+}
+
+window.addEventListener('resize', handleResize);
+
+function initializeEventListeners() {
+    // Map controls
+    document.getElementById('centerMapBtn')?.addEventListener('click', centerMap);
+    document.getElementById('myLocationBtn')?.addEventListener('click', getMyLocation);
+    document.getElementById('fullscreenBtn')?.addEventListener('click', toggleFullscreen);
+
+    // Form events
+    document.getElementById('selectLocationBtn')?.addEventListener('click', toggleLocationSelection);
+
+    // Filter events
+    document.getElementById('categoryFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('urgencyFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('sortFilter')?.addEventListener('change', applyFilters);
 }
 
 function adaptForMobile() {
@@ -247,25 +349,25 @@ function initializeMap() {
     // Initialize marker cluster
     markersCluster = L.markerClusterGroup({
         chunkedLoading: true,
-        spiderfyOnMaxZoom: false,
+        spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
-        maxClusterRadius: 50,
+        maxClusterRadius: 40,
+        disableClusteringAtZoom: 16,
         iconCreateFunction: function(cluster) {
             const count = cluster.getChildCount();
-            let className = 'marker-cluster-small';
-            if (count > 10) className = 'marker-cluster-medium';
-            if (count > 20) className = 'marker-cluster-large';
-
-            return new L.DivIcon({
-                html: `<div><span>${count}</span></div>`,
-                className: `marker-cluster ${className}`,
-                iconSize: new L.Point(40, 40)
+            const size = count < 10 ? 'small' : count < 100 ? 'medium' : 'large';
+            return L.divIcon({
+                html: `<div>${count}</div>`,
+                className: `marker-cluster marker-cluster-${size}`,
+                iconSize: L.point(40, 40)
             });
         }
     });
 
     map.addLayer(markersCluster);
-    map.on('click', onMapClick);
+
+    // Map click for location selection
+    map.on('click', handleMapClick);
 }
 
 function addSmolyanBoundary() {
@@ -279,42 +381,14 @@ function addSmolyanBoundary() {
     L.polygon(boundaryCoords, {
         color: '#4cb15c',
         weight: 2,
-        opacity: 0.6,
+        opacity: 0.8,
         fillOpacity: 0.1,
         fillColor: '#4cb15c'
     }).addTo(map);
 }
 
-// ===== CONTROLS INITIALIZATION =====
-function initializeControls() {
-    // Form submission
-    document.getElementById('createSignalForm').addEventListener('submit', handleCreateSignal);
-
-    // Location selection
-    document.getElementById('selectLocationBtn').addEventListener('click', toggleLocationSelection);
-
-    // Map controls
-    document.getElementById('centerMapBtn').addEventListener('click', centerMap);
-    document.getElementById('myLocationBtn').addEventListener('click', getMyLocation);
-    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-
-    // Filter controls
-    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    document.getElementById('urgencyFilter').addEventListener('change', applyFilters);
-    document.getElementById('statusFilter').addEventListener('change', applyFilters);
-    document.getElementById('sortFilter').addEventListener('change', applyFilters);
-
-    // Modal controls
-    document.getElementById('closeSignalModal').addEventListener('click', closeSignalModal);
-    document.getElementById('signalModal').addEventListener('click', function(e) {
-        if (e.target === this) closeSignalModal();
-    });
-}
-
 // ===== PANEL MANAGEMENT =====
 function togglePanel(panelName) {
-    const panel = document.getElementById(panelName + 'Panel');
-
     if (activePanel === panelName) {
         // Close current panel
         closePanel(panelName);
@@ -413,8 +487,18 @@ function loadSignals() {
     const filteredSignals = currentSignals.filter(signal => {
         const categoryMatch = activeFilters.category === 'all' || signal.category === activeFilters.category;
         const urgencyMatch = activeFilters.urgency === 'all' || signal.urgency === activeFilters.urgency;
-        const statusMatch = activeFilters.status === 'all' || signal.status === activeFilters.status;
-        return categoryMatch && urgencyMatch && statusMatch;
+
+        // Search filter
+        let searchMatch = true;
+        if (activeFilters.search) {
+            const query = activeFilters.search.toLowerCase();
+            const titleMatch = signal.title.toLowerCase().includes(query);
+            const descriptionMatch = signal.description.toLowerCase().includes(query);
+            const categoryMatch = SIGNAL_CATEGORIES[signal.category].name.toLowerCase().includes(query);
+            searchMatch = titleMatch || descriptionMatch || categoryMatch;
+        }
+
+        return categoryMatch && urgencyMatch && searchMatch;
     });
 
     filteredSignals.forEach(signal => {
@@ -444,7 +528,7 @@ function createSignalMarker(signal) {
 
     marker.signalData = signal;
     marker.on('click', function() {
-        showSignalDetails(signal);
+        openSignalModal(signal);
     });
 
     return marker;
@@ -488,10 +572,9 @@ function updateSignalsList(signals) {
 function createSignalCard(signal) {
     const category = SIGNAL_CATEGORIES[signal.category];
     const urgency = URGENCY_LEVELS[signal.urgency];
-    const status = STATUS_TYPES[signal.status];
 
     return `
-        <div class="signal-card" onclick="showSignalDetails(${signal.id})">
+        <div class="signal-card" onclick="openSignalModal(${signal.id})">
             <div class="signal-header">
                 <div class="signal-category">
                     <i class="${category.icon}" style="color: ${category.color}"></i>
@@ -506,10 +589,7 @@ function createSignalCard(signal) {
             <p class="signal-description">${signal.description}</p>
             <div class="signal-footer">
                 <span class="signal-date">${new Date(signal.createdAt).toLocaleDateString('bg-BG')}</span>
-                <div class="signal-status status-${signal.status}">
-                    <i class="${status.icon}"></i>
-                    <span>${status.name}</span>
-                </div>
+                <span class="signal-reporter">от ${signal.reporter}</span>
             </div>
         </div>
     `;
@@ -517,119 +597,69 @@ function createSignalCard(signal) {
 
 function updateStats() {
     const total = currentSignals.length;
-    const active = currentSignals.filter(s => s.status !== 'resolved').length;
-    const resolved = currentSignals.filter(s => s.status === 'resolved').length;
+    const filteredCount = currentSignals.filter(signal => {
+        const categoryMatch = activeFilters.category === 'all' || signal.category === activeFilters.category;
+        const urgencyMatch = activeFilters.urgency === 'all' || signal.urgency === activeFilters.urgency;
 
-    document.getElementById('totalSignals').textContent = total;
-    document.getElementById('activeSignals').textContent = active;
-    document.getElementById('resolvedSignals').textContent = resolved;
-    document.getElementById('signalsTabCounter').textContent = total;
+        let searchMatch = true;
+        if (activeFilters.search) {
+            const query = activeFilters.search.toLowerCase();
+            const titleMatch = signal.title.toLowerCase().includes(query);
+            const descriptionMatch = signal.description.toLowerCase().includes(query);
+            const categoryMatch = SIGNAL_CATEGORIES[signal.category].name.toLowerCase().includes(query);
+            searchMatch = titleMatch || descriptionMatch || categoryMatch;
+        }
+
+        return categoryMatch && urgencyMatch && searchMatch;
+    }).length;
+
+    document.getElementById('signalsTabCounter').textContent = filteredCount;
 }
-
-// ===== SIGNAL DETAILS =====
-function showSignalDetails(signalId) {
-    const signal = typeof signalId === 'object' ? signalId : currentSignals.find(s => s.id == signalId);
-    if (!signal) return;
-
-    const category = SIGNAL_CATEGORIES[signal.category];
-    const urgency = URGENCY_LEVELS[signal.urgency];
-    const status = STATUS_TYPES[signal.status];
-
-    document.getElementById('modalTitle').textContent = signal.title;
-    document.getElementById('modalBody').innerHTML = `
-        <div class="signal-details">
-            <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <div class="detail-category" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="${category.icon}" style="color: ${category.color}; font-size: 1.2rem;"></i>
-                    <span style="font-weight: 600;">${category.name}</span>
-                </div>
-                <div class="detail-badges" style="display: flex; gap: 0.5rem;">
-                    <span class="badge urgency-${signal.urgency}" style="padding: 0.25rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500;">
-                        <i class="${urgency.icon}"></i> ${urgency.name}
-                    </span>
-                    <span class="badge status-${signal.status}" style="padding: 0.25rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500;">
-                        <i class="${status.icon}"></i> ${status.name}
-                    </span>
-                </div>
-            </div>
-            
-            <div class="detail-description" style="margin-bottom: 1.5rem;">
-                <h5 style="color: var(--gray-700); margin-bottom: 0.5rem;">Описание</h5>
-                <p style="color: var(--gray-600); line-height: 1.5;">${signal.description}</p>
-            </div>
-            
-            <div class="detail-location" style="margin-bottom: 1.5rem;">
-                <h5 style="color: var(--gray-700); margin-bottom: 0.5rem;">Местоположение</h5>
-                <p style="color: var(--gray-600); margin-bottom: 1rem;">Координати: ${signal.coordinates[0].toFixed(6)}, ${signal.coordinates[1].toFixed(6)}</p>
-                <button class="btn-secondary" onclick="centerMapOnSignal(${signal.id})" style="padding: 0.5rem 1rem; border: none; border-radius: var(--radius-md); background: var(--gray-200); color: var(--gray-700); cursor: pointer;">
-                    <i class="bi bi-geo-alt-fill"></i> Покажи на картата
-                </button>
-            </div>
-            
-            <div class="detail-meta">
-                <h5 style="color: var(--gray-700); margin-bottom: 0.75rem;">Информация</h5>
-                <div class="meta-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="meta-item">
-                        <strong>Подаден от:</strong><br>
-                        <span style="color: var(--gray-600);">${signal.reporter}</span>
-                    </div>
-                    <div class="meta-item">
-                        <strong>Дата:</strong><br>
-                        <span style="color: var(--gray-600);">${new Date(signal.createdAt).toLocaleString('bg-BG')}</span>
-                    </div>
-                    <div class="meta-item">
-                        <strong>ID:</strong><br>
-                        <span style="color: var(--gray-600);">#${signal.id}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('signalModal').classList.add('open');
-}
-
-function closeSignalModal() {
-    document.getElementById('signalModal').classList.remove('open');
-}
-
-function centerMapOnSignal(signalId) {
-    const signal = currentSignals.find(s => s.id == signalId);
-    if (signal) {
-        map.setView(signal.coordinates, 16);
-        closeSignalModal();
-        showNotification('Картата е центрирана на сигнала', 'success');
-    }
-}
-
-// Make globally available
-window.showSignalDetails = showSignalDetails;
-window.centerMapOnSignal = centerMapOnSignal;
 
 // ===== LOCATION SELECTION =====
 function toggleLocationSelection() {
-    isSelectingLocation = !isSelectingLocation;
+    locationSelectionMode = !locationSelectionMode;
     const btn = document.getElementById('selectLocationBtn');
 
-    if (isSelectingLocation) {
+    if (locationSelectionMode) {
         btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> <span>Кликнете на картата</span>';
         btn.classList.add('selecting');
-        showNotification('Кликнете на картата за избор на местоположение', 'info');
+        showNotification('Кликнете на картата за да изберете местоположение', 'info');
     } else {
         btn.innerHTML = '<i class="bi bi-geo-alt"></i> <span>Изберете местоположение</span>';
         btn.classList.remove('selecting');
+        if (temporaryMarker) {
+            map.removeLayer(temporaryMarker);
+            temporaryMarker = null;
+        }
     }
 }
 
-function onMapClick(e) {
-    if (!isSelectingLocation) return;
+function handleMapClick(e) {
+    if (!locationSelectionMode) return;
 
-    const coords = [e.latlng.lat, e.latlng.lng];
+    const { lat, lng } = e.latlng;
+    const coords = [lat, lng];
 
     if (!isWithinSmolyanBounds(coords)) {
-        showNotification('Моля изберете местоположение в рамките на Смолянска област', 'error');
+        showNotification('Моля, изберете местоположение в рамките на Смолян', 'error');
         return;
     }
+
+    // Remove previous temporary marker
+    if (temporaryMarker) {
+        map.removeLayer(temporaryMarker);
+    }
+
+    // Add new temporary marker
+    temporaryMarker = L.marker(coords, {
+        icon: L.divIcon({
+            className: 'temporary-marker',
+            html: '<div style="background: #ef4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        })
+    }).addTo(map);
 
     selectedCoordinates = coords;
     updateCoordsDisplay();
@@ -674,7 +704,6 @@ function handleCreateSignal(e) {
         description: document.getElementById('signalDescription').value,
         coordinates: selectedCoordinates,
         urgency: document.getElementById('signalUrgency').value,
-        status: 'new',
         reporter: 'Анонимно', // Will be replaced with actual user data
         createdAt: new Date().toISOString()
     };
@@ -692,6 +721,11 @@ function resetForm() {
     updateCoordsDisplay();
     document.getElementById('selectLocationBtn').innerHTML = '<i class="bi bi-geo-alt"></i> <span>Изберете местоположение</span>';
     document.getElementById('selectLocationBtn').classList.remove('selecting');
+
+    if (temporaryMarker) {
+        map.removeLayer(temporaryMarker);
+        temporaryMarker = null;
+    }
 }
 
 // Make globally available
@@ -701,14 +735,12 @@ window.resetForm = resetForm;
 function applyFilters() {
     activeFilters.category = document.getElementById('categoryFilter').value;
     activeFilters.urgency = document.getElementById('urgencyFilter').value;
-    activeFilters.status = document.getElementById('statusFilter').value;
     loadSignals();
 }
 
 function clearFilters() {
     document.getElementById('categoryFilter').value = 'all';
     document.getElementById('urgencyFilter').value = 'all';
-    document.getElementById('statusFilter').value = 'all';
     document.getElementById('sortFilter').value = 'newest';
     applyFilters();
     showNotification('Филтрите са изчистени', 'info');
@@ -724,86 +756,119 @@ function centerMap() {
 }
 
 function getMyLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                const coords = [position.coords.latitude, position.coords.longitude];
-                if (isWithinSmolyanBounds(coords)) {
-                    map.setView(coords, 15);
-                    showNotification('Показана е вашата локация', 'success');
-                } else {
-                    showNotification('Вие сте извън границите на Смолянска област', 'warning');
-                }
-            },
-            error => {
-                showNotification('Не може да се определи локацията', 'error');
-            }
-        );
-    } else {
-        showNotification('Браузърът не поддържа геолокация', 'error');
+    if (!navigator.geolocation) {
+        showNotification('Геолокацията не е поддържана от този браузър', 'error');
+        return;
     }
+
+    showNotification('Търсене на вашата локация...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const { latitude, longitude } = position.coords;
+            const coords = [latitude, longitude];
+
+            if (isWithinSmolyanBounds(coords)) {
+                map.setView(coords, 18, {
+                    animate: true,
+                    duration: 1.0
+                });
+
+                // Add temporary marker for user location
+                const userMarker = L.marker(coords, {
+                    icon: L.divIcon({
+                        className: 'user-location-marker',
+                        html: '<div style="background: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
+                }).addTo(map);
+
+                // Remove marker after 5 seconds
+                setTimeout(() => {
+                    map.removeLayer(userMarker);
+                }, 5000);
+
+                showNotification('Вашата локация е намерена', 'success');
+            } else {
+                showNotification('Вашата локация е извън границите на Смолян', 'error');
+            }
+        },
+        function(error) {
+            let message = 'Грешка при намиране на локацията';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Достъпът до локацията е отказан';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Информацията за локацията не е достъпна';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Изтече времето за намиране на локацията';
+                    break;
+            }
+            showNotification(message, 'error');
+        },
+        {
+            timeout: 10000,
+            maximumAge: 300000, // 5 minutes
+            enableHighAccuracy: true
+        }
+    );
 }
 
 function toggleFullscreen() {
-    const mapContainer = document.querySelector('.map-container');
     if (!document.fullscreenElement) {
-        mapContainer.requestFullscreen().then(() => {
-            setTimeout(() => map.invalidateSize(), 100);
-            showNotification('Режим на цял екран', 'info');
+        document.documentElement.requestFullscreen().then(() => {
+            showNotification('Режим на цял екран е активиран', 'info');
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
+        }).catch(() => {
+            showNotification('Не може да се активира режим на цял екран', 'error');
         });
     } else {
         document.exitFullscreen().then(() => {
-            setTimeout(() => map.invalidateSize(), 100);
+            showNotification('Режимът на цял екран е деактивиран', 'info');
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
         });
     }
 }
-
-// ===== MOBILE CONTROLS =====
-function toggleMobileControls() {
-    // On mobile, toggle new signal panel
-    togglePanel('newSignal');
-}
-
-// Make globally available
-window.toggleMobileControls = toggleMobileControls;
 
 // ===== NOTIFICATIONS =====
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationContainer');
     const notification = document.createElement('div');
-
     notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <i class="bi bi-${getNotificationIcon(type)}"></i>
-        <span>${message}</span>
-    `;
+    notification.textContent = message;
 
     container.appendChild(notification);
 
+    // Show notification
     setTimeout(() => {
-        notification.style.animation = 'slideInRight 0.3s ease reverse';
-        setTimeout(() => notification.remove(), 300);
+        notification.classList.add('show');
+    }, 100);
+
+    // Hide and remove notification
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (container.contains(notification)) {
+                container.removeChild(notification);
+            }
+        }, 300);
     }, 3000);
 }
 
-function getNotificationIcon(type) {
-    switch (type) {
-        case 'success': return 'check-circle-fill';
-        case 'error': return 'x-circle-fill';
-        case 'warning': return 'exclamation-triangle-fill';
-        default: return 'info-circle-fill';
+// ===== MOBILE SUPPORT =====
+function toggleMobileControls() {
+    // Mobile FAB functionality
+    const fab = document.querySelector('.fab');
+    if (fab) {
+        togglePanel('newSignal');
     }
 }
 
-// ===== UTILITY FUNCTIONS =====
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
+window.toggleMobileControls = toggleMobileControls;
