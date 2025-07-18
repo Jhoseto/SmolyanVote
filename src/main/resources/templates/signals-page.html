@@ -441,10 +441,8 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 
-<!-- Signals Data -->
-<script src="/js/map/signals-data.js"></script>
-
-<!-- Map Modules - В правилния ред -->
+<!-- Map Modules -->
+<script src="/js/map/signal-api.js"></script>
 <script src="/js/map/map-core.js"></script>
 <script src="/js/map/signal-management.js"></script>
 <script src="/js/map/signal-tooltip.js"></script>
@@ -452,6 +450,18 @@
 
 <!-- Main Coordinator -->
 <script src="/js/map/smolyan-map.js"></script>
-
+<!-- DEBUG: Console информация -->
+<script>
+  console.log('🗺️ SmolyanVote Map Scripts loaded in order:');
+  console.log('1. ✅ Leaflet');
+  console.log('2. ✅ Markercluster');
+  console.log('3. ✅ Signal API Client');
+  console.log('4. ✅ Map Core');
+  console.log('5. ✅ Signal Management');
+  console.log('6. ✅ Signal Tooltip');
+  console.log('7. ✅ Signal Modal');
+  console.log('8. ✅ Main Coordinator');
+  console.log('🚀 Ready for backend integration!');
+</script>
 </body>
 </html>

@@ -60,7 +60,7 @@ public class ApplicationSecurityConfiguration {
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
                                 "/eventDetailView", "/posts","/podcast", "/error/**", "/favicon.ico", "/robots.txt",
                                 "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
-                                "/terms-and-conditions","/faq","/map/**"
+                                "/terms-and-conditions","/faq","/api/signals/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
