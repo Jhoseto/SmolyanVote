@@ -65,190 +65,265 @@
   <!-- Map -->
   <div id="map" class="map-section"></div>
 
-  <!-- Floating Controls - Ляво -->
-  <div class="floating-controls">
+  <!-- Compact Left Controls -->
+  <div class="left-controls">
 
-    <!-- Нов сигнал -->
-    <div class="control-card" id="newSignalCard">
-      <div class="control-header" onclick="toggleCard('newSignalCard')">
-        <div class="control-title">
-          <i class="bi bi-plus-circle"></i>
-          <span>Нов сигнал</span>
-        </div>
-        <i class="bi bi-chevron-down control-arrow"></i>
+    <!-- Нов сигнал - компактен табче -->
+    <div class="control-tab" id="newSignalTab" onclick="togglePanel('newSignal')">
+      <div class="tab-icon">
+        <i class="bi bi-plus-circle-fill"></i>
       </div>
-      <div class="control-content">
-        <form id="createSignalForm" class="signal-form">
-          <div class="form-group">
-            <label for="signalTitle">Заглавие</label>
-            <input type="text" id="signalTitle" placeholder="Кратко описание на проблема" required>
-          </div>
+      <div class="tab-text">
+        <span class="tab-title">Нов сигнал</span>
+        <span class="tab-desc">Докладвай проблем</span>
+      </div>
+      <i class="bi bi-chevron-right tab-arrow"></i>
+    </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="signalCategory">Категория</label>
+  </div>
+
+  <!-- Expandable Panel за нов сигнал -->
+  <div class="floating-panel left-panel" id="newSignalPanel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="bi bi-plus-circle"></i>
+        <span>Нов сигнал</span>
+      </div>
+      <button class="panel-close" onclick="closePanel('newSignal')">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <div class="panel-content">
+      <form id="createSignalForm" class="signal-form">
+        <div class="form-group">
+          <label for="signalTitle">Заглавие</label>
+          <input type="text" id="signalTitle" placeholder="Кратко описание на проблема" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signalCategory">Категория</label>
+            <div class="custom-select">
               <select id="signalCategory" required>
                 <option value="">Изберете категория</option>
-                <optgroup label="Инфраструктура">
+                <optgroup label="🏗️ Инфраструктура">
                   <option value="road_damage">Дупки в пътищата</option>
                   <option value="sidewalk_damage">Счупени тротоари</option>
                   <option value="lighting">Неработещо осветление</option>
                   <option value="traffic_signs">Повредени пътни знаци</option>
                   <option value="water_sewer">Водопровод/канализация</option>
                 </optgroup>
-                <optgroup label="Околна среда">
+                <optgroup label="🌿 Околна среда">
                   <option value="illegal_waste">Незаконни сметища</option>
                   <option value="dangerous_trees">Мъртви/опасни дървета</option>
                   <option value="air_pollution">Замърсяване на въздуха</option>
                   <option value="noise">Шум</option>
                   <option value="parks_issues">Проблеми с паркове</option>
                 </optgroup>
-                <optgroup label="Обществен ред">
+                <optgroup label="👮 Обществен ред">
                   <option value="illegal_parking">Незаконно паркиране</option>
                   <option value="vandalism">Вандализъм</option>
                   <option value="abandoned_vehicles">Изоставени автомобили</option>
                   <option value="security_issues">Проблеми с безопасност</option>
                 </optgroup>
-                <optgroup label="Комунални услуги">
+                <optgroup label="🏛️ Комунални услуги">
                   <option value="waste_collection">Проблеми със сметосъбиране</option>
                   <option value="bus_stops">Неработещи автобусни спирки</option>
                   <option value="public_transport">Проблеми с обществен транспорт</option>
                 </optgroup>
-                <optgroup label="Социални проблеми">
+                <optgroup label="👥 Социални проблеми">
                   <option value="accessibility">Недостъпност за хора с увреждания</option>
                   <option value="playgrounds">Опасни детски площадки</option>
                   <option value="stray_animals">Бездомни животни</option>
                 </optgroup>
-                <option value="other">Друго</option>
               </select>
+              <i class="bi bi-chevron-down"></i>
             </div>
-            <div class="form-group">
-              <label for="signalUrgency">Спешност</label>
+          </div>
+          <div class="form-group">
+            <label for="signalUrgency">Спешност</label>
+            <div class="custom-select">
               <select id="signalUrgency" required>
                 <option value="low">Ниска</option>
                 <option value="medium">Средна</option>
                 <option value="high">Висока</option>
               </select>
+              <i class="bi bi-chevron-down"></i>
             </div>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="signalDescription">Описание</label>
-            <textarea id="signalDescription" placeholder="Подробно описание на проблема..." rows="3" required></textarea>
-          </div>
+        <div class="form-group">
+          <label for="signalDescription">Описание</label>
+          <textarea id="signalDescription" placeholder="Подробно описание на проблема..." rows="3" required></textarea>
+        </div>
 
-          <div class="form-group">
-            <label>Местоположение</label>
-            <button type="button" id="selectLocationBtn" class="location-btn">
-              <i class="bi bi-geo-alt"></i>
-              <span>Кликнете на картата</span>
-            </button>
-            <div id="selectedCoords" class="coords-display">
-              Няма избрано местоположение
-            </div>
+        <div class="form-group">
+          <label>Местоположение</label>
+          <button type="button" id="selectLocationBtn" class="location-btn">
+            <i class="bi bi-geo-alt"></i>
+            <span>Кликнете на картата</span>
+          </button>
+          <div id="selectedCoords" class="coords-display">
+            Няма избрано местоположение
           </div>
+        </div>
 
-          <div class="form-actions">
-            <button type="button" class="btn-secondary" onclick="resetForm()">
-              <i class="bi bi-arrow-counterclockwise"></i>
-              Изчисти
-            </button>
-            <button type="submit" class="btn-primary">
-              <i class="bi bi-send"></i>
-              Изпрати сигнал
-            </button>
-          </div>
-        </form>
-      </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="resetForm()">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            Изчисти
+          </button>
+          <button type="submit" class="btn-primary">
+            <i class="bi bi-send"></i>
+            Изпрати сигнал
+          </button>
+        </div>
+      </form>
     </div>
-
-    <!-- Филтри -->
-    <div class="control-card" id="filtersCard">
-      <div class="control-header" onclick="toggleCard('filtersCard')">
-        <div class="control-title">
-          <i class="bi bi-funnel"></i>
-          <span>Филтри</span>
-        </div>
-        <i class="bi bi-chevron-down control-arrow"></i>
-      </div>
-      <div class="control-content">
-        <div class="filter-group">
-          <label for="categoryFilter">Категория</label>
-          <select id="categoryFilter">
-            <option value="all">Всички категории</option>
-            <option value="road_damage">Дупки в пътищата</option>
-            <option value="sidewalk_damage">Счупени тротоари</option>
-            <option value="lighting">Неработещо осветление</option>
-            <option value="water_sewer">Водопровод/канализация</option>
-            <option value="illegal_waste">Незаконни сметища</option>
-            <option value="dangerous_trees">Опасни дървета</option>
-            <option value="illegal_parking">Незаконно паркиране</option>
-            <option value="other">Друго</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="urgencyFilter">Спешност</label>
-          <select id="urgencyFilter">
-            <option value="all">Всички нива</option>
-            <option value="high">Висока</option>
-            <option value="medium">Средна</option>
-            <option value="low">Ниска</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="statusFilter">Статус</label>
-          <select id="statusFilter">
-            <option value="all">Всички статуси</option>
-            <option value="new">Нови</option>
-            <option value="in_progress">В процес</option>
-            <option value="resolved">Решени</option>
-          </select>
-        </div>
-
-        <button type="button" class="btn-secondary btn-full" onclick="clearFilters()">
-          <i class="bi bi-x-circle"></i>
-          Изчисти филтрите
-        </button>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Map Controls -->
+  <!-- Top Center Map Controls -->
   <div class="map-controls">
     <button class="control-btn" id="centerMapBtn" title="Центрирай картата">
-      <i class="bi bi-house"></i>
+      <i class="bi bi-house-fill"></i>
     </button>
     <button class="control-btn" id="myLocationBtn" title="Моята локация">
-      <i class="bi bi-geo-alt"></i>
+      <i class="bi bi-geo-alt-fill"></i>
     </button>
     <button class="control-btn" id="fullscreenBtn" title="Цял екран">
-      <i class="bi bi-fullscreen"></i>
+      <i class="bi bi-arrows-fullscreen"></i>
     </button>
   </div>
 
-  <!-- Right Sidebar - Списък със сигнали -->
-  <div class="signals-sidebar">
-    <div class="sidebar-header">
-      <h3>
-        <i class="bi bi-list-ul"></i>
-        Сигнали
-        <span class="signals-count" id="signalsCount">0</span>
-      </h3>
-      <div class="sort-controls">
-        <select id="sortFilter" class="sort-select">
-          <option value="newest">Най-нови</option>
-          <option value="oldest">Най-стари</option>
-          <option value="urgency">По спешност</option>
-          <option value="category">По категория</option>
-        </select>
+  <!-- Right Signals Panel -->
+  <div class="signals-panel" id="signalsPanel">
+
+    <!-- Компактен таб за сигнали -->
+    <div class="signals-tab" id="signalsTab" onclick="toggleSignalsPanel()">
+      <div class="tab-content">
+        <div class="tab-icon">
+          <i class="bi bi-list-ul"></i>
+        </div>
+        <div class="tab-info">
+          <span class="tab-title">Сигнали</span>
+          <span class="tab-counter" id="signalsTabCounter">0</span>
+        </div>
       </div>
+      <i class="bi bi-chevron-left tab-arrow" id="signalsTabArrow"></i>
     </div>
 
-    <div class="signals-list" id="signalsList">
-      <!-- Dynamic content -->
+    <!-- Разширен панел със сигнали -->
+    <div class="signals-content" id="signalsContent">
+
+      <!-- Филтри в горната част -->
+      <div class="filters-section">
+        <div class="filters-header">
+          <h4>
+            <i class="bi bi-funnel"></i>
+            Филтри
+          </h4>
+          <button class="filters-toggle" onclick="toggleFilters()">
+            <i class="bi bi-chevron-down" id="filtersArrow"></i>
+          </button>
+        </div>
+
+        <div class="filters-content" id="filtersContent">
+          <div class="filters-grid">
+
+            <div class="filter-group">
+              <label for="categoryFilter">Категория</label>
+              <div class="custom-select compact">
+                <select id="categoryFilter">
+                  <option value="all">Всички</option>
+                  <optgroup label="🏗️ Инфраструктура">
+                    <option value="road_damage">Дупки в пътищата</option>
+                    <option value="sidewalk_damage">Счупени тротоари</option>
+                    <option value="lighting">Неработещо осветление</option>
+                    <option value="traffic_signs">Повредени пътни знаци</option>
+                    <option value="water_sewer">Водопровод/канализация</option>
+                  </optgroup>
+                  <optgroup label="🌿 Околна среда">
+                    <option value="illegal_waste">Незаконни сметища</option>
+                    <option value="dangerous_trees">Мъртви/опасни дървета</option>
+                    <option value="air_pollution">Замърсяване на въздуха</option>
+                    <option value="noise">Шум</option>
+                    <option value="parks_issues">Проблеми с паркове</option>
+                  </optgroup>
+                  <optgroup label="👮 Обществен ред">
+                    <option value="illegal_parking">Незаконно паркиране</option>
+                    <option value="vandalism">Вандализъм</option>
+                    <option value="abandoned_vehicles">Изоставени автомобили</option>
+                    <option value="security_issues">Проблеми с безопасност</option>
+                  </optgroup>
+                  <optgroup label="🏛️ Комунални услуги">
+                    <option value="waste_collection">Проблеми със сметосъбиране</option>
+                    <option value="bus_stops">Неработещи автобусни спирки</option>
+                    <option value="public_transport">Проблеми с обществен транспорт</option>
+                  </optgroup>
+                  <optgroup label="👥 Социални проблеми">
+                    <option value="accessibility">Недостъпност за хора с увреждания</option>
+                    <option value="playgrounds">Опасни детски площадки</option>
+                    <option value="stray_animals">Бездомни животни</option>
+                  </optgroup>
+                </select>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="urgencyFilter">Спешност</label>
+              <div class="custom-select compact">
+                <select id="urgencyFilter">
+                  <option value="all">Всички</option>
+                  <option value="high">Висока</option>
+                  <option value="medium">Средна</option>
+                  <option value="low">Ниска</option>
+                </select>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="statusFilter">Статус</label>
+              <div class="custom-select compact">
+                <select id="statusFilter">
+                  <option value="all">Всички</option>
+                  <option value="new">Нови</option>
+                  <option value="in_progress">В процес</option>
+                  <option value="resolved">Решени</option>
+                </select>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="sortFilter">Подреди</label>
+              <div class="custom-select compact">
+                <select id="sortFilter">
+                  <option value="newest">Най-нови</option>
+                  <option value="oldest">Най-стари</option>
+                  <option value="urgency">По спешност</option>
+                  <option value="category">По категория</option>
+                </select>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+          </div>
+
+          <button type="button" class="btn-clear-filters" onclick="clearFilters()">
+            <i class="bi bi-x-circle"></i>
+            Изчисти филтрите
+          </button>
+        </div>
+      </div>
+
+      <!-- Списък със сигнали -->
+      <div class="signals-list" id="signalsList">
+        <!-- Dynamic content -->
+      </div>
     </div>
   </div>
 

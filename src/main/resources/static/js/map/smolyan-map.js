@@ -1,4 +1,4 @@
-// ===== FLOATING DASHBOARD MAP JAVASCRIPT =====
+// ===== MODERN COMPACT MAP JAVASCRIPT =====
 
 // ===== CONFIGURATION & CONSTANTS =====
 const SMOLYAN_CENTER = [41.5736, 24.7127];
@@ -12,52 +12,52 @@ const SMOLYAN_BOUNDS = {
     west: 24.4500
 };
 
-// Категории със SmolyanVote стил
+// Категории със SmolyanVote стил - пълен списък
 const SIGNAL_CATEGORIES = {
     // Инфраструктура
-    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle', color: '#e74c3c', group: 'infrastructure' },
-    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-exclamation-circle', color: '#e67e22', group: 'infrastructure' },
-    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#f39c12', group: 'infrastructure' },
-    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#d35400', group: 'infrastructure' },
-    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#3498db', group: 'infrastructure' },
+    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle-fill', color: '#e74c3c', group: 'infrastructure' },
+    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-exclamation-circle-fill', color: '#e67e22', group: 'infrastructure' },
+    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb-fill', color: '#f39c12', group: 'infrastructure' },
+    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop-fill', color: '#d35400', group: 'infrastructure' },
+    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet-fill', color: '#3498db', group: 'infrastructure' },
 
     // Околна среда
-    illegal_waste: { name: 'Незаконни сметища', icon: 'bi-trash', color: '#8b4513', group: 'environment' },
-    dangerous_trees: { name: 'Мъртви/опасни дървета', icon: 'bi-tree', color: '#27ae60', group: 'environment' },
-    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#95a5a6', group: 'environment' },
-    noise: { name: 'Шум', icon: 'bi-volume-up', color: '#9b59b6', group: 'environment' },
-    parks_issues: { name: 'Проблеми с паркове', icon: 'bi-tree-fill', color: '#2ecc71', group: 'environment' },
+    illegal_waste: { name: 'Незаконни сметища', icon: 'bi-trash-fill', color: '#8b4513', group: 'environment' },
+    dangerous_trees: { name: 'Мъртви/опасни дървета', icon: 'bi-tree-fill', color: '#27ae60', group: 'environment' },
+    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze-fill', color: '#95a5a6', group: 'environment' },
+    noise: { name: 'Шум', icon: 'bi-volume-up-fill', color: '#9b59b6', group: 'environment' },
+    parks_issues: { name: 'Проблеми с паркове', icon: 'bi-tree', color: '#2ecc71', group: 'environment' },
 
     // Обществен ред
-    illegal_parking: { name: 'Незаконно паркиране', icon: 'bi-car-front', color: '#e67e22', group: 'public_order' },
+    illegal_parking: { name: 'Незаконно паркиране', icon: 'bi-car-front-fill', color: '#e67e22', group: 'public_order' },
     vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#c0392b', group: 'public_order' },
-    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front-fill', color: '#7f8c8d', group: 'public_order' },
+    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front', color: '#7f8c8d', group: 'public_order' },
     security_issues: { name: 'Проблеми с безопасност', icon: 'bi-shield-exclamation', color: '#c0392b', group: 'public_order' },
 
     // Комунални услуги
-    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash3', color: '#795548', group: 'municipal' },
+    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash3-fill', color: '#795548', group: 'municipal' },
     bus_stops: { name: 'Неработещи автобусни спирки', icon: 'bi-bus-front', color: '#2980b9', group: 'municipal' },
     public_transport: { name: 'Проблеми с обществен транспорт', icon: 'bi-bus-front-fill', color: '#3498db', group: 'municipal' },
 
     // Социални проблеми
     accessibility: { name: 'Недостъпност за хора с увреждания', icon: 'bi-person-wheelchair', color: '#8e44ad', group: 'social' },
     playgrounds: { name: 'Опасни детски площадки', icon: 'bi-exclamation-triangle-fill', color: '#e74c3c', group: 'social' },
-    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart', color: '#e91e63', group: 'social' }
+    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart-fill', color: '#e91e63', group: 'social' }
 };
 
 const URGENCY_LEVELS = {
-    low: { name: 'Ниска', icon: 'bi-circle', color: '#28a745' },
-    medium: { name: 'Средна', icon: 'bi-exclamation', color: '#ffc107' },
-    high: { name: 'Висока', icon: 'bi-exclamation-triangle', color: '#dc3545' }
+    low: { name: 'Ниска', icon: 'bi-circle-fill', color: '#28a745' },
+    medium: { name: 'Средна', icon: 'bi-exclamation-circle-fill', color: '#ffc107' },
+    high: { name: 'Висока', icon: 'bi-exclamation-triangle-fill', color: '#dc3545' }
 };
 
 const STATUS_TYPES = {
-    new: { name: 'Нов', icon: 'bi-clock', color: '#007bff' },
-    in_progress: { name: 'В процес', icon: 'bi-gear', color: '#fd7e14' },
-    resolved: { name: 'Решен', icon: 'bi-check-circle', color: '#28a745' }
+    new: { name: 'Нов', icon: 'bi-clock-fill', color: '#007bff' },
+    in_progress: { name: 'В процес', icon: 'bi-gear-fill', color: '#fd7e14' },
+    resolved: { name: 'Решен', icon: 'bi-check-circle-fill', color: '#28a745' }
 };
 
-// Sample data
+// Sample data с разнообразни категории
 const SAMPLE_SIGNALS = [
     {
         id: 1,
@@ -91,6 +91,39 @@ const SAMPLE_SIGNALS = [
         status: "new",
         reporter: "Турист",
         createdAt: "2025-01-12T14:20:00Z"
+    },
+    {
+        id: 4,
+        title: "Вандализъм в парка",
+        category: "vandalism",
+        description: "Счупени пейки и боядисани графити в централния парк",
+        coordinates: [41.5730, 24.7130],
+        urgency: "medium",
+        status: "new",
+        reporter: "Родител",
+        createdAt: "2025-01-14T09:15:00Z"
+    },
+    {
+        id: 5,
+        title: "Опасна детска площадка",
+        category: "playgrounds",
+        description: "Счупени люлки и острі ръбове, опасно за децата",
+        coordinates: [41.5710, 24.7080],
+        urgency: "high",
+        status: "resolved",
+        reporter: "Майка",
+        createdAt: "2025-01-08T14:30:00Z"
+    },
+    {
+        id: 6,
+        title: "Проблем с водопровода",
+        category: "water_sewer",
+        description: "Авария в тръбопровода, липсва вода от 2 дни",
+        coordinates: [41.5760, 24.7160],
+        urgency: "high",
+        status: "in_progress",
+        reporter: "Жител",
+        createdAt: "2025-01-16T08:00:00Z"
     }
 ];
 
@@ -107,6 +140,11 @@ let isSelectingLocation = false;
 let selectedCoordinates = null;
 let isMobile = window.innerWidth <= 768;
 
+// Panel states
+let activePanel = null;
+let signalsPanelExpanded = false;
+let filtersExpanded = false;
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', function() {
     initializeMap();
@@ -121,13 +159,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== LAYOUT INITIALIZATION =====
 function initializeLayout() {
-    // Initially expand new signal card
-    const newSignalContent = document.querySelector('#newSignalCard .control-content');
-    const newSignalArrow = document.querySelector('#newSignalCard .control-arrow');
+    // Всички панели започват затворени
+    closePanels();
 
-    if (newSignalContent && newSignalArrow) {
-        newSignalContent.classList.remove('collapsed');
-        newSignalArrow.classList.add('rotated');
+    // Филтрите започват прибрани
+    const filtersContent = document.getElementById('filtersContent');
+    const filtersArrow = document.getElementById('filtersArrow');
+
+    if (filtersContent && filtersArrow) {
+        filtersContent.classList.add('collapsed');
+        filtersArrow.style.transform = 'rotate(0deg)';
+        filtersExpanded = false;
     }
 
     // Handle mobile layout
@@ -143,19 +185,17 @@ function adaptForMobile() {
         mapContainer.style.flexDirection = 'column';
     }
 
-    // Hide desktop sidebar on mobile, show FAB
-    const sidebar = document.querySelector('.signals-sidebar');
+    // Show FAB on mobile
     const fab = document.querySelector('.fab');
-
-    if (sidebar && isMobile) {
-        sidebar.style.position = 'static';
-        sidebar.style.order = '1';
-        sidebar.style.height = 'auto';
-        sidebar.style.maxHeight = '300px';
-    }
-
     if (fab && isMobile) {
         fab.style.display = 'flex';
+    }
+
+    // Auto-expand signals panel on mobile
+    const signalsPanel = document.querySelector('.signals-panel');
+    if (signalsPanel && isMobile) {
+        signalsPanel.classList.add('expanded');
+        signalsPanelExpanded = true;
     }
 }
 
@@ -192,7 +232,7 @@ function initializeMap() {
         minZoom: 10,
         maxZoom: 18,
         attributionControl: false,
-        zoomControl: false // Премахваме default zoom контролите
+        zoomControl: false
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -271,18 +311,100 @@ function initializeControls() {
     });
 }
 
-// ===== CARD TOGGLE FUNCTIONALITY =====
-function toggleCard(cardId) {
-    const card = document.getElementById(cardId);
-    const content = card.querySelector('.control-content');
-    const arrow = card.querySelector('.control-arrow');
+// ===== PANEL MANAGEMENT =====
+function togglePanel(panelName) {
+    const panel = document.getElementById(panelName + 'Panel');
 
-    content.classList.toggle('collapsed');
-    arrow.classList.toggle('rotated');
+    if (activePanel === panelName) {
+        // Close current panel
+        closePanel(panelName);
+    } else {
+        // Close other panels and open this one
+        closePanels();
+        openPanel(panelName);
+    }
 }
 
-// Make globally available
-window.toggleCard = toggleCard;
+function openPanel(panelName) {
+    const panel = document.getElementById(panelName + 'Panel');
+    if (panel) {
+        panel.classList.add('active');
+        activePanel = panelName;
+
+        // Update map size after animation
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+        }, 400);
+    }
+}
+
+function closePanel(panelName) {
+    const panel = document.getElementById(panelName + 'Panel');
+    if (panel) {
+        panel.classList.remove('active');
+        if (activePanel === panelName) {
+            activePanel = null;
+        }
+
+        // Update map size after animation
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+        }, 400);
+    }
+}
+
+function closePanels() {
+    const panels = document.querySelectorAll('.floating-panel');
+    panels.forEach(panel => {
+        panel.classList.remove('active');
+    });
+    activePanel = null;
+}
+
+// ===== SIGNALS PANEL MANAGEMENT =====
+function toggleSignalsPanel() {
+    const signalsPanel = document.querySelector('.signals-panel');
+    const arrow = document.getElementById('signalsTabArrow');
+
+    signalsPanelExpanded = !signalsPanelExpanded;
+
+    if (signalsPanelExpanded) {
+        signalsPanel.classList.add('expanded');
+        arrow.style.transform = 'translateY(-50%) rotate(180deg)';
+    } else {
+        signalsPanel.classList.remove('expanded');
+        arrow.style.transform = 'translateY(-50%) rotate(0deg)';
+    }
+
+    // Update map size after animation
+    setTimeout(() => {
+        if (map) map.invalidateSize();
+    }, 400);
+}
+
+// ===== FILTERS MANAGEMENT =====
+function toggleFilters() {
+    const filtersContent = document.getElementById('filtersContent');
+    const arrow = document.getElementById('filtersArrow');
+
+    filtersExpanded = !filtersExpanded;
+
+    if (filtersExpanded) {
+        filtersContent.classList.remove('collapsed');
+        filtersContent.classList.add('expanded');
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        filtersContent.classList.add('collapsed');
+        filtersContent.classList.remove('expanded');
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Make functions globally available
+window.togglePanel = togglePanel;
+window.closePanel = closePanel;
+window.toggleSignalsPanel = toggleSignalsPanel;
+window.toggleFilters = toggleFilters;
 
 // ===== SIGNAL MANAGEMENT =====
 function loadSignals() {
@@ -313,9 +435,9 @@ function createSignalMarker(signal) {
         html: `<div class="signal-marker-content" style="background-color: ${category.color}; border-color: ${urgency.color};">
                 <i class="${category.icon}"></i>
                </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15]
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14]
     });
 
     const marker = L.marker(signal.coordinates, { icon });
@@ -335,8 +457,8 @@ function updateSignalsList(signals) {
         container.innerHTML = `
             <div class="no-signals" style="text-align: center; padding: 2rem 1rem; color: var(--gray-500);">
                 <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 1rem; color: var(--gray-400);"></i>
-                <h4>Няма сигнали</h4>
-                <p>Не са намерени сигнали отговарящи на филтрите</p>
+                <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">Няма сигнали</h4>
+                <p style="font-size: 0.85rem;">Не са намерени сигнали отговарящи на филтрите</p>
             </div>
         `;
         return;
@@ -401,7 +523,7 @@ function updateStats() {
     document.getElementById('totalSignals').textContent = total;
     document.getElementById('activeSignals').textContent = active;
     document.getElementById('resolvedSignals').textContent = resolved;
-    document.getElementById('signalsCount').textContent = total;
+    document.getElementById('signalsTabCounter').textContent = total;
 }
 
 // ===== SIGNAL DETAILS =====
@@ -439,8 +561,8 @@ function showSignalDetails(signalId) {
             <div class="detail-location" style="margin-bottom: 1.5rem;">
                 <h5 style="color: var(--gray-700); margin-bottom: 0.5rem;">Местоположение</h5>
                 <p style="color: var(--gray-600); margin-bottom: 1rem;">Координати: ${signal.coordinates[0].toFixed(6)}, ${signal.coordinates[1].toFixed(6)}</p>
-                <button class="btn-secondary" onclick="centerMapOnSignal(${signal.id})" style="padding: 0.5rem 1rem; border: none; border-radius: var(--radius-sm); background: var(--gray-200); color: var(--gray-700); cursor: pointer;">
-                    <i class="bi bi-geo-alt"></i> Покажи на картата
+                <button class="btn-secondary" onclick="centerMapOnSignal(${signal.id})" style="padding: 0.5rem 1rem; border: none; border-radius: var(--radius-md); background: var(--gray-200); color: var(--gray-700); cursor: pointer;">
+                    <i class="bi bi-geo-alt-fill"></i> Покажи на картата
                 </button>
             </div>
             
@@ -490,7 +612,7 @@ function toggleLocationSelection() {
     const btn = document.getElementById('selectLocationBtn');
 
     if (isSelectingLocation) {
-        btn.innerHTML = '<i class="bi bi-geo-alt"></i> <span>Кликнете на картата</span>';
+        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> <span>Кликнете на картата</span>';
         btn.classList.add('selecting');
         showNotification('Кликнете на картата за избор на местоположение', 'info');
     } else {
@@ -560,6 +682,7 @@ function handleCreateSignal(e) {
     currentSignals.push(newSignal);
     loadSignals();
     resetForm();
+    closePanel('newSignal');
     showNotification('Сигналът е изпратен успешно!', 'success');
 }
 
@@ -637,14 +760,8 @@ function toggleFullscreen() {
 
 // ===== MOBILE CONTROLS =====
 function toggleMobileControls() {
-    const controls = document.querySelector('.floating-controls');
-    const isVisible = controls.style.display !== 'none';
-
-    controls.style.display = isVisible ? 'none' : 'flex';
-
-    if (!isVisible) {
-        controls.scrollIntoView({ behavior: 'smooth' });
-    }
+    // On mobile, toggle new signal panel
+    togglePanel('newSignal');
 }
 
 // Make globally available
@@ -671,10 +788,10 @@ function showNotification(message, type = 'info') {
 
 function getNotificationIcon(type) {
     switch (type) {
-        case 'success': return 'check-circle';
-        case 'error': return 'x-circle';
-        case 'warning': return 'exclamation-triangle';
-        default: return 'info-circle';
+        case 'success': return 'check-circle-fill';
+        case 'error': return 'x-circle-fill';
+        case 'warning': return 'exclamation-triangle-fill';
+        default: return 'info-circle-fill';
     }
 }
 
