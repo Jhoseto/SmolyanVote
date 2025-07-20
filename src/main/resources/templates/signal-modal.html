@@ -1,5 +1,7 @@
 <!-- Signal Details Modal Fragment -->
-<div id="signalModal" class="signal-modal">
+<!-- Файл: src/main/resources/templates/signal-modal.html -->
+
+<div th:fragment= "signal-modal" class="signal-modal" id="signalModal" >
     <div class="modal-overlay" onclick="closeSignalModal()"></div>
 
     <div class="modal-container">
@@ -16,7 +18,7 @@
                 </div>
             </div>
 
-            <button class="modal-close-btn" onclick="closeSignalModal()" title="Затвори">
+            <button class="modal-close-btn" onclick="closeSignalModal()" title="Затвори" aria-label="Затвори модала">
                 <i class="bi bi-x"></i>
             </button>
         </div>
@@ -31,9 +33,9 @@
                     <div class="signal-meta-info">
                         <span class="signal-id">ID: <span id="modalSignalId">#0000</span></span>
                         <span class="signal-date">
-              <i class="bi bi-calendar3"></i>
-              <span id="modalSignalDate">01.01.2025</span>
-            </span>
+                            <i class="bi bi-calendar3"></i>
+                            <span id="modalSignalDate">01.01.2025</span>
+                        </span>
                     </div>
                 </div>
 
@@ -55,7 +57,12 @@
                         Снимка
                     </h3>
                     <div class="signal-image-container">
-                        <img id="modalSignalImage" class="signal-image" src="" alt="Снимка на сигнала" style="display: none;">
+                        <img id="modalSignalImage"
+                             class="signal-image"
+                             src=""
+                             alt="Снимка на сигнала"
+                             style="display: none;"
+                             loading="lazy">
                         <div class="no-image-placeholder" id="noImagePlaceholder">
                             <i class="bi bi-camera-slash"></i>
                             <span>Няма прикачена снимка</span>
@@ -63,34 +70,121 @@
                     </div>
                 </div>
 
-                <!-- Location Section -->
+                <!-- Signal Location -->
                 <div class="signal-location-section">
                     <h3 class="section-title">
                         <i class="bi bi-geo-alt"></i>
                         Местоположение
                     </h3>
-                    <div class="location-info">
-                        <button class="location-action-btn" onclick="centerMapOnSignal()" id="centerMapBtn">
-                            <i class="bi bi-pin-map-fill"></i>
-                            <span>Покажи на картата</span>
+                    <div class="signal-location-content">
+                        <div class="location-coordinates" id="modalLocationCoordinates">
+                            <i class="bi bi-pin-map"></i>
+                            <span>Координати ще се покажат тук</span>
+                        </div>
+                        <button class="btn-show-on-map" onclick="centerMapOnSignal()" title="Покажи на картата">
+                            <i class="bi bi-map"></i>
+                            Покажи на картата
                         </button>
                     </div>
                 </div>
 
-                <!-- Date Section -->
-                <div class="signal-date-section">
+                <!-- Author Section (will be populated by JavaScript) -->
+                <!-- This will be created dynamically by updateAuthorSection() -->
+
+                <!-- Signal Details -->
+                <div class="signal-details-section">
                     <h3 class="section-title">
-                        <i class="bi bi-clock"></i>
-                        Дата на подаване
+                        <i class="bi bi-info-circle"></i>
+                        Детайли
                     </h3>
-                    <div class="date-info">
-                        <div class="date-detail">
-                            <span class="detail-value" id="modalFullDate">01.01.2025, 12:00</span>
+                    <div class="signal-details-grid">
+                        <div class="detail-item">
+                            <label>Създаден на:</label>
+                            <span id="modalFullDate">01.01.2025, 12:00</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Последна промяна:</label>
+                            <span id="modalModifiedDate">01.01.2025, 12:00</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Статус:</label>
+                            <span id="modalSignalStatus" class="status-badge status-pending">В очакване</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Interaction Section (will be populated by JavaScript) -->
+                <!-- This will be created dynamically by updateInteractionSection() -->
+
+                <!-- Admin Actions (only for admins) -->
+                <div class="admin-actions-section" id="modalAdminActions" style="display: none;">
+                    <h3 class="section-title">
+                        <i class="bi bi-tools"></i>
+                        Администраторски действия
+                    </h3>
+                    <div class="admin-actions-grid">
+                        <button class="btn-admin-action btn-edit" onclick="editSignal()">
+                            <i class="bi bi-pencil"></i>
+                            Редактирай
+                        </button>
+                        <button class="btn-admin-action btn-resolve" onclick="resolveSignal()">
+                            <i class="bi bi-check-circle"></i>
+                            Реши
+                        </button>
+                        <button class="btn-admin-action btn-delete" onclick="deleteSignal()">
+                            <i class="bi bi-trash"></i>
+                            Изтрий
+                        </button>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-report" onclick="reportSignal()" title="Докладвай сигнала">
+                    <i class="bi bi-flag"></i>
+                    Докладвай
+                </button>
+            </div>
+            <div class="modal-footer-right">
+                <button class="btn-secondary" onclick="closeSignalModal()">
+                    <i class="bi bi-x"></i>
+                    Затвори
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State Overlay -->
+<div id="signalModalLoading" class="modal-loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p>Зареждане на сигнал...</p>
+    </div>
+</div>
+
+<!-- Error State Modal -->
+<div id="signalModalError" class="modal-error-overlay" style="display: none;">
+    <div class="modal-overlay" onclick="closeSignalModalError()"></div>
+    <div class="error-modal-container">
+        <div class="error-header">
+            <i class="bi bi-exclamation-triangle"></i>
+            <h3>Грешка при зареждане</h3>
+        </div>
+        <div class="error-body">
+            <p id="signalModalErrorMessage">Възникна грешка при зареждане на сигнала.</p>
+        </div>
+        <div class="error-footer">
+            <button class="btn-primary" onclick="retryLoadSignal()">
+                <i class="bi bi-arrow-clockwise"></i>
+                Опитай отново
+            </button>
+            <button class="btn-secondary" onclick="closeSignalModalError()">
+                Затвори
+            </button>
         </div>
     </div>
 </div>

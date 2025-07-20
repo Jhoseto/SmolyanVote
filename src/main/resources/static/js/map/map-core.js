@@ -393,7 +393,7 @@ window.mapCore = {
     getMap: () => map,
     getMarkersCluster: () => markersCluster,
     handleResize,
-    isMobile: () => isMobile
+    isMobile: () => mapIsMobile
 };
 
 // Export за modules
