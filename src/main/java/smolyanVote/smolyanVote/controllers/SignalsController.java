@@ -306,16 +306,18 @@ public class SignalsController {
         signalMap.put("viewsCount", signal.getViewsCount() != null ? signal.getViewsCount() : 0);
 
 
+
         return signalMap;
     }
 
     private Map<String, Object> createErrorResponse(String message) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", false);
-        response.put("error", message);
-        response.put("timestamp", java.time.Instant.now().toString());
-        return response;
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("error", true);
+        errorMap.put("message", message);
+        return errorMap;
     }
+
+
 
     private String validateSignalInput(String title, String description, String category,
                                        String urgency, String latitude, String longitude) {

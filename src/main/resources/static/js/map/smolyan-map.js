@@ -313,6 +313,34 @@ window.SmolyanMapDebug = {
 };
 
 // ===== PANEL CONTROL FUNCTIONS =====
+function closePanel(panelName) {
+    const panel = document.getElementById(panelName + 'Panel');
+    if (panel) {
+        panel.classList.remove('active');
+        panelsExpanded[panelName] = false;
+    }
+
+    // Специална логика за newSignal панела
+    if (panelName === 'newSignal') {
+        // Изключване на location selection режима
+        if (window.signalManagement && window.signalManagement.toggleLocationSelection) {
+            const btn = document.getElementById('selectLocationBtn');
+            if (btn && btn.classList.contains('selecting')) {
+                window.signalManagement.toggleLocationSelection();
+            }
+        }
+    }
+}
+
+function togglePanel(panelName) {
+    const isExpanded = panelsExpanded[panelName];
+
+    if (isExpanded) {
+        closePanel(panelName);
+    } else {
+        openPanel(panelName);
+    }
+}
 
 function openPanel(panelName) {
     const panel = document.getElementById(panelName + 'Panel');
@@ -328,6 +356,28 @@ function openPanel(panelName) {
         panelsExpanded[panelName] = true;
     }
 }
+
+function toggleFilters() {
+    const filtersContent = document.querySelector('.filters-content');
+    const filtersArrow = document.getElementById('filtersArrow');
+
+    if (filtersContent) {
+        filtersContent.classList.toggle('collapsed');
+
+        if (filtersArrow) {
+            if (filtersContent.classList.contains('collapsed')) {
+                filtersArrow.style.transform = 'rotate(0deg)';
+            } else {
+                filtersArrow.style.transform = 'rotate(180deg)';
+            }
+        }
+    }
+}
+
+window.togglePanel = togglePanel;
+window.closePanel = closePanel;
+window.toggleFilters = toggleFilters;
+
 
 // Export за modules
 if (typeof module !== 'undefined' && module.exports) {
