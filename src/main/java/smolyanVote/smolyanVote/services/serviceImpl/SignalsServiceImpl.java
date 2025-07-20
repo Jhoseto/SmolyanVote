@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -46,25 +47,24 @@ public class SignalsServiceImpl implements SignalsService {
         return signalsRepository.findById(id).orElse(null);
     }
 
-
     @Override
     @Transactional
     public SignalsEntity create(String title, String description, SignalsCategory category,
                                 SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {
 
-        SignalsEntity signal = new SignalsEntity( title, description, category, urgency,
+        SignalsEntity signal = new SignalsEntity(title, description, category, urgency,
                 latitude, longitude, author);
 
         signalsRepository.save(signal);
         Long signalId = signal.getId();
-
 
         // Upload на снимка ако има такава
         if (image != null && !image.isEmpty()) {
             try {
                 String imageUrl = imageCloudinaryService.saveSingleSignalImage(image, signalId);
                 signal.setImageUrl(imageUrl);
+                signalsRepository.save(signal); // Запазваме отново с imageUrl
             } catch (Exception e) {
                 System.err.println("Error uploading image for signal: " + e.getMessage());
             }
@@ -90,6 +90,7 @@ public class SignalsServiceImpl implements SignalsService {
             try {
                 String imageUrl = imageCloudinaryService.saveSingleSignalImage(image, signalId);
                 signal.setImageUrl(imageUrl);
+                signalsRepository.save(signal);
             } catch (Exception e) {
                 System.err.println("Error uploading new image for signal: " + e.getMessage());
             }
@@ -276,44 +277,48 @@ public class SignalsServiceImpl implements SignalsService {
     }
 
     private Instant parseTimeFilter(String timeFilter) {
-        if (timeFilter == null || timeFilter.trim().isEmpty()) {
+        if (timeFilter == null || timeFilter.trim().isEmpty() || "all".equals(timeFilter)) {
             return null;
         }
 
         Instant now = Instant.now();
-        return switch (timeFilter) {
-            case "today" -> now.truncatedTo(ChronoUnit.DAYS);
-            case "week" -> now.minus(7, ChronoUnit.DAYS);
-            case "month" -> now.minus(30, ChronoUnit.DAYS);
-            case "year" -> now.minus(365, ChronoUnit.DAYS);
-            default -> null;
-        };
+
+        switch (timeFilter.toLowerCase()) {
+            case "today":
+                return now.truncatedTo(ChronoUnit.DAYS);
+            case "yesterday":
+                return now.minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS);
+            case "week":
+                return now.minus(7, ChronoUnit.DAYS);
+            case "month":
+                return now.minus(30, ChronoUnit.DAYS);
+            case "year":
+                return now.minus(365, ChronoUnit.DAYS);
+            default:
+                return null;
+        }
     }
 
+    // Помощни методи за likes
     private void addLike(SignalsEntity signal, String username) {
-        String likedByUsers = signal.getLikedByUsers();
-        if (likedByUsers == null || likedByUsers.isEmpty()) {
-            signal.setLikedByUsers("[\"" + username + "\"]");
-        } else {
-            signal.setLikedByUsers(likedByUsers.substring(0, likedByUsers.length() - 1) + ",\"" + username + "\"]");
+        String currentLikes = signal.getLikedByUsers();
+        if (currentLikes == null) {
+            currentLikes = "";
         }
-        signal.setLikesCount((signal.getLikesCount() == null ? 0 : signal.getLikesCount()) + 1);
+
+        if (!currentLikes.contains("\"" + username + "\"")) {
+            currentLikes += "\"" + username + "\",";
+            signal.setLikedByUsers(currentLikes);
+            signal.setLikesCount((signal.getLikesCount() == null ? 0 : signal.getLikesCount()) + 1);
+        }
     }
 
     private void removeLike(SignalsEntity signal, String username) {
-        String likedByUsers = signal.getLikedByUsers();
-        if (likedByUsers == null) return;
-
-        String userStr = "\"" + username + "\"";
-        if (likedByUsers.equals("[" + userStr + "]")) {
-            signal.setLikedByUsers(null);
-        } else if (likedByUsers.startsWith("[" + userStr + ",")) {
-            signal.setLikedByUsers(likedByUsers.replace("[" + userStr + ",", "["));
-        } else if (likedByUsers.endsWith("," + userStr + "]")) {
-            signal.setLikedByUsers(likedByUsers.replace("," + userStr + "]", "]"));
-        } else {
-            signal.setLikedByUsers(likedByUsers.replace("," + userStr + ",", ","));
+        String currentLikes = signal.getLikedByUsers();
+        if (currentLikes != null && currentLikes.contains("\"" + username + "\"")) {
+            currentLikes = currentLikes.replace("\"" + username + "\",", "");
+            signal.setLikedByUsers(currentLikes);
+            signal.setLikesCount(Math.max(0, (signal.getLikesCount() == null ? 0 : signal.getLikesCount()) - 1));
         }
-        signal.setLikesCount(Math.max(0, (signal.getLikesCount() == null ? 0 : signal.getLikesCount()) - 1));
     }
 }

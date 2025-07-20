@@ -55,4 +55,9 @@ public class MainController {
     public String showAccessDeniedPage() {
         return "error/403";
     }
+
+    @GetMapping("/signals/mainView")
+    public String signalsPage(Model model) {
+        return "signals-page";
+    }
 }

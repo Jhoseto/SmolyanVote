@@ -13,23 +13,26 @@ let filtersExpanded = false;
 let locationSelectionMode = false;
 
 // ===== SIGNAL CATEGORIES & URGENCY LEVELS =====
+// ⚠️ ВАЖНО: Тези трябва да съвпадат с HTML option values!
 const SIGNAL_CATEGORIES = {
-    road_damage: { name: 'Повредени пътища', icon: 'bi-exclamation-triangle', color: '#dc2626' },
-    infrastructure: { name: 'Инфраструктурни проблеми', icon: 'bi-tools', color: '#ea580c' },
-    lighting: { name: 'Проблеми с осветлението', icon: 'bi-lightbulb', color: '#ca8a04' },
-    water_sewer: { name: 'Водопровод и канализация', icon: 'bi-droplet', color: '#0369a1' },
-    parks_green: { name: 'Паркове и зелени площи', icon: 'bi-tree', color: '#16a34a' },
-    traffic: { name: 'Движение и паркиране', icon: 'bi-car-front', color: '#7c3aed' },
-    noise: { name: 'Шум и замърсяване', icon: 'bi-volume-up', color: '#be123c' },
+    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle', color: '#dc2626' },
+    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-hammer', color: '#ea580c' },
+    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#ca8a04' },
+    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#dc2626' },
+    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#0369a1' },
+    waste_management: { name: 'Замърсяване на околната среда', icon: 'bi-trash', color: '#0f766e' },
+    illegal_dumping: { name: 'Незаконно изхвърляне на отпадъци', icon: 'bi-trash3', color: '#be123c' },
+    tree_issues: { name: 'Проблеми с дървета и растителност', icon: 'bi-tree', color: '#16a34a' },
+    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#7c3aed' },
+    noise_pollution: { name: 'Шумово замърсяване', icon: 'bi-volume-up', color: '#be123c' },
+    healthcare: { name: 'Здравеопазване', icon: 'bi-hospital', color: '#dc2626' },
+    education: { name: 'Образование', icon: 'bi-book', color: '#1e40af' },
+    transport: { name: 'Обществен транспорт', icon: 'bi-bus-front', color: '#1e40af' },
+    parking: { name: 'Паркиране', icon: 'bi-car-front', color: '#7c3aed' },
+    security: { name: 'Обществена безопасност', icon: 'bi-shield-exclamation', color: '#991b1b' },
     vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#991b1b' },
-    abandoned_vehicles: { name: 'Изоставени автомобили', icon: 'bi-car-front', color: '#374151' },
-    security_issues: { name: 'Проблеми с безопасност', icon: 'bi-shield-exclamation', color: '#991b1b' },
-    waste_collection: { name: 'Проблеми със сметосъбиране', icon: 'bi-trash', color: '#0f766e' },
-    bus_stops: { name: 'Неработещи автобусни спирки', icon: 'bi-bus-front', color: '#1e40af' },
-    public_transport: { name: 'Проблеми с обществен транспорт', icon: 'bi-train-front', color: '#3730a3' },
-    accessibility: { name: 'Недостъпност за хора с увреждания', icon: 'bi-universal-access', color: '#7c3aed' },
-    playgrounds: { name: 'Опасни детски площадки', icon: 'bi-playground', color: '#be185d' },
-    stray_animals: { name: 'Бездомни животни', icon: 'bi-heart', color: '#a21caf' }
+    accessibility: { name: 'Достъпност', icon: 'bi-universal-access', color: '#7c3aed' },
+    other: { name: 'Други', icon: 'bi-question-circle', color: '#374151' }
 };
 
 const URGENCY_LEVELS = {
@@ -146,43 +149,30 @@ function createSignalMarker(signal) {
 // ===== SIGNALS LOADING AND FILTERING =====
 function loadSignals() {
     const markersCluster = window.mapCore?.getMarkersCluster();
-    if (!markersCluster) return;
+    if (!markersCluster) {
+        console.warn('Map cluster not ready yet');
+        return;
+    }
 
+    // Изчистваме старите markers
     markersCluster.clearLayers();
 
-    // Клиентско филтриране (ако сървърът не поддържа всички филтри)
-    const filteredSignals = currentSignals.filter(signal => {
-        const categoryMatch = activeFilters.category === 'all' || signal.category === activeFilters.category;
-        const urgencyMatch = activeFilters.urgency === 'all' || signal.urgency === activeFilters.urgency;
-
-        // Search filter
-        let searchMatch = true;
-        if (activeFilters.search) {
-            const query = activeFilters.search.toLowerCase();
-            const titleMatch = signal.title?.toLowerCase().includes(query);
-            const descriptionMatch = signal.description?.toLowerCase().includes(query);
-            const categoryMatch = SIGNAL_CATEGORIES[signal.category]?.name.toLowerCase().includes(query);
-            const authorMatch = signal.author?.username?.toLowerCase().includes(query);
-            searchMatch = titleMatch || descriptionMatch || categoryMatch || authorMatch;
-        }
-
-        return categoryMatch && urgencyMatch && searchMatch;
-    });
-
-    // Добавяне на маркерите на картата
-    filteredSignals.forEach(signal => {
+    // Добавяме новите markers
+    currentSignals.forEach(signal => {
         const marker = createSignalMarker(signal);
         if (marker) {
             markersCluster.addLayer(marker);
         }
     });
 
-    updateSignalsList(filteredSignals);
-    updateStats();
+    // Обновяваме списъка със сигнали
+    updateSignalsList(currentSignals);
 }
 
+// ===== FILTERING =====
 async function applyFilters() {
     try {
+        // Актуализиране на филтрите от UI
         activeFilters.category = document.getElementById('categoryFilter')?.value || 'all';
         activeFilters.urgency = document.getElementById('urgencyFilter')?.value || 'all';
         activeFilters.sort = document.getElementById('sortFilter')?.value || 'newest';
@@ -192,7 +182,9 @@ async function applyFilters() {
 
     } catch (error) {
         console.error('Error applying filters:', error);
-        window.handleAPIError(error, 'Applying filters');
+        if (window.mapCore && window.mapCore.showNotification) {
+            window.mapCore.showNotification('Грешка при прилагане на филтрите', 'error');
+        }
     }
 }
 
@@ -222,6 +214,24 @@ function clearFilters() {
     // Reload data
     loadSignalsData();
     hideSearchResults();
+}
+
+// ===== STATISTICS =====
+function updateStats() {
+    const totalCount = currentSignals.length;
+    const urgencyStats = {
+        high: currentSignals.filter(s => s.urgency === 'high').length,
+        medium: currentSignals.filter(s => s.urgency === 'medium').length,
+        low: currentSignals.filter(s => s.urgency === 'low').length
+    };
+
+    // Обновяване на брояча в tab-а
+    const signalsTabCounter = document.getElementById('signalsTabCounter');
+    if (signalsTabCounter) {
+        signalsTabCounter.textContent = totalCount;
+    }
+
+    console.log('📊 Stats updated:', { total: totalCount, urgency: urgencyStats });
 }
 
 // ===== SIGNALS LIST DISPLAY =====
@@ -294,48 +304,24 @@ function createSignalCard(signal) {
                     ${authorAvatarHTML}
                     <span class="author-name">${signal.author?.username || 'Неизвестен'}</span>
                 </div>
-                <span class="signal-date">${signal.createdAt ? new Date(signal.createdAt).toLocaleDateString('bg-BG') : 'Неизвестна дата'}</span>
+                <span class="signal-date">${signal.createdAt ?
+        new Date(signal.createdAt).toLocaleDateString('bg-BG') : ''}</span>
             </div>
         </div>
     `;
 }
 
-function updateStats() {
-    const total = currentSignals.length;
-    const filteredCount = currentSignals.filter(signal => {
-        const categoryMatch = activeFilters.category === 'all' || signal.category === activeFilters.category;
-        const urgencyMatch = activeFilters.urgency === 'all' || signal.urgency === activeFilters.urgency;
-
-        let searchMatch = true;
-        if (activeFilters.search) {
-            const query = activeFilters.search.toLowerCase();
-            const titleMatch = signal.title?.toLowerCase().includes(query);
-            const descriptionMatch = signal.description?.toLowerCase().includes(query);
-            const categoryMatch = SIGNAL_CATEGORIES[signal.category]?.name.toLowerCase().includes(query);
-            const authorMatch = signal.author?.username?.toLowerCase().includes(query);
-            searchMatch = titleMatch || descriptionMatch || categoryMatch || authorMatch;
-        }
-
-        return categoryMatch && urgencyMatch && searchMatch;
-    }).length;
-
-    const counter = document.getElementById('signalsTabCounter');
-    if (counter) {
-        counter.textContent = filteredCount;
-    }
-}
-
 // ===== SEARCH FUNCTIONALITY =====
+let searchTimeout;
+
 function initializeSearch() {
     const searchInput = document.getElementById('signalSearch');
     const clearButton = document.getElementById('clearSearch');
 
     if (!searchInput) return;
 
-    let searchTimeout;
-
-    searchInput.addEventListener('input', function() {
-        const value = this.value.trim();
+    searchInput.addEventListener('input', function(e) {
+        const value = e.target.value.trim();
 
         // Show/hide clear button
         if (clearButton) {
@@ -352,7 +338,7 @@ function initializeSearch() {
                     await loadSignalsData(); // Зареждане с нов search filter
                     showSearchResults(value);
                 } catch (error) {
-                    window.handleAPIError(error, 'Search');
+                    console.error('Search error:', error);
                 }
             } else {
                 await loadSignalsData(); // Зареждане без search filter
@@ -397,7 +383,8 @@ function showSearchResults(query) {
                         <span>${category?.name || 'Неизвестна категория'}</span>
                     </div>
                     <div class="search-result-title">${signal.title || 'Без заглавие'}</div>
-                    <div class="search-result-date">${signal.createdAt ? new Date(signal.createdAt).toLocaleDateString('bg-BG') : ''}</div>
+                    <div class="search-result-date">${signal.createdAt ?
+                new Date(signal.createdAt).toLocaleDateString('bg-BG') : ''}</div>
                 </div>
             `;
         }).join('');
@@ -456,7 +443,19 @@ async function handleCreateSignal(event) {
     event.preventDefault();
 
     try {
+        // Вземаме данните от формуляра
         const formData = new FormData(event.target);
+
+        // Проверяваме дали координатите са зададени
+        const latitude = formData.get('latitude');
+        const longitude = formData.get('longitude');
+
+        if (!latitude || !longitude) {
+            if (window.mapCore && window.mapCore.showNotification) {
+                window.mapCore.showNotification('Моля изберете местоположение на картата', 'error');
+            }
+            return;
+        }
 
         // Показване на loading състояние
         if (window.mapCore && window.mapCore.showNotification) {
@@ -470,10 +469,11 @@ async function handleCreateSignal(event) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        const newSignal = await response.json();
+        const result = await response.json();
 
         // Успешно създаване
         if (window.mapCore && window.mapCore.showNotification) {
@@ -482,6 +482,10 @@ async function handleCreateSignal(event) {
 
         // Reset на формата
         event.target.reset();
+
+        // Изчистваме координатите
+        document.getElementById('signalLatitude').value = '';
+        document.getElementById('signalLongitude').value = '';
 
         // Затваряне на панела
         if (window.closePanel) {
@@ -495,7 +499,32 @@ async function handleCreateSignal(event) {
         console.error('Error creating signal:', error);
 
         if (window.mapCore && window.mapCore.showNotification) {
-            window.mapCore.showNotification('Грешка при създаване на сигнала', 'error');
+            window.mapCore.showNotification('Грешка при създаване на сигнала: ' + error.message, 'error');
+        }
+    }
+}
+
+// ===== MAP CLICK HANDLER FOR LOCATION SELECTION =====
+function onMapClick(e) {
+    if (locationSelectionMode) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+
+        // Записваме координатите в формуляра
+        document.getElementById('signalLatitude').value = lat;
+        document.getElementById('signalLongitude').value = lng;
+
+        // Обновяваме бутона
+        const btn = document.getElementById('selectLocationBtn');
+        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> <span>Местоположение избрано</span>';
+        btn.classList.remove('selecting');
+        btn.classList.add('selected');
+
+        // Изключваме режима за избор
+        locationSelectionMode = false;
+
+        if (window.mapCore && window.mapCore.showNotification) {
+            window.mapCore.showNotification('Местоположението е избрано', 'success');
         }
     }
 }
@@ -532,8 +561,11 @@ window.signalManagement = {
     handleCreateSignal,
     toggleLocationSelection,
     selectSignalFromSearch,
+    onMapClick,
     getCurrentSignals: () => currentSignals,
     getActiveFilters: () => activeFilters,
+    SIGNAL_CATEGORIES, // Export за modal
+    URGENCY_LEVELS, // Export за modal
 
     // Нови методи за external API използване
     refreshSignals: loadSignalsData,
@@ -544,5 +576,3 @@ window.signalManagement = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.signalManagement;
 }
-
-console.log('✅ Signal Management with API integration loaded');

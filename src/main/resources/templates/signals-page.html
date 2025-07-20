@@ -106,7 +106,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="signalTitle">Заглавие</label>
-            <input type="text" id="signalTitle" placeholder="Кратко описание на проблема..." required>
+            <input type="text" id="signalTitle" name="title" placeholder="Кратко описание на проблема..." required>
           </div>
         </div>
 
@@ -114,7 +114,7 @@
           <div class="form-group">
             <label for="signalCategory">Категория</label>
             <div class="custom-select">
-              <select id="signalCategory" required>
+              <select id="signalCategory" name="category" required>
                 <option value="">Изберете категория</option>
                 <optgroup label="Инфраструктура">
                   <option value="road_damage">Дупки в пътищата</option>
@@ -153,7 +153,7 @@
           <div class="form-group">
             <label for="signalUrgency">Спешност</label>
             <div class="custom-select">
-              <select id="signalUrgency" required>
+              <select id="signalUrgency" name="urgency" required>
                 <option value="">Изберете спешност</option>
                 <option value="low">Ниска</option>
                 <option value="medium">Средна</option>
@@ -166,20 +166,20 @@
         <div class="form-row">
           <div class="form-group">
             <label for="signalDescription">Описание</label>
-            <textarea id="signalDescription" placeholder="Подробно описание на проблема..." rows="4" required></textarea>
+            <textarea id="signalDescription" name="description" placeholder="Подробно описание на проблема..." rows="4" required></textarea>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="signalImage">Снимка (опционално)</label>
-            <input type="file" id="signalImage" accept="image/*" class="file-input">
+            <input type="file" id="signalImage" name="image" accept="image/*" class="file-input">
           </div>
         </div>
 
         <!-- Скрити полета за координатите -->
-        <input type="hidden" id="signalLatitude">
-        <input type="hidden" id="signalLongitude">
+        <input type="hidden" id="signalLatitude" name="latitude">
+        <input type="hidden" id="signalLongitude" name="longitude">
 
         <div class="form-row">
           <button type="button" id="selectLocationBtn" class="btn-secondary">
@@ -343,7 +343,6 @@
 <!-- Markercluster JS -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
-
 <!-- Map Modules -->
 <script src="/js/map/signal-api.js"></script>
 <script src="/js/map/map-core.js"></script>
@@ -353,18 +352,6 @@
 
 <!-- Main Coordinator -->
 <script src="/js/map/smolyan-map.js"></script>
-<!-- DEBUG: Console информация -->
-<script>
-  console.log('🗺️ SmolyanVote Map Scripts loaded in order:');
-  console.log('1. ✅ Leaflet');
-  console.log('2. ✅ Markercluster');
-  console.log('3. ✅ Signal API Client');
-  console.log('4. ✅ Map Core');
-  console.log('5. ✅ Signal Management');
-  console.log('6. ✅ Signal Tooltip');
-  console.log('7. ✅ Signal Modal');
-  console.log('8. ✅ Main Coordinator');
-  console.log('🚀 Ready for backend integration!');
-</script>
+
 </body>
 </html>

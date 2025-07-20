@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/signals")
+@RequestMapping("/signals")
 public class SignalsController {
 
     private final SignalsService signalsService;
@@ -254,7 +254,8 @@ public class SignalsController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("liked", isNowLiked);
-            response.put("message", isNowLiked ? "Сигналът е харесан" : "Харесването е премахнато");
+            response.put("message", isNowLiked ?
+                    "Сигналът е харесан" : "Харесването е премахнато");
 
             return ResponseEntity.ok(response);
 
@@ -278,8 +279,8 @@ public class SignalsController {
         json.put("imageUrl", signal.getImageUrl());
         json.put("createdAt", signal.getCreated().toString());
         json.put("updatedAt", signal.getModified().toString());
-        json.put("viewsCount", signal.getViewsCount());
-        json.put("likesCount", signal.getLikesCount());
+        json.put("viewsCount", signal.getViewsCount() != null ? signal.getViewsCount() : 0);
+        json.put("likesCount", signal.getLikesCount() != null ? signal.getLikesCount() : 0);
 
         // Автор информация
         if (signal.getAuthor() != null) {
@@ -288,7 +289,8 @@ public class SignalsController {
             author.put("username", signal.getAuthor().getUsername());
             author.put("imageUrl", signal.getAuthor().getImageUrl());
             author.put("publicationsCount", signal.getAuthor().getPublicationsCount());
-            author.put("createdAt", signal.getAuthor().getCreated() != null ? signal.getAuthor().getCreated().toString() : null);
+            author.put("createdAt", signal.getAuthor().getCreated() != null ?
+                    signal.getAuthor().getCreated().toString() : null);
             json.put("author", author);
         }
 
