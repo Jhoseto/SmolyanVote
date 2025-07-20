@@ -615,29 +615,33 @@ function showInitializationError(message) {
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {
     try {
-        // Click listeners за панелите (ако не са вече добавени)
         const newSignalTab = document.querySelector('.control-tab');
-        if (newSignalTab && !newSignalTab.hasAttribute('data-listener')) {
-            newSignalTab.addEventListener('click', () => togglePanel('newSignal'));
+        if (newSignalTab) {
+            console.log('newSignalTab found:', newSignalTab);
+            newSignalTab.removeEventListener('click', () => togglePanel('newSignal'));
+            newSignalTab.addEventListener('click', () => {
+                console.log('Clicked newSignalTab');
+                togglePanel('newSignal');
+            });
             newSignalTab.setAttribute('data-listener', 'true');
+        } else {
+            console.error('newSignalTab not found');
         }
-
         const signalsTab = document.getElementById('signalsTab');
-        if (signalsTab && !signalsTab.hasAttribute('data-listener')) {
-            signalsTab.addEventListener('click', toggleSignalsPanel);
+        if (signalsTab) {
+            console.log('signalsTab found:', signalsTab);
+            signalsTab.removeEventListener('click', toggleSignalsPanel);
+            signalsTab.addEventListener('click', () => {
+                console.log('Clicked signalsTab');
+                toggleSignalsPanel();
+            });
             signalsTab.setAttribute('data-listener', 'true');
+        } else {
+            console.error('signalsTab not found');
         }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', handleKeyboardShortcuts);
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', cleanup);
-
         console.log('✅ Event listeners initialized');
-
     } catch (error) {
-        console.warn('Warning during event listeners setup:', error);
+        console.error('Error during event listeners setup:', error);
     }
 }
 

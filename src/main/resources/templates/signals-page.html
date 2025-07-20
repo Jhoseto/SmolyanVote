@@ -100,7 +100,7 @@
   <!-- Compact Left Controls -->
   <div class="left-controls">
     <!-- Нов сигнал -->
-    <div class="control-tab" onclick="togglePanel('newSignal')" role="button" tabindex="0"
+    <div class="control-tab" role="button" tabindex="0"
          aria-label="Отвори форма за нов сигнал" onkeypress="if(event.key==='Enter') togglePanel('newSignal')">
       <div class="tab-icon">
         <i class="bi bi-plus-circle-fill"></i>
@@ -283,9 +283,7 @@
   <!-- Right Signals Panel -->
   <div class="signals-panel" id="signalsPanel">
     <!-- Компактен таб за сигнали -->
-    <div class="signals-tab" id="signalsTab" onclick="toggleSignalsPanel()"
-         role="button" tabindex="0" aria-label="Отвори/затвори панела със сигнали"
-         onkeypress="if(event.key==='Enter') toggleSignalsPanel()">
+    <div class="signals-tab" id="signalsTab" role="button" tabindex="0" aria-label="Отвори/затвори панела със сигнали" onkeypress="if(event.key==='Enter') toggleSignalsPanel()">
       <div class="tab-content">
         <div class="tab-icon">
           <i class="bi bi-list-ul"></i>
