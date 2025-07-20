@@ -14,31 +14,85 @@ let locationSelectionMode = false;
 
 // ===== SIGNAL CATEGORIES & URGENCY LEVELS =====
 // ⚠️ ВАЖНО: Тези трябва да съвпадат с HTML option values!
+// ===== SIGNAL CATEGORIES CONFIGURATION =====
 const SIGNAL_CATEGORIES = {
-    road_damage: { name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle', color: '#dc2626' },
-    sidewalk_damage: { name: 'Счупени тротоари', icon: 'bi-hammer', color: '#ea580c' },
-    lighting: { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#ca8a04' },
-    traffic_signs: { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#dc2626' },
-    water_sewer: { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#0369a1' },
-    waste_management: { name: 'Замърсяване на околната среда', icon: 'bi-trash', color: '#0f766e' },
-    illegal_dumping: { name: 'Незаконно изхвърляне на отпадъци', icon: 'bi-trash3', color: '#be123c' },
-    tree_issues: { name: 'Проблеми с дървета и растителност', icon: 'bi-tree', color: '#16a34a' },
-    air_pollution: { name: 'Замърсяване на въздуха', icon: 'bi-cloud-haze', color: '#7c3aed' },
-    noise_pollution: { name: 'Шумово замърсяване', icon: 'bi-volume-up', color: '#be123c' },
-    healthcare: { name: 'Здравеопазване', icon: 'bi-hospital', color: '#dc2626' },
-    education: { name: 'Образование', icon: 'bi-book', color: '#1e40af' },
-    transport: { name: 'Обществен транспорт', icon: 'bi-bus-front', color: '#1e40af' },
-    parking: { name: 'Паркиране', icon: 'bi-car-front', color: '#7c3aed' },
-    security: { name: 'Обществена безопасност', icon: 'bi-shield-exclamation', color: '#991b1b' },
-    vandalism: { name: 'Вандализъм', icon: 'bi-hammer', color: '#991b1b' },
-    accessibility: { name: 'Достъпност', icon: 'bi-universal-access', color: '#7c3aed' },
-    other: { name: 'Други', icon: 'bi-question-circle', color: '#374151' }
+    // Инфраструктура
+    'ROAD_DAMAGE': {name: 'Дупки в пътищата', icon: 'bi-exclamation-triangle-fill', color: '#ef4444'},
+    'SIDEWALK_DAMAGE': {name: 'Счупени тротоари', icon: 'bi-bricks', color: '#f97316'},
+    'LIGHTING': {name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#eab308'},
+    'TRAFFIC_SIGNS': {name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#dc2626'},
+    'WATER_SEWER': {name: 'Водопровод/канализация', icon: 'bi-droplet-fill', color: '#0ea5e9'},
+    // Околна среда
+    'WASTE_MANAGEMENT': {name: 'Замърсяване на околната среда', icon: 'bi-trash-fill', color: '#16a34a},
+    'ILLEGAL_DUMPING': {name: 'Незаконно изхвърляне на отпадъци', icon: 'bi-exclamation-octagon-fill', color: '#dc2626'},
+    'TREE_ISSUES': {name: 'Проблеми с дървета и растителност', icon: 'bi-tree-fill', color: '#059669'},
+    'AIR_POLLUTION': {name: 'Замърсяване на въздуха', icon: 'bi-cloud-fog-fill', color: '#6b7280'},
+    'NOISE_POLLUTION': {name: 'Шумово замърсяване', icon: 'bi-volume-up-fill', color: '#7c3aed'},
+
+    // Обществени услуги
+    'HEALTHCARE': {
+        name: 'Здравеопазване',
+        icon: 'bi-heart-pulse-fill',
+        color: '#ec4899'
+    },
+    'EDUCATION': {
+        name: 'Образование',
+        icon: 'bi-book-fill',
+        color: '#3b82f6'
+    },
+    'TRANSPORT': {
+        name: 'Обществен транспорт',
+        icon: 'bi-bus-front-fill',
+        color: '#8b5cf6'
+    },
+    'PARKING': {
+        name: 'Паркиране',
+        icon: 'bi-car-front-fill',
+        color: '#06b6d4'
+    },
+
+    // Безопасност
+    'SECURITY': {
+        name: 'Обществена безопасност',
+        icon: 'bi-shield-fill-exclamation',
+        color: '#dc2626'
+    },
+    'VANDALISM': {
+        name: 'Вандализъм',
+        icon: 'bi-hammer',
+        color: '#b91c1c'
+    },
+    'ACCESSIBILITY': {
+        name: 'Достъпност',
+        icon: 'bi-universal-access-circle',
+        color: '#0891b2'
+    },
+
+    // Други
+    'OTHER': {
+        name: 'Други',
+        icon: 'bi-three-dots',
+        color: '#6b7280'
+    }
 };
 
+// ===== URGENCY LEVELS CONFIGURATION =====
 const URGENCY_LEVELS = {
-    low: { name: 'Ниска', icon: 'bi-circle', color: '#16a34a' },
-    medium: { name: 'Средна', icon: 'bi-exclamation-circle', color: '#f97316' },
-    high: { name: 'Висока', icon: 'bi-exclamation-triangle', color: '#ef4444' }
+    'HIGH': {
+        name: 'Висока',
+        icon: 'bi-exclamation-triangle-fill',
+        color: '#dc2626'
+    },
+    'MEDIUM': {
+        name: 'Средна',
+        icon: 'bi-exclamation-circle-fill',
+        color: '#ea580c'
+    },
+    'LOW': {
+        name: 'Ниска',
+        icon: 'bi-info-circle-fill',
+        color: '#16a34a'
+    }
 };
 
 // ===== SIGNAL DATA LOADING =====

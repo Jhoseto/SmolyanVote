@@ -116,33 +116,43 @@
             <div class="custom-select">
               <select id="signalCategory" name="category" required>
                 <option value="">Изберете категория</option>
-                <optgroup label="Инфраструктура">
-                  <option value="road_damage">Дупки в пътищата</option>
-                  <option value="sidewalk_damage">Счупени тротоари</option>
-                  <option value="lighting">Неработещо осветление</option>
-                  <option value="traffic_signs">Повредени пътни знаци</option>
-                  <option value="water_sewer">Водопровод/канализация</option>
+
+                <!-- Инфраструктура -->
+                <optgroup label="🏗️ Инфраструктура">
+                  <option value="ROAD_DAMAGE">🕳️ Дупки в пътищата</option>
+                  <option value="SIDEWALK_DAMAGE">🧱 Счупени тротоари</option>
+                  <option value="LIGHTING">💡 Неработещо осветление</option>
+                  <option value="TRAFFIC_SIGNS">🛑 Повредени пътни знаци</option>
+                  <option value="WATER_SEWER">💧 Водопровод/канализация</option>
                 </optgroup>
-                <optgroup label="Околна среда">
-                  <option value="waste_management">Замърсяване на околната среда</option>
-                  <option value="illegal_dumping">Незаконно изхвърляне на отпадъци</option>
-                  <option value="tree_issues">Проблеми с дървета и растителност</option>
-                  <option value="air_pollution">Замърсяване на въздуха</option>
-                  <option value="noise_pollution">Шумово замърсяване</option>
+
+                <!-- Околна среда -->
+                <optgroup label="🌍 Околна среда">
+                  <option value="WASTE_MANAGEMENT">🗑️ Замърсяване на околната среда</option>
+                  <option value="ILLEGAL_DUMPING">⚠️ Незаконно изхвърляне на отпадъци</option>
+                  <option value="TREE_ISSUES">🌳 Проблеми с дървета и растителност</option>
+                  <option value="AIR_POLLUTION">🌫️ Замърсяване на въздуха</option>
+                  <option value="NOISE_POLLUTION">🔊 Шумово замърсяване</option>
                 </optgroup>
-                <optgroup label="Обществени услуги">
-                  <option value="healthcare">Здравеопазване</option>
-                  <option value="education">Образование</option>
-                  <option value="transport">Обществен транспорт</option>
-                  <option value="parking">Паркиране</option>
+
+                <!-- Обществени услуги -->
+                <optgroup label="🏛️ Обществени услуги">
+                  <option value="HEALTHCARE">❤️ Здравеопазване</option>
+                  <option value="EDUCATION">📚 Образование</option>
+                  <option value="TRANSPORT">🚌 Обществен транспорт</option>
+                  <option value="PARKING">🚗 Паркиране</option>
                 </optgroup>
-                <optgroup label="Обществена безопасност">
-                  <option value="security">Обществена безопасност</option>
-                  <option value="vandalism">Вандализъм</option>
-                  <option value="accessibility">Достъпност</option>
+
+                <!-- Безопасност -->
+                <optgroup label="🛡️ Безопасност">
+                  <option value="SECURITY">🚨 Обществена безопасност</option>
+                  <option value="VANDALISM">🔨 Вандализъм</option>
+                  <option value="ACCESSIBILITY">♿ Достъпност</option>
                 </optgroup>
-                <optgroup label="Други">
-                  <option value="other">Други</option>
+
+                <!-- Други -->
+                <optgroup label="📝 Други">
+                  <option value="OTHER">📄 Други</option>
                 </optgroup>
               </select>
             </div>
@@ -252,33 +262,43 @@
               <div class="custom-select compact">
                 <select id="categoryFilter">
                   <option value="all">Всички</option>
+
+                  <!-- Инфраструктура -->
                   <optgroup label="🏗️ Инфраструктура">
-                    <option value="road_damage">Дупки в пътищата</option>
-                    <option value="sidewalk_damage">Счупени тротоари</option>
-                    <option value="lighting">Неработещо осветление</option>
-                    <option value="traffic_signs">Повредени пътни знаци</option>
-                    <option value="water_sewer">Водопровод/канализация</option>
+                    <option value="ROAD_DAMAGE">🕳️ Дупки в пътищата</option>
+                    <option value="SIDEWALK_DAMAGE">🧱 Счупени тротоари</option>
+                    <option value="LIGHTING">💡 Неработещо осветление</option>
+                    <option value="TRAFFIC_SIGNS">🛑 Повредени пътни знаци</option>
+                    <option value="WATER_SEWER">💧 Водопровод/канализация</option>
                   </optgroup>
-                  <optgroup label="🌱 Околна среда">
-                    <option value="waste_management">Замърсяване на околната среда</option>
-                    <option value="illegal_dumping">Незаконно изхвърляне на отпадъци</option>
-                    <option value="tree_issues">Проблеми с дървета и растителност</option>
-                    <option value="air_pollution">Замърсяване на въздуха</option>
-                    <option value="noise_pollution">Шумово замърсяване</option>
+
+                  <!-- Околна среда -->
+                  <optgroup label="🌍 Околна среда">
+                    <option value="WASTE_MANAGEMENT">🗑️ Замърсяване на околната среда</option>
+                    <option value="ILLEGAL_DUMPING">⚠️ Незаконно изхвърляне на отпадъци</option>
+                    <option value="TREE_ISSUES">🌳 Проблеми с дървета и растителност</option>
+                    <option value="AIR_POLLUTION">🌫️ Замърсяване на въздуха</option>
+                    <option value="NOISE_POLLUTION">🔊 Шумово замърсяване</option>
                   </optgroup>
+
+                  <!-- Обществени услуги -->
                   <optgroup label="🏛️ Обществени услуги">
-                    <option value="healthcare">Здравеопазване</option>
-                    <option value="education">Образование</option>
-                    <option value="transport">Обществен транспорт</option>
-                    <option value="parking">Паркиране</option>
+                    <option value="HEALTHCARE">❤️ Здравеопазване</option>
+                    <option value="EDUCATION">📚 Образование</option>
+                    <option value="TRANSPORT">🚌 Обществен транспорт</option>
+                    <option value="PARKING">🚗 Паркиране</option>
                   </optgroup>
+
+                  <!-- Безопасност -->
                   <optgroup label="🛡️ Безопасност">
-                    <option value="security">Обществена безопасност</option>
-                    <option value="vandalism">Вандализъм</option>
-                    <option value="accessibility">Достъпност</option>
+                    <option value="SECURITY">🚨 Обществена безопасност</option>
+                    <option value="VANDALISM">🔨 Вандализъм</option>
+                    <option value="ACCESSIBILITY">♿ Достъпност</option>
                   </optgroup>
-                  <optgroup label="📌 Други">
-                    <option value="other">Други</option>
+
+                  <!-- Други -->
+                  <optgroup label="📝 Други">
+                    <option value="OTHER">📄 Други</option>
                   </optgroup>
                 </select>
               </div>
@@ -325,9 +345,7 @@
 </div>
 
 <!-- Signal Details Modal -->
-<div id="signalModal" class="signal-modal">
-
-</div>
+<div th:replace="~{signal-modal :: signalModal}"></div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
