@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${pageTitle}">Граждански сигнали - SmolyanVote</title>
+  <title th:text="${pageTitle ?: 'Граждански сигнали - SmolyanVote'}">Граждански сигнали - SmolyanVote</title>
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 
   <!-- SEO Meta Tags -->
-  <meta name="description" th:content="${metaDescription}">
-  <meta name="keywords" content="SmolyanVote, граждански сигнали, проблеми, Смолянска област, интерактивна карта">
+  <meta name="description" th:content="${metaDescription ?: 'Докладвайте проблеми в Смолянска област чрез интерактивна карта. Вашият глас има значение за подобряване на общността.'}">
+  <meta name="keywords" content="SmolyanVote, граждански сигнали, проблеми, Смолянска област, интерактивна карта, граждански участие">
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/images/logo1.png">
@@ -32,6 +32,14 @@
   <!-- Map CSS -->
   <link rel="stylesheet" href="/css/map/smolyan-map.css">
   <link rel="stylesheet" href="/css/map/signal-modal.css">
+
+  <!-- Auth State for JS -->
+  <script th:inline="javascript">
+    window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+    window.currentUser = /*[[${currentUser}]]*/ null;
+    window.csrfToken = /*[[${_csrf.token}]]*/ '';
+    window.csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+  </script>
 </head>
 <body>
 
@@ -57,13 +65,14 @@
                   class="search-input"
                   placeholder="Търсене на сигнали..."
                   autocomplete="off"
+                  maxlength="100"
           >
-          <button class="search-clear" id="clearSearch" style="display: none;">
+          <button class="search-clear" id="clearSearch" style="display: none;" title="Изчисти търсенето">
             <i class="bi bi-x-circle"></i>
           </button>
         </div>
         <div class="search-results" id="searchResults" style="display: none;">
-          <!-- Real-time search results -->
+          <!-- Real-time search results will be populated here -->
         </div>
       </div>
     </div>
@@ -73,12 +82,26 @@
 <!-- Full Screen Map Container -->
 <div class="map-container">
   <!-- Map -->
-  <div id="map" class="map-section"></div>
+  <div id="map" class="map-section" role="application" aria-label="Интерактивна карта с граждански сигнали"></div>
+
+  <!-- Top Center Map Controls -->
+  <div class="map-controls">
+    <button class="control-btn" id="centerMapBtn" title="Центрирай картата" aria-label="Центрирай картата на Смолян">
+      <i class="bi bi-house-fill"></i>
+    </button>
+    <button class="control-btn" id="myLocationBtn" title="Моята локация" aria-label="Покажи моята локация">
+      <i class="bi bi-geo-alt-fill"></i>
+    </button>
+    <button class="control-btn" id="fullscreenBtn" title="Цял екран" aria-label="Влез/излез от пълен екран">
+      <i class="bi bi-arrows-fullscreen"></i>
+    </button>
+  </div>
 
   <!-- Compact Left Controls -->
   <div class="left-controls">
-    <!-- Нов сигнал - компактен таб -->
-    <div class="control-tab" onclick="togglePanel('newSignal')">
+    <!-- Нов сигнал -->
+    <div class="control-tab" onclick="togglePanel('newSignal')" role="button" tabindex="0"
+         aria-label="Отвори форма за нов сигнал" onkeypress="if(event.key==='Enter') togglePanel('newSignal')">
       <div class="tab-icon">
         <i class="bi bi-plus-circle-fill"></i>
       </div>
@@ -91,30 +114,36 @@
   </div>
 
   <!-- Floating Panel за нов сигнал -->
-  <div id="newSignalPanel" class="floating-panel">
+  <div id="newSignalPanel" class="floating-panel" role="dialog" aria-labelledby="newSignalTitle" aria-hidden="true">
     <div class="panel-header">
-      <div class="panel-title">
+      <div class="panel-title" id="newSignalTitle">
         <i class="bi bi-plus-circle"></i>
         Нов сигнал
       </div>
-      <button class="panel-close" onclick="closePanel('newSignal')">
+      <button class="panel-close" onclick="closePanel('newSignal')" aria-label="Затвори панела">
         <i class="bi bi-x"></i>
       </button>
     </div>
     <div class="panel-content">
-      <form id="createSignalForm" onsubmit="handleCreateSignal(event)">
+      <form id="createSignalForm" novalidate>
+        <!-- Заглавие -->
         <div class="form-row">
           <div class="form-group">
-            <label for="signalTitle">Заглавие</label>
-            <input type="text" id="signalTitle" name="title" placeholder="Кратко описание на проблема..." required>
+            <label for="signalTitle">Заглавие <span class="required">*</span></label>
+            <input type="text" id="signalTitle" name="title"
+                   placeholder="Кратко описание на проблема..."
+                   required minlength="5" maxlength="200"
+                   class="form-control">
+            <div class="form-feedback" id="titleFeedback"></div>
           </div>
         </div>
 
+        <!-- Категория -->
         <div class="form-row">
           <div class="form-group">
-            <label for="signalCategory">Категория</label>
+            <label for="signalCategory">Категория <span class="required">*</span></label>
             <div class="custom-select">
-              <select id="signalCategory" name="category" required>
+              <select id="signalCategory" name="category" required class="form-control">
                 <option value="">Изберете категория</option>
 
                 <!-- Инфраструктура -->
@@ -156,34 +185,79 @@
                 </optgroup>
               </select>
             </div>
+            <div class="form-feedback" id="categoryFeedback"></div>
           </div>
         </div>
 
+        <!-- Спешност -->
         <div class="form-row">
           <div class="form-group">
-            <label for="signalUrgency">Спешност</label>
+            <label for="signalUrgency">Спешност <span class="required">*</span></label>
             <div class="custom-select">
-              <select id="signalUrgency" name="urgency" required>
+              <select id="signalUrgency" name="urgency" required class="form-control">
                 <option value="">Изберете спешност</option>
-                <option value="low">Ниска</option>
-                <option value="medium">Средна</option>
-                <option value="high">Висока</option>
+                <option value="low">🟢 Ниска - не е спешно</option>
+                <option value="medium">🟡 Средна - трябва внимание</option>
+                <option value="high">🔴 Висока - спешен проблем</option>
               </select>
             </div>
+            <div class="form-feedback" id="urgencyFeedback"></div>
           </div>
         </div>
 
+        <!-- Описание -->
         <div class="form-row">
           <div class="form-group">
-            <label for="signalDescription">Описание</label>
-            <textarea id="signalDescription" name="description" placeholder="Подробно описание на проблема..." rows="4" required></textarea>
+            <label for="signalDescription">Описание <span class="required">*</span></label>
+            <textarea id="signalDescription" name="description"
+                      placeholder="Подробно описание на проблема..."
+                      rows="4" required minlength="10" maxlength="2000"
+                      class="form-control"></textarea>
+            <div class="char-counter">
+              <span id="descriptionCharCount">0</span>/2000 символа
+            </div>
+            <div class="form-feedback" id="descriptionFeedback"></div>
           </div>
         </div>
 
+        <!-- Снимка -->
         <div class="form-row">
           <div class="form-group">
             <label for="signalImage">Снимка (опционално)</label>
-            <input type="file" id="signalImage" name="image" accept="image/*" class="file-input">
+            <div class="file-input-wrapper">
+              <input type="file" id="signalImage" name="image"
+                     accept="image/jpeg,image/jpg,image/png,image/webp"
+                     class="file-input">
+              <div class="file-input-display" onclick="document.getElementById('signalImage').click()">
+                <i class="bi bi-camera"></i>
+                <span class="file-text">Изберете снимка</span>
+              </div>
+              <div class="file-preview" id="imagePreview" style="display: none;">
+                <img id="previewImage" src="" alt="Преглед на снимката">
+                <button type="button" class="remove-image" onclick="removeImage()" aria-label="Премахни снимката">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-help">
+              Максимален размер: 5MB. Формати: JPG, PNG, WebP
+            </div>
+            <div class="form-feedback" id="imageFeedback"></div>
+          </div>
+        </div>
+
+        <!-- Местоположение -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Местоположение <span class="required">*</span></label>
+            <button type="button" id="selectLocationBtn" class="btn-location">
+              <i class="bi bi-geo-alt"></i>
+              <span>Изберете местоположение</span>
+            </button>
+            <div class="location-help">
+              Кликнете бутона и след това кликнете на картата за да изберете точното местоположение
+            </div>
+            <div class="form-feedback" id="locationFeedback"></div>
           </div>
         </div>
 
@@ -191,13 +265,7 @@
         <input type="hidden" id="signalLatitude" name="latitude">
         <input type="hidden" id="signalLongitude" name="longitude">
 
-        <div class="form-row">
-          <button type="button" id="selectLocationBtn" class="btn-secondary">
-            <i class="bi bi-geo-alt"></i>
-            <span>Изберете местоположение</span>
-          </button>
-        </div>
-
+        <!-- Form Actions -->
         <div class="form-actions">
           <button type="button" class="btn-secondary" onclick="closePanel('newSignal')">
             <i class="bi bi-x"></i>
@@ -212,23 +280,12 @@
     </div>
   </div>
 
-  <!-- Top Center Map Controls -->
-  <div class="map-controls">
-    <button class="control-btn" id="centerMapBtn" title="Центрирай картата">
-      <i class="bi bi-house-fill"></i>
-    </button>
-    <button class="control-btn" id="myLocationBtn" title="Моята локация">
-      <i class="bi bi-geo-alt-fill"></i>
-    </button>
-    <button class="control-btn" id="fullscreenBtn" title="Цял екран">
-      <i class="bi bi-arrows-fullscreen"></i>
-    </button>
-  </div>
-
   <!-- Right Signals Panel -->
   <div class="signals-panel" id="signalsPanel">
     <!-- Компактен таб за сигнали -->
-    <div class="signals-tab" id="signalsTab" onclick="toggleSignalsPanel()">
+    <div class="signals-tab" id="signalsTab" onclick="toggleSignalsPanel()"
+         role="button" tabindex="0" aria-label="Отвори/затвори панела със сигнали"
+         onkeypress="if(event.key==='Enter') toggleSignalsPanel()">
       <div class="tab-content">
         <div class="tab-icon">
           <i class="bi bi-list-ul"></i>
@@ -250,60 +307,52 @@
             <i class="bi bi-funnel"></i>
             Филтри
           </h4>
-          <button class="filters-toggle" onclick="toggleFilters()">
+          <button class="filters-toggle" onclick="toggleFilters()" aria-label="Покажи/скрий филтрите">
             <i class="bi bi-chevron-down" id="filtersArrow"></i>
           </button>
         </div>
 
         <div class="filters-content" id="filtersContent">
           <div class="filters-grid">
+            <!-- Категория филтър -->
             <div class="filter-group">
               <label for="categoryFilter">Категория</label>
               <div class="custom-select compact">
                 <select id="categoryFilter">
                   <option value="all">Всички</option>
-
-                  <!-- Инфраструктура -->
-                  <optgroup label="🏗️ Инфраструктура">
-                    <option value="ROAD_DAMAGE">🕳️ Дупки в пътищата</option>
-                    <option value="SIDEWALK_DAMAGE">🧱 Счупени тротоари</option>
-                    <option value="LIGHTING">💡 Неработещо осветление</option>
-                    <option value="TRAFFIC_SIGNS">🛑 Повредени пътни знаци</option>
-                    <option value="WATER_SEWER">💧 Водопровод/канализация</option>
+                  <optgroup label="Инфраструктура">
+                    <option value="ROAD_DAMAGE">Дупки в пътищата</option>
+                    <option value="SIDEWALK_DAMAGE">Счупени тротоари</option>
+                    <option value="LIGHTING">Неработещо осветление</option>
+                    <option value="TRAFFIC_SIGNS">Повредени пътни знаци</option>
+                    <option value="WATER_SEWER">Водопровод/канализация</option>
                   </optgroup>
-
-                  <!-- Околна среда -->
-                  <optgroup label="🌍 Околна среда">
-                    <option value="WASTE_MANAGEMENT">🗑️ Замърсяване на околната среда</option>
-                    <option value="ILLEGAL_DUMPING">⚠️ Незаконно изхвърляне на отпадъци</option>
-                    <option value="TREE_ISSUES">🌳 Проблеми с дървета и растителност</option>
-                    <option value="AIR_POLLUTION">🌫️ Замърсяване на въздуха</option>
-                    <option value="NOISE_POLLUTION">🔊 Шумово замърсяване</option>
+                  <optgroup label="Околна среда">
+                    <option value="WASTE_MANAGEMENT">Замърсяване</option>
+                    <option value="ILLEGAL_DUMPING">Незаконно изхвърляне</option>
+                    <option value="TREE_ISSUES">Проблеми с дървета</option>
+                    <option value="AIR_POLLUTION">Замърсяване на въздуха</option>
+                    <option value="NOISE_POLLUTION">Шумово замърсяване</option>
                   </optgroup>
-
-                  <!-- Обществени услуги -->
-                  <optgroup label="🏛️ Обществени услуги">
-                    <option value="HEALTHCARE">❤️ Здравеопазване</option>
-                    <option value="EDUCATION">📚 Образование</option>
-                    <option value="TRANSPORT">🚌 Обществен транспорт</option>
-                    <option value="PARKING">🚗 Паркиране</option>
+                  <optgroup label="Обществени услуги">
+                    <option value="HEALTHCARE">Здравеопазване</option>
+                    <option value="EDUCATION">Образование</option>
+                    <option value="TRANSPORT">Обществен транспорт</option>
+                    <option value="PARKING">Паркиране</option>
                   </optgroup>
-
-                  <!-- Безопасност -->
-                  <optgroup label="🛡️ Безопасност">
-                    <option value="SECURITY">🚨 Обществена безопасност</option>
-                    <option value="VANDALISM">🔨 Вандализъм</option>
-                    <option value="ACCESSIBILITY">♿ Достъпност</option>
+                  <optgroup label="Безопасност">
+                    <option value="SECURITY">Обществена безопасност</option>
+                    <option value="VANDALISM">Вандализъм</option>
+                    <option value="ACCESSIBILITY">Достъпност</option>
                   </optgroup>
-
-                  <!-- Други -->
-                  <optgroup label="📝 Други">
-                    <option value="OTHER">📄 Други</option>
+                  <optgroup label="Други">
+                    <option value="OTHER">Други</option>
                   </optgroup>
                 </select>
               </div>
             </div>
 
+            <!-- Спешност филтър -->
             <div class="filter-group">
               <label for="urgencyFilter">Спешност</label>
               <div class="custom-select compact">
@@ -316,6 +365,7 @@
               </div>
             </div>
 
+            <!-- Сортиране филтър -->
             <div class="filter-group">
               <label for="sortFilter">Сортиране</label>
               <div class="custom-select compact">
@@ -329,7 +379,8 @@
             </div>
           </div>
 
-          <button class="btn-clear-filters" onclick="window.signalManagement?.clearFilters()">
+          <!-- Clear filters button -->
+          <button class="btn-clear-filters" onclick="clearAllFilters()">
             <i class="bi bi-arrow-clockwise"></i>
             Изчисти филтрите
           </button>
@@ -337,15 +388,33 @@
       </div>
 
       <!-- Списък със сигнали -->
-      <div class="signals-list" id="signalsList">
-        <!-- Signals will be loaded here -->
+      <div class="signals-list" id="signalsList" role="region" aria-label="Списък с граждански сигнали">
+        <!-- Signals will be loaded here dynamically -->
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Зареждане на сигнали...</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Signal Details Modal -->
-<div th:replace="~{signal-modal :: signalModal}"></div>
+<div th:replace="~{signal-modal :: signal-modal}"></div>
+
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <p>Обработване...</p>
+  </div>
+</div>
+
+<!-- Notification System -->
+<div id="notificationContainer" class="notification-container">
+  <!-- Notifications will be added here -->
+</div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
@@ -361,14 +430,13 @@
 <!-- Markercluster JS -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
-<!-- Map Modules -->
-<script src="/js/map/signal-api.js"></script>
+<!-- Map Modules (Load order is important) -->
 <script src="/js/map/map-core.js"></script>
 <script src="/js/map/signal-management.js"></script>
 <script src="/js/map/signal-tooltip.js"></script>
 <script src="/js/map/signal-modal.js"></script>
 
-<!-- Main Coordinator -->
+<!-- Main Coordinator (Load last) -->
 <script src="/js/map/smolyan-map.js"></script>
 
 </body>
