@@ -1,22 +1,33 @@
 package smolyanVote.smolyanVote.models.enums;
 
 public enum SignalsCategory {
-    ROAD_DAMAGE("Повредени пътища"),
-    INFRASTRUCTURE("Инфраструктурни проблеми"),
-    LIGHTING("Проблеми с осветлението"),
-    WATER_SEWER("Водопровод и канализация"),
-    PARKS_GREEN("Паркове и зелени площи"),
-    TRAFFIC("Движение и паркиране"),
-    NOISE("Шум и замърсяване"),
+    // Инфраструктура
+    ROAD_DAMAGE("Дупки в пътищата"),
+    SIDEWALK_DAMAGE("Счупени тротоари"),
+    LIGHTING("Неработещо осветление"),
+    TRAFFIC_SIGNS("Повредени пътни знаци"),
+    WATER_SEWER("Водопровод/канализация"),
+
+    // Околна среда
+    WASTE_MANAGEMENT("Замърсяване на околната среда"),
+    ILLEGAL_DUMPING("Незаконно изхвърляне на отпадъци"),
+    TREE_ISSUES("Проблеми с дървета и растителност"),
+    AIR_POLLUTION("Замърсяване на въздуха"),
+    NOISE_POLLUTION("Шумово замърсяване"),
+
+    // Обществени услуги
+    HEALTHCARE("Здравеопазване"),
+    EDUCATION("Образование"),
+    TRANSPORT("Обществен транспорт"),
+    PARKING("Паркиране"),
+
+    // Безопасност
+    SECURITY("Обществена безопасност"),
     VANDALISM("Вандализъм"),
-    ABANDONED_VEHICLES("Изоставени автомобили"),
-    SECURITY_ISSUES("Проблеми с безопасност"),
-    WASTE_COLLECTION("Проблеми със сметосъбиране"),
-    BUS_STOPS("Неработещи автобусни спирки"),
-    PUBLIC_TRANSPORT("Проблеми с обществен транспорт"),
-    ACCESSIBILITY("Недостъпност за хора с увреждания"),
-    PLAYGROUNDS("Опасни детски площадки"),
-    STRAY_ANIMALS("Бездомни животни");
+    ACCESSIBILITY("Достъпност"),
+
+    // Други
+    OTHER("Други");
 
     private final String displayName;
 

@@ -5,7 +5,6 @@
 let map;
 let markersCluster;
 let temporaryMarker;
-let locationSelectionMode = false;
 let isFullscreen = false;
 let isMobile = window.innerWidth <= 768;
 
@@ -75,8 +74,7 @@ function initializeMap() {
 
 // ===== MAP EVENT HANDLERS =====
 function handleMapClick(e) {
-    if (!locationSelectionMode) return;
-
+    if (!window.signalManagement?.locationSelectionMode) return;
     const { lat, lng } = e.latlng;
     const coordinates = [lat, lng];
 
