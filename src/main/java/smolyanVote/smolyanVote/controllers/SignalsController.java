@@ -268,33 +268,45 @@ public class SignalsController {
     // ====== HELPER METHODS ======
 
     private Map<String, Object> convertSignalToJson(SignalsEntity signal) {
-        Map<String, Object> json = new HashMap<>();
+        Map<String, Object> signalMap = new HashMap<>();
 
-        json.put("id", signal.getId());
-        json.put("title", signal.getTitle());
-        json.put("description", signal.getDescription());
-        json.put("category", signal.getCategory().name().toLowerCase());
-        json.put("urgency", signal.getUrgency().name().toLowerCase());
-        json.put("coordinates", new double[]{signal.getLatitude().doubleValue(), signal.getLongitude().doubleValue()});
-        json.put("imageUrl", signal.getImageUrl());
-        json.put("createdAt", signal.getCreated().toString());
-        json.put("updatedAt", signal.getModified().toString());
-        json.put("viewsCount", signal.getViewsCount() != null ? signal.getViewsCount() : 0);
-        json.put("likesCount", signal.getLikesCount() != null ? signal.getLikesCount() : 0);
+        // Основни данни
+        signalMap.put("id", signal.getId());
+        signalMap.put("title", signal.getTitle());
+        signalMap.put("description", signal.getDescription());
+        signalMap.put("category", signal.getCategory().name());
+        signalMap.put("urgency", signal.getUrgency().name());
 
-        // Автор информация
-        if (signal.getAuthor() != null) {
-            Map<String, Object> author = new HashMap<>();
-            author.put("id", signal.getAuthor().getId());
-            author.put("username", signal.getAuthor().getUsername());
-            author.put("imageUrl", signal.getAuthor().getImageUrl());
-            author.put("publicationsCount", signal.getAuthor().getPublicationsCount());
-            author.put("createdAt", signal.getAuthor().getCreated() != null ?
-                    signal.getAuthor().getCreated().toString() : null);
-            json.put("author", author);
+        // Координати като array [lat, lng]
+        if (signal.getLatitude() != null && signal.getLongitude() != null) {
+            signalMap.put("coordinates", new double[]{
+                    signal.getLatitude().doubleValue(),
+                    signal.getLongitude().doubleValue()
+            });
         }
 
-        return json;
+        // Изображение
+        signalMap.put("imageUrl", signal.getImageUrl());
+
+        // Автор информация
+        Map<String, Object> authorMap = new HashMap<>();
+        if (signal.getAuthor() != null) {
+            authorMap.put("id", signal.getAuthor().getId());
+            authorMap.put("username", signal.getAuthor().getUsername());
+            authorMap.put("imageUrl", signal.getAuthor().getImageUrl());
+        }
+        signalMap.put("author", authorMap);
+
+        // Времеви данни
+        signalMap.put("createdAt", signal.getCreated());
+        signalMap.put("modifiedAt", signal.getModified());
+
+        // Статистики
+        signalMap.put("likesCount", signal.getLikesCount() != null ? signal.getLikesCount() : 0);
+        signalMap.put("viewsCount", signal.getViewsCount() != null ? signal.getViewsCount() : 0);
+
+
+        return signalMap;
     }
 
     private Map<String, Object> createErrorResponse(String message) {

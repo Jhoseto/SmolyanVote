@@ -312,6 +312,23 @@ window.SmolyanMapDebug = {
     reinitialize: initializeInSequence
 };
 
+// ===== PANEL CONTROL FUNCTIONS =====
+
+function openPanel(panelName) {
+    const panel = document.getElementById(panelName + 'Panel');
+    if (panel) {
+        // Затваряне на други панели
+        Object.keys(panelsExpanded).forEach(key => {
+            if (key !== panelName && panelsExpanded[key]) {
+                closePanel(key);
+            }
+        });
+
+        panel.classList.add('active');
+        panelsExpanded[panelName] = true;
+    }
+}
+
 // Export за modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

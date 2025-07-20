@@ -3,7 +3,7 @@
 
 // ===== API CONFIGURATION =====
 const API_CONFIG = {
-    baseURL: '/api/signals',
+    baseURL: '/signals',
     timeout: 30000, // 30 секунди
     retryAttempts: 3,
     retryDelay: 1000 // 1 секунда
@@ -379,6 +379,8 @@ window.APILoadingState = {
         });
     }
 };
+
+
 
 // Export за modules
 if (typeof module !== 'undefined' && module.exports) {

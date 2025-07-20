@@ -221,21 +221,6 @@ function showModal() {
     }
 }
 
-function closeSignalModal() {
-    const modal = document.getElementById('signalModal');
-    if (modal) {
-        modal.classList.remove('show');
-
-        setTimeout(() => {
-            modal.style.display = 'none';
-            // Възстановяване на scroll на body
-            document.body.style.overflow = '';
-        }, 300);
-    }
-
-    currentModalSignal = null;
-    window.currentModalSignalCoordinates = null;
-}
 
 // ===== MAP INTERACTION =====
 function centerMapOnSignal() {
@@ -354,14 +339,33 @@ window.closeSignalModal = closeSignalModal;
 window.centerMapOnSignal = centerMapOnSignal;
 window.viewAuthorProfile = viewAuthorProfile;
 
-// Export за modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        openSignalModal,
-        closeSignalModal,
-        populateModalContent,
-        centerMapOnSignal,
-        formatDate,
-        formatFullDate
-    };
+// ===== MODAL CONTROL FUNCTIONS =====
+function closeSignalModal() {
+    const modal = document.getElementById('signalModal');
+    if (modal) {
+        modal.classList.remove('show');
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+            currentModalSignal = null;
+            window.currentModalSignalCoordinates = null;
+        }, 400);
+    }
 }
+
+function showOnMap() {
+    if (window.currentModalSignalCoordinates && window.mapCore) {
+        const coords = window.currentModalSignalCoordinates;
+        window.mapCore.getMap().setView(coords, 16);
+        closeSignalModal();
+
+        if (window.mapCore.showNotification) {
+            window.mapCore.showNotification('Картата е центрирана върху сигнала', 'success');
+        }
+    }
+}
+
+// ===== EXPORT FUNCTIONS =====
+window.openSignalModal = openSignalModal;
+window.closeSignalModal = closeSignalModal;
+window.showOnMap = showOnMap;
