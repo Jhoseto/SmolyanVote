@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
   <!-- Map CSS -->
-  <link rel="stylesheet" href="/css/map/smolyan-map.css">
-  <link rel="stylesheet" href="/css/map/signal-modal.css">
+  <link rel="stylesheet" href="/css/signals/smolyan-map.css">
+  <link rel="stylesheet" href="/css/signals/signal-modal.css">
 
   <!-- Auth State for JS -->
   <script th:inline="javascript">
@@ -95,6 +95,12 @@
     <button class="control-btn" id="fullscreenBtn" title="Цял екран" aria-label="Влез/излез от пълен екран">
       <i class="bi bi-arrows-fullscreen"></i>
     </button>
+    <button class="control-btn" id="zoomInMapBtn" title="Приближи картата" aria-label="Центрирай картата на Смолян">
+      <i class="bi bi-zoom-in"></i>
+    </button>
+    <button class="control-btn" id="zoomOutMapBtn" title="Отдалечи картата" aria-label="Центрирай картата на Смолян">
+      <i class="bi bi-zoom-out"></i>
+    </button>
   </div>
 
   <!-- Compact Left Controls -->
@@ -138,69 +144,154 @@
           </div>
         </div>
 
-        <!-- Категория -->
+        <!-- Категория - Custom Dropdown -->
         <div class="form-row">
           <div class="form-group">
             <label for="signalCategory">Категория <span class="required">*</span></label>
-            <div class="custom-select">
-              <select id="signalCategory" name="category" required class="form-control">
-                <option value="">Изберете категория</option>
+            <div class="custom-dropdown" data-name="category" data-required="true">
+              <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                <span class="dropdown-text">Изберете категория</span>
+                <i class="bi bi-chevron-down dropdown-arrow"></i>
+              </div>
+              <div class="dropdown-menu" role="listbox">
+                <div class="dropdown-group">
+                  <div class="dropdown-group-label">
+                    <i class="bi bi-tools"></i>
+                    Инфраструктура
+                  </div>
+                  <div class="dropdown-option" data-value="ROAD_DAMAGE" role="option">
+                    <i class="bi bi-cone-striped"></i>
+                    <span>Дупки в пътищата</span>
+                  </div>
+                  <div class="dropdown-option" data-value="SIDEWALK_DAMAGE" role="option">
+                    <i class="bi bi-bricks"></i>
+                    <span>Счупени тротоари</span>
+                  </div>
+                  <div class="dropdown-option" data-value="LIGHTING" role="option">
+                    <i class="bi bi-lightbulb"></i>
+                    <span>Неработещо осветление</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TRAFFIC_SIGNS" role="option">
+                    <i class="bi bi-sign-stop"></i>
+                    <span>Повредени пътни знаци</span>
+                  </div>
+                  <div class="dropdown-option" data-value="WATER_SEWER" role="option">
+                    <i class="bi bi-droplet"></i>
+                    <span>Водопровод/канализация</span>
+                  </div>
+                </div>
 
-                <!-- Инфраструктура -->
-                <optgroup label="🏗️ Инфраструктура">
-                  <option value="ROAD_DAMAGE">🕳️ Дупки в пътищата</option>
-                  <option value="SIDEWALK_DAMAGE">🧱 Счупени тротоари</option>
-                  <option value="LIGHTING">💡 Неработещо осветление</option>
-                  <option value="TRAFFIC_SIGNS">🛑 Повредени пътни знаци</option>
-                  <option value="WATER_SEWER">💧 Водопровод/канализация</option>
-                </optgroup>
+                <div class="dropdown-group">
+                  <div class="dropdown-group-label">
+                    <i class="bi bi-tree"></i>
+                    Околна среда
+                  </div>
+                  <div class="dropdown-option" data-value="WASTE_MANAGEMENT" role="option">
+                    <i class="bi bi-trash"></i>
+                    <span>Замърсяване на околната среда</span>
+                  </div>
+                  <div class="dropdown-option" data-value="ILLEGAL_DUMPING" role="option">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Незаконно изхвърляне на отпадъци</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TREE_ISSUES" role="option">
+                    <i class="bi bi-tree"></i>
+                    <span>Проблеми с дървета и растителност</span>
+                  </div>
+                  <div class="dropdown-option" data-value="AIR_POLLUTION" role="option">
+                    <i class="bi bi-cloud-fog"></i>
+                    <span>Замърсяване на въздуха</span>
+                  </div>
+                  <div class="dropdown-option" data-value="NOISE_POLLUTION" role="option">
+                    <i class="bi bi-volume-up"></i>
+                    <span>Шумово замърсяване</span>
+                  </div>
+                </div>
 
-                <!-- Околна среда -->
-                <optgroup label="🌍 Околна среда">
-                  <option value="WASTE_MANAGEMENT">🗑️ Замърсяване на околната среда</option>
-                  <option value="ILLEGAL_DUMPING">⚠️ Незаконно изхвърляне на отпадъци</option>
-                  <option value="TREE_ISSUES">🌳 Проблеми с дървета и растителност</option>
-                  <option value="AIR_POLLUTION">🌫️ Замърсяване на въздуха</option>
-                  <option value="NOISE_POLLUTION">🔊 Шумово замърсяване</option>
-                </optgroup>
+                <div class="dropdown-group">
+                  <div class="dropdown-group-label">
+                    <i class="bi bi-building"></i>
+                    Обществени услуги
+                  </div>
+                  <div class="dropdown-option" data-value="HEALTHCARE" role="option">
+                    <i class="bi bi-heart-pulse"></i>
+                    <span>Здравеопазване</span>
+                  </div>
+                  <div class="dropdown-option" data-value="EDUCATION" role="option">
+                    <i class="bi bi-book"></i>
+                    <span>Образование</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TRANSPORT" role="option">
+                    <i class="bi bi-bus-front"></i>
+                    <span>Обществен транспорт</span>
+                  </div>
+                  <div class="dropdown-option" data-value="PARKING" role="option">
+                    <i class="bi bi-p-square"></i>
+                    <span>Паркиране</span>
+                  </div>
+                </div>
 
-                <!-- Обществени услуги -->
-                <optgroup label="🏛️ Обществени услуги">
-                  <option value="HEALTHCARE">❤️ Здравеопазване</option>
-                  <option value="EDUCATION">📚 Образование</option>
-                  <option value="TRANSPORT">🚌 Обществен транспорт</option>
-                  <option value="PARKING">🚗 Паркиране</option>
-                </optgroup>
+                <div class="dropdown-group">
+                  <div class="dropdown-group-label">
+                    <i class="bi bi-shield-check"></i>
+                    Безопасност
+                  </div>
+                  <div class="dropdown-option" data-value="SECURITY" role="option">
+                    <i class="bi bi-shield"></i>
+                    <span>Обществена безопасност</span>
+                  </div>
+                  <div class="dropdown-option" data-value="VANDALISM" role="option">
+                    <i class="bi bi-hammer"></i>
+                    <span>Вандализъм</span>
+                  </div>
+                  <div class="dropdown-option" data-value="ACCESSIBILITY" role="option">
+                    <i class="bi bi-universal-access"></i>
+                    <span>Достъпност</span>
+                  </div>
+                </div>
 
-                <!-- Безопасност -->
-                <optgroup label="🛡️ Безопасност">
-                  <option value="SECURITY">🚨 Обществена безопасност</option>
-                  <option value="VANDALISM">🔨 Вандализъм</option>
-                  <option value="ACCESSIBILITY">♿ Достъпност</option>
-                </optgroup>
-
-                <!-- Други -->
-                <optgroup label="📝 Други">
-                  <option value="OTHER">📄 Други</option>
-                </optgroup>
-              </select>
+                <div class="dropdown-group">
+                  <div class="dropdown-group-label">
+                    <i class="bi bi-three-dots"></i>
+                    Други
+                  </div>
+                  <div class="dropdown-option" data-value="OTHER" role="option">
+                    <i class="bi bi-question-circle"></i>
+                    <span>Други</span>
+                  </div>
+                </div>
+              </div>
             </div>
+            <input type="hidden" id="signalCategory" name="category" required>
             <div class="form-feedback" id="categoryFeedback"></div>
           </div>
         </div>
 
-        <!-- Спешност -->
+        <!-- Спешност - Custom Dropdown -->
         <div class="form-row">
           <div class="form-group">
             <label for="signalUrgency">Спешност <span class="required">*</span></label>
-            <div class="custom-select">
-              <select id="signalUrgency" name="urgency" required class="form-control">
-                <option value="">Изберете спешност</option>
-                <option value="low">🟢 Ниска - не е спешно</option>
-                <option value="medium">🟡 Средна - трябва внимание</option>
-                <option value="high">🔴 Висока - спешен проблем</option>
-              </select>
+            <div class="custom-dropdown" data-name="urgency" data-required="true">
+              <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                <span class="dropdown-text">Изберете спешност</span>
+                <i class="bi bi-chevron-down dropdown-arrow"></i>
+              </div>
+              <div class="dropdown-menu" role="listbox">
+                <div class="dropdown-option" data-value="low" role="option">
+                  <i class="bi bi-info-circle" style="color: #198754;"></i>
+                  <span>Ниска - не е спешно</span>
+                </div>
+                <div class="dropdown-option" data-value="medium" role="option">
+                  <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
+                  <span>Средна - трябва внимание</span>
+                </div>
+                <div class="dropdown-option" data-value="high" role="option">
+                  <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
+                  <span>Висока - спешен проблем</span>
+                </div>
+              </div>
             </div>
+            <input type="hidden" id="signalUrgency" name="urgency" required>
             <div class="form-feedback" id="urgencyFeedback"></div>
           </div>
         </div>
@@ -312,67 +403,150 @@
 
         <div class="filters-content" id="filtersContent">
           <div class="filters-grid">
-            <!-- Категория филтър -->
+            <!-- Категория филтър - Custom Dropdown -->
             <div class="filter-group">
-              <label for="categoryFilter">Категория</label>
-              <div class="custom-select compact">
-                <select id="categoryFilter">
-                  <option value="all">Всички</option>
-                  <optgroup label="Инфраструктура">
-                    <option value="ROAD_DAMAGE">Дупки в пътищата</option>
-                    <option value="SIDEWALK_DAMAGE">Счупени тротоари</option>
-                    <option value="LIGHTING">Неработещо осветление</option>
-                    <option value="TRAFFIC_SIGNS">Повредени пътни знаци</option>
-                    <option value="WATER_SEWER">Водопровод/канализация</option>
-                  </optgroup>
-                  <optgroup label="Околна среда">
-                    <option value="WASTE_MANAGEMENT">Замърсяване</option>
-                    <option value="ILLEGAL_DUMPING">Незаконно изхвърляне</option>
-                    <option value="TREE_ISSUES">Проблеми с дървета</option>
-                    <option value="AIR_POLLUTION">Замърсяване на въздуха</option>
-                    <option value="NOISE_POLLUTION">Шумово замърсяване</option>
-                  </optgroup>
-                  <optgroup label="Обществени услуги">
-                    <option value="HEALTHCARE">Здравеопазване</option>
-                    <option value="EDUCATION">Образование</option>
-                    <option value="TRANSPORT">Обществен транспорт</option>
-                    <option value="PARKING">Паркиране</option>
-                  </optgroup>
-                  <optgroup label="Безопасност">
-                    <option value="SECURITY">Обществена безопасност</option>
-                    <option value="VANDALISM">Вандализъм</option>
-                    <option value="ACCESSIBILITY">Достъпност</option>
-                  </optgroup>
-                  <optgroup label="Други">
-                    <option value="OTHER">Други</option>
-                  </optgroup>
-                </select>
+              <label>Категория</label>
+              <div class="custom-dropdown compact" data-name="categoryFilter">
+                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <span class="dropdown-text">Всички</span>
+                  <i class="bi bi-chevron-down dropdown-arrow"></i>
+                </div>
+                <div class="dropdown-menu" role="listbox">
+                  <div class="dropdown-option" data-value="all" role="option">
+                    <i class="bi bi-grid"></i>
+                    <span>Всички</span>
+                  </div>
+                  <div class="dropdown-option" data-value="ROAD_DAMAGE" role="option">
+                    <i class="bi bi-cone-striped"></i>
+                    <span>Дупки в пътищата</span>
+                  </div>
+                  <div class="dropdown-option" data-value="SIDEWALK_DAMAGE" role="option">
+                    <i class="bi bi-bricks"></i>
+                    <span>Счупени тротоари</span>
+                  </div>
+                  <div class="dropdown-option" data-value="LIGHTING" role="option">
+                    <i class="bi bi-lightbulb"></i>
+                    <span>Неработещо осветление</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TRAFFIC_SIGNS" role="option">
+                    <i class="bi bi-sign-stop"></i>
+                    <span>Повредени пътни знаци</span>
+                  </div>
+                  <div class="dropdown-option" data-value="WATER_SEWER" role="option">
+                    <i class="bi bi-droplet"></i>
+                    <span>Водопровод/канализация</span>
+                  </div>
+                  <div class="dropdown-option" data-value="WASTE_MANAGEMENT" role="option">
+                    <i class="bi bi-trash"></i>
+                    <span>Замърсяване</span>
+                  </div>
+                  <div class="dropdown-option" data-value="ILLEGAL_DUMPING" role="option">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Незаконно изхвърляне</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TREE_ISSUES" role="option">
+                    <i class="bi bi-tree"></i>
+                    <span>Проблеми с дървета</span>
+                  </div>
+                  <div class="dropdown-option" data-value="AIR_POLLUTION" role="option">
+                    <i class="bi bi-cloud-fog"></i>
+                    <span>Замърсяване на въздуха</span>
+                  </div>
+                  <div class="dropdown-option" data-value="NOISE_POLLUTION" role="option">
+                    <i class="bi bi-volume-up"></i>
+                    <span>Шумово замърсяване</span>
+                  </div>
+                  <div class="dropdown-option" data-value="HEALTHCARE" role="option">
+                    <i class="bi bi-heart-pulse"></i>
+                    <span>Здравеопазване</span>
+                  </div>
+                  <div class="dropdown-option" data-value="EDUCATION" role="option">
+                    <i class="bi bi-book"></i>
+                    <span>Образование</span>
+                  </div>
+                  <div class="dropdown-option" data-value="TRANSPORT" role="option">
+                    <i class="bi bi-bus-front"></i>
+                    <span>Обществен транспорт</span>
+                  </div>
+                  <div class="dropdown-option" data-value="PARKING" role="option">
+                    <i class="bi bi-p-square"></i>
+                    <span>Паркиране</span>
+                  </div>
+                  <div class="dropdown-option" data-value="SECURITY" role="option">
+                    <i class="bi bi-shield"></i>
+                    <span>Обществена безопасност</span>
+                  </div>
+                  <div class="dropdown-option" data-value="VANDALISM" role="option">
+                    <i class="bi bi-hammer"></i>
+                    <span>Вандализъм</span>
+                  </div>
+                  <div class="dropdown-option" data-value="ACCESSIBILITY" role="option">
+                    <i class="bi bi-universal-access"></i>
+                    <span>Достъпност</span>
+                  </div>
+                  <div class="dropdown-option" data-value="OTHER" role="option">
+                    <i class="bi bi-question-circle"></i>
+                    <span>Други</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Спешност филтър -->
+            <!-- Спешност филтър - Custom Dropdown -->
             <div class="filter-group">
-              <label for="urgencyFilter">Спешност</label>
-              <div class="custom-select compact">
-                <select id="urgencyFilter">
-                  <option value="all">Всички</option>
-                  <option value="high">🔴 Висока</option>
-                  <option value="medium">🟡 Средна</option>
-                  <option value="low">🟢 Ниска</option>
-                </select>
+              <label>Спешност</label>
+              <div class="custom-dropdown compact" data-name="urgencyFilter">
+                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <span class="dropdown-text">Всички</span>
+                  <i class="bi bi-chevron-down dropdown-arrow"></i>
+                </div>
+                <div class="dropdown-menu" role="listbox">
+                  <div class="dropdown-option" data-value="all" role="option">
+                    <i class="bi bi-grid"></i>
+                    <span>Всички</span>
+                  </div>
+                  <div class="dropdown-option" data-value="high" role="option">
+                    <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
+                    <span>Висока</span>
+                  </div>
+                  <div class="dropdown-option" data-value="medium" role="option">
+                    <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
+                    <span>Средна</span>
+                  </div>
+                  <div class="dropdown-option" data-value="low" role="option">
+                    <i class="bi bi-info-circle" style="color: #198754;"></i>
+                    <span>Ниска</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Сортиране филтър -->
+            <!-- Сортиране филтър - Custom Dropdown -->
             <div class="filter-group">
-              <label for="sortFilter">Сортиране</label>
-              <div class="custom-select compact">
-                <select id="sortFilter">
-                  <option value="newest">Най-нови</option>
-                  <option value="oldest">Най-стари</option>
-                  <option value="urgency">По спешност</option>
-                  <option value="category">По категория</option>
-                </select>
+              <label>Сортиране</label>
+              <div class="custom-dropdown compact" data-name="sortFilter">
+                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+                  <span class="dropdown-text">Най-нови</span>
+                  <i class="bi bi-chevron-down dropdown-arrow"></i>
+                </div>
+                <div class="dropdown-menu" role="listbox">
+                  <div class="dropdown-option" data-value="newest" role="option">
+                    <i class="bi bi-sort-down"></i>
+                    <span>Най-нови</span>
+                  </div>
+                  <div class="dropdown-option" data-value="oldest" role="option">
+                    <i class="bi bi-sort-up"></i>
+                    <span>Най-стари</span>
+                  </div>
+                  <div class="dropdown-option" data-value="urgency" role="option">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>По спешност</span>
+                  </div>
+                  <div class="dropdown-option" data-value="category" role="option">
+                    <i class="bi bi-tags"></i>
+                    <span>По категория</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -399,7 +573,6 @@
 
 <!-- Signal Details Modal -->
 <div th:replace="~{signal-modal :: signal-modal}"></div>
-
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
@@ -428,14 +601,15 @@
 <!-- Markercluster JS -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
+
 <!-- Map Modules (Load order is important) -->
-<script src="/js/map/map-core.js"></script>
-<script src="/js/map/signal-management.js"></script>
-<script src="/js/map/signal-tooltip.js"></script>
-<script src="/js/map/signal-modal.js"></script>
+<script src="/js/signals/map-core.js"></script>
+<script src="/js/signals/signal-management.js"></script>
+<script src="/js/signals/signal-tooltip.js"></script>
+<script src="/js/signals/signal-modal.js"></script>
 
 <!-- Main Coordinator (Load last) -->
-<script src="/js/map/smolyan-map.js"></script>
+<script src="/js/signals/smolyan-map.js"></script>
 
 </body>
 </html>
