@@ -105,7 +105,7 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 2rem;
+    gap: 4rem;
 }
 
 .header-info h1 {
@@ -1256,27 +1256,27 @@ textarea.form-control {
 }
 
 .signal-alert-toast.success {
-    background: rgba(22, 163, 74, 0.95);
+    background: white;
     border-color: #16a34a;
-    color: white;
+    color: #16a24a;
 }
 
 .signal-alert-toast.error {
-    background: rgba(220, 38, 38, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     border-color: #dc2626;
-    color: white;
+    color: #db2626;
 }
 
 .signal-alert-toast.warning {
-    background: rgba(245, 158, 11, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     border-color: #f59e0b;
-    color: white;
+    color: #f49d0c;
 }
 
 .signal-alert-toast.info {
-    background: rgba(59, 130, 246, 0.95);
+    background: white;
     border-color: #3b82f6;
-    color: white;
+    color: #3b81f5;
 }
 
 .signal-alert-toast .alert-icon {

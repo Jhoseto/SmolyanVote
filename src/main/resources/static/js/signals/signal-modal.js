@@ -353,7 +353,7 @@ function centerMapOnSignal() {
         if (map) {
             map.setView(currentModalSignal.coordinates, 19);
             closeSignalModal();
-            window.mapCore.showNotification('Картата е центрирана на сигнала с максимално увеличение', 'success');
+            window.mapCore.showNotification('Фокус върху сигнала...', 'success');
         }
     }
 }

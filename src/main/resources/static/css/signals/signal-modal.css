@@ -250,7 +250,7 @@
 }
 
 .signal-title {
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 700;
     color: #1f2937;
     margin: 0 0 12px 0;
@@ -299,11 +299,11 @@
     font-size: 15px;
     line-height: 1.6;
     color: #374151;
-    margin: 0;
+    margin: 12px 0;
     background: #f9fafb;
-    padding: 16px;
+    padding: 10px;
     border-radius: 12px;
-    border-left: 4px solid var(--smolyan-primary);
+    border-left: 1px solid var(--smolyan-primary);
 }
 
 /* ===== IMAGE SECTION ===== */

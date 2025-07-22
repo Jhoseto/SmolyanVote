@@ -78,7 +78,7 @@ async function loadSignalsData(showNotifications = true) {
                 window.mapCore?.showNotification('📭 Няма намерени сигнали с избраните филтри', 'warning', 4000);
             } else {
                 window.mapCore?.showNotification(
-                    `📍 Заредени ${signals.length} сигнал${signals.length === 1 ? '' : 'а'}`,
+                    `Заредени ${signals.length} сигнал${signals.length === 1 ? '' : 'а'}`,
                     'success',
                     3000
                 );
@@ -179,7 +179,6 @@ function loadSignals() {
 }
 
 // ===== ФИЛТРИРАНЕ =====
-// ===== ФИЛТРИРАНЕ =====
 async function applyFilters() {
     // Вземи стойностите от dropdown менютата по data-name
     const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
@@ -247,15 +246,15 @@ async function clearFilters() {
     const newCount = currentSignals.length;
     if (newCount > previousCount) {
         window.mapCore?.showNotification(
-            `🔄 Филтрите са изчистени! Показани ${newCount} сигнала (преди: ${previousCount})`,
+            `Филтрите са изчистени! Показани ${newCount} сигнала (преди: ${previousCount})`,
             'success',
             4000
         );
     } else if (newCount === previousCount) {
-        window.mapCore?.showNotification('✅ Филтрите са изчистени', 'info', 3000);
+        window.mapCore?.showNotification('Филтрите са изчистени', 'info', 3000);
     } else {
         window.mapCore?.showNotification(
-            `🔄 Филтрите са изчистени! Показани ${newCount} сигнала`,
+            `Филтрите са изчистени! Показани ${newCount} сигнала`,
             'info',
             4000
         );
