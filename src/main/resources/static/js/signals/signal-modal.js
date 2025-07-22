@@ -61,9 +61,18 @@ function updateModalContent(signal) {
     const descEl = document.getElementById('signalModalDescription');
     if (descEl) descEl.textContent = signal.description;
 
-    // Author
+    // Author с avatar
     const authorEl = document.getElementById('signalModalAuthor');
-    if (authorEl) authorEl.textContent = signal.author || 'Анонимен';
+    if (authorEl && signal.author) {
+        authorEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            ${window.avatarUtils ? window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 32, 'user-avatar') : ''}
+            <span>${signal.author?.username || 'Анонимен'}</span>
+        </div>
+    `;
+    } else if (authorEl) {
+        authorEl.textContent = 'Анонимен';
+    }
 
     // Date
     const dateEl = document.getElementById('signalModalDate');
