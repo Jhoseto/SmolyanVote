@@ -311,7 +311,7 @@ body {
   position: relative;
   display: inline-block;
   min-width: clamp(150px, 20vw, 200px);
-  height: 1.4em;
+  height: 1.9rem;
   vertical-align: baseline;
   flex-shrink: 0;
 }

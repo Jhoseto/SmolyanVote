@@ -24,9 +24,9 @@ const SIGNAL_CATEGORIES = {
 };
 
 const URGENCY_LEVELS = {
-    low: { name: 'Ниска', color: '#198754' },
-    medium: { name: 'Средна', color: '#fd7e14' },
-    high: { name: 'Висока', color: '#dc3545' }
+    LOW: { name: 'Ниска', color: '#198754' },
+    MEDIUM: { name: 'Средна', color: '#fd7e14' },
+    HIGH: { name: 'Висока', color: '#dc3545' }
 };
 
 // ===== ГЛОБАЛНИ ПРОМЕНЛИВИ =====
@@ -41,6 +41,7 @@ let locationSelectionMode = false;
 // ===== ЗАРЕЖДАНЕ НА СИГНАЛИ =====
 async function loadSignalsData() {
     try {
+        console.log('Loading signals with filters:', activeFilters); // DEBUG
         const params = new URLSearchParams();
         if (activeFilters.category !== 'all') params.append('category', activeFilters.category);
         if (activeFilters.urgency !== 'all') params.append('urgency', activeFilters.urgency);
@@ -119,14 +120,30 @@ function loadSignals() {
 }
 
 // ===== ФИЛТРИРАНЕ =====
+// ===== ФИЛТРИРАНЕ =====
 async function applyFilters() {
-    const categoryFilter = document.getElementById('categoryFilter');
-    const urgencyFilter = document.getElementById('urgencyFilter');
-    const sortFilter = document.getElementById('sortFilter');
+    // Вземи стойностите от dropdown менютата по data-name
+    const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
+    const urgencyDropdown = document.querySelector('[data-name="urgencyFilter"]');
+    const sortDropdown = document.querySelector('[data-name="sortFilter"]');
 
-    if (categoryFilter) activeFilters.category = categoryFilter.value || 'all';
-    if (urgencyFilter) activeFilters.urgency = urgencyFilter.value || 'all';
-    if (sortFilter) activeFilters.sort = sortFilter.value || 'newest';
+    // Обнови activeFilters от dropdown стойностите
+    if (categoryDropdown) {
+        const selectedCategory = categoryDropdown.querySelector('.dropdown-option.selected');
+        activeFilters.category = selectedCategory ? selectedCategory.dataset.value : 'all';
+    }
+
+    if (urgencyDropdown) {
+        const selectedUrgency = urgencyDropdown.querySelector('.dropdown-option.selected');
+        activeFilters.urgency = selectedUrgency ? selectedUrgency.dataset.value : 'all';
+    }
+
+    if (sortDropdown) {
+        const selectedSort = sortDropdown.querySelector('.dropdown-option.selected');
+        activeFilters.sort = selectedSort ? selectedSort.dataset.value : 'newest';
+    }
+
+    console.log('Applying filters:', activeFilters); // DEBUG
 
     await loadSignalsData();
 }
@@ -173,8 +190,9 @@ function updateSignalsList(signals) {
                 <h4 class="signal-title">${signal.title}</h4>
                 <p class="signal-description">${signal.description?.substring(0, 100)}${signal.description?.length > 100 ? '...' : ''}</p>
                 <div class="signal-meta">
-                    <span><i class="bi bi-person"></i> ${signal.author || 'Анонимен'}</span>
-                    <span><i class="bi bi-calendar"></i> ${formatDate(signal.created)}</span>
+                    <span>${window.avatarUtils ? window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 24, 'user-avatar') : '<div class="user-avatar" ' +
+                       'style="width:24px;height:24px;background:#4cb15c;border-radius:50%;display:inline-block;margin-right:6px;"></div>'} ${signal.author?.username || 'Анонимен'}</span>
+                    <span><i class="bi bi-calendar"></i> ${formatDate(signal.createdAt)}</span>
                 </div>
             </div>
         `;

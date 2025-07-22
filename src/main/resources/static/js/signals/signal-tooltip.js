@@ -53,8 +53,9 @@ function showTooltip(signal, mouseEvent) {
             ">${urgency.name}</span>
         </div>
         <div style="font-weight: bold; margin-bottom: 4px;">${signal.title}</div>
-        <div style="color: #666; font-size: 12px;">
-            ${signal.author || 'Анонимен'} • ${formatDate(signal.created)}
+        <div style="color: #666; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+            ${window.avatarUtils ? window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 20, 'user-avatar') : ''}
+           <span>${signal.author?.username || 'Анонимен'} • ${formatDate(signal.createdAt)}</span>
         </div>
     `;
 
