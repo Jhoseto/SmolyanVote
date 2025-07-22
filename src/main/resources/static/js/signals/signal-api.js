@@ -4,7 +4,7 @@
 // ===== API CONFIGURATION =====
 const API_CONFIG = {
     baseURL: '/signals',
-    timeout: 30000, // 30 секунди
+    timeout: 60000, // 60 секунди
     retryAttempts: 3,
     retryDelay: 1000 // 1 секунда
 };
@@ -15,12 +15,16 @@ class HTTPClient {
         const defaultOptions = {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'same-origin', // За session cookies
+            credentials: 'same-origin',
             ...options
         };
+
+        // Задаваме Content-Type само ако не е FormData
+        if (!(options.body instanceof FormData)) {
+            defaultOptions.headers['Content-Type'] = 'application/json';
+        }
 
         // Добавяне на CSRF token ако съществува
         const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
@@ -210,12 +214,31 @@ class SignalAPI {
             // Подготовка на данните за изпращане
             const payload = this.prepareSignalPayload(signalData);
 
+            // Debug информация за FormData
+            console.log('📦 FormData contents:');
+            for (let [key, value] of payload.entries()) {
+                if (value instanceof File) {
+                    console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+                } else {
+                    console.log(`  ${key}: ${value}`);
+                }
+            }
+
+            console.log('🌐 Sending request to:', API_CONFIG.baseURL);
+            const startTime = Date.now();
+
+            // Специални опции за FormData
             const response = await HTTPClient.retryRequest(API_CONFIG.baseURL, {
                 method: 'POST',
-                body: payload
+                body: payload,
+                headers: {
+                    // НЕ задаваме Content-Type за FormData - браузърът автоматично ще го зададе
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
-            console.log('✅ Signal created successfully:', response);
+            const endTime = Date.now();
+            console.log(`✅ Signal created successfully in ${endTime - startTime}ms:`, response);
             return response;
 
         } catch (error) {
@@ -305,31 +328,45 @@ class SignalAPI {
     }
 
     static prepareSignalPayload(data) {
-        // Ако има снимка, използваме FormData
-        if (data.image && data.image instanceof File) {
-            const formData = new FormData();
-            formData.append('title', data.title.trim());
-            formData.append('description', data.description.trim());
-            formData.append('category', data.category);
-            formData.append('urgency', data.urgency);
-            formData.append('latitude', data.latitude);
-            formData.append('longitude', data.longitude);
-            formData.append('image', data.image);
 
-            return formData;
+        const formData = new FormData();
+
+        formData.append('title', data.title.trim());
+        formData.append('description', data.description.trim());
+        formData.append('category', data.category);
+        formData.append('urgency', data.urgency);
+        formData.append('latitude', data.latitude.toString());
+        formData.append('longitude', data.longitude.toString());
+
+        // Добави снимка ако има
+        if (data.image && data.image instanceof File) {
+            formData.append('image', data.image);
         }
 
-        // Ако няма снимка, използваме JSON
-        return JSON.stringify({
-            title: data.title.trim(),
-            description: data.description.trim(),
-            category: data.category,
-            urgency: data.urgency,
-            latitude: parseFloat(data.latitude),
-            longitude: parseFloat(data.longitude)
-        });
+        return formData;
+    }
+
+    // ===== INCREMENT VIEWS =====
+    static async incrementViews(signalId) {
+        try {
+            console.log('🔄 Incrementing views for signal:', signalId);
+
+            // Правим GET заявка към сигнала - това автоматично увеличава views в backend-а
+            const url = `${API_CONFIG.baseURL}/${signalId}`;
+            const response = await HTTPClient.retryRequest(url);
+
+            console.log('✅ Views incremented, updated signal data:', response);
+            return response; // Връщаме обновените данни
+
+        } catch (error) {
+            console.error('❌ Error incrementing views:', error);
+            // Не хвърляме грешка - views increment-ът не трябва да блокира UI-то
+            return null;
+        }
     }
 }
+
+
 
 // ===== GLOBAL API UTILITIES =====
 window.SignalAPI = SignalAPI;

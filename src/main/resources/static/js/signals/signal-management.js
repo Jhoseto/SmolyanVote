@@ -39,15 +39,27 @@ let activeFilters = {
 let locationSelectionMode = false;
 
 // ===== ЗАРЕЖДАНЕ НА СИГНАЛИ =====
-async function loadSignalsData() {
+async function loadSignalsData(showNotifications = true) {
     try {
-        console.log('Loading signals with filters:', activeFilters); // DEBUG
-        const params = new URLSearchParams();
-        if (activeFilters.category !== 'all') params.append('category', activeFilters.category);
-        if (activeFilters.urgency !== 'all') params.append('urgency', activeFilters.urgency);
-        if (activeFilters.sort) params.append('sort', activeFilters.sort);
+        if (showNotifications) {
+        }
 
-        const url = '/signals' + (params.toString() ? '?' + params.toString() : '');
+        const filters = {
+            category: activeFilters.category,
+            urgency: activeFilters.urgency,
+            search: activeFilters.search,
+            sort: activeFilters.sort
+        };
+
+        // Построяване на URL с параметри
+        const params = new URLSearchParams();
+        Object.keys(filters).forEach(key => {
+            if (filters[key] && filters[key] !== 'all' && filters[key] !== '') {
+                params.append(key, filters[key]);
+            }
+        });
+
+        const url = `/signals${params.toString() ? '?' + params.toString() : ''}`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -61,11 +73,38 @@ async function loadSignalsData() {
         updateSignalsList(currentSignals);
         updateStats();
 
-        window.mapCore?.showNotification(`Заредени ${signals.length} сигнала`, 'success');
+        if (showNotifications) {
+            if (signals.length === 0) {
+                window.mapCore?.showNotification('📭 Няма намерени сигнали с избраните филтри', 'warning', 4000);
+            } else {
+                window.mapCore?.showNotification(
+                    `📍 Заредени ${signals.length} сигнал${signals.length === 1 ? '' : 'а'}`,
+                    'success',
+                    3000
+                );
+            }
+        }
+
+        console.log(`✅ Loaded ${signals.length} signals successfully`);
 
     } catch (error) {
         console.error('Грешка при зареждане:', error);
-        window.mapCore?.showNotification('Грешка при зареждане', 'error');
+
+        if (showNotifications) {
+            if (error.message.includes('Failed to fetch')) {
+                window.mapCore?.showNotification(
+                    '🔌 Проблем с мрежовата връзка. Проверете интернет свързаността си.',
+                    'error',
+                    6000
+                );
+            } else {
+                window.mapCore?.showNotification(
+                    '❌ Грешка при зареждане на сигналите. Опитайте да обновите страницата.',
+                    'error',
+                    5000
+                );
+            }
+        }
     }
 }
 
@@ -95,14 +134,34 @@ function createSignalMarker(signal) {
     const marker = L.marker(signal.coordinates, { icon });
     marker.signalData = signal;
 
+    // Click event за modal
     marker.on('click', function() {
         if (window.openSignalModal) {
             window.openSignalModal(signal);
         }
     });
 
+    // Hover events за tooltip
+    marker.on('mouseover', function(e) {
+        if (window.signalTooltip && window.signalTooltip.show) {
+            // Преобразуваме Leaflet event в обикновен mouse event
+            const mouseEvent = {
+                clientX: e.containerPoint.x + map.getContainer().getBoundingClientRect().left,
+                clientY: e.containerPoint.y + map.getContainer().getBoundingClientRect().top
+            };
+            window.signalTooltip.show(signal, mouseEvent);
+        }
+    });
+
+    marker.on('mouseout', function() {
+        if (window.signalTooltip && window.signalTooltip.hide) {
+            window.signalTooltip.hide();
+        }
+    });
+
     return marker;
 }
+
 
 // ===== ЗАРЕЖДАНЕ НА MARKERS =====
 function loadSignals() {
@@ -148,18 +207,61 @@ async function applyFilters() {
     await loadSignalsData();
 }
 
-function clearFilters() {
-    activeFilters = { category: 'all', urgency: 'all', sort: 'newest' };
+async function clearFilters() {
+    // Запомни предишния брой сигнали
+    const previousCount = currentSignals.length;
 
-    const categoryFilter = document.getElementById('categoryFilter');
-    const urgencyFilter = document.getElementById('urgencyFilter');
-    const sortFilter = document.getElementById('sortFilter');
+    activeFilters = {
+        category: 'all',
+        urgency: 'all',
+        search: '',
+        sort: 'newest'
+    };
 
-    if (categoryFilter) categoryFilter.value = 'all';
-    if (urgencyFilter) urgencyFilter.value = 'all';
-    if (sortFilter) sortFilter.value = 'newest';
+    // Изчисти search field
+    const searchInput = document.getElementById('signalSearch');
+    if (searchInput) {
+        searchInput.value = '';
+    }
 
-    loadSignalsData();
+    // Рестартирай dropdown менютата
+    const dropdowns = document.querySelectorAll('.custom-dropdown');
+    dropdowns.forEach(dropdown => {
+        const options = dropdown.querySelectorAll('.dropdown-option');
+        options.forEach(opt => opt.classList.remove('selected'));
+
+        // Избери първата опция (обикновено "Всички")
+        if (options.length > 0) {
+            options[0].classList.add('selected');
+            const trigger = dropdown.querySelector('.dropdown-trigger .dropdown-text');
+            if (trigger) {
+                trigger.textContent = options[0].textContent;
+            }
+        }
+    });
+
+    // Презареди данните
+    await loadSignalsData(false); // Без показване на "зареждане" notification
+
+    // Покажи notification за резултата
+    const newCount = currentSignals.length;
+    if (newCount > previousCount) {
+        window.mapCore?.showNotification(
+            `🔄 Филтрите са изчистени! Показани ${newCount} сигнала (преди: ${previousCount})`,
+            'success',
+            4000
+        );
+    } else if (newCount === previousCount) {
+        window.mapCore?.showNotification('✅ Филтрите са изчистени', 'info', 3000);
+    } else {
+        window.mapCore?.showNotification(
+            `🔄 Филтрите са изчистени! Показани ${newCount} сигнала`,
+            'info',
+            4000
+        );
+    }
+
+    console.log('Filters cleared and signals reloaded');
 }
 
 // ===== СПИСЪК СЪС СИГНАЛИ =====
@@ -262,14 +364,20 @@ function formatDate(dateString) {
 }
 
 function startLocationSelection() {
-    locationSelectionMode = true;
+    if (window.signalManagement) {
+        window.signalManagement.locationSelectionMode = true;
+    }
+
     const btn = document.getElementById('selectLocationBtn');
     if (btn) {
         btn.innerHTML = '<i class="bi bi-crosshair"></i> <span>Кликнете на картата</span>';
         btn.classList.add('selecting');
+        btn.classList.remove('selected');
     }
+
     window.mapCore?.showNotification('Кликнете на картата за избор на местоположение', 'info');
 }
+
 
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {
@@ -294,7 +402,7 @@ function initializeEventListeners() {
         clearBtn.addEventListener('click', clearFilters);
     }
 
-    // Location selection
+    // Location selection - правилен event listener
     const locationBtn = document.getElementById('selectLocationBtn');
     if (locationBtn) {
         locationBtn.addEventListener('click', startLocationSelection);
@@ -318,3 +426,5 @@ window.signalManagement = {
 // Глобални функции
 window.clearAllFilters = clearFilters;
 window.applyFilters = applyFilters;
+window.startLocationSelection = startLocationSelection;
+window.updateFormCoordinates = updateFormCoordinates;

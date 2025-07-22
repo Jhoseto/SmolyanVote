@@ -30,6 +30,7 @@ function createTooltip() {
 }
 
 // ===== ПОКАЗВАНЕ НА TOOLTIP =====
+// ===== ПОКАЗВАНЕ НА TOOLTIP =====
 function showTooltip(signal, mouseEvent) {
     // Само на desktop
     if (window.innerWidth <= 768) return;
@@ -59,18 +60,24 @@ function showTooltip(signal, mouseEvent) {
         </div>
     `;
 
-    // Позициониране
-    const x = mouseEvent.clientX + 10;
-    const y = mouseEvent.clientY - tooltip.offsetHeight - 10;
+    // Показване първо за да можем да измерим размера
+    tooltip.style.display = 'block';
+    tooltip.style.opacity = '0';
 
-    tooltip.style.left = Math.min(x, window.innerWidth - tooltip.offsetWidth - 20) + 'px';
+    // Позициониране след като tooltip-ът е показан
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const x = mouseEvent.clientX + 10;
+    const y = mouseEvent.clientY - tooltipRect.height - 10;
+
+    tooltip.style.left = Math.min(x, window.innerWidth - tooltipRect.width - 20) + 'px';
     tooltip.style.top = Math.max(y, 10) + 'px';
 
-    // Показване
-    tooltip.style.display = 'block';
+    // Плавно показване
     setTimeout(() => {
-        tooltip.style.opacity = '1';
-        tooltip.style.transform = 'translateY(0)';
+        if (tooltip) {
+            tooltip.style.opacity = '1';
+            tooltip.style.transform = 'translateY(0)';
+        }
     }, 10);
 
     // Автоматично скриване
