@@ -1,26 +1,41 @@
-// ===== SIGNAL MODAL =====
-// Модал за подробности за сигналите
+// ===== MODERN SIGNAL MODAL =====
+// Модерен модал за подробности на сигналите
 
 let currentModalSignal = null;
+let isThreeDotsMenuOpen = false;
 
-// ===== ОТВАРЯНЕ НА МОДАЛ =====
+// ===== MAIN MODAL FUNCTIONS =====
+
 function openSignalModal(signal) {
     if (!signal) return;
 
+    console.log('Opening modal with signal:', signal);
+
     currentModalSignal = signal;
     const modal = document.getElementById('signalModal');
-    if (!modal) return;
+    if (!modal) {
+        console.error('Modal not found!');
+        return;
+    }
+
+    // Увеличи views при отваряне
+    incrementSignalViews(signal.id);
 
     // Обнови съдържанието
     updateModalContent(signal);
 
-    // Покажи модала
+    // Покажи модала с анимация
     modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('active'), 10);
+    requestAnimationFrame(() => {
+        modal.classList.add('active');
+    });
+
     document.body.style.overflow = 'hidden';
+
+    // Затвори three dots menu ако е отворен
+    closeThreeDotsMenu();
 }
 
-// ===== ЗАТВАРЯНЕ НА МОДАЛ =====
 function closeSignalModal() {
     const modal = document.getElementById('signalModal');
     if (!modal) return;
@@ -32,151 +47,404 @@ function closeSignalModal() {
     }, 300);
 
     currentModalSignal = null;
+    closeThreeDotsMenu();
 }
 
-// ===== ОБНОВЯВАНЕ НА СЪДЪРЖАНИЕТО =====
+// ===== MODAL CONTENT UPDATE =====
+
 function updateModalContent(signal) {
-    const category = SIGNAL_CATEGORIES[signal.category] || { name: signal.category, icon: 'bi-circle', color: '#6c757d' };
-    const urgency = URGENCY_LEVELS[signal.urgency] || { name: signal.urgency, color: '#6c757d' };
+    console.log('Updating modal content:', signal);
 
-    // Title
-    const titleEl = document.getElementById('signalModalTitle');
-    if (titleEl) titleEl.textContent = signal.title;
+    // Get category and urgency info
+    const category = SIGNAL_CATEGORIES[signal.category] || {
+        name: signal.category,
+        icon: 'bi-circle',
+        color: '#6b7280'
+    };
 
-    // Category
-    const categoryEl = document.getElementById('signalModalCategory');
-    if (categoryEl) {
-        categoryEl.innerHTML = `<i class="${category.icon}"></i> ${category.name}`;
-        categoryEl.style.color = category.color;
+    const urgency = URGENCY_LEVELS[signal.urgency] || {
+        name: signal.urgency,
+        color: '#6b7280'
+    };
+
+    // Update title
+    const titleEl = document.getElementById('modalSignalTitle');
+    if (titleEl) titleEl.textContent = signal.title || 'Без заглавие';
+
+    // Update category badge
+    const categoryIcon = document.getElementById('modalCategoryIcon');
+    const categoryName = document.getElementById('modalCategoryName');
+    const categoryBadge = document.getElementById('modalCategoryBadge');
+
+    if (categoryIcon) categoryIcon.className = category.icon;
+    if (categoryName) categoryName.textContent = category.name;
+    if (categoryBadge) {
+        categoryBadge.style.background = `${category.color}15`;
+        categoryBadge.style.color = category.color;
+        categoryBadge.style.borderColor = `${category.color}30`;
     }
 
-    // Urgency
-    const urgencyEl = document.getElementById('signalModalUrgency');
-    if (urgencyEl) {
-        urgencyEl.textContent = urgency.name;
-        urgencyEl.className = `signal-urgency urgency-${signal.urgency}`;
+    // Update urgency badge
+    const urgencyName = document.getElementById('modalUrgencyName');
+    const urgencyBadge = document.getElementById('modalUrgencyBadge');
+
+    if (urgencyName) urgencyName.textContent = urgency.name;
+    if (urgencyBadge) {
+        urgencyBadge.className = `urgency-badge urgency-${signal.urgency}`;
     }
 
-    // Description
-    const descEl = document.getElementById('signalModalDescription');
-    if (descEl) descEl.textContent = signal.description;
+    // Update author info with avatar
+    const authorAvatar = document.getElementById('modalAuthorAvatar');
+    const authorName = document.getElementById('modalAuthorName');
 
-    // Author с avatar
-    const authorEl = document.getElementById('signalModalAuthor');
-    if (authorEl && signal.author) {
-        authorEl.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-            ${window.avatarUtils ? window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 32, 'user-avatar') : ''}
-            <span>${signal.author?.username || 'Анонимен'}</span>
-        </div>
-    `;
-    } else if (authorEl) {
-        authorEl.textContent = 'Анонимен';
+    if (authorAvatar && window.avatarUtils) {
+        authorAvatar.outerHTML = window.avatarUtils.createAvatar(
+            signal.author?.imageUrl,
+            signal.author?.username || 'Анонимен',
+            28,
+            'author-avatar'
+        );
     }
 
-    // Date
-    const dateEl = document.getElementById('signalModalDate');
-    if (dateEl) {
-        const date = new Date(signal.created);
-        dateEl.textContent = date.toLocaleDateString('bg-BG');
+    if (authorName) {
+        authorName.textContent = signal.author?.username || 'Анонимен';
     }
 
-    // Coordinates
-    const coordsEl = document.getElementById('signalModalCoords');
-    if (coordsEl && signal.coordinates) {
-        coordsEl.textContent = `${signal.coordinates[0].toFixed(4)}, ${signal.coordinates[1].toFixed(4)}`;
+    // Update relative time
+    const relativeTime = document.getElementById('modalRelativeTime');
+    if (relativeTime && signal.createdAt) {
+        relativeTime.textContent = getRelativeTime(signal.createdAt);
     }
 
-    // Image
-    const imageEl = document.getElementById('signalModalImage');
-    if (imageEl) {
-        if (signal.imageUrl) {
-            imageEl.src = signal.imageUrl;
-            imageEl.style.display = 'block';
-        } else {
-            imageEl.style.display = 'none';
-        }
+    // Update detailed time
+    const detailedTime = document.getElementById('modalDetailedTime');
+    if (detailedTime && signal.createdAt) {
+        const date = new Date(signal.createdAt);
+        detailedTime.textContent = `Създаден на ${date.toLocaleDateString('bg-BG')} в ${date.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    // Update description
+    const description = document.getElementById('modalSignalDescription');
+    if (description) {
+        description.textContent = signal.description || 'Няма описание';
+    }
+
+    // Update image
+    updateModalImage(signal);
+
+    // Update reactions
+    updateModalReactions(signal);
+
+    // Update permissions for three dots menu
+    updateThreeDotsMenuPermissions(signal);
+
+    console.log('Modal content updated successfully');
+}
+
+function updateModalImage(signal) {
+    const imageSection = document.getElementById('modalImageSection');
+    const modalImage = document.getElementById('modalSignalImage');
+
+    if (signal.imageUrl && signal.imageUrl.trim() !== '') {
+        if (imageSection) imageSection.style.display = 'block';
+        if (modalImage) modalImage.src = signal.imageUrl;
+    } else {
+        if (imageSection) imageSection.style.display = 'none';
+    }
+}
+
+function updateModalReactions(signal) {
+    // Update likes count
+    const likesCount = document.getElementById('likesCount');
+    if (likesCount) {
+        likesCount.textContent = signal.likesCount || 0;
+    }
+
+    // Update views count (increment by 1 since we just opened it)
+    const viewsCount = document.getElementById('viewsCount');
+    if (viewsCount) {
+        const currentViews = (signal.viewsCount || 0) + 1;
+        viewsCount.textContent = currentViews;
+    }
+
+    // Update like button state (if user is authenticated)
+    const likeBtn = document.getElementById('likeBtn');
+    if (likeBtn && window.isAuthenticated) {
+        // TODO: Check if user has liked this signal
+        // For now, just ensure it's clickable
+        likeBtn.disabled = false;
+    } else if (likeBtn) {
+        likeBtn.disabled = true;
+        likeBtn.style.opacity = '0.6';
+    }
+}
+
+// ===== PERMISSIONS & THREE DOTS MENU =====
+
+function updateThreeDotsMenuPermissions(signal) {
+    const editBtn = document.getElementById('editSignalBtn');
+    const deleteBtn = document.getElementById('deleteSignalBtn');
+
+    // Show/hide buttons based on permissions
+    const canEdit = canUserEditSignal(signal);
+
+    if (editBtn) editBtn.style.display = canEdit ? 'flex' : 'none';
+    if (deleteBtn) deleteBtn.style.display = canEdit ? 'flex' : 'none';
+}
+
+function canUserEditSignal(signal) {
+    // Check if user is authenticated
+    if (!window.isAuthenticated || !window.currentUser) {
+        return false;
+    }
+
+    // Check if user is admin or author
+    const isAdmin = window.currentUser.role === 'ADMIN';
+    const isAuthor = signal.author?.id === window.currentUser.id;
+
+    return isAdmin || isAuthor;
+}
+
+function toggleThreeDotsMenu() {
+    const menu = document.getElementById('threeDotsMenu');
+    if (!menu) return;
+
+    if (isThreeDotsMenuOpen) {
+        closeThreeDotsMenu();
+    } else {
+        openThreeDotsMenu();
+    }
+}
+
+function openThreeDotsMenu() {
+    const menu = document.getElementById('threeDotsMenu');
+    if (menu) {
+        menu.classList.add('active');
+        isThreeDotsMenuOpen = true;
+    }
+}
+
+function closeThreeDotsMenu() {
+    const menu = document.getElementById('threeDotsMenu');
+    if (menu) {
+        menu.classList.remove('active');
+        isThreeDotsMenuOpen = false;
+    }
+}
+
+// ===== IMAGE LIGHTBOX =====
+
+function openImageLightbox() {
+    if (!currentModalSignal?.imageUrl) return;
+
+    console.log('Opening lightbox for image:', currentModalSignal.imageUrl);
+
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+
+    if (!lightbox) {
+        console.error('Lightbox element not found!');
+        return;
+    }
+
+    if (!lightboxImage) {
+        console.error('Lightbox image element not found!');
+        return;
+    }
+
+    // Set image source
+    lightboxImage.src = currentModalSignal.imageUrl;
+
+    // Show lightbox immediately with flex display
+    lightbox.style.display = 'flex';
+    lightbox.style.opacity = '0';
+
+    console.log('Lightbox display set to flex');
+
+    // Force reflow and add active class
+    requestAnimationFrame(() => {
+        lightbox.classList.add('active');
+        lightbox.style.opacity = '1';
+        console.log('Lightbox active class added');
+    });
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+
+    console.log('Lightbox should now be visible');
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    if (lightbox) {
+        console.log('Closing lightbox');
+        lightbox.classList.remove('active');
+        lightbox.style.opacity = '0';
+        setTimeout(() => {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 300);
     }
 }
 
 // ===== ACTIONS =====
+
 function centerMapOnSignal() {
     if (currentModalSignal?.coordinates && window.mapCore) {
         const map = window.mapCore.getMap();
         if (map) {
             map.setView(currentModalSignal.coordinates, 16);
             closeSignalModal();
-            window.mapCore.showNotification('Картата е центрирана', 'success');
+            window.mapCore.showNotification('Картата е центрирана на сигнала', 'success');
         }
-    }
-}
-
-function reportSignal() {
-    if (currentModalSignal && window.showEventReportModal) {
-        window.showEventReportModal('SIGNAL', currentModalSignal.id, currentModalSignal.title);
-    } else {
-        alert('Функцията за докладване не е достъпна');
     }
 }
 
 function editSignal() {
     if (currentModalSignal) {
+        closeThreeDotsMenu();
+        // TODO: Implement edit functionality
         alert('Функцията за редактиране ще бъде добавена скоро');
     }
 }
 
 function deleteSignal() {
     if (currentModalSignal) {
+        closeThreeDotsMenu();
         const confirmed = confirm('Сигурни ли сте, че искате да изтриете този сигнал?');
         if (confirmed) {
+            // TODO: Implement delete functionality
             alert('Функцията за изтриване ще бъде добавена скоро');
         }
     }
 }
 
+async function toggleLike() {
+    if (!currentModalSignal || !window.isAuthenticated) {
+        if (!window.isAuthenticated) {
+            alert('Моля, влезте в профила си за да харесвате сигнали');
+        }
+        return;
+    }
+
+    try {
+        // TODO: Implement API call to toggle like
+        console.log('Toggle like for signal:', currentModalSignal.id);
+
+        // For now, just update UI optimistically
+        const likesCountEl = document.getElementById('likesCount');
+        const likeBtn = document.getElementById('likeBtn');
+
+        if (likesCountEl && likeBtn) {
+            const currentCount = parseInt(likesCountEl.textContent) || 0;
+            const isLiked = likeBtn.classList.contains('active');
+
+            if (isLiked) {
+                likesCountEl.textContent = Math.max(0, currentCount - 1);
+                likeBtn.classList.remove('active');
+            } else {
+                likesCountEl.textContent = currentCount + 1;
+                likeBtn.classList.add('active');
+            }
+        }
+
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('Възникна грешка при харесването');
+    }
+}
+
+async function incrementSignalViews(signalId) {
+    try {
+        // TODO: Implement API call to increment views
+        console.log('Incrementing views for signal:', signalId);
+
+    } catch (error) {
+        console.error('Error incrementing views:', error);
+    }
+}
+
+// ===== UTILITY FUNCTIONS =====
+
+function getRelativeTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) {
+        return 'току що';
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `преди ${minutes} мин`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `преди ${hours} час${hours > 1 ? 'а' : ''}`;
+    } else if (diffInSeconds < 604800) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `преди ${days} д${days > 1 ? 'ни' : 'ен'}`;
+    } else {
+        return date.toLocaleDateString('bg-BG');
+    }
+}
+
 // ===== EVENT LISTENERS =====
+
 function initializeSignalModal() {
     const modal = document.getElementById('signalModal');
     if (!modal) return;
 
-    // Затваряне при клик върху backdrop
-    modal.onclick = (e) => {
-        if (e.target === modal) closeSignalModal();
-    };
+    // Close on overlay click
+    const overlay = modal.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeSignalModal);
+    }
 
-    // Затваряне при ESC
+    // Close on ESC key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('active')) {
-            closeSignalModal();
+        if (e.key === 'Escape') {
+            const lightbox = document.getElementById('imageLightbox');
+            if (lightbox && lightbox.classList.contains('active')) {
+                closeImageLightbox();
+            } else if (modal.classList.contains('active')) {
+                closeSignalModal();
+            }
         }
     });
 
-    // Бутони
-    const closeBtn = modal.querySelector('.modal-close');
-    if (closeBtn) closeBtn.onclick = closeSignalModal;
+    // Close lightbox on click outside image
+    const lightbox = document.getElementById('imageLightbox');
+    if (lightbox) {
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) {
+                closeImageLightbox();
+            }
+        });
+    }
 
-    const centerBtn = document.getElementById('centerMapBtn');
-    if (centerBtn) centerBtn.onclick = centerMapOnSignal;
+    // Close three dots menu on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown-menu-container') && isThreeDotsMenuOpen) {
+            closeThreeDotsMenu();
+        }
+    });
 
-    const reportBtn = document.getElementById('reportSignalBtn');
-    if (reportBtn) reportBtn.onclick = reportSignal;
-
-    const editBtn = document.getElementById('editSignalBtn');
-    if (editBtn) editBtn.onclick = editSignal;
-
-    const deleteBtn = document.getElementById('deleteSignalBtn');
-    if (deleteBtn) deleteBtn.onclick = deleteSignal;
+    console.log('Signal modal initialized');
 }
 
-// ===== ГЛОБАЛНИ ФУНКЦИИ =====
+// ===== GLOBAL FUNCTIONS =====
 window.openSignalModal = openSignalModal;
 window.closeSignalModal = closeSignalModal;
 window.centerMapOnSignal = centerMapOnSignal;
-window.reportSignal = reportSignal;
 window.editSignal = editSignal;
 window.deleteSignal = deleteSignal;
+window.toggleLike = toggleLike;
+window.toggleThreeDotsMenu = toggleThreeDotsMenu;
+window.openImageLightbox = openImageLightbox;
+window.closeImageLightbox = closeImageLightbox;
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
+// ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     initializeSignalModal();
 });
+
+console.log('✅ Modern Signal Modal loaded successfully');
