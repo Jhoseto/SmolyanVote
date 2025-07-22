@@ -343,6 +343,7 @@
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .signal-image-container:hover .image-overlay {
@@ -459,9 +460,9 @@
     bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    z-index: 99999 !important;
+    z-index: 100000 !important;
     background: rgba(0, 0, 0, 0.95) !important;
-    display: none !important;
+    display: none;
     align-items: center !important;
     justify-content: center !important;
     padding: 40px !important;
