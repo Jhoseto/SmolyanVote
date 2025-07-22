@@ -1,40 +1,77 @@
 // ===== MODERN SIGNAL MODAL =====
-// Модерен модал за подробности на сигналите
+
 
 let currentModalSignal = null;
 let isThreeDotsMenuOpen = false;
 
 // ===== MAIN MODAL FUNCTIONS =====
 
-function openSignalModal(signal) {
+async function openSignalModal(signal) {
     if (!signal) return;
 
-    console.log('Opening modal with signal:', signal);
+    try {
+        document.body.style.cursor = 'wait';
 
-    currentModalSignal = signal;
-    const modal = document.getElementById('signalModal');
-    if (!modal) {
-        console.error('Modal not found!');
-        return;
+        const freshSignal = await window.SignalAPI.incrementViews(signal.id);
+        const signalToShow = freshSignal || signal;
+
+        currentModalSignal = signalToShow;
+        const modal = document.getElementById('signalModal');
+        if (!modal) {
+            console.error('Modal not found!');
+            return;
+        }
+
+        updateModalContent(signalToShow);
+
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+        });
+
+        document.body.style.overflow = 'hidden';
+        closeThreeDotsMenu();
+
+        if (freshSignal) {
+            updateSignalInCache(freshSignal);
+        }
+
+    } catch (error) {
+        console.warn('⚠️ Could not get fresh data, using cached:', error);
+
+        currentModalSignal = signal;
+        const modal = document.getElementById('signalModal');
+        if (modal) {
+            updateModalContent(signal);
+            modal.style.display = 'flex';
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+            });
+            document.body.style.overflow = 'hidden';
+            closeThreeDotsMenu();
+        }
+    } finally {
+
+        document.body.style.cursor = '';
     }
-
-    // Увеличи views при отваряне
-    incrementSignalViews(signal.id);
-
-    // Обнови съдържанието
-    updateModalContent(signal);
-
-    // Покажи модала с анимация
-    modal.style.display = 'flex';
-    requestAnimationFrame(() => {
-        modal.classList.add('active');
-    });
-
-    document.body.style.overflow = 'hidden';
-
-    // Затвори three dots menu ако е отворен
-    closeThreeDotsMenu();
 }
+
+// ===== FUNCTION FOR CACHE UPDATE =====
+
+function updateSignalInCache(updatedSignal) {
+    // Обнови сигнала в currentSignals масива
+    if (window.signalManagement && window.signalManagement.getCurrentSignals) {
+        const currentSignals = window.signalManagement.getCurrentSignals();
+        const signalIndex = currentSignals.findIndex(s => s.id === updatedSignal.id);
+
+        if (signalIndex !== -1) {
+            // Merge новите данни със старите (запази всички полета)
+            currentSignals[signalIndex] = { ...currentSignals[signalIndex], ...updatedSignal };
+            console.log('📝 Signal cache updated for ID:', updatedSignal.id);
+        }
+    }
+}
+
 
 function closeSignalModal() {
     const modal = document.getElementById('signalModal');
@@ -152,6 +189,28 @@ function updateModalImage(signal) {
         if (imageSection) imageSection.style.display = 'none';
     }
 }
+// ===== UPDATE MODAL VIEWS =====
+
+function updateModalViews(signal) {
+    // Обнови само views count-а без да пресъздаваме целия modal
+    const viewsCount = document.getElementById('viewsCount');
+    if (viewsCount && signal.viewsCount !== undefined) {
+        viewsCount.textContent = signal.viewsCount;
+
+        // Малка анимация за показване на промяната
+        viewsCount.style.transform = 'scale(1.1)';
+        viewsCount.style.color = '#4cb15c';
+
+        setTimeout(() => {
+            viewsCount.style.transform = 'scale(1)';
+            viewsCount.style.color = '';
+        }, 300);
+
+        console.log(`👁️ Views updated to: ${signal.viewsCount}`);
+    }
+}
+
+// ===== ОБНОВЕНА updateModalReactions БЕЗ локално увеличаване =====
 
 function updateModalReactions(signal) {
     // Update likes count
@@ -160,11 +219,10 @@ function updateModalReactions(signal) {
         likesCount.textContent = signal.likesCount || 0;
     }
 
-    // Update views count (increment by 1 since we just opened it)
+    // Update views count - БЕЗ локално увеличаване, използваме данните от сървъра
     const viewsCount = document.getElementById('viewsCount');
     if (viewsCount) {
-        const currentViews = (signal.viewsCount || 0) + 1;
-        viewsCount.textContent = currentViews;
+        viewsCount.textContent = signal.viewsCount || 0;
     }
 
     // Update like button state (if user is authenticated)
@@ -293,9 +351,9 @@ function centerMapOnSignal() {
     if (currentModalSignal?.coordinates && window.mapCore) {
         const map = window.mapCore.getMap();
         if (map) {
-            map.setView(currentModalSignal.coordinates, 16);
+            map.setView(currentModalSignal.coordinates, 19);
             closeSignalModal();
-            window.mapCore.showNotification('Картата е центрирана на сигнала', 'success');
+            window.mapCore.showNotification('Картата е центрирана на сигнала с максимално увеличение', 'success');
         }
     }
 }
@@ -354,15 +412,7 @@ async function toggleLike() {
     }
 }
 
-async function incrementSignalViews(signalId) {
-    try {
-        // TODO: Implement API call to increment views
-        console.log('Incrementing views for signal:', signalId);
 
-    } catch (error) {
-        console.error('Error incrementing views:', error);
-    }
-}
 
 // ===== UTILITY FUNCTIONS =====
 

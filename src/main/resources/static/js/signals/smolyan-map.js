@@ -73,6 +73,17 @@ function initializePanels() {
     if (signalForm) {
         signalForm.onsubmit = handleSignalSubmit;
     }
+
+    // Location selection button - важно!
+    const locationBtn = document.getElementById('selectLocationBtn');
+    if (locationBtn) {
+        locationBtn.onclick = function(e) {
+            e.preventDefault();
+            if (window.startLocationSelection) {
+                window.startLocationSelection();
+            }
+        };
+    }
 }
 
 // ===== DROPDOWN ФУНКЦИОНАЛНОСТ =====
@@ -274,29 +285,74 @@ function closeAllDropdowns() {
 }
 
 // ===== TOGGLE PANELS =====
-function togglePanel(panelId) {
-    const panel = document.getElementById(panelId + 'Panel');
+function togglePanel(panelName) {
+    // Специална проверка за newSignal панела
+    if (panelName === 'newSignal') {
+        if (!window.isAuthenticated) {
+            // Използваме същия showLoginWarning като при publications
+            if (typeof window.showLoginWarning === 'function') {
+                window.showLoginWarning();
+            } else {
+                // Fallback ако функцията не съществува
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Моля, влезте в системата',
+                        text: 'Трябва да сте влезли в профила си, за да създавате сигнали.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Вход',
+                        cancelButtonText: 'Затвори',
+                        confirmButtonColor: '#4b9f3e',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const modal = document.getElementById('loginModal');
+                            if (modal && typeof bootstrap !== 'undefined') {
+                                const bsModal = new bootstrap.Modal(modal);
+                                bsModal.show();
+                            }
+                        }
+                    });
+                } else {
+                    alert('Моля, влезте в системата за да създавате сигнали.');
+                }
+            }
+            return; // Спира изпълнението без да отвори панела
+        }
+    }
+
+    const panel = document.getElementById(`${panelName}Panel`);
     if (!panel) return;
 
-    const isVisible = panel.style.display === 'flex';
+    const isVisible = panel.classList.contains('active');
 
-    if (isVisible) {
-        panel.style.display = 'none';
-        if (panelId === 'newSignal') {
-            resetSignalForm();
+    // Затвори всички останали панели
+    document.querySelectorAll('.floating-panel').forEach(p => {
+        p.classList.remove('active');
+        p.setAttribute('aria-hidden', 'true');
+    });
+
+    if (!isVisible) {
+        // Отвори панела
+        panel.classList.add('active');
+        panel.setAttribute('aria-hidden', 'false');
+
+        // Фокусирай първото поле ако е newSignal панел
+        if (panelName === 'newSignal') {
+            setTimeout(() => {
+                const firstInput = panel.querySelector('input, textarea');
+                if (firstInput) firstInput.focus();
+            }, 300);
         }
-    } else {
-        panel.style.display = 'flex';
 
         // Инициализиране на dropdown менютата в панела
-        if (panelId === 'newSignal') {
-            setTimeout(() => {
-                const panelDropdowns = panel.querySelectorAll('.custom-dropdown');
-                panelDropdowns.forEach(dropdown => {
-                    initializeSingleDropdown(dropdown);
-                });
-            }, 100);
-        }
+        setTimeout(() => {
+            const panelDropdowns = panel.querySelectorAll('.custom-dropdown');
+            panelDropdowns.forEach(dropdown => {
+                initializeSingleDropdown(dropdown);
+            });
+            console.log(`Initialized ${panelDropdowns.length} dropdowns in ${panelName} panel`);
+        }, 150);
     }
 }
 
@@ -363,52 +419,139 @@ function toggleFilters() {
 }
 
 // ===== SIGNAL FORM =====
-function handleSignalSubmit(e) {
+async function handleSignalSubmit(e) {
     e.preventDefault();
 
-    const formData = new FormData(e.target);
-    const latitude = document.getElementById('signalLatitude').value;
-    const longitude = document.getElementById('signalLongitude').value;
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
 
-    if (!latitude || !longitude) {
-        alert('Моля изберете местоположение на картата');
-        return;
+    // Disable submit button during processing
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm"></i> Изпращане...';
     }
 
-    // Вземи стойностите от dropdown менютата
-    const categoryDropdown = document.querySelector('[data-name="category"]');
-    const urgencyDropdown = document.querySelector('[data-name="urgency"]');
+    try {
+        // Get form data
+        const formData = new FormData(form);
+        const latitude = document.getElementById('signalLatitude').value;
+        const longitude = document.getElementById('signalLongitude').value;
 
-    const category = document.getElementById('signalCategory').value;
-    const urgency = document.getElementById('signalUrgency').value;
+        // Validation with specific error messages
+        if (!formData.get('title') || formData.get('title').trim().length < 5) {
+            throw new Error('Заглавието трябва да е поне 5 символа');
+        }
 
-    if (!category) {
-        alert('Моля изберете категория');
-        return;
-    }
+        if (!formData.get('description') || formData.get('description').trim().length < 10) {
+            throw new Error('Описанието трябва да е поне 10 символа');
+        }
 
-    if (!urgency) {
-        alert('Моля изберете спешност');
-        return;
-    }
+        if (!latitude || !longitude) {
+            throw new Error('Моля изберете местоположение на картата');
+        }
 
-    // TODO: Submit to server
-    console.log('Signal data:', {
-        title: formData.get('title'),
-        category: category,
-        urgency: urgency,
-        description: formData.get('description'),
-        coordinates: [parseFloat(latitude), parseFloat(longitude)]
-    });
+        // Get dropdown values
+        const category = document.getElementById('signalCategory').value;
+        const urgency = document.getElementById('signalUrgency').value;
 
-    alert('Сигналът е изпратен успешно!');
-    closePanel('newSignal');
+        if (!category) {
+            throw new Error('Моля изберете категория за сигнала');
+        }
 
-    // Reload signals
-    if (window.signalManagement) {
-        window.signalManagement.loadSignalsData();
+        if (!urgency) {
+            throw new Error('Моля изберете спешност на сигнала');
+        }
+
+        // Show processing notification
+        window.mapCore?.showNotification('Обработване на сигнала...', 'info', 2000);
+
+        // Prepare signal data
+        const signalData = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            category: category,
+            urgency: urgency,
+            latitude: latitude,  // като string
+            longitude: longitude // като string
+        };
+
+        // Add image if uploaded
+        const imageInput = document.getElementById('signalImage');
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            signalData.image = imageInput.files[0];
+            console.log('📷 Image attached:', imageInput.files[0].name);
+        }
+
+        console.log('Submitting signal data:', signalData);
+
+        // Call API to create signal
+        const response = await window.SignalAPI.createSignal(signalData);
+
+        console.log('Signal created successfully:', response);
+
+        // Show success message with more details
+        const signalTitle = signalData.title.length > 30
+            ? signalData.title.substring(0, 30) + '...'
+            : signalData.title;
+
+        window.mapCore?.showNotification(
+            `✅ Сигнал "${signalTitle}" е публикуван успешно!`,
+            'success',
+            4000
+        );
+
+        // Reset and close form
+        resetSignalForm();
+        closePanel('newSignal');
+
+        // Reload signals to show the new one
+        if (window.signalManagement) {
+            setTimeout(async () => {
+                await window.signalManagement.loadSignalsData();
+                window.mapCore?.showNotification('Картата е обновена с новия сигнал', 'info', 3000);
+            }, 1000);
+        }
+
+    } catch (error) {
+        console.error('Error creating signal:', error);
+
+        // Специално третиране на различни типове грешки
+        if (error.status === 401) {
+            window.mapCore?.showNotification(
+                '🔒 Сесията ви е изтекла. Моля влезте отново в профила си.',
+                'warning',
+                6000
+            );
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 3000);
+        } else if (error.status === 400) {
+            window.mapCore?.showNotification(
+                `❌ Невалидни данни: ${error.message}`,
+                'error',
+                5000
+            );
+        } else if (error.status >= 500) {
+            window.mapCore?.showNotification(
+                '🔧 Възникна проблем със сървъра. Моля опитайте отново след малко.',
+                'error',
+                6000
+            );
+        } else {
+            // Общо съобщение за грешка
+            const errorMessage = error.message || 'Възникна неочаквана грешка при изпращане на сигнала';
+            window.mapCore?.showNotification(`❌ ${errorMessage}`, 'error', 5000);
+        }
+
+    } finally {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send"></i> Изпрати сигнал';
+        }
     }
 }
+
 
 function resetSignalForm() {
     const form = document.getElementById('createSignalForm');
@@ -453,14 +596,50 @@ function resetSignalForm() {
 
     // Remove temporary marker
     const map = window.mapCore?.getMap();
-    if (map && window.temporaryMarker) {
-        map.removeLayer(window.temporaryMarker);
-        window.temporaryMarker = null;
+    if (map && temporaryMarker) {
+        map.removeLayer(temporaryMarker);
+        temporaryMarker = null;
     }
 
     // Reset location selection mode
     if (window.signalManagement) {
         window.signalManagement.locationSelectionMode = false;
+    }
+}
+
+// ===== LOGIN WARNING FUNCTION =====
+function showLoginWarning() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Моля, влезте в системата',
+            text: 'Трябва да сте влезли в профила си, за да създавате сигнали.',
+            showCancelButton: true,
+            confirmButtonText: 'Вход',
+            cancelButtonText: 'Затвори',
+            confirmButtonColor: '#4b9f3e',
+            cancelButtonColor: '#6c757d',
+            customClass: {
+                popup: 'rounded-3 shadow'
+            },
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const modal = document.getElementById('loginModal');
+                if (modal && typeof bootstrap !== 'undefined') {
+                    const bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                } else {
+                    // Fallback - redirect to login page
+                    window.location.href = '/login';
+                }
+            }
+        });
+    } else {
+        // Fallback без SweetAlert2
+        if (confirm('Моля, влезте в системата за да създавате сигнали.\n\nИскате ли да отидете към страницата за вход?')) {
+            window.location.href = '/login';
+        }
     }
 }
 
@@ -490,6 +669,9 @@ function getDropdownValue(dropdownName) {
     return selected ? selected.dataset.value : null;
 }
 
+window.showLoginWarning = showLoginWarning;
+
+
 // ===== ГЛОБАЛНИ ФУНКЦИИ =====
 window.togglePanel = togglePanel;
 window.closePanel = closePanel;
@@ -501,13 +683,3 @@ window.setDropdownValue = setDropdownValue;
 window.getDropdownValue = getDropdownValue;
 window.closeAllDropdowns = closeAllDropdowns;
 
-// ===== DEBUG ФУНКЦИИ =====
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    window.mapDebug = {
-        dropdowns: () => document.querySelectorAll('.custom-dropdown'),
-        activeDropdowns: () => document.querySelectorAll('.custom-dropdown.active'),
-        reinitDropdowns: initializeAllDropdowns,
-        testDropdown: (name, value) => setDropdownValue(name, value)
-    };
-    console.log('🔧 Map debug functions available at window.mapDebug');
-}

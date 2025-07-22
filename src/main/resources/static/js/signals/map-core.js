@@ -11,7 +11,7 @@ function initializeMap() {
         center: [41.5766, 24.7014], // Смолян
         zoom: 14,
         minZoom: 10,
-        maxZoom: 18,
+        maxZoom: 19,
         zoomControl: false,
         attributionControl: false
     });
@@ -19,7 +19,7 @@ function initializeMap() {
     // Tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 18
+        maxZoom: 19
     }).addTo(map);
 
     // Markers cluster
@@ -54,24 +54,27 @@ function handleMapClick(e) {
 
     const { lat, lng } = e.latlng;
 
-    // Премахни стар marker
     if (temporaryMarker) {
         map.removeLayer(temporaryMarker);
     }
 
-    // Добави нов marker
     temporaryMarker = L.marker([lat, lng], {
         icon: L.divIcon({
             className: 'temp-marker',
-            html: '<i class="bi bi-geo-alt-fill"></i>',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+            html: `<div class="temp-marker-content">
+                    <i class="bi bi-geo-alt-fill"></i>
+                   </div>`,
+            iconSize: [32, 40],
+            iconAnchor: [16, 40]
         })
     }).addTo(map);
 
     // Обнови формата
-    updateFormCoordinates([lat, lng]);
-    showNotification(`Избрано: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'success');
+    if (window.updateFormCoordinates) {
+        window.updateFormCoordinates([lat, lng]);
+    }
+
+    showNotification(`Избрано: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, 'success');
 }
 
 // ===== КОНТРОЛИ =====
@@ -135,30 +138,83 @@ function updateFormCoordinates(coordinates) {
     if (lngInput) lngInput.value = coordinates[1];
 
     if (selectBtn) {
-        selectBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Избрано</span>';
+        selectBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Местоположение избрано</span>';
         selectBtn.classList.add('selected');
+        selectBtn.classList.remove('selecting');
     }
 
+    // Reset location selection mode
     if (window.signalManagement) {
         window.signalManagement.locationSelectionMode = false;
     }
 }
 
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `map-notification notification-${type}`;
-    notification.innerHTML = `
-        <i class="bi bi-${type === 'success' ? 'check-circle-fill' : type === 'error' ? 'exclamation-circle-fill' : 'info-circle-fill'}"></i>
-        <span>${message}</span>
+function showNotification(message, type = 'info', duration = 5000) {
+    // Създай alert system container ако не съществува
+    let alertSystem = document.querySelector('.signal-alert-system');
+    if (!alertSystem) {
+        alertSystem = document.createElement('div');
+        alertSystem.className = 'signal-alert-system';
+        document.body.appendChild(alertSystem);
+    }
+
+    // Икони за различните типове
+    const icons = {
+        success: 'bi-check-circle-fill',
+        error: 'bi-exclamation-circle-fill',
+        warning: 'bi-exclamation-triangle-fill',
+        info: 'bi-info-circle-fill'
+    };
+
+    // Създай toast notification
+    const toast = document.createElement('div');
+    toast.className = `signal-alert-toast ${type}`;
+
+    const toastId = 'toast-' + Date.now();
+    toast.id = toastId;
+
+    toast.innerHTML = `
+        <i class="bi ${icons[type] || icons.info} alert-icon"></i>
+        <div class="alert-message">${message}</div>
+        <button class="alert-close" onclick="closeNotification('${toastId}')" title="Затвори">
+            <i class="bi bi-x"></i>
+        </button>
     `;
 
-    document.body.appendChild(notification);
+    // Добави toast-а в системата
+    alertSystem.appendChild(toast);
 
-    setTimeout(() => notification.classList.add('show'), 10);
+    // Покажи toast-а с анимация
     setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+        toast.classList.add('show');
+    }, 10);
+
+    // Автоматично премахване
+    setTimeout(() => {
+        closeNotification(toastId);
+    }, duration);
+
+    console.log(`📢 Notification: [${type.toUpperCase()}] ${message}`);
+}
+
+// Функция за затваряне на конкретен notification
+function closeNotification(toastId) {
+    const toast = document.getElementById(toastId);
+    if (!toast) return;
+
+    toast.classList.remove('show');
+
+    setTimeout(() => {
+        if (toast && toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+
+        // Премахни alert system ако няма повече toast-ове
+        const alertSystem = document.querySelector('.signal-alert-system');
+        if (alertSystem && alertSystem.children.length === 0) {
+            alertSystem.remove();
+        }
+    }, 300);
 }
 
 function initializeMapControls() {
@@ -184,9 +240,7 @@ function zoomInMap() {
     const maxZoom = map.getMaxZoom();
     if (currentZoom < maxZoom) {
         map.setZoom(currentZoom + 1);
-        showNotification(`Увеличено до ниво ${currentZoom + 1}`, 'info');
     } else {
-        showNotification('Достигнато максимално увеличение', 'warning');
     }
 }
 
@@ -196,9 +250,7 @@ function zoomOutMap() {
     const minZoom = map.getMinZoom();
     if (currentZoom > minZoom) {
         map.setZoom(currentZoom - 1);
-        showNotification(`Намалено до ниво ${currentZoom - 1}`, 'info');
     } else {
-        showNotification('Достигнато минимално увеличение', 'warning');
     }
 }
 
@@ -208,5 +260,8 @@ window.mapCore = {
     initializeMapControls,
     getMap: () => map,
     getMarkersCluster: () => markersCluster,
-    showNotification
+    showNotification,
+    updateFormCoordinates
 };
+window.updateFormCoordinates = updateFormCoordinates;
+window.closeNotification = closeNotification;

@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
-@Transactional
 public class SignalsServiceImpl implements SignalsService {
 
     private final SignalsRepository signalsRepository;
@@ -44,7 +43,16 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional(readOnly = true)
     public SignalsEntity findById(Long id) {
-        return signalsRepository.findById(id).orElse(null);
+        SignalsEntity signal = signalsRepository.findById(id).orElse(null);
+
+        // Принудително зареждане на lazy-loaded релации
+        if (signal != null && signal.getAuthor() != null) {
+            // Това ще зареди author-а в рамките на транзакцията
+            signal.getAuthor().getUsername();
+            signal.getAuthor().getImageUrl();
+        }
+
+        return signal;
     }
 
     @Override
@@ -119,15 +127,33 @@ public class SignalsServiceImpl implements SignalsService {
         String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         String cleanSort = (sort != null && !sort.trim().isEmpty()) ? sort : "newest";
 
-        return signalsRepository.findWithFilters(cleanSearch, categoryEnum, urgencyEnum,
+        Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, urgencyEnum,
                 timeFilterDate, cleanSort, pageable);
+
+        // Принудително зареждане на author за всички сигнали
+        results.getContent().forEach(signal -> {
+            if (signal.getAuthor() != null) {
+                signal.getAuthor().getUsername();
+            }
+        });
+
+        return results;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SignalsEntity> findByLocationBounds(Double minLat, Double maxLat,
                                                     Double minLon, Double maxLon) {
-        return signalsRepository.findByLocationBounds(minLat, maxLat, minLon, maxLon);
+        List<SignalsEntity> results = signalsRepository.findByLocationBounds(minLat, maxLat, minLon, maxLon);
+
+        // Принудително зареждане на author за всички сигнали
+        results.forEach(signal -> {
+            if (signal.getAuthor() != null) {
+                signal.getAuthor().getUsername();
+            }
+        });
+
+        return results;
     }
 
     // ====== СТАТИСТИКИ ======
@@ -209,17 +235,24 @@ public class SignalsServiceImpl implements SignalsService {
     // ====== ПРАВА НА ДОСТЪП ======
 
     @Override
+    @Transactional(readOnly = true)
     public boolean canViewSignal(SignalsEntity signal, Authentication auth) {
         // Всички могат да виждат сигналите
         return true;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean canEditSignal(SignalsEntity signal, Authentication auth) {
         if (auth == null || signal == null) return false;
 
         UserEntity currentUser = userService.getCurrentUser();
         if (currentUser == null) return false;
+
+        // Принудително зареждане на author
+        if (signal.getAuthor() != null) {
+            signal.getAuthor().getId();
+        }
 
         // Само автора или админи могат да редактират
         return signal.getAuthor().getId().equals(currentUser.getId()) ||
@@ -227,11 +260,17 @@ public class SignalsServiceImpl implements SignalsService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean canDeleteSignal(SignalsEntity signal, Authentication auth) {
         if (auth == null || signal == null) return false;
 
         UserEntity currentUser = userService.getCurrentUser();
         if (currentUser == null) return false;
+
+        // Принудително зареждане на author
+        if (signal.getAuthor() != null) {
+            signal.getAuthor().getId();
+        }
 
         // Само автора или админи могат да изтриват
         return signal.getAuthor().getId().equals(currentUser.getId()) ||
@@ -243,7 +282,16 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional(readOnly = true)
     public Page<SignalsEntity> getSignalsByAuthor(Long authorId, Pageable pageable) {
-        return signalsRepository.findByAuthorIdOrderByCreatedDesc(authorId, pageable);
+        Page<SignalsEntity> results = signalsRepository.findByAuthorIdOrderByCreatedDesc(authorId, pageable);
+
+        // Принудително зареждане на author за всички сигнали
+        results.getContent().forEach(signal -> {
+            if (signal.getAuthor() != null) {
+                signal.getAuthor().getUsername();
+            }
+        });
+
+        return results;
     }
 
     @Override
