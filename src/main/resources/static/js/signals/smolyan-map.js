@@ -195,23 +195,23 @@ function updateHiddenInput(dropdown, value) {
     }
 }
 
+// ===== DEBOUNCED FILTER TRIGGER =====
+let triggerTimeout;
+
 function triggerFilterChange(dropdown, value) {
     const dropdownName = dropdown.dataset.name;
 
     if (!dropdownName) return;
 
-    // За филтрите в signals панела
-    if (dropdownName === 'categoryFilter' || dropdownName === 'urgencyFilter' || dropdownName === 'sortFilter') {
-        // Обнови стойността в signal management
-        if (window.signalManagement) {
-            // Simulate change event
-            setTimeout(() => {
-                if (typeof window.signalManagement.applyFilters === 'function') {
-                    window.signalManagement.applyFilters();
-                }
-            }, 10);
+    clearTimeout(triggerTimeout);
+
+    triggerTimeout = setTimeout(() => {
+        if (dropdownName === 'categoryFilter' || dropdownName === 'urgencyFilter' || dropdownName === 'sortFilter') {
+            if (window.signalManagement && typeof window.signalManagement.applyFilters === 'function') {
+                window.signalManagement.applyFilters();
+            }
         }
-    }
+    }, 100); // 100ms debounce
 }
 
 function handleDropdownKeyboard(event, dropdown) {

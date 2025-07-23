@@ -148,6 +148,17 @@ function updateFormCoordinates(coordinates) {
 }
 
 function showNotification(message, type = 'info', duration = 5000) {
+    // ПРЕДОТВРАТИ ДУБЛИРАНЕ - ако вече има глобална система, използвай я
+    if (window.globalShowNotification && window.globalShowNotification !== showNotification) {
+        return window.globalShowNotification(message, type, duration);
+    }
+
+    // ПРЕМАХНИ СЪЩЕСТВУВАЩИ NOTIFICATIONS от други системи
+    const existingNotifications = document.querySelectorAll('.notification, .signal-alert-toast');
+    existingNotifications.forEach(notif => {
+        if (notif.parentNode) notif.parentNode.removeChild(notif);
+    });
+
     // Създай alert system container ако не съществува
     let alertSystem = document.querySelector('.signal-alert-system');
     if (!alertSystem) {
@@ -168,7 +179,7 @@ function showNotification(message, type = 'info', duration = 5000) {
     const toast = document.createElement('div');
     toast.className = `signal-alert-toast ${type}`;
 
-    const toastId = 'toast-' + Date.now();
+    const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     toast.id = toastId;
 
     toast.innerHTML = `
@@ -179,21 +190,19 @@ function showNotification(message, type = 'info', duration = 5000) {
         </button>
     `;
 
-    // Добави toast-а в системата
     alertSystem.appendChild(toast);
 
-    // Покажи toast-а с анимация
     setTimeout(() => {
         toast.classList.add('show');
     }, 10);
 
-    // Автоматично премахване
     setTimeout(() => {
         closeNotification(toastId);
     }, duration);
-
-    console.log(`📢 Notification: [${type.toUpperCase()}] ${message}`);
 }
+
+window.globalShowNotification = showNotification;
+window.showNotification = showNotification;
 
 // Функция за затваряне на конкретен notification
 function closeNotification(toastId) {
@@ -251,6 +260,12 @@ function zoomOutMap() {
     } else {
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        window.showNotification = window.globalShowNotification;
+    }, 100);
+});
 
 // ===== PUBLIC API =====
 window.mapCore = {
