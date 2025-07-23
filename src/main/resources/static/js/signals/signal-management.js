@@ -29,11 +29,15 @@ const URGENCY_LEVELS = {
     HIGH: { name: 'Висока', color: '#dc3545' }
 };
 
+let searchTimeout;
+const SEARCH_DELAY = 300;
+
 // ===== ГЛОБАЛНИ ПРОМЕНЛИВИ =====
 let currentSignals = [];
 let activeFilters = {
     category: 'all',
     urgency: 'all',
+    search: '',
     sort: 'newest'
 };
 let locationSelectionMode = false;
@@ -293,8 +297,7 @@ function updateSignalsList(signals) {
                 <div class="signal-meta">
                     <span>${window.avatarUtils ? window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 24, 'user-avatar') : '<div class="user-avatar" ' +
                        'style="width:24px;height:24px;background:#4cb15c;border-radius:50%;display:inline-block;margin-right:6px;"></div>'} ${signal.author?.username || 'Анонимен'}</span>
-                    <span><i class="bi bi-calendar"></i> ${formatDate(signal.createdAt)}</span>
-                </div>
+                    <span><i class="bi bi-calendar"></i> ${window.signalModalUtils ? window.signalModalUtils.getRelativeTime(signal.createdAt) : formatDate(signal.createdAt)}</span>                </div>
             </div>
         `;
     }).join('');
@@ -384,6 +387,17 @@ function initializeEventListeners() {
     const categoryFilter = document.getElementById('categoryFilter');
     const urgencyFilter = document.getElementById('urgencyFilter');
     const sortFilter = document.getElementById('sortFilter');
+    const searchInput = document.getElementById('signalSearch');
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearchInput);
+        searchInput.addEventListener('keypress', handleSearchKeypress);
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', clearSearch);
+    }
 
     if (categoryFilter) {
         categoryFilter.addEventListener('change', applyFilters);
@@ -410,6 +424,49 @@ function initializeEventListeners() {
     console.log('Signal management event listeners initialized');
 }
 
+// ===== SEARCH FUNCTIONS =====
+function handleSearchInput(event) {
+    const searchTerm = event.target.value.trim();
+    const clearBtn = document.getElementById('clearSearch');
+
+    // Покажи/скрий clear бутона
+    if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'flex' : 'none';
+    }
+
+    // Debounce търсенето
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        performSearch(searchTerm);
+    }, SEARCH_DELAY);
+}
+
+function handleSearchKeypress(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        clearTimeout(searchTimeout);
+        const searchTerm = event.target.value.trim();
+        performSearch(searchTerm);
+    }
+}
+
+async function performSearch(searchTerm) {
+    activeFilters.search = searchTerm;
+    console.log('Performing search:', searchTerm);
+    await loadSignalsData();
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('signalSearch');
+    const clearBtn = document.getElementById('clearSearch');
+
+    if (searchInput) searchInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    activeFilters.search = '';
+    loadSignalsData();
+}
+
 // ===== PUBLIC API =====
 window.signalManagement = {
     loadSignalsData,
@@ -427,3 +484,4 @@ window.clearAllFilters = clearFilters;
 window.applyFilters = applyFilters;
 window.startLocationSelection = startLocationSelection;
 window.updateFormCoordinates = updateFormCoordinates;
+window.clearSearch = clearSearch;

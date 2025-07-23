@@ -13,7 +13,9 @@ function initializeMap() {
         minZoom: 10,
         maxZoom: 19,
         zoomControl: false,
-        attributionControl: false
+        attributionControl: false,
+        scrollWheelZoom: false
+
     });
 
     // Tile layer
@@ -42,10 +44,6 @@ function initializeMap() {
     // Map click за избор на локация
     map.on('click', handleMapClick);
 
-    // Zoom control
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    console.log('Map initialized');
 }
 
 // ===== MAP CLICK =====

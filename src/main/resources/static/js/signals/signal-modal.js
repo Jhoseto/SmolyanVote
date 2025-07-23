@@ -10,20 +10,15 @@ async function openSignalModal(signal) {
     if (!signal) return;
 
     try {
-        document.body.style.cursor = 'wait';
-
-        const freshSignal = await window.SignalAPI.incrementViews(signal.id);
-        const signalToShow = freshSignal || signal;
-
-        currentModalSignal = signalToShow;
+        currentModalSignal = signal;
         const modal = document.getElementById('signalModal');
         if (!modal) {
             console.error('Modal not found!');
             return;
         }
 
-        updateModalContent(signalToShow);
-
+        // 1. ПОКАЖИ МОДАЛА ВЕДНАГА с наличните данни
+        updateModalContent(signal);
         modal.style.display = 'flex';
         requestAnimationFrame(() => {
             modal.classList.add('active');
@@ -32,27 +27,23 @@ async function openSignalModal(signal) {
         document.body.style.overflow = 'hidden';
         closeThreeDotsMenu();
 
-        if (freshSignal) {
-            updateSignalInCache(freshSignal);
-        }
+        // 2. АСИНХРОННО обнови views в background
+        window.SignalAPI.incrementViews(signal.id)
+            .then(freshSignal => {
+                if (freshSignal && currentModalSignal?.id === signal.id) {
+                    // Обнови само views count-а в модала
+                    updateModalViews(freshSignal);
+                    // Обнови кеша
+                    updateSignalInCache(freshSignal);
+                }
+            })
+            .catch(error => {
+                console.warn('⚠️ Could not increment views:', error);
+                // Modal остава отворен дори при грешка
+            });
 
     } catch (error) {
-        console.warn('⚠️ Could not get fresh data, using cached:', error);
-
-        currentModalSignal = signal;
-        const modal = document.getElementById('signalModal');
-        if (modal) {
-            updateModalContent(signal);
-            modal.style.display = 'flex';
-            requestAnimationFrame(() => {
-                modal.classList.add('active');
-            });
-            document.body.style.overflow = 'hidden';
-            closeThreeDotsMenu();
-        }
-    } finally {
-
-        document.body.style.cursor = '';
+        console.error('❌ Error opening modal:', error);
     }
 }
 
@@ -292,46 +283,6 @@ function closeThreeDotsMenu() {
 
 // ===== IMAGE LIGHTBOX =====
 
-function openImageLightbox() {
-    if (!currentModalSignal?.imageUrl) return;
-
-    console.log('Opening lightbox for image:', currentModalSignal.imageUrl);
-
-    const lightbox = document.getElementById('imageLightbox');
-    const lightboxImage = document.getElementById('lightboxImage');
-
-    if (!lightbox) {
-        console.error('Lightbox element not found!');
-        return;
-    }
-
-    if (!lightboxImage) {
-        console.error('Lightbox image element not found!');
-        return;
-    }
-
-    // Set image source
-    lightboxImage.src = currentModalSignal.imageUrl;
-
-    // Show lightbox immediately with flex display
-    lightbox.style.display = 'flex';
-    lightbox.style.opacity = '0';
-
-    console.log('Lightbox display set to flex');
-
-    // Force reflow and add active class
-    requestAnimationFrame(() => {
-        lightbox.classList.add('active');
-        lightbox.style.opacity = '1';
-        console.log('Lightbox active class added');
-    });
-
-    // Prevent body scrolling
-    document.body.style.overflow = 'hidden';
-
-    console.log('Lightbox should now be visible');
-}
-
 function closeImageLightbox() {
     const lightbox = document.getElementById('imageLightbox');
     if (lightbox) {
@@ -497,4 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeSignalModal();
 });
 
-console.log('✅ Modern Signal Modal loaded successfully');
+// ===== EXPORT FUNCTIONS =====
+window.signalModalUtils = {
+    getRelativeTime: getRelativeTime
+};
