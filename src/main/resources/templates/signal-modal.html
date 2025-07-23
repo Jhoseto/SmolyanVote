@@ -94,6 +94,23 @@
                 </button>
             </div>
 
+            <!-- Comments Section -->
+            <div class="comments-section">
+                <!-- Comments Toggle Header -->
+                <div class="comments-toggle-header">
+                    <button class="comments-toggle-btn" id="commentsToggleBtn">
+                        <i class="bi bi-chevron-down"></i>
+                        <span>Коментари</span>
+                        <span class="comments-count" id="commentsCount">(0)</span>
+                    </button>
+                </div>
+
+                <!-- Comments Container -->
+                <div class="comments-container" id="commentsContainer">
+                    <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
+                </div>
+            </div>
+
             <!-- Footer with detailed info -->
             <div class="modal-footer">
                 <span class="detailed-time" id="modalDetailedTime">Създаден на 01.01.2025 в 12:00</span>
