@@ -1,7 +1,5 @@
 // ===== SIGNAL MANAGEMENT =====
-// Управление на сигнали
 
-// ===== КОНСТАНТИ =====
 const SIGNAL_CATEGORIES = {
     ROAD_DAMAGE: { name: 'Дупки в пътищата', icon: 'bi-cone-striped', color: '#dc3545' },
     SIDEWALK_DAMAGE: { name: 'Счупени тротоари', icon: 'bi-bricks', color: '#6f42c1' },
@@ -57,7 +55,6 @@ async function loadSignalsData(showNotifications = true) {
             sort: activeFilters.sort
         };
 
-        // Построяване на URL с параметри
         const params = new URLSearchParams();
         Object.keys(filters).forEach(key => {
             if (filters[key] && filters[key] !== 'all' && filters[key] !== '') {
@@ -74,7 +71,6 @@ async function loadSignalsData(showNotifications = true) {
 
         const signals = await response.json();
         currentSignals = Array.isArray(signals) ? signals : [];
-
         loadSignals();
         updateSignalsList(currentSignals);
         updateStats();
@@ -137,17 +133,14 @@ function createSignalMarker(signal) {
     const marker = L.marker(signal.coordinates, { icon });
     marker.signalData = signal;
 
-    // Click event за modal
     marker.on('click', function() {
         if (window.openSignalModal) {
             window.openSignalModal(signal);
         }
     });
 
-    // Hover events за tooltip
     marker.on('mouseover', function(e) {
         if (window.signalTooltip && window.signalTooltip.show) {
-            // Преобразуваме Leaflet event в обикновен mouse event
             const mouseEvent = {
                 clientX: e.containerPoint.x + map.getContainer().getBoundingClientRect().left,
                 clientY: e.containerPoint.y + map.getContainer().getBoundingClientRect().top
@@ -165,12 +158,10 @@ function createSignalMarker(signal) {
     return marker;
 }
 
-
 // ===== ЗАРЕЖДАНЕ НА MARKERS =====
 function loadSignals() {
     const markersCluster = window.mapCore?.getMarkersCluster();
     if (!markersCluster) return;
-
     markersCluster.clearLayers();
 
     currentSignals.forEach(signal => {
@@ -181,31 +172,23 @@ function loadSignals() {
     });
 }
 
-// ===== ФИЛТРИРАНЕ =====
 // ===== ФИЛТРИРАНЕ С DEBOUNCING =====
 async function applyFilters() {
-    // DEBOUNCE - предотврати множествени извиквания
     clearTimeout(filterTimeout);
 
     filterTimeout = setTimeout(async () => {
-        console.log('🔄 Applying filters...'); // DEBUG
-
-        // Вземи стойностите от dropdown менютата по data-name
         const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
         const urgencyDropdown = document.querySelector('[data-name="urgencyFilter"]');
         const sortDropdown = document.querySelector('[data-name="sortFilter"]');
 
-        // Обнови activeFilters от dropdown стойностите
         if (categoryDropdown) {
             const selectedCategory = categoryDropdown.querySelector('.dropdown-option.selected');
             activeFilters.category = selectedCategory ? selectedCategory.dataset.value : 'all';
         }
-
         if (urgencyDropdown) {
             const selectedUrgency = urgencyDropdown.querySelector('.dropdown-option.selected');
             activeFilters.urgency = selectedUrgency ? selectedUrgency.dataset.value : 'all';
         }
-
         if (sortDropdown) {
             const selectedSort = sortDropdown.querySelector('.dropdown-option.selected');
             activeFilters.sort = selectedSort ? selectedSort.dataset.value : 'newest';
@@ -216,7 +199,6 @@ async function applyFilters() {
 }
 
 async function clearFilters() {
-    // Запомни предишния брой сигнали
     const previousCount = currentSignals.length;
 
     activeFilters = {
@@ -226,19 +208,16 @@ async function clearFilters() {
         sort: 'newest'
     };
 
-    // Изчисти search field
     const searchInput = document.getElementById('signalSearch');
     if (searchInput) {
         searchInput.value = '';
     }
 
-    // Рестартирай dropdown менютата
     const dropdowns = document.querySelectorAll('.custom-dropdown');
     dropdowns.forEach(dropdown => {
         const options = dropdown.querySelectorAll('.dropdown-option');
         options.forEach(opt => opt.classList.remove('selected'));
 
-        // Избери първата опция (обикновено "Всички")
         if (options.length > 0) {
             options[0].classList.add('selected');
             const trigger = dropdown.querySelector('.dropdown-trigger .dropdown-text');
@@ -247,7 +226,6 @@ async function clearFilters() {
             }
         }
     });
-
     await loadSignalsData(false); // Без показване на "зареждане" notification
 }
 
@@ -360,10 +338,8 @@ function startLocationSelection() {
         btn.classList.add('selecting');
         btn.classList.remove('selected');
     }
-
     window.mapCore?.showNotification('Кликнете на картата за избор на местоположение', 'info');
 }
-
 
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {
@@ -398,12 +374,10 @@ function handleSearchInput(event) {
     const searchTerm = event.target.value.trim();
     const clearBtn = document.getElementById('clearSearch');
 
-    // Покажи/скрий clear бутона
     if (clearBtn) {
         clearBtn.style.display = searchTerm ? 'flex' : 'none';
     }
 
-    // Debounce търсенето
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         performSearch(searchTerm);
@@ -421,7 +395,6 @@ function handleSearchKeypress(event) {
 
 async function performSearch(searchTerm) {
     activeFilters.search = searchTerm;
-    console.log('Performing search:', searchTerm);
     await loadSignalsData();
 }
 

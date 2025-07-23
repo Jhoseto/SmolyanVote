@@ -1,5 +1,4 @@
 // ===== MAP CORE =====
-// Основна карта и контроли
 
 let map;
 let markersCluster;
@@ -18,13 +17,11 @@ function initializeMap() {
 
     });
 
-    // Tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
     }).addTo(map);
 
-    // Markers cluster
     markersCluster = L.markerClusterGroup({
         chunkedLoading: true,
         maxClusterRadius: 50,
@@ -40,8 +37,6 @@ function initializeMap() {
     });
 
     map.addLayer(markersCluster);
-
-    // Map click за избор на локация
     map.on('click', handleMapClick);
 
 }
@@ -51,7 +46,6 @@ function handleMapClick(e) {
     if (!window.signalManagement?.locationSelectionMode) return;
 
     const { lat, lng } = e.latlng;
-
     if (temporaryMarker) {
         map.removeLayer(temporaryMarker);
     }
@@ -67,11 +61,9 @@ function handleMapClick(e) {
         })
     }).addTo(map);
 
-    // Обнови формата
     if (window.updateFormCoordinates) {
         window.updateFormCoordinates([lat, lng]);
     }
-
     showNotification(`Избрано: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, 'success');
 }
 
@@ -134,40 +126,33 @@ function updateFormCoordinates(coordinates) {
 
     if (latInput) latInput.value = coordinates[0];
     if (lngInput) lngInput.value = coordinates[1];
-
     if (selectBtn) {
         selectBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> <span>Местоположение избрано</span>';
         selectBtn.classList.add('selected');
         selectBtn.classList.remove('selecting');
     }
 
-    // Reset location selection mode
     if (window.signalManagement) {
         window.signalManagement.locationSelectionMode = false;
     }
 }
 
 function showNotification(message, type = 'info', duration = 5000) {
-    // ПРЕДОТВРАТИ ДУБЛИРАНЕ - ако вече има глобална система, използвай я
     if (window.globalShowNotification && window.globalShowNotification !== showNotification) {
         return window.globalShowNotification(message, type, duration);
     }
 
-    // ПРЕМАХНИ СЪЩЕСТВУВАЩИ NOTIFICATIONS от други системи
     const existingNotifications = document.querySelectorAll('.notification, .signal-alert-toast');
     existingNotifications.forEach(notif => {
         if (notif.parentNode) notif.parentNode.removeChild(notif);
     });
 
-    // Създай alert system container ако не съществува
     let alertSystem = document.querySelector('.signal-alert-system');
     if (!alertSystem) {
         alertSystem = document.createElement('div');
         alertSystem.className = 'signal-alert-system';
         document.body.appendChild(alertSystem);
     }
-
-    // Икони за различните типове
     const icons = {
         success: 'bi-check-circle-fill',
         error: 'bi-exclamation-circle-fill',
@@ -175,7 +160,6 @@ function showNotification(message, type = 'info', duration = 5000) {
         info: 'bi-info-circle-fill'
     };
 
-    // Създай toast notification
     const toast = document.createElement('div');
     toast.className = `signal-alert-toast ${type}`;
 
@@ -204,7 +188,6 @@ function showNotification(message, type = 'info', duration = 5000) {
 window.globalShowNotification = showNotification;
 window.showNotification = showNotification;
 
-// Функция за затваряне на конкретен notification
 function closeNotification(toastId) {
     const toast = document.getElementById(toastId);
     if (!toast) return;
@@ -216,7 +199,6 @@ function closeNotification(toastId) {
             toast.parentNode.removeChild(toast);
         }
 
-        // Премахни alert system ако няма повече toast-ове
         const alertSystem = document.querySelector('.signal-alert-system');
         if (alertSystem && alertSystem.children.length === 0) {
             alertSystem.remove();
@@ -250,7 +232,6 @@ function zoomInMap() {
     } else {
     }
 }
-
 // ===== ZOOM OUT =====
 function zoomOutMap() {
     const currentZoom = map.getZoom();

@@ -5,13 +5,11 @@ let currentModalSignal = null;
 let isThreeDotsMenuOpen = false;
 let likedSignals = new Set();
 
-// Load liked signals когато се зареди страницата
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.isAuthenticated) {
         try {
             const likedSignalIds = await window.SignalAPI.getLikedSignals();
             likedSignalIds.forEach(id => likedSignals.add(id));
-            console.log('✅ Loaded liked signals:', likedSignals);
         } catch (error) {
             console.warn('Could not load liked signals:', error);
         }
@@ -19,7 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ===== MAIN MODAL FUNCTIONS =====
-
 async function openSignalModal(signal) {
     if (!signal) return;
 
@@ -31,14 +28,12 @@ async function openSignalModal(signal) {
             return;
         }
 
-        // Ако имаме isLikedByCurrentUser от backend-а, добави в Set-а
         if (signal.isLikedByCurrentUser === true) {
             likedSignals.add(signal.id);
         } else if (signal.isLikedByCurrentUser === false) {
             likedSignals.delete(signal.id);
         }
 
-        // ВЕДНЪЖ updateModalContent
         updateModalContent(signal);
         modal.style.display = 'flex';
         requestAnimationFrame(() => {
@@ -48,7 +43,6 @@ async function openSignalModal(signal) {
         document.body.style.overflow = 'hidden';
         closeThreeDotsMenu();
 
-        // САМО increment views в background - БЕЗ втора заявка
         window.SignalAPI.incrementViews(signal.id)
             .then(freshSignal => {
                 if (freshSignal && currentModalSignal?.id === signal.id) {
@@ -66,17 +60,13 @@ async function openSignalModal(signal) {
 }
 
 // ===== FUNCTION FOR CACHE UPDATE =====
-
 function updateSignalInCache(updatedSignal) {
-    // Обнови сигнала в currentSignals масива
     if (window.signalManagement && window.signalManagement.getCurrentSignals) {
         const currentSignals = window.signalManagement.getCurrentSignals();
         const signalIndex = currentSignals.findIndex(s => s.id === updatedSignal.id);
 
         if (signalIndex !== -1) {
-            // Merge новите данни със старите (запази всички полета)
             currentSignals[signalIndex] = { ...currentSignals[signalIndex], ...updatedSignal };
-            console.log('📝 Signal cache updated for ID:', updatedSignal.id);
         }
     }
 }
@@ -101,11 +91,7 @@ function closeSignalModal() {
 }
 
 // ===== MODAL CONTENT UPDATE =====
-
 function updateModalContent(signal) {
-    console.log('Updating modal content:', signal);
-
-    // Get category and urgency info
     const category = SIGNAL_CATEGORIES[signal.category] || {
         name: signal.category,
         icon: 'bi-circle',
@@ -117,11 +103,9 @@ function updateModalContent(signal) {
         color: '#6b7280'
     };
 
-    // Update title
     const titleEl = document.getElementById('modalSignalTitle');
     if (titleEl) titleEl.textContent = signal.title || 'Без заглавие';
 
-    // Update category badge
     const categoryIcon = document.getElementById('modalCategoryIcon');
     const categoryName = document.getElementById('modalCategoryName');
     const categoryBadge = document.getElementById('modalCategoryBadge');
@@ -134,7 +118,6 @@ function updateModalContent(signal) {
         categoryBadge.style.borderColor = `${category.color}30`;
     }
 
-    // Update urgency badge
     const urgencyName = document.getElementById('modalUrgencyName');
     const urgencyBadge = document.getElementById('modalUrgencyBadge');
 
@@ -143,7 +126,6 @@ function updateModalContent(signal) {
         urgencyBadge.className = `urgency-badge urgency-${signal.urgency}`;
     }
 
-    // Update author info with avatar
     const authorAvatar = document.getElementById('modalAuthorAvatar');
     const authorName = document.getElementById('modalAuthorName');
 
@@ -155,56 +137,42 @@ function updateModalContent(signal) {
             'author-avatar'
         );
     }
-
     if (authorName) {
         authorName.textContent = signal.author?.username || 'Анонимен';
     }
 
-    // Update relative time
     const relativeTime = document.getElementById('modalRelativeTime');
     if (relativeTime && signal.createdAt) {
         relativeTime.textContent = getRelativeTime(signal.createdAt);
     }
 
-    // Update detailed time
     const detailedTime = document.getElementById('modalDetailedTime');
     if (detailedTime && signal.createdAt) {
         const date = new Date(signal.createdAt);
         detailedTime.textContent = `Създаден на ${date.toLocaleDateString('bg-BG')} в ${date.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })}`;
     }
 
-    // Update description
     const description = document.getElementById('modalSignalDescription');
     if (description) {
         description.textContent = signal.description || 'Няма описание';
     }
 
-    // Update image
     updateModalImage(signal);
-
-    // Update reactions
     updateModalReactions(signal);
 
-    // ➕ НОВА СЕКЦИЯ: Update comments count
     const commentsCount = document.getElementById('commentsCount');
     if (commentsCount && signal.commentsCount !== undefined) {
         commentsCount.textContent = `(${signal.commentsCount})`;
     }
 
-    // Update permissions for three dots menu
     updateThreeDotsMenuPermissions(signal);
-
-    // ➕ НОВА СЕКЦИЯ: Initialize comments
     setTimeout(async () => {
         if (window.CommentsManager) {
-            // Cleanup existing instance
             if (window.signalCommentsManager) {
                 window.signalCommentsManager = null;
             }
 
             window.signalCommentsManager = new window.CommentsManager('signal', signal.id);
-
-            // ➕ ВАЖНО: Зареди коментарите като в publikation
             await window.signalCommentsManager.loadComments(signal.id);
 
             if (window.isAuthenticated && window.currentUser) {
@@ -213,16 +181,11 @@ function updateModalContent(signal) {
                     userAvatar.src = window.currentUser.imageUrl || '/images/default-avatar.png';
                 }
             }
-
-            console.log('✅ Comments initialized for signal:', signal.id);
         } else {
             console.error('❌ CommentsManager not found!');
         }
     }, 100);
-
-    console.log('Modal content updated successfully');
 }
-
 
 function updateModalImage(signal) {
     const imageSection = document.getElementById('modalImageSection');
@@ -235,15 +198,12 @@ function updateModalImage(signal) {
         if (imageSection) imageSection.style.display = 'none';
     }
 }
-// ===== UPDATE MODAL VIEWS =====
 
+// ===== UPDATE MODAL VIEWS =====
 function updateModalViews(signal) {
-    // Обнови само views count-а без да пресъздаваме целия modal
     const viewsCount = document.getElementById('viewsCount');
     if (viewsCount && signal.viewsCount !== undefined) {
         viewsCount.textContent = signal.viewsCount;
-
-        // Малка анимация за показване на промяната
         viewsCount.style.transform = 'scale(1.1)';
         viewsCount.style.color = '#4cb15c';
 
@@ -251,34 +211,27 @@ function updateModalViews(signal) {
             viewsCount.style.transform = 'scale(1)';
             viewsCount.style.color = '';
         }, 300);
-
-        console.log(`👁️ Views updated to: ${signal.viewsCount}`);
     }
 }
 
-// ===== ОБНОВЕНА updateModalReactions БЕЗ локално увеличаване =====
-
+// ===== ОБНОВЕНА updateModalReactions =====
 function updateModalReactions(signal) {
-    // Update likes count
     const likesCount = document.getElementById('likesCount');
     if (likesCount) {
         likesCount.textContent = signal.likesCount || 0;
     }
 
-    // Update views count
     const viewsCount = document.getElementById('viewsCount');
     if (viewsCount) {
         viewsCount.textContent = signal.viewsCount || 0;
     }
 
-    // Update like button state ПРОСТО - като в публикациите
     const likeBtn = document.getElementById('likeBtn');
     if (likeBtn) {
         if (window.isAuthenticated) {
             likeBtn.disabled = false;
             likeBtn.style.opacity = '1';
 
-            // Провери Set-а
             const isLiked = likedSignals.has(signal.id);
 
             if (isLiked) {
@@ -365,7 +318,6 @@ function openImageLightbox() {
         lightbox.style.opacity = '1';
         lightbox.classList.add('active');
         document.body.style.overflow = 'hidden';
-        console.log('Opening lightbox with image:', modalImage.src);
     }
 }
 
@@ -383,7 +335,6 @@ function closeImageLightbox() {
 }
 
 // ===== ACTIONS =====
-
 function centerMapOnSignal() {
     if (currentModalSignal?.coordinates && window.mapCore) {
         const map = window.mapCore.getMap();
@@ -398,7 +349,6 @@ function centerMapOnSignal() {
 // ===== EDIT SIGNAL FUNCTION =====
 function editSignal() {
     if (!currentModalSignal) return;
-
     closeThreeDotsMenu();
     startInlineEdit();
 }
@@ -412,39 +362,31 @@ function startInlineEdit() {
 
     if (!titleEl || !descriptionEl) return;
 
-    // Запази оригиналните стойности
     const originalTitle = currentModalSignal.title || '';
     const originalDescription = currentModalSignal.description || '';
 
-    // Конвертирай заглавието в input
     titleEl.innerHTML = `<input type="text" class="inline-edit-title" 
                          value="${escapeHtml(originalTitle)}" 
                          placeholder="Въведете заглавие..." 
                          maxlength="200">`;
 
-    // Конвертирай описанието в textarea
     descriptionEl.innerHTML = `<textarea class="inline-edit-description" 
                                placeholder="Въведете описание..." 
                                maxlength="2000" 
                                rows="4">${escapeHtml(originalDescription)}</textarea>`;
-
-    // Добави edit бутони
     addEditButtons();
 
-    // Focus на заглавието
     setTimeout(() => {
         const titleInput = titleEl.querySelector('.inline-edit-title');
         titleInput.focus();
         titleInput.setSelectionRange(titleInput.value.length, titleInput.value.length);
     }, 100);
 
-    // Добави клас за визуален индикатор
     titleEl.classList.add('editing');
     descriptionEl.classList.add('editing');
 }
 
 function addEditButtons() {
-    // Провери дали вече има бутони
     if (document.querySelector('.edit-actions')) return;
 
     const editActions = document.createElement('div');
@@ -458,11 +400,9 @@ function addEditButtons() {
         </button>
     `;
 
-    // Вмъкни бутоните след описанието
     const descriptionEl = document.getElementById('modalSignalDescription');
     descriptionEl.parentNode.insertBefore(editActions, descriptionEl.nextSibling);
 
-    // Setup event listeners
     editActions.querySelector('.edit-save-btn').addEventListener('click', saveInlineEdit);
     editActions.querySelector('.edit-cancel-btn').addEventListener('click', cancelInlineEdit);
 }
@@ -472,7 +412,6 @@ function cancelInlineEdit() {
     const descriptionEl = document.getElementById('modalSignalDescription');
     const editActions = document.querySelector('.edit-actions');
 
-    // Върни оригиналните стойности
     if (titleEl) {
         titleEl.textContent = currentModalSignal.title || 'Без заглавие';
         titleEl.classList.remove('editing');
@@ -483,7 +422,6 @@ function cancelInlineEdit() {
         descriptionEl.classList.remove('editing');
     }
 
-    // Премахни бутоните
     if (editActions) editActions.remove();
 }
 
@@ -497,7 +435,6 @@ async function saveInlineEdit() {
     const newTitle = titleInput.value.trim();
     const newDescription = descriptionTextarea.value.trim();
 
-    // Валидация
     if (!newTitle || newTitle.length < 5) {
         alert('Заглавието трябва да е поне 5 символа');
         titleInput.focus();
@@ -510,32 +447,26 @@ async function saveInlineEdit() {
         return;
     }
 
-    // Показвай loading състояние
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Запазване...';
 
     try {
-        // Подготви данните за обновление - ВКЛЮЧИ ВСИЧКИ НЕОБХОДИМИ ПОЛЕТА
         const updateData = {
             title: newTitle,
             description: newDescription,
             category: currentModalSignal.category,
             urgency: currentModalSignal.urgency,
-            // ВАЖНО: Включи координатите от текущия сигнал
             latitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[0] : null,
             longitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[1] : null
         };
 
-        // Изпрати към API
         const result = await window.SignalAPI.updateSignal(currentModalSignal.id, updateData);
 
         if (result.success) {
-            // Обнови данните в currentModalSignal
             currentModalSignal.title = newTitle;
             currentModalSignal.description = newDescription;
 
-            // Обнови DOM елементите с новите стойности
             const titleEl = document.getElementById('modalSignalTitle');
             const descriptionEl = document.getElementById('modalSignalDescription');
 
@@ -545,14 +476,10 @@ async function saveInlineEdit() {
             descriptionEl.textContent = newDescription;
             descriptionEl.classList.remove('editing');
 
-            // Премахни edit бутоните
             const editActions = document.querySelector('.edit-actions');
             if (editActions) editActions.remove();
-
-            // Обнови кеша
             updateSignalInCache(currentModalSignal);
 
-            // Покажи success нотификация
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Успех!',
@@ -571,7 +498,6 @@ async function saveInlineEdit() {
                 }
             }
 
-            // Обнови картата/списъка със сигнали
             if (window.signalManagement && window.signalManagement.loadSignalsData) {
                 await window.signalManagement.loadSignalsData();
             }
@@ -593,8 +519,6 @@ async function saveInlineEdit() {
         } else {
             alert(error.message || 'Възникна грешка при обновяване на сигнала');
         }
-
-        // При грешка, върни формата в edit режим
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
     }
@@ -624,13 +548,10 @@ async function deleteSignal() {
 
     closeThreeDotsMenu();
 
-    // Проверка за SweetAlert2
     if (typeof Swal === 'undefined') {
-        // Fallback за случаи когато SweetAlert2 не е достъпен
         const confirmed = confirm('Сигурни ли сте, че искате да изтриете този сигнал?');
         if (!confirmed) return;
     } else {
-        // Използвай SweetAlert за по-хубав modal
         const result = await Swal.fire({
             title: 'Изтриване на сигнал',
             text: 'Сигурни ли сте, че искате да изтриете този сигнал? Всички коментари ще бъдат изтрити завинаги!',
@@ -654,11 +575,9 @@ async function deleteSignal() {
         if (!result.isConfirmed) return;
     }
 
-    // ВАЖНО: Запази ID-то преди да затвориш модала
     const signalIdToDelete = currentModalSignal.id;
 
     try {
-        // Показвай loading състояние
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Изтриване...',
@@ -671,15 +590,11 @@ async function deleteSignal() {
                 }
             });
         }
-
-        // Използвай готовия SignalAPI метод
         const result = await window.SignalAPI.deleteSignal(signalIdToDelete);
 
         if (result.success) {
-            // Успешно изтриване - затвори модала първо
             closeSignalModal();
 
-            // Покажи success нотификация
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Успех!',
@@ -691,7 +606,6 @@ async function deleteSignal() {
                     position: 'top-end'
                 });
             } else {
-                // Fallback нотификация
                 if (window.showToast) {
                     window.showToast('Сигналът е изтрит успешно', 'success');
                 } else {
@@ -699,18 +613,15 @@ async function deleteSignal() {
                 }
             }
 
-            // Обнови картата/списъка със сигнали
             if (window.signalManagement && window.signalManagement.loadSignalsData) {
                 await window.signalManagement.loadSignalsData();
             }
 
-            // Ако има карта и методът съществува, премахни маркера
             if (window.mapCore && typeof window.mapCore.removeSignalMarker === 'function') {
                 window.mapCore.removeSignalMarker(signalIdToDelete);
             }
 
         } else {
-            // Грешка от сървъра
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Грешка!',
@@ -746,37 +657,30 @@ async function toggleLike() {
         }
         return;
     }
-
     try {
         const response = await window.SignalAPI.toggleLike(currentModalSignal.id);
 
         if (response.success) {
-            // Update Set (като в публикациите)
             if (response.liked) {
                 likedSignals.add(currentModalSignal.id);
             } else {
                 likedSignals.delete(currentModalSignal.id);
             }
 
-            // Update count
             currentModalSignal.likesCount = (currentModalSignal.likesCount || 0) + (response.liked ? 1 : -1);
 
-            // Update UI
             updateModalReactions(currentModalSignal);
 
             const message = response.liked ? '❤️ Сигналът е харесан' : '💔 Харесването е премахнато';
             window.mapCore?.showNotification(message, 'success', 2000);
         }
-
     } catch (error) {
         console.error('❌ Error toggling like:', error);
         window.mapCore?.showNotification('❌ Възникна грешка при харесването', 'error', 4000);
     }
 }
 
-
 // ===== UTILITY FUNCTIONS =====
-
 function getRelativeTime(dateString) {
     const date = new Date(dateString);
     const now = new Date();
@@ -799,18 +703,15 @@ function getRelativeTime(dateString) {
 }
 
 // ===== EVENT LISTENERS =====
-
 function initializeSignalModal() {
     const modal = document.getElementById('signalModal');
     if (!modal) return;
 
-    // Close on overlay click
     const overlay = modal.querySelector('.modal-overlay');
     if (overlay) {
         overlay.addEventListener('click', closeSignalModal);
     }
 
-    // Close on ESC key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const lightbox = document.getElementById('imageLightbox');
@@ -822,7 +723,6 @@ function initializeSignalModal() {
         }
     });
 
-    // Close lightbox on click outside image
     const lightbox = document.getElementById('imageLightbox');
     if (lightbox) {
         lightbox.addEventListener('click', (e) => {
@@ -832,42 +732,12 @@ function initializeSignalModal() {
         });
     }
 
-    // Close three dots menu on outside click
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.dropdown-menu-container') && isThreeDotsMenuOpen) {
             closeThreeDotsMenu();
         }
     });
 
-}
-
-// ===== COMMENTS INITIALIZATION =====
-function initializeCommentsForSignal(signalId) {
-    if (!signalId || !window.CommentsManager) {
-        console.warn('Cannot initialize comments: missing signalId or CommentsManager');
-        return;
-    }
-    // Създаваме CommentsManager instance за signal
-    if (window.signalCommentsManager) {
-        window.signalCommentsManager = null; // cleanup
-    }
-    window.signalCommentsManager = new window.CommentsManager('signal', signalId);
-
-    // Setup user avatar if authenticated
-    if (window.isAuthenticated && window.currentUser) {
-        const userAvatar = document.getElementById('currentUserAvatar');
-        if (userAvatar) {
-            userAvatar.src = window.currentUser.imageUrl || '/images/default-avatar.png';
-        }
-    }
-}
-
-// ===== UPDATE COMMENTS COUNT =====
-function updateCommentsCount(signal) {
-    const commentsCount = document.getElementById('commentsCount');
-    if (commentsCount && signal.commentsCount !== undefined) {
-        commentsCount.textContent = `(${signal.commentsCount})`;
-    }
 }
 
 // ===== GLOBAL FUNCTIONS =====

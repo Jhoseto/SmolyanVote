@@ -197,9 +197,7 @@ function handleDropdownKeyboard(event, dropdown, originalSelect) {
     }
 }
 
-/**
- * Навигира между опциите с клавиатурата
- */
+
 function navigateOptions(options, direction) {
     const currentSelected = Array.from(options).findIndex(opt => opt.classList.contains('selected'));
     let newIndex = currentSelected + direction;
