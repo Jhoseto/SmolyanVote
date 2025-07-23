@@ -49,6 +49,10 @@ public interface SignalsService {
 
     boolean toggleLike(Long signalId, UserEntity user);
     boolean isLikedByUser(Long signalId, String username);
+
+    @Transactional(readOnly = true)
+    List<Long> getLikedSignalIdsByUser(String username);
+
     void incrementViews(Long signalId);
 
     // ====== ПРАВА НА ДОСТЪП ======
