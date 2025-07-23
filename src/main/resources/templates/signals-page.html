@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<html lang="bg" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +38,7 @@
   <!-- Auth State for JS -->
   <script th:inline="javascript">
     window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
-    window.currentUser = /*[[${currentUser}]]*/ null;
+    window.currentUser = /*[[${@userServiceImpl.getCurrentUser()}]]*/ null;
     window.csrfToken = /*[[${_csrf.token}]]*/ '';
     window.csrfHeader = /*[[${_csrf.headerName}]]*/ '';
 
@@ -583,7 +584,7 @@
 </div>
 
 <!-- Signal Details Modal -->
-<div th:replace="~{signal-modal :: signal-modal}"></div>
+<div th:replace="~{fragments/signal-modal :: signal-modal}"></div>
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">

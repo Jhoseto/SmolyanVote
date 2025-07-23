@@ -535,6 +535,90 @@
     }
 }
 
+/* ====== INLINE EDIT STYLES ====== */
+.inline-edit-title,
+.inline-edit-description {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #4cb15c;
+    border-radius: 6px;
+    font-size: inherit;
+    font-family: inherit;
+    color: inherit;
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(76, 177, 92, 0.1);
+    transition: all 0.3s ease;
+}
+
+.inline-edit-title {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.inline-edit-description {
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.5;
+    margin-top: 4px;
+}
+
+.editing {
+    padding: 4px;
+    border-radius: 8px;
+    background: rgba(76, 177, 92, 0.05);
+}
+
+.edit-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e9ecef;
+}
+
+.edit-save-btn,
+.edit-cancel-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-save-btn {
+    background: #4cb15c;
+    color: white;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+    background: #3a8a47;
+    transform: translateY(-1px);
+}
+
+.edit-save-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.edit-cancel-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.edit-cancel-btn:hover {
+    background: #545b62;
+    transform: translateY(-1px);
+}
+
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
     .modal-container {
