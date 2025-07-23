@@ -18,7 +18,6 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
 
     /**
      * 🚀 СУПЕР БЪРЗА заявка за publication коментари с всички данни наведнъж
-     * Една заявка вместо N+1 заявки!
      * Включва: comment data + replies count + user reaction
      */
     @Query(value = """
@@ -225,6 +224,41 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
             @Param("sort") String sort,
             Pageable pageable);
 
+
+    /**
+     * 🚀 СУПЕР БЪРЗА заявка за signal коментари
+     */
+    @Query(value = """
+    SELECT 
+        c.id, c.text, c.created, c.modified, c.author, c.author_image,
+        c.like_count, c.unlike_count, c.is_edited, c.parent_id,
+        COALESCE(reply_counts.reply_count, 0) as replies_count,
+        COALESCE(user_votes.reaction, 'NONE') as user_reaction,
+        'signal' as entity_type, :signalId as entity_id
+    FROM comments_entity c
+    LEFT JOIN (
+        SELECT parent_id, COUNT(*) as reply_count 
+        FROM comments_entity WHERE parent_id IS NOT NULL GROUP BY parent_id
+    ) reply_counts ON c.id = reply_counts.parent_id
+    LEFT JOIN comment_votes user_votes ON c.id = user_votes.comment_id 
+        AND user_votes.username = COALESCE(:currentUsername, '__guest__')
+    WHERE c.signal_id = :signalId AND c.parent_id IS NULL
+    ORDER BY 
+        CASE WHEN :sort = 'newest' THEN c.created END DESC,
+        CASE WHEN :sort = 'oldest' THEN c.created END ASC,
+        CASE WHEN :sort = 'likes' THEN LENGTH(c.text) END DESC,
+        CASE WHEN :sort = 'popular' THEN (c.like_count - c.unlike_count) END DESC
+    """,
+            countQuery = "SELECT COUNT(*) FROM comments_entity c WHERE c.signal_id = :signalId AND c.parent_id IS NULL",
+            nativeQuery = true)
+    Page<Object[]> findOptimizedCommentsForSignal(
+            @Param("signalId") Long signalId,
+            @Param("currentUsername") String currentUsername,
+            @Param("sort") String sort,
+            Pageable pageable);
+
+
+
     // ====== LEGACY МЕТОДИ (запазени за compatibility) ======
 
     @Query("SELECT c FROM CommentsEntity c LEFT JOIN FETCH c.replies " +
@@ -261,6 +295,15 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     @Query("SELECT COUNT(c) FROM CommentsEntity c WHERE c.parent.id = :parentId")
     long countRepliesByParentId(@Param("parentId") Long parentId);
 
+    @Query("SELECT c FROM CommentsEntity c WHERE c.signal.id = :signalId AND c.parent IS NULL ORDER BY c.created DESC")
+    Page<CommentsEntity> findRootCommentsDtoBySignalId(@Param("signalId") Long signalId, Pageable pageable);
+
+    @Query("SELECT c FROM CommentsEntity c LEFT JOIN FETCH c.replies " +
+            "WHERE c.signal.id = :signalId AND c.parent IS NULL ORDER BY c.created DESC")
+    List<CommentsEntity> findRootCommentsWithRepliesBySignalId(Long signalId);
+
+
+
     // ====== БРОЕНЕ МЕТОДИ ======
 
     Page<CommentsEntity> findByEventIdOrderByCreatedDesc(Long simpleEventId, Pageable pageable);
@@ -268,6 +311,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     long countByPublicationId(Long publicationId);
     long countByReferendumId(@Param("referendumId") Long referendumId);
     long countByMultiPollId(@Param("multiPollId") Long multiPollId);
+    long countBySignalId(Long signalId);
 
     // ====== CLEANUP МЕТОДИ ======
 
@@ -282,6 +326,9 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
 
     @Transactional
     void deleteAllByPublicationId(Long publicationId);
+
+    @Transactional
+    void deleteAllBySignal_Id(Long signalId);
 
 
     @Query(value = """

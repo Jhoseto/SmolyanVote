@@ -39,7 +39,7 @@ public class CommentsServiceImpl implements CommentsService {
     private final CommentVoteRepository commentVoteRepository;
     private final UserService userService;
     private final CommentResultMapper resultMapper;
-
+    private final SignalsRepository signalsRepository;
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
@@ -48,7 +48,8 @@ public class CommentsServiceImpl implements CommentsService {
                                PublicationRepository publicationRepository,
                                CommentVoteRepository commentVoteRepository,
                                UserService userService,
-                               CommentResultMapper resultMapper) {
+                               CommentResultMapper resultMapper,
+                               SignalsRepository signalsRepository) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
@@ -57,6 +58,7 @@ public class CommentsServiceImpl implements CommentsService {
         this.commentVoteRepository = commentVoteRepository;
         this.userService = userService;
         this.resultMapper = resultMapper;
+        this.signalsRepository = signalsRepository;
     }
 
     // ====== ОСНОВНИ МЕТОДИ ======
@@ -75,6 +77,9 @@ public class CommentsServiceImpl implements CommentsService {
                 return getOptimizedCommentsForReferendum(entityId, page, size, sort, currentUsername);
             case "multiPoll":
                 return getOptimizedCommentsForMultiPoll(entityId, page, size, sort, currentUsername);
+            case "signal":
+                return getOptimizedCommentsForSignal(entityId, page, size, sort, currentUsername);
+
             default:
                 throw new IllegalArgumentException("Invalid entity type: " + entityType);
         }
@@ -128,6 +133,20 @@ public class CommentsServiceImpl implements CommentsService {
         return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
     }
 
+    private Page<CommentOutputDto> getOptimizedCommentsForSignal(Long signalId, int page, int size, String sort, String currentUsername) {
+        logger.debug("Getting optimized comments for signal: {}, page: {}, size: {}, sort: {}, user: {}",
+                signalId, page, size, sort, currentUsername);
+
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 20);
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForSignal(
+                signalId, currentUsername, sort, pageable);
+
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<CommentOutputDto> getRepliesForComment(Long commentId, int page, int size) {
@@ -157,6 +176,7 @@ public class CommentsServiceImpl implements CommentsService {
             case "simpleEvent" -> addCommentToSimpleEvent(entityId, text, author);
             case "referendum" -> addCommentToReferendum(entityId, text, author);
             case "multiPoll" -> addCommentToMultiPoll(entityId, text, author);
+            case "signal" -> addCommentToSignal(entityId, text, author);
             default -> throw new IllegalArgumentException("Invalid entity type: " + entityType);
         };
     }
@@ -247,6 +267,32 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
+    public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
+        SignalsEntity signal = signalsRepository.findById(signalId)
+                .orElseThrow(() -> new IllegalArgumentException("Signal not found with id: " + signalId));
+
+        CommentsEntity comment = new CommentsEntity();
+        comment.setText(text);
+        comment.setAuthor(author.getUsername());
+        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
+        comment.setSignal(signal);
+        comment.setLikeCount(0);
+        comment.setUnlikeCount(0);
+        comment.setCreated(Instant.now());
+        comment.setEdited(false);
+
+        // Първо запазваме коментара
+        CommentsEntity savedComment = commentsRepository.save(comment);
+
+        // После инкрементираме брояча (като при публикациите)
+        signal.setCommentsCount(signal.getCommentsCount() +1);
+        signalsRepository.save(signal);
+
+        return savedComment;
+    }
+
+    @Override
+    @Transactional
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
                 parentCommentId, text, author.getUsername());
@@ -271,18 +317,25 @@ public class CommentsServiceImpl implements CommentsService {
             reply.setReferendum(parentComment.getReferendum());
         } else if (parentComment.getMultiPoll() != null) {
             reply.setMultiPoll(parentComment.getMultiPoll());
-        }
+        } else if (parentComment.getSignal() != null) {
+        reply.setSignal(parentComment.getSignal());
+    }
 
-        // ✅ ПОПРАВКА: Запазваме отговора първо
+
+
         CommentsEntity savedReply = commentsRepository.save(reply);
 
-        // ✅ ПОПРАВКА: И отговорите се броят в общата бройка!
+        //  ПОПРАВКА: И отговорите се броят в общата бройка!
         if (parentComment.getPublication() != null) {
             PublicationEntity publication = parentComment.getPublication();
             publication.incrementComments();
             publicationRepository.save(publication);
             logger.info("Reply added to publication {}, new count: {}",
                     publication.getId(), publication.getCommentsCount());
+        }else if (parentComment.getSignal() != null) {
+            SignalsEntity signal = parentComment.getSignal();
+            signal.setCommentsCount(signal.getCommentsCount() +1);
+            signalsRepository.save(signal);
         }
 
         return savedReply;
@@ -330,8 +383,12 @@ public class CommentsServiceImpl implements CommentsService {
             }
             publicationRepository.save(publication);
 
-            logger.info("Deleting {} comments from publication {}, new count: {}",
-                    totalCommentsToDelete, publication.getId(), publication.getCommentsCount());
+        } else if (comment.getSignal() != null) {  // ДОБАВИ ТАЗИ ЧАСТ
+            SignalsEntity signal = comment.getSignal();
+            for (int i = 0; i < totalCommentsToDelete; i++) {
+                signal.setCommentsCount(signal.getCommentsCount() -1);
+            }
+            signalsRepository.save(signal);
         }
 
         commentsRepository.delete(comment);
@@ -417,6 +474,13 @@ public class CommentsServiceImpl implements CommentsService {
         return commentsRepository.countByMultiPollId(multiPollId);
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countCommentsForSignal(Long signalId) {
+        return commentsRepository.countBySignalId(signalId);
+    }
+
     @Override
     public CommentOutputDto convertEntityToDto(CommentsEntity comment) {
         String currentUsername = getCurrentUsername();
@@ -470,6 +534,7 @@ public class CommentsServiceImpl implements CommentsService {
         if (comment.getEvent() != null) return "simpleEvent";
         if (comment.getReferendum() != null) return "referendum";
         if (comment.getMultiPoll() != null) return "multiPoll";
+        if (comment.getSignal() != null) return "signal";
         return null;
     }
 
@@ -478,6 +543,7 @@ public class CommentsServiceImpl implements CommentsService {
         if (comment.getEvent() != null) return comment.getEvent().getId();
         if (comment.getReferendum() != null) return comment.getReferendum().getId();
         if (comment.getMultiPoll() != null) return comment.getMultiPoll().getId();
+        if (comment.getSignal() != null) return comment.getSignal().getId();
         return null;
     }
 

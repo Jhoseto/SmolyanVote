@@ -87,6 +87,9 @@ public class SignalsEntity extends BaseEntity {
     @JoinColumn(name = "resolved_by")
     private UserEntity resolvedBy;
 
+    @Column(name = "comments_count", nullable = false, columnDefinition = "int default 0")
+    private Integer commentsCount = 0;
+
     // ====== CONSTRUCTORS ======
 
     public SignalsEntity() {
@@ -154,4 +157,12 @@ public class SignalsEntity extends BaseEntity {
 
     public UserEntity getResolvedBy() { return resolvedBy; }
     public void setResolvedBy(UserEntity resolvedBy) { this.resolvedBy = resolvedBy; }
+
+    public Integer getCommentsCount() {
+        return commentsCount;
+    }
+
+    public void setCommentsCount(Integer commentsCount) {
+        this.commentsCount = commentsCount;
+    }
 }
