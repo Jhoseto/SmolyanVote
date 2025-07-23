@@ -1,5 +1,4 @@
 // ===== SIGNAL API CLIENT =====
-// HTTP клиент за комуникация със сървъра за сигналите
 
 // ===== API CONFIGURATION =====
 const API_CONFIG = {
@@ -21,12 +20,10 @@ class HTTPClient {
             ...options
         };
 
-        // Задаваме Content-Type само ако не е FormData
         if (!(options.body instanceof FormData)) {
             defaultOptions.headers['Content-Type'] = 'application/json';
         }
 
-        // Добавяне на CSRF token ако съществува
         const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
         const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
 
@@ -57,7 +54,6 @@ class HTTPClient {
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
             }
-
             return await response.text();
 
         } catch (error) {
@@ -77,17 +73,14 @@ class HTTPClient {
             } catch (error) {
                 lastError = error;
 
-                // Не правим retry при клиентски грешки (4xx)
                 if (error instanceof APIError && error.status >= 400 && error.status < 500) {
                     throw error;
                 }
 
-                // Последен опит - хвърляме грешката
                 if (attempt === maxRetries) {
                     throw error;
                 }
 
-                // Изчакваме преди следващия опит
                 await new Promise(resolve => setTimeout(resolve, API_CONFIG.retryDelay * attempt));
                 console.warn(`API retry ${attempt}/${maxRetries} за ${url}:`, error.message);
             }
@@ -135,54 +128,6 @@ class APIError extends Error {
 // ===== MAIN SIGNAL API CLASS =====
 class SignalAPI {
 
-    // ===== GET ALL SIGNALS =====
-    static async getAllSignals(filters = {}) {
-        try {
-            console.log('🔄 Loading signals with filters:', filters);
-
-            // Изграждане на query string
-            const queryParams = new URLSearchParams();
-
-            if (filters.category && filters.category !== 'all') {
-                queryParams.append('category', filters.category);
-            }
-
-            if (filters.urgency && filters.urgency !== 'all') {
-                queryParams.append('urgency', filters.urgency);
-            }
-
-            if (filters.search && filters.search.trim()) {
-                queryParams.append('search', filters.search.trim());
-            }
-
-            if (filters.sort) {
-                queryParams.append('sort', filters.sort);
-            }
-
-            // Пагинация (ако се добави в бъдеще)
-            if (filters.page !== undefined) {
-                queryParams.append('page', filters.page);
-            }
-
-            if (filters.size !== undefined) {
-                queryParams.append('size', filters.size);
-            }
-
-            const url = `${API_CONFIG.baseURL}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-            const response = await HTTPClient.retryRequest(url);
-
-            console.log('✅ Signals loaded successfully:', response.length || 0);
-            return response;
-
-        } catch (error) {
-            console.error('❌ Error loading signals:', error);
-            throw new APIError(
-                `Грешка при зареждане на сигналите: ${error.message}`,
-                error.status || 500
-            );
-        }
-    }
-
     // ===== GET LIKED SIGNALS =====
     static async getLikedSignals() {
         try {
@@ -196,20 +141,12 @@ class SignalAPI {
         }
     }
 
-
     // ===== CREATE NEW SIGNAL =====
     static async createSignal(signalData) {
         try {
-            console.log('🔄 Creating new signal:', signalData);
-
-            // Валидация на данните
             this.validateSignalData(signalData);
-
-            // Подготовка на данните за изпращане
             const payload = this.prepareSignalPayload(signalData);
 
-            // Debug информация за FormData
-            console.log('📦 FormData contents:');
             for (let [key, value] of payload.entries()) {
                 if (value instanceof File) {
                     console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
@@ -218,10 +155,7 @@ class SignalAPI {
                 }
             }
 
-            console.log('🌐 Sending request to:', API_CONFIG.baseURL);
             const startTime = Date.now();
-
-            // Специални опции за FormData
             const response = await HTTPClient.retryRequest(API_CONFIG.baseURL, {
                 method: 'POST',
                 body: payload,
@@ -232,7 +166,6 @@ class SignalAPI {
             });
 
             const endTime = Date.now();
-            console.log(`✅ Signal created successfully in ${endTime - startTime}ms:`, response);
             return response;
 
         } catch (error) {
@@ -247,8 +180,6 @@ class SignalAPI {
     // ===== UPDATE SIGNAL =====
     static async updateSignal(id, signalData) {
         try {
-            console.log('🔄 Updating signal:', id, signalData);
-
             this.validateSignalData(signalData);
             const payload = this.prepareSignalPayload(signalData);
 
@@ -257,12 +188,9 @@ class SignalAPI {
                 method: 'PUT',
                 body: payload
             });
-
-            console.log('✅ Signal updated successfully');
             return response;
 
         } catch (error) {
-            console.error('❌ Error updating signal:', error);
             throw new APIError(
                 `Грешка при обновяване на сигнала: ${error.message}`,
                 error.status || 500
@@ -273,8 +201,6 @@ class SignalAPI {
     // ===== DELETE SIGNAL =====
     static async deleteSignal(id) {
         try {
-            console.log('🔄 Deleting signal:', id);
-
             const url = `${API_CONFIG.baseURL}/${id}`;
             const response = await HTTPClient.retryRequest(url, {
                 method: 'DELETE'
@@ -299,30 +225,24 @@ class SignalAPI {
         if (!data.title || data.title.trim().length < 5) {
             errors.push('Заглавието трябва да е поне 5 символа');
         }
-
         if (!data.description || data.description.trim().length < 10) {
             errors.push('Описанието трябва да е поне 10 символа');
         }
-
         if (!data.category) {
             errors.push('Категорията е задължителна');
         }
-
         if (!data.urgency) {
             errors.push('Спешността е задължителна');
         }
-
         if (!data.latitude || !data.longitude) {
             errors.push('Местоположението е задължително');
         }
-
         if (errors.length > 0) {
             throw new APIError('Валидационни грешки: ' + errors.join(', '), 400);
         }
     }
 
     static prepareSignalPayload(data) {
-
         const formData = new FormData();
 
         formData.append('title', data.title.trim());
@@ -332,25 +252,17 @@ class SignalAPI {
         formData.append('latitude', data.latitude.toString());
         formData.append('longitude', data.longitude.toString());
 
-        // Добави снимка ако има
         if (data.image && data.image instanceof File) {
             formData.append('image', data.image);
         }
-
         return formData;
     }
 
     // ===== INCREMENT VIEWS =====
     static async incrementViews(signalId) {
         try {
-            console.log('🔄 Incrementing views for signal:', signalId);
-
-            // Използваме getSignalById вместо само increment
             const url = `${API_CONFIG.baseURL}/${signalId}`;
             const response = await HTTPClient.retryRequest(url);
-
-            console.log('✅ Views incremented, updated signal data:', response);
-            console.log('🔍 isLikedByCurrentUser:', response.isLikedByCurrentUser);
 
             return response;
 
@@ -366,8 +278,6 @@ class SignalAPI {
     // ===== TOGGLE LIKE =====
     static async toggleLike(signalId) {
         try {
-            console.log('🔄 Toggling like for signal:', signalId);
-
             const url = `${API_CONFIG.baseURL}/${signalId}/like`;
             const response = await HTTPClient.retryRequest(url, {
                 method: 'POST',
@@ -375,8 +285,6 @@ class SignalAPI {
                     'Content-Type': 'application/json'
                 }
             });
-
-            console.log('✅ Like toggled successfully:', response);
             return response;
 
         } catch (error) {
@@ -388,8 +296,6 @@ class SignalAPI {
         }
     }
 }
-
-
 
 // ===== GLOBAL API UTILITIES =====
 window.SignalAPI = SignalAPI;
@@ -407,13 +313,11 @@ window.handleAPIError = function(error, context = 'Operation') {
         message = error.message;
     }
 
-    // Показване на грешката чрез notification system
     if (window.mapCore && window.mapCore.showNotification) {
         window.mapCore.showNotification(message, 'error');
     } else {
         alert(message);
     }
-
     return message;
 };
 
@@ -424,12 +328,10 @@ window.APILoadingState = {
     setLoading(loading, message = 'Зареждане...') {
         this.isLoading = loading;
 
-        // Показване на loading индикатор
         if (window.mapCore && window.mapCore.showLoading) {
             window.mapCore.showLoading(loading, message);
         }
 
-        // Деактивиране на формите по време на зареждане
         const forms = document.querySelectorAll('form');
         forms.forEach(form => {
             const inputs = form.querySelectorAll('input, select, textarea, button');
@@ -439,8 +341,6 @@ window.APILoadingState = {
         });
     }
 };
-
-
 
 // Export за modules
 if (typeof module !== 'undefined' && module.exports) {

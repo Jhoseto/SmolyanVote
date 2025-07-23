@@ -1,5 +1,4 @@
 // ===== SIGNAL TOOLTIP =====
-// Прост hover tooltip за desktop
 
 let tooltip = null;
 let tooltipTimeout = null;
@@ -30,9 +29,7 @@ function createTooltip() {
 }
 
 // ===== ПОКАЗВАНЕ НА TOOLTIP =====
-// ===== ПОКАЗВАНЕ НА TOOLTIP =====
 function showTooltip(signal, mouseEvent) {
-    // Само на desktop
     if (window.innerWidth <= 768) return;
 
     createTooltip();
@@ -60,11 +57,9 @@ function showTooltip(signal, mouseEvent) {
         </div>
     `;
 
-    // Показване първо за да можем да измерим размера
     tooltip.style.display = 'block';
     tooltip.style.opacity = '0';
 
-    // Позициониране след като tooltip-ът е показан
     const tooltipRect = tooltip.getBoundingClientRect();
     const x = mouseEvent.clientX + 10;
     const y = mouseEvent.clientY - tooltipRect.height - 10;
@@ -72,7 +67,6 @@ function showTooltip(signal, mouseEvent) {
     tooltip.style.left = Math.min(x, window.innerWidth - tooltipRect.width - 20) + 'px';
     tooltip.style.top = Math.max(y, 10) + 'px';
 
-    // Плавно показване
     setTimeout(() => {
         if (tooltip) {
             tooltip.style.opacity = '1';
@@ -80,7 +74,6 @@ function showTooltip(signal, mouseEvent) {
         }
     }, 10);
 
-    // Автоматично скриване
     clearTimeout(tooltipTimeout);
     tooltipTimeout = setTimeout(hideTooltip, 3000);
 }
@@ -91,7 +84,6 @@ function hideTooltip() {
 
     tooltip.style.opacity = '0';
     tooltip.style.transform = 'translateY(5px)';
-
     setTimeout(() => {
         if (tooltip) tooltip.style.display = 'none';
     }, 200);
@@ -107,11 +99,9 @@ function formatDate(dateString) {
 
 // ===== EVENT LISTENERS =====
 function initializeTooltip() {
-    // Скриване при scroll или resize
     window.addEventListener('scroll', hideTooltip);
     window.addEventListener('resize', hideTooltip);
 
-    // Скриване при ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') hideTooltip();
     });
