@@ -52,6 +52,9 @@ public interface CommentsService {
      */
     CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author);
 
+    CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author);
+
+
     /**
      * Добавя отговор към коментар
      */
@@ -104,6 +107,9 @@ public interface CommentsService {
     long countCommentsForMultiPoll(Long multiPollId);
 
     // ====== CONVERSION МЕТОДИ ======
+
+    @Transactional(readOnly = true)
+    long countCommentsForSignal(Long signalId);
 
     /**
      * Конвертира CommentsEntity към CommentOutputDto

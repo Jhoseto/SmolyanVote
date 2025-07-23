@@ -42,6 +42,10 @@ public class CommentsEntity extends BaseEntity{
     private PublicationEntity publication;
 
     @ManyToOne
+    @JoinColumn(name = "signal_id")
+    private SignalsEntity signal;
+
+    @ManyToOne
     @JoinColumn(name = "parent_id")
     private CommentsEntity parent;
 
@@ -124,6 +128,14 @@ public class CommentsEntity extends BaseEntity{
 
     public void setPublication(PublicationEntity publication) {
         this.publication = publication;
+    }
+
+    public SignalsEntity getSignal() {
+        return signal;
+    }
+
+    public void setSignal(SignalsEntity signal) {
+        this.signal = signal;
     }
 
     public CommentsEntity getParent() {
