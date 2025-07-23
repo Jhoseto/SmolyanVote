@@ -340,4 +340,6 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
     List<Object[]> findCommentsCountsForPublications(@Param("publicationIds") List<Long> publicationIds);
 
     List<CommentsEntity> findByPublicationId(Long id);
+
+    List<CommentsEntity> findBySignalId(Long id);
 }
