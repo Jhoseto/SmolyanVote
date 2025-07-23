@@ -241,13 +241,11 @@ function updateModalViews(signal) {
 // ===== ОБНОВЕНА updateModalReactions БЕЗ локално увеличаване =====
 
 function updateModalReactions(signal) {
-    // Update likes count
     const likesCount = document.getElementById('likesCount');
     if (likesCount) {
         likesCount.textContent = signal.likesCount || 0;
     }
 
-    // Update views count - БЕЗ локално увеличаване, използваме данните от сървъра
     const viewsCount = document.getElementById('viewsCount');
     if (viewsCount) {
         viewsCount.textContent = signal.viewsCount || 0;
@@ -268,27 +266,28 @@ function updateModalReactions(signal) {
 // ===== PERMISSIONS & THREE DOTS MENU =====
 
 function updateThreeDotsMenuPermissions(signal) {
+    const threeDotsContainer = document.querySelector('.dropdown-menu-container');
+
+    if (!threeDotsContainer || !window.isAuthenticated) {
+        if (threeDotsContainer) threeDotsContainer.style.display = 'none';
+        return;
+    }
+
+    threeDotsContainer.style.display = 'block';
+
+    const isOwner = window.currentUser && window.currentUser.id === signal.author?.id;
+    const isAdmin = window.appData && window.appData.isAdmin;
+    const canManage = isOwner || isAdmin;
+
     const editBtn = document.getElementById('editSignalBtn');
     const deleteBtn = document.getElementById('deleteSignalBtn');
 
-    // Show/hide buttons based on permissions
-    const canEdit = canUserEditSignal(signal);
-
-    if (editBtn) editBtn.style.display = canEdit ? 'flex' : 'none';
-    if (deleteBtn) deleteBtn.style.display = canEdit ? 'flex' : 'none';
-}
-
-function canUserEditSignal(signal) {
-    // Check if user is authenticated
-    if (!window.isAuthenticated || !window.currentUser) {
-        return false;
+    if (canManage) {
+        if (editBtn) editBtn.style.display = 'flex';
+        if (deleteBtn) deleteBtn.style.display = 'flex';
+    } else {
+        threeDotsContainer.style.display = 'none';
     }
-
-    // Check if user is admin or author
-    const isAdmin = window.currentUser.role === 'ADMIN';
-    const isAuthor = signal.author?.id === window.currentUser.id;
-
-    return isAdmin || isAuthor;
 }
 
 function toggleThreeDotsMenu() {
@@ -361,12 +360,224 @@ function centerMapOnSignal() {
     }
 }
 
+// ===== EDIT SIGNAL FUNCTION =====
 function editSignal() {
-    if (currentModalSignal) {
-        closeThreeDotsMenu();
-        // TODO: Implement edit functionality
-        alert('Функцията за редактиране ще бъде добавена скоро');
+    if (!currentModalSignal) return;
+
+    closeThreeDotsMenu();
+    startInlineEdit();
+}
+
+// ===== INLINE EDIT FUNCTIONALITY =====
+function startInlineEdit() {
+    if (!currentModalSignal || isInEditMode()) return;
+
+    const titleEl = document.getElementById('modalSignalTitle');
+    const descriptionEl = document.getElementById('modalSignalDescription');
+
+    if (!titleEl || !descriptionEl) return;
+
+    // Запази оригиналните стойности
+    const originalTitle = currentModalSignal.title || '';
+    const originalDescription = currentModalSignal.description || '';
+
+    // Конвертирай заглавието в input
+    titleEl.innerHTML = `<input type="text" class="inline-edit-title" 
+                         value="${escapeHtml(originalTitle)}" 
+                         placeholder="Въведете заглавие..." 
+                         maxlength="200">`;
+
+    // Конвертирай описанието в textarea
+    descriptionEl.innerHTML = `<textarea class="inline-edit-description" 
+                               placeholder="Въведете описание..." 
+                               maxlength="2000" 
+                               rows="4">${escapeHtml(originalDescription)}</textarea>`;
+
+    // Добави edit бутони
+    addEditButtons();
+
+    // Focus на заглавието
+    setTimeout(() => {
+        const titleInput = titleEl.querySelector('.inline-edit-title');
+        titleInput.focus();
+        titleInput.setSelectionRange(titleInput.value.length, titleInput.value.length);
+    }, 100);
+
+    // Добави клас за визуален индикатор
+    titleEl.classList.add('editing');
+    descriptionEl.classList.add('editing');
+}
+
+function addEditButtons() {
+    // Провери дали вече има бутони
+    if (document.querySelector('.edit-actions')) return;
+
+    const editActions = document.createElement('div');
+    editActions.className = 'edit-actions';
+    editActions.innerHTML = `
+        <button class="edit-save-btn">
+            <i class="bi bi-check"></i> Запази
+        </button>
+        <button class="edit-cancel-btn">
+            <i class="bi bi-x"></i> Отказ
+        </button>
+    `;
+
+    // Вмъкни бутоните след описанието
+    const descriptionEl = document.getElementById('modalSignalDescription');
+    descriptionEl.parentNode.insertBefore(editActions, descriptionEl.nextSibling);
+
+    // Setup event listeners
+    editActions.querySelector('.edit-save-btn').addEventListener('click', saveInlineEdit);
+    editActions.querySelector('.edit-cancel-btn').addEventListener('click', cancelInlineEdit);
+}
+
+function cancelInlineEdit() {
+    const titleEl = document.getElementById('modalSignalTitle');
+    const descriptionEl = document.getElementById('modalSignalDescription');
+    const editActions = document.querySelector('.edit-actions');
+
+    // Върни оригиналните стойности
+    if (titleEl) {
+        titleEl.textContent = currentModalSignal.title || 'Без заглавие';
+        titleEl.classList.remove('editing');
     }
+
+    if (descriptionEl) {
+        descriptionEl.textContent = currentModalSignal.description || 'Няма описание';
+        descriptionEl.classList.remove('editing');
+    }
+
+    // Премахни бутоните
+    if (editActions) editActions.remove();
+}
+
+async function saveInlineEdit() {
+    const titleInput = document.querySelector('.inline-edit-title');
+    const descriptionTextarea = document.querySelector('.inline-edit-description');
+    const saveBtn = document.querySelector('.edit-save-btn');
+
+    if (!titleInput || !descriptionTextarea || !currentModalSignal) return;
+
+    const newTitle = titleInput.value.trim();
+    const newDescription = descriptionTextarea.value.trim();
+
+    // Валидация
+    if (!newTitle || newTitle.length < 5) {
+        alert('Заглавието трябва да е поне 5 символа');
+        titleInput.focus();
+        return;
+    }
+
+    if (!newDescription || newDescription.length < 10) {
+        alert('Описанието трябва да е поне 10 символа');
+        descriptionTextarea.focus();
+        return;
+    }
+
+    // Показвай loading състояние
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Запазване...';
+
+    try {
+        // Подготви данните за обновление - ВКЛЮЧИ ВСИЧКИ НЕОБХОДИМИ ПОЛЕТА
+        const updateData = {
+            title: newTitle,
+            description: newDescription,
+            category: currentModalSignal.category,
+            urgency: currentModalSignal.urgency,
+            // ВАЖНО: Включи координатите от текущия сигнал
+            latitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[0] : null,
+            longitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[1] : null
+        };
+
+        // Изпрати към API
+        const result = await window.SignalAPI.updateSignal(currentModalSignal.id, updateData);
+
+        if (result.success) {
+            // Обнови данните в currentModalSignal
+            currentModalSignal.title = newTitle;
+            currentModalSignal.description = newDescription;
+
+            // Обнови DOM елементите с новите стойности
+            const titleEl = document.getElementById('modalSignalTitle');
+            const descriptionEl = document.getElementById('modalSignalDescription');
+
+            titleEl.textContent = newTitle;
+            titleEl.classList.remove('editing');
+
+            descriptionEl.textContent = newDescription;
+            descriptionEl.classList.remove('editing');
+
+            // Премахни edit бутоните
+            const editActions = document.querySelector('.edit-actions');
+            if (editActions) editActions.remove();
+
+            // Обнови кеша
+            updateSignalInCache(currentModalSignal);
+
+            // Покажи success нотификация
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Успех!',
+                    text: 'Сигналът е обновен успешно',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } else {
+                if (window.showToast) {
+                    window.showToast('Сигналът е обновен успешно', 'success');
+                } else {
+                    alert('Сигналът е обновен успешно');
+                }
+            }
+
+            // Обнови картата/списъка със сигнали
+            if (window.signalManagement && window.signalManagement.loadSignalsData) {
+                await window.signalManagement.loadSignalsData();
+            }
+
+        } else {
+            throw new Error(result.message || 'Грешка при обновяване');
+        }
+
+    } catch (error) {
+        console.error('Error updating signal:', error);
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Грешка!',
+                text: error.message || 'Възникна грешка при обновяване на сигнала',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        } else {
+            alert(error.message || 'Възникна грешка при обновяване на сигнала');
+        }
+
+        // При грешка, върни формата в edit режим
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
+// Helper функции
+function isInEditMode() {
+    return document.querySelector('.inline-edit-title') !== null;
+}
+
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 // ===== DELETE SIGNAL FUNCTION =====

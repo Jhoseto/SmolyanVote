@@ -1,5 +1,7 @@
 <!-- Modern Signal Modal Fragment -->
-<div th:fragment="signal-modal" class="signal-modal" id="signalModal">
+<div th:fragment="signal-modal"
+     xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+     class="signal-modal" id="signalModal">
     <div class="modal-overlay" onclick="closeSignalModal()"></div>
 
     <div class="modal-container">
@@ -17,16 +19,16 @@
 
             <div class="header-actions">
                 <!-- Three dots menu -->
-                <div class="dropdown-menu-container">
+                <div class="dropdown-menu-container" sec:authorize="isAuthenticated()">
                     <button class="three-dots-btn" id="threeDotsBtn" onclick="toggleThreeDotsMenu()">
                         <i class="bi bi-three-dots"></i>
                     </button>
                     <div class="three-dots-menu" id="threeDotsMenu">
-                        <button class="menu-item" onclick="editSignal()" id="editSignalBtn" style="display: none;">
+                        <button class="menu-item" onclick="editSignal()" id="editSignalBtn">
                             <i class="bi bi-pencil"></i>
                             <span>Редактирай</span>
                         </button>
-                        <button class="menu-item delete-item" onclick="deleteSignal()" id="deleteSignalBtn" style="display: none;">
+                        <button class="menu-item delete-item" onclick="deleteSignal()" id="deleteSignalBtn">
                             <i class="bi bi-trash"></i>
                             <span>Изтрий</span>
                         </button>
@@ -107,7 +109,6 @@
 
                 <!-- Comments Container -->
                 <div class="comments-container" id="commentsContainer">
-                    <!-- ➕ КЛЮЧОВОТО: Използвай същия фрагмент като в publikation -->
                     <div th:replace="~{fragments/commentsSection :: commentsSection}"></div>
                 </div>
             </div>
