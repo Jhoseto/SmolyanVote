@@ -369,13 +369,126 @@ function editSignal() {
     }
 }
 
-function deleteSignal() {
-    if (currentModalSignal) {
-        closeThreeDotsMenu();
+// ===== DELETE SIGNAL FUNCTION =====
+async function deleteSignal() {
+    if (!currentModalSignal) {
+        console.error('No current signal to delete');
+        return;
+    }
+
+    closeThreeDotsMenu();
+
+    // Проверка за SweetAlert2
+    if (typeof Swal === 'undefined') {
+        // Fallback за случаи когато SweetAlert2 не е достъпен
         const confirmed = confirm('Сигурни ли сте, че искате да изтриете този сигнал?');
-        if (confirmed) {
-            // TODO: Implement delete functionality
-            alert('Функцията за изтриване ще бъде добавена скоро');
+        if (!confirmed) return;
+    } else {
+        // Използвай SweetAlert за по-хубав modal
+        const result = await Swal.fire({
+            title: 'Изтриване на сигнал',
+            text: 'Сигурни ли сте, че искате да изтриете този сигнал? Всички коментари ще бъдат изтрити завинаги!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-trash"></i> Да, изтрий',
+            cancelButtonText: '<i class="bi bi-x"></i> Отказ',
+            buttonsStyling: true,
+            customClass: {
+                popup: 'animated fadeInDown',
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-secondary'
+            },
+            reverseButtons: true,
+            allowOutsideClick: false,
+            allowEscapeKey: true
+        });
+
+        if (!result.isConfirmed) return;
+    }
+
+    // ВАЖНО: Запази ID-то преди да затвориш модала
+    const signalIdToDelete = currentModalSignal.id;
+
+    try {
+        // Показвай loading състояние
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Изтриване...',
+                html: 'Моля изчакайте, докато сигналът се изтрие.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        // Използвай готовия SignalAPI метод
+        const result = await window.SignalAPI.deleteSignal(signalIdToDelete);
+
+        if (result.success) {
+            // Успешно изтриване - затвори модала първо
+            closeSignalModal();
+
+            // Покажи success нотификация
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Успех!',
+                    text: 'Сигналът е изтрит успешно',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } else {
+                // Fallback нотификация
+                if (window.showToast) {
+                    window.showToast('Сигналът е изтрит успешно', 'success');
+                } else {
+                    alert('Сигналът е изтрит успешно');
+                }
+            }
+
+            // Обнови картата/списъка със сигнали
+            if (window.signalManagement && window.signalManagement.loadSignalsData) {
+                await window.signalManagement.loadSignalsData();
+            }
+
+            // Ако има карта и методът съществува, премахни маркера
+            if (window.mapCore && typeof window.mapCore.removeSignalMarker === 'function') {
+                window.mapCore.removeSignalMarker(signalIdToDelete);
+            }
+
+        } else {
+            // Грешка от сървъра
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Грешка!',
+                    text: result.message || 'Възникна грешка при изтриване на сигнала',
+                    icon: 'error',
+                    confirmButtonColor: '#e74c3c'
+                });
+            } else {
+                alert(result.message || 'Възникна грешка при изтриване на сигнала');
+            }
+        }
+
+    } catch (error) {
+        console.error('Error deleting signal:', error);
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Грешка!',
+                text: 'Възникна грешка при изтриване на сигнала',
+                icon: 'error',
+                confirmButtonColor: '#e74c3c'
+            });
+        } else {
+            alert('Възникна грешка при изтриване на сигнала');
         }
     }
 }

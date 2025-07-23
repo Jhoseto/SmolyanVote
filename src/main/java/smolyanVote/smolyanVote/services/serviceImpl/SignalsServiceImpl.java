@@ -7,10 +7,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
+import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
+import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
@@ -28,14 +31,20 @@ public class SignalsServiceImpl implements SignalsService {
     private final SignalsRepository signalsRepository;
     private final ImageCloudinaryService imageCloudinaryService;
     private final UserService userService;
+    private final CommentsRepository commentsRepository;
+    private final CommentVoteRepository commentVoteRepository;
 
     @Autowired
     public SignalsServiceImpl(SignalsRepository signalsRepository,
                               ImageCloudinaryService imageCloudinaryService,
-                              UserService userService) {
+                              UserService userService,
+                              CommentsRepository commentsRepository,
+                              CommentVoteRepository commentVoteRepository) {
         this.signalsRepository = signalsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
         this.userService = userService;
+        this.commentsRepository = commentsRepository;
+        this.commentVoteRepository = commentVoteRepository;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -110,7 +119,39 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional
     public void delete(Long id) {
-        signalsRepository.deleteById(id);
+        try {
+            // ПЪРВО ИЗТРИВАМЕ COMMENT VOTES
+            try {
+                List<CommentsEntity> comments = commentsRepository.findBySignalId(id);
+
+                for (CommentsEntity comment : comments) {
+                    // Изтриваме всички votes за този коментар
+                    commentVoteRepository.deleteAllByCommentId(comment.getId());
+                }
+            } catch (Exception e) {
+                System.out.println("ERROR deleting comment votes: " + e.getMessage());
+                e.printStackTrace();
+                // Продължаваме, за да не блокираме изтриването
+            }
+
+            // ВТОРО ИЗТРИВАМЕ КОМЕНТАРИТЕ
+            try {
+                commentsRepository.deleteAllBySignal_Id(id);
+            } catch (Exception e) {
+                System.out.println("ERROR deleting comments: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+
+            signalsRepository.deleteById(id);
+
+        } catch (Exception e) {
+            System.err.println("FATAL ERROR in delete signal service:");
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Exception message: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // Re-throw за да стигне до контролера
+        }
     }
 
     // ====== ФИЛТРИРАНЕ И ТЪРСЕНЕ ======
