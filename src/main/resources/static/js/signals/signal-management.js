@@ -31,6 +31,8 @@ const URGENCY_LEVELS = {
 
 let searchTimeout;
 const SEARCH_DELAY = 300;
+let filterTimeout;
+const FILTER_DELAY = 300;
 
 // ===== ГЛОБАЛНИ ПРОМЕНЛИВИ =====
 let currentSignals = [];
@@ -77,19 +79,16 @@ async function loadSignalsData(showNotifications = true) {
         updateSignalsList(currentSignals);
         updateStats();
 
-        if (showNotifications) {
-            if (signals.length === 0) {
-                window.mapCore?.showNotification('📭 Няма намерени сигнали с избраните филтри', 'warning', 4000);
-            } else {
-                window.mapCore?.showNotification(
-                    `Заредени ${signals.length} сигнал${signals.length === 1 ? '' : 'а'}`,
-                    'success',
-                    3000
-                );
-            }
+        if (showNotifications && signals.length > 0) {
+            window.showNotification(
+                `Заредени ${signals.length} сигнал${signals.length === 1 ? '' : 'а'}`,
+                'success',
+                2000
+            );
+        } else if (showNotifications && signals.length === 0) {
+            window.showNotification('📭 Няма намерени сигнали с избраните филтри', 'warning', 3000);
         }
 
-        console.log(`✅ Loaded ${signals.length} signals successfully`);
 
     } catch (error) {
         console.error('Грешка при зареждане:', error);
@@ -183,31 +182,37 @@ function loadSignals() {
 }
 
 // ===== ФИЛТРИРАНЕ =====
+// ===== ФИЛТРИРАНЕ С DEBOUNCING =====
 async function applyFilters() {
-    // Вземи стойностите от dropdown менютата по data-name
-    const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
-    const urgencyDropdown = document.querySelector('[data-name="urgencyFilter"]');
-    const sortDropdown = document.querySelector('[data-name="sortFilter"]');
+    // DEBOUNCE - предотврати множествени извиквания
+    clearTimeout(filterTimeout);
 
-    // Обнови activeFilters от dropdown стойностите
-    if (categoryDropdown) {
-        const selectedCategory = categoryDropdown.querySelector('.dropdown-option.selected');
-        activeFilters.category = selectedCategory ? selectedCategory.dataset.value : 'all';
-    }
+    filterTimeout = setTimeout(async () => {
+        console.log('🔄 Applying filters...'); // DEBUG
 
-    if (urgencyDropdown) {
-        const selectedUrgency = urgencyDropdown.querySelector('.dropdown-option.selected');
-        activeFilters.urgency = selectedUrgency ? selectedUrgency.dataset.value : 'all';
-    }
+        // Вземи стойностите от dropdown менютата по data-name
+        const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
+        const urgencyDropdown = document.querySelector('[data-name="urgencyFilter"]');
+        const sortDropdown = document.querySelector('[data-name="sortFilter"]');
 
-    if (sortDropdown) {
-        const selectedSort = sortDropdown.querySelector('.dropdown-option.selected');
-        activeFilters.sort = selectedSort ? selectedSort.dataset.value : 'newest';
-    }
+        // Обнови activeFilters от dropdown стойностите
+        if (categoryDropdown) {
+            const selectedCategory = categoryDropdown.querySelector('.dropdown-option.selected');
+            activeFilters.category = selectedCategory ? selectedCategory.dataset.value : 'all';
+        }
 
-    console.log('Applying filters:', activeFilters); // DEBUG
+        if (urgencyDropdown) {
+            const selectedUrgency = urgencyDropdown.querySelector('.dropdown-option.selected');
+            activeFilters.urgency = selectedUrgency ? selectedUrgency.dataset.value : 'all';
+        }
 
-    await loadSignalsData();
+        if (sortDropdown) {
+            const selectedSort = sortDropdown.querySelector('.dropdown-option.selected');
+            activeFilters.sort = selectedSort ? selectedSort.dataset.value : 'newest';
+        }
+
+        await loadSignalsData();
+    }, FILTER_DELAY);
 }
 
 async function clearFilters() {
@@ -243,28 +248,7 @@ async function clearFilters() {
         }
     });
 
-    // Презареди данните
     await loadSignalsData(false); // Без показване на "зареждане" notification
-
-    // Покажи notification за резултата
-    const newCount = currentSignals.length;
-    if (newCount > previousCount) {
-        window.mapCore?.showNotification(
-            `Филтрите са изчистени! Показани ${newCount} сигнала (преди: ${previousCount})`,
-            'success',
-            4000
-        );
-    } else if (newCount === previousCount) {
-        window.mapCore?.showNotification('Филтрите са изчистени', 'info', 3000);
-    } else {
-        window.mapCore?.showNotification(
-            `Филтрите са изчистени! Показани ${newCount} сигнала`,
-            'info',
-            4000
-        );
-    }
-
-    console.log('Filters cleared and signals reloaded');
 }
 
 // ===== СПИСЪК СЪС СИГНАЛИ =====
@@ -383,7 +367,6 @@ function startLocationSelection() {
 
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {
-    // Филтри event listeners
     const categoryFilter = document.getElementById('categoryFilter');
     const urgencyFilter = document.getElementById('urgencyFilter');
     const sortFilter = document.getElementById('sortFilter');
@@ -399,29 +382,15 @@ function initializeEventListeners() {
         clearSearchBtn.addEventListener('click', clearSearch);
     }
 
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', applyFilters);
-    }
-    if (urgencyFilter) {
-        urgencyFilter.addEventListener('change', applyFilters);
-    }
-    if (sortFilter) {
-        sortFilter.addEventListener('change', applyFilters);
-    }
-
-    // Clear filters button
     const clearBtn = document.querySelector('.btn-clear-filters');
     if (clearBtn) {
         clearBtn.addEventListener('click', clearFilters);
     }
 
-    // Location selection - правилен event listener
     const locationBtn = document.getElementById('selectLocationBtn');
     if (locationBtn) {
         locationBtn.addEventListener('click', startLocationSelection);
     }
-
-    console.log('Signal management event listeners initialized');
 }
 
 // ===== SEARCH FUNCTIONS =====
