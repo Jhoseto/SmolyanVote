@@ -32,6 +32,7 @@
   <!-- Map CSS -->
   <link rel="stylesheet" href="/css/signals/smolyan-map.css">
   <link rel="stylesheet" href="/css/signals/signal-modal.css">
+  <link rel="stylesheet" href="/css/comments.css">
 
   <!-- Auth State for JS -->
   <script th:inline="javascript">
@@ -39,6 +40,16 @@
     window.currentUser = /*[[${currentUser}]]*/ null;
     window.csrfToken = /*[[${_csrf.token}]]*/ '';
     window.csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+
+    window.appData = {
+      isAuthenticated: window.isAuthenticated,
+      currentUserId: window.currentUser?.id || null,
+      currentUsername: window.currentUser?.username || '',
+      currentUserImage: window.currentUser?.imageUrl || '/images/default-avatar.png',
+      isAdmin: /*[[${#authorization.expression('hasRole(''ADMIN'')')}]]*/ false,
+      csrfToken: window.csrfToken,
+      csrfHeader: window.csrfHeader
+    };
   </script>
 </head>
 <body>
@@ -608,6 +619,7 @@
 <script src="/js/signals/signal-management.js"></script>
 <script src="/js/signals/signal-tooltip.js"></script>
 <script src="/js/signals/signal-modal.js"></script>
+<script src="/js/commentsManager.js"></script>
 
 <!-- Main Coordinator (Load last) -->
 <script src="/js/signals/smolyan-map.js"></script>

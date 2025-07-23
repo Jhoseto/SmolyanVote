@@ -104,7 +104,7 @@
 
 .comment-textarea {
     width: 100%;
-    min-height: 36px;
+    min-height: 40px;
     max-height: 120px;
     padding: 8px 12px;
     border: 1px solid var(--comment-border);

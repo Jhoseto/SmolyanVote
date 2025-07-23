@@ -2035,3 +2035,6 @@ window.insertCommentEmoji = function(emoji) {
         window.commentsManager.insertEmoji(emoji);
     }
 };
+
+// ====== GLOBAL EXPORT ======
+window.CommentsManager = CommentsManager;

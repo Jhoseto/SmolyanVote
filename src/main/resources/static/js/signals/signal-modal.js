@@ -76,6 +76,10 @@ function closeSignalModal() {
 
     currentModalSignal = null;
     closeThreeDotsMenu();
+
+    if (window.signalCommentsManager) {
+        window.signalCommentsManager = null;
+    }
 }
 
 // ===== MODAL CONTENT UPDATE =====
@@ -163,11 +167,44 @@ function updateModalContent(signal) {
     // Update reactions
     updateModalReactions(signal);
 
+    // ➕ НОВА СЕКЦИЯ: Update comments count
+    const commentsCount = document.getElementById('commentsCount');
+    if (commentsCount && signal.commentsCount !== undefined) {
+        commentsCount.textContent = `(${signal.commentsCount})`;
+    }
+
     // Update permissions for three dots menu
     updateThreeDotsMenuPermissions(signal);
 
+    // ➕ НОВА СЕКЦИЯ: Initialize comments
+    setTimeout(async () => {
+        if (window.CommentsManager) {
+            // Cleanup existing instance
+            if (window.signalCommentsManager) {
+                window.signalCommentsManager = null;
+            }
+
+            window.signalCommentsManager = new window.CommentsManager('signal', signal.id);
+
+            // ➕ ВАЖНО: Зареди коментарите като в publikation
+            await window.signalCommentsManager.loadComments(signal.id);
+
+            if (window.isAuthenticated && window.currentUser) {
+                const userAvatar = document.getElementById('currentUserAvatar');
+                if (userAvatar) {
+                    userAvatar.src = window.currentUser.imageUrl || '/images/default-avatar.png';
+                }
+            }
+
+            console.log('✅ Comments initialized for signal:', signal.id);
+        } else {
+            console.error('❌ CommentsManager not found!');
+        }
+    }, 100);
+
     console.log('Modal content updated successfully');
 }
+
 
 function updateModalImage(signal) {
     const imageSection = document.getElementById('modalImageSection');
@@ -282,6 +319,21 @@ function closeThreeDotsMenu() {
 }
 
 // ===== IMAGE LIGHTBOX =====
+
+function openImageLightbox() {
+    const modalImage = document.getElementById('modalSignalImage');
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+
+    if (modalImage && lightbox && lightboxImage && modalImage.src) {
+        lightboxImage.src = modalImage.src;
+        lightbox.style.display = 'flex';
+        lightbox.style.opacity = '1';
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        console.log('Opening lightbox with image:', modalImage.src);
+    }
+}
 
 function closeImageLightbox() {
     const lightbox = document.getElementById('imageLightbox');
@@ -429,7 +481,35 @@ function initializeSignalModal() {
         }
     });
 
-    console.log('Signal modal initialized');
+}
+
+// ===== COMMENTS INITIALIZATION =====
+function initializeCommentsForSignal(signalId) {
+    if (!signalId || !window.CommentsManager) {
+        console.warn('Cannot initialize comments: missing signalId or CommentsManager');
+        return;
+    }
+    // Създаваме CommentsManager instance за signal
+    if (window.signalCommentsManager) {
+        window.signalCommentsManager = null; // cleanup
+    }
+    window.signalCommentsManager = new window.CommentsManager('signal', signalId);
+
+    // Setup user avatar if authenticated
+    if (window.isAuthenticated && window.currentUser) {
+        const userAvatar = document.getElementById('currentUserAvatar');
+        if (userAvatar) {
+            userAvatar.src = window.currentUser.imageUrl || '/images/default-avatar.png';
+        }
+    }
+}
+
+// ===== UPDATE COMMENTS COUNT =====
+function updateCommentsCount(signal) {
+    const commentsCount = document.getElementById('commentsCount');
+    if (commentsCount && signal.commentsCount !== undefined) {
+        commentsCount.textContent = `(${signal.commentsCount})`;
+    }
 }
 
 // ===== GLOBAL FUNCTIONS =====
