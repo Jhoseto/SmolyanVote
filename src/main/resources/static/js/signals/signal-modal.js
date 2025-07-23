@@ -3,6 +3,20 @@
 
 let currentModalSignal = null;
 let isThreeDotsMenuOpen = false;
+let likedSignals = new Set();
+
+// Load liked signals когато се зареди страницата
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.isAuthenticated) {
+        try {
+            const likedSignalIds = await window.SignalAPI.getLikedSignals();
+            likedSignalIds.forEach(id => likedSignals.add(id));
+            console.log('✅ Loaded liked signals:', likedSignals);
+        } catch (error) {
+            console.warn('Could not load liked signals:', error);
+        }
+    }
+});
 
 // ===== MAIN MODAL FUNCTIONS =====
 
@@ -17,7 +31,14 @@ async function openSignalModal(signal) {
             return;
         }
 
-        // 1. ПОКАЖИ МОДАЛА ВЕДНАГА с наличните данни
+        // Ако имаме isLikedByCurrentUser от backend-а, добави в Set-а
+        if (signal.isLikedByCurrentUser === true) {
+            likedSignals.add(signal.id);
+        } else if (signal.isLikedByCurrentUser === false) {
+            likedSignals.delete(signal.id);
+        }
+
+        // ВЕДНЪЖ updateModalContent
         updateModalContent(signal);
         modal.style.display = 'flex';
         requestAnimationFrame(() => {
@@ -27,19 +48,16 @@ async function openSignalModal(signal) {
         document.body.style.overflow = 'hidden';
         closeThreeDotsMenu();
 
-        // 2. АСИНХРОННО обнови views в background
+        // САМО increment views в background - БЕЗ втора заявка
         window.SignalAPI.incrementViews(signal.id)
             .then(freshSignal => {
                 if (freshSignal && currentModalSignal?.id === signal.id) {
-                    // Обнови само views count-а в модала
                     updateModalViews(freshSignal);
-                    // Обнови кеша
                     updateSignalInCache(freshSignal);
                 }
             })
             .catch(error => {
                 console.warn('⚠️ Could not increment views:', error);
-                // Modal остава отворен дори при грешка
             });
 
     } catch (error) {
@@ -241,27 +259,44 @@ function updateModalViews(signal) {
 // ===== ОБНОВЕНА updateModalReactions БЕЗ локално увеличаване =====
 
 function updateModalReactions(signal) {
+    // Update likes count
     const likesCount = document.getElementById('likesCount');
     if (likesCount) {
         likesCount.textContent = signal.likesCount || 0;
     }
 
+    // Update views count
     const viewsCount = document.getElementById('viewsCount');
     if (viewsCount) {
         viewsCount.textContent = signal.viewsCount || 0;
     }
 
-    // Update like button state (if user is authenticated)
+    // Update like button state ПРОСТО - като в публикациите
     const likeBtn = document.getElementById('likeBtn');
-    if (likeBtn && window.isAuthenticated) {
-        // TODO: Check if user has liked this signal
-        // For now, just ensure it's clickable
-        likeBtn.disabled = false;
-    } else if (likeBtn) {
-        likeBtn.disabled = true;
-        likeBtn.style.opacity = '0.6';
+    if (likeBtn) {
+        if (window.isAuthenticated) {
+            likeBtn.disabled = false;
+            likeBtn.style.opacity = '1';
+
+            // Провери Set-а
+            const isLiked = likedSignals.has(signal.id);
+
+            if (isLiked) {
+                likeBtn.classList.add('liked');
+                const icon = likeBtn.querySelector('i');
+                if (icon) icon.className = 'bi bi-heart-fill';
+            } else {
+                likeBtn.classList.remove('liked');
+                const icon = likeBtn.querySelector('i');
+                if (icon) icon.className = 'bi bi-heart';
+            }
+        } else {
+            likeBtn.disabled = true;
+            likeBtn.style.opacity = '0.6';
+        }
     }
 }
+
 
 // ===== PERMISSIONS & THREE DOTS MENU =====
 
@@ -707,38 +742,37 @@ async function deleteSignal() {
 async function toggleLike() {
     if (!currentModalSignal || !window.isAuthenticated) {
         if (!window.isAuthenticated) {
-            alert('Моля, влезте в профила си за да харесвате сигнали');
+            window.mapCore?.showNotification('🔒 Моля, влезте в профила си за да харесвате сигнали', 'warning', 4000);
         }
         return;
     }
 
     try {
-        // TODO: Implement API call to toggle like
-        console.log('Toggle like for signal:', currentModalSignal.id);
+        const response = await window.SignalAPI.toggleLike(currentModalSignal.id);
 
-        // For now, just update UI optimistically
-        const likesCountEl = document.getElementById('likesCount');
-        const likeBtn = document.getElementById('likeBtn');
-
-        if (likesCountEl && likeBtn) {
-            const currentCount = parseInt(likesCountEl.textContent) || 0;
-            const isLiked = likeBtn.classList.contains('active');
-
-            if (isLiked) {
-                likesCountEl.textContent = Math.max(0, currentCount - 1);
-                likeBtn.classList.remove('active');
+        if (response.success) {
+            // Update Set (като в публикациите)
+            if (response.liked) {
+                likedSignals.add(currentModalSignal.id);
             } else {
-                likesCountEl.textContent = currentCount + 1;
-                likeBtn.classList.add('active');
+                likedSignals.delete(currentModalSignal.id);
             }
+
+            // Update count
+            currentModalSignal.likesCount = (currentModalSignal.likesCount || 0) + (response.liked ? 1 : -1);
+
+            // Update UI
+            updateModalReactions(currentModalSignal);
+
+            const message = response.liked ? '❤️ Сигналът е харесан' : '💔 Харесването е премахнато';
+            window.mapCore?.showNotification(message, 'success', 2000);
         }
 
     } catch (error) {
-        console.error('Error toggling like:', error);
-        alert('Възникна грешка при харесването');
+        console.error('❌ Error toggling like:', error);
+        window.mapCore?.showNotification('❌ Възникна грешка при харесването', 'error', 4000);
     }
 }
-
 
 
 // ===== UTILITY FUNCTIONS =====

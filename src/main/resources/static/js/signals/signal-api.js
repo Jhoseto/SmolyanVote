@@ -183,25 +183,19 @@ class SignalAPI {
         }
     }
 
-    // ===== GET SIGNAL BY ID =====
-    static async getSignalById(id) {
+    // ===== GET LIKED SIGNALS =====
+    static async getLikedSignals() {
         try {
-            console.log('🔄 Loading signal details for ID:', id);
-
-            const url = `${API_CONFIG.baseURL}/${id}`;
+            const url = `${API_CONFIG.baseURL}/liked`;
             const response = await HTTPClient.retryRequest(url);
-
-            console.log('✅ Signal details loaded successfully');
+            console.log('✅ Liked signals loaded:', response);
             return response;
-
         } catch (error) {
-            console.error('❌ Error loading signal details:', error);
-            throw new APIError(
-                `Грешка при зареждане на детайлите: ${error.message}`,
-                error.status || 500
-            );
+            console.warn('Could not load liked signals:', error);
+            return [];
         }
     }
+
 
     // ===== CREATE NEW SIGNAL =====
     static async createSignal(signalData) {
@@ -351,17 +345,46 @@ class SignalAPI {
         try {
             console.log('🔄 Incrementing views for signal:', signalId);
 
-            // Правим GET заявка към сигнала - това автоматично увеличава views в backend-а
+            // Използваме getSignalById вместо само increment
             const url = `${API_CONFIG.baseURL}/${signalId}`;
             const response = await HTTPClient.retryRequest(url);
 
             console.log('✅ Views incremented, updated signal data:', response);
-            return response; // Връщаме обновените данни
+            console.log('🔍 isLikedByCurrentUser:', response.isLikedByCurrentUser);
+
+            return response;
 
         } catch (error) {
             console.error('❌ Error incrementing views:', error);
-            // Не хвърляме грешка - views increment-ът не трябва да блокира UI-то
-            return null;
+            throw new APIError(
+                `Грешка при увеличаване на прегледите: ${error.message}`,
+                error.status || 500
+            );
+        }
+    }
+
+    // ===== TOGGLE LIKE =====
+    static async toggleLike(signalId) {
+        try {
+            console.log('🔄 Toggling like for signal:', signalId);
+
+            const url = `${API_CONFIG.baseURL}/${signalId}/like`;
+            const response = await HTTPClient.retryRequest(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('✅ Like toggled successfully:', response);
+            return response;
+
+        } catch (error) {
+            console.error('❌ Error toggling like:', error);
+            throw new APIError(
+                `Грешка при харесване: ${error.message}`,
+                error.status || 500
+            );
         }
     }
 }
@@ -423,5 +446,3 @@ window.APILoadingState = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { SignalAPI, APIError, HTTPClient };
 }
-
-console.log('🌐 Signal API Client loaded successfully');

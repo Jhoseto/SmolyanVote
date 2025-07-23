@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,7 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -257,9 +258,56 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional(readOnly = true)
     public boolean isLikedByUser(Long signalId, String username) {
-        SignalsEntity signal = findById(signalId);
-        if (signal == null || signal.getLikedByUsers() == null) return false;
-        return signal.getLikedByUsers().contains("\"" + username + "\"");
+        try {
+            SignalsEntity signal = findById(signalId);
+            if (signal == null || signal.getLikedByUsers() == null || signal.getLikedByUsers().trim().isEmpty()) {
+                return false;
+            }
+
+            // Parse JSON array and check if username exists
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> likedUsers = mapper.readValue(signal.getLikedByUsers(),
+                    mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+
+            return likedUsers.contains(username);
+
+        } catch (Exception e) {
+            System.err.println("Error checking if user liked signal: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getLikedSignalIdsByUser(String username) {
+        try {
+            List<SignalsEntity> allSignals = signalsRepository.findAll();
+            List<Long> likedSignalIds = new ArrayList<>();
+
+            ObjectMapper mapper = new ObjectMapper();
+
+            for (SignalsEntity signal : allSignals) {
+                if (signal.getLikedByUsers() != null && !signal.getLikedByUsers().trim().isEmpty()) {
+                    try {
+                        List<String> likedUsers = mapper.readValue(signal.getLikedByUsers(),
+                                mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+
+                        if (likedUsers.contains(username)) {
+                            likedSignalIds.add(signal.getId());
+                        }
+                    } catch (Exception e) {
+                        // Skip this signal if JSON parsing fails
+                    }
+                }
+            }
+
+            return likedSignalIds;
+
+        } catch (Exception e) {
+            System.err.println("Error getting liked signal IDs: " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     @Override
@@ -390,24 +438,44 @@ public class SignalsServiceImpl implements SignalsService {
 
     // Помощни методи за likes
     private void addLike(SignalsEntity signal, String username) {
-        String currentLikes = signal.getLikedByUsers();
-        if (currentLikes == null) {
-            currentLikes = "";
-        }
+        try {
+            List<String> likedUsers = new ArrayList<>();
 
-        if (!currentLikes.contains("\"" + username + "\"")) {
-            currentLikes += "\"" + username + "\",";
-            signal.setLikedByUsers(currentLikes);
-            signal.setLikesCount((signal.getLikesCount() == null ? 0 : signal.getLikesCount()) + 1);
+            if (signal.getLikedByUsers() != null && !signal.getLikedByUsers().trim().isEmpty()) {
+                ObjectMapper mapper = new ObjectMapper();
+                likedUsers = mapper.readValue(signal.getLikedByUsers(),
+                        mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+            }
+
+            if (!likedUsers.contains(username)) {
+                likedUsers.add(username);
+                ObjectMapper mapper = new ObjectMapper();
+                signal.setLikedByUsers(mapper.writeValueAsString(likedUsers));
+                signal.setLikesCount((signal.getLikesCount() == null ? 0 : signal.getLikesCount()) + 1);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error adding like: " + e.getMessage());
         }
     }
 
     private void removeLike(SignalsEntity signal, String username) {
-        String currentLikes = signal.getLikedByUsers();
-        if (currentLikes != null && currentLikes.contains("\"" + username + "\"")) {
-            currentLikes = currentLikes.replace("\"" + username + "\",", "");
-            signal.setLikedByUsers(currentLikes);
-            signal.setLikesCount(Math.max(0, (signal.getLikesCount() == null ? 0 : signal.getLikesCount()) - 1));
+        try {
+            if (signal.getLikedByUsers() == null || signal.getLikedByUsers().trim().isEmpty()) {
+                return;
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> likedUsers = mapper.readValue(signal.getLikedByUsers(),
+                    mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+
+            if (likedUsers.remove(username)) {
+                signal.setLikedByUsers(mapper.writeValueAsString(likedUsers));
+                signal.setLikesCount(Math.max(0, (signal.getLikesCount() == null ? 0 : signal.getLikesCount()) - 1));
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error removing like: " + e.getMessage());
         }
     }
 }

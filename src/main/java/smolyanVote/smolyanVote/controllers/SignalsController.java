@@ -71,23 +71,60 @@ public class SignalsController {
     // ====== GET SIGNAL BY ID ======
 
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getSignalById(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> getSignalById(@PathVariable Long id, Authentication auth) {
         try {
             SignalsEntity signal = signalsService.findById(id);
-
             if (signal == null) {
                 return ResponseEntity.status(404).body(createErrorResponse("Сигналът не е намерен"));
             }
 
-            // Увеличаваме броя прегледи
+            // Increment views
             signalsService.incrementViews(id);
+            signal = signalsService.findById(id); // Reload to get updated views
 
+            // Convert to JSON with like status for current user
             Map<String, Object> signalJson = convertSignalToJson(signal);
+
+            // Add isLikedByCurrentUser if user is authenticated
+            if (auth != null && auth.isAuthenticated()) {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    boolean isLikedByCurrentUser = signalsService.isLikedByUser(id, currentUser.getUsername());
+                    signalJson.put("isLikedByCurrentUser", isLikedByCurrentUser);
+                }
+            } else {
+                signalJson.put("isLikedByCurrentUser", false);
+            }
+
             return ResponseEntity.ok(signalJson);
 
         } catch (Exception e) {
-            System.err.println("Error getting signal by ID: " + e.getMessage());
+            System.err.println("Error getting signal: " + e.getMessage());
             return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждане на сигнала"));
+        }
+    }
+
+    // ====== GET LIKED SIGNALS BY CURRENT USER ======
+    @GetMapping("/liked")
+    public ResponseEntity<List<Long>> getLikedSignalsByCurrentUser(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                return ResponseEntity.ok(List.of());
+            }
+
+            // TODO: Implement method to get all liked signal IDs by user
+            List<Long> likedSignalIds = signalsService.getLikedSignalIdsByUser(currentUser.getUsername());
+
+            return ResponseEntity.ok(likedSignalIds);
+
+        } catch (Exception e) {
+            System.err.println("Error getting liked signals: " + e.getMessage());
+            return ResponseEntity.ok(List.of());
         }
     }
 
@@ -304,8 +341,6 @@ public class SignalsController {
         // Статистики
         signalMap.put("likesCount", signal.getLikesCount() != null ? signal.getLikesCount() : 0);
         signalMap.put("viewsCount", signal.getViewsCount() != null ? signal.getViewsCount() : 0);
-
-
 
         return signalMap;
     }
