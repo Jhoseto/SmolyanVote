@@ -33,6 +33,8 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
             "ORDER BY " +
             "CASE WHEN :sort = 'newest' THEN s.created END DESC, " +
             "CASE WHEN :sort = 'oldest' THEN s.created END ASC, " +
+            "CASE WHEN :sort = 'popular' THEN s.likesCount END DESC, " +
+            "CASE WHEN :sort = 'viewed' THEN s.viewsCount END DESC, " +
             "CASE WHEN :sort = 'urgency' THEN s.urgency END DESC, " +
             "CASE WHEN :sort = 'category' THEN s.category END ASC")
     Page<SignalsEntity> findWithFilters(
