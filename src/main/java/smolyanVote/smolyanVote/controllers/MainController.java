@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,8 +57,16 @@ public class MainController {
         return "error/403";
     }
 
+
     @GetMapping("/signals/mainView")
-    public String signalsPage(Model model) {
+    public String signalsPage(HttpServletResponse response, Model model) {
+        // Разрешава геолокация за signals страницата
+        response.setHeader("Permissions-Policy", "geolocation=*");
+
+        model.addAttribute("pageTitle", "Граждански сигнали - SmolyanVote");
+        model.addAttribute("metaDescription", "Докладвайте проблеми в Смолянска област чрез интерактивна карта." +
+                " Вашата ангажираност има значение за подобряване на общността.");
+
         return "signals-page";
     }
 }
