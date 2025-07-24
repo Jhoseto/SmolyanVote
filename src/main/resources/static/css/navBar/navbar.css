@@ -175,7 +175,7 @@
 .nav-link-glass {
     font-family: var(--font-primary);
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 100;
     color: var(--text-primary);
     text-decoration: none;
     padding: 0.3rem 0;
@@ -215,7 +215,7 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-weight: 500;
+    font-weight: 100;
     padding-bottom: 7px;
 }
 

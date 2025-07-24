@@ -131,6 +131,205 @@
     </div>
   </div>
 
+  <!-- Filters Panel (Middle) -->
+  <div class="filters-panel">
+    <div class="filters-header">
+      <h4>
+        <i class="bi bi-funnel"></i>
+        Филтри
+      </h4>
+      <button class="filters-toggle" onclick="toggleFilters()" aria-label="Покажи/скрий филтрите">
+        <i class="bi bi-chevron-down" id="filtersArrow"></i>
+      </button>
+    </div>
+
+    <div class="filters-content" id="filtersContent">
+      <div class="filters-grid">
+        <!-- Категория филтър - Custom Dropdown -->
+        <div class="filter-group">
+          <label>Категория</label>
+          <div class="custom-dropdown compact" data-name="categoryFilter">
+            <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+              <span class="dropdown-text">Всички</span>
+              <i class="bi bi-chevron-down dropdown-arrow"></i>
+            </div>
+            <div class="dropdown-menu" role="listbox">
+              <div class="dropdown-option" data-value="all" role="option">
+                <i class="bi bi-grid"></i>
+                <span>Всички</span>
+              </div>
+              <div class="dropdown-option" data-value="ROAD_DAMAGE" role="option">
+                <i class="bi bi-cone-striped"></i>
+                <span>Дупки в пътищата</span>
+              </div>
+              <div class="dropdown-option" data-value="SIDEWALK_DAMAGE" role="option">
+                <i class="bi bi-bricks"></i>
+                <span>Счупени тротоари</span>
+              </div>
+              <div class="dropdown-option" data-value="LIGHTING" role="option">
+                <i class="bi bi-lightbulb"></i>
+                <span>Неработещо осветление</span>
+              </div>
+              <div class="dropdown-option" data-value="TRAFFIC_SIGNS" role="option">
+                <i class="bi bi-sign-stop"></i>
+                <span>Повредени пътни знаци</span>
+              </div>
+              <div class="dropdown-option" data-value="WATER_SEWER" role="option">
+                <i class="bi bi-droplet"></i>
+                <span>Водопровод/канализация</span>
+              </div>
+              <div class="dropdown-option" data-value="WASTE_MANAGEMENT" role="option">
+                <i class="bi bi-trash"></i>
+                <span>Замърсяване</span>
+              </div>
+              <div class="dropdown-option" data-value="ILLEGAL_DUMPING" role="option">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>Незаконно изхвърляне</span>
+              </div>
+              <div class="dropdown-option" data-value="TREE_ISSUES" role="option">
+                <i class="bi bi-tree"></i>
+                <span>Проблеми с дървета</span>
+              </div>
+              <div class="dropdown-option" data-value="AIR_POLLUTION" role="option">
+                <i class="bi bi-cloud-fog"></i>
+                <span>Замърсяване на въздуха</span>
+              </div>
+              <div class="dropdown-option" data-value="NOISE_POLLUTION" role="option">
+                <i class="bi bi-volume-up"></i>
+                <span>Шумово замърсяване</span>
+              </div>
+              <div class="dropdown-option" data-value="HEALTHCARE" role="option">
+                <i class="bi bi-heart-pulse"></i>
+                <span>Здравеопазване</span>
+              </div>
+              <div class="dropdown-option" data-value="EDUCATION" role="option">
+                <i class="bi bi-book"></i>
+                <span>Образование</span>
+              </div>
+              <div class="dropdown-option" data-value="TRANSPORT" role="option">
+                <i class="bi bi-bus-front"></i>
+                <span>Обществен транспорт</span>
+              </div>
+              <div class="dropdown-option" data-value="PARKING" role="option">
+                <i class="bi bi-p-square"></i>
+                <span>Паркиране</span>
+              </div>
+              <div class="dropdown-option" data-value="SECURITY" role="option">
+                <i class="bi bi-shield-check"></i>
+                <span>Обществена безопасност</span>
+              </div>
+              <div class="dropdown-option" data-value="VANDALISM" role="option">
+                <i class="bi bi-hammer"></i>
+                <span>Вандализъм</span>
+              </div>
+              <div class="dropdown-option" data-value="ACCESSIBILITY" role="option">
+                <i class="bi bi-universal-access"></i>
+                <span>Достъпност</span>
+              </div>
+              <div class="dropdown-option" data-value="OTHER" role="option">
+                <i class="bi bi-three-dots"></i>
+                <span>Други</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Спешност филтър - Custom Dropdown -->
+        <div class="filter-group">
+          <label>Спешност</label>
+          <div class="custom-dropdown compact" data-name="urgencyFilter">
+            <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+              <span class="dropdown-text">Всички</span>
+              <i class="bi bi-chevron-down dropdown-arrow"></i>
+            </div>
+            <div class="dropdown-menu" role="listbox">
+              <div class="dropdown-option" data-value="all" role="option">
+                <i class="bi bi-grid"></i>
+                <span>Всички</span>
+              </div>
+              <div class="dropdown-option" data-value="LOW" role="option">
+                <i class="bi bi-info-circle" style="color: #198754;"></i>
+                <span>Ниска</span>
+              </div>
+              <div class="dropdown-option" data-value="MEDIUM" role="option">
+                <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
+                <span>Средна</span>
+              </div>
+              <div class="dropdown-option" data-value="HIGH" role="option">
+                <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
+                <span>Висока</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Сортиране филтър - Custom Dropdown -->
+        <div class="filter-group">
+          <label>Сортиране</label>
+          <div class="custom-dropdown compact" data-name="sortFilter">
+            <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+              <span class="dropdown-text">Най-нови</span>
+              <i class="bi bi-chevron-down dropdown-arrow"></i>
+            </div>
+            <div class="dropdown-menu" role="listbox">
+              <div class="dropdown-option selected" data-value="newest" role="option">
+                <i class="bi bi-clock"></i>
+                <span>Най-нови</span>
+              </div>
+              <div class="dropdown-option" data-value="oldest" role="option">
+                <i class="bi bi-clock-history"></i>
+                <span>Най-стари</span>
+              </div>
+              <div class="dropdown-option" data-value="popular" role="option">
+                <i class="bi bi-heart"></i>
+                <span>Най-харесвани</span>
+              </div>
+              <div class="dropdown-option" data-value="viewed" role="option">
+                <i class="bi bi-eye"></i>
+                <span>Най-гледани</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clear filters button -->
+      <button class="btn-clear-filters" onclick="clearAllFilters()">
+        <i class="bi bi-arrow-clockwise"></i>
+        Изчисти филтрите
+      </button>
+    </div>
+  </div>
+
+  <!-- Right Signals Panel -->
+  <div class="signals-panel" id="signalsPanel">
+    <!-- Компактен таб за сигнали -->
+    <div class="signals-tab" id="signalsTab" role="button" tabindex="0" aria-label="Отвори/затвори панела със сигнали" onkeypress="if(event.key==='Enter') toggleSignalsPanel()">
+      <div class="tab-content">
+        <div class="tab-icon">
+          <i class="bi bi-list-ul"></i>
+        </div>
+        <div class="tab-info">
+          <span class="tab-title">Сигнали</span>
+          <span class="tab-counter" id="signalsTabCounter">0</span>
+        </div>
+      </div>
+      <i class="bi bi-chevron-left tab-arrow" id="signalsTabArrow"></i>
+    </div>
+
+    <!-- Разширен панел със сигнали -->
+    <div class="signals-content" id="signalsContent">
+      <!-- Списък със сигнали -->
+      <div class="signals-list" id="signalsList" role="region" aria-label="Списък с граждански сигнали">
+        <!-- Signals will be loaded here dynamically -->
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Зареждане на сигнали...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Panel за нов сигнал -->
   <div id="newSignalPanel" class="floating-panel" role="dialog" aria-labelledby="newSignalTitle" aria-hidden="true">
     <div class="panel-header">
@@ -200,15 +399,15 @@
                   </div>
                   <div class="dropdown-option" data-value="WASTE_MANAGEMENT" role="option">
                     <i class="bi bi-trash"></i>
-                    <span>Замърсяване на околната среда</span>
+                    <span>Замърсяване</span>
                   </div>
                   <div class="dropdown-option" data-value="ILLEGAL_DUMPING" role="option">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <span>Незаконно изхвърляне на отпадъци</span>
+                    <span>Незаконно изхвърляне</span>
                   </div>
                   <div class="dropdown-option" data-value="TREE_ISSUES" role="option">
                     <i class="bi bi-tree"></i>
-                    <span>Проблеми с дървета и растителност</span>
+                    <span>Проблеми с дървета</span>
                   </div>
                   <div class="dropdown-option" data-value="AIR_POLLUTION" role="option">
                     <i class="bi bi-cloud-fog"></i>
@@ -222,7 +421,7 @@
 
                 <div class="dropdown-group">
                   <div class="dropdown-group-label">
-                    <i class="bi bi-building"></i>
+                    <i class="bi bi-people"></i>
                     Обществени услуги
                   </div>
                   <div class="dropdown-option" data-value="HEALTHCARE" role="option">
@@ -343,7 +542,7 @@
               </div>
             </div>
             <div class="form-help">
-              Максимален размер: 5MB. Формати: JPG, PNG, WebP
+              Максимален размер: 5MB. Поддържани формати: JPG, PNG, WEBP
             </div>
             <div class="form-feedback" id="imageFeedback"></div>
           </div>
@@ -380,205 +579,6 @@
           </button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- Right Signals Panel -->
-  <div class="signals-panel" id="signalsPanel">
-    <!-- Компактен таб за сигнали -->
-    <div class="signals-tab" id="signalsTab" role="button" tabindex="0" aria-label="Отвори/затвори панела със сигнали" onkeypress="if(event.key==='Enter') toggleSignalsPanel()">
-      <div class="tab-content">
-        <div class="tab-icon">
-          <i class="bi bi-list-ul"></i>
-        </div>
-        <div class="tab-info">
-          <span class="tab-title">Сигнали</span>
-          <span class="tab-counter" id="signalsTabCounter">0</span>
-        </div>
-      </div>
-      <i class="bi bi-chevron-left tab-arrow" id="signalsTabArrow"></i>
-    </div>
-
-    <!-- Разширен панел със сигнали -->
-    <div class="signals-content" id="signalsContent">
-      <!-- Филтри в горната част -->
-      <div class="filters-section">
-        <div class="filters-header">
-          <h4>
-            <i class="bi bi-funnel"></i>
-            Филтри
-          </h4>
-          <button class="filters-toggle" onclick="toggleFilters()" aria-label="Покажи/скрий филтрите">
-            <i class="bi bi-chevron-down" id="filtersArrow"></i>
-          </button>
-        </div>
-
-        <div class="filters-content" id="filtersContent">
-          <div class="filters-grid">
-            <!-- Категория филтър - Custom Dropdown -->
-            <div class="filter-group">
-              <label>Категория</label>
-              <div class="custom-dropdown compact" data-name="categoryFilter">
-                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <span class="dropdown-text">Всички</span>
-                  <i class="bi bi-chevron-down dropdown-arrow"></i>
-                </div>
-                <div class="dropdown-menu" role="listbox">
-                  <div class="dropdown-option" data-value="all" role="option">
-                    <i class="bi bi-grid"></i>
-                    <span>Всички</span>
-                  </div>
-                  <div class="dropdown-option" data-value="ROAD_DAMAGE" role="option">
-                    <i class="bi bi-cone-striped"></i>
-                    <span>Дупки в пътищата</span>
-                  </div>
-                  <div class="dropdown-option" data-value="SIDEWALK_DAMAGE" role="option">
-                    <i class="bi bi-bricks"></i>
-                    <span>Счупени тротоари</span>
-                  </div>
-                  <div class="dropdown-option" data-value="LIGHTING" role="option">
-                    <i class="bi bi-lightbulb"></i>
-                    <span>Неработещо осветление</span>
-                  </div>
-                  <div class="dropdown-option" data-value="TRAFFIC_SIGNS" role="option">
-                    <i class="bi bi-sign-stop"></i>
-                    <span>Повредени пътни знаци</span>
-                  </div>
-                  <div class="dropdown-option" data-value="WATER_SEWER" role="option">
-                    <i class="bi bi-droplet"></i>
-                    <span>Водопровод/канализация</span>
-                  </div>
-                  <div class="dropdown-option" data-value="WASTE_MANAGEMENT" role="option">
-                    <i class="bi bi-trash"></i>
-                    <span>Замърсяване</span>
-                  </div>
-                  <div class="dropdown-option" data-value="ILLEGAL_DUMPING" role="option">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <span>Незаконно изхвърляне</span>
-                  </div>
-                  <div class="dropdown-option" data-value="TREE_ISSUES" role="option">
-                    <i class="bi bi-tree"></i>
-                    <span>Проблеми с дървета</span>
-                  </div>
-                  <div class="dropdown-option" data-value="AIR_POLLUTION" role="option">
-                    <i class="bi bi-cloud-fog"></i>
-                    <span>Замърсяване на въздуха</span>
-                  </div>
-                  <div class="dropdown-option" data-value="NOISE_POLLUTION" role="option">
-                    <i class="bi bi-volume-up"></i>
-                    <span>Шумово замърсяване</span>
-                  </div>
-                  <div class="dropdown-option" data-value="HEALTHCARE" role="option">
-                    <i class="bi bi-heart-pulse"></i>
-                    <span>Здравеопазване</span>
-                  </div>
-                  <div class="dropdown-option" data-value="EDUCATION" role="option">
-                    <i class="bi bi-book"></i>
-                    <span>Образование</span>
-                  </div>
-                  <div class="dropdown-option" data-value="TRANSPORT" role="option">
-                    <i class="bi bi-bus-front"></i>
-                    <span>Обществен транспорт</span>
-                  </div>
-                  <div class="dropdown-option" data-value="PARKING" role="option">
-                    <i class="bi bi-p-square"></i>
-                    <span>Паркиране</span>
-                  </div>
-                  <div class="dropdown-option" data-value="SECURITY" role="option">
-                    <i class="bi bi-shield"></i>
-                    <span>Обществена безопасност</span>
-                  </div>
-                  <div class="dropdown-option" data-value="VANDALISM" role="option">
-                    <i class="bi bi-hammer"></i>
-                    <span>Вандализъм</span>
-                  </div>
-                  <div class="dropdown-option" data-value="ACCESSIBILITY" role="option">
-                    <i class="bi bi-universal-access"></i>
-                    <span>Достъпност</span>
-                  </div>
-                  <div class="dropdown-option" data-value="OTHER" role="option">
-                    <i class="bi bi-question-circle"></i>
-                    <span>Други</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Спешност филтър - Custom Dropdown -->
-            <div class="filter-group">
-              <label>Спешност</label>
-              <div class="custom-dropdown compact" data-name="urgencyFilter">
-                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <span class="dropdown-text">Всички</span>
-                  <i class="bi bi-chevron-down dropdown-arrow"></i>
-                </div>
-                <div class="dropdown-menu" role="listbox">
-                  <div class="dropdown-option" data-value="all" role="option">
-                    <i class="bi bi-grid"></i>
-                    <span>Всички</span>
-                  </div>
-                  <div class="dropdown-option" data-value="HIGH" role="option">
-                    <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
-                    <span>Висока</span>
-                  </div>
-                  <div class="dropdown-option" data-value="MEDIUM" role="option">
-                    <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
-                    <span>Средна</span>
-                  </div>
-                  <div class="dropdown-option" data-value="LOW" role="option">
-                    <i class="bi bi-info-circle" style="color: #198754;"></i>
-                    <span>Ниска</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Сортиране филтър - Custom Dropdown -->
-            <div class="filter-group">
-              <label>Сортиране</label>
-              <div class="custom-dropdown compact" data-name="sortFilter">
-                <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                  <span class="dropdown-text">Най-нови</span>
-                  <i class="bi bi-chevron-down dropdown-arrow"></i>
-                </div>
-                <div class="dropdown-menu" role="listbox">
-                  <div class="dropdown-option" data-value="newest" role="option">
-                    <i class="bi bi-sort-down"></i>
-                    <span>Най-нови</span>
-                  </div>
-                  <div class="dropdown-option" data-value="oldest" role="option">
-                    <i class="bi bi-sort-up"></i>
-                    <span>Най-стари</span>
-                  </div>
-                  <div class="dropdown-option" data-value="urgency" role="option">
-                    <i class="bi bi-exclamation-circle"></i>
-                    <span>По спешност</span>
-                  </div>
-                  <div class="dropdown-option" data-value="category" role="option">
-                    <i class="bi bi-tags"></i>
-                    <span>По категория</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Clear filters button -->
-          <button class="btn-clear-filters" onclick="clearAllFilters()">
-            <i class="bi bi-arrow-clockwise"></i>
-            Изчисти филтрите
-          </button>
-        </div>
-      </div>
-
-      <!-- Списък със сигнали -->
-      <div class="signals-list" id="signalsList" role="region" aria-label="Списък с граждански сигнали">
-        <!-- Signals will be loaded here dynamically -->
-        <div class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>Зареждане на сигнали...</p>
-        </div>
-      </div>
     </div>
   </div>
 </div>
