@@ -75,31 +75,244 @@ function centerMap() {
 
 function getMyLocation() {
     if (!navigator.geolocation) {
-        showNotification('Геолокацията не е поддържана', 'error');
+        showNotification('Геолокацията не е поддържана от вашия браузър', 'error');
         return;
     }
 
     const btn = document.getElementById('myLocationBtn');
+    const originalHTML = btn.innerHTML;
+
+    // Информираме потребителя че ще се покаже popup
+    showNotification('🔍 Моля разрешете достъп до местоположението...', 'info', 3000);
+
     btn.innerHTML = '<i class="spinner-border spinner-border-sm"></i>';
     btn.disabled = true;
 
+    const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000  // 1 минута кеш
+    };
+
+    // Директно извикваме геолокацията - това ще покаже popup ако не е блокирано
     navigator.geolocation.getCurrentPosition(
         function(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
             map.setView([lat, lng], 16);
 
-            btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>';
+            btn.innerHTML = originalHTML;
             btn.disabled = false;
-            showNotification('Намерена е вашата локация', 'success');
+
+            showNotification(`✅ Локация намерена! (точност: ${Math.round(accuracy)}м)`, 'success', 4000);
         },
         function(error) {
-            btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>';
+            btn.innerHTML = originalHTML;
             btn.disabled = false;
-            showNotification('Не може да се определи локацията', 'error');
-        }
+
+            if (error.code === error.PERMISSION_DENIED) {
+                // Ако е блокирано, показваме как да се reset-не
+                showLocationPermissionHelp();
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                showNotification('📡 GPS сигналът не е достъпен. Опитайте на открито.', 'error', 6000);
+            } else if (error.code === error.TIMEOUT) {
+                showNotification('⏱️ Заявката за локация изтече. Опитайте отново.', 'error', 5000);
+            } else {
+                showNotification('Грешка при определяне на местоположението', 'error', 5000);
+            }
+
+            console.error('Geolocation error:', error);
+        },
+        options
     );
 }
+
+// Функция за показване на помощ при блокирано разрешение
+function showLocationPermissionHelp() {
+    // Детектираме типа устройство/браузър
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isChrome = /Chrome/i.test(navigator.userAgent);
+    const isFirefox = /Firefox/i.test(navigator.userAgent);
+    const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+
+    let instructions = '';
+
+    if (isMobile) {
+        instructions = `
+            📱 <strong>Как да разрешите локацията на мобилно устройство:</strong><br><br>
+            1️⃣ Кликнете на иконката 🔒 или ⓘ до адреса<br>
+            2️⃣ Изберете "Разрешения" или "Permissions"<br>
+            3️⃣ Поставете "Местоположение" на "Разреши"<br>
+            4️⃣ Обновете страницата и опитайте отново
+        `;
+    } else {
+        if (isChrome) {
+            instructions = `
+                🖥️ <strong>Chrome - Как да разрешите локацията:</strong><br><br>
+                1️⃣ Кликнете на иконката 🔒 в началото на адресния ред<br>
+                2️⃣ Намерете "Местоположение" и променете на "Разреши"<br>
+                3️⃣ Обновете страницата (F5) и опитайте отново
+            `;
+        } else if (isFirefox) {
+            instructions = `
+                🦊 <strong>Firefox - Как да разрешите локацията:</strong><br><br>
+                1️⃣ Кликнете на иконката 🛡️ до адреса<br>
+                2️⃣ Кликнете върху "Блокирано" до "Местоположение"<br>
+                3️⃣ Изберете "Разреши" и обновете страницата
+            `;
+        } else if (isSafari) {
+            instructions = `
+                🧭 <strong>Safari - Как да разрешите локацията:</strong><br><br>
+                1️⃣ Отидете в Safari → Preferences → Websites<br>
+                2️⃣ Намерете "Location" в лявата колона<br>
+                3️⃣ Поставете този сайт на "Allow"
+            `;
+        } else {
+            instructions = `
+                🌐 <strong>Как да разрешите локацията:</strong><br><br>
+                1️⃣ Кликнете на иконката за сигурност до адреса<br>
+                2️⃣ Намерете настройките за "Местоположение"<br>
+                3️⃣ Променете на "Разреши" и обновете страницата
+            `;
+        }
+    }
+
+    showLocationHelpModal(instructions);
+}
+
+// Показване на модален прозорец с инструкции
+function showLocationHelpModal(instructions) {
+    // Премахваме съществуващ модал ако има
+    const existingModal = document.getElementById('locationHelpModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'locationHelpModal';
+    modal.innerHTML = `
+        <div class="location-help-overlay">
+            <div class="location-help-modal">
+                <div class="location-help-header">
+                    <h3>🔐 Разрешете достъп до местоположението</h3>
+                    <button class="location-help-close" onclick="closeLocationHelp()">✕</button>
+                </div>
+                <div class="location-help-content">
+                    ${instructions}
+                    <br><br>
+                    <div class="location-help-note">
+                        💡 <strong>Защо ни трябва локацията?</strong><br>
+                        За да можем да центрираме картата на вашето местоположение и да ви улесним при създаване на сигнали.
+                    </div>
+                </div>
+                <div class="location-help-actions">
+                    <button class="btn-secondary" onclick="closeLocationHelp()">Затвори</button>
+                    <button class="btn-primary" onclick="refreshPageForLocation()">Обнови страницата</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Добавяме CSS стиловете
+    const style = document.createElement('style');
+    style.textContent = `
+        .location-help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .location-help-modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .location-help-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #eee;
+        }
+        .location-help-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .location-help-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .location-help-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .location-help-content {
+            padding: 24px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .location-help-note {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+        .location-help-actions {
+            padding: 20px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            border-top: 1px solid #eee;
+        }
+    `;
+
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+}
+
+// Функции за модала
+function closeLocationHelp() {
+    const modal = document.getElementById('locationHelpModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function refreshPageForLocation() {
+    window.location.reload();
+}
+
+// Глобални функции
+window.closeLocationHelp = closeLocationHelp;
+window.refreshPageForLocation = refreshPageForLocation;
+//
+
+
+
 
 function toggleFullscreen() {
     const mapContainer = document.getElementById('map').parentElement;
