@@ -1316,6 +1316,10 @@ textarea.form-control {
     transform: scale(1.1);
 }
 
+#map.location-selecting {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="20"><polygon points="8,2 2,14 8,12 14,14" fill="%234cb15c"/></svg>') 8 18, crosshair !important;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .map-header {

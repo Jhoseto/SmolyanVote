@@ -332,6 +332,8 @@ function startLocationSelection() {
         window.signalManagement.locationSelectionMode = true;
     }
 
+    document.getElementById('map').classList.add('location-selecting');
+
     const btn = document.getElementById('selectLocationBtn');
     if (btn) {
         btn.innerHTML = '<i class="bi bi-crosshair"></i> <span>Кликнете на картата</span>';
