@@ -47,6 +47,7 @@ dependencies {
 	implementation ("org.springframework.retry:spring-retry")
 	implementation ("org.springframework:spring-aspects")
 
+	implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
 	//Cloudinary Images
 	implementation("com.cloudinary:cloudinary-http5:2.0.0")
