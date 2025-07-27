@@ -151,6 +151,8 @@ function updateFormCoordinates(coordinates) {
     const lngInput = document.getElementById('signalLongitude');
     const selectBtn = document.getElementById('selectLocationBtn');
 
+    document.getElementById('map').classList.remove('location-selecting');
+
     if (latInput) latInput.value = coordinates[0];
     if (lngInput) lngInput.value = coordinates[1];
     if (selectBtn) {
