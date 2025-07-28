@@ -44,8 +44,11 @@ dependencies {
 	implementation("org.owasp.encoder:encoder:1.2.3")
 	implementation("org.apache.tika:tika-core:3.1.0")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation ("io.micrometer:micrometer-core")
+	implementation ("io.micrometer:micrometer-registry-prometheus")
 	implementation ("org.springframework.retry:spring-retry")
 	implementation ("org.springframework:spring-aspects")
+
 
 	implementation("me.paulschwarz:spring-dotenv:4.0.0")
 

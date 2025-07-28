@@ -1,0 +1,223 @@
+.admin-container {
+    max-width: 1200px;
+    margin: 5rem auto;
+    padding: 0 1rem;
+}
+
+.admin-header {
+    background: rgba(75, 159, 62, 0.9);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.admin-header h1 {
+    color: white;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.admin-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* MONITORING SECTIONS */
+.monitoring-section {
+    margin-bottom: 0.5rem;
+}
+
+.monitoring-section h2 {
+    color: #198622;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+/* COLLAPSIBLE SECTIONS */
+.section-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.section-header:hover {
+    color: #16a085;
+}
+
+.collapse-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    color: #6c757d;
+}
+
+.section-header.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.collapsible-content {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
+}
+
+.dashboard-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card h3 {
+    color: #198622;
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.dashboard-card p {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+/* STATUS INDICATORS */
+.status-active {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.status-error {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+.status-warning {
+    color: #ffc107;
+    font-weight: 500;
+}
+
+/* REFRESH BUTTON */
+#refresh-btn {
+    margin-top: 0.5rem;
+    border-color: #198622;
+    color: #198622;
+    transition: all 0.3s ease;
+}
+
+#refresh-btn:hover {
+    background-color: #198622;
+    border-color: #198622;
+    color: white;
+}
+
+#refresh-btn:active {
+    transform: translateY(1px);
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        margin: 1rem auto;
+        padding: 0 0.5rem;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .admin-header {
+        padding: 1rem;
+    }
+
+    .monitoring-section {
+        margin-bottom: 2rem;
+    }
+
+    .monitoring-section h2 {
+        font-size: 1.2rem;
+    }
+
+    .dashboard-card {
+        padding: 1rem;
+    }
+
+    .status-legend {
+        margin-top: 1rem;
+    }
+
+    .status-legend span {
+        display: block;
+        margin: 0.25rem 0;
+    }
+
+    .section-header {
+        font-size: 1.2rem;
+    }
+
+    .collapse-icon {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container {
+        margin: 0.5rem auto;
+        padding: 0 0.25rem;
+    }
+
+    .admin-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .monitoring-section h2 {
+        font-size: 1.1rem;
+    }
+
+    .dashboard-card h3 {
+        font-size: 1rem;
+    }
+
+    .dashboard-card p {
+        font-size: 0.9rem;
+    }
+}

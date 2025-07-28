@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - SmolyanVote</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+</head>
+<body>
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1><i class="bi bi-gear-fill"></i> Admin Dashboard</h1>
+        <p>SmolyanVote system</p>
+    </div>
+
+    <!-- ОСНОВНИ СИСТЕМНИ СТАТУСИ -->
+    <div class="monitoring-section">
+        <h2 class="section-header" data-toggle="system-status">
+            <i class="bi bi-activity"></i> Health Status
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+        <div class="dashboard-grid collapsible-content" id="system-status">
+            <div class="dashboard-card">
+                <h3><i class="bi bi-heart-pulse"></i> Общо здраве</h3>
+                <p>Status: <span id="health-status" class="status-active">--</span></p>
+                <p>Uptime: <span id="uptime">--</span> мин</p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-database"></i> База данни</h3>
+                <p>Връзка: <span id="db-status">--</span></p>
+                <p>Active connections: <strong id="db-active-connections">--</strong></p>
+                <p>Pending: <strong id="db-pending-connections">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-cloud"></i> Cloudinary</h3>
+                <p>Service: <span id="cloudinary-status">--</span></p>
+                <p>Cloud: <span id="cloudinary-name">--</span></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-envelope"></i> Email Service</h3>
+                <p>Status: <span id="email-status">--</span></p>
+                <p>Host: <span id="email-host">--</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERFORMANCE МЕТРИКИ -->
+    <div class="monitoring-section">
+        <h2 class="section-header" data-toggle="performance">
+            <i class="bi bi-speedometer2"></i> Performance
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+        <div class="dashboard-grid collapsible-content" id="performance">
+            <div class="dashboard-card">
+                <h3><i class="bi bi-cpu"></i> CPU & Memory</h3>
+                <p>CPU използване: <strong id="cpu-usage">--</strong>%</p>
+                <p>Memory: <strong id="memory-percent">--</strong>%</p>
+                <p>Memory: <span id="memory-used">--</span> / <span id="memory-max">--</span> MB</p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-stopwatch"></i> Response Times</h3>
+                <p>Среден отговор: <strong id="avg-response-time">--</strong> ms</p>
+                <p>Max отговор: <strong id="max-response-time">--</strong> ms</p>
+                <p>Total time: <strong id="total-response-time">--</strong> ms</p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-diagram-3"></i> JVM Threads</h3>
+                <p>Live threads: <strong id="threads-live">--</strong></p>
+                <p>Peak threads: <strong id="threads-peak">--</strong></p>
+                <p>Active count: <strong id="threads-active">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-hdd"></i> Disk Space</h3>
+                <p>Използвано: <strong id="disk-usage-percent">--</strong>%</p>
+                <p>Свободно: <strong id="disk-free">--</strong> GB</p>
+                <p>Общо: <strong id="disk-total">--</strong> GB</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HTTP ЗАЯВКИ И ГРЕШКИ -->
+    <div class="monitoring-section">
+        <h2 class="section-header" data-toggle="http-traffic">
+            <i class="bi bi-globe"></i> HTTP Traffic & Errors
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+        <div class="dashboard-grid collapsible-content" id="http-traffic">
+            <div class="dashboard-card">
+                <h3><i class="bi bi-bar-chart"></i> HTTP Status Codes</h3>
+                <p>200 (OK): <strong id="http-200">--</strong></p>
+                <p>404 (Not Found): <strong id="http-404">--</strong></p>
+                <p>500 (Error): <strong id="http-500">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-exclamation-triangle"></i> Error Rates</h3>
+                <p>HTTP Error Rate: <strong id="http-error-rate">--</strong>%</p>
+                <p>Recent 5xx: <strong id="recent-5xx-count">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-memory"></i> JVM Memory Details</h3>
+                <p>Heap Used: <strong id="heap-used">--</strong> MB</p>
+                <p>Heap Max: <strong id="heap-max">--</strong> MB</p>
+                <p>Non-Heap: <strong id="non-heap-used">--</strong> MB</p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-arrow-clockwise"></i> Обновяване</h3>
+                <p>Последно: <span id="last-update">--</span></p>
+                <p>Java: <strong id="java-version">--</strong></p>
+                <button id="refresh-btn" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-arrow-clockwise"></i> Обнови данни
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="/js/admin-dashboard.js"></script>
+
+<!-- Bottom Styles -->
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+
+</body>
+</html>
