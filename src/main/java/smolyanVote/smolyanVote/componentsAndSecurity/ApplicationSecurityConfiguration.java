@@ -62,6 +62,7 @@ public class ApplicationSecurityConfiguration {
                                 "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
                                 "/terms-and-conditions","/faq","/signals/**"
                         ).permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
                                 "/user/**", "/profile/update", "/profile", "/userProfile",
@@ -69,7 +70,6 @@ public class ApplicationSecurityConfiguration {
                                 "/createEvent", "/createNewEvent", "/user/logout", "/user/profile/**",
                                 "/user/dashboard/**","/subscription/**","/api/reports/**"
                         ).authenticated()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().denyAll()
                 )
                 .logout(logout -> logout

@@ -67,7 +67,8 @@ async function loadAllDashboardData() {
             loadDiskSpace(),
             loadDatabasePool(),
             loadMemoryDetails(),
-            loadErrorRates()
+            loadErrorRates(),
+            loadReportsData()
         ]);
 
         updateLastRefresh();

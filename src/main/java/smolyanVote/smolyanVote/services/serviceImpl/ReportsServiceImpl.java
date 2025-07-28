@@ -150,14 +150,14 @@ public class ReportsServiceImpl implements ReportsService {
     }
 
     @Override
-    public ReportsEntity reviewReport(Long reportId, UserEntity admin, String status, String adminNotes) {
+    public void reviewReport(Long reportId, UserEntity admin, String status, String adminNotes) {
         Optional<ReportsEntity> reportOpt = reportsRepository.findById(reportId);
         if (reportOpt.isEmpty()) {
             throw new IllegalArgumentException("Докладът не е намерен");
         }
 
         ReportsEntity report = reportOpt.get();
-        report.setStatus(status.toUpperCase());
+        report.setStatus("REVIEWED");
         report.setReviewedAt(LocalDateTime.now());
         report.setReviewedByUsername(admin.getUsername());
 
@@ -165,7 +165,7 @@ public class ReportsServiceImpl implements ReportsService {
             report.setAdminNotes(adminNotes.trim());
         }
 
-        return reportsRepository.save(report);
+        reportsRepository.save(report);
     }
 
     // ===== СТАТИСТИКИ =====

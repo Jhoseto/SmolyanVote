@@ -128,12 +128,81 @@
         </div>
     </div>
 
+
+    <!-- REPORTS MANAGEMENT - добавя се преди затварящия </div> на admin-container -->
+    <div class="monitoring-section">
+        <h2 class="section-header" data-toggle="reports-management">
+            <i class="bi bi-flag"></i> Reports Management
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+        <div class="collapsible-content collapsed" id="reports-management">
+
+            <!-- Simple Header with Actions -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                <div>
+                    <strong>Reports Management</strong> -
+                    <span>Pending: <span id="reports-pending-count">--</span></span> |
+                    <span>Total: <span id="reports-total-count">--</span></span>
+                </div>
+                <div>
+                    <button id="reports-refresh-btn" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    <button id="mark-reviewed-btn" class="btn btn-sm btn-success" disabled>
+                        <i class="bi bi-check"></i> Mark Reviewed
+                    </button>
+                    <button id="delete-reports-btn" class="btn btn-sm btn-danger" disabled>
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reports Table -->
+            <div class="dashboard-card">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="reports-table">
+                        <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-reports"></th>
+                            <th class="sortable" onclick="sortReports('entityType')">
+                                Type <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortReports('reporterUsername')">
+                                Reporter <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortReports('reason')">
+                                Reason <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortReports('status')">
+                                Status <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortReports('createdAt')">
+                                Date <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody id="reports-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">
+                                <i class="bi bi-hourglass-split"></i> Loading...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
-<script src="/js/admin-dashboard.js"></script>
+<script src="/js/admin/admin-dashboard.js"></script>
+<script src="/js/admin/reports.js"></script>
 
 <!-- Bottom Styles -->
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>

@@ -58,7 +58,7 @@ public interface ReportsService {
     /**
      * Прегледа доклад (админ операция)
      */
-    ReportsEntity reviewReport(Long reportId, UserEntity admin, String status, String adminNotes);
+    void reviewReport(Long reportId, UserEntity admin, String status, String adminNotes);
 
     /**
      * Статистики за докладите

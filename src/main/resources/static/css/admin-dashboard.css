@@ -221,3 +221,62 @@
         font-size: 0.9rem;
     }
 }
+
+/* ===== REPORTS MANAGEMENT ===== */
+
+#reports-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.report-type-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.report-type-publication { background: #e3f2fd; color: #1565c0; }
+.report-type-signal { background: #fff3e0; color: #e65100; }
+.report-type-referendum { background: #f3e5f5; color: #7b1fa2; }
+.report-type-multi_poll { background: #e8f5e8; color: #2e7d32; }
+.report-type-simple_event { background: #fff8e1; color: #f57f17; }
+
+.report-reason-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    background: #f8f9fa;
+    color: #495057;
+}
+
+/* Status Badges */
+.report-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.status-pending { background: #fff3cd; color: #856404; }
+.status-reviewed { background: #d4edda; color: #155724; }
+.status-dismissed { background: #f8d7da; color: #721c24; }
+.status-resolved { background: #cce7ff; color: #004085; }
+
+/* Table Sorting */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.sort-asc i::before {
+    content: "\f148"; /* bi-arrow-up */
+}
+
+.sort-desc i::before {
+    content: "\f149"; /* bi-arrow-down */
+}
