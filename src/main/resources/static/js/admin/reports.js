@@ -27,7 +27,7 @@ async function loadReportsData() {
 
 async function loadReportsStatistics() {
     try {
-        const response = await fetch('/admin/api/reports/statistics');
+        const response = await fetch('/admin/manage-reports/statistics');
         const data = await response.json();
 
         document.getElementById('reports-pending-count').textContent = data.pendingReports || '0';
@@ -43,8 +43,7 @@ async function loadPendingReports() {
     tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Loading...</td></tr>';
 
     try {
-        // Load ALL reports, not just pending
-        const response = await fetch('/admin/api/reports/all?size=500');
+        const response = await fetch('/admin/manage-reports/all?size=500');
         const data = await response.json();
 
         if (data.content && data.content.length > 0) {
@@ -218,10 +217,11 @@ async function markSelectedAsReviewed() {
         return;
     }
 
+    console.log('=== Marking reports as reviewed:', selectedReports);
+
     try {
-        // Use existing single review endpoint multiple times
         const promises = Array.from(selectedReports).map(reportId =>
-            fetch(`/admin/api/reports/${reportId}/review`, {
+            fetch(`/admin/manage-reports/${reportId}/review`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -252,10 +252,11 @@ async function deleteSelectedReports() {
         return;
     }
 
+    console.log('=== Deleting reports:', selectedReports);
+
     try {
-        // Use simple delete endpoint for each report
         const promises = Array.from(selectedReports).map(reportId =>
-            fetch(`/admin/api/reports/${reportId}/delete`, {
+            fetch(`/admin/manage-reports/${reportId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-XSRF-TOKEN': getCsrfToken()
@@ -287,6 +288,12 @@ function openReportedContent(entityType, entityId) {
             break;
         case 'SIGNAL':
             url = `/signals/${entityId}`;
+            break;
+        case 'PUBLICATION':
+            url = `/publications/${entityId}`;
+            break;
+        case 'MULTI_POLL':
+            url = `/multipoll/${entityId}`;
             break;
         default:
             alert('Неподдържан тип съдържание');
