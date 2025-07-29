@@ -130,7 +130,7 @@ async function loadSystemMetrics() {
 
 async function loadMemoryDetails() {
     try {
-        const response = await fetch('/admin/api/metrics/memory');
+        const response = await fetch('/admin/api/resources/memory');
         const data = await response.json();
 
         if (data.heapUsed !== undefined && data.heapMax !== undefined) {
@@ -186,7 +186,7 @@ async function loadDatabaseHealth() {
 
 async function loadDatabasePool() {
     try {
-        const response = await fetch('/admin/api/metrics/database-pool');
+        const response = await fetch('/admin/api/resources/database-pool');
         const data = await response.json();
 
         if (data.active !== undefined) {
@@ -244,7 +244,7 @@ async function loadEmailHealth() {
 
 async function loadPerformanceMetrics() {
     try {
-        const response = await fetch('/admin/api/metrics/performance');
+        const response = await fetch('/admin/api/metrics/response-time');
         const data = await response.json();
 
         if (data.avgResponseTime !== undefined) {
@@ -262,7 +262,7 @@ async function loadPerformanceMetrics() {
 
 async function loadErrorRates() {
     try {
-        const response = await fetch('/admin/api/metrics/errors');
+        const response = await fetch('/admin/api/errors/rates');
         const data = await response.json();
 
         if (data.errorRate !== undefined) {
@@ -316,13 +316,11 @@ async function loadDiskSpace() {
         const data = await response.json();
 
         if (data.usagePercent !== undefined) {
-            document.getElementById('disk-usage-percent').textContent =
-                Math.round(data.usagePercent);
+            document.getElementById('disk-usage-percent').textContent = Math.round(data.usagePercent);
         }
 
         if (data.freeSpaceGB !== undefined) {
-            document.getElementById('disk-free-space').textContent =
-                Math.round(data.freeSpaceGB);
+            document.getElementById('disk-free-space').textContent = Math.round(data.freeSpaceGB);
         }
 
     } catch (error) {

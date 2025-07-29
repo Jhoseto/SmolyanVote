@@ -103,8 +103,7 @@ public class ApplicationSecurityConfiguration {
                 )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat")
-                       // .ignoringRequestMatchers("/heartbeat") // Игнорираме CSRF за heartbeat
-                       // .ignoringRequestMatchers("/js/**")
+                        .ignoringRequestMatchers("/admin/**")// Edinstvenoto reshenie za sega no /admin e zashtiteno ot Roliata"ADMIN"
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

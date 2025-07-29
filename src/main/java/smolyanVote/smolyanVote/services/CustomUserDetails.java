@@ -30,7 +30,9 @@ public class CustomUserDetails implements UserDetails {
         this.username = username;
         this.password = password;
         this.userEntity = userEntity;
-        this.authorities = Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
+        this.authorities = Collections.singleton(
+                new SimpleGrantedAuthority("ROLE_" + userEntity.getRole().name())
+        );
     }
 
     @Override
