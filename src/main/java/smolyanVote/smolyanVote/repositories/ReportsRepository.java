@@ -122,6 +122,11 @@ public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
          GROUP BY reason 
          ORDER BY COUNT(*) DESC, reason 
          LIMIT 1) as most_common_reason,
+        (SELECT description FROM reports r3 
+         WHERE r3.entity_type = r.entity_type AND r3.entity_id = r.entity_id 
+         AND r3.description IS NOT NULL AND r3.description != ''
+         ORDER BY r3.created_at DESC 
+         LIMIT 1) as most_recent_description,
         CASE 
             WHEN COUNT(CASE WHEN r.status = 'PENDING' THEN 1 END) > 0 THEN 'PENDING'
             WHEN COUNT(CASE WHEN r.status = 'REVIEWED' THEN 1 END) = COUNT(*) THEN 'REVIEWED'
@@ -140,6 +145,6 @@ public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
     @Query("SELECT r.id FROM ReportsEntity r WHERE r.entityType = :entityType AND r.entityId = :entityId ORDER BY r.createdAt")
     List<Long> findReportIdsByEntity(@Param("entityType") ReportableEntityType entityType, @Param("entityId") Long entityId);
 
-    @Query("SELECT COUNT(DISTINCT CONCAT(r.entityType, '-', r.entityId)) FROM ReportsEntity r")
+    @Query(value = "SELECT COUNT(DISTINCT CONCAT(r.entity_type, '-', r.entity_id)) FROM reports r", nativeQuery = true)
     Long countGroupedReports();
 }

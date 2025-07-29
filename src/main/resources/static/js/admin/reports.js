@@ -1,6 +1,6 @@
-let selectedGroups = new Set(); // Променено от selectedReports
+let selectedGroups = new Set();
 let currentReports = [];
-let currentSort = { column: 'reportCount', direction: 'desc' }; // Сортиране по брой докладвания
+let currentSort = { column: 'reportCount', direction: 'desc' };
 let eventListenersSetup = false;
 
 function setupEventListeners() {
@@ -52,7 +52,7 @@ async function loadGroupedReports() {
     const tableBody = document.getElementById('reports-table-body');
     if (!tableBody) return;
 
-    tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>';
 
     try {
         const response = await fetch('/admin/manage-reports/grouped?size=500', {
@@ -63,11 +63,11 @@ async function loadGroupedReports() {
         if (currentReports.length > 0) {
             sortReports(currentSort.column, false);
         } else {
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No reports found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 2rem; color: #9ca3af; font-style: italic;">No reports found</td></tr>';
         }
     } catch (error) {
         console.error('Error loading grouped reports:', error);
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading reports</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 2rem; color: #dc2626;">Error loading reports</td></tr>';
     }
 }
 
@@ -77,7 +77,7 @@ function sortReports(column, toggleDirection = true) {
     if (toggleDirection && currentSort.column === column) {
         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
     } else {
-        currentSort = { column, direction: 'desc' }; // Default desc за числа
+        currentSort = { column, direction: 'desc' };
     }
 
     currentReports.sort((a, b) => {
@@ -91,6 +91,10 @@ function sortReports(column, toggleDirection = true) {
             case 'reportCount':
                 valA = a.reportCount || 0;
                 valB = b.reportCount || 0;
+                break;
+            case 'numberOfReporters':
+                valA = a.reporterUsernames ? [...new Set(a.reporterUsernames)].length : 0;
+                valB = b.reporterUsernames ? [...new Set(b.reporterUsernames)].length : 0;
                 break;
             case 'mostCommonReason':
                 valA = a.mostCommonReason || '';
@@ -142,48 +146,21 @@ function renderReportsTable(reports) {
         const lastReportDate = new Date(group.lastReportDate).toLocaleString('bg-BG');
         const firstReportDate = group.firstReportDate ? new Date(group.firstReportDate).toLocaleString('bg-BG') : '';
 
-        // Генериране на докладвачи секцията
-        const reportersSection = generateReportersSection(group);
-
-        // Дата секция с допълнителна информация
-        const dateSection = group.reportCount > 1
-            ? `<div><strong>Последен:</strong> ${lastReportDate}</div><div><small class="text-muted">Първи: ${firstReportDate}</small></div>`
-            : `<div>${lastReportDate}</div>`;
-
         return `
         <tr>
-            <td>
+            <td style="width: 40px;">
                 <input type="checkbox" class="report-checkbox" 
                        data-entity-type="${group.entityType}" 
                        data-entity-id="${group.entityId}">
             </td>
-            <td>${getEntityTypeBadge(group.entityType)}</td>
-            <td>
-                <span class="report-count-badge ${group.reportCount > 1 ? 'multiple' : 'single'}">${group.reportCount}</span>
-                <small class="text-muted">${group.reportCount === 1 ? 'репорт' : 'репорта'}</small>
-            </td>
-            <td>${reportersSection}</td>
-            <td>${getReasonBadge(group.mostCommonReason)}</td>
-            <td>${getStatusBadge(group.status)}</td>
-            <td>${dateSection}</td>
-            <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-primary view-content-btn"
-                            data-entity-type="${group.entityType}"
-                            data-entity-id="${group.entityId}"
-                            title="Прегледай съдържанието">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                    ${group.reportCount > 1 ? `
-                    <button class="btn btn-sm btn-outline-info view-reports-btn"
-                            data-entity-type="${group.entityType}"
-                            data-entity-id="${group.entityId}"
-                            title="Виж всички ${group.reportCount} репорта">
-                        <i class="bi bi-list"></i> ${group.reportCount}
-                    </button>
-                    ` : ''}
-                </div>
-            </td>
+            <td style="width: 120px;">${generateEntityTypeBadge(group.entityType)}</td>
+            <td style="width: 100px;">${generateReportCountBadge(group.reportCount)}</td>
+            <td style="width: 150px;">${generateReportersSection(group)}</td>
+            <td style="width: 200px;">${generateDescriptionSection(group)}</td>
+            <td style="width: 150px;">${generateReasonBadge(group.mostCommonReason)}</td>
+            <td style="width: 100px;">${generateStatusBadge(group.status)}</td>
+            <td style="width: 140px;">${generateDateSection(group, lastReportDate, firstReportDate)}</td>
+            <td style="width: 100px;">${generateActionButtons(group)}</td>
         </tr>`;
     }).join('');
 
@@ -192,18 +169,43 @@ function renderReportsTable(reports) {
     addTableEventListeners();
 }
 
+function generateEntityTypeBadge(entityType) {
+    const typeMap = {
+        PUBLICATION: 'Публикация',
+        SIMPLE_EVENT: 'Събитие',
+        REFERENDUM: 'Референдум',
+        MULTI_POLL: 'Анкета'
+    };
+
+    const displayName = typeMap[entityType] || entityType;
+    const cssClass = entityType ? entityType.toLowerCase() : 'unknown';
+
+    return `<span class="entity-type-badge entity-type-${cssClass}">${displayName}</span>`;
+}
+
+function generateReportCountBadge(count) {
+    const badgeClass = count > 1 ? 'report-count-multiple' : 'report-count-single';
+    const label = count === 1 ? 'репорт' : 'репорта';
+
+    return `
+        <div style="display: flex; align-items: center;">
+            <span class="report-count-badge ${badgeClass}">${count}</span>
+            <span style="font-size: 0.75rem; color: #6b7280;">${label}</span>
+        </div>
+    `;
+}
+
 function generateReportersSection(group) {
     if (!group.reporterUsernames || group.reporterUsernames.length === 0) {
-        return '<span class="text-muted">N/A</span>';
+        return '<span class="no-description">N/A</span>';
     }
 
     if (group.reporterUsernames.length === 1) {
         return `<span class="single-reporter">${escapeHtml(group.reporterUsernames[0])}</span>`;
     }
 
-    // Множество докладвачи - правим кликабел елемент
-    const uniqueReporters = [...new Set(group.reporterUsernames)]; // Премахваме дубликати
-    const displayText = `Докладвачи (${uniqueReporters.length})`;
+    const uniqueReporters = [...new Set(group.reporterUsernames)];
+    const displayText = `${uniqueReporters.length} докладчици`;
 
     return `<span class="multiple-reporters" 
                   data-reporters='${JSON.stringify(uniqueReporters)}' 
@@ -213,24 +215,101 @@ function generateReportersSection(group) {
             </span>`;
 }
 
+function generateDescriptionSection(group) {
+    if (!group.mostRecentDescription || group.mostRecentDescription.trim() === '') {
+        return '<span class="no-description">Няма описание</span>';
+    }
+
+    const description = group.mostRecentDescription.trim();
+
+    return `<div class="description-display">
+                <span class="description-text" ${description.length > 60 ? `title="${escapeHtml(description)}"` : ''}>
+                    ${escapeHtml(description.length > 60 ? description.substring(0, 57) + '...' : description)}
+                </span>
+            </div>`;
+}
+
+function generateReasonBadge(reason) {
+    if (!reason) return '<span class="no-description">N/A</span>';
+
+    const reasonMap = {
+        'SPAM': 'Спам',
+        'HARASSMENT': 'Тормоз',
+        'HATE_SPEECH': 'Език на омразата',
+        'MISINFORMATION': 'Дезинформация',
+        'INAPPROPRIATE': 'Неподходящо',
+        'COPYRIGHT': 'Авторски права',
+        'OTHER': 'Друго'
+    };
+
+    const displayName = reasonMap[reason] || reason;
+    return `<span class="reason-badge">${displayName}</span>`;
+}
+
+function generateStatusBadge(status) {
+    const statusMap = {
+        'PENDING': 'Чака',
+        'REVIEWED': 'Прегледан',
+        'DISMISSED': 'Отхвърлен',
+        'MIXED': 'Смесен'
+    };
+
+    const displayName = statusMap[status] || status;
+    const cssClass = status ? status.toLowerCase() : 'mixed';
+
+    return `<span class="status-badge status-${cssClass}">${displayName}</span>`;
+}
+
+function generateDateSection(group, lastReportDate, firstReportDate) {
+    if (group.reportCount > 1) {
+        return `<div class="date-display">
+                    <div class="date-primary">Последен: ${lastReportDate}</div>
+                    <div class="date-secondary">Първи: ${firstReportDate}</div>
+                </div>`;
+    } else {
+        return `<div class="date-display">
+                    <div class="date-primary">${lastReportDate}</div>
+                </div>`;
+    }
+}
+
+function generateActionButtons(group) {
+    const viewButton = `<button class="action-btn action-btn-primary view-content-btn"
+                               data-entity-type="${group.entityType}"
+                               data-entity-id="${group.entityId}"
+                               title="Прегледай съдържанието">
+                            <i class="bi bi-eye"></i>
+                        </button>`;
+
+    const detailsButton = group.reportCount > 1 ?
+        `<button class="action-btn action-btn-info view-reports-btn"
+                 data-entity-type="${group.entityType}"
+                 data-entity-id="${group.entityId}"
+                 title="Виж всички ${group.reportCount} репорта">
+            <i class="bi bi-list"></i>
+        </button>` : '';
+
+    return `<div class="action-buttons">${viewButton}${detailsButton}</div>`;
+}
+
 function showReportersModal(element) {
     const reporters = JSON.parse(element.getAttribute('data-reporters'));
 
     const modalContent = `
-        <div class="reporters-modal-overlay" onclick="closeReportersModal()">
-            <div class="reporters-modal" onclick="event.stopPropagation()">
-                <div class="reporters-modal-header">
-                    <h5><i class="bi bi-people-fill"></i> Докладвачи (${reporters.length})</h5>
-                    <button class="btn-close" onclick="closeReportersModal()">×</button>
+        <div class="modal-overlay" onclick="closeReportersModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h5><i class="bi bi-people-fill"></i> Докладчици (${reporters.length})</h5>
+                    <button class="modal-close" onclick="closeReportersModal()">×</button>
                 </div>
-                <div class="reporters-modal-body">
+                <div class="modal-body">
                     <div class="reporters-list">
-                        ${reporters.map((reporter, index) =>
-        `<div class="reporter-item">
+                        ${reporters.map(reporter => `
+                            <div class="reporter-item">
                                 <i class="bi bi-person-circle"></i>
-                                <span>${escapeHtml(reporter)}</span>
-                            </div>`
-    ).join('')}
+                                <span class="reporter-name">${escapeHtml(reporter)}</span>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
@@ -241,7 +320,7 @@ function showReportersModal(element) {
 }
 
 function closeReportersModal() {
-    const modal = document.querySelector('.reporters-modal-overlay');
+    const modal = document.querySelector('.modal-overlay');
     if (modal) {
         modal.remove();
     }
@@ -278,6 +357,22 @@ function addTableEventListeners() {
     });
 }
 
+function openReportedContent(entityType, entityId) {
+    const urls = {
+        SIMPLE_EVENT: `/event/${entityId}`,
+        REFERENDUM: `/referendum/${entityId}`,
+        PUBLICATION: `/publications/${entityId}`,
+        MULTI_POLL: `/multipoll/${entityId}`
+    };
+
+    if (!urls[entityType]) {
+        alert('Непознат тип съдържание: ' + entityType);
+        return;
+    }
+
+    window.open(urls[entityType], '_blank');
+}
+
 function updateSelectAllCheckbox() {
     const all = document.querySelectorAll('.report-checkbox');
     const checked = document.querySelectorAll('.report-checkbox:checked');
@@ -304,8 +399,6 @@ function toggleSelectAll(e) {
 
 function updateBulkActionButtons() {
     const hasSelection = selectedGroups.size > 0;
-
-    // Изчисляваме общия брой репорти в избраните групи
     const totalReports = Array.from(selectedGroups).reduce((sum, groupKey) => {
         const report = currentReports.find(r => `${r.entityType}-${r.entityId}` === groupKey);
         return sum + (report ? report.reportCount : 0);
@@ -375,14 +468,18 @@ async function bulkDeleteReports() {
     if (!confirm(`ИЗТРИВАНЕ на ${totalReports} репорта? Това действие е необратимо!`)) return;
 
     try {
-        // Първо получаваме всички report ID-та за избраните групи
         const allReportIds = [];
 
         for (const groupKey of selectedGroups) {
-            const [entityType, entityId] = groupKey.split('-');
-            const response = await fetch(`/admin/manage-reports/entity/${entityType}/${entityId}/ids`);
-            const reportIds = await response.json();
-            allReportIds.push(...reportIds);
+            const report = currentReports.find(r => `${r.entityType}-${r.entityId}` === groupKey);
+            if (report && report.reportIds) {
+                allReportIds.push(...report.reportIds);
+            }
+        }
+
+        if (allReportIds.length === 0) {
+            alert('Няма репорти за изтриване');
+            return;
         }
 
         const res = await fetch('/admin/manage-reports/bulk-delete', {
@@ -410,25 +507,25 @@ async function showDetailedReportsModal(entityType, entityId) {
         const reports = await response.json();
 
         const modalContent = `
-            <div class="detailed-reports-modal-overlay" onclick="closeDetailedReportsModal()">
-                <div class="detailed-reports-modal" onclick="event.stopPropagation()">
+            <div class="modal-overlay" onclick="closeDetailedReportsModal()">
+                <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
                     <div class="modal-header">
                         <h5><i class="bi bi-flag-fill"></i> Всички репорти за ${getEntityDisplayName(entityType)}</h5>
-                        <button class="btn-close" onclick="closeDetailedReportsModal()">×</button>
+                        <button class="modal-close" onclick="closeDetailedReportsModal()">×</button>
                     </div>
                     <div class="modal-body">
-                        <div class="reports-detailed-list">
+                        <div style="display: flex; flex-direction: column; gap: 1rem; max-height: 450px; overflow-y: auto;">
                             ${reports.map((report, index) => `
-                                <div class="report-detail-item">
-                                    <div class="report-header">
+                                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #f8fafc;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
                                         <strong>#${index + 1}</strong>
-                                        <span class="badge ${getReasonClass(report.reason)}">${getReasonText(report.reason)}</span>
-                                        <span class="report-date">${new Date(report.createdAt).toLocaleString('bg-BG')}</span>
+                                        <span class="reason-badge">${getReasonText(report.reason)}</span>
+                                        <span style="font-size: 0.85rem; color: #6b7280;">${new Date(report.createdAt).toLocaleString('bg-BG')}</span>
                                     </div>
-                                    <div class="report-content">
+                                    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem;">
                                         <div><strong>Докладвач:</strong> ${escapeHtml(report.reporterUsername)}</div>
                                         ${report.description ? `<div><strong>Описание:</strong> ${escapeHtml(report.description)}</div>` : ''}
-                                        <div><strong>Статус:</strong> ${getStatusBadge(report.status)}</div>
+                                        <div><strong>Статус:</strong> ${generateStatusBadge(report.status)}</div>
                                         ${report.adminNotes ? `<div><strong>Админ бележки:</strong> ${escapeHtml(report.adminNotes)}</div>` : ''}
                                     </div>
                                 </div>
@@ -447,89 +544,33 @@ async function showDetailedReportsModal(entityType, entityId) {
 }
 
 function closeDetailedReportsModal() {
-    const modal = document.querySelector('.detailed-reports-modal-overlay');
+    const modal = document.querySelector('.modal-overlay');
     if (modal) {
         modal.remove();
     }
 }
 
-function openReportedContent(entityType, entityId) {
-    const urls = {
-        SIMPLE_EVENT: `/event/${entityId}`,
-        REFERENDUM: `/referendum/${entityId}`,
-        SIGNAL: `/signals/${entityId}`,
-        PUBLICATION: `/publications/${entityId}`,
-        MULTI_POLL: `/multipoll/${entityId}`
-    };
-
-    if (!urls[entityType]) {
-        alert('Непознат тип съдържание: ' + entityType);
-        return;
-    }
-
-    window.open(urls[entityType], '_blank');
-}
-
-function getEntityTypeBadge(type) {
-    const names = {
-        PUBLICATION: 'Публикация',
-        SIGNAL: 'Сигнал',
-        REFERENDUM: 'Референдум',
-        MULTI_POLL: 'Анкета',
-        SIMPLE_EVENT: 'Събитие'
-    };
-    const name = names[type] || type;
-    const className = type ? type.toLowerCase().replace('_', '-') : 'unknown';
-    return `<span class="badge report-type-badge report-type-${className}">${escapeHtml(name)}</span>`;
-}
-
 function getEntityDisplayName(type) {
     const names = {
-        PUBLICATION: 'публикация',
-        SIGNAL: 'сигнал',
-        REFERENDUM: 'референдум',
-        MULTI_POLL: 'анкета',
-        SIMPLE_EVENT: 'събитие'
+        PUBLICATION: 'Публикация',
+        SIMPLE_EVENT: 'Събитие',
+        REFERENDUM: 'Референдум',
+        MULTI_POLL: 'Анкета'
     };
     return names[type] || type;
 }
 
-function getReasonBadge(reason) {
-    const map = {
-        SPAM: 'Spam',
-        INAPPROPRIATE: 'Неуместно',
-        HARASSMENT: 'Тормоз',
-        FALSE_INFORMATION: 'Невярна информация',
-        OTHER: 'Друго'
-    };
-    return `<span class="badge report-reason-badge">${escapeHtml(map[reason] || reason)}</span>`;
-}
-
 function getReasonText(reason) {
-    const map = {
-        SPAM: 'Spam',
-        INAPPROPRIATE: 'Неуместно',
-        HARASSMENT: 'Тормоз',
-        FALSE_INFORMATION: 'Невярна информация',
-        OTHER: 'Друго'
+    const reasonMap = {
+        'SPAM': 'Спам',
+        'HARASSMENT': 'Тормоз',
+        'HATE_SPEECH': 'Език на омразата',
+        'MISINFORMATION': 'Дезинформация',
+        'INAPPROPRIATE': 'Неподходящо',
+        'COPYRIGHT': 'Авторски права',
+        'OTHER': 'Друго'
     };
-    return map[reason] || reason;
-}
-
-function getReasonClass(reason) {
-    return `reason-${reason.toLowerCase()}`;
-}
-
-function getStatusBadge(status) {
-    const map = {
-        PENDING: 'Чакащ',
-        REVIEWED: 'Прегледан',
-        DISMISSED: 'Отхвърлен',
-        RESOLVED: 'Решен',
-        MIXED: 'Смесен'
-    };
-    const className = status ? status.toLowerCase() : 'unknown';
-    return `<span class="badge report-status-badge status-${className}">${escapeHtml(map[status] || status)}</span>`;
+    return reasonMap[reason] || reason;
 }
 
 function escapeHtml(text) {
@@ -542,196 +583,6 @@ function getCsrfToken() {
     const cookie = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
 }
-
-// CSS стилове за новите елементи
-const style = document.createElement('style');
-style.textContent = `
-    .report-count-badge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 0.85rem;
-        margin-right: 6px;
-        display: inline-block;
-        min-width: 24px;
-        text-align: center;
-    }
-    
-    .report-count-badge.single {
-        background: #6c757d;
-        color: white;
-    }
-    
-    .report-count-badge.multiple {
-        background: #dc3545;
-        color: white;
-    }
-    
-    .multiple-reporters {
-        color: #0066cc;
-        cursor: pointer;
-        text-decoration: underline;
-        font-weight: 500;
-    }
-    
-    .multiple-reporters:hover {
-        color: #004499;
-        background: #f0f8ff;
-        padding: 2px 4px;
-        border-radius: 3px;
-    }
-    
-    .single-reporter {
-        font-weight: 500;
-    }
-    
-    .reporters-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 1050;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .reporters-modal {
-        background: white;
-        border-radius: 8px;
-        max-width: 400px;
-        max-height: 500px;
-        width: 90%;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-    
-    .reporters-modal-header {
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8f9fa;
-        border-radius: 8px 8px 0 0;
-    }
-    
-    .reporters-modal-header h5 {
-        margin: 0;
-        color: #495057;
-    }
-    
-    .btn-close {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #6c757d;
-        padding: 0;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .btn-close:hover {
-        color: #000;
-        background: #e9ecef;
-        border-radius: 50%;
-    }
-    
-    .reporters-modal-body {
-        padding: 1rem;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    
-    .reporters-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .reporter-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-left: 3px solid #007bff;
-    }
-    
-    .reporter-item i {
-        color: #007bff;
-    }
-    
-    .detailed-reports-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 1050;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .detailed-reports-modal {
-        background: white;
-        border-radius: 8px;
-        max-width: 800px;
-        max-height: 600px;
-        width: 90%;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-    
-    .reports-detailed-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        max-height: 450px;
-        overflow-y: auto;
-    }
-    
-    .report-detail-item {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 1rem;
-        background: #f8f9fa;
-    }
-    
-    .report-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .report-content {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-    }
-    
-    .report-date {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-    
-    .reason-spam { background: #ffc107; color: #212529; }
-    .reason-inappropriate { background: #dc3545; color: white; }
-    .reason-harassment { background: #6f42c1; color: white; }
-    .reason-false_information { background: #fd7e14; color: white; }
-    .reason-other { background: #6c757d; color: white; }
-`;
-document.head.appendChild(style);
 
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();

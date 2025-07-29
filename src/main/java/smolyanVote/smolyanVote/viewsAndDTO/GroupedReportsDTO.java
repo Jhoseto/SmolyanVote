@@ -20,6 +20,8 @@ public class GroupedReportsDTO {
     private List<ReportReasonEnum> reasons;
     private String mostCommonReason;
     private String status; // PENDING, REVIEWED, etc.
+
+    private String mostRecentDescription;
     private String adminNotes;
     private List<Long> reportIds; // Всички ID-та за bulk operations
 
@@ -103,6 +105,14 @@ public class GroupedReportsDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getMostRecentDescription() {
+        return mostRecentDescription;
+    }
+
+    public void setMostRecentDescription(String mostRecentDescription) {
+        this.mostRecentDescription = mostRecentDescription;
     }
 
     public String getAdminNotes() {
