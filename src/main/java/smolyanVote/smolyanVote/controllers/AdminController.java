@@ -9,7 +9,6 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final ActuatorDataService actuatorDataService;
@@ -22,8 +21,6 @@ public class AdminController {
     public String adminDashboard() {
         return "admin/dashboard";
     }
-
-    // ===== ОСНОВНИ ENDPOINTS =====
 
     @GetMapping("/api/health")
     @ResponseBody
@@ -43,8 +40,6 @@ public class AdminController {
         return actuatorDataService.getApplicationInfo();
     }
 
-    // ===== HEALTH STATUS ENDPOINTS =====
-
     @GetMapping("/api/health/database")
     @ResponseBody
     public Map<String, Object> getDatabaseHealth() {
@@ -62,8 +57,6 @@ public class AdminController {
     public Map<String, Object> getEmailHealth() {
         return actuatorDataService.getEmailServiceHealth();
     }
-
-    // ===== PERFORMANCE METRICS ENDPOINTS =====
 
     @GetMapping("/api/metrics/response-time")
     @ResponseBody
@@ -83,8 +76,6 @@ public class AdminController {
         return actuatorDataService.getJvmMetrics();
     }
 
-    // ===== RESOURCE USAGE ENDPOINTS =====
-
     @GetMapping("/api/resources/disk")
     @ResponseBody
     public Map<String, Object> getDiskSpaceInfo() {
@@ -103,8 +94,6 @@ public class AdminController {
         return actuatorDataService.getDetailedMemoryStats();
     }
 
-    // ===== ERROR MONITORING ENDPOINTS =====
-
     @GetMapping("/api/errors/recent")
     @ResponseBody
     public Map<String, Object> getRecentErrors() {
@@ -116,8 +105,6 @@ public class AdminController {
     public Map<String, Object> getErrorRates() {
         return actuatorDataService.getErrorRates();
     }
-
-    // ===== COMBINED DASHBOARD DATA ENDPOINT =====
 
     @GetMapping("/api/dashboard-data")
     @ResponseBody
@@ -132,5 +119,29 @@ public class AdminController {
                 "dbPool", actuatorDataService.getDatabaseConnectionPool(),
                 "errorRates", actuatorDataService.getErrorRates()
         );
+    }
+
+    @GetMapping("/api/metrics/system")
+    @ResponseBody
+    public Map<String, Object> getSystemMetrics() {
+        return actuatorDataService.getSystemMetrics();
+    }
+
+    @GetMapping("/api/metrics/memory")
+    @ResponseBody
+    public Map<String, Object> getMemoryMetrics() {
+        return actuatorDataService.getDetailedMemoryStats();
+    }
+
+    @GetMapping("/api/metrics/performance")
+    @ResponseBody
+    public Map<String, Object> getPerformanceMetrics() {
+        return actuatorDataService.getResponseTimeMetrics();
+    }
+
+    @GetMapping("/api/metrics/errors")
+    @ResponseBody
+    public Map<String, Object> getErrorMetrics() {
+        return actuatorDataService.getErrorRates();
     }
 }

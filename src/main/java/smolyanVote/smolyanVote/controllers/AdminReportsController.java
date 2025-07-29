@@ -5,7 +5,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.ReportsEntity;
@@ -21,7 +20,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/admin/manage-reports")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminReportsController {
 
     private final ReportsService reportsService;
@@ -34,41 +32,63 @@ public class AdminReportsController {
         this.reportsService = reportsService;
         this.userService = userService;
         this.reportsRepository = reportsRepository;
-        System.out.println("=== AdminReportsController CREATED - NEW PATH ===");
     }
 
     @GetMapping("/statistics")
-    public Map<String, Object> getReportsStatistics() {
-        return reportsService.getReportsStatistics();
+    public ResponseEntity<Map<String, Object>> getReportsStatistics() {
+        try {
+            Map<String, Object> stats = reportsService.getReportsStatistics();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            System.err.println("Error in getReportsStatistics: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     @GetMapping("/pending")
-    public Page<ReportsEntity> getPendingReports(
+    public ResponseEntity<Page<ReportsEntity>> getPendingReports(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        return reportsService.getPendingReports(pageable);
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ReportsEntity> reports = reportsService.getPendingReports(pageable);
+            return ResponseEntity.ok(reports);
+        } catch (Exception e) {
+            System.err.println("Error in getPendingReports: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/all")
-    public Page<ReportsEntity> getAllReports(
+    public ResponseEntity<Page<ReportsEntity>> getAllReports(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "500") int size) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return reportsRepository.findAll(pageable);
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<ReportsEntity> reports = reportsRepository.findAll(pageable);
+            return ResponseEntity.ok(reports);
+        } catch (Exception e) {
+            System.err.println("Error in getAllReports: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/{reportId}/details")
     public ResponseEntity<ReportsEntity> getReportDetails(@PathVariable Long reportId) {
-        Optional<ReportsEntity> report = reportsRepository.findById(reportId);
-
-        if (report.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            Optional<ReportsEntity> report = reportsRepository.findById(reportId);
+            if (report.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(report.get());
+        } catch (Exception e) {
+            System.err.println("Error in getReportDetails: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
-
-        return ResponseEntity.ok(report.get());
     }
 
     @PostMapping("/{reportId}/review")
@@ -76,8 +96,6 @@ public class AdminReportsController {
             @PathVariable Long reportId,
             @RequestBody Map<String, String> request,
             Authentication auth) {
-
-        System.out.println("!!! POST reviewReport CALLED - ID: " + reportId + " !!!");
 
         try {
             UserEntity admin = userService.getCurrentUser();
@@ -91,6 +109,7 @@ public class AdminReportsController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("Error in reviewReport: " + e.getMessage());
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -119,6 +138,7 @@ public class AdminReportsController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("Error in saveAdminNotes: " + e.getMessage());
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -127,16 +147,21 @@ public class AdminReportsController {
 
     @DeleteMapping("/{reportId}")
     public ResponseEntity<Map<String, String>> deleteReport(@PathVariable Long reportId) {
-        System.out.println("!!! DELETE deleteReport CALLED - ID: " + reportId + " !!!");
-
         try {
+            if (!reportsRepository.existsById(reportId)) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Докладът не е намерен");
+                return ResponseEntity.notFound().build();
+            }
+
             reportsRepository.deleteById(reportId);
 
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Report deleted successfully");
+            response.put("message", "Докладът е изтрит успешно");
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("Error in deleteReport: " + e.getMessage());
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -149,10 +174,11 @@ public class AdminReportsController {
             reportsRepository.deleteAllById(reportIds);
 
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Reports deleted successfully");
+            response.put("message", reportIds.size() + " репорта бяха изтрити успешно");
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("Error in bulkDeleteReports: " + e.getMessage());
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -161,8 +187,6 @@ public class AdminReportsController {
 
     @PostMapping("/bulk-review")
     public ResponseEntity<Map<String, String>> bulkReviewReports(@RequestBody Map<String, Object> request) {
-        System.out.println("!!! BULK REVIEW called !!!");
-
         try {
             @SuppressWarnings("unchecked")
             List<Long> reportIds = (List<Long>) request.get("reportIds");
@@ -176,10 +200,11 @@ public class AdminReportsController {
             }
 
             Map<String, String> response = new HashMap<>();
-            response.put("message", "Reports reviewed successfully");
+            response.put("message", reportIds.size() + " репорта бяха прегледани успешно");
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("Error in bulkReviewReports: " + e.getMessage());
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);

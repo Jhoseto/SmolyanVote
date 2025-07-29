@@ -47,95 +47,112 @@
 
             <div class="dashboard-card">
                 <h3><i class="bi bi-envelope"></i> Email Service</h3>
-                <p>Status: <span id="email-status">--</span></p>
+                <p>Service: <span id="email-status">--</span></p>
                 <p>Host: <span id="email-host">--</span></p>
             </div>
         </div>
     </div>
 
-    <!-- PERFORMANCE МЕТРИКИ -->
+    <!-- PERFORMANCE METRICS -->
     <div class="monitoring-section">
-        <h2 class="section-header" data-toggle="performance">
-            <i class="bi bi-speedometer2"></i> Performance
+        <h2 class="section-header" data-toggle="performance-metrics">
+            <i class="bi bi-speedometer2"></i> Performance Metrics
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
-        <div class="dashboard-grid collapsible-content" id="performance">
+        <div class="dashboard-grid collapsible-content collapsed" id="performance-metrics">
             <div class="dashboard-card">
                 <h3><i class="bi bi-cpu"></i> CPU & Memory</h3>
-                <p>CPU използване: <strong id="cpu-usage">--</strong>%</p>
-                <p>Memory: <strong id="memory-percent">--</strong>%</p>
-                <p>Memory: <span id="memory-used">--</span> / <span id="memory-max">--</span> MB</p>
+                <p>CPU Usage: <strong id="cpu-usage">--</strong>%</p>
+                <p>Memory Used: <strong id="memory-used">--</strong>MB / <strong id="memory-max">--</strong>MB</p>
+                <p>Usage: <strong id="memory-usage-percent">--</strong>%</p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-stopwatch"></i> Response Times</h3>
-                <p>Среден отговор: <strong id="avg-response-time">--</strong> ms</p>
-                <p>Max отговор: <strong id="max-response-time">--</strong> ms</p>
-                <p>Total time: <strong id="total-response-time">--</strong> ms</p>
+                <h3><i class="bi bi-graph-up"></i> Response Times</h3>
+                <p>Avg Response: <strong id="avg-response-time">--</strong>ms</p>
+                <p>Requests/sec: <strong id="requests-per-second">--</strong></p>
+                <p>Error Rate: <strong id="error-rate">--</strong>%</p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-hdd"></i> Disk & Storage</h3>
+                <p>Disk Usage: <strong id="disk-usage-percent">--</strong>%</p>
+                <p>Free Space: <strong id="disk-free-space">--</strong>GB</p>
             </div>
 
             <div class="dashboard-card">
                 <h3><i class="bi bi-diagram-3"></i> JVM Threads</h3>
-                <p>Live threads: <strong id="threads-live">--</strong></p>
-                <p>Peak threads: <strong id="threads-peak">--</strong></p>
-                <p>Active count: <strong id="threads-active">--</strong></p>
-            </div>
-
-            <div class="dashboard-card">
-                <h3><i class="bi bi-hdd"></i> Disk Space</h3>
-                <p>Използвано: <strong id="disk-usage-percent">--</strong>%</p>
-                <p>Свободно: <strong id="disk-free">--</strong> GB</p>
-                <p>Общо: <strong id="disk-total">--</strong> GB</p>
+                <p>Live Threads: <strong id="threads-live">--</strong></p>
+                <p>Peak Threads: <strong id="threads-peak">--</strong></p>
             </div>
         </div>
     </div>
 
-    <!-- HTTP ЗАЯВКИ И ГРЕШКИ -->
+    <!-- HTTP STATUS MONITORING -->
     <div class="monitoring-section">
-        <h2 class="section-header" data-toggle="http-traffic">
-            <i class="bi bi-globe"></i> HTTP Traffic & Errors
+        <h2 class="section-header" data-toggle="http-monitoring">
+            <i class="bi bi-bar-chart"></i> HTTP Status Monitoring
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
-        <div class="dashboard-grid collapsible-content" id="http-traffic">
+        <div class="dashboard-grid collapsible-content collapsed" id="http-monitoring">
             <div class="dashboard-card">
-                <h3><i class="bi bi-bar-chart"></i> HTTP Status Codes</h3>
-                <p>200 (OK): <strong id="http-200">--</strong></p>
-                <p>404 (Not Found): <strong id="http-404">--</strong></p>
-                <p>500 (Error): <strong id="http-500">--</strong></p>
+                <h3><i class="bi bi-check-circle text-success"></i> Success Responses</h3>
+                <p>HTTP 200: <strong id="http-200">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-exclamation-triangle"></i> Error Rates</h3>
-                <p>HTTP Error Rate: <strong id="http-error-rate">--</strong>%</p>
-                <p>Recent 5xx: <strong id="recent-5xx-count">--</strong></p>
+                <h3><i class="bi bi-exclamation-triangle text-warning"></i> Client Errors</h3>
+                <p>HTTP 404: <strong id="http-404">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-memory"></i> JVM Memory Details</h3>
-                <p>Heap Used: <strong id="heap-used">--</strong> MB</p>
-                <p>Heap Max: <strong id="heap-max">--</strong> MB</p>
-                <p>Non-Heap: <strong id="non-heap-used">--</strong> MB</p>
+                <h3><i class="bi bi-x-circle text-danger"></i> Server Errors</h3>
+                <p>HTTP 500: <strong id="http-500">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-arrow-clockwise"></i> Обновяване</h3>
-                <p>Последно: <span id="last-update">--</span></p>
-                <p>Java: <strong id="java-version">--</strong></p>
-                <button id="refresh-btn" class="btn btn-sm btn-outline-success">
+                <h3><i class="bi bi-exclamation-circle"></i> Total Errors</h3>
+                <p>Total: <strong id="total-errors">--</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYSTEM INFO -->
+    <div class="monitoring-section">
+        <h2 class="section-header" data-toggle="system-info">
+            <i class="bi bi-info-circle"></i> System Information
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+        <div class="dashboard-grid collapsible-content collapsed" id="system-info">
+            <div class="dashboard-card">
+                <h3><i class="bi bi-app"></i> Application</h3>
+                <p>Name: <strong id="app-name">--</strong></p>
+                <p>Version: <strong id="app-version">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-cup-hot"></i> Java Runtime</h3>
+                <p>Version: <strong id="java-version">--</strong></p>
+                <p>System Load: <strong id="system-load">--</strong></p>
+            </div>
+
+            <div class="dashboard-card">
+                <h3><i class="bi bi-clock"></i> Last Refresh</h3>
+                <p>Updated: <span class="last-refresh">--</span></p>
+                <button id="refresh-btn" class="btn btn-outline-success btn-sm">
                     <i class="bi bi-arrow-clockwise"></i> Обнови данни
                 </button>
             </div>
         </div>
     </div>
 
-
-    <!-- REPORTS MANAGEMENT - добавя се преди затварящия </div> на admin-container -->
+    <!-- REPORTS MANAGEMENT - ПРЕМАХНАХ collapsed клас!!! -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="reports-management">
             <i class="bi bi-flag"></i> Reports Management
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
-        <div class="collapsible-content collapsed" id="reports-management">
+        <div class="collapsible-content" id="reports-management">
 
             <!-- Simple Header with Actions -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
@@ -164,19 +181,19 @@
                         <thead>
                         <tr>
                             <th><input type="checkbox" id="select-all-reports"></th>
-                            <th class="sortable" onclick="sortReports('entityType')">
+                            <th class="sortable" data-column="entityType">
                                 Type <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th class="sortable" onclick="sortReports('reporterUsername')">
+                            <th class="sortable" data-column="reporterUsername">
                                 Reporter <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th class="sortable" onclick="sortReports('reason')">
+                            <th class="sortable" data-column="reason">
                                 Reason <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th class="sortable" onclick="sortReports('status')">
+                            <th class="sortable" data-column="status">
                                 Status <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th class="sortable" onclick="sortReports('createdAt')">
+                            <th class="sortable" data-column="createdAt">
                                 Date <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th>Action</th>
