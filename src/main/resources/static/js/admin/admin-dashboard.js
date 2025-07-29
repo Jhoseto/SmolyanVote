@@ -1,16 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin Dashboard loaded');
-
-    // Initialize collapsible sections
     initializeCollapsibleSections();
-
-    // Първоначално зареждане
     loadAllDashboardData();
-
-    // Auto refresh на всеки 30 секунди
     setInterval(loadAllDashboardData, 30000);
 
-    // Manual refresh бутон
     document.getElementById('refresh-btn').addEventListener('click', function() {
         this.disabled = true;
         this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Зареждане...';
@@ -22,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ===== COLLAPSIBLE SECTIONS FUNCTIONALITY =====
 function initializeCollapsibleSections() {
     const sectionHeaders = document.querySelectorAll('.section-header');
 
@@ -31,27 +22,48 @@ function initializeCollapsibleSections() {
             const targetId = this.getAttribute('data-toggle');
             const targetContent = document.getElementById(targetId);
 
-            // Toggle collapsed classes
             this.classList.toggle('collapsed');
             targetContent.classList.toggle('collapsed');
 
-            // Save collapse state to localStorage
+            if (targetId === 'reports-management' && !targetContent.classList.contains('collapsed')) {
+                setTimeout(() => {
+                    if (typeof setupEventListeners === 'function') {
+                        setupEventListeners();
+                        if (typeof loadReportsData === 'function') {
+                            loadReportsData();
+                        }
+                    }
+                }, 500);
+            }
+
             const isCollapsed = this.classList.contains('collapsed');
             localStorage.setItem(`admin-section-${targetId}`, isCollapsed.toString());
         });
 
-        // Restore collapse state from localStorage
         const targetId = header.getAttribute('data-toggle');
         const savedState = localStorage.getItem(`admin-section-${targetId}`);
 
         if (savedState === 'true') {
             header.classList.add('collapsed');
             document.getElementById(targetId).classList.add('collapsed');
+        } else if (savedState === 'false') {
+            header.classList.remove('collapsed');
+            document.getElementById(targetId).classList.remove('collapsed');
+
+            if (targetId === 'reports-management') {
+                setTimeout(() => {
+                    if (typeof setupEventListeners === 'function') {
+                        setupEventListeners();
+                        if (typeof loadReportsData === 'function') {
+                            loadReportsData();
+                        }
+                    }
+                }, 100);
+            }
         }
     });
 }
 
-// ===== ОСНОВНА ФУНКЦИЯ ЗА ЗАРЕЖДАНЕ НА ВСИЧКИ ДАННИ =====
 async function loadAllDashboardData() {
     try {
         await Promise.all([
@@ -67,19 +79,16 @@ async function loadAllDashboardData() {
             loadDiskSpace(),
             loadDatabasePool(),
             loadMemoryDetails(),
-            loadErrorRates(),
-            loadReportsData()
+            loadErrorRates()
         ]);
 
         updateLastRefresh();
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showErrorMessage('Грешка при зареждане на данни');
     }
 }
 
-// ===== HEALTH DATA =====
 async function loadHealthData() {
     try {
         const response = await fetch('/admin/api/health');
@@ -89,6 +98,11 @@ async function loadHealthData() {
         statusElement.textContent = data.status;
         statusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
 
+        if (data.details && data.details.diskSpace) {
+            const uptimeMinutes = Math.round((Date.now() - data.details.diskSpace.total) / 60000);
+            document.getElementById('uptime').textContent = uptimeMinutes;
+        }
+
     } catch (error) {
         console.error('Error loading health data:', error);
         document.getElementById('health-status').textContent = 'ERROR';
@@ -96,31 +110,17 @@ async function loadHealthData() {
     }
 }
 
-// ===== SYSTEM METRICS =====
 async function loadSystemMetrics() {
     try {
-        const response = await fetch('/admin/api/metrics');
+        const response = await fetch('/admin/api/metrics/system');
         const data = await response.json();
 
-        // CPU Usage
         if (data.cpuUsage !== undefined) {
             document.getElementById('cpu-usage').textContent = Math.round(data.cpuUsage * 100);
         }
 
-        // Memory Usage
-        if (data.memoryUsed && data.memoryMax) {
-            const usedMB = Math.round(data.memoryUsed / 1024 / 1024);
-            const maxMB = Math.round(data.memoryMax / 1024 / 1024);
-            const percent = Math.round(data.memoryUsagePercent);
-
-            document.getElementById('memory-used').textContent = usedMB;
-            document.getElementById('memory-max').textContent = maxMB;
-            document.getElementById('memory-percent').textContent = percent;
-        }
-
-        // Active Threads
-        if (data.activeThreads !== undefined) {
-            document.getElementById('threads-active').textContent = Math.round(data.activeThreads);
+        if (data.systemLoadAverage !== undefined) {
+            document.getElementById('system-load').textContent = data.systemLoadAverage.toFixed(2);
         }
 
     } catch (error) {
@@ -128,34 +128,54 @@ async function loadSystemMetrics() {
     }
 }
 
-// ===== APPLICATION INFO =====
+async function loadMemoryDetails() {
+    try {
+        const response = await fetch('/admin/api/metrics/memory');
+        const data = await response.json();
+
+        if (data.heapUsed !== undefined && data.heapMax !== undefined) {
+            document.getElementById('memory-used').textContent = Math.round(data.heapUsed);
+            document.getElementById('memory-max').textContent = Math.round(data.heapMax);
+
+            const usagePercent = Math.round((data.heapUsed / data.heapMax) * 100);
+            document.getElementById('memory-usage-percent').textContent = usagePercent;
+        }
+
+    } catch (error) {
+        console.error('Error loading memory details:', error);
+    }
+}
+
 async function loadApplicationInfo() {
     try {
         const response = await fetch('/admin/api/info');
         const data = await response.json();
 
-        if (data.uptimeMinutes !== undefined) {
-            document.getElementById('uptime').textContent = Math.round(data.uptimeMinutes);
+        if (data.app && data.app.name) {
+            document.getElementById('app-name').textContent = data.app.name;
         }
 
-        if (data.javaVersion) {
-            document.getElementById('java-version').textContent = data.javaVersion;
+        if (data.app && data.app.version) {
+            document.getElementById('app-version').textContent = data.app.version;
+        }
+
+        if (data.java && data.java.version) {
+            document.getElementById('java-version').textContent = data.java.version;
         }
 
     } catch (error) {
-        console.error('Error loading app info:', error);
+        console.error('Error loading application info:', error);
     }
 }
 
-// ===== DATABASE HEALTH =====
 async function loadDatabaseHealth() {
     try {
         const response = await fetch('/admin/api/health/database');
         const data = await response.json();
 
-        const statusElement = document.getElementById('db-status');
-        statusElement.textContent = data.status;
-        statusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
+        const dbStatusElement = document.getElementById('db-status');
+        dbStatusElement.textContent = data.status;
+        dbStatusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
 
     } catch (error) {
         console.error('Error loading database health:', error);
@@ -164,47 +184,55 @@ async function loadDatabaseHealth() {
     }
 }
 
-// ===== CLOUDINARY HEALTH =====
+async function loadDatabasePool() {
+    try {
+        const response = await fetch('/admin/api/metrics/database-pool');
+        const data = await response.json();
+
+        if (data.active !== undefined) {
+            document.getElementById('db-active-connections').textContent = Math.round(data.active);
+        }
+
+        if (data.pending !== undefined) {
+            document.getElementById('db-pending-connections').textContent = Math.round(data.pending);
+        }
+
+    } catch (error) {
+        console.error('Error loading database pool metrics:', error);
+    }
+}
+
 async function loadCloudinaryHealth() {
     try {
         const response = await fetch('/admin/api/health/cloudinary');
         const data = await response.json();
 
-        const statusElement = document.getElementById('cloudinary-status');
-        statusElement.textContent = data.status;
-        statusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
+        const cloudinaryStatusElement = document.getElementById('cloudinary-status');
+        cloudinaryStatusElement.textContent = data.status;
+        cloudinaryStatusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
 
-        if (data.cloudName) {
-            document.getElementById('cloudinary-name').textContent = data.cloudName;
+        if (data.details && data.details.cloudName) {
+            document.getElementById('cloudinary-name').textContent = data.details.cloudName;
         }
 
     } catch (error) {
-        console.error('Error loading cloudinary health:', error);
+        console.error('Error loading Cloudinary health:', error);
         document.getElementById('cloudinary-status').textContent = 'ERROR';
         document.getElementById('cloudinary-status').className = 'status-error';
     }
 }
 
-// ===== EMAIL HEALTH =====
 async function loadEmailHealth() {
     try {
         const response = await fetch('/admin/api/health/email');
         const data = await response.json();
 
-        const statusElement = document.getElementById('email-status');
-        statusElement.textContent = data.status;
-        statusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
+        const emailStatusElement = document.getElementById('email-status');
+        emailStatusElement.textContent = data.status;
+        emailStatusElement.className = data.status === 'UP' ? 'status-active' : 'status-error';
 
-        // За Mailjet показваме service name или sender email
-        if (data.service) {
-            document.getElementById('email-host').textContent = data.service;
-        } else if (data.senderEmail) {
-            document.getElementById('email-host').textContent = data.senderEmail;
-        }
-
-        // Debug информация в console за администратора
-        if (data.status === 'DOWN' && data.error) {
-            console.warn('Email Service Issue:', data.error);
+        if (data.details && data.details.host) {
+            document.getElementById('email-host').textContent = data.details.host;
         }
 
     } catch (error) {
@@ -214,25 +242,17 @@ async function loadEmailHealth() {
     }
 }
 
-// ===== PERFORMANCE METRICS =====
 async function loadPerformanceMetrics() {
     try {
-        const response = await fetch('/admin/api/metrics/response-time');
+        const response = await fetch('/admin/api/metrics/performance');
         const data = await response.json();
 
-        if (data.averageResponseTime !== undefined) {
-            document.getElementById('avg-response-time').textContent =
-                Math.round(data.averageResponseTime);
+        if (data.avgResponseTime !== undefined) {
+            document.getElementById('avg-response-time').textContent = Math.round(data.avgResponseTime);
         }
 
-        if (data.maxResponseTime !== undefined) {
-            document.getElementById('max-response-time').textContent =
-                Math.round(data.maxResponseTime);
-        }
-
-        if (data.totalTime !== undefined) {
-            document.getElementById('total-response-time').textContent =
-                Math.round(data.totalTime);
+        if (data.requestsPerSecond !== undefined) {
+            document.getElementById('requests-per-second').textContent = data.requestsPerSecond.toFixed(1);
         }
 
     } catch (error) {
@@ -240,7 +260,24 @@ async function loadPerformanceMetrics() {
     }
 }
 
-// ===== HTTP STATUS METRICS =====
+async function loadErrorRates() {
+    try {
+        const response = await fetch('/admin/api/metrics/errors');
+        const data = await response.json();
+
+        if (data.errorRate !== undefined) {
+            document.getElementById('error-rate').textContent = (data.errorRate * 100).toFixed(2);
+        }
+
+        if (data.totalErrors !== undefined) {
+            document.getElementById('total-errors').textContent = Math.round(data.totalErrors);
+        }
+
+    } catch (error) {
+        console.error('Error loading error rates:', error);
+    }
+}
+
 async function loadHttpStatusMetrics() {
     try {
         const response = await fetch('/admin/api/metrics/http-status');
@@ -255,7 +292,6 @@ async function loadHttpStatusMetrics() {
     }
 }
 
-// ===== JVM METRICS =====
 async function loadJvmMetrics() {
     try {
         const response = await fetch('/admin/api/metrics/jvm');
@@ -274,7 +310,6 @@ async function loadJvmMetrics() {
     }
 }
 
-// ===== DISK SPACE =====
 async function loadDiskSpace() {
     try {
         const response = await fetch('/admin/api/resources/disk');
@@ -286,11 +321,8 @@ async function loadDiskSpace() {
         }
 
         if (data.freeSpaceGB !== undefined) {
-            document.getElementById('disk-free').textContent = Math.round(data.freeSpaceGB);
-        }
-
-        if (data.totalSpaceGB !== undefined) {
-            document.getElementById('disk-total').textContent = Math.round(data.totalSpaceGB);
+            document.getElementById('disk-free-space').textContent =
+                Math.round(data.freeSpaceGB);
         }
 
     } catch (error) {
@@ -298,96 +330,23 @@ async function loadDiskSpace() {
     }
 }
 
-// ===== DATABASE CONNECTION POOL =====
-async function loadDatabasePool() {
-    try {
-        const response = await fetch('/admin/api/resources/database-pool');
-        const data = await response.json();
-
-        document.getElementById('db-active-connections').textContent =
-            Math.round(data.active || 0);
-        document.getElementById('db-pending-connections').textContent =
-            Math.round(data.pending || 0);
-
-    } catch (error) {
-        console.error('Error loading database pool:', error);
-    }
-}
-
-// ===== MEMORY DETAILS =====
-async function loadMemoryDetails() {
-    try {
-        const response = await fetch('/admin/api/resources/memory');
-        const data = await response.json();
-
-        if (data.heapUsed !== undefined) {
-            document.getElementById('heap-used').textContent =
-                Math.round(data.heapUsed / 1024 / 1024);
-        }
-
-        if (data.heapMax !== undefined) {
-            document.getElementById('heap-max').textContent =
-                Math.round(data.heapMax / 1024 / 1024);
-        }
-
-        if (data.nonHeapUsed !== undefined) {
-            document.getElementById('non-heap-used').textContent =
-                Math.round(data.nonHeapUsed / 1024 / 1024);
-        }
-
-    } catch (error) {
-        console.error('Error loading memory details:', error);
-    }
-}
-
-// ===== ERROR RATES =====
-async function loadErrorRates() {
-    try {
-        const response = await fetch('/admin/api/errors/rates');
-        const data = await response.json();
-
-        if (data.httpErrorRate !== undefined) {
-            document.getElementById('http-error-rate').textContent =
-                data.httpErrorRate.toFixed(2);
-        }
-
-        // Recent errors
-        const recentResponse = await fetch('/admin/api/errors/recent');
-        const recentData = await recentResponse.json();
-
-        if (recentData.http5xxCount !== undefined) {
-            document.getElementById('recent-5xx-count').textContent =
-                Math.round(recentData.http5xxCount);
-        }
-
-    } catch (error) {
-        console.error('Error loading error rates:', error);
-    }
-}
-
-// ===== UTILITY FUNCTIONS =====
 function updateLastRefresh() {
     const now = new Date();
-    document.getElementById('last-update').textContent =
-        now.toLocaleTimeString('bg-BG');
+    const timeString = now.toLocaleTimeString('bg-BG');
+    const elements = document.querySelectorAll('.last-refresh');
+    elements.forEach(el => el.textContent = timeString);
 }
 
-function showErrorMessage(message) {
-    // Създаваме временно съобщение за грешка
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger';
-    errorDiv.style.position = 'fixed';
-    errorDiv.style.top = '20px';
-    errorDiv.style.right = '20px';
-    errorDiv.style.zIndex = '9999';
-    errorDiv.textContent = message;
-
-    document.body.appendChild(errorDiv);
-
-    // Премахваме след 5 секунди
-    setTimeout(() => {
-        if (errorDiv.parentNode) {
-            errorDiv.parentNode.removeChild(errorDiv);
+window.forceReportsRefresh = function() {
+    const reportsSection = document.getElementById('reports-management');
+    if (reportsSection && !reportsSection.classList.contains('collapsed')) {
+        if (typeof loadReportsData === 'function') {
+            loadReportsData();
         }
-    }, 5000);
-}
+    }
+};
+
+window.isReportsSectionVisible = function() {
+    const reportsSection = document.getElementById('reports-management');
+    return reportsSection && !reportsSection.classList.contains('collapsed');
+};
