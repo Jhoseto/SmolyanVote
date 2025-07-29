@@ -51,6 +51,7 @@ public class AdminReportsController {
             return ResponseEntity.ok(groupedReports);
         } catch (Exception e) {
             System.err.println("Error in getGroupedReports: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
@@ -153,6 +154,33 @@ public class AdminReportsController {
             return ResponseEntity.ok(Map.of("message", "Бележките са запазени успешно"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Грешка при запазване: " + e.getMessage()));
+        }
+    }
+
+
+    @GetMapping(value = "/entity/{entityType}/{entityId}/details", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ReportsEntity>> getEntityReportDetails(
+            @PathVariable String entityType,
+            @PathVariable Long entityId) {
+        try {
+            ReportableEntityType type = ReportableEntityType.valueOf(entityType.toUpperCase());
+            List<ReportsEntity> reports = reportsService.getReportsForEntity(type, entityId);
+            return ResponseEntity.ok(reports);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping(value = "/entity/{entityType}/{entityId}/ids", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Long>> getEntityReportIds(
+            @PathVariable String entityType,
+            @PathVariable Long entityId) {
+        try {
+            ReportableEntityType type = ReportableEntityType.valueOf(entityType.toUpperCase());
+            List<Long> reportIds = reportsService.getReportIdsByEntity(type, entityId);
+            return ResponseEntity.ok(reportIds);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }

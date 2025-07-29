@@ -13,7 +13,7 @@ import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ReportsService;
 import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
-
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -288,19 +288,32 @@ public class ReportsServiceImpl implements ReportsService {
     @Transactional(readOnly = true)
     @Override
     public Page<GroupedReportsDTO> getGroupedReports(Pageable pageable) {
+        // Извличаме limit и offset от Pageable
+        int limit = pageable.getPageSize();
+        int offset = (int) pageable.getOffset();
+
         // Използваме custom query за групиране
-        List<Object[]> groupedResults = reportsRepository.findGroupedReports(pageable);
+        List<Object[]> groupedResults = reportsRepository.findGroupedReports(limit, offset);
 
         List<GroupedReportsDTO> groupedReports = new ArrayList<>();
 
         for (Object[] row : groupedResults) {
-            ReportableEntityType entityType = (ReportableEntityType) row[0];
+            // Native query връща String за enum
+            String entityTypeStr = (String) row[0];
+            ReportableEntityType entityType = ReportableEntityType.valueOf(entityTypeStr);
+
             Long entityId = (Long) row[1];
             Long reportCount = (Long) row[2];
-            LocalDateTime firstReport = (LocalDateTime) row[3];
-            LocalDateTime lastReport = (LocalDateTime) row[4];
+
+            // Native query връща Timestamp, не LocalDateTime
+            Timestamp firstReportTs = (Timestamp) row[3];
+            Timestamp lastReportTs = (Timestamp) row[4];
+            LocalDateTime firstReport = firstReportTs.toLocalDateTime();
+            LocalDateTime lastReport = lastReportTs.toLocalDateTime();
+
             String mostCommonReason = (String) row[5];
-            String status = (String) row[6];
+            String mostRecentDescription = (String) row[6]; // НОВО
+            String status = (String) row[7]; // ВНИМАНИЕ: индексът се променя!
 
             GroupedReportsDTO dto = new GroupedReportsDTO();
             dto.setEntityType(entityType);
@@ -309,6 +322,7 @@ public class ReportsServiceImpl implements ReportsService {
             dto.setFirstReportDate(firstReport);
             dto.setLastReportDate(lastReport);
             dto.setMostCommonReason(mostCommonReason);
+            dto.setMostRecentDescription(mostRecentDescription); // НОВО
             dto.setStatus(status);
 
             // Получаваме всички reporter usernames за това entity
@@ -322,14 +336,11 @@ public class ReportsServiceImpl implements ReportsService {
             groupedReports.add(dto);
         }
 
-        // Създаваме Page wrapper
-        int total = groupedResults.size();
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), total);
+        // Получаваме общия брой групирани репорти за правилен pagination
+        Long totalElements = reportsRepository.countGroupedReports();
 
-        List<GroupedReportsDTO> pageContent = groupedReports.subList(start, end);
-
-        return new PageImpl<>(pageContent, pageable, total);
+        // Създаваме Page wrapper с правилния total count
+        return new PageImpl<>(groupedReports, pageable, totalElements);
     }
 
     @Transactional(readOnly = true)
