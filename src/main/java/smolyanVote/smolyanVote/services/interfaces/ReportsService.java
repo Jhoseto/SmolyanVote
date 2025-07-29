@@ -2,9 +2,11 @@ package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.ReportsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
+import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -71,4 +73,10 @@ public interface ReportsService {
      * Изтрива всички доклади за конкретен entity (използва се при изтриване на entity)
      */
     void deleteAllReportsForEntity(ReportableEntityType entityType, Long entityId);
+
+    @Transactional(readOnly = true)
+    Page<GroupedReportsDTO> getGroupedReports(Pageable pageable);
+
+    @Transactional(readOnly = true)
+    List<Long> getReportIdsByEntity(ReportableEntityType entityType, Long entityId);
 }

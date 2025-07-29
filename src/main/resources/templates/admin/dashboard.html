@@ -17,6 +17,11 @@
     <div class="admin-header">
         <h1><i class="bi bi-gear-fill"></i> Admin Dashboard</h1>
         <p>SmolyanVote system</p>
+        <h3><i class="bi bi-clock"></i> Last Refresh</h3>
+        <p>Updated: <span class="last-refresh">--</span></p>
+        <button id="refresh-btn" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Обнови данни
+        </button>
     </div>
 
     <!-- ОСНОВНИ СИСТЕМНИ СТАТУСИ -->
@@ -117,36 +122,8 @@
         </div>
     </div>
 
-    <!-- SYSTEM INFO -->
-    <div class="monitoring-section">
-        <h2 class="section-header" data-toggle="system-info">
-            <i class="bi bi-info-circle"></i> System Information
-            <i class="bi bi-chevron-down collapse-icon"></i>
-        </h2>
-        <div class="dashboard-grid collapsible-content collapsed" id="system-info">
-            <div class="dashboard-card">
-                <h3><i class="bi bi-app"></i> Application</h3>
-                <p>Name: <strong id="app-name">--</strong></p>
-                <p>Version: <strong id="app-version">--</strong></p>
-            </div>
 
-            <div class="dashboard-card">
-                <h3><i class="bi bi-cup-hot"></i> Java Runtime</h3>
-                <p>Version: <strong id="java-version">--</strong></p>
-                <p>System Load: <strong id="system-load">--</strong></p>
-            </div>
-
-            <div class="dashboard-card">
-                <h3><i class="bi bi-clock"></i> Last Refresh</h3>
-                <p>Updated: <span class="last-refresh">--</span></p>
-                <button id="refresh-btn" class="btn btn-outline-success btn-sm">
-                    <i class="bi bi-arrow-clockwise"></i> Обнови данни
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- REPORTS MANAGEMENT - ПРЕМАХНАХ collapsed клас!!! -->
+    <!-- REPORTS MANAGEMENT  -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="reports-management">
             <i class="bi bi-flag"></i> Reports Management
@@ -177,34 +154,21 @@
             <!-- Reports Table -->
             <div class="dashboard-card">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover" id="reports-table">
+                    <table class="table table-hover">
                         <thead>
                         <tr>
                             <th><input type="checkbox" id="select-all-reports"></th>
-                            <th class="sortable" data-column="entityType">
-                                Type <i class="bi bi-arrow-down-up"></i>
-                            </th>
-                            <th class="sortable" data-column="reporterUsername">
-                                Reporter <i class="bi bi-arrow-down-up"></i>
-                            </th>
-                            <th class="sortable" data-column="reason">
-                                Reason <i class="bi bi-arrow-down-up"></i>
-                            </th>
-                            <th class="sortable" data-column="status">
-                                Status <i class="bi bi-arrow-down-up"></i>
-                            </th>
-                            <th class="sortable" data-column="createdAt">
-                                Date <i class="bi bi-arrow-down-up"></i>
-                            </th>
-                            <th>Action</th>
+                            <th class="sortable" data-column="entityType">Тип</th>
+                            <th>Брой репорти</th>
+                            <th>Докладвачи</th>
+                            <th class="sortable" data-column="mostCommonReason">Най-честа причина</th>
+                            <th class="sortable" data-column="status">Статус</th>
+                            <th class="sortable" data-column="lastReportDate">Дата</th>
+                            <th>Действия</th>
                         </tr>
                         </thead>
                         <tbody id="reports-table-body">
-                        <tr>
-                            <td colspan="7" class="text-center text-muted">
-                                <i class="bi bi-hourglass-split"></i> Loading...
-                            </td>
-                        </tr>
+                        <!-- JavaScript ще попълни тук -->
                         </tbody>
                     </table>
                 </div>

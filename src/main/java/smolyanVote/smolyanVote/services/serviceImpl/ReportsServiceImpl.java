@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,12 +12,10 @@ import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ReportsService;
+import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Transactional
@@ -282,5 +281,60 @@ public class ReportsServiceImpl implements ReportsService {
                 yield poll.isPresent() && poll.get().getCreatorName().equals(username);
             }
         };
+    }
+
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public Page<GroupedReportsDTO> getGroupedReports(Pageable pageable) {
+        // Използваме custom query за групиране
+        List<Object[]> groupedResults = reportsRepository.findGroupedReports(pageable);
+
+        List<GroupedReportsDTO> groupedReports = new ArrayList<>();
+
+        for (Object[] row : groupedResults) {
+            ReportableEntityType entityType = (ReportableEntityType) row[0];
+            Long entityId = (Long) row[1];
+            Long reportCount = (Long) row[2];
+            LocalDateTime firstReport = (LocalDateTime) row[3];
+            LocalDateTime lastReport = (LocalDateTime) row[4];
+            String mostCommonReason = (String) row[5];
+            String status = (String) row[6];
+
+            GroupedReportsDTO dto = new GroupedReportsDTO();
+            dto.setEntityType(entityType);
+            dto.setEntityId(entityId);
+            dto.setReportCount(reportCount.intValue());
+            dto.setFirstReportDate(firstReport);
+            dto.setLastReportDate(lastReport);
+            dto.setMostCommonReason(mostCommonReason);
+            dto.setStatus(status);
+
+            // Получаваме всички reporter usernames за това entity
+            List<String> reporters = reportsRepository.findReportersByEntity(entityType, entityId);
+            dto.setReporterUsernames(reporters);
+
+            // Получаваме всички report ID-та за bulk operations
+            List<Long> reportIds = reportsRepository.findReportIdsByEntity(entityType, entityId);
+            dto.setReportIds(reportIds);
+
+            groupedReports.add(dto);
+        }
+
+        // Създаваме Page wrapper
+        int total = groupedResults.size();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), total);
+
+        List<GroupedReportsDTO> pageContent = groupedReports.subList(start, end);
+
+        return new PageImpl<>(pageContent, pageable, total);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Long> getReportIdsByEntity(ReportableEntityType entityType, Long entityId) {
+        return reportsRepository.findReportIdsByEntity(entityType, entityId);
     }
 }

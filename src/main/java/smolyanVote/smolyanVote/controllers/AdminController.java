@@ -9,6 +9,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final ActuatorDataService actuatorDataService;

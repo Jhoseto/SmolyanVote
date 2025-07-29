@@ -108,4 +108,38 @@ public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
             "WHERE r.status = :status " +
             "GROUP BY r.entityType")
     List<Object[]> getReportsCountByEntityType(@Param("status") String status);
+
+
+    @Query(value = """
+    SELECT 
+        r.entity_type,
+        r.entity_id,
+        COUNT(*) as report_count,
+        MIN(r.created_at) as first_report,
+        MAX(r.created_at) as last_report,
+        (SELECT reason FROM reports r2 
+         WHERE r2.entity_type = r.entity_type AND r2.entity_id = r.entity_id 
+         GROUP BY reason 
+         ORDER BY COUNT(*) DESC, reason 
+         LIMIT 1) as most_common_reason,
+        CASE 
+            WHEN COUNT(CASE WHEN r.status = 'PENDING' THEN 1 END) > 0 THEN 'PENDING'
+            WHEN COUNT(CASE WHEN r.status = 'REVIEWED' THEN 1 END) = COUNT(*) THEN 'REVIEWED'
+            ELSE 'MIXED'
+        END as overall_status
+    FROM reports r
+    GROUP BY r.entity_type, r.entity_id
+    ORDER BY COUNT(*) DESC, MAX(r.created_at) DESC
+    LIMIT :limit OFFSET :offset
+    """, nativeQuery = true)
+    List<Object[]> findGroupedReports(@Param("limit") int limit, @Param("offset") int offset);
+
+    @Query("SELECT r.reporterUsername FROM ReportsEntity r WHERE r.entityType = :entityType AND r.entityId = :entityId ORDER BY r.createdAt")
+    List<String> findReportersByEntity(@Param("entityType") ReportableEntityType entityType, @Param("entityId") Long entityId);
+
+    @Query("SELECT r.id FROM ReportsEntity r WHERE r.entityType = :entityType AND r.entityId = :entityId ORDER BY r.createdAt")
+    List<Long> findReportIdsByEntity(@Param("entityType") ReportableEntityType entityType, @Param("entityId") Long entityId);
+
+    @Query("SELECT COUNT(DISTINCT CONCAT(r.entityType, '-', r.entityId)) FROM ReportsEntity r")
+    Long countGroupedReports();
 }
