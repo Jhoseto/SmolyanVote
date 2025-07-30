@@ -31,7 +31,7 @@
 
 /* ===== MONITORING SECTIONS ===== */
 .monitoring-section {
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .monitoring-section h2 {
@@ -44,6 +44,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    justify-content: center;
 }
 
 .dashboard-grid {
