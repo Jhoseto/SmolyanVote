@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
@@ -245,6 +246,7 @@ public class UserServiceImpl implements UserService {
 
     //CREATE NEW USER
     @Override
+    @LogActivity
     public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
 
         UserRole userRole = UserRole.USER;
@@ -280,6 +282,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @LogActivity
     public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));

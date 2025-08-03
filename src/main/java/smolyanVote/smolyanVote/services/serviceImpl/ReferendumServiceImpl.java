@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
@@ -55,6 +56,7 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     @Transactional
     @Override
+    @LogActivity
     public void createReferendum(String topic,
                                  String description,
                                  Locations location,

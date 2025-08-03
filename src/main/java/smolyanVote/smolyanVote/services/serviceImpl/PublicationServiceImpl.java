@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -72,6 +73,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         PublicationEntity publication = new PublicationEntity();
 
@@ -128,6 +130,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity
     public PublicationEntity update(PublicationEntity publication, PublicationRequestDTO request) {
         // Запазваме оригиналния статус за проверка
         PublicationStatus originalStatus = publication.getStatus();
@@ -163,6 +166,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity
     public void delete(Long id) {
 
         try {

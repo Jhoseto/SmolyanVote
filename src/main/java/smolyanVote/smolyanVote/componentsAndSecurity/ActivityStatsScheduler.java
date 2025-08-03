@@ -37,7 +37,7 @@ public class ActivityStatsScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         this.systemReady = true;
-        System.out.println("🚀 Activity monitoring system is ready and operational");
+        System.out.println("🚀 Admin Activity monitoring system is ready and operational");
 
         // Изпращаме system message към евентуални свързани админи
         if (activityWebSocketHandler.getActiveSessionsCount() > 0) {
@@ -62,9 +62,6 @@ public class ActivityStatsScheduler {
             if (activeConnections > 0) {
                 activityWebSocketHandler.broadcastStatsUpdate();
 
-                // Debug log само когато има свързани админи
-                System.out.println("📊 Stats update sent to " + activeConnections + " admin(s) at " +
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
             }
         } catch (Exception e) {
             System.err.println("❌ Error in scheduled stats update: " + e.getMessage());
@@ -87,8 +84,6 @@ public class ActivityStatsScheduler {
             if (activeConnections > 0) {
                 activityWebSocketHandler.broadcastSystemMessage("heartbeat", "ping");
 
-                System.out.println("💓 Heartbeat sent to " + activeConnections + " WebSocket connection(s) at " +
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
             }
         } catch (Exception e) {
             System.err.println("❌ Error in WebSocket heartbeat: " + e.getMessage());
@@ -163,27 +158,7 @@ public class ActivityStatsScheduler {
         }
 
         try {
-            System.out.println("📈 Generating weekly activity statistics report...");
 
-            // Генерираме седмичен доклад
-            LocalDateTime weekAgo = LocalDateTime.now().minusWeeks(1);
-
-            var topUsers = activityLogService.getTopUsers(10, weekAgo); // 1 седмица назад
-            var topActions = activityLogService.getTopActions(weekAgo);
-            var stats = activityLogService.getActivityStatistics();
-
-            System.out.println("📊 Weekly Report Summary:");
-            System.out.println("   - Total activities in last 24h: " + stats.get("today"));
-            System.out.println("   - Most active user this week: " +
-                    (topUsers.isEmpty() ? "None" : topUsers.get(0).get("username")));
-            System.out.println("   - Total unique users this week: " + topUsers.size());
-            System.out.println("   - Different action types: " + topActions.size());
-
-            // Уведомяваме админите
-            if (activityWebSocketHandler.getActiveSessionsCount() > 0) {
-                activityWebSocketHandler.broadcastSystemMessage(
-                        "Weekly statistics report generated", "info");
-            }
 
         } catch (Exception e) {
             System.err.println("❌ Error generating weekly statistics: " + e.getMessage());
@@ -200,17 +175,6 @@ public class ActivityStatsScheduler {
         }
 
         try {
-            // Проверяваме състоянието на Activity Wall системата
-            int activeWebSocketConnections = activityWebSocketHandler.getActiveSessionsCount();
-            long estimatedOnlineUsers = activityLogService.getEstimatedOnlineUsers();
-
-            // Логваме само ако има интересна активност
-            if (activeWebSocketConnections > 0 || estimatedOnlineUsers > 0) {
-                System.out.println("🔍 System Status: " +
-                        activeWebSocketConnections + " admin connections, " +
-                        estimatedOnlineUsers + " estimated online users");
-            }
-
             // Проверяваме за необичайно високa активност
             var stats = activityLogService.getActivityStatistics();
             Object lastHourObj = stats.get("lastHour");

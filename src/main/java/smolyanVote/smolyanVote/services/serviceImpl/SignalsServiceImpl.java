@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -67,6 +68,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
+    @LogActivity
     public SignalsEntity create(String title, String description, SignalsCategory category,
                                 SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {
@@ -92,6 +94,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
+    @LogActivity
     public SignalsEntity update(SignalsEntity signal, String title, String description,
                                 SignalsCategory category, SignalsUrgencyLevel urgency, MultipartFile image) {
 
@@ -119,6 +122,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
+    @LogActivity
     public void delete(Long id) {
         try {
             // ПЪРВО ИЗТРИВАМЕ COMMENT VOTES

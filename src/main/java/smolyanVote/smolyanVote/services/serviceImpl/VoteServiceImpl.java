@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
@@ -40,6 +41,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
+    @LogActivity
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
         SimpleEventEntity event = simpleEventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Събитие не е намерено"));
@@ -92,6 +94,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
+    @LogActivity
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен."));
@@ -144,6 +147,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
+    @LogActivity
     public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
 
         if (selectedOptions == null || selectedOptions.isEmpty()) {

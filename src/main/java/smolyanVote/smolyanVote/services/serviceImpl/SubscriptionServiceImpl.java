@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.EmailSubscriptionEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SubscriptionType;
@@ -35,6 +36,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
+    @LogActivity
     public void updateUserSubscriptions(UserEntity user, Set<SubscriptionType> types) {
         emailSubscriptionRepository.deactivateAllByUser(user);
 
