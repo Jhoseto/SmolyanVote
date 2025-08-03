@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Базов DTO клас за всички WebSocket съобщения
@@ -45,10 +48,16 @@ public class WebSocketMessageDto {
      */
     private String messageId;
 
+    /**
+     * Допълнителни метаданни (опционално)
+     */
+    private Map<String, Object> metadata;
+
     // ===== CONSTRUCTORS =====
 
     public WebSocketMessageDto() {
         this.timestamp = LocalDateTime.now();
+        this.messageId = UUID.randomUUID().toString();
     }
 
     public WebSocketMessageDto(String type, Object data) {
@@ -115,14 +124,88 @@ public class WebSocketMessageDto {
      * Създава ping съобщение
      */
     public static WebSocketMessageDto ping() {
-        return new WebSocketMessageDto("ping", "ping");
+        WebSocketMessageDto dto = new WebSocketMessageDto("ping", "ping");
+        dto.setStatus("info");
+        return dto;
     }
 
     /**
      * Създава pong съобщение
      */
     public static WebSocketMessageDto pong() {
-        return new WebSocketMessageDto("pong", "pong");
+        WebSocketMessageDto dto = new WebSocketMessageDto("pong", "pong");
+        dto.setStatus("info");
+        return dto;
+    }
+
+    /**
+     * Създава pong отговор на ping
+     */
+    public static WebSocketMessageDto pongResponse(String originalMessageId) {
+        WebSocketMessageDto dto = new WebSocketMessageDto("pong", "pong");
+        dto.setStatus("info");
+        dto.addMetadata("originalMessageId", originalMessageId);
+        return dto;
+    }
+
+    /**
+     * Създава welcome съобщение
+     */
+    public static WebSocketMessageDto welcome(String handlerName, Map<String, Object> sessionData) {
+        WebSocketMessageDto dto = new WebSocketMessageDto("welcome", sessionData, "success",
+                "Connected to " + handlerName);
+        dto.addMetadata("handlerName", handlerName);
+        return dto;
+    }
+
+    /**
+     * Създава system съобщение
+     */
+    public static WebSocketMessageDto system(String message, String level) {
+        Map<String, Object> systemData = new HashMap<>();
+        systemData.put("message", message);
+        systemData.put("level", level);
+        systemData.put("timestamp", LocalDateTime.now());
+
+        return new WebSocketMessageDto("system_message", systemData, level, message);
+    }
+
+    /**
+     * Създава heartbeat съобщение
+     */
+    public static WebSocketMessageDto heartbeat() {
+        WebSocketMessageDto dto = new WebSocketMessageDto("heartbeat", LocalDateTime.now());
+        dto.setStatus("info");
+        dto.setMessage("Keep-alive heartbeat");
+        return dto;
+    }
+
+    /**
+     * Създава notification съобщение
+     */
+    public static WebSocketMessageDto notification(String title, String body, String level) {
+        Map<String, Object> notificationData = new HashMap<>();
+        notificationData.put("title", title);
+        notificationData.put("body", body);
+        notificationData.put("level", level);
+        notificationData.put("timestamp", LocalDateTime.now());
+
+        return new WebSocketMessageDto("notification", notificationData, level, title);
+    }
+
+    /**
+     * Създава command response съобщение
+     */
+    public static WebSocketMessageDto commandResponse(String command, Object result, boolean success) {
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("command", command);
+        responseData.put("result", result);
+        responseData.put("success", success);
+
+        String status = success ? "success" : "error";
+        String message = success ? "Command executed successfully" : "Command execution failed";
+
+        return new WebSocketMessageDto("command_response", responseData, status, message);
     }
 
     // ===== UTILITY METHODS =====
@@ -163,14 +246,123 @@ public class WebSocketMessageDto {
     }
 
     /**
-     * Връща данните като конкретен тип (с casting)
+     * Проверява дали е ping съобщение
      */
-    @SuppressWarnings("unchecked")
-    public <T> T getDataAs(Class<T> clazz) {
-        if (data != null && clazz.isAssignableFrom(data.getClass())) {
-            return (T) data;
+    public boolean isPing() {
+        return "ping".equals(this.type);
+    }
+
+    /**
+     * Проверява дали е pong съобщение
+     */
+    public boolean isPong() {
+        return "pong".equals(this.type);
+    }
+
+    /**
+     * Проверява дали е system съобщение
+     */
+    public boolean isSystemMessage() {
+        return "system_message".equals(this.type);
+    }
+
+    /**
+     * Добавя метаданни
+     */
+    public WebSocketMessageDto addMetadata(String key, Object value) {
+        if (this.metadata == null) {
+            this.metadata = new HashMap<>();
         }
-        return null;
+        this.metadata.put(key, value);
+        return this;
+    }
+
+    /**
+     * Добавя множество метаданни
+     */
+    public WebSocketMessageDto addMetadata(Map<String, Object> additionalMetadata) {
+        if (this.metadata == null) {
+            this.metadata = new HashMap<>();
+        }
+        this.metadata.putAll(additionalMetadata);
+        return this;
+    }
+
+    /**
+     * Извлича метаданни по ключ
+     */
+    public Object getMetadata(String key) {
+        return this.metadata != null ? this.metadata.get(key) : null;
+    }
+
+    /**
+     * Проверява дали има метаданни
+     */
+    public boolean hasMetadata() {
+        return this.metadata != null && !this.metadata.isEmpty();
+    }
+
+    /**
+     * Клонира съобщението с нов тип
+     */
+    public WebSocketMessageDto withType(String newType) {
+        WebSocketMessageDto cloned = new WebSocketMessageDto();
+        cloned.type = newType;
+        cloned.data = this.data;
+        cloned.timestamp = this.timestamp;
+        cloned.status = this.status;
+        cloned.message = this.message;
+        cloned.messageId = this.messageId;
+        cloned.metadata = this.metadata != null ? new HashMap<>(this.metadata) : null;
+        return cloned;
+    }
+
+    /**
+     * Клонира съобщението с нови данни
+     */
+    public WebSocketMessageDto withData(Object newData) {
+        WebSocketMessageDto cloned = new WebSocketMessageDto();
+        cloned.type = this.type;
+        cloned.data = newData;
+        cloned.timestamp = this.timestamp;
+        cloned.status = this.status;
+        cloned.message = this.message;
+        cloned.messageId = this.messageId;
+        cloned.metadata = this.metadata != null ? new HashMap<>(this.metadata) : null;
+        return cloned;
+    }
+
+    /**
+     * Проверява дали съобщението е валидно
+     */
+    public boolean isValid() {
+        return this.type != null && !this.type.trim().isEmpty();
+    }
+
+    /**
+     * Връща размер на данните (приблизително)
+     */
+    public int getApproximateSize() {
+        int size = 0;
+
+        if (type != null) size += type.length();
+        if (message != null) size += message.length();
+        if (messageId != null) size += messageId.length();
+        if (status != null) size += status.length();
+
+        // Приблизителен размер на data (не е точен, но дава представа)
+        if (data != null) {
+            size += data.toString().length();
+        }
+
+        return size;
+    }
+
+    /**
+     * Проверява дали съобщението е прекалено голямо
+     */
+    public boolean isTooLarge(int maxSize) {
+        return getApproximateSize() > maxSize;
     }
 
     // ===== GETTERS AND SETTERS =====
@@ -223,7 +415,13 @@ public class WebSocketMessageDto {
         this.messageId = messageId;
     }
 
-    // ===== UTILITY =====
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 
     @Override
     public String toString() {
@@ -231,8 +429,24 @@ public class WebSocketMessageDto {
                 "type='" + type + '\'' +
                 ", status='" + status + '\'' +
                 ", message='" + message + '\'' +
+                ", messageId='" + messageId + '\'' +
                 ", timestamp=" + timestamp +
-                ", dataType=" + (data != null ? data.getClass().getSimpleName() : "null") +
+                ", hasData=" + (data != null) +
+                ", hasMetadata=" + hasMetadata() +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        WebSocketMessageDto that = (WebSocketMessageDto) obj;
+        return messageId != null ? messageId.equals(that.messageId) : that.messageId == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return messageId != null ? messageId.hashCode() : 0;
     }
 }

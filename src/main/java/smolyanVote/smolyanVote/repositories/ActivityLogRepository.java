@@ -45,64 +45,38 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
     List<ActivityLogEntity> findByTimestampAfterOrderByTimestampDesc(LocalDateTime since);
 
     /**
-     * Намира активности за последния час
+     * Намира активности в интервал от време
      */
-    @Query("SELECT a FROM ActivityLogEntity a WHERE a.timestamp >= :since ORDER BY a.timestamp DESC")
+    List<ActivityLogEntity> findByTimestampBetweenOrderByTimestampDesc(LocalDateTime start, LocalDateTime end);
+
+    /**
+     * Брои активности след определена дата
+     */
+    @Query("SELECT COUNT(a) FROM ActivityLogEntity a WHERE a.timestamp >= :since")
+    long countActivitiesSince(@Param("since") LocalDateTime since);
+
+    /**
+     * Намира последни активности за онлайн потребители
+     */
+    @Query("SELECT a FROM ActivityLogEntity a WHERE a.timestamp >= :since")
     List<ActivityLogEntity> findRecentActivities(@Param("since") LocalDateTime since);
 
-    // ===== ACTION-BASED QUERIES =====
+    // ===== FILTERING QUERIES =====
 
     /**
-     * Намира активности по тип действие
+     * Намира активности по действие
      */
     Page<ActivityLogEntity> findByActionOrderByTimestampDesc(String action, Pageable pageable);
-
-    /**
-     * Намира активности по тип действие и потребител
-     */
-    Page<ActivityLogEntity> findByActionAndUserIdOrderByTimestampDesc(String action, Long userId, Pageable pageable);
-
-    // ===== ENTITY-BASED QUERIES =====
-
-    /**
-     * Намира всички активности за конкретен entity
-     */
-    List<ActivityLogEntity> findByEntityTypeAndEntityIdOrderByTimestampDesc(String entityType, Long entityId);
 
     /**
      * Намира активности по тип entity
      */
     Page<ActivityLogEntity> findByEntityTypeOrderByTimestampDesc(String entityType, Pageable pageable);
 
-    // ===== STATISTICS QUERIES =====
-
     /**
-     * Брой активности за последния час
+     * Намира активности за конкретен entity
      */
-    @Query("SELECT COUNT(a) FROM ActivityLogEntity a WHERE a.timestamp >= :since")
-    long countActivitiesSince(@Param("since") LocalDateTime since);
-
-    /**
-     * Брой активности по потребител за последните 24 часа
-     */
-    @Query("SELECT COUNT(a) FROM ActivityLogEntity a WHERE a.userId = :userId AND a.timestamp >= :since")
-    long countUserActivitiesSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
-
-    /**
-     * Най-активни потребители за последните 24 часа
-     */
-    @Query("SELECT a.username, COUNT(a) as activityCount FROM ActivityLogEntity a " +
-            "WHERE a.timestamp >= :since GROUP BY a.username, a.userId " +
-            "ORDER BY COUNT(a) DESC")
-    List<Object[]> findMostActiveUsers(@Param("since") LocalDateTime since, Pageable pageable);
-
-    /**
-     * Най-чести действия за последните 24 часа
-     */
-    @Query("SELECT a.action, COUNT(a) as actionCount FROM ActivityLogEntity a " +
-            "WHERE a.timestamp >= :since GROUP BY a.action " +
-            "ORDER BY COUNT(a) DESC")
-    List<Object[]> findMostFrequentActions(@Param("since") LocalDateTime since);
+    List<ActivityLogEntity> findByEntityTypeAndEntityIdOrderByTimestampDesc(String entityType, Long entityId);
 
     // ===== IP-BASED QUERIES =====
 
@@ -112,22 +86,60 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
     List<ActivityLogEntity> findByIpAddressOrderByTimestampDesc(String ipAddress);
 
     /**
-     * Намира различни IP адреси за потребител
+     * Намира различните IP адреси за потребител
      */
     @Query("SELECT DISTINCT a.ipAddress FROM ActivityLogEntity a WHERE a.userId = :userId AND a.ipAddress IS NOT NULL")
     List<String> findDistinctIpAddressesByUserId(@Param("userId") Long userId);
 
+    /**
+     * Брои активности от IP адрес за период
+     */
+    @Query("SELECT COUNT(a) FROM ActivityLogEntity a WHERE a.ipAddress = :ipAddress AND a.timestamp >= :since")
+    long countActivitiesFromIpSince(@Param("ipAddress") String ipAddress, @Param("since") LocalDateTime since);
+
+    // ===== STATISTICS QUERIES =====
+
+    /**
+     * Намира най-активните потребители за период
+     */
+    @Query("SELECT a.username, COUNT(a) FROM ActivityLogEntity a " +
+            "WHERE a.timestamp >= :since AND a.username IS NOT NULL " +
+            "GROUP BY a.username ORDER BY COUNT(a) DESC")
+    List<Object[]> findMostActiveUsers(@Param("since") LocalDateTime since, Pageable pageable);
+
+    /**
+     * Намира най-честите действия за период
+     */
+    @Query("SELECT a.action, COUNT(a) FROM ActivityLogEntity a " +
+            "WHERE a.timestamp >= :since " +
+            "GROUP BY a.action ORDER BY COUNT(a) DESC")
+    List<Object[]> findMostFrequentActions(@Param("since") LocalDateTime since);
+
+    /**
+     * Намира статистики по дни
+     */
+    @Query("SELECT DATE(a.timestamp) as day, COUNT(a) FROM ActivityLogEntity a " +
+            "WHERE a.timestamp >= :since " +
+            "GROUP BY DATE(a.timestamp) ORDER BY day DESC")
+    List<Object[]> findDailyActivityStats(@Param("since") LocalDateTime since);
+
+    /**
+     * Намира статистики по часове за днес
+     */
+    @Query("SELECT HOUR(a.timestamp) as hour, COUNT(a) FROM ActivityLogEntity a " +
+            "WHERE DATE(a.timestamp) = CURRENT_DATE " +
+            "GROUP BY HOUR(a.timestamp) ORDER BY hour")
+    List<Object[]> findHourlyStatsForToday();
+
     // ===== CLEANUP QUERIES =====
 
     /**
-     * Изтрива стари активности (за maintenance)
+     * Изтрива стари активности преди определена дата
      */
-    @Query("DELETE FROM ActivityLogEntity a WHERE a.timestamp < :before")
-    void deleteActivitiesBefore(@Param("before") LocalDateTime before);
+    void deleteByTimestampBefore(LocalDateTime before);
 
     /**
-     * Брой записи преди определена дата (за cleanup planning)
+     * Брои записи преди определена дата
      */
-    @Query("SELECT COUNT(a) FROM ActivityLogEntity a WHERE a.timestamp < :before")
-    long countActivitiesBefore(@Param("before") LocalDateTime before);
+    long countByTimestampBefore(LocalDateTime before);
 }

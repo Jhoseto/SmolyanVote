@@ -16,7 +16,6 @@ import smolyanVote.smolyanVote.repositories.ActivityLogRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +24,7 @@ import java.util.stream.Collectors;
 public class ActivityLogServiceImpl implements ActivityLogService {
 
     private static final int DEFAULT_RETENTION_DAYS = 30;
+    private static final int MAX_ACTIVITIES_PER_IP_PER_DAY = 1000;
 
     private final ActivityLogRepository activityLogRepository;
     private final ActivityWebSocketHandler activityWebSocketHandler;
@@ -39,86 +39,56 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     // ===== CORE LOGGING METHODS =====
 
     @Override
-    @Async
+    @Async("activityLogExecutor")
     public void logActivity(ActivityActionEnum action, UserEntity user, String entityType, Long entityId,
                             String details, String ipAddress, String userAgent) {
         try {
             Long userId = user != null ? user.getId() : null;
             String username = user != null ? user.getUsername() : "Anonymous";
-            String actionString = action.getActionName();
 
-            ActivityLogEntity log = new ActivityLogEntity(actionString, userId, username,
-                    entityType, entityId, details,
-                    ipAddress, userAgent);
-            activityLogRepository.save(log);
+            ActivityLogEntity log = new ActivityLogEntity(action.getActionName(), userId, username,
+                    entityType, entityId, details, ipAddress, userAgent);
+
+            ActivityLogEntity savedLog = activityLogRepository.save(log);
+
+            // Изпращаме real-time update към админите
+            if (activityWebSocketHandler != null) {
+                activityWebSocketHandler.broadcastNewActivity(savedLog);
+            }
+
         } catch (Exception e) {
-            // Log error но не спираме основната операция
             System.err.println("Failed to log activity: " + e.getMessage());
         }
     }
 
-    // ===== СПЕЦИАЛНИ МЕТОДИ ЗА ГЛАСУВАНИЯ =====
-
+    @Async("activityLogExecutor")
     @Override
-    @Async
-    public void logSimpleEventVote(UserEntity user, Long eventId, String voteChoice, String ipAddress, String userAgent) {
-        try {
-            String details = "Гласува: " + voteChoice;
-            logActivity(ActivityActionEnum.VOTE_SIMPLE_EVENT, user, "SIMPLE_EVENT", eventId,
-                    details, ipAddress, userAgent);
-        } catch (Exception e) {
-            System.err.println("Failed to log simple event vote: " + e.getMessage());
-        }
-    }
-
-    @Override
-    @Async
-    public void logReferendumVote(UserEntity user, Long referendumId, String selectedOption, String ipAddress, String userAgent) {
-        try {
-            String details = "Избра опция: '" + selectedOption + "'";
-            logActivity(ActivityActionEnum.VOTE_REFERENDUM, user, "REFERENDUM", referendumId,
-                    details, ipAddress, userAgent);
-        } catch (Exception e) {
-            System.err.println("Failed to log referendum vote: " + e.getMessage());
-        }
-    }
-
-    @Override
-    @Async
-    public void logMultiPollVote(UserEntity user, Long pollId, List<String> selectedOptions, String ipAddress, String userAgent) {
-        try {
-            String optionsText = String.join("', '", selectedOptions);
-            String details = "Избра опции: '" + optionsText + "'";
-            logActivity(ActivityActionEnum.VOTE_MULTI_POLL, user, "MULTI_POLL", pollId,
-                    details, ipAddress, userAgent);
-        } catch (Exception e) {
-            System.err.println("Failed to log multi poll vote: " + e.getMessage());
-        }
-    }
-
-    @Override
-    @Async
     public void logActivity(ActivityActionEnum action, UserEntity user, String ipAddress, String userAgent) {
         logActivity(action, user, null, null, null, ipAddress, userAgent);
     }
 
     @Override
-    @Async
+    @Async("activityLogExecutor")
     public void logActivity(ActivityActionEnum action, Long userId, String username, String entityType,
                             Long entityId, String details, String ipAddress, String userAgent) {
         try {
-            String actionString = action.getActionName();
-            ActivityLogEntity log = new ActivityLogEntity(actionString, userId, username,
-                    entityType, entityId, details,
-                    ipAddress, userAgent);
-            activityLogRepository.save(log);
+            ActivityLogEntity log = new ActivityLogEntity(action.getActionName(), userId, username,
+                    entityType, entityId, details, ipAddress, userAgent);
+
+            ActivityLogEntity savedLog = activityLogRepository.save(log);
+
+            // Изпращаме real-time update към админите
+            if (activityWebSocketHandler != null) {
+                activityWebSocketHandler.broadcastNewActivity(savedLog);
+            }
+
         } catch (Exception e) {
             System.err.println("Failed to log activity: " + e.getMessage());
         }
     }
 
     @Override
-    @Async
+    @Async("activityLogExecutor")
     public void logActivity(String action, UserEntity user, String entityType, Long entityId,
                             String details, String ipAddress, String userAgent) {
         // Legacy метод - конвертираме String към enum ако е възможно
@@ -132,13 +102,42 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 String username = user != null ? user.getUsername() : "Anonymous";
 
                 ActivityLogEntity log = new ActivityLogEntity(action, userId, username,
-                        entityType, entityId, details,
-                        ipAddress, userAgent);
-                activityLogRepository.save(log);
+                        entityType, entityId, details, ipAddress, userAgent);
+
+                ActivityLogEntity savedLog = activityLogRepository.save(log);
+
+                // Изпращаме real-time update към админите
+                if (activityWebSocketHandler != null) {
+                    activityWebSocketHandler.broadcastNewActivity(savedLog);
+                }
+
             } catch (Exception e) {
-                System.err.println("Failed to log activity: " + e.getMessage());
+                System.err.println("Failed to log legacy activity: " + e.getMessage());
             }
         }
+    }
+
+    // ===== СПЕЦИАЛНИ МЕТОДИ ЗА ГЛАСУВАНИЯ =====
+
+    @Override
+    @Async("activityLogExecutor")
+    public void logSimpleEventVote(UserEntity user, Long eventId, String voteChoice, String ipAddress, String userAgent) {
+        String details = "Vote: " + voteChoice;
+        logActivity(ActivityActionEnum.VOTE_SIMPLE_EVENT, user, "SIMPLE_EVENT", eventId, details, ipAddress, userAgent);
+    }
+
+    @Override
+    @Async("activityLogExecutor")
+    public void logReferendumVote(UserEntity user, Long referendumId, String selectedOption, String ipAddress, String userAgent) {
+        String details = "Selected: " + selectedOption;
+        logActivity(ActivityActionEnum.VOTE_REFERENDUM, user, "REFERENDUM", referendumId, details, ipAddress, userAgent);
+    }
+
+    @Override
+    @Async("activityLogExecutor")
+    public void logMultiPollVote(UserEntity user, Long pollId, List<String> selectedOptions, String ipAddress, String userAgent) {
+        String details = "Selected: " + String.join(", ", selectedOptions);
+        logActivity(ActivityActionEnum.VOTE_MULTI_POLL, user, "MULTI_POLL", pollId, details, ipAddress, userAgent);
     }
 
     // ===== RETRIEVAL METHODS =====
@@ -244,39 +243,18 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             }
             stats.put("topActions", topActions);
 
+            return stats;
+
         } catch (Exception e) {
-            System.err.println("Error getting activity statistics: " + e.getMessage());
-            // Fallback стойности
-            stats.put("lastHour", 0);
-            stats.put("today", 0);
-            stats.put("onlineUsers", 0);
-            stats.put("topUsers", Collections.emptyList());
-            stats.put("topActions", Collections.emptyList());
+            System.err.println("Error generating activity statistics: " + e.getMessage());
+            return Collections.emptyMap();
         }
-
-        return stats;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public long getLastHourActivitiesCount() {
-        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-        return activityLogRepository.countActivitiesSince(oneHourAgo);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public long getTodayActivitiesCount() {
-        LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
-        return activityLogRepository.countActivitiesSince(oneDayAgo);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMostActiveUsers(int hours, int limit) {
-        LocalDateTime since = LocalDateTime.now().minusHours(hours);
-        List<Object[]> results = activityLogRepository.findMostActiveUsers(
-                since, PageRequest.of(0, limit));
+    public List<Map<String, Object>> getTopUsers(int limit, LocalDateTime since) {
+        List<Object[]> results = activityLogRepository.findMostActiveUsers(since, PageRequest.of(0, limit));
 
         return results.stream().map(row -> {
             Map<String, Object> user = new HashMap<>();
@@ -288,8 +266,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMostFrequentActions(int hours) {
-        LocalDateTime since = LocalDateTime.now().minusHours(hours);
+    public List<Map<String, Object>> getTopActions(LocalDateTime since) {
         List<Object[]> results = activityLogRepository.findMostFrequentActions(since);
 
         return results.stream().map(row -> {
@@ -346,14 +323,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         try {
             // Проверяваме дали има твърде много активности от този IP за последните 24ч
             LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
-            List<ActivityLogEntity> activities = activityLogRepository.findByIpAddressOrderByTimestampDesc(ipAddress);
+            long activityCount = activityLogRepository.countActivitiesFromIpSince(ipAddress, oneDayAgo);
 
-            long recentActivities = activities.stream()
-                    .filter(activity -> activity.getTimestamp().isAfter(oneDayAgo))
-                    .count();
-
-            // Ако има повече от 1000 активности за 24ч от един IP - подозрително
-            return recentActivities > 1000;
+            return activityCount > MAX_ACTIVITIES_PER_IP_PER_DAY;
 
         } catch (Exception e) {
             System.err.println("Error checking suspicious IP: " + e.getMessage());
@@ -361,120 +333,39 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
     }
 
-    // ===== MAINTENANCE METHODS =====
+    // ===== CLEANUP METHODS =====
 
     @Override
     @Transactional
-    public long cleanupOldActivities(int daysToKeep) {
+    public void cleanupOldActivities() {
         try {
-            // Ако не е подадено, използваме default-ната стойност
-            if (daysToKeep <= 0) {
-                daysToKeep = DEFAULT_RETENTION_DAYS;
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(DEFAULT_RETENTION_DAYS);
+            long oldCount = activityLogRepository.countByTimestampBefore(cutoffDate);
+
+            if (oldCount > 0) {
+                activityLogRepository.deleteByTimestampBefore(cutoffDate);
+                System.out.println("🧹 Cleaned up " + oldCount + " old activity logs older than " +
+                        DEFAULT_RETENTION_DAYS + " days");
             }
-
-            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysToKeep);
-
-            // Първо проверяваме колко записа ще изтрием
-            long countToDelete = activityLogRepository.countActivitiesBefore(cutoffDate);
-
-            if (countToDelete > 0) {
-                activityLogRepository.deleteActivitiesBefore(cutoffDate);
-                System.out.println("Cleaned up " + countToDelete + " old activity logs older than " + daysToKeep + " days");
-
-                // ✅ Изпращаме система съобщение към админите за cleanup
-                broadcastSystemMessage("Изтрити са " + countToDelete + " стари логове (по-стари от " + daysToKeep + " дни)", "info");
-
-                // ✅ Обновяваме статистиките след cleanup
-                broadcastStatsUpdate();
-            }
-
-            return countToDelete;
-
         } catch (Exception e) {
-            System.err.println("Error during cleanup: " + e.getMessage());
-            broadcastSystemMessage("Грешка при изчистване на стари логове: " + e.getMessage(), "error");
-            return 0;
+            System.err.println("Error during activity logs cleanup: " + e.getMessage());
         }
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Map<String, Object> getTableStatistics() {
-        Map<String, Object> stats = new HashMap<>();
-
+    @Transactional
+    public void cleanupOldActivities(int retentionDays) {
         try {
-            long totalRecords = activityLogRepository.count();
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
+            long oldCount = activityLogRepository.countByTimestampBefore(cutoffDate);
 
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime oneWeekAgo = now.minusWeeks(1);
-            LocalDateTime oneMonthAgo = now.minusMonths(1);
-
-            long lastWeekRecords = activityLogRepository.countActivitiesSince(oneWeekAgo);
-            long lastMonthRecords = activityLogRepository.countActivitiesSince(oneMonthAgo);
-
-            stats.put("totalRecords", totalRecords);
-            stats.put("lastWeekRecords", lastWeekRecords);
-            stats.put("lastMonthRecords", lastMonthRecords);
-            stats.put("estimatedSizeGB", calculateEstimatedSize(totalRecords));
-
-        } catch (Exception e) {
-            System.err.println("Error getting table statistics: " + e.getMessage());
-            stats.put("totalRecords", 0);
-            stats.put("lastWeekRecords", 0);
-            stats.put("lastMonthRecords", 0);
-            stats.put("estimatedSizeGB", 0.0);
-        }
-
-        return stats;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public String exportActivitiesToCsv(LocalDateTime from, LocalDateTime to) {
-        try {
-            List<ActivityLogEntity> activities = activityLogRepository.findRecentActivities(from);
-
-            // Филтрираме по период
-            activities = activities.stream()
-                    .filter(activity -> activity.getTimestamp().isAfter(from) &&
-                            activity.getTimestamp().isBefore(to))
-                    .collect(Collectors.toList());
-
-            StringBuilder csv = new StringBuilder();
-            csv.append("Timestamp,User,Action,Entity Type,Entity ID,Details,IP Address\n");
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-            for (ActivityLogEntity activity : activities) {
-                csv.append("\"").append(activity.getTimestamp().format(formatter)).append("\",");
-                csv.append("\"").append(escapeCSV(activity.getUsername())).append("\",");
-                csv.append("\"").append(escapeCSV(activity.getAction())).append("\",");
-                csv.append("\"").append(escapeCSV(activity.getEntityType())).append("\",");
-                csv.append("\"").append(activity.getEntityId() != null ? activity.getEntityId() : "").append("\",");
-                csv.append("\"").append(escapeCSV(activity.getDetails())).append("\",");
-                csv.append("\"").append(escapeCSV(activity.getIpAddress())).append("\"");
-                csv.append("\n");
+            if (oldCount > 0) {
+                activityLogRepository.deleteByTimestampBefore(cutoffDate);
+                System.out.println("🧹 Cleaned up " + oldCount + " old activity logs older than " +
+                        retentionDays + " days");
             }
-
-            return csv.toString();
-
         } catch (Exception e) {
-            System.err.println("Error exporting to CSV: " + e.getMessage());
-            return "Error,Error,Error,Error,Error,Error,Error\n";
+            System.err.println("Error during activity logs cleanup: " + e.getMessage());
         }
-    }
-
-    // ===== HELPER METHODS =====
-
-    private double calculateEstimatedSize(long recordCount) {
-        // Приблизително 500 bytes на запис (с индекси)
-        double bytesPerRecord = 500.0;
-        double totalBytes = recordCount * bytesPerRecord;
-        return totalBytes / (1024.0 * 1024.0 * 1024.0); // GB
-    }
-
-    private String escapeCSV(String value) {
-        if (value == null) return "";
-        return value.replace("\"", "\"\"");
     }
 }
