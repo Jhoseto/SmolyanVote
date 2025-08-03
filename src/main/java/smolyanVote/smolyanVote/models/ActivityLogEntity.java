@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.models;
 import jakarta.persistence.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -143,14 +144,7 @@ public class ActivityLogEntity {
         return Objects.equals(this.ipAddress, ipAddress);
     }
 
-    /**
-     * Проверява дали активността е нова (в последните N минути)
-     */
-    public boolean isRecent(int minutes) {
-        if (this.timestamp == null) return false;
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(minutes);
-        return this.timestamp.isAfter(cutoff);
-    }
+
 
     /**
      * Връща категорията на активността за UI филтриране

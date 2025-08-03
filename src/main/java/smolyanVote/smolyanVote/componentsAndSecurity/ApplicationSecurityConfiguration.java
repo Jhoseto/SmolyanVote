@@ -60,7 +60,7 @@ public class ApplicationSecurityConfiguration {
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
                                 "/eventDetailView", "/posts","/podcast", "/error/**", "/favicon.ico", "/robots.txt",
                                 "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
-                                "/terms-and-conditions","/faq","/signals/**", "/ws/**", "/sockjs-node/**", "/stomp/**"
+                                "/terms-and-conditions","/faq","/signals/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(
@@ -68,7 +68,8 @@ public class ApplicationSecurityConfiguration {
                                 "/user/**", "/profile/update", "/profile", "/userProfile",
                                 "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
                                 "/createEvent", "/createNewEvent", "/user/logout", "/user/profile/**",
-                                "/user/dashboard/**","/subscription/**","/api/reports/**"
+                                "/user/dashboard/**","/subscription/**","/api/reports/**",
+                                "/ws/**", "/sockjs-node/**", "/stomp/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )
@@ -104,7 +105,6 @@ public class ApplicationSecurityConfiguration {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat")
                         .ignoringRequestMatchers("/admin/**")// Edinstvenoto reshenie za sega no /admin e zashtiteno ot Roliata"ADMIN"
-                        .ignoringRequestMatchers("/ws/**", "/sockjs-node/**", "/stomp/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

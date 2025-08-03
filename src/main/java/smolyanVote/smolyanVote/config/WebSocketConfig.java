@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -16,10 +17,13 @@ import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ActivityWebSocketHandler activityWebSocketHandler;
+    private final Environment environment;
 
     @Autowired
-    public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler) {
+    public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
+                           Environment environment) {
         this.activityWebSocketHandler = activityWebSocketHandler;
+        this.environment = environment;
     }
 
     @Override
@@ -28,28 +32,22 @@ public class WebSocketConfig implements WebSocketConfigurer {
         // Environment-aware origins
         String[] allowedOrigins = getAllowedOrigins();
 
-        // ===== ADMIN ACTIVITY WALL - SECURE =====
+        // ===== ADMIN ACTIVITY WALL - САМО SOCKJS =====
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
                 .setAllowedOriginPatterns(allowedOrigins)
-                .withSockJS(); // Fallback за браузъри без WebSocket поддръжка
-
-        // Alternative endpoint без SockJS
-        registry.addHandler(activityWebSocketHandler, "/ws/admin/activity-direct")
-                .setAllowedOriginPatterns(allowedOrigins);
-
-        System.out.println("✅ WebSocket endpoints registered:");
-        System.out.println("   - /ws/admin/activity (Activity Wall with SockJS)");
-        System.out.println("   - /ws/admin/activity-direct (Activity Wall direct)");
-        System.out.println("   - Allowed origins: " + String.join(", ", allowedOrigins));
+                .withSockJS(); // Използваме само SockJS
     }
 
     /**
      * Връща разрешените origins въз основа на environment
      */
     private String[] getAllowedOrigins() {
-        String profile = System.getProperty("spring.profiles.active", "dev");
+        // ПРАВИЛЕН НАЧИН - използваме Spring Environment
+        String[] activeProfiles = environment.getActiveProfiles();
+        String profileStr = activeProfiles.length > 0 ? String.join(",", activeProfiles) : "default";
 
-        if (profile.contains("dev") || profile.contains("local")) {
+
+        if (profileStr.contains("dev") || profileStr.contains("local") || profileStr.equals("default")) {
             // Development environment - само localhost
             return new String[]{
                     "http://localhost:2662",

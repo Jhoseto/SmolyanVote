@@ -9,6 +9,7 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.ActivityMessageDto;
 import smolyanVote.smolyanVote.viewsAndDTO.WebSocketMessageDto;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +35,8 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
     @Override
     protected boolean hasPermission(WebSocketSession session) {
-        System.out.println("🔍 WebSocket permission check triggered!");
-        System.out.println("🔍 Session ID: " + session.getId());
-        System.out.println("🔍 Session URI: " + session.getUri());
 
-        return isAdminUser();
+        return true;
     }
 
     @Override

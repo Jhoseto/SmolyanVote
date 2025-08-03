@@ -1,15 +1,20 @@
 package smolyanVote.smolyanVote.config.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.socket.*;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.WebSocketMessageDto;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -22,16 +27,27 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class BaseWebSocketHandler implements WebSocketHandler {
 
-    protected final ObjectMapper objectMapper = new ObjectMapper();
+    protected final ObjectMapper objectMapper = createObjectMapper();
+
     protected final UserService userService;
 
     // Thread-safe collections за управление на сесиите
     protected final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     protected final List<WebSocketSession> activeSessions = new CopyOnWriteArrayList<>();
 
+
     @Autowired
     public BaseWebSocketHandler(UserService userService) {
         this.userService = userService;
+    }
+
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules(); // Автоматично регистрира JavaTimeModule
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.configure(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE, false);
+        return mapper;
     }
 
     // ===== ABSTRACT METHODS =====
@@ -204,7 +220,7 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         systemMessage.setData(Map.of(
                 "message", message,
                 "messageType", type,
-                "timestamp", LocalDateTime.now()
+                "timestamp", Instant.now()
         ));
         systemMessage.setTimestamp(LocalDateTime.now());
 
@@ -219,7 +235,7 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         welcome.setData(Map.of(
                 "message", "Connected to " + getHandlerName(),
                 "sessionId", session.getId(),
-                "timestamp", LocalDateTime.now()
+                "timestamp", Instant.now()
         ));
         welcome.setTimestamp(LocalDateTime.now());
 
@@ -231,7 +247,7 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         error.setType("error");
         error.setData(Map.of(
                 "error", errorMessage,
-                "timestamp", LocalDateTime.now()
+                "timestamp", Instant.now()
         ));
         error.setTimestamp(LocalDateTime.now());
 
@@ -242,7 +258,7 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                return auth.getName();
+                return userService.getCurrentUser().getUsername();
             }
         } catch (Exception e) {
             // Игнорираме грешки при извличане на username
@@ -264,10 +280,8 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
 
     protected boolean isAdminUser() {
         try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated()) {
-                return auth.getAuthorities().stream()
-                        .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            if (userService.getCurrentUser().getRole().equals(UserRole.ADMIN)) {
+                return true;
             }
         } catch (Exception e) {
             System.err.println("Error checking admin role: " + e.getMessage());
@@ -275,17 +289,4 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         return false;
     }
 
-    // ===== DEBUG METHODS =====
-
-    public void printSessionsDebugInfo() {
-        System.out.println("=== " + getHandlerName() + " Sessions Debug ===");
-        System.out.println("Active sessions count: " + activeSessions.size());
-        System.out.println("Sessions map size: " + sessions.size());
-
-        activeSessions.forEach(session -> {
-            System.out.println("  - Session " + session.getId() +
-                    " (Open: " + session.isOpen() +
-                    ", URI: " + session.getUri() + ")");
-        });
-    }
 }
