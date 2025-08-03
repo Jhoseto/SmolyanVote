@@ -604,5 +604,18 @@
     }
   });
 </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const openModalId = urlParams.get('openModal');
+
+    if (openModalId && window.openPostModal) {
+      setTimeout(() => {
+        console.log('🔄 Отваряне на модал от URL параметър:', openModalId);
+        window.openPostModal(openModalId);
+      }, 1000);
+    }
+  });
+</script>
 </body>
 </html>

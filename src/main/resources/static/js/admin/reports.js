@@ -361,7 +361,7 @@ function openReportedContent(entityType, entityId) {
     const urls = {
         SIMPLE_EVENT: `/event/${entityId}`,
         REFERENDUM: `/referendum/${entityId}`,
-        PUBLICATION: `/publications/${entityId}`,
+        PUBLICATION: `/publications?openModal=${entityId}`,
         MULTI_POLL: `/multipoll/${entityId}`
     };
 

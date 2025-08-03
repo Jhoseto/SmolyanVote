@@ -1760,7 +1760,7 @@ body {
 }
 
 .option-badge {
-    color: white;
+    color: #484848;
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius-md);
     font-weight: 600;
