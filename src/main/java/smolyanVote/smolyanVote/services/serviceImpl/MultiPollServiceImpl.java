@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.MultiPollImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -49,6 +50,7 @@ public class MultiPollServiceImpl implements MultiPollService {
 
     @Transactional
     @Override
+    @LogActivity
     public void createMultiPoll(CreateMultiPollView dto) {
         MultiPollEntity poll = new MultiPollEntity();
         UserEntity currentUser = userService.getCurrentUser();

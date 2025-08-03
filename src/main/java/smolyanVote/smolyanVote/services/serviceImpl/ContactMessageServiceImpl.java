@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.ContactMessageEntity;
 import smolyanVote.smolyanVote.repositories.ContactMessageRepository;
 import smolyanVote.smolyanVote.services.interfaces.ContactMessageService;
@@ -24,6 +25,7 @@ public class ContactMessageServiceImpl implements ContactMessageService {
 
 
     @Override
+    @LogActivity
     public void saveContactMessage(ContactFormView contactFormView) {
         try {
             ContactMessageEntity message = new ContactMessageEntity();

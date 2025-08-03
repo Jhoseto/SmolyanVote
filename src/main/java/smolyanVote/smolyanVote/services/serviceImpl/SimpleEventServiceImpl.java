@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
@@ -118,6 +119,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
+    @LogActivity
     public List<String> createEvent(CreateEventView dto,
                                     MultipartFile[] files,
                                     String positiveLabel,
