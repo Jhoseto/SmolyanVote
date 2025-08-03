@@ -1,0 +1,397 @@
+/* ====== ADMIN ACTIVITY WALL STYLES ====== */
+/* Файл: src/main/resources/static/css/admin-activity-wall.css */
+
+/* ===== ACTIVITY WALL HEADER ===== */
+.activity-wall-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.activity-stats {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.activity-stats .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #495057;
+}
+
+.activity-stats .stat-item i {
+    font-size: 1rem;
+}
+
+.activity-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #28a745;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    animation: activityPulse 2s infinite;
+}
+
+.live-indicator.paused {
+    color: #ffc107;
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.2);
+}
+
+.live-indicator.paused .live-dot {
+    background: #ffc107;
+    animation: none;
+}
+
+@keyframes activityPulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* ===== ACTIVITY FILTERS ===== */
+.activity-filters {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap;
+}
+
+.activity-filter-btn {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    white-space: nowrap;
+    color: #495057;
+}
+
+.activity-filter-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.activity-filter-btn.active {
+    background: var(--filter-color, #4b9f3e);
+    border-color: var(--filter-color, #4b9f3e);
+    color: white;
+}
+
+.activity-filter-btn.create { --filter-color: #28a745; }
+.activity-filter-btn.interact { --filter-color: #007bff; }
+.activity-filter-btn.moderate { --filter-color: #dc3545; }
+.activity-filter-btn.auth { --filter-color: #6f42c1; }
+.activity-filter-btn.other { --filter-color: #6c757d; }
+
+/* ===== ACTIVITY STREAM TABLE ===== */
+.activity-stream-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+}
+
+#activity-stream-table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+#activity-stream-table thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-weight: 600;
+    color: #495057;
+    padding: 0.75rem 0.5rem;
+}
+
+#activity-stream-table tbody td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: middle;
+}
+
+#activity-stream-table tbody tr:hover {
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+#activity-stream-table tbody tr.new-entry {
+    animation: slideInActivity 0.5s ease-out;
+    background: linear-gradient(90deg, #e8f5e8 0%, transparent 100%);
+}
+
+@keyframes slideInActivity {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== ACTIVITY ICONS ===== */
+.activity-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 12px;
+    color: white;
+    margin-right: 0.5rem;
+}
+
+.activity-icon.create { background: #28a745; }
+.activity-icon.interact { background: #007bff; }
+.activity-icon.moderate { background: #dc3545; }
+.activity-icon.auth { background: #6f42c1; }
+.activity-icon.other { background: #6c757d; }
+
+/* ===== ACTIVITY TYPES ===== */
+.activity-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-user-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.activity-user-name {
+    font-weight: 500;
+    color: #495057;
+}
+
+.activity-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activity-time {
+    color: #6c757d;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.activity-details {
+    color: #495057;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-ip {
+    font-family: 'Courier New', monospace;
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+/* ===== ACTIVITY STREAM FOOTER ===== */
+.activity-stream-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 8px 8px;
+    font-size: 0.875rem;
+}
+
+.stream-info {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    color: #6c757d;
+}
+
+.separator {
+    color: #adb5bd;
+}
+
+.stream-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ===== ACTIVITY DETAIL MODAL ===== */
+.activity-detail-content {
+    font-size: 0.875rem;
+}
+
+.activity-detail-content .detail-row {
+    display: flex;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.activity-detail-content .detail-label {
+    font-weight: 600;
+    color: #495057;
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.activity-detail-content .detail-value {
+    color: #6c757d;
+    flex: 1;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1200px) {
+    .activity-wall-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .activity-stats {
+        justify-content: space-between;
+    }
+
+    .activity-controls {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .activity-filters {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        flex-wrap: wrap;
+    }
+
+    .activity-stream-container {
+        font-size: 0.8rem;
+    }
+
+    #activity-stream-table thead th,
+    #activity-stream-table tbody td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .activity-details {
+        max-width: 150px;
+    }
+
+    .activity-stream-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+    }
+}
+
+/* ===== SCROLL CUSTOMIZATION ===== */
+.activity-stream-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.activity-stream-container::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.activity-stream-container::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+
+.activity-stream-container::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* ===== ACTIVITY STATUS INDICATORS ===== */
+.activity-status-success { color: #28a745; }
+.activity-status-warning { color: #ffc107; }
+.activity-status-danger { color: #dc3545; }
+.activity-status-info { color: #17a2b8; }
+
+/* ===== LOADING STATE ===== */
+.activity-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.activity-loading i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    animation: activitySpin 1s linear infinite;
+}
+
+@keyframes activitySpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
