@@ -4,19 +4,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.viewsAndDTO.ActivityMessageDto;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin/api/activities")
@@ -24,10 +29,13 @@ import java.util.Map;
 public class AdminActivityController {
 
     private final ActivityLogService activityLogService;
+    private final ActivityWebSocketHandler activityWebSocketHandler;
 
     @Autowired
-    public AdminActivityController(ActivityLogService activityLogService) {
+    public AdminActivityController(ActivityLogService activityLogService,
+                                   ActivityWebSocketHandler activityWebSocketHandler) {
         this.activityLogService = activityLogService;
+        this.activityWebSocketHandler = activityWebSocketHandler;
     }
 
     // ===== RECENT ACTIVITIES =====
@@ -51,10 +59,12 @@ public class AdminActivityController {
             response.put("activities", convertActivitiesToJson(activities));
             response.put("stats", stats);
             response.put("timestamp", LocalDateTime.now());
+            response.put("count", activities.size());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("❌ Error loading recent activities: " + e.getMessage());
             return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на активностите: " + e.getMessage()));
         }
     }
@@ -71,13 +81,15 @@ public class AdminActivityController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("activities", convertActivitiesToJson(activities));
-            response.put("count", activities.size());
             response.put("timestamp", LocalDateTime.now());
+            response.put("count", activities.size());
+            response.put("lastId", lastId);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на нови активности: " + e.getMessage()));
+            System.err.println("❌ Error loading activities since ID: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на новите активности: " + e.getMessage()));
         }
     }
 
@@ -91,27 +103,24 @@ public class AdminActivityController {
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String entityType,
-            @RequestParam(required = false) String since,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
         try {
-            // Валидираме параметрите
+            // Валидираме параметри
+            size = Math.min(Math.max(1, size), 100);
             page = Math.max(0, page);
-            size = Math.min(Math.max(1, size), 200);
 
-            LocalDateTime sinceDate = null;
-            if (since != null && !since.trim().isEmpty()) {
-                try {
-                    sinceDate = LocalDateTime.parse(since);
-                } catch (Exception e) {
-                    return ResponseEntity.badRequest().body(createErrorResponse("Невалиден формат на датата"));
-                }
-            }
+            // Създаваме Pageable
+            Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            Pageable pageable = PageRequest.of(page, size);
+            // Търсим с филтри
             Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesWithFilters(
-                    action, username, entityType, sinceDate, pageable);
+                    action, username, entityType, since, pageable);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -119,12 +128,23 @@ public class AdminActivityController {
             response.put("totalElements", activitiesPage.getTotalElements());
             response.put("totalPages", activitiesPage.getTotalPages());
             response.put("currentPage", page);
+            response.put("size", size);
             response.put("hasNext", activitiesPage.hasNext());
             response.put("hasPrevious", activitiesPage.hasPrevious());
+            response.put("timestamp", LocalDateTime.now());
+
+            // Добавяме filter info
+            Map<String, Object> filters = new HashMap<>();
+            filters.put("action", action);
+            filters.put("username", username);
+            filters.put("entityType", entityType);
+            filters.put("since", since);
+            response.put("appliedFilters", filters);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.err.println("❌ Error filtering activities: " + e.getMessage());
             return ResponseEntity.status(500).body(createErrorResponse("Грешка при филтрирането на активностите: " + e.getMessage()));
         }
     }
@@ -132,9 +152,9 @@ public class AdminActivityController {
     // ===== STATISTICS =====
 
     /**
-     * Връща статистики за Activity Wall dashboard
+     * Връща статистики за активностите
      */
-    @GetMapping("/statistics")
+    @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getActivityStatistics() {
 
         try {
@@ -148,68 +168,74 @@ public class AdminActivityController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на статистики: " + e.getMessage()));
+            System.err.println("❌ Error loading statistics: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на статистиките: " + e.getMessage()));
         }
     }
 
     /**
-     * Връща най-активните потребители
+     * Връща top потребители за период
      */
-    @GetMapping("/top-users")
+    @GetMapping("/stats/top-users")
     public ResponseEntity<Map<String, Object>> getTopUsers(
-            @RequestParam(defaultValue = "24") int hours,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "24") int hours) {
 
         try {
-            hours = Math.min(Math.max(1, hours), 168); // Между 1 час и 1 седмица
             limit = Math.min(Math.max(1, limit), 50);
+            hours = Math.min(Math.max(1, hours), 720); // max 30 дни
 
-            List<Map<String, Object>> topUsers = activityLogService.getMostActiveUsers(hours, limit);
+            LocalDateTime since = LocalDateTime.now().minusHours(hours);
+            List<Map<String, Object>> topUsers = activityLogService.getTopUsers(limit, since);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("topUsers", topUsers);
-            response.put("hours", hours);
-            response.put("limit", limit);
+            response.put("period", hours + " hours");
+            response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на топ потребители: " + e.getMessage()));
+            System.err.println("❌ Error loading top users: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на top потребителите: " + e.getMessage()));
         }
     }
 
     /**
-     * Връща най-честите действия
+     * Връща top действия за период
      */
-    @GetMapping("/top-actions")
+    @GetMapping("/stats/top-actions")
     public ResponseEntity<Map<String, Object>> getTopActions(
             @RequestParam(defaultValue = "24") int hours) {
 
         try {
-            hours = Math.min(Math.max(1, hours), 168);
+            hours = Math.min(Math.max(1, hours), 720); // max 30 дни
 
-            List<Map<String, Object>> topActions = activityLogService.getMostFrequentActions(hours);
+            LocalDateTime since = LocalDateTime.now().minusHours(hours);
+            List<Map<String, Object>> topActions = activityLogService.getTopActions(since);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("topActions", topActions);
-            response.put("hours", hours);
+            response.put("period", hours + " hours");
+            response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на топ действия: " + e.getMessage()));
+            System.err.println("❌ Error loading top actions: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на top действията: " + e.getMessage()));
         }
     }
 
     // ===== ENTITY ACTIVITIES =====
 
     /**
-     * Връща всички активности за конкретен entity
+     * Връща активности за конкретен entity
      */
     @GetMapping("/entity/{entityType}/{entityId}")
-    public ResponseEntity<Map<String, Object>> getEntityActivities(
+    public ResponseEntity<Map<String, Object>> getActivitiesForEntity(
             @PathVariable String entityType,
             @PathVariable Long entityId) {
 
@@ -222,44 +248,13 @@ public class AdminActivityController {
             response.put("entityType", entityType);
             response.put("entityId", entityId);
             response.put("count", activities.size());
+            response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на активности за entity: " + e.getMessage()));
-        }
-    }
-
-    // ===== USER ACTIVITIES =====
-
-    /**
-     * Връща активности за конкретен потребител
-     */
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<Map<String, Object>> getUserActivities(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-
-        try {
-            page = Math.max(0, page);
-            size = Math.min(Math.max(1, size), 200);
-
-            Pageable pageable = PageRequest.of(page, size);
-            Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesForUser(userId, pageable);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("activities", convertActivitiesToJson(activitiesPage.getContent()));
-            response.put("userId", userId);
-            response.put("totalElements", activitiesPage.getTotalElements());
-            response.put("totalPages", activitiesPage.getTotalPages());
-            response.put("currentPage", page);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на потребителски активности: " + e.getMessage()));
+            System.err.println("❌ Error loading entity activities: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на активностите за entity: " + e.getMessage()));
         }
     }
 
@@ -281,139 +276,203 @@ public class AdminActivityController {
             response.put("ipAddress", ipAddress);
             response.put("count", activities.size());
             response.put("isSuspicious", isSuspicious);
+            response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на IP активности: " + e.getMessage()));
+            System.err.println("❌ Error loading IP activities: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на активностите от IP: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Връща IP адресите на потребител
+     */
+    @GetMapping("/user/{userId}/ips")
+    public ResponseEntity<Map<String, Object>> getUserIpAddresses(@PathVariable Long userId) {
+
+        try {
+            List<String> ipAddresses = activityLogService.getUserIpAddresses(userId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("ipAddresses", ipAddresses);
+            response.put("userId", userId);
+            response.put("count", ipAddresses.size());
+            response.put("timestamp", LocalDateTime.now());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error loading user IPs: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на IP адресите: " + e.getMessage()));
+        }
+    }
+
+    // ===== WEBSOCKET INFO =====
+
+    /**
+     * Връща информация за WebSocket връзките
+     */
+    @GetMapping("/websocket/info")
+    public ResponseEntity<Map<String, Object>> getWebSocketInfo() {
+
+        try {
+            Map<String, Object> connectionInfo = activityWebSocketHandler.getConnectionInfo();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("websocket", connectionInfo);
+            response.put("timestamp", LocalDateTime.now());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error loading WebSocket info: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на WebSocket информацията: " + e.getMessage()));
         }
     }
 
     // ===== EXPORT =====
 
     /**
-     * Експортира активности към CSV файл
+     * Експортира активности като CSV
      */
     @GetMapping("/export")
     public ResponseEntity<String> exportActivities(
-            @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to) {
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
-            LocalDateTime fromDate = from != null ? LocalDateTime.parse(from) : LocalDateTime.now().minusDays(7);
-            LocalDateTime toDate = to != null ? LocalDateTime.parse(to) : LocalDateTime.now();
+            // Ограничаваме експорта
+            limit = Math.min(Math.max(1, limit), 10000);
 
-            String csvContent = activityLogService.exportActivitiesToCsv(fromDate, toDate);
+            // Зареждаме данни
+            Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
+            Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesWithFilters(
+                    action, username, entityType, since, pageable);
 
-            String filename = String.format("activity_logs_%s_to_%s.csv",
-                    fromDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                    toDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            // Генерираме CSV
+            StringBuilder csv = new StringBuilder();
+            csv.append("ID,Timestamp,Username,Action,EntityType,EntityID,Details,IPAddress\n");
+
+            for (ActivityLogEntity activity : activitiesPage.getContent()) {
+                csv.append(escapeCSV(activity.getId()))
+                        .append(",").append(escapeCSV(activity.getTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
+                        .append(",").append(escapeCSV(activity.getUsername()))
+                        .append(",").append(escapeCSV(activity.getAction()))
+                        .append(",").append(escapeCSV(activity.getEntityType()))
+                        .append(",").append(escapeCSV(activity.getEntityId()))
+                        .append(",").append(escapeCSV(activity.getDetails()))
+                        .append(",").append(escapeCSV(activity.getIpAddress()))
+                        .append("\n");
+            }
+
+            // Генерираме filename
+            String filename = "activity_log_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".csv";
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.parseMediaType("text/csv"))
-                    .body(csvContent);
+                    .body(csv.toString());
 
         } catch (Exception e) {
+            System.err.println("❌ Error exporting activities: " + e.getMessage());
             return ResponseEntity.status(500).body("Грешка при експортирането: " + e.getMessage());
         }
     }
 
-    // ===== MAINTENANCE =====
+    // ===== CLEANUP =====
 
     /**
-     * Ръчно изчистване на стари активности
+     * Стартира ръчно изчистване на стари записи
      */
     @PostMapping("/cleanup")
-    public ResponseEntity<Map<String, Object>> cleanupOldActivities(
-            @RequestParam(required = false) Integer daysToKeep) {
+    public ResponseEntity<Map<String, Object>> triggerCleanup(
+            @RequestParam(defaultValue = "30") int retentionDays) {
 
         try {
-            // Ако не е подаден параметър, използваме 30 дни по подразбиране
-            if (daysToKeep == null || daysToKeep <= 0) {
-                daysToKeep = 30;
-            }
+            retentionDays = Math.min(Math.max(1, retentionDays), 365); // max 1 година
 
-            long deletedCount = activityLogService.cleanupOldActivities(daysToKeep);
+            activityLogService.cleanupOldActivities(retentionDays);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("deletedCount", deletedCount);
-            response.put("message", "Изтрити са " + deletedCount + " стари записа (по-стари от " + daysToKeep + " дни)");
+            response.put("message", "Изчистването е стартирано");
+            response.put("retentionDays", retentionDays);
+            response.put("timestamp", LocalDateTime.now());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при изчистването: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * Връща статистики за таблицата с активности
-     */
-    @GetMapping("/table-stats")
-    public ResponseEntity<Map<String, Object>> getTableStatistics() {
-
-        try {
-            Map<String, Object> stats = activityLogService.getTableStatistics();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("tableStats", stats);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при получаването на статистики за таблицата: " + e.getMessage()));
+            System.err.println("❌ Error triggering cleanup: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при стартирането на изчистването: " + e.getMessage()));
         }
     }
 
     // ===== HELPER METHODS =====
 
+    /**
+     * Конвертира ActivityLogEntity към JSON-friendly format
+     */
     private List<Map<String, Object>> convertActivitiesToJson(List<ActivityLogEntity> activities) {
-        return activities.stream().map(this::convertActivityToJson).toList();
+        return activities.stream().map(activity -> {
+            ActivityMessageDto dto = ActivityMessageDto.createFull(
+                    activity.getId(),
+                    activity.getTimestamp(),
+                    activity.getUserId(),
+                    activity.getUsername(),
+                    activity.getAction(),
+                    activity.getEntityType(),
+                    activity.getEntityId(),
+                    activity.getDetails(),
+                    activity.getIpAddress(),
+                    activity.getUserAgent()
+            );
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", dto.getId());
+            map.put("timestamp", dto.getTimestamp());
+            map.put("userId", dto.getUserId());
+            map.put("username", dto.getUsername());
+            map.put("action", dto.getAction());
+            map.put("entityType", dto.getEntityType());
+            map.put("entityId", dto.getEntityId());
+            map.put("details", dto.getDetails());
+            map.put("ipAddress", dto.getIpAddress());
+            map.put("type", dto.getType());
+            map.put("displayText", dto.getDisplayText());
+            map.put("iconClass", dto.getIconClass());
+            map.put("colorClass", dto.getColorClass());
+
+            return map;
+        }).collect(Collectors.toList());
     }
 
-    private Map<String, Object> convertActivityToJson(ActivityLogEntity activity) {
-        Map<String, Object> json = new HashMap<>();
-        json.put("id", activity.getId());
-        json.put("timestamp", activity.getTimestamp().toString());
-        json.put("userId", activity.getUserId());
-        json.put("username", activity.getUsername());
-        json.put("action", activity.getAction());
-        json.put("entityType", activity.getEntityType());
-        json.put("entityId", activity.getEntityId());
-        json.put("details", activity.getDetails());
-        json.put("ipAddress", activity.getIpAddress());
-        json.put("userAgent", activity.getUserAgent());
-
-        // Добавяме type за frontend филтрирането
-        json.put("type", determineActivityType(activity.getAction()));
-
-        return json;
-    }
-
-    private String determineActivityType(String action) {
-        if (action == null) return "other";
-
-        String actionLower = action.toLowerCase();
-
-        if (actionLower.contains("create")) return "create";
-        if (actionLower.contains("like") || actionLower.contains("vote") ||
-                actionLower.contains("share") || actionLower.contains("comment")) return "interact";
-        if (actionLower.contains("delete") || actionLower.contains("report") ||
-                actionLower.contains("admin") || actionLower.contains("moderate")) return "moderate";
-        if (actionLower.contains("login") || actionLower.contains("logout") ||
-                actionLower.contains("register")) return "auth";
-
-        return "other";
-    }
-
+    /**
+     * Създава error response
+     */
     private Map<String, Object> createErrorResponse(String message) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", false);
-        response.put("error", message);
-        response.put("timestamp", LocalDateTime.now());
-        return response;
+        Map<String, Object> error = new HashMap<>();
+        error.put("success", false);
+        error.put("error", message);
+        error.put("timestamp", LocalDateTime.now());
+        return error;
+    }
+
+    /**
+     * Escape CSV стойности
+     */
+    private String escapeCSV(Object value) {
+        if (value == null) return "";
+        String str = value.toString();
+        if (str.contains(",") || str.contains("\"") || str.contains("\n")) {
+            return "\"" + str.replace("\"", "\"\"") + "\"";
+        }
+        return str;
     }
 }

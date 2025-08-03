@@ -2,9 +2,11 @@ package smolyanVote.smolyanVote.config.websocket;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.ActivityMessageDto;
 import smolyanVote.smolyanVote.viewsAndDTO.WebSocketMessageDto;
 
@@ -23,8 +25,9 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
     private final ActivityLogService activityLogService;
 
     @Autowired
-    public ActivityWebSocketHandler(ActivityLogService activityLogService) {
-        super();
+    public ActivityWebSocketHandler(UserService userService,
+                                    ActivityLogService activityLogService) {
+        super(userService);
         this.activityLogService = activityLogService;
     }
 
@@ -53,6 +56,10 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
                 case "get_stats":
                     handleGetStatistics(session);
+                    break;
+
+                case "get_since":
+                    handleGetActivitiesSince(session, clientMessage);
                     break;
 
                 default:
@@ -112,6 +119,40 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
         } catch (Exception e) {
             System.err.println("❌ Error getting recent activities: " + e.getMessage());
             sendErrorMessage(session, "Failed to load recent activities");
+        }
+    }
+
+    private void handleGetActivitiesSince(WebSocketSession session, WebSocketMessageDto clientMessage) {
+        try {
+            Long lastId = null;
+            if (clientMessage.getData() instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) clientMessage.getData();
+                Object lastIdObj = data.get("lastId");
+                if (lastIdObj instanceof Number) {
+                    lastId = ((Number) lastIdObj).longValue();
+                }
+            }
+
+            // Зареждаме нови активности
+            List<ActivityLogEntity> activities = activityLogService.getActivitiesSinceId(lastId);
+
+            // Конвертираме към DTO формат
+            List<Map<String, Object>> activitiesData = activities.stream()
+                    .map(this::convertActivityToMap)
+                    .toList();
+
+            // Изпращаме отговор
+            WebSocketMessageDto response = new WebSocketMessageDto();
+            response.setType("activities_since");
+            response.setData(activitiesData);
+            response.setTimestamp(LocalDateTime.now());
+
+            sendMessage(session, response);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error getting activities since ID: " + e.getMessage());
+            sendErrorMessage(session, "Failed to load new activities");
         }
     }
 
@@ -223,6 +264,9 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
         // Добавяме тип за frontend филтрирането
         dto.setType(determineActivityType(activity.getAction()));
+        dto.setDisplayText(generateDisplayText(activity));
+        dto.setIconClass(generateIconClass(activity.getAction()));
+        dto.setColorClass(generateColorClass(activity.getAction()));
 
         return dto;
     }
@@ -240,6 +284,9 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
         map.put("ipAddress", activity.getIpAddress());
         map.put("userAgent", activity.getUserAgent());
         map.put("type", determineActivityType(activity.getAction()));
+        map.put("displayText", generateDisplayText(activity));
+        map.put("iconClass", generateIconClass(activity.getAction()));
+        map.put("colorClass", generateColorClass(activity.getAction()));
         return map;
     }
 
@@ -259,12 +306,65 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
         return "other";
     }
 
-    private void sendErrorMessage(WebSocketSession session, String errorMessage) {
-        WebSocketMessageDto error = new WebSocketMessageDto();
-        error.setType("error");
-        error.setData(errorMessage);
-        error.setTimestamp(LocalDateTime.now());
-        sendMessage(session, error);
+    private String generateDisplayText(ActivityLogEntity activity) {
+        StringBuilder text = new StringBuilder();
+        text.append(activity.getUsername() != null ? activity.getUsername() : "Anonymous");
+        text.append(" ");
+
+        // Конвертираме action към човешки четим текст
+        String action = activity.getAction();
+        if (action != null) {
+            switch (action.toLowerCase()) {
+                case "create_publication" -> text.append("създаде публикация");
+                case "create_simple_event" -> text.append("създаде събитие");
+                case "create_referendum" -> text.append("създаде референдум");
+                case "like_publication" -> text.append("хареса публикация");
+                case "vote_simple_event" -> text.append("гласува в събитие");
+                case "user_login" -> text.append("влезе в системата");
+                case "user_logout" -> text.append("излезе от системата");
+                default -> text.append(action.toLowerCase().replace("_", " "));
+            }
+        }
+
+        if (activity.getEntityType() != null && activity.getEntityId() != null) {
+            text.append(" (").append(activity.getEntityType()).append(" #").append(activity.getEntityId()).append(")");
+        }
+
+        return text.toString();
+    }
+
+    private String generateIconClass(String action) {
+        if (action == null) return "bi-circle";
+
+        String actionLower = action.toLowerCase();
+
+        if (actionLower.contains("create")) return "bi-plus-circle";
+        if (actionLower.contains("like")) return "bi-heart";
+        if (actionLower.contains("vote")) return "bi-check-circle";
+        if (actionLower.contains("comment")) return "bi-chat";
+        if (actionLower.contains("share")) return "bi-share";
+        if (actionLower.contains("login")) return "bi-box-arrow-in-right";
+        if (actionLower.contains("logout")) return "bi-box-arrow-left";
+        if (actionLower.contains("delete")) return "bi-trash";
+        if (actionLower.contains("report")) return "bi-flag";
+        if (actionLower.contains("admin")) return "bi-shield";
+
+        return "bi-circle";
+    }
+
+    private String generateColorClass(String action) {
+        if (action == null) return "text-secondary";
+
+        String actionLower = action.toLowerCase();
+
+        if (actionLower.contains("create")) return "text-success";
+        if (actionLower.contains("like") || actionLower.contains("vote")) return "text-primary";
+        if (actionLower.contains("delete") || actionLower.contains("report")) return "text-danger";
+        if (actionLower.contains("login")) return "text-info";
+        if (actionLower.contains("logout")) return "text-warning";
+        if (actionLower.contains("admin") || actionLower.contains("moderate")) return "text-purple";
+
+        return "text-secondary";
     }
 
     // ===== STATUS METHODS =====
@@ -279,6 +379,13 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
                 .map(sessionInfo -> sessionInfo.username)
                 .distinct()
                 .toList());
+        info.put("handlerType", "ActivityWall");
+        info.put("timestamp", LocalDateTime.now());
         return info;
+    }
+
+    @Override
+    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+
     }
 }

@@ -13,17 +13,19 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * AOP Aspect за автоматично логване на потребителски активности
- * Хваща методи анотирани с @LogActivity и записва информация в activity_logs
+ * Обработва @LogActivity анотации и записва активностите в базата данни
  */
 @Aspect
 @Component
@@ -39,42 +41,37 @@ public class ActivityLoggingAspect {
     }
 
     /**
-     * Around advice за методи с @LogActivity анотация
+     * Around advice за методи анотирани с @LogActivity
      */
     @Around("@annotation(logActivity)")
-    public Object logActivity(ProceedingJoinPoint joinPoint, LogActivity logActivity) throws Throwable {
-
+    public Object logActivityExecution(ProceedingJoinPoint joinPoint, LogActivity logActivity) throws Throwable {
         Object result = null;
         Exception thrownException = null;
 
         try {
             // Изпълняваме оригиналния метод
             result = joinPoint.proceed();
+            return result;
 
         } catch (Exception e) {
             thrownException = e;
+            throw e;
 
-            // Ако onSuccessOnly е true, не логваме при грешка
-            if (logActivity.onSuccessOnly()) {
-                throw e; // Re-throw без логване
+        } finally {
+            // Записваме активността
+            try {
+                // Проверяваме дали да записваме при грешка
+                if (thrownException != null && logActivity.onSuccessOnly()) {
+                    return result; // Не записваме при неуспех
+                }
+
+                recordActivity(joinPoint, logActivity, result, thrownException);
+
+            } catch (Exception loggingException) {
+                System.err.println("❌ Error in activity logging aspect: " + loggingException.getMessage());
+                // Не хвърляме грешка от logging-а, за да не съсипем основната функционалност
             }
         }
-
-        try {
-            // Записваме активността
-            recordActivity(joinPoint, logActivity, result, thrownException);
-
-        } catch (Exception loggingException) {
-            // Логването не трябва да спира основната функционалност
-            System.err.println("Failed to log activity: " + loggingException.getMessage());
-        }
-
-        // Ако имаше exception в оригиналния метод, го хвърляме
-        if (thrownException != null) {
-            throw thrownException;
-        }
-
-        return result;
     }
 
     /**
@@ -88,18 +85,22 @@ public class ActivityLoggingAspect {
             UserEntity currentUser = getCurrentUser();
 
             // Определяме action-а - приоритет на enum над string
+            ActivityActionEnum actionEnum;
             String actionString;
+
             if (!logActivity.actionString().isEmpty()) {
                 // Legacy support за String actions
                 actionString = logActivity.actionString();
+                actionEnum = ActivityActionEnum.fromString(actionString);
                 if (currentUser == null && !isGuestAllowed(actionString)) {
-                    return;
+                    return; // Не логваме guest действия които не са разрешени
                 }
             } else {
                 // Използваме enum action
-                actionString = logActivity.action().getActionName();
+                actionEnum = logActivity.action();
+                actionString = actionEnum.getActionName();
                 if (currentUser == null && !isGuestAllowed(actionString)) {
-                    return;
+                    return; // Не логваме guest действия които не са разрешени
                 }
             }
 
@@ -115,9 +116,15 @@ public class ActivityLoggingAspect {
             // Генерираме детайли
             String details = generateDetails(joinPoint, logActivity, result, exception);
 
-            // Записваме активността - използваме legacy метода за String compatibility
-            activityLogService.logActivity(actionString, currentUser, entityType, entityId,
-                    details, ipAddress, userAgent);
+            // Записваме активността
+            if (actionEnum != null) {
+                activityLogService.logActivity(actionEnum, currentUser, entityType, entityId,
+                        details, ipAddress, userAgent);
+            } else {
+                // Fallback за неразпознати действия
+                activityLogService.logActivity(actionString, currentUser, entityType, entityId,
+                        details, ipAddress, userAgent);
+            }
 
         } catch (Exception e) {
             System.err.println("Error in activity logging aspect: " + e.getMessage());
@@ -149,15 +156,30 @@ public class ActivityLoggingAspect {
             commonIdNames[commonIdNames.length - 1] = entitySpecificId;
         }
 
+        // Търсим в параметрите
         for (String idName : commonIdNames) {
-            Long id = findParameterValue(joinPoint, idName);
-            if (id != null) {
-                return id;
+            Long foundId = findParameterValue(joinPoint, idName);
+            if (foundId != null) {
+                return foundId;
             }
         }
 
-        // Ако не намерим в параметрите, опитваме от резултата
-        return extractIdFromResult(result);
+        // Търсим в резултата ако е entity с getId() метод
+        if (result != null) {
+            try {
+                Method getIdMethod = result.getClass().getMethod("getId");
+                Object idResult = getIdMethod.invoke(result);
+                if (idResult instanceof Long) {
+                    return (Long) idResult;
+                } else if (idResult instanceof Number) {
+                    return ((Number) idResult).longValue();
+                }
+            } catch (Exception e) {
+                // Ignore, не всички класове имат getId()
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -171,109 +193,130 @@ public class ActivityLoggingAspect {
             Object[] args = joinPoint.getArgs();
 
             for (int i = 0; i < parameters.length; i++) {
-                if (parameters[i].getName().equals(parameterName) && args[i] instanceof Number) {
-                    return ((Number) args[i]).longValue();
+                if (parameters[i].getName().equals(parameterName)) {
+                    Object value = args[i];
+                    if (value instanceof Long) {
+                        return (Long) value;
+                    } else if (value instanceof Number) {
+                        return ((Number) value).longValue();
+                    } else if (value instanceof String) {
+                        try {
+                            return Long.parseLong((String) value);
+                        } catch (NumberFormatException e) {
+                            // Ignore
+                        }
+                    }
                 }
             }
-
         } catch (Exception e) {
             System.err.println("Error finding parameter value: " + e.getMessage());
         }
-
         return null;
     }
 
     /**
-     * Извлича ID от резултата на метода (ако е Entity с getId())
-     */
-    private Long extractIdFromResult(Object result) {
-        if (result == null) {
-            return null;
-        }
-
-        try {
-            // Опитваме да извикаме getId() метод
-            Method getIdMethod = result.getClass().getMethod("getId");
-            Object idValue = getIdMethod.invoke(result);
-
-            if (idValue instanceof Number) {
-                return ((Number) idValue).longValue();
-            }
-
-        } catch (Exception e) {
-            // Нормално е да няма getId() метод
-        }
-
-        return null;
-    }
-
-    /**
-     * Генерира детайлите за активността
+     * Генерира детайли за активността
      */
     private String generateDetails(ProceedingJoinPoint joinPoint, LogActivity logActivity,
                                    Object result, Exception exception) {
 
-        String details = logActivity.details();
+        StringBuilder details = new StringBuilder();
 
-        if (details.isEmpty()) {
-            // Генерираме основни детайли ако не са зададени
-            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            details = "Method: " + signature.getMethod().getName();
-
-            if (exception != null) {
-                details += ", Error: " + exception.getMessage();
-            }
-
-            return details;
+        // Ако има custom details template
+        if (!logActivity.details().isEmpty()) {
+            details.append(replacePlaceholders(logActivity.details(), joinPoint, result));
         }
 
-        // Заместваме placeholder-и в details стринга
-        return replacePlaceholders(details, joinPoint, result);
+        // Добавяме информация за грешка ако има
+        if (exception != null) {
+            if (details.length() > 0) {
+                details.append(" | ");
+            }
+            details.append("Error: ").append(exception.getClass().getSimpleName());
+            if (exception.getMessage() != null) {
+                details.append(" - ").append(exception.getMessage());
+            }
+        }
+
+        // Ако няма детайли, генерираме автоматично
+        if (details.length() == 0) {
+            details.append("Method: ").append(joinPoint.getSignature().getName());
+        }
+
+        // Ограничаваме дължината
+        String finalDetails = details.toString();
+        if (finalDetails.length() > 500) {
+            finalDetails = finalDetails.substring(0, 497) + "...";
+        }
+
+        return finalDetails;
     }
 
     /**
-     * Замества placeholder-и като {param} в details стринга
+     * Замества placeholder-и в details template
      */
     private String replacePlaceholders(String template, ProceedingJoinPoint joinPoint, Object result) {
+        String processed = template;
+
         try {
+            // Pattern за намиране на {parameterName} placeholders
+            Pattern pattern = Pattern.compile("\\{(\\w+)\\}");
+            Matcher matcher = pattern.matcher(template);
+
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            Parameter[] parameters = signature.getMethod().getParameters();
+            Method method = signature.getMethod();
+            Parameter[] parameters = method.getParameters();
             Object[] args = joinPoint.getArgs();
 
-            String processedTemplate = template;
+            while (matcher.find()) {
+                String placeholder = matcher.group(0); // цялата {parameterName}
+                String paramName = matcher.group(1);   // само parameterName
 
-            // Заместваме параметрите
-            for (int i = 0; i < parameters.length; i++) {
-                String paramName = parameters[i].getName();
-                String placeholder = "{" + paramName + "}";
-
-                if (processedTemplate.contains(placeholder) && args[i] != null) {
-                    processedTemplate = processedTemplate.replace(placeholder, args[i].toString());
+                // Търсим в параметрите
+                String replacement = placeholder; // fallback
+                for (int i = 0; i < parameters.length; i++) {
+                    if (parameters[i].getName().equals(paramName)) {
+                        Object value = args[i];
+                        replacement = value != null ? value.toString() : "null";
+                        break;
+                    }
                 }
-            }
 
-            return processedTemplate;
+                // Специални placeholders
+                if ("result".equals(paramName) && result != null) {
+                    replacement = result.toString();
+                } else if ("method".equals(paramName)) {
+                    replacement = method.getName();
+                } else if ("class".equals(paramName)) {
+                    replacement = method.getDeclaringClass().getSimpleName();
+                }
+
+                processed = processed.replace(placeholder, replacement);
+            }
 
         } catch (Exception e) {
             System.err.println("Error replacing placeholders: " + e.getMessage());
-            return template; // Връщаме оригинала при грешка
         }
+
+        return processed;
     }
 
     /**
-     * Извлича текущия потребител
+     * Извлича текущия автентифициран потребител
      */
     private UserEntity getCurrentUser() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
-                return userService.getCurrentUser();
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+                return null;
             }
+
+            return userService.getCurrentUser();
+
         } catch (Exception e) {
             System.err.println("Error getting current user: " + e.getMessage());
+            return null;
         }
-
-        return null;
     }
 
     /**
@@ -281,37 +324,40 @@ public class ActivityLoggingAspect {
      */
     private HttpServletRequest getCurrentRequest() {
         try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            return attributes != null ? attributes.getRequest() : null;
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            return attrs.getRequest();
         } catch (Exception e) {
-            System.err.println("Error getting current request: " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * Извлича IP адреса от request-а
+     * Извлича IP адрес от HTTP request
      */
     private String extractIpAddress(HttpServletRequest request) {
         if (request == null) {
-            return null;
+            return "unknown";
         }
 
         try {
-            // Проверяваме различни headers за real IP (за случаи с proxy/load balancer)
+            // Проверяваме за proxy headers
             String[] headerNames = {
                     "X-Forwarded-For",
                     "X-Real-IP",
-                    "X-Originating-IP",
-                    "CF-Connecting-IP",
                     "Proxy-Client-IP",
-                    "WL-Proxy-Client-IP"
+                    "WL-Proxy-Client-IP",
+                    "HTTP_X_FORWARDED_FOR",
+                    "HTTP_X_FORWARDED",
+                    "HTTP_X_CLUSTER_CLIENT_IP",
+                    "HTTP_CLIENT_IP",
+                    "HTTP_FORWARDED_FOR",
+                    "HTTP_FORWARDED"
             };
 
-            for (String headerName : headerNames) {
-                String ip = request.getHeader(headerName);
+            for (String header : headerNames) {
+                String ip = request.getHeader(header);
                 if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-                    // X-Forwarded-For може да съдържа списък с IP-та
+                    // X-Forwarded-For може да съдържа множество IP-та
                     if (ip.contains(",")) {
                         ip = ip.split(",")[0].trim();
                     }
@@ -319,34 +365,69 @@ public class ActivityLoggingAspect {
                 }
             }
 
-            // Fallback към стандартния метод
+            // Fallback към remote address
             return request.getRemoteAddr();
 
         } catch (Exception e) {
             System.err.println("Error extracting IP address: " + e.getMessage());
-            return null;
+            return "unknown";
         }
     }
 
     /**
-     * Извлича User Agent от request-а
+     * Извлича User Agent от HTTP request
      */
     private String extractUserAgent(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+
         try {
-            return request != null ? request.getHeader("User-Agent") : null;
+            String userAgent = request.getHeader("User-Agent");
+
+            // Ограничаваме дължината
+            if (userAgent != null && userAgent.length() > 500) {
+                userAgent = userAgent.substring(0, 497) + "...";
+            }
+
+            return userAgent;
         } catch (Exception e) {
-            System.err.println("Error extracting user agent: " + e.getMessage());
+            System.err.println("Error extracting User Agent: " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * Проверява дали действието е позволено за guest потребители
+     * Проверява дали guest потребителите могат да извършват определено действие
      */
     private boolean isGuestAllowed(String action) {
-        // Някои действия могат да се записват дори за неаутентикирани потребители
-        return action.equals("VIEW_CONTENT") ||
-                action.equals("SEARCH_CONTENT") ||
-                action.equals("USER_REGISTER");
+        if (action == null) {
+            return false;
+        }
+
+        String actionLower = action.toLowerCase();
+
+        // Действия които гостите могат да правят
+        return actionLower.contains("view") ||
+                actionLower.contains("search") ||
+                actionLower.contains("filter") ||
+                actionLower.contains("api_access") ||
+                actionLower.contains("visit");
+    }
+
+    /**
+     * Debug helper за изписване на информация за метода
+     */
+    private void debugMethodInfo(ProceedingJoinPoint joinPoint, LogActivity logActivity) {
+        if (System.getProperty("activity.logging.debug") != null) {
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            System.out.println("🔍 Activity Logging Debug:");
+            System.out.println("   Method: " + signature.getMethod().getName());
+            System.out.println("   Class: " + signature.getDeclaringType().getSimpleName());
+            System.out.println("   Action: " + (logActivity.actionString().isEmpty() ?
+                    logActivity.action().name() : logActivity.actionString()));
+            System.out.println("   Entity Type: " + logActivity.entityType());
+            System.out.println("   Parameters: " + Arrays.toString(joinPoint.getArgs()));
+        }
     }
 }

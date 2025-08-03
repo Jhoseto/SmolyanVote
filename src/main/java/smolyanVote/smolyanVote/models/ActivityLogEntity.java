@@ -1,14 +1,23 @@
 package smolyanVote.smolyanVote.models;
 
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Entity за записване на всички потребителски активности в системата
  * Използва се за admin monitoring и audit trail
  */
 @Entity
-@Table(name = "activity_logs")
+@Table(name = "activity_logs", indexes = {
+        @Index(name = "idx_activity_timestamp", columnList = "timestamp"),
+        @Index(name = "idx_activity_user_id", columnList = "user_id"),
+        @Index(name = "idx_activity_action", columnList = "action"),
+        @Index(name = "idx_activity_entity", columnList = "entity_type, entity_id"),
+        @Index(name = "idx_activity_ip", columnList = "ip_address")
+})
 public class ActivityLogEntity {
 
     @Id
@@ -36,7 +45,7 @@ public class ActivityLogEntity {
     @Column(name = "details", columnDefinition = "TEXT")
     private String details;
 
-    @Column(name = "ip_address", length = 45)
+    @Column(name = "ip_address", length = 45) // IPv6 support
     private String ipAddress;
 
     @Column(name = "user_agent", columnDefinition = "TEXT")
@@ -73,6 +82,11 @@ public class ActivityLogEntity {
         this.userAgent = userAgent;
     }
 
+    public ActivityLogEntity(ActivityActionEnum actionEnum, Long userId, String username, String entityType,
+                             Long entityId, String details, String ipAddress, String userAgent) {
+        this(actionEnum.getActionName(), userId, username, entityType, entityId, details, ipAddress, userAgent);
+    }
+
     // ====== LIFECYCLE CALLBACKS ======
 
     @PrePersist
@@ -83,6 +97,136 @@ public class ActivityLogEntity {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
+    }
+
+    // ====== BUSINESS METHODS ======
+
+    /**
+     * Проверява дали активността е от определен тип
+     */
+    public boolean isActionType(String actionType) {
+        return this.action != null && this.action.equalsIgnoreCase(actionType);
+    }
+
+    /**
+     * Проверява дали активността е от ActivityActionEnum
+     */
+    public boolean isActionEnum(ActivityActionEnum actionEnum) {
+        return this.action != null && this.action.equals(actionEnum.getActionName());
+    }
+
+    /**
+     * Проверява дали активността е за определен entity
+     */
+    public boolean isForEntity(String entityType, Long entityId) {
+        return Objects.equals(this.entityType, entityType) && Objects.equals(this.entityId, entityId);
+    }
+
+    /**
+     * Проверява дали активността е от определен потребител
+     */
+    public boolean isFromUser(Long userId) {
+        return Objects.equals(this.userId, userId);
+    }
+
+    /**
+     * Проверява дали активността е от определен username
+     */
+    public boolean isFromUsername(String username) {
+        return Objects.equals(this.username, username);
+    }
+
+    /**
+     * Проверява дали активността е от определен IP
+     */
+    public boolean isFromIp(String ipAddress) {
+        return Objects.equals(this.ipAddress, ipAddress);
+    }
+
+    /**
+     * Проверява дали активността е нова (в последните N минути)
+     */
+    public boolean isRecent(int minutes) {
+        if (this.timestamp == null) return false;
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(minutes);
+        return this.timestamp.isAfter(cutoff);
+    }
+
+    /**
+     * Връща категорията на активността за UI филтриране
+     */
+    public String getActivityCategory() {
+        if (this.action == null) return "other";
+
+        String actionLower = this.action.toLowerCase();
+
+        if (actionLower.contains("create")) return "create";
+        if (actionLower.contains("like") || actionLower.contains("vote") ||
+                actionLower.contains("share") || actionLower.contains("comment")) return "interact";
+        if (actionLower.contains("delete") || actionLower.contains("report") ||
+                actionLower.contains("admin") || actionLower.contains("moderate")) return "moderate";
+        if (actionLower.contains("login") || actionLower.contains("logout") ||
+                actionLower.contains("register")) return "auth";
+
+        return "other";
+    }
+
+    /**
+     * Връща дисплей текст за активността
+     */
+    public String getDisplayText() {
+        StringBuilder display = new StringBuilder();
+
+        display.append(this.username != null ? this.username : "Anonymous");
+        display.append(" ");
+
+        if (this.action != null) {
+            // Конвертираме action към четим текст
+            String actionText = this.action.toLowerCase().replace("_", " ");
+            display.append(actionText);
+        }
+
+        if (this.entityType != null && this.entityId != null) {
+            display.append(" (").append(this.entityType).append(" #").append(this.entityId).append(")");
+        }
+
+        return display.toString();
+    }
+
+    /**
+     * Връща кратка версия на детайлите (за списъци)
+     */
+    public String getShortDetails() {
+        if (this.details == null || this.details.isEmpty()) {
+            return null;
+        }
+
+        if (this.details.length() <= 100) {
+            return this.details;
+        }
+
+        return this.details.substring(0, 97) + "...";
+    }
+
+    /**
+     * Проверява дали има детайли
+     */
+    public boolean hasDetails() {
+        return this.details != null && !this.details.trim().isEmpty();
+    }
+
+    /**
+     * Проверява дали има entity информация
+     */
+    public boolean hasEntityInfo() {
+        return this.entityType != null && this.entityId != null;
+    }
+
+    /**
+     * Проверява дали е от автентифициран потребител
+     */
+    public boolean isFromAuthenticatedUser() {
+        return this.userId != null && this.username != null && !this.username.equals("Anonymous");
     }
 
     // ====== GETTERS AND SETTERS ======
@@ -175,5 +319,51 @@ public class ActivityLogEntity {
         this.createdAt = createdAt;
     }
 
+    // ====== OBJECT METHODS ======
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        ActivityLogEntity that = (ActivityLogEntity) obj;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "ActivityLogEntity{" +
+                "id=" + id +
+                ", timestamp=" + timestamp +
+                ", username='" + username + '\'' +
+                ", action='" + action + '\'' +
+                ", entityType='" + entityType + '\'' +
+                ", entityId=" + entityId +
+                ", ipAddress='" + ipAddress + '\'' +
+                '}';
+    }
+
+    /**
+     * Детайлна версия на toString за debugging
+     */
+    public String toDetailedString() {
+        return "ActivityLogEntity{" +
+                "id=" + id +
+                ", timestamp=" + timestamp +
+                ", userId=" + userId +
+                ", username='" + username + '\'' +
+                ", action='" + action + '\'' +
+                ", entityType='" + entityType + '\'' +
+                ", entityId=" + entityId +
+                ", details='" + (hasDetails() ? getShortDetails() : "none") + '\'' +
+                ", ipAddress='" + ipAddress + '\'' +
+                ", userAgent='" + (userAgent != null ? (userAgent.length() > 50 ? userAgent.substring(0, 47) + "..." : userAgent) : "none") + '\'' +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }
