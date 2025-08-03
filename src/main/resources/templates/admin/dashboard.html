@@ -8,6 +8,7 @@
 
     <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
     <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <link rel="stylesheet" href="/css/admin-activity-wall.css">
 </head>
 <body>
 
@@ -199,6 +200,154 @@
         </div>
     </div>
 
+    <!-- ====== ACTIVITY WALL SECTION ====== -->
+    <div class="monitoring-section">
+        <h2 class="section-header collapsible-header" data-toggle="activity-wall">
+            <span><i class="bi bi-activity"></i> Real-time Activity Wall</span>
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </h2>
+
+        <div class="collapsible-content" id="activity-wall">
+
+            <!-- Activity Header -->
+            <div class="activity-wall-header">
+                <div class="activity-stats">
+                    <div class="stat-item">
+                        <i class="bi bi-broadcast" style="color: #28a745;"></i>
+                        <span>Online: <strong id="online-users-count">--</strong></span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-clock-history" style="color: #007bff;"></i>
+                        <span>Последен час: <strong id="last-hour-activities">--</strong></span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="bi bi-graph-up" style="color: #6f42c1;"></i>
+                        <span>Днес: <strong id="today-activities">--</strong></span>
+                    </div>
+                </div>
+
+                <div class="activity-controls">
+                    <div class="live-indicator" id="liveIndicator">
+                        <div class="live-dot"></div>
+                        <span>Live</span>
+                    </div>
+
+                    <button id="activity-pause-btn" class="btn btn-sm btn-warning">
+                        <i class="bi bi-pause-fill"></i> Пауза
+                    </button>
+
+                    <button id="activity-clear-btn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-trash"></i> Изчисти
+                    </button>
+
+                    <button id="activity-export-btn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> Експорт
+                    </button>
+                </div>
+            </div>
+
+            <!-- Activity Filters -->
+            <div class="activity-filters">
+                <div class="filter-group">
+                    <span class="filter-label">Действия:</span>
+                    <button class="activity-filter-btn create active" data-filter="create">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Създаване</span>
+                    </button>
+                    <button class="activity-filter-btn interact active" data-filter="interact">
+                        <i class="bi bi-hand-thumbs-up"></i>
+                        <span>Взаимодействия</span>
+                    </button>
+                    <button class="activity-filter-btn moderate active" data-filter="moderate">
+                        <i class="bi bi-shield-exclamation"></i>
+                        <span>Модерация</span>
+                    </button>
+                    <button class="activity-filter-btn auth active" data-filter="auth">
+                        <i class="bi bi-person-check"></i>
+                        <span>Автентикация</span>
+                    </button>
+                    <button class="activity-filter-btn other active" data-filter="other">
+                        <i class="bi bi-three-dots"></i>
+                        <span>Други</span>
+                    </button>
+                </div>
+
+                <div class="filter-group">
+                    <span class="filter-label">Потребители:</span>
+                    <input type="text" id="activity-user-filter" class="form-control form-control-sm"
+                           placeholder="Филтрирай по потребител..." style="width: 200px;">
+                </div>
+            </div>
+
+            <!-- Activity Stream Table -->
+            <div class="activity-stream-container">
+                <table id="activity-stream-table" class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th style="width: 120px;">Време</th>
+                        <th style="width: 60px;">Тип</th>
+                        <th style="width: 150px;">Потребител</th>
+                        <th style="width: 200px;">Действие</th>
+                        <th>Детайли</th>
+                        <th style="width: 80px;">IP</th>
+                    </tr>
+                    </thead>
+                    <tbody id="activity-stream-body">
+                    <!-- Activities will be loaded here via JavaScript -->
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 2rem; color: #6b7280;">
+                            <i class="bi bi-broadcast" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                            <div>Зареждане на активности...</div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Activity Stream Stats Footer -->
+            <div class="activity-stream-footer">
+                <div class="stream-info">
+                    <span>Показани: <strong id="visible-activities">0</strong> от <strong id="total-activities">0</strong></span>
+                    <span class="separator">•</span>
+                    <span>Последно обновяване: <strong id="last-update">--</strong></span>
+                </div>
+
+                <div class="stream-controls">
+                    <button id="scroll-to-top-btn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-up"></i> Отгоре
+                    </button>
+                    <button id="auto-scroll-btn" class="btn btn-sm btn-outline-primary active">
+                        <i class="bi bi-arrow-down"></i> Авто скрол
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Detail Modal -->
+    <div class="modal fade" id="activityDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-info-circle"></i> Детайли за активността
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="activity-detail-content">
+                        <!-- Activity details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+                    <button type="button" class="btn btn-primary" id="view-related-btn">
+                        <i class="bi bi-eye"></i> Виж свързаното съдържание
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Footer -->
@@ -206,6 +355,7 @@
 
 <script src="/js/admin/admin-dashboard.js"></script>
 <script src="/js/admin/reports.js"></script>
+<script src="/js/admin/activity-wall.js"></script>
 
 <!-- Bottom Styles -->
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
