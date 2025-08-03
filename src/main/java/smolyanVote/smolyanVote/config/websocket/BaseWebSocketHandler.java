@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.config.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,37 +9,35 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.WebSocketMessageDto;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Базов клас за всички WebSocket handlers
- * Съдържа общата функционалност за authentication, session management и JSON serialization
+ * Base WebSocket Handler клас
+ * Съдържа общата логика за всички WebSocket handlers
  */
 public abstract class BaseWebSocketHandler implements WebSocketHandler {
 
+    protected final ObjectMapper objectMapper = new ObjectMapper();
     protected final UserService userService;
-    protected final ObjectMapper objectMapper;
-    protected final CopyOnWriteArraySet<WebSocketSession> activeSessions;
-    protected final ConcurrentHashMap<String, SessionInfo> sessionInfoMap;
+
+    // Thread-safe collections за управление на сесиите
+    protected final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    protected final List<WebSocketSession> activeSessions = new CopyOnWriteArrayList<>();
 
     @Autowired
     public BaseWebSocketHandler(UserService userService) {
         this.userService = userService;
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule()); // За LocalDateTime сериализация
-        this.activeSessions = new CopyOnWriteArraySet<>();
-        this.sessionInfoMap = new ConcurrentHashMap<>();
     }
 
-    // ===== ABSTRACT METHODS (трябва да се имплементират в наследниците) =====
+    // ===== ABSTRACT METHODS =====
 
     /**
-     * Проверява дали потребителят има права за този WebSocket endpoint
+     * Проверява дали потребителят има право да се свърже
      */
     protected abstract boolean hasPermission(WebSocketSession session);
 
@@ -50,66 +47,72 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
     protected abstract void handleTextMessage(WebSocketSession session, String message);
 
     /**
-     * Връща името на handler-а за логове
+     * Връща името на handler-а за logging
      */
     protected abstract String getHandlerName();
 
-    // ===== WEBSOCKET LIFECYCLE METHODS =====
+    // ===== WEBSOCKET LIFECYCLE =====
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         try {
-            // Проверяваме права
+            // Проверяваме правата на потребителя
             if (!hasPermission(session)) {
                 session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Access denied"));
+                System.out.println("❌ " + getHandlerName() + ": Access denied for session " + session.getId());
                 return;
             }
 
-            // Добавяме сесията
+            // Добавяме сесията в активните
+            sessions.put(session.getId(), session);
             activeSessions.add(session);
 
-            // Запазваме информация за сесията
-            SessionInfo info = createSessionInfo(session);
-            sessionInfoMap.put(session.getId(), info);
-
-            System.out.println("✅ " + getHandlerName() + " connection established: " +
-                    info.username + " (" + info.ipAddress + ")");
+            // Логваме успешната връзка
+            String username = getCurrentUsername();
+            System.out.println("✅ " + getHandlerName() + ": Connected user '" + username +
+                    "' (Session: " + session.getId() + "). Active sessions: " + activeSessions.size());
 
             // Изпращаме welcome съобщение
             sendWelcomeMessage(session);
 
         } catch (Exception e) {
-            System.err.println("❌ Error establishing " + getHandlerName() + " connection: " + e.getMessage());
-            try {
-                session.close(CloseStatus.SERVER_ERROR.withReason("Connection error"));
-            } catch (IOException closeException) {
-                System.err.println("Failed to close errored session: " + closeException.getMessage());
-            }
+            System.err.println("❌ Error in " + getHandlerName() + " connection: " + e.getMessage());
+            session.close(CloseStatus.SERVER_ERROR);
         }
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        // Премахваме сесията
-        activeSessions.remove(session);
-        SessionInfo info = sessionInfoMap.remove(session.getId());
-
-        String username = info != null ? info.username : "Unknown";
-        System.out.println("❌ " + getHandlerName() + " connection closed: " + username +
-                " (reason: " + status.getReason() + ")");
+    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+        try {
+            if (message instanceof TextMessage) {
+                String payload = ((TextMessage) message).getPayload();
+                handleTextMessage(session, payload);
+            } else {
+                System.out.println("⚠️ " + getHandlerName() + ": Received non-text message from " + session.getId());
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error handling message in " + getHandlerName() + ": " + e.getMessage());
+            sendErrorMessage(session, "Message processing failed");
+        }
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        SessionInfo info = sessionInfoMap.get(session.getId());
-        String username = info != null ? info.username : "Unknown";
+        System.err.println("❌ " + getHandlerName() + " transport error for session " +
+                session.getId() + ": " + exception.getMessage());
 
-        System.err.println("❌ Transport error in " + getHandlerName() + " for user " + username +
-                ": " + exception.getMessage());
+        // Премахваме сесията при грешка
+        removeSession(session);
+    }
 
-        // Премахваме проблемната сесия
-        activeSessions.remove(session);
-        sessionInfoMap.remove(session.getId());
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
+        removeSession(session);
+
+        String username = getCurrentUsername();
+        System.out.println("👋 " + getHandlerName() + ": Disconnected user '" + username +
+                "' (Session: " + session.getId() + ", Status: " + closeStatus +
+                "). Active sessions: " + activeSessions.size());
     }
 
     @Override
@@ -119,121 +122,33 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
 
     // ===== SESSION MANAGEMENT =====
 
-    /**
-     * Създава SessionInfo за нова WebSocket връзка
-     */
-    protected SessionInfo createSessionInfo(WebSocketSession session) {
-        SessionInfo info = new SessionInfo();
-        info.sessionId = session.getId();
-        info.connectedAt = LocalDateTime.now();
-        info.lastActivity = LocalDateTime.now();
+    protected void removeSession(WebSocketSession session) {
+        sessions.remove(session.getId());
+        activeSessions.remove(session);
+    }
 
-        // Извличаме потребителска информация
-        UserEntity currentUser = getCurrentUser();
-        if (currentUser != null) {
-            info.userId = currentUser.getId();
-            info.username = currentUser.getUsername();
-            info.isAuthenticated = true;
-        } else {
-            info.username = "Anonymous";
-            info.isAuthenticated = false;
-        }
+    public int getActiveSessionsCount() {
+        return activeSessions.size();
+    }
 
-        // Извличаме IP адрес
-        info.ipAddress = extractIpAddress(session);
-
-        return info;
+    public List<WebSocketSession> getActiveSessions() {
+        return new CopyOnWriteArrayList<>(activeSessions);
     }
 
     /**
-     * Изпраща welcome съобщение към новоподключен клиент
+     * Почиства неактивни сесии
      */
-    protected void sendWelcomeMessage(WebSocketSession session) {
-        SessionInfo info = sessionInfoMap.get(session.getId());
-
-        WebSocketMessageDto welcome = new WebSocketMessageDto();
-        welcome.setType("welcome");
-        welcome.setMessage("Connected to " + getHandlerName());
-        welcome.setTimestamp(LocalDateTime.now());
-
-        // Добавяме session info
-        if (info != null) {
-            welcome.setData(Map.of(
-                    "sessionId", info.sessionId,
-                    "username", info.username,
-                    "connectedAt", info.connectedAt
-            ));
-        }
-
-        sendMessage(session, welcome);
-    }
-
-    // ===== AUTHENTICATION & SECURITY =====
-
-    /**
-     * Извлича текущия автентифициран потребител
-     */
-    protected UserEntity getCurrentUser() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-                return null;
-            }
-
-            return userService.getCurrentUser();
-
-        } catch (Exception e) {
-            System.err.println("Error getting current user: " + e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Проверява дали текущия потребител е админ
-     */
-    protected boolean isAdminUser() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated()) {
-                return false;
-            }
-
-            return auth.getAuthorities().stream()
-                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
-
-        } catch (Exception e) {
-            System.err.println("Error checking admin role: " + e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Извлича IP адрес от WebSocket сесия
-     */
-    protected String extractIpAddress(WebSocketSession session) {
-        try {
-            // Проверяваме за X-Forwarded-For header (proxy/load balancer)
-            String xForwardedFor = (String) session.getAttributes().get("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return xForwardedFor.split(",")[0].trim();
-            }
-
-            // Fallback към remote address
-            return session.getRemoteAddress() != null ?
-                    session.getRemoteAddress().getAddress().getHostAddress() : "unknown";
-
-        } catch (Exception e) {
-            System.err.println("Error extracting IP address: " + e.getMessage());
-            return "unknown";
-        }
+    public void cleanupInactiveSessions() {
+        activeSessions.removeIf(session -> !session.isOpen());
+        sessions.entrySet().removeIf(entry -> !entry.getValue().isOpen());
     }
 
     // ===== MESSAGE SENDING =====
 
     /**
-     * Изпраща съобщение към конкретна сесия
+     * Изпраща съобщение до конкретна сесия
      */
-    protected void sendMessage(WebSocketSession session, WebSocketMessageDto message) {
+    protected void sendMessage(WebSocketSession session, Object message) {
         if (session == null || !session.isOpen()) {
             return;
         }
@@ -241,104 +156,136 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         try {
             String jsonMessage = objectMapper.writeValueAsString(message);
             session.sendMessage(new TextMessage(jsonMessage));
-
-            // Обновяваме last activity
-            SessionInfo info = sessionInfoMap.get(session.getId());
-            if (info != null) {
-                info.lastActivity = LocalDateTime.now();
-            }
-
-        } catch (Exception e) {
-            System.err.println("Error sending message to session " + session.getId() + ": " + e.getMessage());
-            // Премахваме неработещата сесия
-            activeSessions.remove(session);
-            sessionInfoMap.remove(session.getId());
+        } catch (IOException e) {
+            System.err.println("❌ Failed to send message to session " + session.getId() + ": " + e.getMessage());
+            removeSession(session);
         }
     }
 
     /**
-     * Изпраща съобщение към всички активни сесии
+     * Изпраща съобщение до всички активни сесии
      */
-    protected void broadcastMessage(WebSocketMessageDto message) {
+    protected void broadcastMessage(Object message) {
         if (activeSessions.isEmpty()) {
             return;
         }
 
-        // Копираме сесиите за да избегнем ConcurrentModificationException
-        var sessionsToSend = new java.util.ArrayList<>(activeSessions);
-
-        for (WebSocketSession session : sessionsToSend) {
-            sendMessage(session, message);
+        String jsonMessage;
+        try {
+            jsonMessage = objectMapper.writeValueAsString(message);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to serialize broadcast message: " + e.getMessage());
+            return;
         }
+
+        TextMessage textMessage = new TextMessage(jsonMessage);
+
+        // Изпращаме към всички сесии в отделни threads за performance
+        activeSessions.parallelStream().forEach(session -> {
+            try {
+                if (session.isOpen()) {
+                    session.sendMessage(textMessage);
+                } else {
+                    removeSession(session);
+                }
+            } catch (IOException e) {
+                System.err.println("❌ Failed to broadcast to session " + session.getId() + ": " + e.getMessage());
+                removeSession(session);
+            }
+        });
     }
 
     /**
-     * Изпраща error съобщение към сесия
+     * Изпраща системно съобщение до всички сесии
      */
-    protected void sendErrorMessage(WebSocketSession session, String errorMessage) {
-        WebSocketMessageDto error = WebSocketMessageDto.error(errorMessage);
-        sendMessage(session, error);
+    public void broadcastSystemMessage(String message, String type) {
+        WebSocketMessageDto systemMessage = new WebSocketMessageDto();
+        systemMessage.setType("system_message");
+        systemMessage.setData(Map.of(
+                "message", message,
+                "messageType", type,
+                "timestamp", LocalDateTime.now()
+        ));
+        systemMessage.setTimestamp(LocalDateTime.now());
+
+        broadcastMessage(systemMessage);
     }
 
     // ===== UTILITY METHODS =====
 
-    /**
-     * Връща броя на активните сесии
-     */
-    public int getActiveSessionsCount() {
-        return activeSessions.size();
+    protected void sendWelcomeMessage(WebSocketSession session) {
+        WebSocketMessageDto welcome = new WebSocketMessageDto();
+        welcome.setType("welcome");
+        welcome.setData(Map.of(
+                "message", "Connected to " + getHandlerName(),
+                "sessionId", session.getId(),
+                "timestamp", LocalDateTime.now()
+        ));
+        welcome.setTimestamp(LocalDateTime.now());
+
+        sendMessage(session, welcome);
     }
 
-    /**
-     * Връща информация за всички сесии
-     */
-    public ConcurrentHashMap<String, SessionInfo> getSessionInfoMap() {
-        return new ConcurrentHashMap<>(sessionInfoMap);
+    protected void sendErrorMessage(WebSocketSession session, String errorMessage) {
+        WebSocketMessageDto error = new WebSocketMessageDto();
+        error.setType("error");
+        error.setData(Map.of(
+                "error", errorMessage,
+                "timestamp", LocalDateTime.now()
+        ));
+        error.setTimestamp(LocalDateTime.now());
+
+        sendMessage(session, error);
     }
 
-    /**
-     * Премахва неактивни сесии (повикава се периодично)
-     */
-    public void cleanupInactiveSessions() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(30); // 30 минути timeout
-
-        var toRemove = sessionInfoMap.entrySet().stream()
-                .filter(entry -> entry.getValue().lastActivity.isBefore(cutoff))
-                .map(entry -> entry.getKey())
-                .toList();
-
-        for (String sessionId : toRemove) {
-            sessionInfoMap.remove(sessionId);
-            activeSessions.removeIf(session -> session.getId().equals(sessionId));
+    protected String getCurrentUsername() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                return auth.getName();
+            }
+        } catch (Exception e) {
+            // Игнорираме грешки при извличане на username
         }
-
-        if (!toRemove.isEmpty()) {
-            System.out.println("🧹 Cleaned up " + toRemove.size() + " inactive " + getHandlerName() + " sessions");
-        }
+        return "Anonymous";
     }
 
-    // ===== INNER CLASS FOR SESSION INFO =====
-
-    /**
-     * Клас за съхранение на информация за WebSocket сесия
-     */
-    public static class SessionInfo {
-        public String sessionId;
-        public Long userId;
-        public String username;
-        public String ipAddress;
-        public boolean isAuthenticated;
-        public LocalDateTime connectedAt;
-        public LocalDateTime lastActivity;
-
-        @Override
-        public String toString() {
-            return "SessionInfo{" +
-                    "sessionId='" + sessionId + '\'' +
-                    ", username='" + username + '\'' +
-                    ", isAuthenticated=" + isAuthenticated +
-                    ", connectedAt=" + connectedAt +
-                    '}';
+    protected UserEntity getCurrentUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                return userService.getCurrentUser();
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting current user: " + e.getMessage());
         }
+        return null;
+    }
+
+    protected boolean isAdminUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated()) {
+                return auth.getAuthorities().stream()
+                        .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking admin role: " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ===== DEBUG METHODS =====
+
+    public void printSessionsDebugInfo() {
+        System.out.println("=== " + getHandlerName() + " Sessions Debug ===");
+        System.out.println("Active sessions count: " + activeSessions.size());
+        System.out.println("Sessions map size: " + sessions.size());
+
+        activeSessions.forEach(session -> {
+            System.out.println("  - Session " + session.getId() +
+                    " (Open: " + session.isOpen() +
+                    ", URI: " + session.getUri() + ")");
+        });
     }
 }

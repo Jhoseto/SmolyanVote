@@ -52,16 +52,42 @@ class ActivityWall {
         document.getElementById('activity-pause-btn')?.addEventListener('click', () => this.togglePause());
         document.getElementById('activity-clear-btn')?.addEventListener('click', () => this.clearActivities());
         document.getElementById('activity-export-btn')?.addEventListener('click', () => this.exportActivities());
+        document.getElementById('refresh-activities-btn')?.addEventListener('click', () => this.manualRefresh());
 
-        // Filter buttons
+        // Filter buttons - FIXED
         document.querySelectorAll('.activity-filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.toggleFilter(e));
         });
 
-        // User filter
+        // User filter - IMPROVED for instant filtering
         const userFilter = document.getElementById('activity-user-filter');
+        const clearUserFilter = document.getElementById('clear-user-filter');
+
         if (userFilter) {
-            userFilter.addEventListener('input', (e) => this.debouncedUserFilter(e.target.value));
+            userFilter.addEventListener('input', (e) => {
+                this.filters.user = e.target.value.toLowerCase().trim();
+                this.applyFilters(); // Мигновенно филтриране
+
+                // Показваме/скриваме clear бутона
+                if (clearUserFilter) {
+                    clearUserFilter.style.display = this.filters.user ? 'inline-block' : 'none';
+                }
+
+                // Highlight search results
+                this.highlightSearchResults(this.filters.user);
+            });
+
+            // Clear filter with X button
+            userFilter.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.clearUserFilter();
+                }
+            });
+        }
+
+        // Clear user filter button
+        if (clearUserFilter) {
+            clearUserFilter.addEventListener('click', () => this.clearUserFilter());
         }
 
         // Auto scroll toggle
@@ -75,6 +101,9 @@ class ActivityWall {
                 this.showActivityDetails(row.dataset.activityId);
             }
         });
+
+        // Modal buttons
+        document.getElementById('copy-activity-details')?.addEventListener('click', () => this.copyActivityDetails());
     }
 
     // ===== LIVE STREAM MANAGEMENT =====
@@ -85,26 +114,35 @@ class ActivityWall {
     }
 
     setupWebSocket() {
-        // WebSocket за real-time обновления (ще се имплементира в backend)
+        // FIXED WebSocket URL
         try {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/admin/activity-stream`;
+            const wsUrl = `${protocol}//${window.location.host}/ws/admin/activity`;
 
             this.websocket = new WebSocket(wsUrl);
 
             this.websocket.onopen = () => {
                 console.log('✅ WebSocket connected');
                 this.updateLiveStatus(true);
+
+                // Request recent activities
+                this.sendWebSocketMessage('get_recent', { limit: 50 });
             };
 
             this.websocket.onmessage = (event) => {
-                const activity = JSON.parse(event.data);
-                this.addNewActivity(activity);
+                try {
+                    const message = JSON.parse(event.data);
+                    this.handleWebSocketMessage(message);
+                } catch (error) {
+                    console.error('WebSocket message parse error:', error);
+                }
             };
 
             this.websocket.onclose = () => {
                 console.log('⚠️ WebSocket disconnected, falling back to polling');
                 this.updateLiveStatus(false);
+                // Reconnect after 5 seconds
+                setTimeout(() => this.setupWebSocket(), 5000);
             };
 
             this.websocket.onerror = (error) => {
@@ -115,6 +153,37 @@ class ActivityWall {
         } catch (error) {
             console.warn('WebSocket not available, using polling fallback');
             this.updateLiveStatus(false);
+        }
+    }
+
+    sendWebSocketMessage(type, data = null) {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+            const message = {
+                type: type,
+                data: data,
+                timestamp: new Date().toISOString()
+            };
+            this.websocket.send(JSON.stringify(message));
+        }
+    }
+
+    handleWebSocketMessage(message) {
+        switch (message.type) {
+            case 'new_activity':
+                this.addNewActivity(message.data, true);
+                break;
+            case 'recent_activities':
+                this.activities = message.data || [];
+                this.applyFilters();
+                break;
+            case 'statistics':
+                this.updateStats(message.data);
+                break;
+            case 'pong':
+                console.log('WebSocket pong received');
+                break;
+            default:
+                console.log('Unknown WebSocket message type:', message.type);
         }
     }
 
@@ -157,6 +226,22 @@ class ActivityWall {
         } else {
             indicator.classList.add('paused');
             indicator.querySelector('span').textContent = this.isPaused ? 'Пауза' : 'Offline';
+        }
+
+        // Update connection status indicator
+        this.updateConnectionStatus(isConnected);
+    }
+
+    updateConnectionStatus(isConnected) {
+        const statusElement = document.getElementById('connection-status');
+        if (statusElement) {
+            if (isConnected) {
+                statusElement.innerHTML = '<i class="bi bi-wifi" style="color: #28a745;"></i> Свързан';
+                statusElement.classList.remove('offline');
+            } else {
+                statusElement.innerHTML = '<i class="bi bi-wifi-off" style="color: #dc3545;"></i> Offline';
+                statusElement.classList.add('offline');
+            }
         }
     }
 
@@ -218,19 +303,23 @@ class ActivityWall {
             this.activities = this.activities.slice(0, this.maxActivities);
         }
 
-        // Прилагаме филтри
-        if (this.passesFilters(activity)) {
-            this.filteredActivities.unshift(activity);
-            this.addActivityToTable(activity, isRealTime);
+        // ВАЖНО: Прилагаме филтри веднага
+        this.applyFilters();
+
+        // Show toast for real-time activities
+        if (isRealTime) {
+            this.showToast(`Нова активност от ${activity.username}: ${this.formatAction(activity)}`, 'info');
         }
 
         this.updateStats();
     }
 
-    // ===== FILTERING =====
+    // ===== FILTERING - IMPROVED =====
 
     toggleFilter(event) {
         const btn = event.target.closest('.activity-filter-btn');
+        if (!btn) return;
+
         const filterType = btn.dataset.filter;
 
         if (this.filters.types.has(filterType)) {
@@ -241,18 +330,21 @@ class ActivityWall {
             btn.classList.add('active');
         }
 
+        // Мигновенно прилагане на филтрите
         this.applyFilters();
     }
 
-    debouncedUserFilter = this.debounce((value) => {
-        this.filters.user = value.toLowerCase().trim();
-        this.applyFilters();
-    }, 300);
-
     applyFilters() {
+        // Филтрираме всички активности
         this.filteredActivities = this.activities.filter(activity => this.passesFilters(activity));
+
+        // Пререндерираме таблицата
         this.renderActivities();
+
+        // Обновяваме брояча
         this.updateVisibleCount();
+
+        console.log(`Filtered: ${this.filteredActivities.length} of ${this.activities.length} activities`);
     }
 
     passesFilters(activity) {
@@ -261,13 +353,42 @@ class ActivityWall {
             return false;
         }
 
-        // User filter
-        if (this.filters.user &&
-            !activity.username.toLowerCase().includes(this.filters.user)) {
-            return false;
+        // IMPROVED User filter - търси в username
+        if (this.filters.user && this.filters.user.length > 0) {
+            const username = (activity.username || '').toLowerCase();
+            if (!username.includes(this.filters.user)) {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    clearUserFilter() {
+        const userFilter = document.getElementById('activity-user-filter');
+        const clearUserFilter = document.getElementById('clear-user-filter');
+
+        if (userFilter) {
+            userFilter.value = '';
+            this.filters.user = '';
+            this.applyFilters();
+        }
+
+        if (clearUserFilter) {
+            clearUserFilter.style.display = 'none';
+        }
+
+        // Remove highlights
+        this.highlightSearchResults('');
+    }
+
+    highlightSearchResults(searchTerm) {
+        document.querySelectorAll('.activity-user-name').forEach(element => {
+            element.classList.remove('highlight');
+            if (searchTerm && element.textContent.toLowerCase().includes(searchTerm)) {
+                element.classList.add('highlight');
+            }
+        });
     }
 
     // ===== RENDERING =====
@@ -284,6 +405,7 @@ class ActivityWall {
                     <td colspan="6" class="text-center" style="padding: 2rem; color: #6b7280;">
                         <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
                         <div>Няма активности съответстващи на филтрите</div>
+                        <small class="text-muted mt-2">Общо активности: ${this.activities.length}</small>
                     </td>
                 </tr>
             `;
@@ -362,12 +484,12 @@ class ActivityWall {
     createUserCell(activity) {
         const avatar = activity.userImageUrl ?
             `<img src="${activity.userImageUrl}" class="activity-user-avatar" alt="${activity.username}">` :
-            `<div class="activity-user-avatar">${activity.username.charAt(0).toUpperCase()}</div>`;
+            `<div class="activity-user-avatar">${(activity.username || 'A').charAt(0).toUpperCase()}</div>`;
 
         return `
             <div class="activity-user">
                 ${avatar}
-                <span class="activity-user-name">${this.escapeHtml(activity.username)}</span>
+                <span class="activity-user-name">${this.escapeHtml(activity.username || 'Неизвестен')}</span>
             </div>
         `;
     }
@@ -422,7 +544,8 @@ class ActivityWall {
     // ===== CONTROLS =====
 
     clearActivities() {
-        if (!confirm('Сигурни ли сте, че искате да изчистите всички активности?')) return;
+        if (!confirm('Сигурни ли сте, че искате да изчистите всички активности?'))
+            return;
 
         this.activities = [];
         this.filteredActivities = [];
@@ -451,16 +574,29 @@ class ActivityWall {
     }
 
     exportActivities() {
-        const data = this.filteredActivities.map(activity => ({
-            timestamp: new Date(activity.timestamp).toLocaleString('bg-BG'),
-            user: activity.username,
-            action: this.formatAction(activity),
-            details: activity.details,
-            ip: activity.ipAddress
-        }));
+        // FIXED - използва backend API вместо локален CSV
+        window.location.href = '/admin/api/activities/export';
+    }
 
-        const csv = this.convertToCSV(data);
-        this.downloadCSV(csv, `activity_log_${new Date().toISOString().split('T')[0]}.csv`);
+    async manualRefresh() {
+        const btn = document.getElementById('refresh-activities-btn');
+        if (btn) {
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Зареждане...';
+            btn.disabled = true;
+        }
+
+        try {
+            await this.loadInitialActivities();
+            this.showToast('Активностите са обновени успешно!', 'success');
+        } catch (error) {
+            this.showToast('Грешка при обновяване на активностите', 'error');
+        } finally {
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Обнови';
+                btn.disabled = false;
+            }
+        }
     }
 
     // ===== STATS UPDATE =====
@@ -477,8 +613,11 @@ class ActivityWall {
     }
 
     updateVisibleCount() {
+        // Update both places where count is shown
         document.getElementById('visible-activities').textContent = this.filteredActivities.length;
         document.getElementById('total-activities').textContent = this.activities.length;
+        document.getElementById('visible-activities-footer').textContent = this.filteredActivities.length;
+        document.getElementById('total-activities-footer').textContent = this.activities.length;
     }
 
     updateLastUpdate() {
@@ -488,6 +627,28 @@ class ActivityWall {
             second: '2-digit'
         });
         document.getElementById('last-update').textContent = now;
+    }
+
+    // ===== TOAST NOTIFICATIONS =====
+
+    showToast(message, type = 'info') {
+        const toast = document.getElementById('activity-toast');
+        const toastBody = document.getElementById('toast-body');
+        const toastTime = document.getElementById('toast-time');
+
+        if (toast && toastBody) {
+            toastBody.textContent = message;
+            toastTime.textContent = new Date().toLocaleTimeString('bg-BG', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Set toast color based on type
+            toast.className = `toast ${type === 'error' ? 'border-danger' : type === 'success' ? 'border-success' : 'border-info'}`;
+
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
     }
 
     // ===== ACTIVITY DETAILS MODAL =====
@@ -515,7 +676,7 @@ class ActivityWall {
             </div>
             <div class="detail-row">
                 <div class="detail-label">Потребител:</div>
-                <div class="detail-value">${this.escapeHtml(activity.username)}</div>
+                <div class="detail-value">${this.escapeHtml(activity.username || 'Неизвестен')}</div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Действие:</div>
@@ -534,6 +695,18 @@ class ActivityWall {
                 <div class="detail-value">${this.escapeHtml(activity.userAgent || 'Неизвестен')}</div>
             </div>
         `;
+    }
+
+    copyActivityDetails() {
+        const modalContent = document.querySelector('.activity-detail-content');
+        if (modalContent) {
+            const text = modalContent.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                this.showToast('Детайлите са копирани в clipboard!', 'success');
+            }).catch(() => {
+                this.showToast('Грешка при копиране', 'error');
+            });
+        }
     }
 
     // ===== UTILITY HELPERS =====
@@ -575,48 +748,10 @@ class ActivityWall {
     }
 
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
-
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    convertToCSV(data) {
-        if (!data.length) return '';
-
-        const headers = Object.keys(data[0]);
-        const csvContent = [
-            headers.join(','),
-            ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
-        ].join('\n');
-
-        return csvContent;
-    }
-
-    downloadCSV(csv, filename) {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
     }
 
     // ===== CLEANUP =====
@@ -655,3 +790,27 @@ window.addEventListener('beforeunload', function() {
 
 // Export за използване в други модули
 window.ActivityWall = ActivityWall;
+
+// Add required CSS animations if not present
+if (!document.querySelector('#activity-wall-animations')) {
+    const style = document.createElement('style');
+    style.id = 'activity-wall-animations';
+    style.textContent = `
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .highlight {
+            background: rgba(255, 235, 59, 0.6) !important;
+            font-weight: bold !important;
+            border-radius: 3px;
+            padding: 1px 3px;
+        }
+    `;
+    document.head.appendChild(style);
+}

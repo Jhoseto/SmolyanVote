@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('refresh-btn').addEventListener('click', function() {
         this.disabled = true;
-        this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Зареждане...';
+        this.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Зареждане...';
 
         loadAllDashboardData().finally(() => {
             this.disabled = false;
@@ -83,9 +83,11 @@ async function loadAllDashboardData() {
         ]);
 
         updateLastRefresh();
+        showToast('Данните са обновени успешно', 'success');
 
     } catch (error) {
         console.error('Error loading dashboard data:', error);
+        showToast('Грешка при зареждане на данните', 'error');
     }
 }
 
@@ -335,6 +337,90 @@ function updateLastRefresh() {
     elements.forEach(el => el.textContent = timeString);
 }
 
+// ===== TOAST NOTIFICATIONS =====
+function showToast(message, type = 'info') {
+    let toast = document.getElementById('admin-toast');
+    if (!toast) {
+        toast = createToast();
+    }
+
+    const toastBody = toast.querySelector('.toast-body');
+    const toastTime = toast.querySelector('.toast-time');
+
+    if (toastBody) {
+        toastBody.textContent = message;
+    }
+
+    if (toastTime) {
+        toastTime.textContent = new Date().toLocaleTimeString('bg-BG', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    toast.className = `toast ${type === 'error' ? 'border-danger' : type === 'success' ? 'border-success' : 'border-info'}`;
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+function createToast() {
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '1080';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.className = 'toast';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="bi bi-gear-fill text-primary me-2"></i>
+            <strong class="me-auto">Админ панел</strong>
+            <small class="text-muted toast-time">Сега</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Съобщение
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+    return toast;
+}
+
+// ===== ACTIVITY WALL INTEGRATION =====
+function getActivityWallInstance() {
+    return window.activityWallInstance || null;
+}
+
+function isActivityWallActive() {
+    const activityWall = getActivityWallInstance();
+    return activityWall && activityWall.isLive;
+}
+
+function pauseActivityWall() {
+    const activityWall = getActivityWallInstance();
+    if (activityWall && !activityWall.isPaused) {
+        activityWall.togglePause();
+    }
+}
+
+function resumeActivityWall() {
+    const activityWall = getActivityWallInstance();
+    if (activityWall && activityWall.isPaused) {
+        activityWall.togglePause();
+    }
+}
+
+// ===== ORIGINAL EXPORTS =====
 window.forceReportsRefresh = function() {
     const reportsSection = document.getElementById('reports-management');
     if (reportsSection && !reportsSection.classList.contains('collapsed')) {
@@ -348,3 +434,10 @@ window.isReportsSectionVisible = function() {
     const reportsSection = document.getElementById('reports-management');
     return reportsSection && !reportsSection.classList.contains('collapsed');
 };
+
+// ===== NEW EXPORTS =====
+window.showToast = showToast;
+window.getActivityWallInstance = getActivityWallInstance;
+window.isActivityWallActive = isActivityWallActive;
+window.pauseActivityWall = pauseActivityWall;
+window.resumeActivityWall = resumeActivityWall;

@@ -25,21 +25,26 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
 
-        // ===== ADMIN ACTIVITY WALL =====
+        // ===== ADMIN ACTIVITY WALL - FIXED =====
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
-                .setAllowedOrigins("*") // За development - в production настрой домейните
+                .setAllowedOriginPatterns("*") // FIXED: използва patterns вместо origins
                 .withSockJS(); // Fallback за браузъри без WebSocket поддръжка
+
+        // Alternative endpoint без SockJS за директна WebSocket връзка
+        registry.addHandler(activityWebSocketHandler, "/ws/admin/activity-direct")
+                .setAllowedOriginPatterns("*");
 
         // ===== БЪДЕЩИ ENDPOINTS =====
         // registry.addHandler(notificationWebSocketHandler, "/ws/user/notifications")
-        //         .setAllowedOrigins("*")
+        //         .setAllowedOriginPatterns("*")
         //         .withSockJS();
 
         // registry.addHandler(chatWebSocketHandler, "/ws/chat")
-        //         .setAllowedOrigins("*")
+        //         .setAllowedOriginPatterns("*")
         //         .withSockJS();
 
         System.out.println("✅ WebSocket endpoints registered:");
-        System.out.println("   - /ws/admin/activity (Activity Wall)");
+        System.out.println("   - /ws/admin/activity (Activity Wall with SockJS)");
+        System.out.println("   - /ws/admin/activity-direct (Activity Wall direct)");
     }
 }
