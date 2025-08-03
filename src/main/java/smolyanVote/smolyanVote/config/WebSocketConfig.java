@@ -25,26 +25,46 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
 
-        // ===== ADMIN ACTIVITY WALL - FIXED =====
+        // Environment-aware origins
+        String[] allowedOrigins = getAllowedOrigins();
+
+        // ===== ADMIN ACTIVITY WALL - SECURE =====
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
-                .setAllowedOriginPatterns("*") // FIXED: използва patterns вместо origins
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS(); // Fallback за браузъри без WebSocket поддръжка
 
-        // Alternative endpoint без SockJS за директна WebSocket връзка
+        // Alternative endpoint без SockJS
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity-direct")
-                .setAllowedOriginPatterns("*");
-
-        // ===== БЪДЕЩИ ENDPOINTS =====
-        // registry.addHandler(notificationWebSocketHandler, "/ws/user/notifications")
-        //         .setAllowedOriginPatterns("*")
-        //         .withSockJS();
-
-        // registry.addHandler(chatWebSocketHandler, "/ws/chat")
-        //         .setAllowedOriginPatterns("*")
-        //         .withSockJS();
+                .setAllowedOriginPatterns(allowedOrigins);
 
         System.out.println("✅ WebSocket endpoints registered:");
         System.out.println("   - /ws/admin/activity (Activity Wall with SockJS)");
         System.out.println("   - /ws/admin/activity-direct (Activity Wall direct)");
+        System.out.println("   - Allowed origins: " + String.join(", ", allowedOrigins));
+    }
+
+    /**
+     * Връща разрешените origins въз основа на environment
+     */
+    private String[] getAllowedOrigins() {
+        String profile = System.getProperty("spring.profiles.active", "dev");
+
+        if (profile.contains("dev") || profile.contains("local")) {
+            // Development environment - само localhost
+            return new String[]{
+                    "http://localhost:2662",
+                    "http://127.0.0.1:2662",
+                    "ws://localhost:2662",
+                    "wss://localhost:2662"
+            };
+        } else {
+            // Production environment - само production домейни
+            return new String[]{
+                    "https://smolyanvote.com",
+                    "https://www.smolyanvote.com",
+                    "wss://smolyanvote.com",
+                    "wss://www.smolyanvote.com"
+            };
+        }
     }
 }
