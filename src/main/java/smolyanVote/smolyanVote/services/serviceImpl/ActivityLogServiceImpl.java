@@ -1,8 +1,8 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
@@ -31,7 +31,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Autowired
     public ActivityLogServiceImpl(ActivityLogRepository activityLogRepository,
-                                  ActivityWebSocketHandler activityWebSocketHandler) {
+                                  @Lazy ActivityWebSocketHandler activityWebSocketHandler) {
         this.activityLogRepository = activityLogRepository;
         this.activityWebSocketHandler = activityWebSocketHandler;
     }
@@ -51,7 +51,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
             ActivityLogEntity savedLog = activityLogRepository.save(log);
 
-            // Изпращаме real-time update към админите
+            // Real-time broadcast към админите
             if (activityWebSocketHandler != null) {
                 activityWebSocketHandler.broadcastNewActivity(savedLog);
             }
@@ -61,8 +61,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
     }
 
-    @Async("activityLogExecutor")
     @Override
+    @Async("activityLogExecutor")
     public void logActivity(ActivityActionEnum action, UserEntity user, String ipAddress, String userAgent) {
         logActivity(action, user, null, null, null, ipAddress, userAgent);
     }
@@ -77,7 +77,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
             ActivityLogEntity savedLog = activityLogRepository.save(log);
 
-            // Изпращаме real-time update към админите
             if (activityWebSocketHandler != null) {
                 activityWebSocketHandler.broadcastNewActivity(savedLog);
             }
@@ -91,12 +90,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Async("activityLogExecutor")
     public void logActivity(String action, UserEntity user, String entityType, Long entityId,
                             String details, String ipAddress, String userAgent) {
-        // Legacy метод - конвертираме String към enum ако е възможно
         ActivityActionEnum actionEnum = ActivityActionEnum.fromString(action);
         if (actionEnum != null) {
             logActivity(actionEnum, user, entityType, entityId, details, ipAddress, userAgent);
         } else {
-            // Fallback към директно записване на String-а
             try {
                 Long userId = user != null ? user.getId() : null;
                 String username = user != null ? user.getUsername() : "Anonymous";
@@ -106,7 +103,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
                 ActivityLogEntity savedLog = activityLogRepository.save(log);
 
-                // Изпращаме real-time update към админите
                 if (activityWebSocketHandler != null) {
                     activityWebSocketHandler.broadcastNewActivity(savedLog);
                 }
@@ -117,7 +113,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
     }
 
-    // ===== СПЕЦИАЛНИ МЕТОДИ ЗА ГЛАСУВАНИЯ =====
+    // ===== VOTING TRACKING =====
 
     @Override
     @Async("activityLogExecutor")
@@ -140,12 +136,12 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         logActivity(ActivityActionEnum.VOTE_MULTI_POLL, user, "MULTI_POLL", pollId, details, ipAddress, userAgent);
     }
 
-    // ===== RETRIEVAL METHODS =====
+    // ===== ACTIVITY WALL =====
 
     @Override
     @Transactional(readOnly = true)
     public List<ActivityLogEntity> getRecentActivities(int limit) {
-        limit = Math.min(Math.max(1, limit), 1000); // Ограничаваме между 1 и 1000
+        limit = Math.min(Math.max(1, limit), 1000);
         return activityLogRepository.findTop100ByOrderByTimestampDesc()
                 .stream()
                 .limit(limit)
@@ -163,50 +159,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ActivityLogEntity> getActivitiesWithFilters(String action, String username,
-                                                            String entityType, LocalDateTime since,
-                                                            Pageable pageable) {
-        try {
-            // За сега имплементираме базово филтриране
-            // По-късно можем да добавим custom query с всички филтри
-
-            if (action != null && !action.trim().isEmpty()) {
-                return activityLogRepository.findByActionOrderByTimestampDesc(action, pageable);
-            }
-
-            if (username != null && !username.trim().isEmpty()) {
-                return activityLogRepository.findByUsernameContainingIgnoreCaseOrderByTimestampDesc(username, pageable);
-            }
-
-            if (entityType != null && !entityType.trim().isEmpty()) {
-                return activityLogRepository.findByEntityTypeOrderByTimestampDesc(entityType, pageable);
-            }
-
-            // Ако няма филтри, връщаме всички
-            return activityLogRepository.findAll(pageable);
-
-        } catch (Exception e) {
-            System.err.println("Error filtering activities: " + e.getMessage());
-            return new PageImpl<>(Collections.emptyList(), pageable, 0);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ActivityLogEntity> getActivitiesForEntity(String entityType, Long entityId) {
-        return activityLogRepository.findByEntityTypeAndEntityIdOrderByTimestampDesc(entityType, entityId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ActivityLogEntity> getActivitiesForUser(Long userId, Pageable pageable) {
-        return activityLogRepository.findByUserIdOrderByTimestampDesc(userId, pageable);
-    }
-
-    // ===== STATISTICS METHODS =====
-
-    @Override
-    @Transactional(readOnly = true)
     public Map<String, Object> getActivityStatistics() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -215,14 +167,12 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             LocalDateTime oneHourAgo = now.minusHours(1);
             LocalDateTime oneDayAgo = now.minusDays(1);
 
-            // Основни статистики
             stats.put("lastHour", activityLogRepository.countActivitiesSince(oneHourAgo));
             stats.put("today", activityLogRepository.countActivitiesSince(oneDayAgo));
             stats.put("onlineUsers", getEstimatedOnlineUsers());
 
-            // Най-активни потребители за последните 24ч
-            List<Object[]> activeUsers = activityLogRepository.findMostActiveUsers(
-                    oneDayAgo, PageRequest.of(0, 5));
+            // Top users (последните 24ч)
+            List<Object[]> activeUsers = activityLogRepository.findMostActiveUsers(oneDayAgo, PageRequest.of(0, 5));
             List<Map<String, Object>> topUsers = new ArrayList<>();
             for (Object[] row : activeUsers) {
                 Map<String, Object> user = new HashMap<>();
@@ -232,7 +182,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             }
             stats.put("topUsers", topUsers);
 
-            // Най-чести действия
+            // Top actions
             List<Object[]> frequentActions = activityLogRepository.findMostFrequentActions(oneDayAgo);
             List<Map<String, Object>> topActions = new ArrayList<>();
             for (Object[] row : frequentActions) {
@@ -249,6 +199,20 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             System.err.println("Error generating activity statistics: " + e.getMessage());
             return Collections.emptyMap();
         }
+    }
+
+    // ===== SEARCH & FILTERING =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ActivityLogEntity> getActivitiesForEntity(String entityType, Long entityId) {
+        return activityLogRepository.findByEntityTypeAndEntityIdOrderByTimestampDesc(entityType, entityId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivityLogEntity> getActivitiesForUser(Long userId, Pageable pageable) {
+        return activityLogRepository.findByUserIdOrderByTimestampDesc(userId, pageable);
     }
 
     @Override
@@ -280,13 +244,11 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Override
     @Transactional(readOnly = true)
     public long getEstimatedOnlineUsers() {
-        // Считаме за "онлайн" потребителите с активност в последните 15 минути
         LocalDateTime fifteenMinutesAgo = LocalDateTime.now().minusMinutes(15);
 
         try {
             List<ActivityLogEntity> recentActivities = activityLogRepository.findRecentActivities(fifteenMinutesAgo);
 
-            // Броим уникалните потребители
             Set<Long> uniqueUsers = recentActivities.stream()
                     .filter(activity -> activity.getUserId() != null)
                     .map(ActivityLogEntity::getUserId)
@@ -299,7 +261,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
     }
 
-    // ===== IP TRACKING METHODS =====
+    // ===== IP TRACKING =====
 
     @Override
     @Transactional(readOnly = true)
@@ -321,10 +283,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
 
         try {
-            // Проверяваме дали има твърде много активности от този IP за последните 24ч
             LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
             long activityCount = activityLogRepository.countActivitiesFromIpSince(ipAddress, oneDayAgo);
-
             return activityCount > MAX_ACTIVITIES_PER_IP_PER_DAY;
 
         } catch (Exception e) {
@@ -333,7 +293,33 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
     }
 
-    // ===== CLEANUP METHODS =====
+    // ===== SCHEDULER SUPPORT =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getWeekActivitiesCount() {
+        try {
+            LocalDateTime weekAgo = LocalDateTime.now().minusWeeks(1);
+            return activityLogRepository.countActivitiesSince(weekAgo);
+        } catch (Exception e) {
+            System.err.println("Error getting week activities count: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getLastHourActivitiesCount() {
+        try {
+            LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+            return activityLogRepository.countActivitiesSince(oneHourAgo);
+        } catch (Exception e) {
+            System.err.println("Error getting last hour activities count: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ===== MAINTENANCE =====
 
     @Override
     @Transactional
@@ -366,6 +352,32 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             }
         } catch (Exception e) {
             System.err.println("Error during activity logs cleanup: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivityLogEntity> getActivitiesWithFilters(String action, String username,
+                                                            String entityType, LocalDateTime since,
+                                                            Pageable pageable) {
+        try {
+            if (action != null && !action.trim().isEmpty()) {
+                return activityLogRepository.findByActionOrderByTimestampDesc(action, pageable);
+            }
+
+            if (username != null && !username.trim().isEmpty()) {
+                return activityLogRepository.findByUsernameContainingIgnoreCaseOrderByTimestampDesc(username, pageable);
+            }
+
+            if (entityType != null && !entityType.trim().isEmpty()) {
+                return activityLogRepository.findByEntityTypeOrderByTimestampDesc(entityType, pageable);
+            }
+
+            return activityLogRepository.findAll(pageable);
+
+        } catch (Exception e) {
+            System.err.println("Error filtering activities: " + e.getMessage());
+            return Page.empty(pageable);
         }
     }
 }
