@@ -295,7 +295,7 @@ public class AdminActivityController {
 
             for (ActivityLogEntity activity : activitiesPage.getContent()) {
                 csv.append(escapeCSV(activity.getId()))
-                        .append(",").append(escapeCSV(activity.getTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
+                        .append(",").append(escapeCSV(activity.getTimestamp()))
                         .append(",").append(escapeCSV(activity.getUsername()))
                         .append(",").append(escapeCSV(activity.getAction()))
                         .append(",").append(escapeCSV(activity.getEntityType()))

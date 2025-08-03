@@ -115,30 +115,34 @@ class ActivityWall {
 
     setupWebSocket() {
         try {
-            // SECURE WebSocket URL - базирано на текущия location
+            // Определяваме протокола - WSS за HTTPS, WS за HTTP
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const hostname = window.location.hostname;
             const port = window.location.port;
 
             let wsUrl;
 
-            // Secure URL construction
+            // Environment detection и URL construction
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                // Development - explicit port check
+                // ===== DEVELOPMENT ENVIRONMENT =====
                 const wsPort = port === '2662' ? '2662' : (port || '2662');
-                wsUrl = `${protocol}//${hostname}:${wsPort}/ws/admin/activity`;
+                wsUrl = `${protocol}//${hostname}:${wsPort}/ws/admin/activity/websocket`;
+                console.log(`🛠 Development mode detected`);
             } else {
-                // Production - използва точно текущия host без промени
-                wsUrl = `${protocol}//${window.location.host}/ws/admin/activity`;
+                // ===== PRODUCTION ENVIRONMENT =====
+                wsUrl = `${protocol}//${window.location.host}/ws/admin/activity/websocket`;
+                console.log(`🚀 Production mode detected`);
             }
 
-            console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
+            console.log(`🔌 Connecting to SockJS WebSocket: ${wsUrl}`);
             console.log(`📍 Environment: ${hostname === 'localhost' || hostname === '127.0.0.1' ? 'Development' : 'Production'}`);
 
+            // Създаваме WebSocket връзката
             this.websocket = new WebSocket(wsUrl);
 
+            // Event handlers
             this.websocket.onopen = () => {
-                console.log('✅ WebSocket connected successfully');
+                console.log('✅ SockJS WebSocket connected successfully');
                 this.updateLiveStatus(true);
 
                 // Request recent activities след успешна връзка
@@ -155,57 +159,87 @@ class ActivityWall {
             };
 
             this.websocket.onclose = (event) => {
-                console.log(`⚠️ WebSocket disconnected (Code: ${event.code}, Reason: ${event.reason || 'Unknown'})`);
+                console.log(`⚠️ SockJS WebSocket disconnected (Code: ${event.code}, Reason: ${event.reason || 'Unknown'})`);
                 console.log('🔄 Falling back to polling mode');
                 this.updateLiveStatus(false);
 
                 // Reconnect след 5 секунди
                 setTimeout(() => {
-                    console.log('🔄 Attempting WebSocket reconnection...');
+                    console.log('🔄 Attempting SockJS WebSocket reconnection...');
                     this.setupWebSocket();
                 }, 5000);
             };
 
             this.websocket.onerror = (error) => {
-                console.error('❌ WebSocket connection error:', error);
-                console.log('🔍 Check: 1) Server running 2) Admin logged in 3) CORS settings');
-                this.updateLiveStatus(false);
+                console.error('❌ SockJS WebSocket connection error:', error);
+                console.log('🔍 Check: 1) Server running 2) Admin logged in 3) SockJS endpoint available');
             };
 
         } catch (error) {
-            console.warn('⚠️ WebSocket initialization failed, using polling fallback:', error);
+            console.error('❌ Failed to setup SockJS WebSocket:', error);
+            console.log('🔄 Falling back to polling mode');
             this.updateLiveStatus(false);
+            this.startPolling();
         }
     }
 
-    sendWebSocketMessage(type, data = null) {
+    sendWebSocketMessage(type, data = {}) {
         if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-            const message = {
-                type: type,
-                data: data,
-                timestamp: new Date().toISOString()
-            };
-            this.websocket.send(JSON.stringify(message));
+            try {
+                const message = {
+                    type: type,
+                    data: data,
+                    timestamp: new Date().toISOString().slice(0, -1)};
+
+                this.websocket.send(JSON.stringify(message));
+                console.log(`📤 Sent WebSocket message: ${type}`);
+
+            } catch (error) {
+                console.error('❌ Failed to send WebSocket message:', error);
+            }
+        } else {
+            console.warn('⚠️ WebSocket not ready, message not sent:', type);
         }
     }
 
     handleWebSocketMessage(message) {
-        switch (message.type) {
-            case 'new_activity':
-                this.addNewActivity(message.data, true);
-                break;
-            case 'recent_activities':
-                this.activities = message.data || [];
-                this.applyFilters();
-                break;
-            case 'statistics':
-                this.updateStats(message.data);
-                break;
-            case 'pong':
-                console.log('WebSocket pong received');
-                break;
-            default:
-                console.log('Unknown WebSocket message type:', message.type);
+        try {
+            console.log(`📥 Received WebSocket message: ${message.type}`);
+
+            switch (message.type) {
+                case 'pong':
+                    console.log('🏓 Pong received from server');
+                    break;
+
+                case 'recent_activities':
+                    if (message.data && Array.isArray(message.data)) {
+                        this.activities = message.data;
+                        this.applyFilters();
+                        this.renderActivities();
+                        console.log(`📊 Loaded ${message.data.length} recent activities`);
+                    }
+                    break;
+
+                case 'new_activity':
+                    if (message.data) {
+                        this.addNewActivity(message.data);
+                        console.log('🆕 New activity added');
+                    }
+                    break;
+
+                case 'statistics':
+                    if (message.data) {
+                        this.updateStatistics(message.data);
+                        console.log('📈 Statistics updated');
+                    }
+                    break;
+
+                default:
+                    console.log(`❓ Unknown message type: ${message.type}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Error handling WebSocket message:', error);
         }
     }
 
