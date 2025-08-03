@@ -11,10 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
-import smolyanVote.smolyanVote.viewsAndDTO.ActivityMessageDto;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -29,26 +27,19 @@ import java.util.stream.Collectors;
 public class AdminActivityController {
 
     private final ActivityLogService activityLogService;
-    private final ActivityWebSocketHandler activityWebSocketHandler;
 
     @Autowired
-    public AdminActivityController(ActivityLogService activityLogService,
-                                   ActivityWebSocketHandler activityWebSocketHandler) {
+    public AdminActivityController(ActivityLogService activityLogService) {
         this.activityLogService = activityLogService;
-        this.activityWebSocketHandler = activityWebSocketHandler;
     }
 
     // ===== RECENT ACTIVITIES =====
 
-    /**
-     * Връща последните активности за Activity Wall
-     */
     @GetMapping("/recent")
     public ResponseEntity<Map<String, Object>> getRecentActivities(
             @RequestParam(defaultValue = "50") int limit) {
 
         try {
-            // Валидираме limit
             limit = Math.min(Math.max(1, limit), 500);
 
             List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
@@ -69,9 +60,6 @@ public class AdminActivityController {
         }
     }
 
-    /**
-     * Връща нови активности след определено ID (за real-time updates)
-     */
     @GetMapping("/since/{lastId}")
     public ResponseEntity<Map<String, Object>> getActivitiesSinceId(@PathVariable Long lastId) {
 
@@ -95,9 +83,6 @@ public class AdminActivityController {
 
     // ===== FILTERED ACTIVITIES =====
 
-    /**
-     * Връща активности с филтриране и пагинация
-     */
     @GetMapping("/filtered")
     public ResponseEntity<Map<String, Object>> getFilteredActivities(
             @RequestParam(required = false) String action,
@@ -110,15 +95,12 @@ public class AdminActivityController {
             @RequestParam(defaultValue = "desc") String sortDir) {
 
         try {
-            // Валидираме параметри
             size = Math.min(Math.max(1, size), 100);
             page = Math.max(0, page);
 
-            // Създаваме Pageable
             Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            // Търсим с филтри
             Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesWithFilters(
                     action, username, entityType, since, pageable);
 
@@ -133,7 +115,6 @@ public class AdminActivityController {
             response.put("hasPrevious", activitiesPage.hasPrevious());
             response.put("timestamp", LocalDateTime.now());
 
-            // Добавяме filter info
             Map<String, Object> filters = new HashMap<>();
             filters.put("action", action);
             filters.put("username", username);
@@ -151,9 +132,6 @@ public class AdminActivityController {
 
     // ===== STATISTICS =====
 
-    /**
-     * Връща статистики за активностите
-     */
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getActivityStatistics() {
 
@@ -173,9 +151,6 @@ public class AdminActivityController {
         }
     }
 
-    /**
-     * Връща top потребители за период
-     */
     @GetMapping("/stats/top-users")
     public ResponseEntity<Map<String, Object>> getTopUsers(
             @RequestParam(defaultValue = "10") int limit,
@@ -183,7 +158,7 @@ public class AdminActivityController {
 
         try {
             limit = Math.min(Math.max(1, limit), 50);
-            hours = Math.min(Math.max(1, hours), 720); // max 30 дни
+            hours = Math.min(Math.max(1, hours), 720);
 
             LocalDateTime since = LocalDateTime.now().minusHours(hours);
             List<Map<String, Object>> topUsers = activityLogService.getTopUsers(limit, since);
@@ -202,15 +177,12 @@ public class AdminActivityController {
         }
     }
 
-    /**
-     * Връща top действия за период
-     */
     @GetMapping("/stats/top-actions")
     public ResponseEntity<Map<String, Object>> getTopActions(
             @RequestParam(defaultValue = "24") int hours) {
 
         try {
-            hours = Math.min(Math.max(1, hours), 720); // max 30 дни
+            hours = Math.min(Math.max(1, hours), 720);
 
             LocalDateTime since = LocalDateTime.now().minusHours(hours);
             List<Map<String, Object>> topActions = activityLogService.getTopActions(since);
@@ -231,9 +203,6 @@ public class AdminActivityController {
 
     // ===== ENTITY ACTIVITIES =====
 
-    /**
-     * Връща активности за конкретен entity
-     */
     @GetMapping("/entity/{entityType}/{entityId}")
     public ResponseEntity<Map<String, Object>> getActivitiesForEntity(
             @PathVariable String entityType,
@@ -260,9 +229,6 @@ public class AdminActivityController {
 
     // ===== IP TRACKING =====
 
-    /**
-     * Връща активности от конкретен IP адрес
-     */
     @GetMapping("/ip/{ipAddress}")
     public ResponseEntity<Map<String, Object>> getActivitiesFromIp(@PathVariable String ipAddress) {
 
@@ -286,9 +252,6 @@ public class AdminActivityController {
         }
     }
 
-    /**
-     * Връща IP адресите на потребител
-     */
     @GetMapping("/user/{userId}/ips")
     public ResponseEntity<Map<String, Object>> getUserIpAddresses(@PathVariable Long userId) {
 
@@ -310,35 +273,8 @@ public class AdminActivityController {
         }
     }
 
-    // ===== WEBSOCKET INFO =====
-
-    /**
-     * Връща информация за WebSocket връзките
-     */
-    @GetMapping("/websocket/info")
-    public ResponseEntity<Map<String, Object>> getWebSocketInfo() {
-
-        try {
-            Map<String, Object> connectionInfo = activityWebSocketHandler.getConnectionInfo();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("websocket", connectionInfo);
-            response.put("timestamp", LocalDateTime.now());
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            System.err.println("❌ Error loading WebSocket info: " + e.getMessage());
-            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на WebSocket информацията: " + e.getMessage()));
-        }
-    }
-
     // ===== EXPORT =====
 
-    /**
-     * Експортира активности като CSV
-     */
     @GetMapping("/export")
     public ResponseEntity<String> exportActivities(
             @RequestParam(required = false) String action,
@@ -348,15 +284,12 @@ public class AdminActivityController {
             @RequestParam(defaultValue = "1000") int limit) {
 
         try {
-            // Ограничаваме експорта
             limit = Math.min(Math.max(1, limit), 10000);
 
-            // Зареждаме данни
             Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
             Page<ActivityLogEntity> activitiesPage = activityLogService.getActivitiesWithFilters(
                     action, username, entityType, since, pageable);
 
-            // Генерираме CSV
             StringBuilder csv = new StringBuilder();
             csv.append("ID,Timestamp,Username,Action,EntityType,EntityID,Details,IPAddress\n");
 
@@ -372,7 +305,6 @@ public class AdminActivityController {
                         .append("\n");
             }
 
-            // Генерираме filename
             String filename = "activity_log_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".csv";
 
             return ResponseEntity.ok()
@@ -388,15 +320,12 @@ public class AdminActivityController {
 
     // ===== CLEANUP =====
 
-    /**
-     * Стартира ръчно изчистване на стари записи
-     */
     @PostMapping("/cleanup")
     public ResponseEntity<Map<String, Object>> triggerCleanup(
             @RequestParam(defaultValue = "30") int retentionDays) {
 
         try {
-            retentionDays = Math.min(Math.max(1, retentionDays), 365); // max 1 година
+            retentionDays = Math.min(Math.max(1, retentionDays), 365);
 
             activityLogService.cleanupOldActivities(retentionDays);
 
@@ -416,46 +345,82 @@ public class AdminActivityController {
 
     // ===== HELPER METHODS =====
 
-    /**
-     * Конвертира ActivityLogEntity към JSON-friendly format
-     */
     private List<Map<String, Object>> convertActivitiesToJson(List<ActivityLogEntity> activities) {
         return activities.stream().map(activity -> {
-            ActivityMessageDto dto = ActivityMessageDto.createFull(
-                    activity.getId(),
-                    activity.getTimestamp(),
-                    activity.getUserId(),
-                    activity.getUsername(),
-                    activity.getAction(),
-                    activity.getEntityType(),
-                    activity.getEntityId(),
-                    activity.getDetails(),
-                    activity.getIpAddress(),
-                    activity.getUserAgent()
-            );
-
             Map<String, Object> map = new HashMap<>();
-            map.put("id", dto.getId());
-            map.put("timestamp", dto.getTimestamp());
-            map.put("userId", dto.getUserId());
-            map.put("username", dto.getUsername());
-            map.put("action", dto.getAction());
-            map.put("entityType", dto.getEntityType());
-            map.put("entityId", dto.getEntityId());
-            map.put("details", dto.getDetails());
-            map.put("ipAddress", dto.getIpAddress());
-            map.put("type", dto.getType());
-            map.put("displayText", dto.getDisplayText());
-            map.put("iconClass", dto.getIconClass());
-            map.put("colorClass", dto.getColorClass());
+            map.put("id", activity.getId());
+            map.put("timestamp", activity.getTimestamp());
+            map.put("userId", activity.getUserId());
+            map.put("username", activity.getUsername());
+            map.put("action", activity.getAction());
+            map.put("entityType", activity.getEntityType());
+            map.put("entityId", activity.getEntityId());
+            map.put("details", activity.getDetails());
+            map.put("ipAddress", activity.getIpAddress());
+            map.put("type", determineActivityType(activity.getAction()));
+            map.put("displayText", generateDisplayText(activity));
+            map.put("iconClass", generateIconClass(activity.getAction()));
+            map.put("colorClass", generateColorClass(activity.getAction()));
 
             return map;
         }).collect(Collectors.toList());
     }
 
-    /**
-     * Създава error response
-     */
+    private String determineActivityType(String action) {
+        if (action == null) return "other";
+        String actionLower = action.toLowerCase();
+
+        if (actionLower.contains("create")) return "create";
+        if (actionLower.contains("like") || actionLower.contains("vote") || actionLower.contains("share")) return "interact";
+        if (actionLower.contains("delete") || actionLower.contains("report") || actionLower.contains("moderate")) return "moderate";
+        if (actionLower.contains("login") || actionLower.contains("logout") || actionLower.contains("register")) return "auth";
+
+        return "other";
+    }
+
+    private String generateDisplayText(ActivityLogEntity activity) {
+        StringBuilder text = new StringBuilder();
+        text.append(activity.getUsername() != null ? activity.getUsername() : "Anonymous");
+        text.append(" ");
+
+        if (activity.getAction() != null) {
+            String actionText = activity.getAction().toLowerCase().replace("_", " ");
+            text.append(actionText);
+        }
+
+        if (activity.getEntityType() != null && activity.getEntityId() != null) {
+            text.append(" (").append(activity.getEntityType()).append(" #").append(activity.getEntityId()).append(")");
+        }
+
+        return text.toString();
+    }
+
+    private String generateIconClass(String action) {
+        if (action == null) return "bi-circle";
+        String actionLower = action.toLowerCase();
+
+        if (actionLower.contains("create")) return "bi-plus-circle";
+        if (actionLower.contains("like")) return "bi-heart";
+        if (actionLower.contains("vote")) return "bi-check-circle";
+        if (actionLower.contains("login")) return "bi-box-arrow-in-right";
+        if (actionLower.contains("logout")) return "bi-box-arrow-left";
+        if (actionLower.contains("delete")) return "bi-trash";
+
+        return "bi-circle";
+    }
+
+    private String generateColorClass(String action) {
+        if (action == null) return "text-secondary";
+        String actionLower = action.toLowerCase();
+
+        if (actionLower.contains("create") || actionLower.contains("like")) return "text-success";
+        if (actionLower.contains("vote") || actionLower.contains("login")) return "text-primary";
+        if (actionLower.contains("delete")) return "text-danger";
+        if (actionLower.contains("logout")) return "text-warning";
+
+        return "text-secondary";
+    }
+
     private Map<String, Object> createErrorResponse(String message) {
         Map<String, Object> error = new HashMap<>();
         error.put("success", false);
@@ -464,9 +429,6 @@ public class AdminActivityController {
         return error;
     }
 
-    /**
-     * Escape CSV стойности
-     */
     private String escapeCSV(Object value) {
         if (value == null) return "";
         String str = value.toString();

@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.componentsAndSecurity;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -237,8 +238,8 @@ public class ActivityStatsScheduler {
     /**
      * Emergency cleanup при изключване на приложението
      */
-    @EventListener
-    public void onShutdown() {
+    @EventListener(ContextClosedEvent.class)
+    public void onShutdown(ContextClosedEvent event) {
         try {
             System.out.println("🛑 Activity monitoring system shutdown initiated");
 
