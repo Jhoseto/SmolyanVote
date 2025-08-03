@@ -114,18 +114,34 @@ class ActivityWall {
     }
 
     setupWebSocket() {
-        // FIXED WebSocket URL
         try {
+            // SECURE WebSocket URL - базирано на текущия location
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/admin/activity`;
+            const hostname = window.location.hostname;
+            const port = window.location.port;
+
+            let wsUrl;
+
+            // Secure URL construction
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                // Development - explicit port check
+                const wsPort = port === '2662' ? '2662' : (port || '2662');
+                wsUrl = `${protocol}//${hostname}:${wsPort}/ws/admin/activity`;
+            } else {
+                // Production - използва точно текущия host без промени
+                wsUrl = `${protocol}//${window.location.host}/ws/admin/activity`;
+            }
+
+            console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
+            console.log(`📍 Environment: ${hostname === 'localhost' || hostname === '127.0.0.1' ? 'Development' : 'Production'}`);
 
             this.websocket = new WebSocket(wsUrl);
 
             this.websocket.onopen = () => {
-                console.log('✅ WebSocket connected');
+                console.log('✅ WebSocket connected successfully');
                 this.updateLiveStatus(true);
 
-                // Request recent activities
+                // Request recent activities след успешна връзка
                 this.sendWebSocketMessage('get_recent', { limit: 50 });
             };
 
@@ -134,24 +150,30 @@ class ActivityWall {
                     const message = JSON.parse(event.data);
                     this.handleWebSocketMessage(message);
                 } catch (error) {
-                    console.error('WebSocket message parse error:', error);
+                    console.error('❌ WebSocket message parse error:', error);
                 }
             };
 
-            this.websocket.onclose = () => {
-                console.log('⚠️ WebSocket disconnected, falling back to polling');
+            this.websocket.onclose = (event) => {
+                console.log(`⚠️ WebSocket disconnected (Code: ${event.code}, Reason: ${event.reason || 'Unknown'})`);
+                console.log('🔄 Falling back to polling mode');
                 this.updateLiveStatus(false);
-                // Reconnect after 5 seconds
-                setTimeout(() => this.setupWebSocket(), 5000);
+
+                // Reconnect след 5 секунди
+                setTimeout(() => {
+                    console.log('🔄 Attempting WebSocket reconnection...');
+                    this.setupWebSocket();
+                }, 5000);
             };
 
             this.websocket.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
+                console.error('❌ WebSocket connection error:', error);
+                console.log('🔍 Check: 1) Server running 2) Admin logged in 3) CORS settings');
                 this.updateLiveStatus(false);
             };
 
         } catch (error) {
-            console.warn('WebSocket not available, using polling fallback');
+            console.warn('⚠️ WebSocket initialization failed, using polling fallback:', error);
             this.updateLiveStatus(false);
         }
     }
@@ -767,6 +789,49 @@ class ActivityWall {
 
         console.log('Activity Wall destroyed');
     }
+
+    // ===== DEBUG HELPER METHOD =====
+    debugConnection() {
+        console.log('🔍 === ACTIVITY WALL DEBUG INFO ===');
+        console.log('Current URL:', window.location.href);
+        console.log('Hostname:', window.location.hostname);
+        console.log('Port:', window.location.port);
+        console.log('Protocol:', window.location.protocol);
+        console.log('Is Development:', window.location.hostname.includes('local'));
+
+        // Check if elements exist
+        console.log('Required elements check:');
+        console.log('- activity-stream-body:', !!document.getElementById('activity-stream-body'));
+        console.log('- activity-pause-btn:', !!document.getElementById('activity-pause-btn'));
+        console.log('- liveIndicator:', !!document.getElementById('liveIndicator'));
+
+        // WebSocket status
+        if (this.websocket) {
+            console.log('WebSocket state:', this.websocket.readyState);
+            console.log('WebSocket URL:', this.websocket.url);
+        } else {
+            console.log('WebSocket: Not initialized');
+        }
+
+        // Admin session check
+        fetch('/admin/api/health', {
+            headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
+        })
+            .then(response => {
+                console.log('Admin API access:', response.ok ? '✅ OK' : '❌ DENIED');
+                if (!response.ok) {
+                    console.log('❌ Admin session might be invalid - try logging in again');
+                }
+            })
+            .catch(error => {
+                console.log('❌ Admin API error:', error.message);
+            });
+
+        console.log('='.repeat(40));
+    }
+
+// Call this method when troubleshooting
+// activityWallInstance.debugConnection();
 }
 
 // ===== INITIALIZATION =====
@@ -814,3 +879,4 @@ if (!document.querySelector('#activity-wall-animations')) {
     `;
     document.head.appendChild(style);
 }
+

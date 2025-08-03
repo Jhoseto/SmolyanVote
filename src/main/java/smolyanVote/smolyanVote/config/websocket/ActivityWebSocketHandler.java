@@ -34,7 +34,10 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
     @Override
     protected boolean hasPermission(WebSocketSession session) {
-        // Само админи могат да се свързват към Activity Wall
+        System.out.println("🔍 WebSocket permission check triggered!");
+        System.out.println("🔍 Session ID: " + session.getId());
+        System.out.println("🔍 Session URI: " + session.getUri());
+
         return isAdminUser();
     }
 
