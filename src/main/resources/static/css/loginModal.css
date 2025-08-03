@@ -11,7 +11,7 @@
 .modal-content {
     background: rgba(255, 255, 255, 0.77);
     border-radius: 20px;
-    border: 1px solid rgba(0, 128, 128, 0.3); /* Тъмен тюркоаз за бордюра */
+    border: 1px solid rgb(1, 82, 49); /* Тъмен тюркоаз за бордюра */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     animation: modalFadeIn 0.5s ease forwards;
 }
@@ -76,14 +76,14 @@
 .modal-body .form-control:focus {
     background: #ffffff;
     transform: scale(1.02);
-    box-shadow: 0 0 10px rgba(0, 128, 128, 0.5);
-    border-color: #008080;
+    box-shadow: 0 0 10px rgb(1, 82, 49);
+    border-color: #4b9f3e;
 }
 
 /* Етикети */
 .modal-body .form-label {
     font-weight: 500;
-    color: #008080;
+    color: #4b9f3e;
 }
 
 /* Чекбокс */
@@ -93,20 +93,20 @@
 }
 
 .form-check-input:checked {
-    background-color: #008080;
-    border-color: #008080;
+    background-color: #4b9f3e;
+    border-color: #4b9f3e;
 }
 
 /* Линкове */
 .modal-body a {
-    color: #008080;
+    color: #4b9f3e;
     text-decoration: none;
     font-size: 0.9rem;
     transition: color 0.3s ease;
 }
 
 .modal-body a:hover {
-    color: #004d4d;
+    color: #015231;
     text-decoration: underline;
 }
 
@@ -123,7 +123,7 @@
 }
 
 .modal-footer .btn:hover {
-    background-color: #008080;
+    background-color: #4b9f3e;
     transform: translateY(-2px) scale(1.02);
     color: #fff;
 }

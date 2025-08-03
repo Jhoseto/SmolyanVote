@@ -384,6 +384,13 @@ class FiltersManager {
     updateURL() {
         const params = new URLSearchParams();
 
+        const currentParams = new URLSearchParams(window.location.search);
+        const openModalParam = currentParams.get('openModal');
+
+        if (openModalParam) {
+            params.set('openModal', openModalParam);
+        }
+
         Object.keys(this.filters).forEach(key => {
             if (this.filters[key] && this.filters[key] !== 'date-desc') {
                 params.set(key, this.filters[key]);
@@ -394,7 +401,6 @@ class FiltersManager {
             `${window.location.pathname}?${params.toString()}` :
             window.location.pathname;
 
-        // ПОПРАВКА: По-безопасна промяна на URL
         try {
             window.history.replaceState({}, '', newURL);
         } catch (error) {
