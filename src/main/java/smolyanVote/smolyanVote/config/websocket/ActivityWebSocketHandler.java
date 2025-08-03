@@ -2,7 +2,6 @@ package smolyanVote.smolyanVote.config.websocket;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
@@ -358,34 +357,11 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
         String actionLower = action.toLowerCase();
 
         if (actionLower.contains("create")) return "text-success";
-        if (actionLower.contains("like") || actionLower.contains("vote")) return "text-primary";
+        if (actionLower.contains("like") || actionLower.contains("vote") || actionLower.contains("share")) return "text-primary";
         if (actionLower.contains("delete") || actionLower.contains("report")) return "text-danger";
-        if (actionLower.contains("login")) return "text-info";
-        if (actionLower.contains("logout")) return "text-warning";
-        if (actionLower.contains("admin") || actionLower.contains("moderate")) return "text-purple";
+        if (actionLower.contains("login") || actionLower.contains("logout")) return "text-info";
+        if (actionLower.contains("admin") || actionLower.contains("moderate")) return "text-warning";
 
         return "text-secondary";
-    }
-
-    // ===== STATUS METHODS =====
-
-    /**
-     * Връща информация за текущо свързаните админи
-     */
-    public Map<String, Object> getConnectionInfo() {
-        Map<String, Object> info = new HashMap<>();
-        info.put("activeConnections", getActiveSessionsCount());
-        info.put("connectedAdmins", getSessionInfoMap().values().stream()
-                .map(sessionInfo -> sessionInfo.username)
-                .distinct()
-                .toList());
-        info.put("handlerType", "ActivityWall");
-        info.put("timestamp", LocalDateTime.now());
-        return info;
-    }
-
-    @Override
-    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
-
     }
 }

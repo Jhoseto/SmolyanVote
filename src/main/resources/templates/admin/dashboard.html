@@ -243,6 +243,10 @@
                     <button id="activity-export-btn" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-download"></i> Експорт
                     </button>
+
+                    <button id="refresh-activities-btn" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-arrow-clockwise"></i> Обнови
+                    </button>
                 </div>
             </div>
 
@@ -274,8 +278,21 @@
 
                 <div class="filter-group">
                     <span class="filter-label">Потребители:</span>
-                    <input type="text" id="activity-user-filter" class="form-control form-control-sm"
-                           placeholder="Филтрирай по потребител..." style="width: 200px;">
+                    <div class="user-filter-container">
+                        <input type="text" id="activity-user-filter" class="form-control form-control-sm"
+                               placeholder="Филтрирай по потребител..." style="width: 220px;">
+                        <button id="clear-user-filter" class="btn btn-sm btn-outline-secondary"
+                                style="margin-left: 5px; display: none;">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <span class="filter-label">Показани:</span>
+                    <span class="filter-stats">
+                    <strong id="visible-activities">0</strong> от <strong id="total-activities">0</strong>
+                </span>
                 </div>
             </div>
 
@@ -284,16 +301,27 @@
                 <table id="activity-stream-table" class="table table-sm">
                     <thead>
                     <tr>
-                        <th style="width: 120px;">Време</th>
-                        <th style="width: 60px;">Тип</th>
-                        <th style="width: 150px;">Потребител</th>
-                        <th style="width: 200px;">Действие</th>
-                        <th>Детайли</th>
-                        <th style="width: 80px;">IP</th>
+                        <th style="width: 120px;">
+                            <i class="bi bi-clock"></i> Време
+                        </th>
+                        <th style="width: 60px;">
+                            <i class="bi bi-tag"></i> Тип
+                        </th>
+                        <th style="width: 150px;">
+                            <i class="bi bi-person"></i> Потребител
+                        </th>
+                        <th style="width: 200px;">
+                            <i class="bi bi-lightning"></i> Действие
+                        </th>
+                        <th>
+                            <i class="bi bi-info-circle"></i> Детайли
+                        </th>
+                        <th style="width: 80px;">
+                            <i class="bi bi-globe"></i> IP
+                        </th>
                     </tr>
                     </thead>
                     <tbody id="activity-stream-body">
-                    <!-- Activities will be loaded here via JavaScript -->
                     <tr>
                         <td colspan="6" class="text-center" style="padding: 2rem; color: #6b7280;">
                             <i class="bi bi-broadcast" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
@@ -304,12 +332,16 @@
                 </table>
             </div>
 
-            <!-- Activity Stream Stats Footer -->
+            <!-- Activity Stream Footer -->
             <div class="activity-stream-footer">
                 <div class="stream-info">
-                    <span>Показани: <strong id="visible-activities">0</strong> от <strong id="total-activities">0</strong></span>
+                    <span>Показани: <strong id="visible-activities-footer">0</strong> от <strong id="total-activities-footer">0</strong></span>
                     <span class="separator">•</span>
                     <span>Последно обновяване: <strong id="last-update">--</strong></span>
+                    <span class="separator">•</span>
+                    <span class="connection-status" id="connection-status">
+                    <i class="bi bi-wifi" style="color: #28a745;"></i> Свързан
+                </span>
                 </div>
 
                 <div class="stream-controls">
@@ -322,28 +354,48 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Activity Detail Modal -->
-    <div class="modal fade" id="activityDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-info-circle"></i> Детайли за активността
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="activity-detail-content">
-                        <!-- Activity details will be loaded here -->
+        <!-- Activity Detail Modal -->
+        <div class="modal fade" id="activityDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-info-circle"></i> Детайли за активността
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="activity-detail-content">
+                            <!-- Activity details will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x"></i> Затвори
+                        </button>
+                        <button type="button" class="btn btn-primary" id="view-related-btn">
+                            <i class="bi bi-eye"></i> Виж свързаното съдържание
+                        </button>
+                        <button type="button" class="btn btn-info" id="copy-activity-details">
+                            <i class="bi bi-clipboard"></i> Копирай детайли
+                        </button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
-                    <button type="button" class="btn btn-primary" id="view-related-btn">
-                        <i class="bi bi-eye"></i> Виж свързаното съдържание
-                    </button>
+            </div>
+        </div>
+
+        <!-- Activity Toast Notifications -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+            <div id="activity-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <i class="bi bi-bell-fill text-primary me-2"></i>
+                    <strong class="me-auto">Нова активност</strong>
+                    <small class="text-muted" id="toast-time">Сега</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body" id="toast-body">
+                    Нова активност е регистрирана
                 </div>
             </div>
         </div>
@@ -355,6 +407,7 @@
 
 <script src="/js/admin/admin-dashboard.js"></script>
 <script src="/js/admin/reports.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
 <script src="/js/admin/activity-wall.js"></script>
 
 <!-- Bottom Styles -->

@@ -133,6 +133,21 @@
 .activity-filter-btn.auth { --filter-color: #6f42c1; }
 .activity-filter-btn.other { --filter-color: #6c757d; }
 
+/* ===== USER FILTER ===== */
+.user-filter-container {
+    display: flex;
+    align-items: center;
+}
+
+.filter-stats {
+    background: rgba(13, 110, 253, 0.1);
+    padding: 0.375rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+    color: #0d6efd;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
 /* ===== ACTIVITY STREAM TABLE ===== */
 .activity-stream-container {
     max-height: 500px;
@@ -228,6 +243,13 @@
     color: #495057;
 }
 
+.activity-user-name.highlight {
+    background: yellow;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
 .activity-action {
     display: flex;
     align-items: center;
@@ -280,6 +302,21 @@
 .stream-controls {
     display: flex;
     gap: 0.5rem;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.connection-status.offline {
+    color: #dc3545;
+}
+
+.connection-status.offline i {
+    color: #dc3545;
 }
 
 /* ===== ACTIVITY DETAIL MODAL ===== */
@@ -372,12 +409,6 @@
     background: #6c757d;
 }
 
-/* ===== ACTIVITY STATUS INDICATORS ===== */
-.activity-status-success { color: #28a745; }
-.activity-status-warning { color: #ffc107; }
-.activity-status-danger { color: #dc3545; }
-.activity-status-info { color: #17a2b8; }
-
 /* ===== LOADING STATE ===== */
 .activity-loading {
     text-align: center;
@@ -392,6 +423,16 @@
 }
 
 @keyframes activitySpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ===== ADDITIONAL ANIMATIONS ===== */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
