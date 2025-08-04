@@ -93,7 +93,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @LogActivity(action = ActivityActionEnum.USER_LOGIN, entityType = EventType.DEFAULT,
-            details = "Email: {email}", onSuccessOnly = false)
+            details = "Email: {email}, Username: {username}", onSuccessOnly = false)
 
     public Authentication authenticateUser(String email, String password) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);

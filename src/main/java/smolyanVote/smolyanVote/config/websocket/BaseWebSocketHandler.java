@@ -82,11 +82,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
             sessions.put(session.getId(), session);
             activeSessions.add(session);
 
-            // Логваме успешната връзка
-            String username = getCurrentUsername();
-            System.out.println("✅ " + getHandlerName() + ": Connected user '" + username +
-                    "' (Session: " + session.getId() + "). Active sessions: " + activeSessions.size());
-
             // Изпращаме welcome съобщение
             sendWelcomeMessage(session);
 
@@ -123,11 +118,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
         removeSession(session);
-
-        String username = getCurrentUsername();
-        System.out.println("👋 " + getHandlerName() + ": Disconnected user '" + username +
-                "' (Session: " + session.getId() + ", Status: " + closeStatus +
-                "). Active sessions: " + activeSessions.size());
     }
 
     @Override
@@ -279,13 +269,12 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
 
     protected boolean isAdminUser() {
         try {
-            if (userService.getCurrentUser().getRole().equals(UserRole.ADMIN)) {
-                return true;
-            }
+            UserEntity currentUser = getCurrentUser();
+            return currentUser != null && UserRole.ADMIN.equals(currentUser.getRole());
         } catch (Exception e) {
             System.err.println("Error checking admin role: " + e.getMessage());
+            return false;
         }
-        return false;
     }
 
 }

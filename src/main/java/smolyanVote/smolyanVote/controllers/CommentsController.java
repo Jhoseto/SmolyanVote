@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,8 +14,11 @@ import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentInputDto;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/comments")
@@ -22,6 +26,8 @@ public class CommentsController {
 
     private final CommentsService commentsService;
     private final UserService userService;
+    private static final Map<Long, List<Long>> userCommentTimes = new ConcurrentHashMap<>();
+    private static final int MAX_COMMENTS_PER_MINUTE = 3;
 
     @Autowired
     public CommentsController(CommentsService commentsService, UserService userService) {
@@ -97,6 +103,21 @@ public class CommentsController {
             @Valid @RequestBody CommentInputDto request) {
         try {
             UserEntity user = userService.getCurrentUser();
+
+            Long now = System.currentTimeMillis();
+            Long oneMinuteAgo = now - 60000;
+            Long userId = user.getId();
+            userCommentTimes.computeIfAbsent(userId, k -> new ArrayList<>()).removeIf(time -> time < oneMinuteAgo);
+
+            if (userCommentTimes.get(userId).size() >= MAX_COMMENTS_PER_MINUTE) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "Прекалено много коментари! Опитайте след малко.");
+                return ResponseEntity.status(429).body(errorResponse);
+            }
+
+            userCommentTimes.get(userId).add(now);
+
             CommentsEntity comment = commentsService.addCommentToEntity(entityType, entityId, request.getText(), user);
             CommentOutputDto commentDto = commentsService.convertEntityToDto(comment);
             Map<String, Object> response = new HashMap<>();
@@ -122,6 +143,21 @@ public class CommentsController {
             @Valid @RequestBody CommentInputDto request) {
         try {
             UserEntity user = userService.getCurrentUser();
+
+            Long now = System.currentTimeMillis();
+            Long oneMinuteAgo = now - 60000;
+            Long userId = user.getId();
+
+            userCommentTimes.computeIfAbsent(userId, k -> new ArrayList<>()).removeIf(time -> time < oneMinuteAgo);
+
+            if (userCommentTimes.get(userId).size() >= MAX_COMMENTS_PER_MINUTE) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "Прекалено много коментари! Опитайте след малко.");
+                return ResponseEntity.status(429).body(errorResponse);
+            }
+
+            userCommentTimes.get(userId).add(now);
             CommentsEntity reply = commentsService.addReplyToComment(parentCommentId, request.getText(), user);
             CommentOutputDto commentDto = commentsService.convertEntityToDto(reply);
             Map<String, Object> response = new HashMap<>();
@@ -194,11 +230,17 @@ public class CommentsController {
     @PostMapping("/{commentId}/vote/{reactionType}")
     public ResponseEntity<Map<String, Object>> toggleCommentVote(
             @PathVariable Long commentId,
-            @PathVariable String reactionType) {
+            @PathVariable String reactionType,
+            HttpServletRequest request) {
         try {
             UserEntity user = userService.getCurrentUser();
             CommentReactionType reaction = CommentReactionType.valueOf(reactionType.toUpperCase());
-            Map<String, Object> result = commentsService.toggleCommentVote(commentId, user, reaction);
+
+            // ✅ Извлечи IP адреса
+            String ipAddress = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+
+            Map<String, Object> result = commentsService.toggleCommentVote(commentId, user, reaction, ipAddress, userAgent);
             result.put("success", true);
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
@@ -212,6 +254,17 @@ public class CommentsController {
             errorResponse.put("error", "Възникна грешка при гласуването: " + e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }
+    }
+
+    private String getClientIpAddress(HttpServletRequest request) {
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP"};
+        for (String header : headers) {
+            String ip = request.getHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                return ip.split(",")[0].trim();
+            }
+        }
+        return request.getRemoteAddr();
     }
 
     /**

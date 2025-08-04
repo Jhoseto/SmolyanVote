@@ -75,11 +75,6 @@ public interface CommentsService {
     // ====== РЕАКЦИИ ======
 
     /**
-     * Toggle реакция (лайк/дизлайк) за коментар
-     */
-    Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reactionType);
-
-    /**
      * Извлича реакцията на потребител за коментар
      */
     String getUserReaction(Long commentId, String username);
@@ -136,4 +131,6 @@ public interface CommentsService {
 
     @Transactional
     void fillCommentsCountsForAllPublications(List<PublicationEntity> publications);
+
+    Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reaction, String ipAddress, String userAgent);
 }
