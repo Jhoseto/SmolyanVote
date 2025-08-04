@@ -12,6 +12,7 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
@@ -68,7 +69,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL)
     public SignalsEntity create(String title, String description, SignalsCategory category,
                                 SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {

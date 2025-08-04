@@ -115,22 +115,6 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
             "GROUP BY a.action ORDER BY COUNT(a) DESC")
     List<Object[]> findMostFrequentActions(@Param("since") LocalDateTime since);
 
-    /**
-     * Намира статистики по дни
-     */
-    @Query("SELECT DATE(a.timestamp) as day, COUNT(a) FROM ActivityLogEntity a " +
-            "WHERE a.timestamp >= :since " +
-            "GROUP BY DATE(a.timestamp) ORDER BY day DESC")
-    List<Object[]> findDailyActivityStats(@Param("since") LocalDateTime since);
-
-    /**
-     * Намира статистики по часове за днес
-     */
-    @Query("SELECT HOUR(a.timestamp) as hour, COUNT(a) FROM ActivityLogEntity a " +
-            "WHERE DATE(a.timestamp) = CURRENT_DATE " +
-            "GROUP BY HOUR(a.timestamp) ORDER BY hour")
-    List<Object[]> findHourlyStatsForToday();
-
     // ===== CLEANUP QUERIES =====
 
     /**

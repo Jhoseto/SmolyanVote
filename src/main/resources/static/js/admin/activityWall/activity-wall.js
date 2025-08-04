@@ -1,5 +1,5 @@
-// ====== ADMIN ACTIVITY WALL JS ======
-// Файл: src/main/resources/static/js/admin/activity-wall.js
+// ====== ADMIN ACTIVITY WALL - CORE ======
+// Файл: js/activityWall/activity-wall.js
 
 class ActivityWall {
     constructor() {
@@ -19,6 +19,8 @@ class ActivityWall {
 
         this.init();
     }
+
+    // ===== INITIALIZATION =====
 
     init() {
         if (!this.checkElements()) return;
@@ -106,7 +108,7 @@ class ActivityWall {
         document.getElementById('copy-activity-details')?.addEventListener('click', () => this.copyActivityDetails());
     }
 
-    // ===== LIVE STREAM MANAGEMENT =====
+    // ===== WEBSOCKET MANAGEMENT =====
 
     startLiveStream() {
         this.setupWebSocket();
@@ -189,7 +191,8 @@ class ActivityWall {
                 const message = {
                     type: type,
                     data: data,
-                    timestamp: new Date().toISOString().slice(0, -1)};
+                    timestamp: new Date().toISOString().slice(0, -1)
+                };
 
                 this.websocket.send(JSON.stringify(message));
                 console.log(`📤 Sent WebSocket message: ${type}`);
@@ -234,6 +237,26 @@ class ActivityWall {
                     }
                     break;
 
+                case 'stats_update':
+                    if (message.data) {
+                        this.updateStatistics(message.data);
+                        console.log('📈 Stats update received');
+                    }
+                    break;
+
+                case 'welcome':
+                    console.log('👋 Welcome message received');
+                    break;
+
+                case 'system_message':
+                    if (message.data && message.data.message) {
+                        console.log(`📢 System message: ${message.data.message}`);
+                        if (window.ActivityWallUtils) {
+                            window.ActivityWallUtils.showToast(message.data.message, message.data.level || 'info');
+                        }
+                    }
+                    break;
+
                 default:
                     console.log(`❓ Unknown message type: ${message.type}`);
             }
@@ -254,58 +277,11 @@ class ActivityWall {
         }, 5000); // Всеки 5 секунди
     }
 
-    togglePause() {
-        this.isPaused = !this.isPaused;
-        const btn = document.getElementById('activity-pause-btn');
-        const indicator = document.getElementById('liveIndicator');
-
-        if (this.isPaused) {
-            btn.innerHTML = '<i class="bi bi-play-fill"></i> Възобнови';
-            btn.classList.add('btn-success');
-            btn.classList.remove('btn-warning');
-            indicator.classList.add('paused');
-            indicator.querySelector('span').textContent = 'Пауза';
-        } else {
-            btn.innerHTML = '<i class="bi bi-pause-fill"></i> Пауза';
-            btn.classList.add('btn-warning');
-            btn.classList.remove('btn-success');
-            indicator.classList.remove('paused');
-            indicator.querySelector('span').textContent = 'Live';
-        }
-    }
-
-    updateLiveStatus(isConnected) {
-        const indicator = document.getElementById('liveIndicator');
-        if (isConnected && !this.isPaused) {
-            indicator.classList.remove('paused');
-            indicator.querySelector('span').textContent = 'Live';
-        } else {
-            indicator.classList.add('paused');
-            indicator.querySelector('span').textContent = this.isPaused ? 'Пауза' : 'Offline';
-        }
-
-        // Update connection status indicator
-        this.updateConnectionStatus(isConnected);
-    }
-
-    updateConnectionStatus(isConnected) {
-        const statusElement = document.getElementById('connection-status');
-        if (statusElement) {
-            if (isConnected) {
-                statusElement.innerHTML = '<i class="bi bi-wifi" style="color: #28a745;"></i> Свързан';
-                statusElement.classList.remove('offline');
-            } else {
-                statusElement.innerHTML = '<i class="bi bi-wifi-off" style="color: #dc3545;"></i> Offline';
-                statusElement.classList.add('offline');
-            }
-        }
-    }
-
-    // ===== ACTIVITY LOADING =====
+    // ===== DATA MANAGEMENT =====
 
     async loadInitialActivities() {
+        this.showLoading();
         try {
-            this.showLoading();
             const response = await fetch('/admin/api/activities/recent?limit=50', {
                 headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
             });
@@ -317,13 +293,14 @@ class ActivityWall {
             const data = await response.json();
             this.activities = data.activities || [];
             this.applyFilters();
-            this.updateStats(data.stats);
+            this.renderActivities();
+            this.updateStats();
+
+            console.log(`📊 Loaded ${this.activities.length} initial activities`);
 
         } catch (error) {
-            console.error('Error loading activities:', error);
-            this.showError('Грешка при зареждане на активностите');
-        } finally {
-            this.hideLoading();
+            console.error('❌ Error loading initial activities:', error);
+            this.showError('Грешка при зареждането на активностите');
         }
     }
 
@@ -363,14 +340,22 @@ class ActivityWall {
         this.applyFilters();
 
         // Show toast for real-time activities
-        if (isRealTime) {
-            this.showToast(`Нова активност от ${activity.username}: ${this.formatAction(activity)}`, 'info');
+        if (isRealTime && window.ActivityWallUtils) {
+            window.ActivityWallUtils.showToast(`Нова активност от ${activity.username}: ${this.formatAction(activity)}`, 'info');
         }
 
         this.updateStats();
     }
 
-    // ===== FILTERING - IMPROVED =====
+    showToast(message, type = 'info') {
+        if (window.ActivityWallUtils) {
+            window.ActivityWallUtils.showToast(message, type);
+        } else {
+            console.log(`Toast: ${message}`);
+        }
+    }
+
+    // ===== FILTERING =====
 
     toggleFilter(event) {
         const btn = event.target.closest('.activity-filter-btn');
@@ -386,64 +371,73 @@ class ActivityWall {
             btn.classList.add('active');
         }
 
-        // Мигновенно прилагане на филтрите
         this.applyFilters();
     }
 
     applyFilters() {
-        // Филтрираме всички активности
-        this.filteredActivities = this.activities.filter(activity => this.passesFilters(activity));
-
-        // Пререндерираме таблицата
-        this.renderActivities();
-
-        // Обновяваме брояча
-        this.updateVisibleCount();
-
-        console.log(`Filtered: ${this.filteredActivities.length} of ${this.activities.length} activities`);
-    }
-
-    passesFilters(activity) {
-        // Type filter
-        if (!this.filters.types.has(activity.type)) {
-            return false;
-        }
-
-        // IMPROVED User filter - търси в username
-        if (this.filters.user && this.filters.user.length > 0) {
-            const username = (activity.username || '').toLowerCase();
-            if (!username.includes(this.filters.user)) {
+        this.filteredActivities = this.activities.filter(activity => {
+            // Type filter
+            const activityType = this.determineActivityType(activity.action);
+            if (!this.filters.types.has(activityType)) {
                 return false;
             }
-        }
 
-        return true;
+            // User filter
+            if (this.filters.user) {
+                const username = (activity.username || '').toLowerCase();
+                const action = (activity.action || '').toLowerCase();
+                const details = (activity.details || '').toLowerCase();
+
+                return username.includes(this.filters.user) ||
+                    action.includes(this.filters.user) ||
+                    details.includes(this.filters.user);
+            }
+
+            return true;
+        });
+
+        this.renderActivities();
+        this.updateStats();
+    }
+
+    determineActivityType(action) {
+        if (!action) return 'other';
+        const actionLower = action.toLowerCase();
+
+        if (actionLower.includes('create')) return 'create';
+        if (actionLower.includes('like') || actionLower.includes('vote') || actionLower.includes('share')) return 'interact';
+        if (actionLower.includes('delete') || actionLower.includes('report') || actionLower.includes('moderate')) return 'moderate';
+        if (actionLower.includes('login') || actionLower.includes('logout') || actionLower.includes('register')) return 'auth';
+
+        return 'other';
     }
 
     clearUserFilter() {
+        this.filters.user = '';
         const userFilter = document.getElementById('activity-user-filter');
         const clearUserFilter = document.getElementById('clear-user-filter');
 
         if (userFilter) {
             userFilter.value = '';
-            this.filters.user = '';
-            this.applyFilters();
         }
-
         if (clearUserFilter) {
             clearUserFilter.style.display = 'none';
         }
 
-        // Remove highlights
+        this.applyFilters();
         this.highlightSearchResults('');
     }
 
     highlightSearchResults(searchTerm) {
-        document.querySelectorAll('.activity-user-name').forEach(element => {
-            element.classList.remove('highlight');
-            if (searchTerm && element.textContent.toLowerCase().includes(searchTerm)) {
-                element.classList.add('highlight');
-            }
+        const rows = document.querySelectorAll('#activity-stream-body tr');
+        rows.forEach(row => {
+            const textElements = row.querySelectorAll('td');
+            textElements.forEach(element => {
+                element.classList.remove('highlight');
+                if (searchTerm && element.textContent.toLowerCase().includes(searchTerm)) {
+                    element.classList.add('highlight');
+                }
+            });
         });
     }
 
@@ -505,7 +499,7 @@ class ActivityWall {
         row.dataset.activityId = activity.id;
 
         const timeFormatted = this.formatTime(activity.timestamp);
-        const iconHtml = this.getActivityIcon(activity.type, activity.action);
+        const iconHtml = this.getActivityIcon(this.determineActivityType(activity.action), activity.action);
         const userHtml = this.createUserCell(activity);
         const actionHtml = this.formatAction(activity);
         const detailsHtml = this.formatDetails(activity);
@@ -552,21 +546,20 @@ class ActivityWall {
 
     formatAction(activity) {
         const actionTexts = {
-            'create_publication': 'Създаде публикация',
-            'create_event': 'Създаде събитие',
-            'create_referendum': 'Създаде референдум',
-            'create_poll': 'Създаде анкета',
-            'create_comment': 'Коментира',
-            'like_publication': 'Хареса публикация',
-            'dislike_publication': 'Не хареса публикация',
-            'vote_referendum': 'Гласува в референдум',
-            'vote_poll': 'Гласува в анкета',
-            'login': 'Влезе в профила',
-            'logout': 'Излезе от профила',
-            'register': 'Се регистрира',
-            'report_content': 'Докладва съдържание',
-            'delete_content': 'Изтри съдържание',
-            'edit_content': 'Редактира съдържание'
+            'CREATE_PUBLICATION': 'Създаде публикация',
+            'CREATE_SIMPLE_EVENT': 'Създаде събитие',
+            'CREATE_REFERENDUM': 'Създаде референдум',
+            'CREATE_MULTI_POLL': 'Създаде анкета',
+            'CREATE_COMMENT': 'Коментира',
+            'CREATE_SIGNAL': 'Създаде сигнал',
+            'LIKE_PUBLICATION': 'Хареса публикация',
+            'DISLIKE_PUBLICATION': 'Не хареса публикация',
+            'VOTE_SIMPLE_EVENT': 'Гласува в събитие',
+            'VOTE_REFERENDUM': 'Гласува в референдум',
+            'VOTE_MULTI_POLL': 'Гласува в анкета',
+            'USER_LOGIN': 'Влезе в профила',
+            'USER_LOGOUT': 'Излезе от профила',
+            'USER_REGISTER': 'Се регистрира'
         };
 
         return actionTexts[activity.action] || activity.action;
@@ -599,169 +592,127 @@ class ActivityWall {
 
     // ===== CONTROLS =====
 
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        const btn = document.getElementById('activity-pause-btn');
+        const indicator = document.getElementById('liveIndicator');
+
+        if (this.isPaused) {
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Възобнови';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-warning');
+            indicator.classList.add('paused');
+            indicator.querySelector('span').textContent = 'Пауза';
+        } else {
+            btn.innerHTML = '<i class="bi bi-pause-fill"></i> Пауза';
+            btn.classList.add('btn-warning');
+            btn.classList.remove('btn-success');
+            indicator.classList.remove('paused');
+            indicator.querySelector('span').textContent = 'Live';
+        }
+    }
+
+    updateLiveStatus(isConnected) {
+        const indicator = document.getElementById('liveIndicator');
+        if (isConnected && !this.isPaused) {
+            indicator.classList.remove('paused');
+            indicator.querySelector('span').textContent = 'Live';
+        } else {
+            indicator.classList.add('paused');
+            indicator.querySelector('span').textContent = this.isPaused ? 'Пауза' : 'Offline';
+        }
+    }
+
     clearActivities() {
-        if (!confirm('Сигурни ли сте, че искате да изчистите всички активности?'))
-            return;
+        if (!confirm('Сигурни ли сте, че искате да изчистите всички активности?')) return;
 
         this.activities = [];
         this.filteredActivities = [];
         this.renderActivities();
         this.updateStats();
+
+        this.showToast('Активностите са изчистени', 'success');
+    }
+
+    manualRefresh() {
+        const btn = document.getElementById('refresh-activities-btn');
+        const icon = btn?.querySelector('i');
+
+        if (icon) {
+            icon.classList.add('spin');
+        }
+
+        this.loadInitialActivities().finally(() => {
+            if (icon) {
+                icon.classList.remove('spin');
+            }
+            this.showToast('Активностите са обновени', 'success');
+        });
     }
 
     toggleAutoScroll() {
         this.autoScroll = !this.autoScroll;
         const btn = document.getElementById('auto-scroll-btn');
 
-        if (this.autoScroll) {
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="bi bi-arrow-down"></i> Авто скрол';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="bi bi-arrow-down"></i> Спрян скрол';
+        if (btn) {
+            btn.classList.toggle('active', this.autoScroll);
+            btn.title = this.autoScroll ? 'Изключи автоматичното скролиране' : 'Включи автоматичното скролиране';
         }
     }
 
     scrollToTop() {
-        const container = document.querySelector('.activity-stream-container');
-        if (container) {
-            container.scrollTo({ top: 0, behavior: 'smooth' });
+        const table = document.getElementById('activity-stream-body');
+        if (table) {
+            table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    updateStats() {
+        // Основни статистики
+        const totalCount = this.activities.length;
+        const filteredCount = this.filteredActivities.length;
+
+        const totalActivitiesEl = document.getElementById('total-activities');
+        const filteredActivitiesEl = document.getElementById('filtered-activities');
+
+        if (totalActivitiesEl) totalActivitiesEl.textContent = totalCount;
+        if (filteredActivitiesEl) filteredActivitiesEl.textContent = filteredCount;
+
+        // Последна активност
+        if (this.activities.length > 0) {
+            const lastActivity = this.activities[0];
+            const lastActivityTime = this.formatTime(lastActivity.timestamp);
+            const lastActivityTimeEl = document.getElementById('last-activity-time');
+            if (lastActivityTimeEl) lastActivityTimeEl.textContent = lastActivityTime;
+        }
+    }
+
+    // Методи за Advanced и Utils компонентите
+    showActivityDetails(activityId) {
+        // Ще се имплементира в activity-wall-advanced.js
+        if (window.ActivityWallAdvanced) {
+            window.ActivityWallAdvanced.showActivityDetails.call(this, activityId);
         }
     }
 
     exportActivities() {
-        // FIXED - използва backend API вместо локален CSV
-        window.location.href = '/admin/api/activities/export';
-    }
-
-    async manualRefresh() {
-        const btn = document.getElementById('refresh-activities-btn');
-        if (btn) {
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Зареждане...';
-            btn.disabled = true;
+        // Ще се имплементира в activity-wall-advanced.js
+        if (window.ActivityWallAdvanced) {
+            window.ActivityWallAdvanced.exportActivities.call(this);
         }
-
-        try {
-            await this.loadInitialActivities();
-            this.showToast('Активностите са обновени успешно!', 'success');
-        } catch (error) {
-            this.showToast('Грешка при обновяване на активностите', 'error');
-        } finally {
-            if (btn) {
-                btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Обнови';
-                btn.disabled = false;
-            }
-        }
-    }
-
-    // ===== STATS UPDATE =====
-
-    updateStats(stats = null) {
-        if (stats) {
-            document.getElementById('online-users-count').textContent = stats.onlineUsers || 0;
-            document.getElementById('last-hour-activities').textContent = stats.lastHour || 0;
-            document.getElementById('today-activities').textContent = stats.today || 0;
-        }
-
-        this.updateVisibleCount();
-        this.updateLastUpdate();
-    }
-
-    updateVisibleCount() {
-        // Update both places where count is shown
-        document.getElementById('visible-activities').textContent = this.filteredActivities.length;
-        document.getElementById('total-activities').textContent = this.activities.length;
-        document.getElementById('visible-activities-footer').textContent = this.filteredActivities.length;
-        document.getElementById('total-activities-footer').textContent = this.activities.length;
-    }
-
-    updateLastUpdate() {
-        const now = new Date().toLocaleTimeString('bg-BG', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        document.getElementById('last-update').textContent = now;
-    }
-
-    // ===== TOAST NOTIFICATIONS =====
-
-    showToast(message, type = 'info') {
-        const toast = document.getElementById('activity-toast');
-        const toastBody = document.getElementById('toast-body');
-        const toastTime = document.getElementById('toast-time');
-
-        if (toast && toastBody) {
-            toastBody.textContent = message;
-            toastTime.textContent = new Date().toLocaleTimeString('bg-BG', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            // Set toast color based on type
-            toast.className = `toast ${type === 'error' ? 'border-danger' : type === 'success' ? 'border-success' : 'border-info'}`;
-
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-        }
-    }
-
-    // ===== ACTIVITY DETAILS MODAL =====
-
-    showActivityDetails(activityId) {
-        const activity = this.activities.find(a => a.id == activityId);
-        if (!activity) return;
-
-        // Зареждаме детайлите в модала
-        const modalContent = document.querySelector('.activity-detail-content');
-        if (modalContent) {
-            modalContent.innerHTML = this.createDetailContent(activity);
-        }
-
-        // Показваме модала
-        const modal = new bootstrap.Modal(document.getElementById('activityDetailModal'));
-        modal.show();
-    }
-
-    createDetailContent(activity) {
-        return `
-            <div class="detail-row">
-                <div class="detail-label">Време:</div>
-                <div class="detail-value">${new Date(activity.timestamp).toLocaleString('bg-BG')}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Потребител:</div>
-                <div class="detail-value">${this.escapeHtml(activity.username || 'Неизвестен')}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Действие:</div>
-                <div class="detail-value">${this.formatAction(activity)}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">Детайли:</div>
-                <div class="detail-value">${this.escapeHtml(activity.details || 'Няма допълнителни детайли')}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">IP адрес:</div>
-                <div class="detail-value">${activity.ipAddress || 'Неизвестен'}</div>
-            </div>
-            <div class="detail-row">
-                <div class="detail-label">User Agent:</div>
-                <div class="detail-value">${this.escapeHtml(activity.userAgent || 'Неизвестен')}</div>
-            </div>
-        `;
     }
 
     copyActivityDetails() {
-        const modalContent = document.querySelector('.activity-detail-content');
-        if (modalContent) {
-            const text = modalContent.innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                this.showToast('Детайлите са копирани в clipboard!', 'success');
-            }).catch(() => {
-                this.showToast('Грешка при копиране', 'error');
-            });
+        // Ще се имплементира в activity-wall-advanced.js
+        if (window.ActivityWallAdvanced) {
+            window.ActivityWallAdvanced.copyActivityDetails.call(this);
+        }
+    }
+
+    updateStatistics(data) {
+        // Ще се имплементира в activity-wall-advanced.js
+        if (window.ActivityWallAdvanced) {
+            window.ActivityWallAdvanced.updateStatistics.call(this, data);
         }
     }
 
@@ -779,10 +730,6 @@ class ActivityWall {
                 </tr>
             `;
         }
-    }
-
-    hideLoading() {
-        // Loading се премахва автоматично при renderActivities()
     }
 
     showError(message) {
@@ -863,9 +810,6 @@ class ActivityWall {
 
         console.log('='.repeat(40));
     }
-
-// Call this method when troubleshooting
-// activityWallInstance.debugConnection();
 }
 
 // ===== INITIALIZATION =====
@@ -889,6 +833,7 @@ window.addEventListener('beforeunload', function() {
 
 // Export за използване в други модули
 window.ActivityWall = ActivityWall;
+window.activityWallInstance = activityWallInstance;
 
 // Add required CSS animations if not present
 if (!document.querySelector('#activity-wall-animations')) {
@@ -913,4 +858,3 @@ if (!document.querySelector('#activity-wall-animations')) {
     `;
     document.head.appendChild(style);
 }
-
