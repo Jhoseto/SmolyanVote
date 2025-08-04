@@ -554,13 +554,59 @@ class ActivityWall {
             'CREATE_SIGNAL': 'Създаде сигнал',
             'LIKE_PUBLICATION': 'Хареса публикация',
             'DISLIKE_PUBLICATION': 'Не хареса публикация',
+            'LIKE_COMMENT': 'Хареса коментар',
+            'DISLIKE_COMMENT': 'Не хареса коментар',
             'VOTE_SIMPLE_EVENT': 'Гласува в събитие',
             'VOTE_REFERENDUM': 'Гласува в референдум',
             'VOTE_MULTI_POLL': 'Гласува в анкета',
-            'USER_LOGIN': 'Влезе в профила',
-            'USER_LOGOUT': 'Излезе от профила',
-            'USER_REGISTER': 'Се регистрира'
+            'SHARE_PUBLICATION': 'Сподели публикация',
+            'SHARE_EVENT': 'Сподели събитие',
+            'SHARE_REFERENDUM': 'Сподели референдум',
+            'BOOKMARK_CONTENT': 'Добави в отметки',
+            'FOLLOW_USER': 'Последва потребител',
+            'UNFOLLOW_USER': 'Спря да следва потребител',
+            'VIEW_PUBLICATION': 'Прегледа публикация',
+            'VIEW_EVENT': 'Прегледа събитие',
+            'VIEW_REFERENDUM': 'Прегледа референдум',
+            'VIEW_PROFILE': 'Прегледа профил',
+            'SEARCH_CONTENT': 'Търсене в съдържанието',
+            'FILTER_CONTENT': 'Филтриране на съдържание',
+            'EDIT_PUBLICATION': 'Редактира публикация',
+            'EDIT_EVENT': 'Редактира събитие',
+            'EDIT_REFERENDUM': 'Редактира референдум',
+            'EDIT_COMMENT': 'Редактира коментар',
+            'EDIT_PROFILE': 'Редактира профил',
+            'DELETE_PUBLICATION': 'Изтри публикация',
+            'DELETE_EVENT': 'Изтри събитие',
+            'DELETE_REFERENDUM': 'Изтри референдум',
+            'DELETE_COMMENT': 'Изтри коментар',
+            'DELETE_SIGNAL': 'Изтри сигнал',
+            'REPORT_PUBLICATION': 'Докладва публикация',
+            'REPORT_EVENT': 'Докладва събитие',
+            'REPORT_REFERENDUM': 'Докладва референдум',
+            'REPORT_COMMENT': 'Докладва коментар',
+            'REPORT_USER': 'Докладва потребител',
+            'ADMIN_REVIEW_REPORT': 'Прегледа доклад',
+            'ADMIN_DELETE_CONTENT': 'Изтри съдържание (админ)',
+            'ADMIN_BAN_USER': 'Блокира потребител',
+            'ADMIN_UNBAN_USER': 'Отблокира потребител',
+            'ADMIN_PROMOTE_USER': 'Повиши потребител',
+            'ADMIN_DEMOTE_USER': 'Понижи потребител',
+            'USER_REGISTER': 'Регистрация',
+            'USER_LOGIN': 'Вход в системата',
+            'USER_LOGOUT': 'Изход от системата',
+            'USER_PASSWORD_CHANGE': 'Смяна на парола',
+            'USER_EMAIL_VERIFY': 'Потвърждение на имейл',
+            'USER_PASSWORD_RESET': 'Нулиране на парола',
+            'UPDATE_NOTIFICATIONS': 'Актуализира нотификации',
+            'UPDATE_PRIVACY': 'Актуализира поверителност',
+            'EXPORT_DATA': 'Експортира данни',
+            'DELETE_ACCOUNT': 'Изтриване на акаунт',
+            'SYSTEM_BACKUP': 'Системен backup',
+            'SYSTEM_MAINTENANCE': 'Системна поддръжка',
+            'API_ACCESS': 'API достъп'
         };
+
 
         return actionTexts[activity.action] || activity.action;
     }
@@ -769,46 +815,6 @@ class ActivityWall {
         }
 
         console.log('Activity Wall destroyed');
-    }
-
-    // ===== DEBUG HELPER METHOD =====
-    debugConnection() {
-        console.log('🔍 === ACTIVITY WALL DEBUG INFO ===');
-        console.log('Current URL:', window.location.href);
-        console.log('Hostname:', window.location.hostname);
-        console.log('Port:', window.location.port);
-        console.log('Protocol:', window.location.protocol);
-        console.log('Is Development:', window.location.hostname.includes('local'));
-
-        // Check if elements exist
-        console.log('Required elements check:');
-        console.log('- activity-stream-body:', !!document.getElementById('activity-stream-body'));
-        console.log('- activity-pause-btn:', !!document.getElementById('activity-pause-btn'));
-        console.log('- liveIndicator:', !!document.getElementById('liveIndicator'));
-
-        // WebSocket status
-        if (this.websocket) {
-            console.log('WebSocket state:', this.websocket.readyState);
-            console.log('WebSocket URL:', this.websocket.url);
-        } else {
-            console.log('WebSocket: Not initialized');
-        }
-
-        // Admin session check
-        fetch('/admin/api/health', {
-            headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
-        })
-            .then(response => {
-                console.log('Admin API access:', response.ok ? '✅ OK' : '❌ DENIED');
-                if (!response.ok) {
-                    console.log('❌ Admin session might be invalid - try logging in again');
-                }
-            })
-            .catch(error => {
-                console.log('❌ Admin API error:', error.message);
-            });
-
-        console.log('='.repeat(40));
     }
 }
 

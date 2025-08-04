@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
@@ -80,7 +81,6 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
 
     @Transactional
     @Override
-    @LogActivity
     public void deleteEvent(Long eventId) {
         EventType type = getEventTypeById(eventId);
 

@@ -13,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -86,6 +88,7 @@ public class UserServiceImpl implements UserService {
      */
 
     @Transactional
+    @LogActivity(action = ActivityActionEnum.USER_LOGIN)
     public Authentication authenticateUser(String email, String password) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
@@ -145,6 +148,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
+    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER)
     public void promoteUserToAdmin(String username) {
         Optional<UserEntity> userOptional = userRepository.findByUsername(username);
         UserRole newRole = UserRole.ADMIN;
@@ -163,6 +167,8 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional
+    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = EventType.SIMPLEEVENT)
     public void promoteAdminToUser(String username) {
         Optional<UserEntity> userOptional = userRepository.findByUsername(username);
         UserRole newRole = UserRole.USER;
@@ -246,7 +252,7 @@ public class UserServiceImpl implements UserService {
 
     //CREATE NEW USER
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.USER_REGISTER)
     public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
 
         UserRole userRole = UserRole.USER;
@@ -282,7 +288,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.EDIT_PROFILE)
     public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));

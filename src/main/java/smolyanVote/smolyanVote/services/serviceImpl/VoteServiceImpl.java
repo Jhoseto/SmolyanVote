@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 
@@ -41,7 +43,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
+
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
         SimpleEventEntity event = simpleEventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Събитие не е намерено"));
@@ -94,7 +97,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = EventType.REFERENDUM)
+
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен."));
@@ -147,9 +151,9 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity
-    public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
+    @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = EventType.MULTI_POLL)
 
+    public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
         if (selectedOptions == null || selectedOptions.isEmpty()) {
             throw new IllegalArgumentException("Трябва да изберете поне една опция.");
         }
