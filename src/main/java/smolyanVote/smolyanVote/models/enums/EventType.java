@@ -9,7 +9,9 @@ public enum EventType {
 
     POLL("АНКЕТА"),
 
-    PUBLICATION("ПУБЛИКАЦИЯ");
+    PUBLICATION("ПУБЛИКАЦИЯ"),
+    SIGNAL("СИГНАЛ"),
+    DEFAULT("НЯМА ВИД"),;
 
 
     private final String BG;

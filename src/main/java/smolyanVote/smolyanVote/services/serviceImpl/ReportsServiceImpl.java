@@ -6,10 +6,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
-import smolyanVote.smolyanVote.models.enums.ReportReasonEnum;
-import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
-import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ReportsService;
 import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
@@ -47,6 +46,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
 
     @Override
+    @LogActivity(action = ActivityActionEnum.REPORT_EVENT)
     public void createReport(ReportableEntityType entityType, Long entityId, UserEntity reporter,
                              String reasonString, String description) {
 

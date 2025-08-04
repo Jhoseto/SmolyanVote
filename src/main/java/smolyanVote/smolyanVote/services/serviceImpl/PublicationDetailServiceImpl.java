@@ -4,8 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
@@ -34,6 +37,7 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
 
     @Override
     @Transactional
+    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = EventType.PUBLICATION)
     public PublicationResponseDTO getPublicationForModal(Long publicationId, Authentication auth) {
         // Get publication
         PublicationEntity publication = publicationService.findById(publicationId);

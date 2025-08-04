@@ -10,10 +10,7 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.CategoryEnum;
-import smolyanVote.smolyanVote.models.enums.PublicationStatus;
-import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
-import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
@@ -73,7 +70,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_PUBLICATION, entityType = EventType.PUBLICATION)
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         PublicationEntity publication = new PublicationEntity();
 
@@ -130,7 +127,8 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.EDIT_PUBLICATION, entityType = EventType.PUBLICATION)
+
     public PublicationEntity update(PublicationEntity publication, PublicationRequestDTO request) {
         // Запазваме оригиналния статус за проверка
         PublicationStatus originalStatus = publication.getStatus();
@@ -166,7 +164,6 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity
     public void delete(Long id) {
 
         try {
@@ -355,6 +352,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity(action = ActivityActionEnum.LIKE_PUBLICATION, entityType = EventType.PUBLICATION)
     public boolean toggleLike(Long publicationId, UserEntity user) {
         PublicationEntity publication = findById(publicationId);
         if (publication == null) return false;
@@ -380,6 +378,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.DISLIKE_PUBLICATION, entityType = EventType.PUBLICATION)
     public boolean toggleDislike(Long publicationId, UserEntity user) {
         PublicationEntity publication = findById(publicationId);
         if (publication == null) return false;

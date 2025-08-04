@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
@@ -84,6 +86,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
     public SimpleEventDetailViewDTO getSimpleEventDetails(Long id) {
         UserEntity currentUser = userService.getCurrentUser();
 
@@ -119,7 +122,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
     public List<String> createEvent(CreateEventView dto,
                                     MultipartFile[] files,
                                     String positiveLabel,

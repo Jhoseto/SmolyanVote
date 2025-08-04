@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.ContactMessageEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.ContactMessageRepository;
 import smolyanVote.smolyanVote.services.interfaces.ContactMessageService;
 import smolyanVote.smolyanVote.viewsAndDTO.ContactFormView;
@@ -25,7 +27,7 @@ public class ContactMessageServiceImpl implements ContactMessageService {
 
 
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CONTACT_MESSAGE)
     public void saveContactMessage(ContactFormView contactFormView) {
         try {
             ContactMessageEntity message = new ContactMessageEntity();

@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.annotations;
 
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -36,7 +37,7 @@ public @interface LogActivity {
      * Типът на entity-то (опционално)
      * Примери: "PUBLICATION", "EVENT", "REFERENDUM", "USER"
      */
-    String entityType() default "";
+    EventType entityType() default EventType.DEFAULT;
 
     /**
      * Име на параметъра, който съдържа entity ID (опционално)

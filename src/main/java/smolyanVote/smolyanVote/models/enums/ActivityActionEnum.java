@@ -33,10 +33,12 @@ public enum ActivityActionEnum {
     UNFOLLOW_USER("Спря да следва потребител", "interact"),
 
     // ===== ПРЕГЛЕЖДАНЕ =====
-    VIEW_PUBLICATION("Прегледа публикация", "other"),
-    VIEW_EVENT("Прегледа събитие", "other"),
-    VIEW_REFERENDUM("Прегледа референдум", "other"),
-    VIEW_PROFILE("Прегледа профил", "other"),
+    VIEW_PUBLICATION("Прегледа публикация", "view"),
+    VIEW_EVENT("Прегледа събитие", "view"),
+    VIEW_REFERENDUM("Прегледа референдум", "view"),
+    VIEW_MULTI_POLL("Прегледа множествена анкета", "view"),
+    VIEW_SIGNAL("Прегледа сигнал", "view"),
+    VIEW_PROFILE("Прегледа профил", "view"),
 
     SEARCH_CONTENT("Търсене в съдържанието", "other"),
     FILTER_CONTENT("Филтриране на съдържание", "other"),
@@ -45,6 +47,8 @@ public enum ActivityActionEnum {
     EDIT_PUBLICATION("Редактира публикация", "moderate"),
     EDIT_EVENT("Редактира събитие", "moderate"),
     EDIT_REFERENDUM("Редактира референдум", "moderate"),
+    EDIT_MULTI_POLL("Редактира множествена анкета", "moderate"),
+    EDIT_SIGNAL("Редактира сигнал", "moderate"),
     EDIT_COMMENT("Редактира коментар", "moderate"),
     EDIT_PROFILE("Редактира профил", "other"),
 
@@ -69,6 +73,7 @@ public enum ActivityActionEnum {
     ADMIN_UNBAN_USER("Отблокира потребител", "moderate"),
     ADMIN_PROMOTE_USER("Повиши потребител", "moderate"),
     ADMIN_DEMOTE_USER("Понижи потребител", "moderate"),
+    CONTACT_MESSAGE("Съобщение до контакт", "moderate"),
 
     // ===== АВТЕНТИКАЦИЯ =====
     USER_REGISTER("Регистрация", "auth"),

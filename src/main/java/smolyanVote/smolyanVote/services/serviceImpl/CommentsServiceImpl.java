@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import org.hibernate.type.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
@@ -169,7 +172,6 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
     public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
         logger.info("Adding comment to entityType: {}, entityId: {}, text: {}, author: {}",
                 entityType, entityId, text, author.getUsername());
@@ -185,7 +187,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION)
     public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
         PublicationEntity publication = publicationRepository.findById(publicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Publication not found with id: " + publicationId));
@@ -213,7 +215,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT)
     public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
         SimpleEventEntity simpleEvent = simpleEventRepository.findById(simpleEventId)
                 .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with id: " + simpleEventId));
@@ -233,7 +235,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM)
     public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
         ReferendumEntity referendum = referendumRepository.findById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Referendum not found with id: " + referendumId));
@@ -253,7 +255,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL)
     public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
         MultiPollEntity multiPoll = multiPollRepository.findById(multiPollId)
                 .orElseThrow(() -> new IllegalArgumentException("MultiPoll not found with id: " + multiPollId));
@@ -273,7 +275,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL)
     public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
         SignalsEntity signal = signalsRepository.findById(signalId)
                 .orElseThrow(() -> new IllegalArgumentException("Signal not found with id: " + signalId));
@@ -300,7 +302,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT)
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
                 parentCommentId, text, author.getUsername());
@@ -353,7 +355,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.EDIT_COMMENT)
     public CommentsEntity updateComment(Long commentId, String newText, UserEntity user) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
@@ -371,7 +373,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.DELETE_COMMENT)
     public void deleteComment(Long commentId, UserEntity user) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
@@ -408,7 +410,6 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity
     public Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reactionType) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
