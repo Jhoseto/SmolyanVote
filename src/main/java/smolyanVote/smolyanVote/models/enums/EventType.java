@@ -23,4 +23,5 @@ public enum EventType {
     public String toBG() {
         return BG;
     }
+
 }

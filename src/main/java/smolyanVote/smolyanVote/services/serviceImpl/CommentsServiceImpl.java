@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.CommentResultMapper;
@@ -44,6 +45,9 @@ public class CommentsServiceImpl implements CommentsService {
     private final UserService userService;
     private final CommentResultMapper resultMapper;
     private final SignalsRepository signalsRepository;
+
+    private final ActivityLogService activityLogService;
+
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
                                SimpleEventRepository simpleEventRepository,
@@ -53,7 +57,8 @@ public class CommentsServiceImpl implements CommentsService {
                                CommentVoteRepository commentVoteRepository,
                                UserService userService,
                                CommentResultMapper resultMapper,
-                               SignalsRepository signalsRepository) {
+                               SignalsRepository signalsRepository,
+                               ActivityLogService activityLogService) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
@@ -63,6 +68,7 @@ public class CommentsServiceImpl implements CommentsService {
         this.userService = userService;
         this.resultMapper = resultMapper;
         this.signalsRepository = signalsRepository;
+        this.activityLogService = activityLogService;
     }
 
     // ====== ОСНОВНИ МЕТОДИ ======
@@ -187,7 +193,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION,
+            entityIdParam = "publicationId", details = "Comment: {text}")
+
     public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
         PublicationEntity publication = publicationRepository.findById(publicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Publication not found with id: " + publicationId));
@@ -215,7 +223,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT,
+            entityIdParam = "simpleEventId", details = "Comment: {text}")
+
     public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
         SimpleEventEntity simpleEvent = simpleEventRepository.findById(simpleEventId)
                 .orElseThrow(() -> new IllegalArgumentException("SimpleEvent not found with id: " + simpleEventId));
@@ -235,7 +245,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM,
+            entityIdParam = "referendumId", details = "Comment: {text}")
+
     public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
         ReferendumEntity referendum = referendumRepository.findById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Referendum not found with id: " + referendumId));
@@ -255,7 +267,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL,
+            entityIdParam = "multiPollId", details = "Comment: {text}")
+
     public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
         MultiPollEntity multiPoll = multiPollRepository.findById(multiPollId)
                 .orElseThrow(() -> new IllegalArgumentException("MultiPoll not found with id: " + multiPollId));
@@ -275,7 +289,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL,
+            entityIdParam = "signalId", details = "Comment: {text}")
+
     public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
         SignalsEntity signal = signalsRepository.findById(signalId)
                 .orElseThrow(() -> new IllegalArgumentException("Signal not found with id: " + signalId));
@@ -302,7 +318,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT)
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
+            entityIdParam = "parentCommentId", details = "Reply: {text}")
+
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
                 parentCommentId, text, author.getUsername());
@@ -355,7 +373,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.EDIT_COMMENT)
+    //@LogActivity - manual Log try/catch logic
     public CommentsEntity updateComment(Long commentId, String newText, UserEntity user) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
@@ -364,16 +382,33 @@ public class CommentsServiceImpl implements CommentsService {
             throw new IllegalArgumentException("User cannot edit this comment");
         }
 
+        // Запазваме стария текст
+        String oldText = comment.getText();
+
         comment.setText(newText);
         comment.setEdited(true);
         comment.setModified(Instant.now());
 
-        return commentsRepository.save(comment);
+        CommentsEntity savedComment = commentsRepository.save(comment);
+
+        // Activity logging for admin log panel
+        try {
+            String details = String.format("Old: \"%s\" → New: \"%s\"",
+                    oldText.length() > 100 ? oldText.substring(0, 100) + "..." : oldText,
+                    newText.length() > 100 ? newText.substring(0, 100) + "..." : newText);
+
+            activityLogService.logActivity(ActivityActionEnum.EDIT_COMMENT, user,
+                    "DEFAULT", commentId, details, null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log comment edit: " + e.getMessage());
+        }
+
+        return savedComment;
     }
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.DELETE_COMMENT)
+    //@LogActivity - manual Log try/catch logic
     public void deleteComment(Long commentId, UserEntity user) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
@@ -381,6 +416,11 @@ public class CommentsServiceImpl implements CommentsService {
         if (!canModifyComment(comment, user)) {
             throw new IllegalArgumentException("User cannot delete this comment");
         }
+
+        // Запазваме текста преди изтриване
+        String deletedText = comment.getText().length() > 200
+                ? comment.getText().substring(0, 200) + "..."
+                : comment.getText();
 
         // ✅ ПОПРАВКА: Броим ВСИЧКИ коментари които ще се изтрият
         int totalCommentsToDelete = countCommentsToDelete(comment);
@@ -404,12 +444,21 @@ public class CommentsServiceImpl implements CommentsService {
         }
 
         commentsRepository.delete(comment);
+        // Activity logging for admin log panel след успешното изтриване
+        try {
+            String details = String.format("Deleted text: \"%s\"", deletedText);
+            activityLogService.logActivity(ActivityActionEnum.DELETE_COMMENT, user,
+                    "DEFAULT", commentId, details, null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log comment deletion: " + e.getMessage());
+        }
     }
 
     // ====== РЕАКЦИИ ======
 
     @Override
     @Transactional
+    //@LogActivity - manual Log try/catch logic
     public Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reactionType) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
@@ -441,6 +490,28 @@ public class CommentsServiceImpl implements CommentsService {
 
         updateCommentCounters(comment);
         commentsRepository.save(comment);
+
+        // Activity logging за comment реакции
+        try {
+            // Логваме само ако има реакция (не при премахване)
+            if (userReaction != null && !"NONE".equals(userReaction)) {
+                ActivityActionEnum actionEnum = (reactionType == CommentReactionType.LIKE)
+                        ? ActivityActionEnum.LIKE_COMMENT
+                        : ActivityActionEnum.DISLIKE_COMMENT;
+
+                String commentText = comment.getText().length() > 100
+                        ? comment.getText().substring(0, 100) + "..."
+                        : comment.getText();
+
+                String details = String.format("Text: \"%s\"", commentText);
+
+                String entityType = "DEFAULT"; // За коментар ID
+
+                activityLogService.logActivity(actionEnum, user, entityType, commentId, details, null, null);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to log comment vote activity: " + e.getMessage());
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("likesCount", comment.getLikeCount());
