@@ -31,6 +31,8 @@ public class ReportsServiceImpl implements ReportsService {
 
     private static final int MAX_REPORTS_PER_HOUR = 5;
     private static final int MAX_REPORTS_PER_DAY = 20;
+    private final SignalsRepository signalsRepository;
+    private final CommentsRepository commentsRepository;
 
     @Autowired
     public ReportsServiceImpl(
@@ -39,13 +41,15 @@ public class ReportsServiceImpl implements ReportsService {
             SimpleEventRepository simpleEventRepository,
             ReferendumRepository referendumRepository,
             MultiPollRepository multiPollRepository,
-            ActivityLogService activityLogService) {
+            ActivityLogService activityLogService, SignalsRepository signalsRepository, CommentsRepository commentsRepository) {
         this.reportsRepository = reportsRepository;
         this.publicationRepository = publicationRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.multiPollRepository = multiPollRepository;
         this.activityLogService = activityLogService;
+        this.signalsRepository = signalsRepository;
+        this.commentsRepository = commentsRepository;
     }
 
     // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
@@ -289,6 +293,8 @@ public class ReportsServiceImpl implements ReportsService {
             case SIMPLE_EVENT -> simpleEventRepository.existsById(entityId);
             case REFERENDUM -> referendumRepository.existsById(entityId);
             case MULTI_POLL -> multiPollRepository.existsById(entityId);
+            case SIGNAL -> signalsRepository.existsById(entityId);
+            case COMMENT -> commentsRepository.existsById(entityId);
         };
     }
 
@@ -309,6 +315,14 @@ public class ReportsServiceImpl implements ReportsService {
             case MULTI_POLL -> {
                 Optional<MultiPollEntity> poll = multiPollRepository.findById(entityId);
                 yield poll.isPresent() && poll.get().getCreatorName().equals(username);
+            }
+            case SIGNAL -> {
+                Optional<SignalsEntity> signal = signalsRepository.findById(entityId);
+                yield signal.isPresent() && signal.get().getAuthor().getUsername().equals(username);
+            }
+            case COMMENT -> {
+                Optional<CommentsEntity> comment = commentsRepository.findById(entityId);
+                yield comment.isPresent() && comment.get().getAuthor().equals(username);
             }
         };
     }

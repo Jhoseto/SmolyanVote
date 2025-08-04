@@ -74,7 +74,9 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_PUBLICATION, entityType = EventType.PUBLICATION)
+    @LogActivity(action = ActivityActionEnum.CREATE_PUBLICATION, entityType = EventType.PUBLICATION,
+            details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
+
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
         PublicationEntity publication = new PublicationEntity();
 

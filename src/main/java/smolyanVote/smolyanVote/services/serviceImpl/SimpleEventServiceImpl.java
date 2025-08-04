@@ -72,7 +72,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.VIEW_EVENT, entityType = EventType.SIMPLEEVENT,
-            entityIdParam = "id")
+            entityIdParam = "id", includeTitle = true, includeText = true)
 
     public SimpleEventDetailViewDTO getSimpleEventDetails(Long id) {
         UserEntity currentUser = userService.getCurrentUser();
@@ -110,7 +110,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT,
-            details = "Title: {title}, Location: {location}")
+            details = "Title: {title}, Location: {location}", includeTitle = true, includeText = true)
 
     public List<String> createEvent(CreateEventView dto,
                                     MultipartFile[] files,

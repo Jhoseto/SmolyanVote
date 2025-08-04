@@ -194,7 +194,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION,
-            entityIdParam = "publicationId", details = "Comment: {text}")
+            entityIdParam = "publicationId", details = "Comment: {text}",includeText = true, async = false)
 
     public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
         PublicationEntity publication = publicationRepository.findById(publicationId)
@@ -224,7 +224,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT,
-            entityIdParam = "simpleEventId", details = "Comment: {text}")
+            entityIdParam = "simpleEventId", details = "Comment: {text}",includeText = true, async = false)
 
     public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
         SimpleEventEntity simpleEvent = simpleEventRepository.findById(simpleEventId)
@@ -246,7 +246,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM,
-            entityIdParam = "referendumId", details = "Comment: {text}")
+            entityIdParam = "referendumId", details = "Comment: {text}",includeText = true, async = false)
 
     public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
         ReferendumEntity referendum = referendumRepository.findById(referendumId)
@@ -268,7 +268,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL,
-            entityIdParam = "multiPollId", details = "Comment: {text}")
+            entityIdParam = "multiPollId", details = "Comment: {text}",includeText = true, async = false)
 
     public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
         MultiPollEntity multiPoll = multiPollRepository.findById(multiPollId)
@@ -290,7 +290,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL,
-            entityIdParam = "signalId", details = "Comment: {text}")
+            entityIdParam = "signalId", details = "Comment: {text}", includeText = true, async = false)
 
     public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
         SignalsEntity signal = signalsRepository.findById(signalId)
@@ -319,7 +319,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
-            entityIdParam = "parentCommentId", details = "Reply: {text}")
+            entityIdParam = "parentCommentId", details = "Reply: {text}",includeText = true, async = false)
 
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
