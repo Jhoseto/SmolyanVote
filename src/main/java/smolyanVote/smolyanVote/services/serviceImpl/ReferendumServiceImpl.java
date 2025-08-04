@@ -58,7 +58,7 @@ public class ReferendumServiceImpl implements ReferendumService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.CREATE_REFERENDUM, entityType = EventType.REFERENDUM,
-            details = "Topic: {topic}, Location: {location}")
+            details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
 
     public void createReferendum(String topic,
                                  String description,
@@ -124,7 +124,7 @@ public class ReferendumServiceImpl implements ReferendumService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.VIEW_REFERENDUM, entityType = EventType.REFERENDUM,
-            entityIdParam = "referendumId")
+            entityIdParam = "referendumId", includeTitle = true, includeText = true)
 
     public ReferendumDetailViewDTO getReferendumDetail(Long referendumId) {
         ReferendumEntity referendum = referendumRepository.findById(referendumId)

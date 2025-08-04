@@ -88,14 +88,14 @@ public @interface LogActivity {
      * Автоматично включване на заглавие/тема в детайлите
      * Търси параметри: title, topic, name, subject
      */
-    boolean includeTitle() default false;
+    boolean includeTitle() default true;
 
     /**
      * Автоматично включване на текст/съдържание в детайлите
      * Търси параметри: text, content, message, description
      * Ограничава до 100 символа автоматично
      */
-    boolean includeText() default false;
+    boolean includeText() default true;
 
     /**
      * Автоматично включване на избор/глас в детайлите

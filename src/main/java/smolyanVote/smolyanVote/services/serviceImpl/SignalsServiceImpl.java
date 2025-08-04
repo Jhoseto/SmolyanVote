@@ -75,7 +75,8 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = EventType.SIGNAL,
-            details = "Title: {title}, Category: {category}, Urgency: {urgency}")
+            details = "Title: {title}, Category: {category}, Urgency: {urgency}", includeTitle = true, includeText = true)
+
     public SignalsEntity create(String title, String description, SignalsCategory category,
                                 SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {

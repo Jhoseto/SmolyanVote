@@ -53,7 +53,7 @@ public class MultiPollServiceImpl implements MultiPollService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.CREATE_MULTI_POLL, entityType = EventType.MULTI_POLL,
-            details = "Title: {title}, Location: {location}")
+            details = "Title: {title}, Location: {location}", includeTitle = true)
 
     public void createMultiPoll(CreateMultiPollView dto) {
         MultiPollEntity poll = new MultiPollEntity();
@@ -110,7 +110,7 @@ public class MultiPollServiceImpl implements MultiPollService {
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.VIEW_MULTI_POLL, entityType = EventType.MULTI_POLL,
-            entityIdParam = "id")
+            entityIdParam = "id", includeTitle = true, includeText = true)
 
     public MultiPollDetailViewDTO getMultiPollDetail(Long id) {
         // Вземане на анкетата
