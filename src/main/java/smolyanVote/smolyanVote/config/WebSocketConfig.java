@@ -28,14 +28,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-
-        // Environment-aware origins
         String[] allowedOrigins = getAllowedOrigins();
 
-        // ===== ADMIN ACTIVITY WALL - САМО SOCKJS =====
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
                 .setAllowedOriginPatterns(allowedOrigins)
-                .withSockJS(); // Използваме само SockJS
+                .withSockJS();
     }
 
     /**

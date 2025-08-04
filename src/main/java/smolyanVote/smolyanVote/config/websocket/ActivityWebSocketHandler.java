@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.ActivityMessageDto;
@@ -35,7 +36,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
     @Override
     protected boolean hasPermission(WebSocketSession session) {
-
         return true;
     }
 
@@ -194,8 +194,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
             broadcastMessage(message);
 
-            System.out.println("📡 Broadcasted new activity to " + getActiveSessionsCount() + " admin(s): " +
-                    activity.getAction() + " by " + activity.getUsername());
 
         } catch (Exception e) {
             System.err.println("❌ Error broadcasting new activity: " + e.getMessage());

@@ -445,6 +445,13 @@ public class ActivityLoggingAspect {
                     replacement = method.getName();
                 } else if ("class".equals(paramName)) {
                     replacement = method.getDeclaringClass().getSimpleName();
+                } else if ("username".equals(paramName)) {
+                    try {
+                        UserEntity user = getCurrentUser();
+                        replacement = user != null ? user.getUsername() : "Anonymous";
+                    } catch (Exception e) {
+                        replacement = "Anonymous";
+                    }
                 }
 
                 processed = processed.replace(placeholder, replacement);

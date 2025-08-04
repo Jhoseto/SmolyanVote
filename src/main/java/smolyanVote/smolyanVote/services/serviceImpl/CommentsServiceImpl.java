@@ -178,6 +178,9 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
+            entityIdParam = "entityId", details = "Comment on {entityType}: {text}")
+
     public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
         logger.info("Adding comment to entityType: {}, entityId: {}, text: {}, author: {}",
                 entityType, entityId, text, author.getUsername());
@@ -194,7 +197,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION,
-            entityIdParam = "publicationId", details = "Comment: {text}",includeText = true, async = false)
+            entityIdParam = "publicationId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
         PublicationEntity publication = publicationRepository.findById(publicationId)
@@ -224,7 +227,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT,
-            entityIdParam = "simpleEventId", details = "Comment: {text}",includeText = true, async = false)
+            entityIdParam = "simpleEventId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
         SimpleEventEntity simpleEvent = simpleEventRepository.findById(simpleEventId)
@@ -246,7 +249,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM,
-            entityIdParam = "referendumId", details = "Comment: {text}",includeText = true, async = false)
+            entityIdParam = "referendumId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
         ReferendumEntity referendum = referendumRepository.findById(referendumId)
@@ -268,7 +271,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL,
-            entityIdParam = "multiPollId", details = "Comment: {text}",includeText = true, async = false)
+            entityIdParam = "multiPollId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
         MultiPollEntity multiPoll = multiPollRepository.findById(multiPollId)
@@ -290,7 +293,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL,
-            entityIdParam = "signalId", details = "Comment: {text}", includeText = true, async = false)
+            entityIdParam = "signalId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
         SignalsEntity signal = signalsRepository.findById(signalId)
@@ -319,7 +322,7 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
-            entityIdParam = "parentCommentId", details = "Reply: {text}",includeText = true, async = false)
+            entityIdParam = "parentCommentId", details = "Reply: {text}")
 
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
@@ -459,7 +462,11 @@ public class CommentsServiceImpl implements CommentsService {
     @Override
     @Transactional
     //@LogActivity - manual Log try/catch logic
-    public Map<String, Object> toggleCommentVote(Long commentId, UserEntity user, CommentReactionType reactionType) {
+    public Map<String, Object> toggleCommentVote(Long commentId,
+                                                 UserEntity user,
+                                                 CommentReactionType reactionType,
+                                                 String ipAddress,
+                                                 String userAgent) {
         CommentsEntity comment = commentsRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
 
@@ -507,7 +514,7 @@ public class CommentsServiceImpl implements CommentsService {
 
                 String entityType = "DEFAULT"; // За коментар ID
 
-                activityLogService.logActivity(actionEnum, user, entityType, commentId, details, null, null);
+                activityLogService.logActivity(actionEnum, user, entityType, commentId, details, ipAddress, userAgent);
             }
         } catch (Exception e) {
             System.err.println("Failed to log comment vote activity: " + e.getMessage());

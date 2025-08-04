@@ -31,6 +31,11 @@ public class ActivityStatsScheduler {
         this.activityWebSocketHandler = activityWebSocketHandler;
     }
 
+    @Scheduled(cron = "0 0 2 * * ?") // Всяка нощ в 2:00
+    public void cleanupOldLogs() {
+        activityLogService.cleanupOldActivities();
+    }
+    
     /**
      * Маркира системата като готова след пълно зареждане
      */
