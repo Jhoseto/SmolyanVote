@@ -6,11 +6,14 @@ public enum EventType {
     REFERENDUM("РЕФЕРЕНДУМ"),
 
     MULTI_POLL("АНКЕТА С МНОЖЕСТВЕН ИЗБОР"),
-
     POLL("АНКЕТА"),
 
     PUBLICATION("ПУБЛИКАЦИЯ"),
+
     SIGNAL("СИГНАЛ"),
+
+    REPORT("РЕПОРТ"),
+
     DEFAULT("НЯМА ВИД"),;
 
 

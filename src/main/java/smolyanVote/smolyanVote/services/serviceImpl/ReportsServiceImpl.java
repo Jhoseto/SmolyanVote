@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.ReportsService;
 import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
 import java.sql.Timestamp;
@@ -26,6 +27,8 @@ public class ReportsServiceImpl implements ReportsService {
     private final ReferendumRepository referendumRepository;
     private final MultiPollRepository multiPollRepository;
 
+    private final ActivityLogService activityLogService;
+
     private static final int MAX_REPORTS_PER_HOUR = 5;
     private static final int MAX_REPORTS_PER_DAY = 20;
 
@@ -35,22 +38,25 @@ public class ReportsServiceImpl implements ReportsService {
             PublicationRepository publicationRepository,
             SimpleEventRepository simpleEventRepository,
             ReferendumRepository referendumRepository,
-            MultiPollRepository multiPollRepository) {
+            MultiPollRepository multiPollRepository,
+            ActivityLogService activityLogService) {
         this.reportsRepository = reportsRepository;
         this.publicationRepository = publicationRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.multiPollRepository = multiPollRepository;
+        this.activityLogService = activityLogService;
     }
 
     // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
 
     @Override
-    @LogActivity(action = ActivityActionEnum.REPORT_EVENT)
+    @LogActivity(action = ActivityActionEnum.REPORT_EVENT, entityType = EventType.REPORT,
+            entityIdParam = "entityId", details = "Reported {entityType}: {reasonString}")
+
     public void createReport(ReportableEntityType entityType, Long entityId, UserEntity reporter,
                              String reasonString, String description) {
-
-        // Валидации
+        //Валидации
         validateReportCreation(entityType, entityId, reporter, reasonString);
 
         // Проверка дали entity съществува
@@ -83,6 +89,26 @@ public class ReportsServiceImpl implements ReportsService {
         }
 
         reportsRepository.save(report);
+        // Activity logging for admin log panel СЛЕД успешното създаване
+        try {
+            // Избираме правилния action според entity type
+            ActivityActionEnum actionEnum = switch (entityType) {
+                case PUBLICATION -> ActivityActionEnum.REPORT_PUBLICATION;
+                case SIMPLE_EVENT -> ActivityActionEnum.REPORT_EVENT;
+                case REFERENDUM -> ActivityActionEnum.REPORT_REFERENDUM;
+                case MULTI_POLL -> ActivityActionEnum.REPORT_EVENT; // няма специален
+                case SIGNAL -> ActivityActionEnum.REPORT_EVENT; // няма специален
+                case COMMENT -> ActivityActionEnum.REPORT_COMMENT;
+            };
+
+            String details = String.format("Reported %s (Reason: %s)",
+                    entityType.getDisplayName(),
+                    reasonString);
+
+            activityLogService.logActivity(actionEnum, reporter, entityType.name(), entityId, details, null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log report creation: " + e.getMessage());
+        }
     }
 
     // ===== ПРОВЕРКИ =====
@@ -149,6 +175,10 @@ public class ReportsServiceImpl implements ReportsService {
     }
 
     @Override
+    @Transactional
+    @LogActivity(action = ActivityActionEnum.ADMIN_REVIEW_REPORT, entityType = EventType.REPORT,
+            entityIdParam = "reportId", details = "Status: {status}, Notes: {adminNotes}")
+
     public void reviewReport(Long reportId, UserEntity admin, String status, String adminNotes) {
         Optional<ReportsEntity> reportOpt = reportsRepository.findById(reportId);
         if (reportOpt.isEmpty()) {

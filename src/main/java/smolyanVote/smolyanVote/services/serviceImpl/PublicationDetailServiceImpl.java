@@ -37,7 +37,9 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = EventType.PUBLICATION)
+    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = EventType.PUBLICATION,
+            entityIdParam = "publicationId")
+
     public PublicationResponseDTO getPublicationForModal(Long publicationId, Authentication auth) {
         // Get publication
         PublicationEntity publication = publicationService.findById(publicationId);
