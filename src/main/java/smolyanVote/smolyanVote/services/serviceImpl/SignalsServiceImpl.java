@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
@@ -37,18 +38,21 @@ public class SignalsServiceImpl implements SignalsService {
     private final UserService userService;
     private final CommentsRepository commentsRepository;
     private final CommentVoteRepository commentVoteRepository;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public SignalsServiceImpl(SignalsRepository signalsRepository,
                               ImageCloudinaryService imageCloudinaryService,
                               UserService userService,
                               CommentsRepository commentsRepository,
-                              CommentVoteRepository commentVoteRepository) {
+                              CommentVoteRepository commentVoteRepository,
+                              ActivityLogService activityLogService) {
         this.signalsRepository = signalsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
         this.userService = userService;
         this.commentsRepository = commentsRepository;
         this.commentVoteRepository = commentVoteRepository;
+        this.activityLogService = activityLogService;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -70,7 +74,8 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = EventType.SIGNAL)
+    @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = EventType.SIGNAL,
+            details = "Title: {title}, Category: {category}, Urgency: {urgency}")
     public SignalsEntity create(String title, String description, SignalsCategory category,
                                 SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {
@@ -96,7 +101,8 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.EDIT_SIGNAL, entityType = EventType.SIGNAL)
+    //@LogActivity - manual Log try/catch logic
+
     public SignalsEntity update(SignalsEntity signal, String title, String description,
                                 SignalsCategory category, SignalsUrgencyLevel urgency, MultipartFile image) {
 
@@ -105,6 +111,11 @@ public class SignalsServiceImpl implements SignalsService {
         signal.setCategory(category);
         signal.setUrgency(urgency);
         signal.setModified(Instant.now());
+
+        // Запазваме старите данни ПРЕДИ промяната
+        String oldTitle = signal.getTitle();
+        SignalsCategory oldCategory = signal.getCategory();
+        SignalsUrgencyLevel oldUrgency = signal.getUrgency();
 
         signalsRepository.save(signal);
         Long signalId = signal.getId();
@@ -119,12 +130,25 @@ public class SignalsServiceImpl implements SignalsService {
             }
         }
 
+        // Activity logging for admin log panel СЛЕД успешната промяна
+        try {
+            String details = String.format("Old: \"%s\" (%s, %s) → New: \"%s\" (%s, %s)",
+                    oldTitle.length() > 50 ? oldTitle.substring(0, 50) + "..." : oldTitle,
+                    oldCategory.name(), oldUrgency.name(),
+                    title.length() > 50 ? title.substring(0, 50) + "..." : title,
+                    category.name(), urgency.name());
+
+            activityLogService.logActivity(ActivityActionEnum.EDIT_SIGNAL, userService.getCurrentUser(),
+                    "SIGNAL", signal.getId(), details, null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log signal edit: " + e.getMessage());
+        }
+
         return signal;
     }
 
     @Override
     @Transactional
-    @LogActivity
     public void delete(Long id) {
         try {
             // ПЪРВО ИЗТРИВАМЕ COMMENT VOTES
@@ -149,8 +173,25 @@ public class SignalsServiceImpl implements SignalsService {
                 e.printStackTrace();
             }
 
+            // Запазваме данните ПРЕДИ изтриване
+            SignalsEntity signal = findById(id);
+            String deletedTitle = signal != null ? signal.getTitle() : "Unknown";
+            String authorName = signal != null && signal.getAuthor() != null ?
+                    signal.getAuthor().getUsername() : "Unknown";
 
             signalsRepository.deleteById(id);
+
+            // Activity logging for admin log panel СЛЕД успешното изтриване
+            try {
+                String details = String.format("Deleted signal: \"%s\" (Author: %s)",
+                        deletedTitle.length() > 100 ? deletedTitle.substring(0, 100) + "..." : deletedTitle,
+                        authorName);
+
+                activityLogService.logActivity(ActivityActionEnum.DELETE_SIGNAL, userService.getCurrentUser(),
+                        "SIGNAL", id, details, null, null);
+            } catch (Exception e) {
+                System.err.println("Failed to log signal deletion: " + e.getMessage());
+            }
 
         } catch (Exception e) {
             System.err.println("FATAL ERROR in delete signal service:");

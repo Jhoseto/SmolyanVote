@@ -3,8 +3,16 @@ package smolyanVote.smolyanVote.models.enums;
 public enum ReportableEntityType {
     PUBLICATION("Публикация"),
     SIMPLE_EVENT("Просто събитие"),
+
     REFERENDUM("Референдум"),
+
+    SIGNAL("Сигнал"),
+
+    COMMENT("Коментар"),
+
     MULTI_POLL("Множествена анкета");
+
+
 
     private final String displayName;
 

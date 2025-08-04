@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.EmailSubscriptionEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.SubscriptionType;
 import smolyanVote.smolyanVote.repositories.EmailSubscriptionRepository;
 import smolyanVote.smolyanVote.services.interfaces.EmailService;
@@ -36,7 +38,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
-    @LogActivity
+    @LogActivity(action = ActivityActionEnum.UPDATE_NOTIFICATIONS, entityType = EventType.DEFAULT,
+            details = "Updated subscriptions: {types}")
+
     public void updateUserSubscriptions(UserEntity user, Set<SubscriptionType> types) {
         emailSubscriptionRepository.deactivateAllByUser(user);
 
@@ -88,6 +92,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.UPDATE_NOTIFICATIONS, entityType = EventType.DEFAULT,
+            details = "Unsubscribed via token")
+
     public boolean unsubscribeByToken(String token) {
         Optional<EmailSubscriptionEntity> subscription =
                 emailSubscriptionRepository.findByUnsubscribeToken(token);
@@ -164,6 +171,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.UPDATE_NOTIFICATIONS, entityType = EventType.DEFAULT,
+            details = "Subscribed to: {type}")
     public void subscribeUserTo(UserEntity user, SubscriptionType type) {
         Set<SubscriptionType> currentSubscriptions = getUserSubscriptions(user);
         currentSubscriptions.add(type);
@@ -172,6 +181,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.UPDATE_NOTIFICATIONS, entityType = EventType.DEFAULT,
+            details = "Unsubscribed from: {type}")
+
     public void unsubscribeUserFrom(UserEntity user, SubscriptionType type) {
         Optional<EmailSubscriptionEntity> subscription =
                 emailSubscriptionRepository.findByUserAndType(user, type);
@@ -188,6 +200,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     // GDPR методи
     @Transactional
     @Override
+    @LogActivity(action = ActivityActionEnum.UPDATE_NOTIFICATIONS, entityType = EventType.DEFAULT,
+            details = "Deleted all subscriptions")
+
     public void deleteAllUserSubscriptions(UserEntity user) {
         emailSubscriptionRepository.deleteByUser(user);
         log.info("Deleted all subscriptions for user: {}", user.getEmail());

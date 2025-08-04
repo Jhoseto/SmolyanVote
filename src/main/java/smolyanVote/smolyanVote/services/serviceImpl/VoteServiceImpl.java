@@ -43,7 +43,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
+    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT,
+            entityIdParam = "eventId", details = "User: {userName}")
 
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
         SimpleEventEntity event = simpleEventRepository.findById(eventId)
@@ -97,7 +98,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = EventType.REFERENDUM)
+    @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = EventType.REFERENDUM,
+            entityIdParam = "referendumId", details = "User: {userName}")
 
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
@@ -151,7 +153,8 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = EventType.MULTI_POLL)
+    @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = EventType.MULTI_POLL,
+            entityIdParam = "pollId", details = "User: {userName}")
 
     public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
         if (selectedOptions == null || selectedOptions.isEmpty()) {

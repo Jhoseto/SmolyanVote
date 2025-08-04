@@ -10,8 +10,10 @@ import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.DeleteEventsService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
+import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
@@ -35,6 +37,9 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
     private final SimpleEventServiceImpl simpleEventService;
     private final ReferendumServiceImpl referendumService;
     private final MultiPollServiceImpl multiPollService;
+    private final ActivityLogService activityLogService;
+    private final smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler;
+    private final UserService userService;
 
     @Autowired
     public DeleteEventsServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -50,7 +55,8 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                                    MultiPollImageRepository multiPollImageRepository,
                                    SimpleEventServiceImpl simpleEventService,
                                    ReferendumServiceImpl referendumService,
-                                   MultiPollServiceImpl multiPollService) {
+                                   MultiPollServiceImpl multiPollService,
+                                   ActivityLogService activityLogService, smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler, UserService userService) {
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -65,6 +71,9 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
         this.simpleEventService = simpleEventService;
         this.referendumService = referendumService;
         this.multiPollService = multiPollService;
+        this.activityLogService = activityLogService;
+        this.userScheduler = userScheduler;
+        this.userService = userService;
     }
 
     public EventType getEventTypeById(Long id) {
@@ -81,8 +90,15 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
 
     @Transactional
     @Override
+    //@LogActivity - manual Log try/catch logic
+
     public void deleteEvent(Long eventId) {
         EventType type = getEventTypeById(eventId);
+
+        // Извличаме данните ПРЕДИ изтриване за логването
+        String eventTitle = "";
+        String creatorName = "";
+        ActivityActionEnum actionEnum = null;
 
         switch (type) {
             case SIMPLEEVENT:
@@ -133,6 +149,20 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                 break;
             default:
                 throw new UnsupportedOperationException("Тип на събитието не е поддържан за изтриване: " + type);
+        }
+        // Activity logging for admin log panel СЛЕД успешното изтриване
+        try {
+            String details = String.format("Deleted %s: \"%s\" (Creator: %s)",
+                    type.name().toLowerCase().replace("_", " "),
+                    eventTitle.length() > 100 ? eventTitle.substring(0, 100) + "..." : eventTitle,
+                    creatorName);
+
+            // Използваме правилното entityType според типа събитие
+            String entityType = type.name(); // "SIMPLEEVENT", "REFERENDUM", "MULTI_POLL"
+
+            activityLogService.logActivity(actionEnum, userService.getCurrentUser(), entityType, eventId, details, null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log event deletion: " + e.getMessage());
         }
     }
 

@@ -36,11 +36,8 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     private final SimpleEventMapper simpleEventMapper;
     private final UserService userService;
     private final ImageCloudinaryServiceImpl imageStorageService;
-    private final ReferendumRepository referendumRepository;
-    private final AllEventsSimplePreviewMapper allEventsSimplePreviewMapper;
-    private final MultiPollRepository multiPollRepository;
+
     private final VoteService voteService;
-    private final CommentsService commentsService;
 
 
     @Autowired
@@ -49,26 +46,14 @@ public class SimpleEventServiceImpl implements SimpleEventService {
             SimpleEventMapper simpleEventMapper,
             UserService userService,
             ImageCloudinaryServiceImpl imageStorageService,
-            ReferendumRepository referendumRepository,
-            AllEventsSimplePreviewMapper allEventsSimplePreviewMapper,
-            MultiPollRepository multiPollRepository,
-            VoteService voteService,
-            CommentsService commentsService) {
+            VoteService voteService) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.simpleEventMapper = simpleEventMapper;
         this.userService = userService;
         this.imageStorageService = imageStorageService;
-        this.referendumRepository = referendumRepository;
-        this.allEventsSimplePreviewMapper = allEventsSimplePreviewMapper;
-        this.multiPollRepository = multiPollRepository;
         this.voteService = voteService;
-        this.commentsService = commentsService;
     }
-
-
-
-
 
 
     @Transactional()
@@ -86,7 +71,9 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
+    @LogActivity(action = ActivityActionEnum.VIEW_EVENT, entityType = EventType.SIMPLEEVENT,
+            entityIdParam = "id")
+
     public SimpleEventDetailViewDTO getSimpleEventDetails(Long id) {
         UserEntity currentUser = userService.getCurrentUser();
 
@@ -122,7 +109,9 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT)
+    @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT,
+            details = "Title: {title}, Location: {location}")
+
     public List<String> createEvent(CreateEventView dto,
                                     MultipartFile[] files,
                                     String positiveLabel,

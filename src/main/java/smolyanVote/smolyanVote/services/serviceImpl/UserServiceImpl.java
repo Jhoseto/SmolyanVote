@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.EmailService;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
     private final ImageCloudinaryServiceImpl imageStorageService;
     private final ConfirmationLinkService confirmationLinkService;
     private final EmailService emailService;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -53,7 +55,8 @@ public class UserServiceImpl implements UserService {
                            UsersMapper usersMapper,
                            ImageCloudinaryServiceImpl imageStorageService,
                            ConfirmationLinkService confirmationLinkService,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           ActivityLogService activityLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userDetailsService = userDetailsService;
@@ -61,6 +64,7 @@ public class UserServiceImpl implements UserService {
         this.imageStorageService = imageStorageService;
         this.confirmationLinkService = confirmationLinkService;
         this.emailService = emailService;
+        this.activityLogService = activityLogService;
     }
 
     /**
@@ -88,7 +92,9 @@ public class UserServiceImpl implements UserService {
      */
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.USER_LOGIN)
+    @LogActivity(action = ActivityActionEnum.USER_LOGIN, entityType = EventType.DEFAULT,
+            details = "Email: {email}")
+
     public Authentication authenticateUser(String email, String password) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
@@ -148,7 +154,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER)
+    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER, entityType = EventType.DEFAULT,
+            details = "Promoted to admin: {username}")
+
     public void promoteUserToAdmin(String username) {
         Optional<UserEntity> userOptional = userRepository.findByUsername(username);
         UserRole newRole = UserRole.ADMIN;
@@ -168,7 +176,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = EventType.SIMPLEEVENT)
+    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = EventType.DEFAULT,
+            details = "Demoted to user: {username}")
+
     public void promoteAdminToUser(String username) {
         Optional<UserEntity> userOptional = userRepository.findByUsername(username);
         UserRole newRole = UserRole.USER;
@@ -215,13 +225,30 @@ public class UserServiceImpl implements UserService {
      * @param userId The ID of the user to be deleted.
      */
 
+    @Transactional
     @Override
+    //@LogActivity - manual Log try/catch logic
+
     public void deleteUser(Long userId){
         Optional<UserEntity> user = userRepository.findById(userId);
         if (user.isPresent()){
             UserEntity currentUser = user.get();
+
+            // Запазваме данните ПРЕДИ изтриване
+            String deletedUsername = user.get().getUsername();
+            String deletedEmail = user.get().getEmail();
+
             System.out.println("Delete user => "+currentUser.getUsername());
             userRepository.delete(currentUser);
+
+            // Activity logging for admin log panel СЛЕД успешното изтриване
+            try {
+                String details = String.format("Deleted user: \"%s\" (Email: %s)", deletedUsername, deletedEmail);
+                activityLogService.logActivity(ActivityActionEnum.DELETE_ACCOUNT, getCurrentUser(),
+                        "DEFAULT", userId, details, null, null);
+            } catch (Exception e) {
+                System.err.println("Failed to log user deletion: " + e.getMessage());
+            }
 
         }else {
             throw new RuntimeException("Delete operation false ! The User not exist");
@@ -252,7 +279,9 @@ public class UserServiceImpl implements UserService {
 
     //CREATE NEW USER
     @Override
-    @LogActivity(action = ActivityActionEnum.USER_REGISTER)
+    @LogActivity(action = ActivityActionEnum.USER_REGISTER, entityType = EventType.DEFAULT,
+            details = "Username: {username}, Email: {email}")
+
     public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
 
         UserRole userRole = UserRole.USER;
@@ -288,7 +317,9 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    @LogActivity(action = ActivityActionEnum.EDIT_PROFILE)
+    @LogActivity(action = ActivityActionEnum.EDIT_PROFILE, entityType = EventType.DEFAULT,
+            details = "Bio: {bio}, Location: {location}")
+
     public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
