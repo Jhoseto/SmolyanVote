@@ -27,7 +27,9 @@ public class ContactMessageServiceImpl implements ContactMessageService {
 
 
     @Override
-    @LogActivity(action = ActivityActionEnum.CONTACT_MESSAGE)
+    @LogActivity(action = ActivityActionEnum.CONTACT_MESSAGE, entityType = EventType.DEFAULT,
+            details = "From: {name} ({email}), Subject: {subject}, Message: {message}")
+
     public void saveContactMessage(ContactFormView contactFormView) {
         try {
             ContactMessageEntity message = new ContactMessageEntity();

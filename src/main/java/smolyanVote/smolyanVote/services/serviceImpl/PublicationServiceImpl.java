@@ -12,6 +12,7 @@ import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
@@ -36,6 +37,7 @@ public class PublicationServiceImpl implements PublicationService {
     private final ImageCloudinaryServiceImpl imageCloudinaryService;
     private final CommentsRepository commentsRepository;
     private final CommentVoteRepository commentVoteRepository;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
@@ -45,7 +47,8 @@ public class PublicationServiceImpl implements PublicationService {
                                   ReportsRepository reportsRepository,
                                   ImageCloudinaryServiceImpl imageCloudinaryService,
                                   CommentsRepository commentsRepository,
-                                  CommentVoteRepository commentVoteRepository) {
+                                  CommentVoteRepository commentVoteRepository,
+                                  ActivityLogService activityLogService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
@@ -54,6 +57,7 @@ public class PublicationServiceImpl implements PublicationService {
         this.imageCloudinaryService = imageCloudinaryService;
         this.commentsRepository = commentsRepository;
         this.commentVoteRepository = commentVoteRepository;
+        this.activityLogService = activityLogService;
     }
 
 
@@ -127,9 +131,13 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.EDIT_PUBLICATION, entityType = EventType.PUBLICATION)
-
+    //@LogActivity - manual Log try/catch logic
     public PublicationEntity update(PublicationEntity publication, PublicationRequestDTO request) {
+        // Запазваме старите стойности за activity log
+        String oldTitle = publication.getTitle();
+        String oldContent = publication.getContent();
+        CategoryEnum oldCategory = publication.getCategory();
+
         // Запазваме оригиналния статус за проверка
         PublicationStatus originalStatus = publication.getStatus();
 
@@ -158,20 +166,58 @@ public class PublicationServiceImpl implements PublicationService {
 
         publication.generateExcerpt();
         publication.calculateReadingTime();
+        PublicationEntity savedPublication = publicationRepository.save(publication);
 
-        return publicationRepository.save(publication);
+        // Activity logging admin log panel за edit
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            StringBuilder details = new StringBuilder();
+
+            // Проверяваме какво се е променило
+            if (!oldTitle.equals(request.getTitle())) {
+                details.append(String.format("Title: \"%s\" → \"%s\"",
+                        oldTitle.length() > 50 ? oldTitle.substring(0, 50) + "..." : oldTitle,
+                        request.getTitle().length() > 50 ? request.getTitle().substring(0, 50) + "..." : request.getTitle()));
+            }
+
+            if (oldCategory != request.getCategory()) {
+                if (details.length() > 0) details.append(" | ");
+                details.append(String.format("Category: %s → %s",
+                        oldCategory != null ? oldCategory.name() : "null",
+                        request.getCategory() != null ? request.getCategory().name() : "null"));
+            }
+
+            // Ако няма промени в заглавие и категория, показваме че е редактирана
+            if (details.length() == 0) {
+                details.append("Publication content updated");
+            }
+
+            activityLogService.logActivity(ActivityActionEnum.EDIT_PUBLICATION, currentUser,
+                    "PUBLICATION", publication.getId(), details.toString(), null, null);
+        } catch (Exception e) {
+            System.err.println("Failed to log publication edit: " + e.getMessage());
+        }
+
+        return savedPublication;
     }
 
     @Override
     @Transactional
-    public void delete(Long id) {
+    //@LogActivity - manual Log try/catch logic
 
+    public void delete(Long id) {
         try {
             PublicationEntity publication = findById(id);
+
             if (publication == null) {
                 System.out.println("ERROR: Publication not found in service");
                 return;
             }
+
+            // Запазваме информацията преди изтриване за activity log
+            String publicationTitle = publication.getTitle();
+            String authorName = publication.getAuthor() != null ? publication.getAuthor().getUsername() : "Unknown";
+
 
             //  ИЗТРИВАМЕ СНИМКАТА (ако има)
             if (publication.getImageUrl() != null && !publication.getImageUrl().isEmpty()) {
@@ -222,6 +268,19 @@ public class PublicationServiceImpl implements PublicationService {
 
             // ИЗТРИВАМЕ ПУБЛИКАЦИЯТА
             publicationRepository.deleteById(id);
+
+            // Activity logging след успешното изтриване
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                String details = String.format("Title: \"%s\", Author: %s",
+                        publicationTitle.length() > 100 ? publicationTitle.substring(0, 100) + "..." : publicationTitle,
+                        authorName);
+
+                activityLogService.logActivity(ActivityActionEnum.DELETE_PUBLICATION, currentUser,
+                        "PUBLICATION", id, details, null, null);
+            } catch (Exception e) {
+                System.err.println("Failed to log publication deletion: " + e.getMessage());
+            }
 
         } catch (Exception e) {
             System.err.println("FATAL ERROR in delete service:");
@@ -418,6 +477,9 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity(action = ActivityActionEnum.BOOKMARK_CONTENT, entityType = EventType.PUBLICATION,
+            entityIdParam = "publicationId", details = "Bookmark toggled")
+
     public boolean toggleBookmark(Long publicationId, UserEntity user) {
         PublicationEntity publication = findById(publicationId);
         if (publication == null) return false;
@@ -438,6 +500,9 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
+    @LogActivity(action = ActivityActionEnum.SHARE_PUBLICATION, entityType = EventType.PUBLICATION,
+            entityIdParam = "publicationId", details = "Publication shared")
+
     public void incrementShareCount(Long publicationId) {
         PublicationEntity publication = findById(publicationId);
         if (publication != null) {

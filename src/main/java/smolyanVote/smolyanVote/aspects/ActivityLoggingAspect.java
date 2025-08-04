@@ -14,6 +14,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
@@ -109,11 +110,11 @@ public class ActivityLoggingAspect {
             String ipAddress = extractIpAddress(request);
             String userAgent = extractUserAgent(request);
 
-            // Извличаме entity информация
-            String entityType = logActivity.entityType().isEmpty() ? null : logActivity.entityType();
+            // Извличаме entity информация - ПОПРАВЕНО
+            String entityType = extractEntityType(logActivity);
             Long entityId = extractEntityId(joinPoint, logActivity, result);
 
-            // Генерираме детайли
+            // Генерираме детайли - ПОДОБРЕНО
             String details = generateDetails(joinPoint, logActivity, result, exception);
 
             // Записваме активността
@@ -132,31 +133,45 @@ public class ActivityLoggingAspect {
     }
 
     /**
-     * Извлича entity ID от параметрите на метода или резултата
+     * Извлича entity type от анотацията - ПОПРАВЕНО
+     */
+    private String extractEntityType(LogActivity logActivity) {
+        EventType eventType = logActivity.entityType();
+        if (eventType == null || eventType == EventType.DEFAULT) {
+            return null;
+        }
+        return eventType.name(); // PUBLICATION, SIMPLEEVENT, etc.
+    }
+
+    /**
+     * Извлича entity ID от параметрите на метода или резултата - ПОДОБРЕНО
      */
     private Long extractEntityId(ProceedingJoinPoint joinPoint, LogActivity logActivity, Object result) {
 
-        // Ако е зададено статично ID
+        // 1. Ако е зададено статично ID
         if (logActivity.entityId() != -1) {
             return logActivity.entityId();
         }
 
-        // Ако е зададен конкретен параметър
+        // 2. Ако е зададен конкретен параметър
         if (!logActivity.entityIdParam().isEmpty()) {
-            return findParameterValue(joinPoint, logActivity.entityIdParam());
+            Long paramValue = findParameterValue(joinPoint, logActivity.entityIdParam());
+            if (paramValue != null) {
+                return paramValue;
+            }
         }
 
-        // Автоматично търсене на ID параметри
+        // 3. Автоматично търсене на ID параметри
         String[] commonIdNames = {"id", "entityId"};
 
-        // Добавяме {entityType}Id ако е зададен entityType
-        if (!logActivity.entityType().isEmpty()) {
-            String entitySpecificId = logActivity.entityType().toLowerCase() + "Id";
-            commonIdNames = Arrays.copyOf(commonIdNames, commonIdNames.length + 1);
-            commonIdNames[commonIdNames.length - 1] = entitySpecificId;
+        // 4. Добавяме специфични имена според entity type
+        EventType entityType = logActivity.entityType();
+        if (entityType != null && entityType != EventType.DEFAULT) {
+            String[] specificNames = generateEntitySpecificIdNames(entityType);
+            commonIdNames = combineArrays(commonIdNames, specificNames);
         }
 
-        // Търсим в параметрите
+        // 5. Търсим в параметрите
         for (String idName : commonIdNames) {
             Long foundId = findParameterValue(joinPoint, idName);
             if (foundId != null) {
@@ -164,18 +179,11 @@ public class ActivityLoggingAspect {
             }
         }
 
-        // Търсим в резултата ако е entity с getId() метод
+        // 6. Търсим в резултата ако е entity с getId() метод
         if (result != null) {
-            try {
-                Method getIdMethod = result.getClass().getMethod("getId");
-                Object idResult = getIdMethod.invoke(result);
-                if (idResult instanceof Long) {
-                    return (Long) idResult;
-                } else if (idResult instanceof Number) {
-                    return ((Number) idResult).longValue();
-                }
-            } catch (Exception e) {
-                // Ignore, не всички класове имат getId()
+            Long resultId = extractIdFromResult(result);
+            if (resultId != null) {
+                return resultId;
             }
         }
 
@@ -183,7 +191,50 @@ public class ActivityLoggingAspect {
     }
 
     /**
-     * Търси стойност на параметър по име
+     * Генерира възможни имена на ID параметри според entity type
+     */
+    private String[] generateEntitySpecificIdNames(EventType entityType) {
+        return switch (entityType) {
+            case PUBLICATION -> new String[]{"publicationId", "pubId"};
+            case SIMPLEEVENT -> new String[]{"simpleEventId", "eventId"};
+            case REFERENDUM -> new String[]{"referendumId", "refId"};
+            case MULTI_POLL -> new String[]{"multiPollId", "pollId"};
+            case SIGNAL -> new String[]{"signalId"};
+            default -> new String[]{};
+        };
+    }
+
+    /**
+     * Комбинира два string array-а
+     */
+    private String[] combineArrays(String[] array1, String[] array2) {
+        String[] result = Arrays.copyOf(array1, array1.length + array2.length);
+        System.arraycopy(array2, 0, result, array1.length, array2.length);
+        return result;
+    }
+
+    /**
+     * Извлича ID от резултата на метода
+     */
+    private Long extractIdFromResult(Object result) {
+        try {
+            // Опитваме getId() метод
+            Method getIdMethod = result.getClass().getMethod("getId");
+            Object idResult = getIdMethod.invoke(result);
+
+            if (idResult instanceof Long) {
+                return (Long) idResult;
+            } else if (idResult instanceof Number) {
+                return ((Number) idResult).longValue();
+            }
+        } catch (Exception e) {
+            // Ignore, не всички класове имат getId()
+        }
+        return null;
+    }
+
+    /**
+     * Търси стойност на параметър по име - ПОДОБРЕНО
      */
     private Long findParameterValue(ProceedingJoinPoint joinPoint, String parameterName) {
         try {
@@ -193,19 +244,14 @@ public class ActivityLoggingAspect {
             Object[] args = joinPoint.getArgs();
 
             for (int i = 0; i < parameters.length; i++) {
-                if (parameters[i].getName().equals(parameterName)) {
+                String paramName = parameters[i].getName();
+
+                // Exact match или case-insensitive match
+                if (paramName.equals(parameterName) ||
+                        paramName.equalsIgnoreCase(parameterName)) {
+
                     Object value = args[i];
-                    if (value instanceof Long) {
-                        return (Long) value;
-                    } else if (value instanceof Number) {
-                        return ((Number) value).longValue();
-                    } else if (value instanceof String) {
-                        try {
-                            return Long.parseLong((String) value);
-                        } catch (NumberFormatException e) {
-                            // Ignore
-                        }
-                    }
+                    return convertToLong(value);
                 }
             }
         } catch (Exception e) {
@@ -215,19 +261,46 @@ public class ActivityLoggingAspect {
     }
 
     /**
-     * Генерира детайли за активността
+     * Конвертира обект към Long
+     */
+    private Long convertToLong(Object value) {
+        if (value == null) return null;
+
+        if (value instanceof Long) {
+            return (Long) value;
+        } else if (value instanceof Number) {
+            return ((Number) value).longValue();
+        } else if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Генерира детайли за активността - ПОДОБРЕНО
      */
     private String generateDetails(ProceedingJoinPoint joinPoint, LogActivity logActivity,
                                    Object result, Exception exception) {
 
         StringBuilder details = new StringBuilder();
 
-        // Ако има custom details template
+        // 1. Ако има custom details template
         if (!logActivity.details().isEmpty()) {
-            details.append(replacePlaceholders(logActivity.details(), joinPoint, result));
+            String processedDetails = replacePlaceholders(logActivity.details(), joinPoint, result);
+            details.append(processedDetails);
         }
 
-        // Добавяме информация за грешка ако има
+        // 2. Добавяме автоматични детайли ако няма custom
+        if (details.length() == 0) {
+            String autoDetails = generateAutoDetails(joinPoint, logActivity, result);
+            details.append(autoDetails);
+        }
+
+        // 3. Добавяме информация за грешка ако има
         if (exception != null) {
             if (details.length() > 0) {
                 details.append(" | ");
@@ -238,12 +311,7 @@ public class ActivityLoggingAspect {
             }
         }
 
-        // Ако няма детайли, генерираме автоматично
-        if (details.length() == 0) {
-            details.append("Method: ").append(joinPoint.getSignature().getName());
-        }
-
-        // Ограничаваме дължината
+        // 4. Ограничаваме дължината
         String finalDetails = details.toString();
         if (finalDetails.length() > 500) {
             finalDetails = finalDetails.substring(0, 497) + "...";
@@ -253,7 +321,91 @@ public class ActivityLoggingAspect {
     }
 
     /**
-     * Замества placeholder-и в details template
+     * Генерира автоматични детайли според action type
+     */
+    private String generateAutoDetails(ProceedingJoinPoint joinPoint, LogActivity logActivity, Object result) {
+        ActivityActionEnum action = logActivity.action();
+
+        // За създаване - извличаме заглавие/тема
+        if (action.getCategory().equals("create")) {
+            String title = extractTitleFromParameters(joinPoint);
+            if (title != null) {
+                return "Title: " + title;
+            }
+        }
+
+        // За коментари - извличаме текста
+        if (action == ActivityActionEnum.CREATE_COMMENT) {
+            String text = extractTextFromParameters(joinPoint);
+            if (text != null) {
+                return "Text: " + (text.length() > 100 ? text.substring(0, 100) + "..." : text);
+            }
+        }
+
+        // За voting - извличаме избора
+        if (action.getCategory().equals("interact") && action.name().contains("VOTE")) {
+            String choice = extractVoteChoiceFromParameters(joinPoint);
+            if (choice != null) {
+                return "Choice: " + choice;
+            }
+        }
+
+        // Fallback
+        return "Method: " + joinPoint.getSignature().getName();
+    }
+
+    /**
+     * Извлича заглавие от параметрите
+     */
+    private String extractTitleFromParameters(ProceedingJoinPoint joinPoint) {
+        String[] titleParams = {"title", "topic", "name", "subject"};
+        return extractStringParameter(joinPoint, titleParams);
+    }
+
+    /**
+     * Извлича текст от параметрите
+     */
+    private String extractTextFromParameters(ProceedingJoinPoint joinPoint) {
+        String[] textParams = {"text", "content", "message", "description"};
+        return extractStringParameter(joinPoint, textParams);
+    }
+
+    /**
+     * Извлича vote choice от параметрите
+     */
+    private String extractVoteChoiceFromParameters(ProceedingJoinPoint joinPoint) {
+        String[] choiceParams = {"choice", "option", "voteChoice", "selectedOption"};
+        return extractStringParameter(joinPoint, choiceParams);
+    }
+
+    /**
+     * Извлича string параметър по възможни имена
+     */
+    private String extractStringParameter(ProceedingJoinPoint joinPoint, String[] paramNames) {
+        try {
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
+            Parameter[] parameters = method.getParameters();
+            Object[] args = joinPoint.getArgs();
+
+            for (String paramName : paramNames) {
+                for (int i = 0; i < parameters.length; i++) {
+                    if (parameters[i].getName().equalsIgnoreCase(paramName)) {
+                        Object value = args[i];
+                        if (value instanceof String) {
+                            return (String) value;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+
+    /**
+     * Замества placeholder-и в details template - ПОДОБРЕНО
      */
     private String replacePlaceholders(String template, ProceedingJoinPoint joinPoint, Object result) {
         String processed = template;
@@ -272,19 +424,23 @@ public class ActivityLoggingAspect {
                 String placeholder = matcher.group(0); // цялата {parameterName}
                 String paramName = matcher.group(1);   // само parameterName
 
-                // Търсим в параметрите
                 String replacement = placeholder; // fallback
+
+                // Търсим в параметрите
                 for (int i = 0; i < parameters.length; i++) {
                     if (parameters[i].getName().equals(paramName)) {
                         Object value = args[i];
-                        replacement = value != null ? value.toString() : "null";
+                        replacement = formatParameterValue(value);
                         break;
                     }
                 }
 
                 // Специални placeholders
                 if ("result".equals(paramName) && result != null) {
-                    replacement = result.toString();
+                    replacement = formatParameterValue(result);
+                } else if ("resultId".equals(paramName) && result != null) {
+                    Long id = extractIdFromResult(result);
+                    replacement = id != null ? id.toString() : "null";
                 } else if ("method".equals(paramName)) {
                     replacement = method.getName();
                 } else if ("class".equals(paramName)) {
@@ -299,6 +455,20 @@ public class ActivityLoggingAspect {
         }
 
         return processed;
+    }
+
+    /**
+     * Форматира стойност на параметър за показване
+     */
+    private String formatParameterValue(Object value) {
+        if (value == null) return "null";
+
+        String str = value.toString();
+        // Ограничаваме дължината за дълги текстове
+        if (str.length() > 200) {
+            return str.substring(0, 197) + "...";
+        }
+        return str;
     }
 
     /**
@@ -415,19 +585,4 @@ public class ActivityLoggingAspect {
                 actionLower.contains("visit");
     }
 
-    /**
-     * Debug helper за изписване на информация за метода
-     */
-    private void debugMethodInfo(ProceedingJoinPoint joinPoint, LogActivity logActivity) {
-        if (System.getProperty("activity.logging.debug") != null) {
-            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            System.out.println("🔍 Activity Logging Debug:");
-            System.out.println("   Method: " + signature.getMethod().getName());
-            System.out.println("   Class: " + signature.getDeclaringType().getSimpleName());
-            System.out.println("   Action: " + (logActivity.actionString().isEmpty() ?
-                    logActivity.action().name() : logActivity.actionString()));
-            System.out.println("   Entity Type: " + logActivity.entityType());
-            System.out.println("   Parameters: " + Arrays.toString(joinPoint.getArgs()));
-        }
-    }
 }
