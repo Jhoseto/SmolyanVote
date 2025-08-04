@@ -244,7 +244,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
         broadcastMessage(message);
 
-        System.out.println("📢 Broadcasted system message (" + level + "): " + messageText);
     }
 
     // ===== CONVERSION HELPERS =====
