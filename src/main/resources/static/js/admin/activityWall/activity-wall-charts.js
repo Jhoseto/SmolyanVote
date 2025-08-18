@@ -1,5 +1,6 @@
 // ====== ADMIN ACTIVITY WALL - CHARTS & GRAPHS ======
 // Файл: src/main/resources/static/js/admin/activityWall/activity-wall-charts.js
+// 🎯 ГРАФИКАТА Е ОТРАЖЕНИЕ НА ТАБЛИЦАТА - използва this.filteredActivities
 
 window.ActivityWallCharts = {
 
@@ -8,7 +9,8 @@ window.ActivityWallCharts = {
         hourly: null,
         actions: null,
         users: null,
-        timeline: null,
+        timeline: null,           // За timeline-chart (в charts секцията)
+        mainTimeline: null,       // За activity-timeline-chart (основния)
         heatmap: null
     },
 
@@ -47,7 +49,7 @@ window.ActivityWallCharts = {
     init() {
         this.createChartsContainer();
         this.loadChartJS();
-        console.log('✅ Activity Wall Charts: Initialized');
+        console.log('✅ Activity Wall Charts: Initialized - СИНХРОНИЗИРАН с таблицата');
     },
 
     createChartsContainer() {
@@ -63,7 +65,7 @@ window.ActivityWallCharts = {
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-graph-up me-2"></i>
-                        Графики и анализи
+                        Графики и анализи <small class="text-muted">(отражение на филтрираните данни)</small>
                     </h5>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-secondary" id="charts-toggle-btn">
@@ -190,13 +192,104 @@ window.ActivityWallCharts = {
         Chart.defaults.color = '#666';
     },
 
-    // ===== CHART CREATION METHODS =====
+    // ===== 🎯 КЛЮЧОВИ МЕТОДИ: ИЗПОЛЗВАТ filteredActivities ОТ ACTIVITY WALL =====
 
-    createHourlyActivityChart(activities) {
+    // 🔥 ГЛАВНА ФУНКЦИЯ: Обновява всички графики с филтрираните данни
+    updateAllCharts(filteredActivities) {
+        if (!filteredActivities || filteredActivities.length === 0) {
+            this.showNoDataMessage();
+            return;
+        }
+
+        console.log('🔄 Обновяване на графиките с', filteredActivities.length, 'филтрирани активности');
+
+        // Създаване на всички графики с филтрираните данни
+        this.createMainTimelineChart(filteredActivities);
+        this.createHourlyActivityChart(filteredActivities);
+        this.createActionsDistributionChart(filteredActivities);
+        this.createUserActivityChart(filteredActivities);
+        this.createTimelineChart(filteredActivities);
+        this.createActivityHeatmap(filteredActivities);
+    },
+
+    // 🔥 ГЛАВНАТА TIMELINE ГРАФИКА (activity-timeline-chart) - използва филтрираните данни
+    createMainTimelineChart(filteredActivities) {
+        const ctx = document.getElementById('activity-timeline-chart');
+        if (!ctx) return null;
+
+        // Групиране по часове от филтрираните данни
+        const hourlyData = this.groupActivitiesByHour(filteredActivities);
+
+        this.destroyChart('mainTimeline');
+
+        this.charts.mainTimeline = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: hourlyData.labels,
+                datasets: [{
+                    label: 'Активности',
+                    data: hourlyData.data,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return 'Час: ' + tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                return 'Активности: ' + context.parsed.y;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: false
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: false
+                        },
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    }
+                }
+            }
+        });
+
+        return this.charts.mainTimeline;
+    },
+
+    createHourlyActivityChart(filteredActivities) {
         const ctx = document.getElementById('hourly-activity-chart');
         if (!ctx) return null;
 
-        const hourlyData = this.processHourlyData(activities);
+        const hourlyData = this.groupActivitiesByHour(filteredActivities);
 
         this.destroyChart('hourly');
 
@@ -207,11 +300,11 @@ window.ActivityWallCharts = {
                 datasets: [{
                     label: 'Активности',
                     data: hourlyData.data,
-                    borderColor: 'rgb(75, 192, 192)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.1
                 }]
             },
             options: {
@@ -237,11 +330,11 @@ window.ActivityWallCharts = {
         return this.charts.hourly;
     },
 
-    createActionsDistributionChart(activities) {
+    createActionsDistributionChart(filteredActivities) {
         const ctx = document.getElementById('actions-distribution-chart');
         if (!ctx) return null;
 
-        const actionsData = this.processActionsData(activities);
+        const actionsData = this.groupActivitiesByAction(filteredActivities);
 
         this.destroyChart('actions');
 
@@ -252,14 +345,14 @@ window.ActivityWallCharts = {
                 datasets: [{
                     data: actionsData.data,
                     backgroundColor: [
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF',
-                        '#FF9F40',
-                        '#FF6384',
-                        '#C9CBCF'
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(199, 199, 199, 0.8)',
+                        'rgba(83, 102, 255, 0.8)'
                     ],
                     borderWidth: 2
                 }]
@@ -269,14 +362,16 @@ window.ActivityWallCharts = {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'right',
+                        position: 'bottom',
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((context.raw / total) * 100);
-                                return context.label + ': ' + context.raw + ' (' + percentage + '%)';
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
                             }
                         }
                     }
@@ -287,11 +382,11 @@ window.ActivityWallCharts = {
         return this.charts.actions;
     },
 
-    createUserActivityChart(activities) {
+    createUserActivityChart(filteredActivities) {
         const ctx = document.getElementById('user-activity-chart');
         if (!ctx) return null;
 
-        const userData = this.processUserData(activities);
+        const userData = this.groupActivitiesByUser(filteredActivities);
 
         this.destroyChart('users');
 
@@ -331,11 +426,11 @@ window.ActivityWallCharts = {
         return this.charts.users;
     },
 
-    createTimelineChart(activities) {
+    createTimelineChart(filteredActivities) {
         const ctx = document.getElementById('timeline-chart');
         if (!ctx) return null;
 
-        const timelineData = this.processTimelineData(activities);
+        const timelineData = this.groupActivitiesByTimeline(filteredActivities);
 
         this.destroyChart('timeline');
 
@@ -376,164 +471,137 @@ window.ActivityWallCharts = {
         return this.charts.timeline;
     },
 
-    createActivityHeatmap(activities) {
-        const container = document.getElementById('activity-heatmap');
-        if (!container) return;
+    createActivityHeatmap(filteredActivities) {
+        const heatmapContainer = document.getElementById('activity-heatmap');
+        if (!heatmapContainer) return;
 
-        const heatmapData = this.processHeatmapData(activities);
-
-        container.innerHTML = '';
-
-        // Създаване на heatmap с HTML/CSS
-        const heatmapHtml = this.generateHeatmapHTML(heatmapData);
-        container.innerHTML = heatmapHtml;
+        const heatmapData = this.groupActivitiesForHeatmap(filteredActivities);
+        heatmapContainer.innerHTML = this.generateHeatmapHTML(heatmapData);
     },
 
-    // ===== DATA PROCESSING METHODS =====
+    // ===== 🎯 ГРУПИРАЩИ ФУНКЦИИ (използват филтрираните данни) =====
 
-    processHourlyData(activities) {
-        const hourlyCount = new Array(24).fill(0);
+    groupActivitiesByHour(filteredActivities) {
+        const hourCounts = new Array(24).fill(0);
 
-        activities.forEach(activity => {
-            const hour = new Date(activity.timestamp).getHours();
-            hourlyCount[hour]++;
+        filteredActivities.forEach(activity => {
+            if (activity.timestamp) {
+                const hour = new Date(activity.timestamp).getHours();
+                hourCounts[hour]++;
+            }
         });
 
         return {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-            data: hourlyCount
+            labels: Array.from({length: 24}, (_, i) => i + ':00'),
+            data: hourCounts
         };
     },
 
-    processActionsData(activities) {
+    groupActivitiesByAction(filteredActivities) {
         const actionCounts = {};
 
-        activities.forEach(activity => {
-            const action = this.formatActionForChart(activity.action);
+        filteredActivities.forEach(activity => {
+            const action = activity.action || 'Неизвестно';
             actionCounts[action] = (actionCounts[action] || 0) + 1;
         });
 
-        const sorted = Object.entries(actionCounts)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 8); // Top 8 actions
-
         return {
-            labels: sorted.map(([action]) => action),
-            data: sorted.map(([, count]) => count)
+            labels: Object.keys(actionCounts),
+            data: Object.values(actionCounts)
         };
     },
 
-    processUserData(activities) {
+    groupActivitiesByUser(filteredActivities) {
         const userCounts = {};
 
-        activities.forEach(activity => {
+        filteredActivities.forEach(activity => {
             const username = activity.username || 'Анонимен';
             userCounts[username] = (userCounts[username] || 0) + 1;
         });
 
-        const sorted = Object.entries(userCounts)
+        // Сортиране по брой активности (най-активните първо)
+        const sortedUsers = Object.entries(userCounts)
             .sort(([,a], [,b]) => b - a)
-            .slice(0, 10); // Top 10 users
+            .slice(0, 10); // Топ 10
 
         return {
-            labels: sorted.map(([user]) => user),
-            data: sorted.map(([, count]) => count)
+            labels: sortedUsers.map(([username]) => username),
+            data: sortedUsers.map(([, count]) => count)
         };
     },
 
-    processTimelineData(activities) {
-        // Групиране по часове за последните 24 часа
-        const now = new Date();
-        const hourlyData = {};
-
-        for (let i = 23; i >= 0; i--) {
-            const hour = new Date(now.getTime() - (i * 60 * 60 * 1000));
-            const hourKey = hour.toISOString().substring(0, 13);
-            hourlyData[hourKey] = 0;
+    groupActivitiesByTimeline(filteredActivities) {
+        if (filteredActivities.length === 0) {
+            return { labels: [], data: [] };
         }
 
-        activities.forEach(activity => {
-            const activityTime = new Date(activity.timestamp);
-            const hourKey = activityTime.toISOString().substring(0, 13);
-            if (hourlyData.hasOwnProperty(hourKey)) {
-                hourlyData[hourKey]++;
+        // Групиране по дни
+        const dailyCounts = {};
+
+        filteredActivities.forEach(activity => {
+            if (activity.timestamp) {
+                const date = new Date(activity.timestamp).toISOString().split('T')[0];
+                dailyCounts[date] = (dailyCounts[date] || 0) + 1;
             }
         });
 
-        const labels = Object.keys(hourlyData).map(key => {
-            const date = new Date(key + ':00:00');
-            return date.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' });
-        });
+        const sortedDates = Object.keys(dailyCounts).sort();
 
         return {
-            labels: labels,
-            data: Object.values(hourlyData)
+            labels: sortedDates,
+            data: sortedDates.map(date => dailyCounts[date])
         };
     },
 
-    processHeatmapData(activities) {
-        const heatmap = Array(7).fill(null).map(() => Array(24).fill(0));
+    groupActivitiesForHeatmap(filteredActivities) {
+        const heatmapData = {};
 
-        activities.forEach(activity => {
-            const date = new Date(activity.timestamp);
-            const dayOfWeek = date.getDay(); // 0 = Sunday
-            const hour = date.getHours();
-            heatmap[dayOfWeek][hour]++;
+        // Инициализация на данните (7 дни x 24 часа)
+        for (let day = 0; day < 7; day++) {
+            heatmapData[day] = new Array(24).fill(0);
+        }
+
+        filteredActivities.forEach(activity => {
+            if (activity.timestamp) {
+                const date = new Date(activity.timestamp);
+                const dayOfWeek = date.getDay();
+                const hour = date.getHours();
+                heatmapData[dayOfWeek][hour]++;
+            }
         });
 
-        return heatmap;
-    },
-
-    // ===== UTILITY METHODS =====
-
-    formatActionForChart(action) {
-        if (!action) return 'Неизвестно';
-
-        const actionMap = {
-            'USER_LOGIN': 'Вход',
-            'USER_LOGOUT': 'Изход',
-            'USER_REGISTER': 'Регистрация',
-            'CREATE_PUBLICATION': 'Създаване',
-            'DELETE_PUBLICATION': 'Изтриване',
-            'LIKE_PUBLICATION': 'Харесвания',
-            'DISLIKE_PUBLICATION': 'Нехаресвания',
-            'VOTE_FOR': 'Гласове ЗА',
-            'VOTE_AGAINST': 'Гласове ПРОТИВ',
-            'ADMIN_LOGIN': 'Админ вход',
-            'BAN_USER': 'Блокиране',
-            'UNBAN_USER': 'Разблокиране'
-        };
-
-        return actionMap[action] || action.replace(/_/g, ' ');
+        return heatmapData;
     },
 
     generateHeatmapHTML(heatmapData) {
-        const days = ['Нед', 'Пон', 'Вто', 'Сря', 'Чет', 'Пет', 'Съб'];
-        const maxValue = Math.max(...heatmapData.flat());
+        const days = ['Нед', 'Пон', 'Вт', 'Ср', 'Чет', 'Пет', 'Съб'];
+        const maxValue = Math.max(...Object.values(heatmapData).flat());
 
         let html = '<div class="heatmap-container">';
 
-        // Header с часовете
+        // Header row
         html += '<div class="heatmap-header">';
         html += '<div class="heatmap-corner"></div>';
-        for (let hour = 0; hour < 24; hour++) {
+        for (let hour = 0; hour < 24; hour += 2) {
             html += `<div class="heatmap-hour">${hour}</div>`;
         }
         html += '</div>';
 
-        // Редове за всеки ден
-        heatmapData.forEach((dayData, dayIndex) => {
+        // Data rows
+        Object.keys(heatmapData).forEach(dayIndex => {
             html += '<div class="heatmap-row">';
             html += `<div class="heatmap-day">${days[dayIndex]}</div>`;
 
-            dayData.forEach((value, hour) => {
-                const intensity = maxValue > 0 ? value / maxValue : 0;
-                const opacity = Math.max(0.1, intensity);
-                html += `<div class="heatmap-cell" 
-                            style="background-color: rgba(54, 162, 235, ${opacity});"
-                            title="${days[dayIndex]} ${hour}:00 - ${value} активности">
-                            ${value > 0 ? value : ''}
-                         </div>`;
+            heatmapData[dayIndex].forEach((value, hour) => {
+                if (hour % 2 === 0) {
+                    const intensity = maxValue > 0 ? value / maxValue : 0;
+                    const opacity = Math.max(0.1, intensity);
+                    html += `<div class="heatmap-cell" 
+                                style="background-color: rgba(54, 162, 235, ${opacity});"
+                                title="${days[dayIndex]} ${hour}:00 - ${value} активности">
+                                ${value > 0 ? value : ''}
+                             </div>`;
+                }
             });
 
             html += '</div>';
@@ -544,33 +612,17 @@ window.ActivityWallCharts = {
         return html;
     },
 
-    destroyChart(chartName) {
-        if (this.charts[chartName]) {
-            this.charts[chartName].destroy();
-            this.charts[chartName] = null;
-        }
-    },
+    // ===== УПРАВЛЯВАЩИ МЕТОДИ =====
 
-    // ===== PUBLIC METHODS =====
-
-    showCharts(activities) {
-        if (!activities || activities.length === 0) {
-            this.showError('Няма данни за графиките');
-            return;
-        }
-
+    showCharts(filteredActivities) {
         const container = document.getElementById('activity-charts-container');
         if (container) {
             container.style.display = 'block';
         }
 
-        // Създаване на всички графики
+        // Обновяване на всички графики с филтрираните данни
         setTimeout(() => {
-            this.createHourlyActivityChart(activities);
-            this.createActionsDistributionChart(activities);
-            this.createUserActivityChart(activities);
-            this.createTimelineChart(activities);
-            this.createActivityHeatmap(activities);
+            this.updateAllCharts(filteredActivities);
         }, 100);
 
         this.updateToggleButton(true);
@@ -593,29 +645,50 @@ window.ActivityWallCharts = {
         if (isVisible) {
             this.hideCharts();
         } else {
-            // Вземи данните от activity wall instance
-            if (window.activityWallInstance) {
-                const activities = window.activityWallInstance.filteredActivities || [];
-                this.showCharts(activities);
+            // Вземи филтрираните данни от activity wall
+            if (window.activityWallInstance && window.activityWallInstance.filteredActivities) {
+                this.showCharts(window.activityWallInstance.filteredActivities);
             }
         }
     },
 
     refreshAllCharts() {
-        if (!window.activityWallInstance) return;
+        if (!window.activityWallInstance || !window.activityWallInstance.filteredActivities) {
+            this.showError('Няма данни за обновяване');
+            return;
+        }
 
-        const activities = window.activityWallInstance.filteredActivities || [];
+        const filteredActivities = window.activityWallInstance.filteredActivities;
 
         // Показай loading индикатор
         this.showChartsLoading();
 
         setTimeout(() => {
-            this.showCharts(activities);
+            this.updateAllCharts(filteredActivities);
 
             if (window.ActivityWallUtils) {
-                window.ActivityWallUtils.showToast('Графиките са обновени', 'success');
+                window.ActivityWallUtils.showToast('Графиките са обновени с филтрираните данни', 'success');
             }
         }, 500);
+    },
+
+    // ===== 🔥 КЛЮЧОВА ФУНКЦИЯ: Автоматично обновяване при промяна на филтрите =====
+    onFiltersChanged(filteredActivities) {
+        console.log('🔄 Графиките получиха нови филтрирани данни:', filteredActivities.length, 'активности');
+
+        const container = document.getElementById('activity-charts-container');
+        if (container && container.style.display !== 'none') {
+            this.updateAllCharts(filteredActivities);
+        }
+    },
+
+    // ===== UTILITY МЕТОДИ =====
+
+    destroyChart(chartName) {
+        if (this.charts[chartName]) {
+            this.charts[chartName].destroy();
+            this.charts[chartName] = null;
+        }
     },
 
     updateToggleButton(isVisible) {
@@ -640,7 +713,23 @@ window.ActivityWallCharts = {
                     <div class="spinner-border text-primary me-3" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <span>Зареждане на графиките...</span>
+                    <span>Обновяване на графиките с филтрираните данни...</span>
+                </div>
+            `;
+        }
+    },
+
+    showNoDataMessage() {
+        const container = document.getElementById('activity-charts-container');
+        if (!container) return;
+
+        const cardBody = container.querySelector('.card-body');
+        if (cardBody) {
+            cardBody.innerHTML = `
+                <div class="text-center p-5">
+                    <i class="bi bi-bar-chart text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">Няма данни за показване</h5>
+                    <p class="text-muted">Графиките ще се появят когато има филтрирани активности</p>
                 </div>
             `;
         }
@@ -656,18 +745,10 @@ window.ActivityWallCharts = {
 
     // ===== INTEGRATION METHODS =====
 
-    onFiltersChanged(filteredActivities) {
-        // Автоматично обновяване на графиките при промяна на филтрите
-        const container = document.getElementById('activity-charts-container');
-        if (container && container.style.display !== 'none') {
-            this.refreshAllCharts();
-        }
-    },
-
     integrateWithActivityWall() {
         // Автоматично интегриране с activity wall
         if (window.activityWallInstance) {
-            console.log('✅ Activity Wall Charts: Integrated with Activity Wall');
+            console.log('✅ Activity Wall Charts: ИНТЕГРИРАНИ с Activity Wall - графиките са отражение на таблицата');
         }
     }
 };
