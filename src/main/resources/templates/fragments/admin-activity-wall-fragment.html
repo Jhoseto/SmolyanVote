@@ -1,4 +1,4 @@
-<!-- Fragment: admin-activity-wall-fragment.html -->
+<!-- Fragment: admin-activity-wall-fragment.html (FIXED) -->
 <!-- Път: src/main/resources/templates/fragments/admin-activity-wall-fragment.html -->
 
 <div th:fragment="activityWall" class="monitoring-section">
@@ -9,6 +9,24 @@
 
     <div class="collapsible-content" id="activity-wall">
 
+        <!-- ===== CONNECTION STATUS INDICATOR ===== -->
+        <div class="connection-status-bar mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="connection-info">
+                    <span class="connection-label">Състояние на връзката:</span>
+                    <span class="connection-status" id="connection-status">
+                        <i class="bi bi-circle-fill text-secondary"></i>
+                        <span>Инициализиране...</span>
+                    </span>
+                </div>
+                <div class="system-info">
+                    <small class="text-muted" id="system-info">
+                        Зареждане на системна информация...
+                    </small>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== TIMELINE VISUALIZATION ===== -->
         <div class="activity-timeline-section">
             <div class="timeline-header">
@@ -17,8 +35,15 @@
             </div>
             <div class="timeline-chart-container">
                 <canvas id="activity-timeline-chart" width="800" height="200"></canvas>
+                <div class="timeline-fallback" id="timeline-fallback" style="display: none;">
+                    <div class="text-center text-muted p-4">
+                        <i class="bi bi-graph-up" style="font-size: 2rem;"></i>
+                        <p class="mt-2">Графиката ще се покаже когато Chart.js се зареди</p>
+                    </div>
+                </div>
             </div>
         </div>
+
         <!-- ===== CONTROL PANEL ===== -->
         <div class="activity-control-panel">
             <!-- Live Status & Quick Actions -->
@@ -33,11 +58,11 @@
                     <span>Пауза</span>
                 </button>
 
-                <button id="activity-refresh-btn" class="control-btn control-btn-secondary">
+                <button id="activity-refresh-btn" class="control-btn control-btn-secondary" title="Ръчно обновяване">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
 
-                <button id="activity-clear-btn" class="control-btn control-btn-danger">
+                <button id="activity-clear-btn" class="control-btn control-btn-danger" title="Изчисти всички активности">
                     <i class="bi bi-trash"></i>
                     <span>Изчисти</span>
                 </button>
@@ -62,20 +87,22 @@
                 <span class="control-label">Филтри:</span>
                 <div class="search-filters">
                     <div class="filter-input-group">
-                        <input type="text" id="user-search-input" class="filter-input" placeholder="Потребител..." autocomplete="off">
-                        <button id="clear-user-search" class="clear-filter-btn" style="display: none;">
+                        <input type="text" id="user-search-input" class="filter-input"
+                               placeholder="Потребител..." autocomplete="off" maxlength="100">
+                        <button id="clear-user-search" class="clear-filter-btn" style="display: none;" title="Изчисти филтъра">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
 
                     <div class="filter-input-group">
-                        <input type="text" id="ip-search-input" class="filter-input" placeholder="IP адрес..." autocomplete="off">
-                        <button id="clear-ip-search" class="clear-filter-btn" style="display: none;">
+                        <input type="text" id="ip-search-input" class="filter-input"
+                               placeholder="IP адрес..." autocomplete="off" maxlength="45">
+                        <button id="clear-ip-search" class="clear-filter-btn" style="display: none;" title="Изчисти филтъра">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
 
-                    <select id="action-filter-select" class="filter-select">
+                    <select id="action-filter-select" class="filter-select" title="Филтриране по действие">
                         <option value="">Всички действия</option>
 
                         <optgroup label="═══ ПУБЛИКАЦИИ ═══">
@@ -208,7 +235,7 @@
                         </optgroup>
                     </select>
 
-                    <select id="entity-filter-select" class="filter-select">
+                    <select id="entity-filter-select" class="filter-select" title="Филтриране по тип съдържание">
                         <option value="">Всички типове съдържание</option>
                         <option value="PUBLICATION">📄 Публикации</option>
                         <option value="SIMPLEEVENT">🎪 Опростен вид събитие</option>
@@ -225,12 +252,12 @@
 
             <!-- Actions -->
             <div class="control-section">
-                <button id="activity-export-btn" class="control-btn control-btn-success">
+                <button id="activity-export-btn" class="control-btn control-btn-success" title="Експорт на данните">
                     <i class="bi bi-download"></i>
                     <span>Експорт</span>
                 </button>
 
-                <button id="activity-reset-filters-btn" class="control-btn control-btn-outline">
+                <button id="activity-reset-filters-btn" class="control-btn control-btn-outline" title="Нулиране на всички филтри">
                     <i class="bi bi-arrow-counterclockwise"></i>
                     <span>Нулиране</span>
                 </button>
@@ -241,14 +268,14 @@
         <div id="custom-date-range" class="custom-date-range" style="display: none;">
             <div class="date-range-inputs">
                 <div class="date-input-group">
-                    <label>От:</label>
-                    <input type="datetime-local" id="date-start-input" class="date-input">
+                    <label for="date-start-input">От:</label>
+                    <input type="datetime-local" id="date-start-input" class="date-input" title="Начална дата и час">
                 </div>
                 <div class="date-input-group">
-                    <label>До:</label>
-                    <input type="datetime-local" id="date-end-input" class="date-input">
+                    <label for="date-end-input">До:</label>
+                    <input type="datetime-local" id="date-end-input" class="date-input" title="Крайна дата и час">
                 </div>
-                <button id="apply-date-range-btn" class="control-btn control-btn-primary">
+                <button id="apply-date-range-btn" class="control-btn control-btn-primary" title="Приложи персонализирания период">
                     <i class="bi bi-check"></i>
                     <span>Приложи</span>
                 </button>
@@ -307,11 +334,11 @@
                         <span id="pagination-info">Показване 1-20 от 0</span>
                     </div>
                     <div class="pagination-controls">
-                        <button id="prev-page-btn" class="pagination-btn" disabled>
+                        <button id="prev-page-btn" class="pagination-btn" disabled title="Предишна страница">
                             <i class="bi bi-chevron-left"></i>
                         </button>
                         <span id="page-info">Страница 1 от 1</span>
-                        <button id="next-page-btn" class="pagination-btn" disabled>
+                        <button id="next-page-btn" class="pagination-btn" disabled title="Следваща страница">
                             <i class="bi bi-chevron-right"></i>
                         </button>
                     </div>
@@ -357,11 +384,31 @@
             </div>
         </div>
 
+        <!-- ===== ERROR STATE ===== -->
+        <div id="error-state" class="error-state" style="display: none;">
+            <div class="error-icon">
+                <i class="bi bi-exclamation-triangle text-danger"></i>
+            </div>
+            <h3>Възникна грешка</h3>
+            <p id="error-message">Грешка при зареждане на активностите.</p>
+            <div class="error-actions">
+                <button id="retry-btn" class="control-btn control-btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>Опитай отново</span>
+                </button>
+                <button id="report-error-btn" class="control-btn control-btn-outline">
+                    <i class="bi bi-bug"></i>
+                    <span>Съобщи за грешката</span>
+                </button>
+            </div>
+        </div>
+
     </div>
 </div>
 
-<!-- ===== ACTIVITY DETAILS MODAL ===== -->
-<div th:fragment="activityModal" class="modal fade" id="activity-details-modal" tabindex="-1" aria-labelledby="activityDetailsModalLabel" aria-hidden="true">
+<!-- ===== ACTIVITY DETAILS MODAL (IMPROVED) ===== -->
+<div th:fragment="activityModal" class="modal fade" id="activity-details-modal" tabindex="-1"
+     aria-labelledby="activityDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -405,18 +452,20 @@
                         </div>
                         <div class="detail-group">
                             <label class="detail-label">User Agent:</label>
-                            <div id="modal-activity-user-agent" class="detail-value text-break">--</div>
+                            <div id="modal-activity-user-agent" class="detail-value text-break"
+                                 style="max-height: 100px; overflow-y: auto;">--</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="detail-group full-width">
                     <label class="detail-label">Детайли:</label>
-                    <div id="modal-activity-details" class="detail-value detail-box">--</div>
+                    <div id="modal-activity-details" class="detail-value detail-box"
+                         style="max-height: 150px; overflow-y: auto;">--</div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="copy-activity-details" class="btn btn-outline-primary">
+                <button id="copy-activity-details" class="btn btn-outline-primary" title="Копирай всички детайли">
                     <i class="bi bi-clipboard me-2"></i>Копирай детайлите
                 </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>

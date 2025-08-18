@@ -1,6 +1,5 @@
-// ====== ADMIN ACTIVITY WALL - CHARTS & GRAPHS ======
+// ====== ADMIN ACTIVITY WALL - CHARTS & GRAPHS (FIXED) ======
 // Файл: src/main/resources/static/js/admin/activityWall/activity-wall-charts.js
-// 🎯 ГРАФИКАТА Е ОТРАЖЕНИЕ НА ТАБЛИЦАТА - използва this.filteredActivities
 
 window.ActivityWallCharts = {
 
@@ -9,15 +8,24 @@ window.ActivityWallCharts = {
         hourly: null,
         actions: null,
         users: null,
-        timeline: null,           // За timeline-chart (в charts секцията)
-        mainTimeline: null,       // За activity-timeline-chart (основния)
+        timeline: null,
+        mainTimeline: null,
         heatmap: null
     },
+
+    // ===== STATE MANAGEMENT =====
+    isInitialized: false,
+    isChartJSLoaded: false,
+    chartJSPromise: null,
+    pendingUpdates: [],
 
     // ===== CHART CONFIGURATION =====
     defaultConfig: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+            duration: 300 // Намалено за по-добра производителност
+        },
         plugins: {
             legend: {
                 position: 'top',
@@ -44,12 +52,79 @@ window.ActivityWallCharts = {
         }
     },
 
-    // ===== INITIALIZATION =====
+    // ===== INITIALIZATION (IMPROVED) =====
 
-    init() {
-        this.createChartsContainer();
-        this.loadChartJS();
-        console.log('✅ Activity Wall Charts: Initialized - СИНХРОНИЗИРАН с таблицата');
+    async init() {
+        if (this.isInitialized) return;
+
+        try {
+            console.log('🚀 Initializing Activity Wall Charts...');
+
+            this.createChartsContainer();
+            await this.loadChartJS();
+            this.bindChartEvents();
+            this.isInitialized = true;
+
+            // Process any pending updates
+            if (this.pendingUpdates.length > 0) {
+                const latestUpdate = this.pendingUpdates[this.pendingUpdates.length - 1];
+                this.updateAllCharts(latestUpdate);
+                this.pendingUpdates = [];
+            }
+
+            console.log('✅ Activity Wall Charts: Initialized successfully');
+        } catch (error) {
+            console.error('❌ Activity Wall Charts initialization failed:', error);
+        }
+    },
+
+    async loadChartJS() {
+        // Проверка дали Chart.js вече е зареден
+        if (typeof Chart !== 'undefined') {
+            this.isChartJSLoaded = true;
+            this.setupChartDefaults();
+            return Promise.resolve();
+        }
+
+        // Ако вече се зарежда, изчакваме
+        if (this.chartJSPromise) {
+            return this.chartJSPromise;
+        }
+
+        // Създаваме promise за зареждането
+        this.chartJSPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+            script.async = true;
+
+            script.onload = () => {
+                this.isChartJSLoaded = true;
+                this.setupChartDefaults();
+                console.log('✅ Chart.js loaded successfully');
+                resolve();
+            };
+
+            script.onerror = () => {
+                console.error('❌ Failed to load Chart.js');
+                reject(new Error('Failed to load Chart.js'));
+            };
+
+            document.head.appendChild(script);
+        });
+
+        return this.chartJSPromise;
+    },
+
+    setupChartDefaults() {
+        if (typeof Chart === 'undefined') return;
+
+        Chart.defaults.font.family = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#666';
+
+        // Глобални настройки за производителност
+        Chart.defaults.animation.duration = 300;
+        Chart.defaults.plugins.legend.display = true;
     },
 
     createChartsContainer() {
@@ -60,7 +135,16 @@ window.ActivityWallCharts = {
         chartsContainer.id = 'activity-charts-container';
         chartsContainer.className = 'activity-charts-container mt-4';
         chartsContainer.style.display = 'none';
-        chartsContainer.innerHTML = `
+        chartsContainer.innerHTML = this.getChartsHTML();
+
+        const activityWall = document.getElementById('activity-wall');
+        if (activityWall) {
+            activityWall.appendChild(chartsContainer);
+        }
+    },
+
+    getChartsHTML() {
+        return `
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
@@ -76,7 +160,7 @@ window.ActivityWallCharts = {
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="charts-body">
                     <div class="row">
                         <!-- Hourly Activity Chart -->
                         <div class="col-md-6 mb-4">
@@ -141,13 +225,6 @@ window.ActivityWallCharts = {
                 </div>
             </div>
         `;
-
-        const activityWall = document.getElementById('activity-wall');
-        if (activityWall) {
-            activityWall.appendChild(chartsContainer);
-        }
-
-        this.bindChartEvents();
     },
 
     bindChartEvents() {
@@ -164,322 +241,371 @@ window.ActivityWallCharts = {
         }
     },
 
-    loadChartJS() {
-        // Проверка дали Chart.js е зареден
-        if (typeof Chart !== 'undefined') {
-            this.setupChartDefaults();
+    // ===== MAIN UPDATE FUNCTION (IMPROVED) =====
+
+    async updateAllCharts(filteredActivities) {
+        if (!filteredActivities) {
+            console.warn('⚠️ No filtered activities provided');
             return;
         }
 
-        // Зареждане на Chart.js от CDN
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
-        script.onload = () => {
-            this.setupChartDefaults();
-            console.log('✅ Chart.js loaded');
-        };
-        script.onerror = () => {
-            console.error('❌ Failed to load Chart.js');
-        };
-        document.head.appendChild(script);
-    },
+        // Ако Chart.js не е зареден, запазваме заявката
+        if (!this.isChartJSLoaded) {
+            console.log('📦 Chart.js not loaded yet, queuing update...');
+            this.pendingUpdates.push(filteredActivities);
+            return;
+        }
 
-    setupChartDefaults() {
-        if (typeof Chart === 'undefined') return;
-
-        Chart.defaults.font.family = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
-        Chart.defaults.font.size = 12;
-        Chart.defaults.color = '#666';
-    },
-
-    // ===== 🎯 КЛЮЧОВИ МЕТОДИ: ИЗПОЛЗВАТ filteredActivities ОТ ACTIVITY WALL =====
-
-    // 🔥 ГЛАВНА ФУНКЦИЯ: Обновява всички графики с филтрираните данни
-    updateAllCharts(filteredActivities) {
-        if (!filteredActivities || filteredActivities.length === 0) {
+        if (filteredActivities.length === 0) {
             this.showNoDataMessage();
             return;
         }
 
-        console.log('🔄 Обновяване на графиките с', filteredActivities.length, 'филтрирани активности');
+        console.log('🔄 Updating charts with', filteredActivities.length, 'filtered activities');
 
-        // Създаване на всички графики с филтрираните данни
-        this.createMainTimelineChart(filteredActivities);
-        this.createHourlyActivityChart(filteredActivities);
-        this.createActionsDistributionChart(filteredActivities);
-        this.createUserActivityChart(filteredActivities);
-        this.createTimelineChart(filteredActivities);
-        this.createActivityHeatmap(filteredActivities);
+        try {
+            // Асинхронно обновяване на графиките
+            await Promise.all([
+                this.safeChartUpdate(() => this.createMainTimelineChart(filteredActivities)),
+                this.safeChartUpdate(() => this.createHourlyActivityChart(filteredActivities)),
+                this.safeChartUpdate(() => this.createActionsDistributionChart(filteredActivities)),
+                this.safeChartUpdate(() => this.createUserActivityChart(filteredActivities)),
+                this.safeChartUpdate(() => this.createTimelineChart(filteredActivities)),
+                this.safeChartUpdate(() => this.createActivityHeatmap(filteredActivities))
+            ]);
+
+            console.log('✅ All charts updated successfully');
+        } catch (error) {
+            console.error('❌ Error updating charts:', error);
+            this.showError('Грешка при обновяване на графиките');
+        }
     },
 
-    // 🔥 ГЛАВНАТА TIMELINE ГРАФИКА (activity-timeline-chart) - използва филтрираните данни
+    async safeChartUpdate(updateFunction) {
+        try {
+            await updateFunction();
+        } catch (error) {
+            console.error('❌ Chart update error:', error);
+        }
+    },
+
+    // ===== CHART CREATION METHODS (IMPROVED) =====
+
     createMainTimelineChart(filteredActivities) {
-        const ctx = document.getElementById('activity-timeline-chart');
-        if (!ctx) return null;
+        return new Promise((resolve) => {
+            const ctx = document.getElementById('activity-timeline-chart');
+            if (!ctx) {
+                resolve();
+                return;
+            }
 
-        // Групиране по часове от филтрираните данни
-        const hourlyData = this.groupActivitiesByHour(filteredActivities);
+            // Групиране по часове от филтрираните данни
+            const hourlyData = this.groupActivitiesByHour(filteredActivities);
 
-        this.destroyChart('mainTimeline');
+            this.destroyChart('mainTimeline');
 
-        this.charts.mainTimeline = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: hourlyData.labels,
-                datasets: [{
-                    label: 'Активности',
-                    data: hourlyData.data,
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
+            try {
+                this.charts.mainTimeline = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hourlyData.labels,
+                        datasets: [{
+                            label: 'Активности',
+                            data: hourlyData.data,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }]
                     },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            title: function(tooltipItems) {
-                                return 'Час: ' + tooltipItems[0].label;
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 300 },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(tooltipItems) {
+                                        return 'Час: ' + tooltipItems[0].label;
+                                    },
+                                    label: function(context) {
+                                        return 'Активности: ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             },
-                            label: function(context) {
-                                return 'Активности: ' + context.parsed.y;
+                            y: {
+                                display: true,
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' }
                             }
                         }
                     }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: false
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    y: {
-                        display: true,
-                        title: {
-                            display: false
-                        },
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    }
-                }
+                });
+
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating main timeline chart:', error);
+                resolve();
             }
         });
-
-        return this.charts.mainTimeline;
     },
 
     createHourlyActivityChart(filteredActivities) {
-        const ctx = document.getElementById('hourly-activity-chart');
-        if (!ctx) return null;
-
-        const hourlyData = this.groupActivitiesByHour(filteredActivities);
-
-        this.destroyChart('hourly');
-
-        this.charts.hourly = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: hourlyData.labels,
-                datasets: [{
-                    label: 'Активности',
-                    data: hourlyData.data,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                ...this.defaultConfig,
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Час от денонощието'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Брой активности'
-                        },
-                        beginAtZero: true
-                    }
-                }
+        return new Promise((resolve) => {
+            const ctx = document.getElementById('hourly-activity-chart');
+            if (!ctx) {
+                resolve();
+                return;
             }
-        });
 
-        return this.charts.hourly;
-    },
+            const hourlyData = this.groupActivitiesByHour(filteredActivities);
+            this.destroyChart('hourly');
 
-    createActionsDistributionChart(filteredActivities) {
-        const ctx = document.getElementById('actions-distribution-chart');
-        if (!ctx) return null;
-
-        const actionsData = this.groupActivitiesByAction(filteredActivities);
-
-        this.destroyChart('actions');
-
-        this.charts.actions = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: actionsData.labels,
-                datasets: [{
-                    data: actionsData.data,
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 205, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)',
-                        'rgba(255, 159, 64, 0.8)',
-                        'rgba(199, 199, 199, 0.8)',
-                        'rgba(83, 102, 255, 0.8)'
-                    ],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
+            try {
+                this.charts.hourly = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hourlyData.labels,
+                        datasets: [{
+                            label: 'Активности',
+                            data: hourlyData.data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1
+                        }]
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value} (${percentage}%)`;
+                    options: {
+                        ...this.defaultConfig,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Час от денонощието'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Брой активности'
+                                },
+                                beginAtZero: true
                             }
                         }
                     }
-                }
+                });
+
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating hourly chart:', error);
+                resolve();
             }
         });
+    },
 
-        return this.charts.actions;
+    createActionsDistributionChart(filteredActivities) {
+        return new Promise((resolve) => {
+            const ctx = document.getElementById('actions-distribution-chart');
+            if (!ctx) {
+                resolve();
+                return;
+            }
+
+            const actionsData = this.groupActivitiesByAction(filteredActivities);
+            this.destroyChart('actions');
+
+            try {
+                this.charts.actions = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: actionsData.labels,
+                        datasets: [{
+                            data: actionsData.data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 205, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                                'rgba(255, 159, 64, 0.8)',
+                                'rgba(199, 199, 199, 0.8)',
+                                'rgba(83, 102, 255, 0.8)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 300 },
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating actions chart:', error);
+                resolve();
+            }
+        });
     },
 
     createUserActivityChart(filteredActivities) {
-        const ctx = document.getElementById('user-activity-chart');
-        if (!ctx) return null;
+        return new Promise((resolve) => {
+            const ctx = document.getElementById('user-activity-chart');
+            if (!ctx) {
+                resolve();
+                return;
+            }
 
-        const userData = this.groupActivitiesByUser(filteredActivities);
+            const userData = this.groupActivitiesByUser(filteredActivities);
+            this.destroyChart('users');
 
-        this.destroyChart('users');
-
-        this.charts.users = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: userData.labels,
-                datasets: [{
-                    label: 'Активности',
-                    data: userData.data,
-                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                ...this.defaultConfig,
-                indexAxis: 'y', // Horizontal bar chart
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Брой активности'
-                        },
-                        beginAtZero: true
+            try {
+                this.charts.users = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: userData.labels,
+                        datasets: [{
+                            label: 'Активности',
+                            data: userData.data,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Потребители'
+                    options: {
+                        ...this.defaultConfig,
+                        indexAxis: 'y',
+                        animation: { duration: 300 },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Брой активности'
+                                },
+                                beginAtZero: true
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Потребители'
+                                }
+                            }
                         }
                     }
-                }
+                });
+
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating users chart:', error);
+                resolve();
             }
         });
-
-        return this.charts.users;
     },
 
     createTimelineChart(filteredActivities) {
-        const ctx = document.getElementById('timeline-chart');
-        if (!ctx) return null;
+        return new Promise((resolve) => {
+            const ctx = document.getElementById('timeline-chart');
+            if (!ctx) {
+                resolve();
+                return;
+            }
 
-        const timelineData = this.groupActivitiesByTimeline(filteredActivities);
+            const timelineData = this.groupActivitiesByTimeline(filteredActivities);
+            this.destroyChart('timeline');
 
-        this.destroyChart('timeline');
-
-        this.charts.timeline = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: timelineData.labels,
-                datasets: [{
-                    label: 'Активности за периода',
-                    data: timelineData.data,
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    borderWidth: 2,
-                    fill: false,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                ...this.defaultConfig,
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Време'
-                        }
+            try {
+                this.charts.timeline = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timelineData.labels,
+                        datasets: [{
+                            label: 'Активности за периода',
+                            data: timelineData.data,
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        }]
                     },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Брой активности'
-                        },
-                        beginAtZero: true
+                    options: {
+                        ...this.defaultConfig,
+                        animation: { duration: 300 },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Време'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Брой активности'
+                                },
+                                beginAtZero: true
+                            }
+                        }
                     }
-                }
+                });
+
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating timeline chart:', error);
+                resolve();
             }
         });
-
-        return this.charts.timeline;
     },
 
     createActivityHeatmap(filteredActivities) {
-        const heatmapContainer = document.getElementById('activity-heatmap');
-        if (!heatmapContainer) return;
+        return new Promise((resolve) => {
+            const heatmapContainer = document.getElementById('activity-heatmap');
+            if (!heatmapContainer) {
+                resolve();
+                return;
+            }
 
-        const heatmapData = this.groupActivitiesForHeatmap(filteredActivities);
-        heatmapContainer.innerHTML = this.generateHeatmapHTML(heatmapData);
+            try {
+                const heatmapData = this.groupActivitiesForHeatmap(filteredActivities);
+                heatmapContainer.innerHTML = this.generateHeatmapHTML(heatmapData);
+                resolve();
+            } catch (error) {
+                console.error('❌ Error creating heatmap:', error);
+                heatmapContainer.innerHTML = '<div class="text-center text-muted">Грешка при зареждане на топлинната карта</div>';
+                resolve();
+            }
+        });
     },
 
-    // ===== 🎯 ГРУПИРАЩИ ФУНКЦИИ (използват филтрираните данни) =====
+    // ===== DATA GROUPING METHODS (OPTIMIZED) =====
 
     groupActivitiesByHour(filteredActivities) {
         const hourCounts = new Array(24).fill(0);
@@ -487,7 +613,9 @@ window.ActivityWallCharts = {
         filteredActivities.forEach(activity => {
             if (activity.timestamp) {
                 const hour = new Date(activity.timestamp).getHours();
-                hourCounts[hour]++;
+                if (hour >= 0 && hour < 24) {
+                    hourCounts[hour]++;
+                }
             }
         });
 
@@ -505,9 +633,14 @@ window.ActivityWallCharts = {
             actionCounts[action] = (actionCounts[action] || 0) + 1;
         });
 
+        // Взимаме само топ 10 за по-четливи графики
+        const sortedActions = Object.entries(actionCounts)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 10);
+
         return {
-            labels: Object.keys(actionCounts),
-            data: Object.values(actionCounts)
+            labels: sortedActions.map(([action]) => action),
+            data: sortedActions.map(([, count]) => count)
         };
     },
 
@@ -519,10 +652,9 @@ window.ActivityWallCharts = {
             userCounts[username] = (userCounts[username] || 0) + 1;
         });
 
-        // Сортиране по брой активности (най-активните първо)
         const sortedUsers = Object.entries(userCounts)
             .sort(([,a], [,b]) => b - a)
-            .slice(0, 10); // Топ 10
+            .slice(0, 10);
 
         return {
             labels: sortedUsers.map(([username]) => username),
@@ -535,7 +667,6 @@ window.ActivityWallCharts = {
             return { labels: [], data: [] };
         }
 
-        // Групиране по дни
         const dailyCounts = {};
 
         filteredActivities.forEach(activity => {
@@ -556,7 +687,7 @@ window.ActivityWallCharts = {
     groupActivitiesForHeatmap(filteredActivities) {
         const heatmapData = {};
 
-        // Инициализация на данните (7 дни x 24 часа)
+        // Initialize data (7 days x 24 hours)
         for (let day = 0; day < 7; day++) {
             heatmapData[day] = new Array(24).fill(0);
         }
@@ -566,7 +697,10 @@ window.ActivityWallCharts = {
                 const date = new Date(activity.timestamp);
                 const dayOfWeek = date.getDay();
                 const hour = date.getHours();
-                heatmapData[dayOfWeek][hour]++;
+
+                if (dayOfWeek >= 0 && dayOfWeek < 7 && hour >= 0 && hour < 24) {
+                    heatmapData[dayOfWeek][hour]++;
+                }
             }
         });
 
@@ -576,6 +710,10 @@ window.ActivityWallCharts = {
     generateHeatmapHTML(heatmapData) {
         const days = ['Нед', 'Пон', 'Вт', 'Ср', 'Чет', 'Пет', 'Съб'];
         const maxValue = Math.max(...Object.values(heatmapData).flat());
+
+        if (maxValue === 0) {
+            return '<div class="text-center text-muted p-3">Няма данни за топлинна карта</div>';
+        }
 
         let html = '<div class="heatmap-container">';
 
@@ -608,24 +746,27 @@ window.ActivityWallCharts = {
         });
 
         html += '</div>';
-
         return html;
     },
 
-    // ===== УПРАВЛЯВАЩИ МЕТОДИ =====
+    // ===== CONTROL METHODS (IMPROVED) =====
 
-    showCharts(filteredActivities) {
+    async showCharts(filteredActivities) {
         const container = document.getElementById('activity-charts-container');
         if (container) {
             container.style.display = 'block';
         }
 
-        // Обновяване на всички графики с филтрираните данни
+        this.updateToggleButton(true);
+
+        // Изчакваме инициализацията, след това обновяваме
+        if (!this.isInitialized) {
+            await this.init();
+        }
+
         setTimeout(() => {
             this.updateAllCharts(filteredActivities);
         }, 100);
-
-        this.updateToggleButton(true);
     },
 
     hideCharts() {
@@ -636,7 +777,7 @@ window.ActivityWallCharts = {
         this.updateToggleButton(false);
     },
 
-    toggleChartsVisibility() {
+    async toggleChartsVisibility() {
         const container = document.getElementById('activity-charts-container');
         if (!container) return;
 
@@ -645,48 +786,56 @@ window.ActivityWallCharts = {
         if (isVisible) {
             this.hideCharts();
         } else {
-            // Вземи филтрираните данни от activity wall
             if (window.activityWallInstance && window.activityWallInstance.filteredActivities) {
-                this.showCharts(window.activityWallInstance.filteredActivities);
+                await this.showCharts(window.activityWallInstance.filteredActivities);
+            } else {
+                this.showError('Няма данни за показване');
             }
         }
     },
 
-    refreshAllCharts() {
+    async refreshAllCharts() {
         if (!window.activityWallInstance || !window.activityWallInstance.filteredActivities) {
             this.showError('Няма данни за обновяване');
             return;
         }
 
         const filteredActivities = window.activityWallInstance.filteredActivities;
-
-        // Показай loading индикатор
         this.showChartsLoading();
 
-        setTimeout(() => {
-            this.updateAllCharts(filteredActivities);
+        try {
+            await this.updateAllCharts(filteredActivities);
 
             if (window.ActivityWallUtils) {
-                window.ActivityWallUtils.showToast('Графиките са обновени с филтрираните данни', 'success');
+                window.ActivityWallUtils.showToast('Графиките са обновени успешно', 'success');
             }
-        }, 500);
-    },
-
-    // ===== 🔥 КЛЮЧОВА ФУНКЦИЯ: Автоматично обновяване при промяна на филтрите =====
-    onFiltersChanged(filteredActivities) {
-        console.log('🔄 Графиките получиха нови филтрирани данни:', filteredActivities.length, 'активности');
-
-        const container = document.getElementById('activity-charts-container');
-        if (container && container.style.display !== 'none') {
-            this.updateAllCharts(filteredActivities);
+        } catch (error) {
+            console.error('❌ Error refreshing charts:', error);
+            this.showError('Грешка при обновяване на графиките');
         }
     },
 
-    // ===== UTILITY МЕТОДИ =====
+    // ===== INTEGRATION METHODS =====
+
+    async onFiltersChanged(filteredActivities) {
+        console.log('🔄 Charts received filtered data:', filteredActivities.length, 'activities');
+
+        const container = document.getElementById('activity-charts-container');
+        if (container && container.style.display !== 'none') {
+            await this.updateAllCharts(filteredActivities);
+        }
+    },
+
+    // ===== UTILITY METHODS (IMPROVED) =====
 
     destroyChart(chartName) {
-        if (this.charts[chartName]) {
-            this.charts[chartName].destroy();
+        try {
+            if (this.charts[chartName]) {
+                this.charts[chartName].destroy();
+                this.charts[chartName] = null;
+            }
+        } catch (error) {
+            console.error(`❌ Error destroying chart ${chartName}:`, error);
             this.charts[chartName] = null;
         }
     },
@@ -703,29 +852,23 @@ window.ActivityWallCharts = {
     },
 
     showChartsLoading() {
-        const container = document.getElementById('activity-charts-container');
-        if (!container) return;
-
-        const cardBody = container.querySelector('.card-body');
-        if (cardBody) {
-            cardBody.innerHTML = `
+        const chartsBody = document.getElementById('charts-body');
+        if (chartsBody) {
+            chartsBody.innerHTML = `
                 <div class="text-center p-5">
                     <div class="spinner-border text-primary me-3" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <span>Обновяване на графиките с филтрираните данни...</span>
+                    <span>Обновяване на графиките...</span>
                 </div>
             `;
         }
     },
 
     showNoDataMessage() {
-        const container = document.getElementById('activity-charts-container');
-        if (!container) return;
-
-        const cardBody = container.querySelector('.card-body');
-        if (cardBody) {
-            cardBody.innerHTML = `
+        const chartsBody = document.getElementById('charts-body');
+        if (chartsBody) {
+            chartsBody.innerHTML = `
                 <div class="text-center p-5">
                     <i class="bi bi-bar-chart text-muted" style="font-size: 3rem;"></i>
                     <h5 class="mt-3 text-muted">Няма данни за показване</h5>
@@ -743,23 +886,34 @@ window.ActivityWallCharts = {
         }
     },
 
-    // ===== INTEGRATION METHODS =====
+    // ===== CLEANUP =====
 
-    integrateWithActivityWall() {
-        // Автоматично интегриране с activity wall
-        if (window.activityWallInstance) {
-            console.log('✅ Activity Wall Charts: ИНТЕГРИРАНИ с Activity Wall - графиките са отражение на таблицата');
-        }
+    destroy() {
+        console.log('🧹 Destroying Activity Wall Charts...');
+
+        // Destroy all chart instances
+        Object.keys(this.charts).forEach(chartName => {
+            this.destroyChart(chartName);
+        });
+
+        // Clear state
+        this.isInitialized = false;
+        this.isChartJSLoaded = false;
+        this.chartJSPromise = null;
+        this.pendingUpdates = [];
+
+        console.log('✅ Activity Wall Charts destroyed');
     }
 };
 
-// ===== CSS STYLES FOR HEATMAP =====
+// ===== CSS STYLES FOR HEATMAP (IMPROVED) =====
 const heatmapStyles = `
     .heatmap-container {
         display: inline-block;
         border: 1px solid #ddd;
         border-radius: 4px;
         overflow: hidden;
+        background: #fff;
     }
     
     .heatmap-header, .heatmap-row {
@@ -798,37 +952,59 @@ const heatmapStyles = `
     .heatmap-cell {
         cursor: pointer;
         transition: all 0.2s ease;
+        position: relative;
     }
     
     .heatmap-cell:hover {
         border: 2px solid #007bff;
         z-index: 10;
-        position: relative;
+        transform: scale(1.1);
     }
     
     .chart-card {
         height: 100%;
+        background: #fff;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .chart-title {
         color: #495057;
         font-size: 0.9rem;
         margin-bottom: 1rem;
+        font-weight: 600;
     }
     
     .chart-container {
         position: relative;
     }
+    
+    .activity-charts-container {
+        transition: all 0.3s ease;
+    }
 `;
 
-// Добавяне на стиловете
-const chartsStyleSheet = document.createElement('style');
-chartsStyleSheet.textContent = heatmapStyles;
-document.head.appendChild(chartsStyleSheet);
+// Add styles if not already added
+if (!document.getElementById('activity-charts-styles')) {
+    const chartsStyleSheet = document.createElement('style');
+    chartsStyleSheet.id = 'activity-charts-styles';
+    chartsStyleSheet.textContent = heatmapStyles;
+    document.head.appendChild(chartsStyleSheet);
+}
 
 // ===== AUTO INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', function() {
-    window.ActivityWallCharts.init();
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await window.ActivityWallCharts.init();
+    } catch (error) {
+        console.error('❌ Failed to initialize Activity Wall Charts:', error);
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    window.ActivityWallCharts.destroy();
 });
 
 // Export for global access

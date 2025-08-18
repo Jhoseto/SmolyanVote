@@ -1,41 +1,69 @@
-// ====== ADMIN ACTIVITY WALL - ADVANCED FEATURES ======
+// ====== ADMIN ACTIVITY WALL - ADVANCED FEATURES (FIXED) ======
 // Файл: src/main/resources/static/js/admin/activityWall/activity-wall-advanced.js
 
 window.ActivityWallAdvanced = {
 
     // ===== INTERNAL STATE =====
-
     analysisCache: new Map(),
     updateCallbacks: [],
     isInitialized: false,
     analysisWorker: null,
+    currentAnalysisRequest: null,
 
-    // ===== INITIALIZATION =====
+    // ===== INITIALIZATION (IMPROVED) =====
 
-    init() {
+    async init() {
         if (this.isInitialized) return;
 
-        this.setupAdvancedUI();
-        this.bindAdvancedEvents();
-        this.isInitialized = true;
+        try {
+            console.log('🚀 Initializing Activity Wall Advanced...');
 
-        console.log('✅ Activity Wall Advanced: Initialized');
+            await this.setupAdvancedUI();
+            this.bindAdvancedEvents();
+            this.setupAnalysisCache();
+            this.isInitialized = true;
+
+            console.log('✅ Activity Wall Advanced: Initialized successfully');
+        } catch (error) {
+            console.error('❌ Activity Wall Advanced initialization failed:', error);
+        }
     },
 
-    setupAdvancedUI() {
-        this.createAdvancedControlPanel();
-        this.createAnalysisPanel();
-        this.createStatsPanel();
+    async setupAdvancedUI() {
+        await this.createAdvancedControlPanel();
+        await this.createAnalysisPanel();
+        await this.createStatsPanel();
     },
 
-    createAdvancedControlPanel() {
+    setupAnalysisCache() {
+        // Clear cache every 5 minutes to prevent memory leaks
+        setInterval(() => {
+            const now = Date.now();
+            for (const [key, value] of this.analysisCache.entries()) {
+                if (now - value.timestamp > 300000) { // 5 minutes
+                    this.analysisCache.delete(key);
+                }
+            }
+        }, 300000);
+    },
+
+    async createAdvancedControlPanel() {
         const existingPanel = document.getElementById('advanced-control-panel');
         if (existingPanel) return;
 
         const controlPanel = document.createElement('div');
         controlPanel.id = 'advanced-control-panel';
         controlPanel.className = 'advanced-control-panel mt-3';
-        controlPanel.innerHTML = `
+        controlPanel.innerHTML = this.getAdvancedControlPanelHTML();
+
+        const activityWall = document.getElementById('activity-wall');
+        if (activityWall) {
+            activityWall.appendChild(controlPanel);
+        }
+    },
+
+    getAdvancedControlPanelHTML() {
+        return `
             <div class="card">
                 <div class="card-header">
                     <h6 class="card-title mb-0">
@@ -99,14 +127,9 @@ window.ActivityWallAdvanced = {
                 </div>
             </div>
         `;
-
-        const activityWall = document.getElementById('activity-wall');
-        if (activityWall) {
-            activityWall.appendChild(controlPanel);
-        }
     },
 
-    createAnalysisPanel() {
+    async createAnalysisPanel() {
         const existingPanel = document.getElementById('analysis-panel');
         if (existingPanel) return;
 
@@ -121,9 +144,14 @@ window.ActivityWallAdvanced = {
                         <i class="bi bi-bar-chart me-2"></i>
                         Разширен анализ
                     </h5>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="close-analysis-btn">
-                        <i class="bi bi-x"></i> Затвори
-                    </button>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" id="refresh-analysis-btn" title="Обнови анализа">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="close-analysis-btn" title="Затвори">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body" id="analysis-content">
                     <!-- Analysis content will be inserted here -->
@@ -137,7 +165,7 @@ window.ActivityWallAdvanced = {
         }
     },
 
-    createStatsPanel() {
+    async createStatsPanel() {
         const existingPanel = document.getElementById('stats-panel');
         if (existingPanel) return;
 
@@ -201,73 +229,146 @@ window.ActivityWallAdvanced = {
 
     bindAdvancedEvents() {
         // Analysis Buttons
-        document.getElementById('show-user-analysis-btn')?.addEventListener('click', () => this.showUserAnalysis());
-        document.getElementById('show-security-analysis-btn')?.addEventListener('click', () => this.showSecurityAnalysis());
-        document.getElementById('show-performance-analysis-btn')?.addEventListener('click', () => this.showPerformanceAnalysis());
+        this.bindEventSafely('show-user-analysis-btn', 'click', () => this.showUserAnalysis());
+        this.bindEventSafely('show-security-analysis-btn', 'click', () => this.showSecurityAnalysis());
+        this.bindEventSafely('show-performance-analysis-btn', 'click', () => this.showPerformanceAnalysis());
 
         // Export Buttons
-        document.getElementById('export-excel-btn')?.addEventListener('click', () => this.exportAsExcel());
-        document.getElementById('export-pdf-btn')?.addEventListener('click', () => this.exportAsPDF());
-        document.getElementById('export-xml-btn')?.addEventListener('click', () => this.exportAsXML());
+        this.bindEventSafely('export-excel-btn', 'click', () => this.exportAsExcel());
+        this.bindEventSafely('export-pdf-btn', 'click', () => this.exportAsPDF());
+        this.bindEventSafely('export-xml-btn', 'click', () => this.exportAsXML());
 
-        // Charts Button
-        document.getElementById('show-charts-btn')?.addEventListener('click', () => this.showCharts());
-
-        // Report Button
-        document.getElementById('generate-report-btn')?.addEventListener('click', () => this.generateReport());
-
-        // Close Analysis Button
-        document.getElementById('close-analysis-btn')?.addEventListener('click', () => this.hideAnalysis());
+        // Other Buttons
+        this.bindEventSafely('show-charts-btn', 'click', () => this.showCharts());
+        this.bindEventSafely('generate-report-btn', 'click', () => this.generateReport());
+        this.bindEventSafely('close-analysis-btn', 'click', () => this.hideAnalysis());
+        this.bindEventSafely('refresh-analysis-btn', 'click', () => this.refreshCurrentAnalysis());
     },
 
-    // ===== ANALYSIS METHODS =====
-
-    showUserAnalysis() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма активности за анализ');
-            return;
+    bindEventSafely(elementId, event, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.warn(`⚠️ Element not found: ${elementId}`);
         }
-
-        const analysis = this.performUserAnalysis(activities);
-        this.displayAnalysis('Анализ на потребителите', this.renderUserAnalysis(analysis));
     },
 
-    showSecurityAnalysis() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма активности за анализ');
-            return;
+    // ===== ANALYSIS METHODS (IMPROVED) =====
+
+    async showUserAnalysis() {
+        await this.performAnalysis('user', 'Анализ на потребителите', this.performUserAnalysis.bind(this), this.renderUserAnalysis.bind(this));
+    },
+
+    async showSecurityAnalysis() {
+        await this.performAnalysis('security', 'Анализ на сигурността', this.performSecurityAnalysis.bind(this), this.renderSecurityAnalysis.bind(this));
+    },
+
+    async showPerformanceAnalysis() {
+        await this.performAnalysis('performance', 'Анализ на производителността', this.performPerformanceAnalysis.bind(this), this.renderPerformanceAnalysis.bind(this));
+    },
+
+    async performAnalysis(type, title, analysisFunction, renderFunction) {
+        try {
+            const activities = this.getActivities();
+            if (!activities.length) {
+                this.showError('Няма активности за анализ');
+                return;
+            }
+
+            // Show loading
+            this.showAnalysisLoading(title);
+
+            // Check cache first
+            const cacheKey = `${type}_${activities.length}_${this.getActivitiesHash(activities)}`;
+            let analysis = this.getFromCache(cacheKey);
+
+            if (!analysis) {
+                console.log(`🔍 Performing ${type} analysis on ${activities.length} activities...`);
+
+                // Cancel any existing analysis
+                if (this.currentAnalysisRequest) {
+                    this.currentAnalysisRequest.cancelled = true;
+                }
+
+                // Create new analysis request
+                this.currentAnalysisRequest = { cancelled: false };
+                const currentRequest = this.currentAnalysisRequest;
+
+                // Perform analysis
+                analysis = await this.runAnalysisWithTimeout(analysisFunction, activities, 10000);
+
+                // Check if request was cancelled
+                if (currentRequest.cancelled) {
+                    return;
+                }
+
+                // Cache the result
+                this.saveToCache(cacheKey, analysis);
+            } else {
+                console.log(`📋 Using cached ${type} analysis`);
+            }
+
+            // Render results
+            const renderedContent = renderFunction(analysis);
+            this.displayAnalysis(title, renderedContent);
+
+        } catch (error) {
+            console.error(`❌ Error in ${type} analysis:`, error);
+            this.showError(`Грешка при ${type} анализ: ${error.message}`);
         }
-
-        const analysis = this.performSecurityAnalysis(activities);
-        this.displayAnalysis('Анализ на сигурността', this.renderSecurityAnalysis(analysis));
     },
 
-    showPerformanceAnalysis() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма активности за анализ');
-            return;
+    async runAnalysisWithTimeout(analysisFunction, activities, timeout) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('Анализът отне твърде много време'));
+            }, timeout);
+
+            try {
+                const result = analysisFunction(activities);
+                clearTimeout(timeoutId);
+                resolve(result);
+            } catch (error) {
+                clearTimeout(timeoutId);
+                reject(error);
+            }
+        });
+    },
+
+    getActivitiesHash(activities) {
+        // Simple hash for cache key
+        return activities.length + '_' + (activities[0]?.timestamp || '') + '_' + (activities[activities.length - 1]?.timestamp || '');
+    },
+
+    getFromCache(key) {
+        const cached = this.analysisCache.get(key);
+        if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutes
+            return cached.data;
         }
-
-        const analysis = this.performPerformanceAnalysis(activities);
-        this.displayAnalysis('Анализ на производителността', this.renderPerformanceAnalysis(analysis));
+        return null;
     },
 
-    // ===== ANALYSIS IMPLEMENTATIONS =====
+    saveToCache(key, data) {
+        this.analysisCache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
+    },
+
+    // ===== ANALYSIS IMPLEMENTATIONS (OPTIMIZED) =====
 
     performUserAnalysis(activities) {
-        const userStats = {};
-        const ipStats = {};
+        const userStats = new Map();
+        const ipStats = new Map();
 
         activities.forEach(activity => {
             const username = activity.username || 'Анонимен';
             const ip = activity.ipAddress || 'Неизвестен';
 
             // User statistics
-            if (!userStats[username]) {
-                userStats[username] = {
+            if (!userStats.has(username)) {
+                userStats.set(username, {
                     username,
                     totalActivities: 0,
                     actions: new Set(),
@@ -275,16 +376,18 @@ window.ActivityWallAdvanced = {
                     firstActivity: activity.timestamp,
                     lastActivity: activity.timestamp,
                     hourlyDistribution: new Array(24).fill(0)
-                };
+                });
             }
 
-            const stats = userStats[username];
+            const stats = userStats.get(username);
             stats.totalActivities++;
             stats.actions.add(activity.action);
             stats.ips.add(ip);
 
             const hour = new Date(activity.timestamp).getHours();
-            stats.hourlyDistribution[hour]++;
+            if (hour >= 0 && hour < 24) {
+                stats.hourlyDistribution[hour]++;
+            }
 
             if (new Date(activity.timestamp) < new Date(stats.firstActivity)) {
                 stats.firstActivity = activity.timestamp;
@@ -294,22 +397,27 @@ window.ActivityWallAdvanced = {
             }
 
             // IP statistics
-            ipStats[ip] = (ipStats[ip] || 0) + 1;
+            ipStats.set(ip, (ipStats.get(ip) || 0) + 1);
         });
 
-        // Convert Sets to counts
-        Object.values(userStats).forEach(stats => {
-            stats.uniqueActions = stats.actions.size;
-            stats.uniqueIPs = stats.ips.size;
-            stats.actions = Array.from(stats.actions);
-            stats.ips = Array.from(stats.ips);
-        });
+        // Convert Maps to arrays and process
+        const processedUserStats = Array.from(userStats.values()).map(stats => ({
+            ...stats,
+            uniqueActions: stats.actions.size,
+            uniqueIPs: stats.ips.size,
+            actions: Array.from(stats.actions),
+            ips: Array.from(stats.ips)
+        })).sort((a, b) => b.totalActivities - a.totalActivities);
+
+        const processedIpStats = Array.from(ipStats.entries())
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 20);
 
         return {
-            userStats: Object.values(userStats).sort((a, b) => b.totalActivities - a.totalActivities),
-            ipStats: Object.entries(ipStats).sort(([,a], [,b]) => b - a).slice(0, 20),
-            totalUsers: Object.keys(userStats).length,
-            totalIPs: Object.keys(ipStats).length
+            userStats: processedUserStats,
+            ipStats: processedIpStats,
+            totalUsers: userStats.size,
+            totalIPs: ipStats.size
         };
     },
 
@@ -317,7 +425,7 @@ window.ActivityWallAdvanced = {
         const suspiciousPatterns = [];
         const adminActions = [];
         const failedAttempts = [];
-        const ipViolations = {};
+        const ipViolations = new Map();
 
         activities.forEach(activity => {
             // Admin actions
@@ -325,20 +433,20 @@ window.ActivityWallAdvanced = {
                 adminActions.push(activity);
             }
 
-            // Failed attempts (if we had such data)
+            // Failed attempts
             if (activity.action && (activity.action.includes('FAIL') || activity.action.includes('ERROR'))) {
                 failedAttempts.push(activity);
             }
 
             // IP violations
             const ip = activity.ipAddress;
-            if (ip) {
-                ipViolations[ip] = (ipViolations[ip] || 0) + 1;
+            if (ip && ip !== 'N/A') {
+                ipViolations.set(ip, (ipViolations.get(ip) || 0) + 1);
             }
         });
 
         // Find suspicious IPs
-        Object.entries(ipViolations).forEach(([ip, count]) => {
+        for (const [ip, count] of ipViolations.entries()) {
             if (count > 100) {
                 suspiciousPatterns.push({
                     type: 'high_activity_ip',
@@ -348,17 +456,17 @@ window.ActivityWallAdvanced = {
                     count
                 });
             }
-        });
+        }
 
         // Find rapid successive actions
         const sortedActivities = activities.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        for (let i = 1; i < sortedActivities.length; i++) {
+        for (let i = 1; i < Math.min(sortedActivities.length, 1000); i++) { // Limit for performance
             const prev = sortedActivities[i - 1];
             const curr = sortedActivities[i];
 
             if (prev.username === curr.username && prev.ipAddress === curr.ipAddress) {
                 const timeDiff = new Date(curr.timestamp) - new Date(prev.timestamp);
-                if (timeDiff < 1000) {
+                if (timeDiff < 1000 && timeDiff > 0) {
                     suspiciousPatterns.push({
                         type: 'rapid_actions',
                         severity: 'medium',
@@ -374,7 +482,7 @@ window.ActivityWallAdvanced = {
             suspiciousPatterns: suspiciousPatterns.sort((a, b) => {
                 const severityOrder = { high: 3, medium: 2, low: 1 };
                 return severityOrder[b.severity] - severityOrder[a.severity];
-            }),
+            }).slice(0, 50), // Limit results
             adminActions: adminActions.slice(0, 20),
             failedAttempts: failedAttempts.slice(0, 20),
             totalSuspicious: suspiciousPatterns.length,
@@ -384,15 +492,17 @@ window.ActivityWallAdvanced = {
 
     performPerformanceAnalysis(activities) {
         const hourlyLoad = new Array(24).fill(0);
-        const actionLoad = {};
-        const timeWindows = this.groupByTimeWindows(activities, 15); // 15-minute windows
+        const actionLoad = new Map();
+        const timeWindows = this.groupByTimeWindows(activities, 15);
 
         activities.forEach(activity => {
             const hour = new Date(activity.timestamp).getHours();
-            hourlyLoad[hour]++;
+            if (hour >= 0 && hour < 24) {
+                hourlyLoad[hour]++;
+            }
 
             const action = activity.action || 'UNKNOWN';
-            actionLoad[action] = (actionLoad[action] || 0) + 1;
+            actionLoad.set(action, (actionLoad.get(action) || 0) + 1);
         });
 
         const peakHour = hourlyLoad.indexOf(Math.max(...hourlyLoad));
@@ -400,8 +510,10 @@ window.ActivityWallAdvanced = {
 
         return {
             hourlyLoad,
-            actionLoad: Object.entries(actionLoad).sort(([,a], [,b]) => b - a).slice(0, 10),
-            timeWindows: timeWindows.slice(-20), // Last 20 windows
+            actionLoad: Array.from(actionLoad.entries())
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10),
+            timeWindows: timeWindows.slice(-20),
             peakHour,
             avgLoad: Math.round(avgLoad * 100) / 100,
             totalActivities: activities.length,
@@ -409,7 +521,7 @@ window.ActivityWallAdvanced = {
         };
     },
 
-    // ===== RENDERING METHODS =====
+    // ===== RENDERING METHODS (SAFE) =====
 
     renderUserAnalysis(analysis) {
         return `
@@ -429,7 +541,7 @@ window.ActivityWallAdvanced = {
                     </div>
                     <div class="col-md-4">
                         <div class="analysis-stat">
-                            <h3>${Math.round(analysis.userStats.reduce((sum, u) => sum + u.totalActivities, 0) / analysis.totalUsers)}</h3>
+                            <h3>${analysis.totalUsers > 0 ? Math.round(analysis.userStats.reduce((sum, u) => sum + u.totalActivities, 0) / analysis.totalUsers) : 0}</h3>
                             <p>Средно активности/потребител</p>
                         </div>
                     </div>
@@ -451,7 +563,7 @@ window.ActivityWallAdvanced = {
                                 <tbody>
                                     ${analysis.userStats.slice(0, 10).map(user => `
                                         <tr>
-                                            <td><strong>${user.username}</strong></td>
+                                            <td><strong>${this.escapeHtml(user.username)}</strong></td>
                                             <td><span class="badge bg-primary">${user.totalActivities}</span></td>
                                             <td><span class="badge bg-warning">${user.uniqueIPs}</span></td>
                                             <td><span class="badge bg-info">${user.uniqueActions}</span></td>
@@ -475,7 +587,7 @@ window.ActivityWallAdvanced = {
                                 <tbody>
                                     ${analysis.ipStats.slice(0, 10).map(([ip, count]) => `
                                         <tr>
-                                            <td><code>${ip}</code></td>
+                                            <td><code>${this.escapeHtml(ip)}</code></td>
                                             <td><span class="badge bg-primary">${count}</span></td>
                                             <td>
                                                 <span class="badge ${count > 100 ? 'bg-danger' : count > 50 ? 'bg-warning' : 'bg-success'}">
@@ -531,7 +643,7 @@ window.ActivityWallAdvanced = {
                         <div class="alert-list">
                             ${analysis.suspiciousPatterns.slice(0, 10).map(pattern => `
                                 <div class="alert alert-${pattern.severity === 'high' ? 'danger' : 'warning'} alert-dismissible">
-                                    <strong>${pattern.type.toUpperCase()}:</strong> ${pattern.message}
+                                    <strong>${pattern.type.toUpperCase()}:</strong> ${this.escapeHtml(pattern.message)}
                                 </div>
                             `).join('')}
                         </div>
@@ -554,8 +666,8 @@ window.ActivityWallAdvanced = {
                                     ${analysis.adminActions.slice(0, 5).map(action => `
                                         <tr>
                                             <td><small>${new Date(action.timestamp).toLocaleString('bg-BG')}</small></td>
-                                            <td><strong>${action.username}</strong></td>
-                                            <td><code>${action.action}</code></td>
+                                            <td><strong>${this.escapeHtml(action.username || 'N/A')}</strong></td>
+                                            <td><code>${this.escapeHtml(action.action)}</code></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -577,8 +689,8 @@ window.ActivityWallAdvanced = {
                                     ${analysis.failedAttempts.slice(0, 5).map(attempt => `
                                         <tr>
                                             <td><small>${new Date(attempt.timestamp).toLocaleString('bg-BG')}</small></td>
-                                            <td><code>${attempt.ipAddress}</code></td>
-                                            <td><span class="badge bg-danger">${attempt.action}</span></td>
+                                            <td><code>${this.escapeHtml(attempt.ipAddress || 'N/A')}</code></td>
+                                            <td><span class="badge bg-danger">${this.escapeHtml(attempt.action)}</span></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -636,10 +748,10 @@ window.ActivityWallAdvanced = {
                                 </thead>
                                 <tbody>
                                     ${analysis.actionLoad.map(([action, count]) => {
-            const percent = Math.round((count / analysis.totalActivities) * 100);
+            const percent = analysis.totalActivities > 0 ? Math.round((count / analysis.totalActivities) * 100) : 0;
             return `
                                             <tr>
-                                                <td><code>${action}</code></td>
+                                                <td><code>${this.escapeHtml(action)}</code></td>
                                                 <td><span class="badge bg-primary">${count}</span></td>
                                                 <td>
                                                     <div class="progress" style="height: 20px;">
@@ -673,45 +785,59 @@ window.ActivityWallAdvanced = {
         `;
     },
 
-    // ===== EXPORT METHODS =====
+    // ===== EXPORT METHODS (IMPROVED) =====
 
-    exportAsExcel() {
+    async exportAsExcel() {
         const activities = this.getActivities();
         if (!activities.length) {
             this.showError('Няма данни за експорт');
             return;
         }
 
-        // Показваме съобщение че Excel експорт ще бъде имплементиран
         this.showInfo('Excel експорт ще бъде имплементиран в следваща версия. Използвайте CSV експорт от основното меню.');
     },
 
-    exportAsPDF() {
+    async exportAsPDF() {
         const activities = this.getActivities();
         if (!activities.length) {
             this.showError('Няма данни за експорт');
             return;
         }
 
-        this.generatePDFReport(activities);
+        try {
+            this.generatePDFReport(activities);
+        } catch (error) {
+            console.error('❌ PDF export error:', error);
+            this.showError('Грешка при генериране на PDF отчета');
+        }
     },
 
-    exportAsXML() {
+    async exportAsXML() {
         const activities = this.getActivities();
         if (!activities.length) {
             this.showError('Няма данни за експорт');
             return;
         }
 
-        const xmlContent = this.generateXML(activities);
+        try {
+            const xmlContent = this.generateXML(activities);
 
-        if (window.ActivityWallUtils) {
-            window.ActivityWallUtils.downloadAsFile(
-                xmlContent,
-                `activity-export-${new Date().toISOString().split('T')[0]}.xml`,
-                'application/xml'
-            );
-            this.showSuccess('XML файлът е изтеглен');
+            if (window.ActivityWallUtils) {
+                const success = window.ActivityWallUtils.downloadAsFile(
+                    xmlContent,
+                    `activity-export-${new Date().toISOString().split('T')[0]}.xml`,
+                    'application/xml'
+                );
+
+                if (success) {
+                    this.showSuccess('XML файлът е изтеглен успешно');
+                } else {
+                    this.showError('Грешка при изтегляне на XML файла');
+                }
+            }
+        } catch (error) {
+            console.error('❌ XML export error:', error);
+            this.showError('Грешка при генериране на XML файла');
         }
     },
 
@@ -721,28 +847,36 @@ window.ActivityWallAdvanced = {
         const performanceAnalysis = this.performPerformanceAnalysis(activities);
 
         const reportContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-                <h1 style="text-align: center; color: #333;">Отчет за активностите</h1>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Отчет за активностите - SmolyanVote</title>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+                    h1 { text-align: center; color: #333; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .stat { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+                </style>
+            </head>
+            <body>
+                <h1>Отчет за активностите</h1>
                 <p style="text-align: center; color: #666;">Генериран на ${new Date().toLocaleDateString('bg-BG')}</p>
                 
                 <h2>Обобщение</h2>
-                <ul>
-                    <li>Общо активности: ${activities.length}</li>
-                    <li>Уникални потребители: ${userAnalysis.totalUsers}</li>
-                    <li>Уникални IP адреси: ${userAnalysis.totalIPs}</li>
-                    <li>Ниво на риск: ${securityAnalysis.riskLevel}</li>
-                </ul>
+                <div class="stat">Общо активности: ${activities.length}</div>
+                <div class="stat">Уникални потребители: ${userAnalysis.totalUsers}</div>
+                <div class="stat">Уникални IP адреси: ${userAnalysis.totalIPs}</div>
+                <div class="stat">Ниво на риск: ${securityAnalysis.riskLevel}</div>
 
                 <h2>Най-активни потребители</h2>
-                <table border="1" style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <th>Потребител</th>
-                        <th>Активности</th>
-                        <th>Уникални IP</th>
-                    </tr>
+                <table>
+                    <tr><th>Потребител</th><th>Активности</th><th>Уникални IP</th></tr>
                     ${userAnalysis.userStats.slice(0, 10).map(user => `
                         <tr>
-                            <td>${user.username}</td>
+                            <td>${this.escapeHtml(user.username)}</td>
                             <td>${user.totalActivities}</td>
                             <td>${user.uniqueIPs}</td>
                         </tr>
@@ -753,18 +887,22 @@ window.ActivityWallAdvanced = {
                 <p>Открити са ${securityAnalysis.totalSuspicious} подозрителни модела.</p>
                 
                 <h2>Производителност</h2>
-                <p>Пиков час: ${performanceAnalysis.peakHour}:00</p>
-                <p>Средно активности на час: ${performanceAnalysis.avgLoad}</p>
-            </div>
+                <div class="stat">Пиков час: ${performanceAnalysis.peakHour}:00</div>
+                <div class="stat">Средно активности на час: ${performanceAnalysis.avgLoad}</div>
+            </body>
+            </html>
         `;
 
-        // Отваряме нов прозорец за печат
+        // Open in new window for printing
         const printWindow = window.open('', '_blank');
-        printWindow.document.write(reportContent);
-        printWindow.document.close();
-        printWindow.print();
-
-        this.showSuccess('PDF отчетът е генериран');
+        if (printWindow) {
+            printWindow.document.write(reportContent);
+            printWindow.document.close();
+            printWindow.print();
+            this.showSuccess('PDF отчетът е генериран');
+        } else {
+            this.showError('Грешка - попъп блокер възпрепятства отварянето на отчета');
+        }
     },
 
     generateXML(activities) {
@@ -773,6 +911,7 @@ window.ActivityWallAdvanced = {
         xml += `  <metadata>\n`;
         xml += `    <exportDate>${new Date().toISOString()}</exportDate>\n`;
         xml += `    <totalRecords>${activities.length}</totalRecords>\n`;
+        xml += `    <generator>SmolyanVote Activity Wall</generator>\n`;
         xml += `  </metadata>\n`;
         xml += `  <activities>\n`;
 
@@ -781,7 +920,7 @@ window.ActivityWallAdvanced = {
             xml += `      <id>${activity.id}</id>\n`;
             xml += `      <timestamp>${activity.timestamp}</timestamp>\n`;
             xml += `      <username><![CDATA[${activity.username || ''}]]></username>\n`;
-            xml += `      <action><![CDATA[${activity.action}]]></action>\n`;
+            xml += `      <action><![CDATA[${activity.action || ''}]]></action>\n`;
             xml += `      <entityType><![CDATA[${activity.entityType || ''}]]></entityType>\n`;
             xml += `      <entityId>${activity.entityId || ''}</entityId>\n`;
             xml += `      <ipAddress><![CDATA[${activity.ipAddress || ''}]]></ipAddress>\n`;
@@ -795,46 +934,80 @@ window.ActivityWallAdvanced = {
         return xml;
     },
 
-    // ===== CHART INTEGRATION =====
+    // ===== OTHER METHODS =====
 
-    showCharts() {
+    async showCharts() {
         if (window.ActivityWallCharts) {
             const activities = this.getActivities();
-            window.ActivityWallCharts.showCharts(activities);
+            await window.ActivityWallCharts.showCharts(activities);
         } else {
             this.showError('Графиките не са достъпни');
         }
     },
 
-    // ===== REPORT GENERATION =====
-
-    generateReport() {
+    async generateReport() {
         const activities = this.getActivities();
         if (!activities.length) {
             this.showError('Няма данни за отчет');
             return;
         }
 
-        const userAnalysis = this.performUserAnalysis(activities);
-        const securityAnalysis = this.performSecurityAnalysis(activities);
-        const performanceAnalysis = this.performPerformanceAnalysis(activities);
+        try {
+            this.showAnalysisLoading('Генериране на пълен отчет');
 
-        const reportHtml = `
-            <div class="comprehensive-report">
-                <h4>Пълен отчет за активностите</h4>
-                <div class="report-section">
-                    ${this.renderUserAnalysis(userAnalysis)}
-                </div>
-                <div class="report-section">
-                    ${this.renderSecurityAnalysis(securityAnalysis)}
-                </div>
-                <div class="report-section">
-                    ${this.renderPerformanceAnalysis(performanceAnalysis)}
-                </div>
-            </div>
-        `;
+            const [userAnalysis, securityAnalysis, performanceAnalysis] = await Promise.all([
+                this.runAnalysisWithTimeout(this.performUserAnalysis.bind(this), activities, 5000),
+                this.runAnalysisWithTimeout(this.performSecurityAnalysis.bind(this), activities, 5000),
+                this.runAnalysisWithTimeout(this.performPerformanceAnalysis.bind(this), activities, 5000)
+            ]);
 
-        this.displayAnalysis('Пълен отчет', reportHtml);
+            const reportHtml = `
+                <div class="comprehensive-report">
+                    <h4>Пълен отчет за активностите</h4>
+                    <div class="report-section">
+                        ${this.renderUserAnalysis(userAnalysis)}
+                    </div>
+                    <div class="report-section">
+                        ${this.renderSecurityAnalysis(securityAnalysis)}
+                    </div>
+                    <div class="report-section">
+                        ${this.renderPerformanceAnalysis(performanceAnalysis)}
+                    </div>
+                </div>
+            `;
+
+            this.displayAnalysis('Пълен отчет', reportHtml);
+        } catch (error) {
+            console.error('❌ Error generating report:', error);
+            this.showError('Грешка при генериране на отчета');
+        }
+    },
+
+    async refreshCurrentAnalysis() {
+        const panel = document.getElementById('analysis-panel');
+        if (!panel || panel.style.display === 'none') {
+            this.showInfo('Няма отворен анализ за обновяване');
+            return;
+        }
+
+        // Clear cache and regenerate
+        this.analysisCache.clear();
+
+        // Determine which analysis to refresh based on title
+        const titleElement = document.getElementById('analysis-title');
+        const title = titleElement?.textContent || '';
+
+        if (title.includes('потребителите')) {
+            await this.showUserAnalysis();
+        } else if (title.includes('сигурността')) {
+            await this.showSecurityAnalysis();
+        } else if (title.includes('производителността')) {
+            await this.showPerformanceAnalysis();
+        } else if (title.includes('Пълен отчет')) {
+            await this.generateReport();
+        } else {
+            this.showInfo('Не можах да определя типа анализ за обновяване');
+        }
     },
 
     // ===== UTILITY METHODS =====
@@ -849,7 +1022,7 @@ window.ActivityWallAdvanced = {
         const contentElement = document.getElementById('analysis-content');
 
         if (titleElement) {
-            titleElement.innerHTML = `<i class="bi bi-bar-chart me-2"></i>${title}`;
+            titleElement.innerHTML = `<i class="bi bi-bar-chart me-2"></i>${this.escapeHtml(title)}`;
         }
 
         if (contentElement) {
@@ -859,6 +1032,31 @@ window.ActivityWallAdvanced = {
         if (panel) {
             panel.style.display = 'block';
             panel.scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+
+    showAnalysisLoading(title) {
+        const titleElement = document.getElementById('analysis-title');
+        const contentElement = document.getElementById('analysis-content');
+
+        if (titleElement) {
+            titleElement.innerHTML = `<i class="bi bi-bar-chart me-2"></i>${this.escapeHtml(title)}`;
+        }
+
+        if (contentElement) {
+            contentElement.innerHTML = `
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Изпълнява се анализ...</span>
+                </div>
+            `;
+        }
+
+        const panel = document.getElementById('analysis-panel');
+        if (panel) {
+            panel.style.display = 'block';
         }
     },
 
@@ -872,15 +1070,26 @@ window.ActivityWallAdvanced = {
     updateStats(activities) {
         if (!activities) return;
 
-        const userAnalysis = this.performUserAnalysis(activities);
-        const securityAnalysis = this.performSecurityAnalysis(activities);
-        const performanceAnalysis = this.performPerformanceAnalysis(activities);
+        try {
+            const userAnalysis = this.performUserAnalysis(activities);
+            const securityAnalysis = this.performSecurityAnalysis(activities);
+            const performanceAnalysis = this.performPerformanceAnalysis(activities);
 
-        // Update stat cards
-        document.getElementById('total-activities-stat').textContent = activities.length;
-        document.getElementById('unique-users-stat').textContent = userAnalysis.totalUsers;
-        document.getElementById('avg-per-hour-stat').textContent = Math.round(performanceAnalysis.avgLoad);
-        document.getElementById('security-alerts-stat').textContent = securityAnalysis.totalSuspicious;
+            // Update stat cards safely
+            this.updateStatElement('total-activities-stat', activities.length);
+            this.updateStatElement('unique-users-stat', userAnalysis.totalUsers);
+            this.updateStatElement('avg-per-hour-stat', Math.round(performanceAnalysis.avgLoad));
+            this.updateStatElement('security-alerts-stat', securityAnalysis.totalSuspicious);
+        } catch (error) {
+            console.error('❌ Error updating stats:', error);
+        }
+    },
+
+    updateStatElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
     },
 
     calculateRiskLevel(suspiciousPatterns) {
@@ -893,13 +1102,15 @@ window.ActivityWallAdvanced = {
     },
 
     calculateLoadTrend(hourlyLoad) {
-        const recent = hourlyLoad.slice(-6); // Last 6 hours
-        const previous = hourlyLoad.slice(-12, -6); // Previous 6 hours
+        if (hourlyLoad.length < 12) return 'stable';
+
+        const recent = hourlyLoad.slice(-6);
+        const previous = hourlyLoad.slice(-12, -6);
 
         const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
         const previousAvg = previous.reduce((a, b) => a + b, 0) / previous.length;
 
-        const change = (recentAvg - previousAvg) / (previousAvg || 1);
+        const change = previousAvg > 0 ? (recentAvg - previousAvg) / previousAvg : 0;
 
         if (change > 0.2) return 'increasing';
         if (change < -0.2) return 'decreasing';
@@ -907,7 +1118,7 @@ window.ActivityWallAdvanced = {
     },
 
     groupByTimeWindows(activities, minutes) {
-        const windows = {};
+        const windows = new Map();
         const windowMs = minutes * 60 * 1000;
 
         activities.forEach(activity => {
@@ -915,30 +1126,47 @@ window.ActivityWallAdvanced = {
             const windowStart = Math.floor(timestamp / windowMs) * windowMs;
             const windowKey = new Date(windowStart).toISOString();
 
-            if (!windows[windowKey]) {
-                windows[windowKey] = { timestamp: windowKey, count: 0 };
+            if (!windows.has(windowKey)) {
+                windows.set(windowKey, { timestamp: windowKey, count: 0 });
             }
-            windows[windowKey].count++;
+            windows.get(windowKey).count++;
         });
 
-        return Object.values(windows).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        return Array.from(windows.values()).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    },
+
+    escapeHtml(unsafe) {
+        if (typeof unsafe !== 'string') return String(unsafe);
+
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     },
 
     showSuccess(message) {
         if (window.ActivityWallUtils) {
             window.ActivityWallUtils.showToast(message, 'success');
+        } else {
+            console.log(`✅ ${message}`);
         }
     },
 
     showError(message) {
         if (window.ActivityWallUtils) {
             window.ActivityWallUtils.showToast(message, 'error');
+        } else {
+            console.error(`❌ ${message}`);
         }
     },
 
     showInfo(message) {
         if (window.ActivityWallUtils) {
             window.ActivityWallUtils.showToast(message, 'info');
+        } else {
+            console.log(`ℹ️ ${message}`);
         }
     },
 
@@ -946,8 +1174,6 @@ window.ActivityWallAdvanced = {
 
     onFiltersChanged(filteredActivities) {
         this.updateStats(filteredActivities);
-
-        // Clear analysis cache when filters change
         this.analysisCache.clear();
     },
 
@@ -957,10 +1183,31 @@ window.ActivityWallAdvanced = {
             this.updateStats(activities);
             console.log('✅ Activity Wall Advanced: Integrated with Activity Wall');
         }
+    },
+
+    // ===== CLEANUP =====
+
+    destroy() {
+        console.log('🧹 Destroying Activity Wall Advanced...');
+
+        // Cancel any running analysis
+        if (this.currentAnalysisRequest) {
+            this.currentAnalysisRequest.cancelled = true;
+        }
+
+        // Clear cache
+        this.analysisCache.clear();
+
+        // Reset state
+        this.isInitialized = false;
+        this.updateCallbacks = [];
+        this.currentAnalysisRequest = null;
+
+        console.log('✅ Activity Wall Advanced destroyed');
     }
 };
 
-// ===== CSS STYLES =====
+// ===== CSS STYLES (IMPROVED) =====
 const advancedStyles = `
     .analysis-stat {
         text-align: center;
@@ -968,6 +1215,12 @@ const advancedStyles = `
         background: #f8f9fa;
         border-radius: 8px;
         border: 1px solid #dee2e6;
+        transition: transform 0.2s ease;
+    }
+    
+    .analysis-stat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     
     .analysis-stat h3 {
@@ -990,6 +1243,12 @@ const advancedStyles = `
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 1rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     
     .stat-icon {
@@ -1016,6 +1275,7 @@ const advancedStyles = `
         padding: 1rem;
         background: #f8f9fa;
         border-radius: 4px;
+        gap: 2px;
     }
     
     .hour-bar {
@@ -1023,25 +1283,27 @@ const advancedStyles = `
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin: 0 1px;
+        cursor: pointer;
     }
     
     .bar {
         width: 100%;
-        background: #007bff;
+        background: linear-gradient(to top, #007bff, #66b3ff);
         border-radius: 2px 2px 0 0;
         min-height: 2px;
         transition: all 0.3s ease;
     }
     
     .hour-bar:hover .bar {
-        background: #0056b3;
+        background: linear-gradient(to top, #0056b3, #4da6ff);
+        transform: scaleY(1.1);
     }
     
     .hour-label {
         font-size: 0.7rem;
         margin-top: 0.25rem;
         color: #6c757d;
+        font-weight: 500;
     }
     
     .report-section {
@@ -1060,16 +1322,61 @@ const advancedStyles = `
         font-weight: 600;
         color: #495057;
     }
+    
+    .analysis-results {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .alert-list .alert {
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+    }
+    
+    .comprehensive-report {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    
+    .table-responsive {
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .progress {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
 `;
 
-// Добавяне на стиловете
-const advancedStyleSheet = document.createElement('style');
-advancedStyleSheet.textContent = advancedStyles;
-document.head.appendChild(advancedStyleSheet);
+// Add styles if not already added
+if (!document.getElementById('activity-advanced-styles')) {
+    const advancedStyleSheet = document.createElement('style');
+    advancedStyleSheet.id = 'activity-advanced-styles';
+    advancedStyleSheet.textContent = advancedStyles;
+    document.head.appendChild(advancedStyleSheet);
+}
 
 // ===== AUTO INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', function() {
-    window.ActivityWallAdvanced.init();
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await window.ActivityWallAdvanced.init();
+    } catch (error) {
+        console.error('❌ Failed to initialize Activity Wall Advanced:', error);
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    window.ActivityWallAdvanced.destroy();
 });
 
 // Export for global access

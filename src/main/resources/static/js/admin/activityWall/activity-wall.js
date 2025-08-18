@@ -1,4 +1,4 @@
-// ====== ADMIN ACTIVITY WALL - CORE ======
+// ====== ADMIN ACTIVITY WALL - CORE (ФИКСИРАН) ======
 // Файл: src/main/resources/static/js/admin/activityWall/activity-wall.js
 
 class ActivityWall {
@@ -13,6 +13,9 @@ class ActivityWall {
         this.maxActivities = 1000;
         this.refreshInterval = null;
         this.websocket = null;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.connectionTimeout = null;
 
         // ===== ФИЛТРИ =====
         this.filters = {
@@ -25,20 +28,35 @@ class ActivityWall {
             dateEnd: null
         };
 
+        // ===== CALLBACKS ЗА ДРУГИ МОДУЛИ =====
+        this.updateCallbacks = [];
+
         this.init();
     }
 
-    // ===== ИНИЦИАЛИЗАЦИЯ =====
+    // ===== ИНИЦИАЛИЗАЦИЯ С ПРОВЕРКИ =====
 
-    init() {
+    async init() {
+        console.log('🚀 Activity Wall: Starting initialization...');
+
         if (!this.checkRequiredElements()) {
             console.error('❌ Activity Wall: Required elements missing');
             return;
         }
 
+        if (!this.checkDependencies()) {
+            console.error('❌ Activity Wall: Required dependencies missing');
+            return;
+        }
+
         this.setupEventListeners();
-        this.loadInitialActivities();
-        this.startLiveStream();
+        await this.loadInitialActivities();
+        await this.startLiveStream();
+
+        // ✅ Известяваме другите модули
+        this.notifyInitialized();
+
+        console.log('✅ Activity Wall: Initialized successfully');
     }
 
     checkRequiredElements() {
@@ -55,6 +73,29 @@ class ActivityWall {
                 return false;
             }
         }
+        return true;
+    }
+
+    // 🔥 НОВ МЕТОД: Проверка на dependencies
+    checkDependencies() {
+        const dependencies = [];
+
+        // Проверка за SockJS
+        if (typeof SockJS === 'undefined') {
+            dependencies.push('SockJS не е зареден');
+        }
+
+        // Проверка за Bootstrap
+        if (typeof bootstrap === 'undefined') {
+            dependencies.push('Bootstrap не е зареден');
+        }
+
+        if (dependencies.length > 0) {
+            console.error('❌ Missing dependencies:', dependencies);
+            this.showError(`Липсващи библиотеки: ${dependencies.join(', ')}`);
+            return false;
+        }
+
         return true;
     }
 
@@ -240,11 +281,13 @@ class ActivityWall {
         }
     }
 
-    startLiveStream() {
+    async startLiveStream() {
         this.isLive = true;
         this.isPaused = false;
+        this.reconnectAttempts = 0;
         this.updateLiveStatusUI();
-        this.setupWebSocket();
+
+        await this.setupWebSocket();
         this.startRefreshInterval();
     }
 
@@ -288,25 +331,39 @@ class ActivityWall {
         }
     }
 
-    // ===== WEBSOCKET CONNECTION =====
+    // ===== 🔥 ФИКСИРАН WEBSOCKET CONNECTION =====
 
-    setupWebSocket() {
+    async setupWebSocket() {
+        if (typeof SockJS === 'undefined') {
+            console.error('❌ SockJS не е зареден');
+            this.showError('SockJS библиотеката не е достъпна');
+            return;
+        }
+
         try {
-            const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-            const hostname = window.location.hostname;
-            const port = window.location.port;
-
-            let wsUrl;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                const wsPort = port === '2662' ? '2662' : (port || '2662');
-                wsUrl = `${protocol}//${hostname}:${wsPort}/ws/admin/activity`;
-            } else {
-                wsUrl = `${protocol}//${window.location.host}/ws/admin/activity`;
-            }
+            // ✅ ПРАВИЛНА URL КОНСТРУКЦИЯ
+            const wsUrl = this.buildWebSocketURL();
+            console.log('🔌 Connecting to WebSocket:', wsUrl);
 
             this.websocket = new SockJS(wsUrl);
 
+            // ✅ Connection timeout
+            this.connectionTimeout = setTimeout(() => {
+                if (this.websocket && this.websocket.readyState !== SockJS.OPEN) {
+                    console.warn('⚠️ WebSocket connection timeout');
+                    this.websocket.close();
+                }
+            }, 10000); // 10 seconds timeout
+
             this.websocket.onopen = () => {
+                console.log('✅ WebSocket connected');
+                this.reconnectAttempts = 0;
+
+                if (this.connectionTimeout) {
+                    clearTimeout(this.connectionTimeout);
+                    this.connectionTimeout = null;
+                }
+
                 this.sendWebSocketMessage('get_recent', { limit: 50 });
             };
 
@@ -319,31 +376,77 @@ class ActivityWall {
                 }
             };
 
-            this.websocket.onclose = () => {
-                setTimeout(() => {
-                    if (this.isLive && !this.isPaused) {
-                        this.setupWebSocket();
-                    }
-                }, 5000);
+            this.websocket.onclose = (event) => {
+                console.log('🔌 WebSocket closed:', event.code, event.reason);
+
+                if (this.connectionTimeout) {
+                    clearTimeout(this.connectionTimeout);
+                    this.connectionTimeout = null;
+                }
+
+                this.attemptReconnect();
             };
 
             this.websocket.onerror = (error) => {
                 console.error('❌ WebSocket error:', error);
+                this.showError('WebSocket грешка: ' + (error.message || 'Неизвестна грешка'));
             };
 
         } catch (error) {
             console.error('❌ Failed to setup WebSocket:', error);
+            this.showError('Не можах да се свържа с WebSocket сървъра');
         }
     }
 
+    // 🔥 НОВ МЕТОД: Правилно URL построяване
+    buildWebSocketURL() {
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+
+        // За localhost и development
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            const wsPort = port || '2662';
+            return `${protocol}//${hostname}:${wsPort}/ws/admin/activity`;
+        }
+
+        // За production
+        return `${protocol}//${window.location.host}/ws/admin/activity`;
+    }
+
+    // 🔥 НОВ МЕТОД: Автоматично reconnect
+    attemptReconnect() {
+        if (!this.isLive || this.isPaused) return;
+
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('❌ Максимален брой опити за връзка достигнат');
+            this.showError('Не мога да се свържа с сървъра. Моля рефрешете страницата.');
+            this.stopLiveStream();
+            return;
+        }
+
+        this.reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000); // Exponential backoff
+
+        console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+        setTimeout(() => {
+            if (this.isLive && !this.isPaused) {
+                this.setupWebSocket();
+            }
+        }, delay);
+    }
+
     sendWebSocketMessage(type, data = {}) {
-        if (this.websocket && this.websocket.readyState === 1) {
+        if (this.websocket && this.websocket.readyState === SockJS.OPEN) {
             const message = {
                 type: type,
                 data: data,
                 timestamp: new Date().toISOString()
             };
             this.websocket.send(JSON.stringify(message));
+        } else {
+            console.warn('⚠️ WebSocket не е готов за изпращане на съобщения');
         }
     }
 
@@ -360,6 +463,12 @@ class ActivityWall {
                     this.applyFilters();
                 }
                 break;
+            case 'error':
+                console.error('❌ WebSocket server error:', message.data);
+                this.showError('Сървърна грешка: ' + (message.data?.message || 'Неизвестна грешка'));
+                break;
+            default:
+                console.warn('⚠️ Unknown WebSocket message type:', message.type);
         }
     }
 
@@ -375,18 +484,19 @@ class ActivityWall {
         }, 5000);
     }
 
-    // ===== DATA LOADING =====
+    // ===== DATA LOADING С ПОДОБРЕНА ERROR HANDLING =====
 
     async loadInitialActivities() {
         try {
             this.showLoading();
 
             const response = await fetch('/admin/api/activities', {
-                headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
+                headers: { 'X-XSRF-TOKEN': this.getCsrfToken() },
+                signal: AbortSignal.timeout(10000) // 10 second timeout
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -394,11 +504,21 @@ class ActivityWall {
             if (data.success && data.activities) {
                 this.activities = data.activities;
                 this.applyFilters();
+                console.log('✅ Initial activities loaded:', this.activities.length);
+            } else {
+                throw new Error(data.message || 'Неуспешно зареждане на активности');
             }
 
         } catch (error) {
             console.error('❌ Error loading activities:', error);
-            this.showError('Грешка при зареждането на активностите');
+
+            if (error.name === 'TimeoutError') {
+                this.showError('Времето за зареждане изтече');
+            } else if (error.name === 'TypeError') {
+                this.showError('Мрежова грешка - проверете интернет връзката');
+            } else {
+                this.showError('Грешка при зареждането: ' + error.message);
+            }
         }
     }
 
@@ -409,7 +529,8 @@ class ActivityWall {
             const lastId = this.activities.length > 0 ? this.activities[0].id : 0;
 
             const response = await fetch(`/admin/api/activities/since/${lastId}`, {
-                headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
+                headers: { 'X-XSRF-TOKEN': this.getCsrfToken() },
+                signal: AbortSignal.timeout(5000)
             });
 
             if (!response.ok) return;
@@ -421,6 +542,7 @@ class ActivityWall {
                 newActivities.reverse().forEach(activity => {
                     this.addNewActivity(activity, false);
                 });
+                console.log('✅ New activities loaded:', newActivities.length);
             }
 
         } catch (error) {
@@ -436,6 +558,11 @@ class ActivityWall {
         }
 
         this.applyFilters();
+
+        // ✅ Уведомяваме други модули за новата активност
+        if (isRealTime) {
+            this.notifyActivityAdded(activity);
+        }
     }
 
     async manualRefresh() {
@@ -444,15 +571,18 @@ class ActivityWall {
             refreshBtn.classList.add('spin');
         }
 
-        await this.loadInitialActivities();
-
-        if (refreshBtn) {
-            setTimeout(() => {
-                refreshBtn.classList.remove('spin');
-            }, 500);
+        try {
+            await this.loadInitialActivities();
+            this.showToast('Активностите са обновени', 'success');
+        } catch (error) {
+            this.showToast('Грешка при обновяването', 'error');
+        } finally {
+            if (refreshBtn) {
+                setTimeout(() => {
+                    refreshBtn.classList.remove('spin');
+                }, 500);
+            }
         }
-
-        this.showToast('Активностите са обновени', 'success');
     }
 
     // ===== FILTERING =====
@@ -489,6 +619,9 @@ class ActivityWall {
         this.renderActivities();
         this.updateStats();
         this.updatePaginationUI();
+
+        // ✅ Уведомяваме други модули за промяната в филтрите
+        this.notifyFiltersChanged();
     }
 
     passesTimeFilter(activity) {
@@ -520,6 +653,8 @@ class ActivityWall {
     // ===== RENDERING =====
 
     renderActivities() {
+        const startTime = performance.now();
+
         const tableBody = document.getElementById('activity-table-body');
         const emptyState = document.getElementById('empty-state');
 
@@ -537,7 +672,22 @@ class ActivityWall {
 
         if (emptyState) emptyState.style.display = 'none';
 
-        tableBody.innerHTML = pageActivities.map(activity => this.renderActivityRow(activity)).join('');
+        // ✅ Използваме DocumentFragment за по-добра производителност
+        const fragment = document.createDocumentFragment();
+
+        pageActivities.forEach(activity => {
+            const row = document.createElement('tr');
+            row.className = 'activity-row';
+            row.setAttribute('data-activity-id', activity.id);
+            row.innerHTML = this.renderActivityRow(activity);
+            fragment.appendChild(row);
+        });
+
+        tableBody.innerHTML = '';
+        tableBody.appendChild(fragment);
+
+        const endTime = performance.now();
+        console.log(`✅ Rendered ${pageActivities.length} activities in ${Math.round(endTime - startTime)}ms`);
     }
 
     renderActivityRow(activity) {
@@ -547,18 +697,16 @@ class ActivityWall {
         const entityDisplay = this.formatEntity(activity);
 
         return `
-            <tr data-activity-id="${activity.id}" class="activity-row">
-                <td class="col-time">${timeFormatted}</td>
-                <td class="col-user">${userDisplay}</td>
-                <td class="col-action">${actionDisplay}</td>
-                <td class="col-entity">${entityDisplay}</td>
-                <td class="col-ip">${activity.ipAddress || '--'}</td>
-                <td class="col-actions">
-                    <button class="details-btn" title="Виж детайли">
-                        <i class="bi bi-info-circle"></i>
-                    </button>
-                </td>
-            </tr>
+            <td class="col-time">${timeFormatted}</td>
+            <td class="col-user">${userDisplay}</td>
+            <td class="col-action">${actionDisplay}</td>
+            <td class="col-entity">${entityDisplay}</td>
+            <td class="col-ip">${activity.ipAddress || '--'}</td>
+            <td class="col-actions">
+                <button class="details-btn" title="Виж детайли">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+            </td>
         `;
     }
 
@@ -931,8 +1079,61 @@ class ActivityWall {
         document.getElementById('modal-activity-details').textContent = activity.details || 'Няма детайли';
 
         // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('activity-details-modal'));
-        modal.show();
+        try {
+            const modal = new bootstrap.Modal(document.getElementById('activity-details-modal'));
+            modal.show();
+        } catch (error) {
+            console.error('❌ Error showing modal:', error);
+            this.showToast('Грешка при показването на детайлите', 'error');
+        }
+    }
+
+    // ===== 🔥 НОВИ NOTIFICATION МЕТОДИ =====
+
+    // Регистриране на callback за други модули
+    registerUpdateCallback(callback) {
+        if (typeof callback === 'function') {
+            this.updateCallbacks.push(callback);
+        }
+    }
+
+    // Уведомяване за инициализация
+    notifyInitialized() {
+        this.updateCallbacks.forEach(callback => {
+            try {
+                callback('initialized', { activities: this.activities });
+            } catch (error) {
+                console.error('❌ Error in update callback:', error);
+            }
+        });
+    }
+
+    // Уведомяване за промяна в филтрите
+    notifyFiltersChanged() {
+        this.updateCallbacks.forEach(callback => {
+            try {
+                callback('filters_changed', {
+                    filteredActivities: this.filteredActivities,
+                    filters: this.filters
+                });
+            } catch (error) {
+                console.error('❌ Error in filter callback:', error);
+            }
+        });
+    }
+
+    // Уведомяване за нова активност
+    notifyActivityAdded(activity) {
+        this.updateCallbacks.forEach(callback => {
+            try {
+                callback('activity_added', {
+                    activity: activity,
+                    filteredActivities: this.filteredActivities
+                });
+            } catch (error) {
+                console.error('❌ Error in activity callback:', error);
+            }
+        });
     }
 
     // ===== UTILITY FUNCTIONS =====
@@ -968,8 +1169,12 @@ class ActivityWall {
     }
 
     showToast(message, type = 'info') {
-        if (window.showToast) {
+        if (window.ActivityWallUtils && window.ActivityWallUtils.showToast) {
+            window.ActivityWallUtils.showToast(message, type);
+        } else if (window.showToast) {
             window.showToast(message, type);
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
 
@@ -991,6 +1196,11 @@ class ActivityWall {
             this.refreshInterval = null;
         }
 
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = null;
+        }
+
         if (this.websocket) {
             this.websocket.close();
             this.websocket = null;
@@ -999,8 +1209,10 @@ class ActivityWall {
 
     destroy() {
         this.cleanup();
+        this.updateCallbacks = [];
     }
 }
+
 
 // ===== GLOBAL INITIALIZATION =====
 
@@ -1009,6 +1221,7 @@ let activityWallInstance = null;
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('activity-wall')) {
         activityWallInstance = new ActivityWall();
+        window.activityWallInstance = activityWallInstance;
     }
 });
 
