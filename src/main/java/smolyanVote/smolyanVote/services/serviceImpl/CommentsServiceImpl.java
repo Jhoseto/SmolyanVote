@@ -178,8 +178,8 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
-            entityIdParam = "entityId", details = "Comment on {entityType}: {text}")
+//  @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
+//            entityIdParam = "entityId", details = "Comment on {entityType}: {text}")
 
     public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
         logger.info("Adding comment to entityType: {}, entityId: {}, text: {}, author: {}",

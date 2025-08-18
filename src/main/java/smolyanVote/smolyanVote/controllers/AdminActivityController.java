@@ -33,6 +33,32 @@ public class AdminActivityController {
         this.activityLogService = activityLogService;
     }
 
+
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getActivities(
+            @RequestParam(defaultValue = "50") int limit) {
+
+        try {
+            limit = Math.min(Math.max(1, limit), 500);
+
+            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
+            Map<String, Object> stats = activityLogService.getActivityStatistics();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("activities", convertActivitiesToJson(activities));
+            response.put("stats", stats);
+            response.put("timestamp", LocalDateTime.now());
+            response.put("count", activities.size());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error loading activities: " + e.getMessage());
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка при зареждането на активностите: " + e.getMessage()));
+        }
+    }
+
     // ===== RECENT ACTIVITIES =====
 
     @GetMapping("/recent")
