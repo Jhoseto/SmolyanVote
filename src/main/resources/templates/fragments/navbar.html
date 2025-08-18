@@ -73,11 +73,21 @@
                             <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
                         </a>
                         <ul class="dropdown-menu-glass dropdown-menu-end">
-                            <li><a class="dropdown-item-glass" href="/profile">Профил</a></li>
-                            <li sec:authorize="hasRole('ADMIN')"><a class="dropdown-item-glass" href="/admin/dashboard"><i class="bi bi-gear"></i> Admin</a></li>
+                            <li>
+                                <a class="dropdown-item-glass" href="/profile">
+                                    <i class="bi bi-person-circle"></i> Профил
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item-glass" href="/admin/dashboard">
+                                    <i class="bi bi-gear"></i> Admin
+                                </a>
+                            </li>
                             <li>
                                 <form th:action="@{/logout}" method="post" class="m-0">
-                                    <button type="submit" class="dropdown-item-glass logout-btn-glass">Изход</button>
+                                    <button type="submit" class="dropdown-item-glass logout-btn-glass">
+                                        <i class="bi bi-box-arrow-right"></i> Изход
+                                    </button>
                                 </form>
                             </li>
                         </ul>
