@@ -37,7 +37,6 @@ class ActivityWall {
     // ===== ИНИЦИАЛИЗАЦИЯ С ПРОВЕРКИ =====
 
     async init() {
-        console.log('🚀 Activity Wall: Starting initialization...');
 
         if (!this.checkRequiredElements()) {
             console.error('❌ Activity Wall: Required elements missing');
