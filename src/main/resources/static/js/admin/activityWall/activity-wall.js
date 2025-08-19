@@ -34,6 +34,13 @@ class ActivityWall {
         this.init();
     }
 
+    async initMainTimelineChart() {
+        if (window.ActivityWallCharts && window.ActivityWallCharts.isInitialized) {
+            // ✅ Инициализирай горната графика с ВСИЧКИ активности
+            await window.ActivityWallCharts.createMainTimelineChart(this.activities);
+        }
+    }
+
     // ===== ИНИЦИАЛИЗАЦИЯ С ПРОВЕРКИ =====
 
     async init() {
@@ -50,6 +57,9 @@ class ActivityWall {
 
         this.setupEventListeners();
         await this.loadInitialActivities();
+        setTimeout(() => {
+            this.initMainTimelineChart();
+        }, 1000);
         await this.startLiveStream();
 
         // ✅ Известяваме другите модули
@@ -101,7 +111,7 @@ class ActivityWall {
     // ===== EVENT LISTENERS =====
 
     setupEventListeners() {
-        // ===== LIVE TOGGLE =====
+        // ===== LIVE STREAM TOGGLE =====
         const toggleBtn = document.getElementById('activity-toggle-btn');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', () => this.toggleLiveStatus());
@@ -110,7 +120,7 @@ class ActivityWall {
         // ===== REFRESH BUTTON =====
         const refreshBtn = document.getElementById('activity-refresh-btn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.manualRefresh());
+            refreshBtn.addEventListener('click', () => this.loadRecentActivities());
         }
 
         // ===== CLEAR BUTTON =====
@@ -119,15 +129,8 @@ class ActivityWall {
             clearBtn.addEventListener('click', () => this.clearActivities());
         }
 
-        // ===== EXPORT BUTTON =====
-        const exportBtn = document.getElementById('activity-export-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.exportActivities());
-        }
-
         // ===== TIME RANGE BUTTONS =====
-        const timeButtons = document.querySelectorAll('.time-btn');
-        timeButtons.forEach(btn => {
+        document.querySelectorAll('.time-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTimeRangeClick(e));
         });
 
@@ -242,15 +245,29 @@ class ActivityWall {
             customDateRange.style.display = range === 'custom' ? 'block' : 'none';
         }
 
-        this.filters.timeRange = range;
-        this.applyFilters();
+        // If not custom, apply the filter immediately
+        if (range !== 'custom') {
+            this.filters.dateStart = null;
+            this.filters.dateEnd = null;
+            this.filters.timeRange = range;
+            this.applyFilters();
+
+            // Clear custom date inputs
+            const dateStart = document.getElementById('date-start-input');
+            const dateEnd = document.getElementById('date-end-input');
+            if (dateStart) dateStart.value = '';
+            if (dateEnd) dateEnd.value = '';
+        }
     }
 
     applyCustomDateRange() {
         const startInput = document.getElementById('date-start-input');
         const endInput = document.getElementById('date-end-input');
 
-        if (!startInput || !endInput) return;
+        if (!startInput || !endInput) {
+            this.showToast('Грешка: Не намерих полетата за дата', 'error');
+            return;
+        }
 
         const startValue = startInput.value;
         const endValue = endInput.value;
@@ -260,12 +277,31 @@ class ActivityWall {
             return;
         }
 
-        this.filters.dateStart = new Date(startValue);
-        this.filters.dateEnd = new Date(endValue);
+        const startDate = new Date(startValue);
+        const endDate = new Date(endValue);
+
+        // Validation
+        if (startDate >= endDate) {
+            this.showToast('Началната дата трябва да е преди крайната', 'warning');
+            return;
+        }
+
+        const now = new Date();
+        if (startDate > now) {
+            this.showToast('Началната дата не може да е в бъдещето', 'warning');
+            return;
+        }
+
+        // Apply the filter
+        this.filters.dateStart = startDate;
+        this.filters.dateEnd = endDate;
         this.filters.timeRange = 'custom';
 
         this.applyFilters();
-        this.showToast('Персонализиран период приложен', 'success');
+
+        const startStr = startDate.toLocaleDateString('bg-BG');
+        const endStr = endDate.toLocaleDateString('bg-BG');
+        this.showToast(`Период приложен: ${startStr} - ${endStr}`, 'success');
     }
 
     // ===== LIVE STREAM MANAGEMENT =====
@@ -487,8 +523,6 @@ class ActivityWall {
 
     async loadInitialActivities() {
         try {
-            this.showLoading();
-
             const response = await fetch('/admin/api/activities', {
                 headers: { 'X-XSRF-TOKEN': this.getCsrfToken() },
                 signal: AbortSignal.timeout(10000) // 10 second timeout
@@ -503,6 +537,10 @@ class ActivityWall {
             if (data.success && data.activities) {
                 this.activities = data.activities;
                 this.applyFilters();
+
+                // 🚀 ДОБАВЕНО: Инициализираме основната timeline графика
+                this.initializeMainTimeline();
+
                 console.log('✅ Initial activities loaded:', this.activities.length);
             } else {
                 throw new Error(data.message || 'Неуспешно зареждане на активности');
@@ -618,6 +656,7 @@ class ActivityWall {
         this.renderActivities();
         this.updateStats();
         this.updatePaginationUI();
+        this.updateMainTimeline();
 
         // ✅ Уведомяваме други модули за промяната в филтрите
         this.notifyFiltersChanged();
@@ -783,123 +822,8 @@ class ActivityWall {
     }
 
     formatAction(action) {
-        const actionMap = {
-            // ===== ПУБЛИКАЦИИ =====
-            'CREATE_PUBLICATION': 'Създаде публикация',
-            'UPDATE_PUBLICATION': 'Редактира публикация',
-            'DELETE_PUBLICATION': 'Изтри публикация',
-            'VIEW_PUBLICATION': 'Прегледа публикация',
 
-            // ===== ОПРОСТЕН ВИД СЪБИТИЕ =====
-            'CREATE_SIMPLE_EVENT': 'Създаде опростен вид събитие',
-            'UPDATE_SIMPLE_EVENT': 'Редактира опростен вид събитие',
-            'DELETE_SIMPLE_EVENT': 'Изтри опростен вид събитие',
-            'VOTE_SIMPLE_EVENT': 'Гласува в опростен вид събитие',
-            'CHANGE_VOTE_SIMPLE_EVENT': 'Промени гласа в опростен вид събитие',
-            'VIEW_SIMPLE_EVENT': 'Прегледа опростен вид събитие',
-
-            // ===== РЕФЕРЕНДУМИ =====
-            'CREATE_REFERENDUM': 'Създаде референдум',
-            'UPDATE_REFERENDUM': 'Редактира референдум',
-            'DELETE_REFERENDUM': 'Изтри референдум',
-            'VOTE_REFERENDUM': 'Гласува в референдум',
-            'CHANGE_VOTE_REFERENDUM': 'Промени гласа в референдум',
-            'VIEW_REFERENDUM': 'Прегледа референдум',
-
-            // ===== АНКЕТИ С МНОЖЕСТВЕН ИЗБОР =====
-            'CREATE_MULTI_POLL': 'Създаде анкета с множествен избор',
-            'UPDATE_MULTI_POLL': 'Редактира анкета с множествен избор',
-            'DELETE_MULTI_POLL': 'Изтри анкета с множествен избор',
-            'VOTE_MULTI_POLL': 'Гласува в анкета с множествен избор',
-            'CHANGE_VOTE_MULTI_POLL': 'Промени гласа в анкета с множествен избор',
-            'VIEW_MULTI_POLL': 'Прегледа анкета с множествен избор',
-
-            // ===== СИГНАЛИ =====
-            'CREATE_SIGNAL': 'Подаде сигнал',
-            'UPDATE_SIGNAL': 'Редактира сигнал',
-            'DELETE_SIGNAL': 'Изтри сигнал',
-            'VIEW_SIGNAL': 'Прегледа сигнал',
-            'RESOLVE_SIGNAL': 'Реши сигнала',
-            'ASSIGN_SIGNAL': 'Назначи сигнала',
-
-            // ===== КОМЕНТАРИ =====
-            'CREATE_COMMENT': 'Коментира',
-            'UPDATE_COMMENT': 'Редактира коментар',
-            'DELETE_COMMENT': 'Изтри коментар',
-            'REPLY_COMMENT': 'Отговори на коментар',
-
-            // ===== РЕАКЦИИ =====
-            'LIKE_CONTENT': 'Хареса съдържание',
-            'UNLIKE_CONTENT': 'Премахна харесване',
-            'DISLIKE_CONTENT': 'Не хареса съдържание',
-            'REMOVE_DISLIKE': 'Премахна нехаресване',
-
-            // ===== АВТЕНТИКАЦИЯ =====
-            'LOGIN': 'Влезе в системата',
-            'LOGOUT': 'Излезе от системата',
-            'REGISTER': 'Регистрира се',
-            'FAILED_LOGIN': 'Неуспешен опит за вход',
-            'PASSWORD_RESET_REQUEST': 'Заяви смяна на парола',
-            'PASSWORD_RESET_COMPLETE': 'Смени паролата',
-            'EMAIL_VERIFICATION': 'Потвърди имейла',
-            'RESEND_VERIFICATION': 'Изпрати отново потвърждение',
-
-            // ===== ПРОФИЛ =====
-            'UPDATE_PROFILE': 'Обнови профила',
-            'CHANGE_AVATAR': 'Смени снимката',
-            'CHANGE_PASSWORD': 'Смени паролата',
-            'UPDATE_EMAIL': 'Смени имейла',
-            'DEACTIVATE_ACCOUNT': 'Деактивира профила',
-            'REACTIVATE_ACCOUNT': 'Активира профила',
-
-            // ===== ФАЙЛОВЕ =====
-            'UPLOAD_IMAGE': 'Качи снимка',
-            'DELETE_IMAGE': 'Изтри снимка',
-            'UPLOAD_DOCUMENT': 'Качи документ',
-            'DELETE_DOCUMENT': 'Изтри документ',
-
-            // ===== АДМИН ДЕЙСТВИЯ =====
-            'ADMIN_LOGIN': 'Админ вход',
-            'BAN_USER': 'Блокира потребител',
-            'UNBAN_USER': 'Разблокира потребител',
-            'DELETE_USER_CONTENT': 'Изтри съдържание на потребител',
-            'MODERATE_CONTENT': 'Модерира съдържание',
-            'APPROVE_CONTENT': 'Одобри съдържание',
-            'REJECT_CONTENT': 'Отхвърли съдържание',
-            'WARN_USER': 'Предупреди потребител',
-            'PROMOTE_USER': 'Повиши потребител',
-            'DEMOTE_USER': 'Понижи потребител',
-
-            // ===== НАВИГАЦИЯ =====
-            'SEARCH_CONTENT': 'Търси съдържание',
-            'VIEW_HOMEPAGE': 'Посети началната страница',
-            'VIEW_PROFILE': 'Прегледа профил',
-            'VIEW_ADMIN_DASHBOARD': 'Отвори админ панела',
-
-            // ===== СИСТЕМНИ =====
-            'SYSTEM_BACKUP': 'Системно резервно копие',
-            'SYSTEM_MAINTENANCE': 'Системна поддръжка',
-            'DATABASE_CLEANUP': 'Почистване на базата данни',
-            'CACHE_CLEAR': 'Изчистване на кеша',
-            'EMAIL_SENT': 'Изпрати имейл',
-            'EMAIL_FAILED': 'Неуспешен имейл',
-
-            // ===== СИГУРНОСТ =====
-            'SUSPICIOUS_ACTIVITY': 'Подозрителна активност',
-            'BLOCKED_REQUEST': 'Блокирана заявка',
-            'CSRF_ATTACK_BLOCKED': 'Блокирана CSRF атака',
-            'SPAM_DETECTED': 'Открит спам',
-            'BOT_DETECTED': 'Открит бот',
-
-            // ===== ДРУГИ =====
-            'EXPORT_DATA': 'Експорт на данни',
-            'IMPORT_DATA': 'Импорт на данни',
-            'GENERATE_REPORT': 'Генерира отчет',
-            'SCHEDULE_TASK': 'Планира задача',
-            'COMPLETE_TASK': 'Завърши задача'
-        };
-
-        const actionText = actionMap[action] || action;
+        const actionText = window.ActivityWallUtils.translateAction(action);
         const actionType = this.getActionType(action);
 
         return `<span class="action-badge ${actionType}">${actionText}</span>`;
@@ -993,7 +917,7 @@ class ActivityWall {
             dateEnd: null
         };
 
-        // Reset UI
+        // Reset UI inputs
         const userInput = document.getElementById('user-search-input');
         const ipInput = document.getElementById('ip-search-input');
         const actionSelect = document.getElementById('action-filter-select');
@@ -1026,8 +950,9 @@ class ActivityWall {
         const clearButtons = document.querySelectorAll('.clear-filter-btn');
         clearButtons.forEach(btn => btn.style.display = 'none');
 
+        // Apply the reset
         this.applyFilters();
-        this.showToast('Филтрите са нулирани', 'info');
+        this.showToast('Филтрите са нулирани', 'success');
     }
 
     async exportActivities() {
@@ -1113,7 +1038,7 @@ class ActivityWall {
             try {
                 callback('filters_changed', {
                     filteredActivities: this.filteredActivities,
-                    filters: this.filters
+                    allActivities: this.activities // ✅ Подаваме и всички данни
                 });
             } catch (error) {
                 console.error('❌ Error in filter callback:', error);
@@ -1203,6 +1128,38 @@ class ActivityWall {
         if (this.websocket) {
             this.websocket.close();
             this.websocket = null;
+        }
+    }
+
+    // ===== TIMELINE CHART INTEGRATION =====
+
+    async initializeMainTimeline() {
+        // Изчакваме Charts модула да се инициализира
+        let attempts = 0;
+        const maxAttempts = 50; // 5 секунди общо
+
+        while (attempts < maxAttempts) {
+            if (window.ActivityWallCharts && window.ActivityWallCharts.isInitialized) {
+                try {
+                    await window.ActivityWallCharts.createMainTimelineChart(this.filteredActivities);
+                    console.log('✅ Main timeline chart initialized');
+                    return;
+                } catch (error) {
+                    console.error('❌ Error creating main timeline chart:', error);
+                    return;
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
+        console.warn('⚠️ ActivityWallCharts not ready after 5 seconds');
+    }
+
+    updateMainTimeline() {
+        if (window.ActivityWallCharts && window.ActivityWallCharts.isInitialized) {
+            window.ActivityWallCharts.createMainTimelineChart(this.filteredActivities);
         }
     }
 

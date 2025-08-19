@@ -68,6 +68,37 @@
                 </button>
             </div>
 
+            <!-- Actions -->
+            <div class="control-section">
+                <button id="activity-export-btn" class="control-btn control-btn-success" title="Експорт на данните">
+                    <i class="bi bi-download"></i>
+                    <span>Експорт</span>
+                </button>
+
+                <button id="activity-reset-filters-btn" class="control-btn control-btn-outline" title="Нулиране на всички филтри">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>Нулиране</span>
+                </button>
+            </div>
+
+            <!-- ===== CUSTOM DATE RANGE (ПРЕМЕСТЕНА ТУК) ===== -->
+            <div id="custom-date-range" class="custom-date-range" style="display: none;">
+                <div class="date-range-inputs">
+                    <div class="date-input-group">
+                        <label for="date-start-input">📅 От дата и час:</label>
+                        <input type="datetime-local" id="date-start-input" class="date-input" title="Начална дата и час">
+                    </div>
+                    <div class="date-input-group">
+                        <label for="date-end-input">📅 До дата и час:</label>
+                        <input type="datetime-local" id="date-end-input" class="date-input" title="Крайна дата и час">
+                    </div>
+                    <button id="apply-date-range-btn" class="control-btn control-btn-primary" title="Приложи избрания период">
+                        <i class="bi bi-calendar-check"></i>
+                        <span>Приложи период</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Time Range Filters -->
             <div class="control-section">
                 <span class="control-label">Период:</span>
@@ -78,7 +109,7 @@
                     <button class="time-btn" data-range="12h">12ч</button>
                     <button class="time-btn" data-range="24h">24ч</button>
                     <button class="time-btn" data-range="48h">48ч</button>
-                    <button class="time-btn" data-range="custom">Персон.</button>
+                    <button class="time-btn" data-range="custom">📅 Персонализиран</button>
                 </div>
             </div>
 
@@ -97,7 +128,7 @@
                     <div class="filter-input-group">
                         <input type="text" id="ip-search-input" class="filter-input"
                                placeholder="IP адрес..." autocomplete="off" maxlength="45">
-                        <button id="clear-ip-search" class="clear-filter-btn" style="display: none;" title="Изчисти филтъра">
+                        <button id="clear-ip-search" class="clear-filter-btn" style="display: none;" title="Изчисти філтъра">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -163,9 +194,9 @@
                         </optgroup>
 
                         <optgroup label="═══ АВТЕНТИКАЦИЯ ═══">
-                            <option value="LOGIN">Влезе в системата</option>
-                            <option value="LOGOUT">Излезе от системата</option>
-                            <option value="REGISTER">Регистрира се</option>
+                            <option value="USER_LOGIN">Влезе в системата</option>
+                            <option value="USER_LOGOUT">Излезе от системата</option>
+                            <option value="USER_REGISTER">Регистрира се</option>
                             <option value="FAILED_LOGIN">Неуспешен опит за вход</option>
                             <option value="PASSWORD_RESET_REQUEST">Заяви смяна на парола</option>
                             <option value="PASSWORD_RESET_COMPLETE">Смени паролата</option>
@@ -248,37 +279,6 @@
                         <option value="OTHER">📋 Други</option>
                     </select>
                 </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="control-section">
-                <button id="activity-export-btn" class="control-btn control-btn-success" title="Експорт на данните">
-                    <i class="bi bi-download"></i>
-                    <span>Експорт</span>
-                </button>
-
-                <button id="activity-reset-filters-btn" class="control-btn control-btn-outline" title="Нулиране на всички филтри">
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>Нулиране</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- ===== CUSTOM DATE RANGE (скрита по подразбиране) ===== -->
-        <div id="custom-date-range" class="custom-date-range" style="display: none;">
-            <div class="date-range-inputs">
-                <div class="date-input-group">
-                    <label for="date-start-input">От:</label>
-                    <input type="datetime-local" id="date-start-input" class="date-input" title="Начална дата и час">
-                </div>
-                <div class="date-input-group">
-                    <label for="date-end-input">До:</label>
-                    <input type="datetime-local" id="date-end-input" class="date-input" title="Крайна дата и час">
-                </div>
-                <button id="apply-date-range-btn" class="control-btn control-btn-primary" title="Приложи персонализирания период">
-                    <i class="bi bi-check"></i>
-                    <span>Приложи</span>
-                </button>
             </div>
         </div>
 

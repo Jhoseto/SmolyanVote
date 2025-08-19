@@ -118,6 +118,7 @@ window.ActivityWallCharts = {
     setupChartDefaults() {
         if (typeof Chart === 'undefined') return;
 
+        Chart.register(ChartDataLabels);
         Chart.defaults.font.family = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
         Chart.defaults.font.size = 12;
         Chart.defaults.color = '#666';
@@ -244,37 +245,33 @@ window.ActivityWallCharts = {
     // ===== MAIN UPDATE FUNCTION (IMPROVED) =====
 
     async updateAllCharts(filteredActivities) {
-        if (!filteredActivities) {
-            console.warn('⚠️ No filtered activities provided');
-            return;
-        }
-
-        // Ако Chart.js не е зареден, запазваме заявката
-        if (!this.isChartJSLoaded) {
-            console.log('📦 Chart.js not loaded yet, queuing update...');
+        if (!this.isChartJSLoaded || !this.isInitialized) {
             this.pendingUpdates.push(filteredActivities);
             return;
         }
 
-        if (filteredActivities.length === 0) {
-            this.showNoDataMessage();
-            return;
-        }
-
-        console.log('🔄 Updating charts with', filteredActivities.length, 'filtered activities');
-
         try {
-            // Асинхронно обновяване на графиките
+            console.log('🔄 Updating charts with data:', filteredActivities.length, 'filtered activities');
+
+            const container = document.getElementById('activity-charts-container');
+            if (!container || container.style.display === 'none') {
+                return;
+            }
+
+            // ✅ ДОЛНИТЕ графики = ФИЛТРИРАНИ активности
             await Promise.all([
-                this.safeChartUpdate(() => this.createMainTimelineChart(filteredActivities)),
-                this.safeChartUpdate(() => this.createHourlyActivityChart(filteredActivities)),
-                this.safeChartUpdate(() => this.createActionsDistributionChart(filteredActivities)),
-                this.safeChartUpdate(() => this.createUserActivityChart(filteredActivities)),
-                this.safeChartUpdate(() => this.createTimelineChart(filteredActivities)),
-                this.safeChartUpdate(() => this.createActivityHeatmap(filteredActivities))
+                this.createHourlyActivityChart(filteredActivities),
+                this.createActionsDistributionChart(filteredActivities),
+                this.createUserActivityChart(filteredActivities),
+                this.createTimelineChart(filteredActivities),
+                this.createActivityHeatmap(filteredActivities)
             ]);
 
-            console.log('✅ All charts updated successfully');
+            console.log('✅ Charts updated successfully');
+
+            if (window.ActivityWallUtils) {
+                window.ActivityWallUtils.showToast('Графиките са обновени успешно', 'success');
+            }
         } catch (error) {
             console.error('❌ Error updating charts:', error);
             this.showError('Грешка при обновяване на графиките');
@@ -291,7 +288,7 @@ window.ActivityWallCharts = {
 
     // ===== CHART CREATION METHODS (IMPROVED) =====
 
-    createMainTimelineChart(filteredActivities) {
+    createMainTimelineChart(allActivities) {
         return new Promise((resolve) => {
             const ctx = document.getElementById('activity-timeline-chart');
             if (!ctx) {
@@ -299,8 +296,15 @@ window.ActivityWallCharts = {
                 return;
             }
 
-            // Групиране по часове от филтрираните данни
-            const hourlyData = this.groupActivitiesByHour(filteredActivities);
+            // ✅ ЗАЩИТА срещу undefined
+            if (!allActivities || !Array.isArray(allActivities)) {
+                console.warn('⚠️ No activities data for main timeline chart');
+                resolve();
+                return;
+            }
+
+            // Групиране по часове от ВСИЧКИ данни
+            const hourlyData = this.groupActivitiesByHour(allActivities);
 
             this.destroyChart('mainTimeline');
 
@@ -310,7 +314,7 @@ window.ActivityWallCharts = {
                     data: {
                         labels: hourlyData.labels,
                         datasets: [{
-                            label: 'Активности',
+                            label: 'Всички активности',
                             data: hourlyData.data,
                             borderColor: 'rgba(54, 162, 235, 1)',
                             backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -335,7 +339,7 @@ window.ActivityWallCharts = {
                                         return 'Час: ' + tooltipItems[0].label;
                                     },
                                     label: function(context) {
-                                        return 'Активности: ' + context.parsed.y;
+                                        return 'Общо активности: ' + context.parsed.y;
                                     }
                                 }
                             }
@@ -428,23 +432,18 @@ window.ActivityWallCharts = {
             this.destroyChart('actions');
 
             try {
+                // ✅ ПРОСТ ГЕНЕРАТОР НА ЦВЕТОВЕ
+                const colors = this.generateSimpleColors(actionsData.labels.length);
+
                 this.charts.actions = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: actionsData.labels,
                         datasets: [{
                             data: actionsData.data,
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.8)',
-                                'rgba(54, 162, 235, 0.8)',
-                                'rgba(255, 205, 86, 0.8)',
-                                'rgba(75, 192, 192, 0.8)',
-                                'rgba(153, 102, 255, 0.8)',
-                                'rgba(255, 159, 64, 0.8)',
-                                'rgba(199, 199, 199, 0.8)',
-                                'rgba(83, 102, 255, 0.8)'
-                            ],
-                            borderWidth: 2
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
@@ -460,8 +459,25 @@ window.ActivityWallCharts = {
                                         const value = context.parsed;
                                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         const percentage = ((value / total) * 100).toFixed(1);
-                                        return `${label}: ${value} (${percentage}%)`;
+
+                                        // ✅ ПОКАЗВАМЕ ПРОЦЕНТИ В TOOLTIP
+                                        return `${label}: ${value} активности (${percentage}%)`;
                                     }
+                                }
+                            },
+                            // ✅ ПОКАЗВАМЕ ПРОЦЕНТИ ВЪРХУ ГРАФИКАТА
+                            datalabels: {
+                                color: '#fff',
+                                font: {
+                                    weight: 'bold',
+                                    size: 12
+                                },
+                                formatter: function(value, context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+
+                                    // Показваме процент само ако е над 3%
+                                    return percentage > 3 ? percentage + '%' : '';
                                 }
                             }
                         }
@@ -474,6 +490,19 @@ window.ActivityWallCharts = {
                 resolve();
             }
         });
+    },
+
+// ✅ МНОГО ПРОСТ ЦВЕТЕН ГЕНЕРАТОР
+    generateSimpleColors(count) {
+        const colors = [];
+
+        for (let i = 0; i < count; i++) {
+            // Прост алгоритъм: различен hue за всеки цвят
+            const hue = (i * 360 / count) % 360;
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+
+        return colors;
     },
 
     createUserActivityChart(filteredActivities) {
@@ -529,6 +558,7 @@ window.ActivityWallCharts = {
             }
         });
     },
+
 
     createTimelineChart(filteredActivities) {
         return new Promise((resolve) => {
@@ -606,12 +636,20 @@ window.ActivityWallCharts = {
     },
 
     // ===== DATA GROUPING METHODS (OPTIMIZED) =====
-
     groupActivitiesByHour(filteredActivities) {
         const hourCounts = new Array(24).fill(0);
 
+        // ✅ ЗАЩИТА срещу undefined/null
+        if (!filteredActivities || !Array.isArray(filteredActivities)) {
+            console.warn('⚠️ Invalid activities data passed to groupActivitiesByHour');
+            return {
+                labels: Array.from({length: 24}, (_, i) => i + ':00'),
+                data: hourCounts
+            };
+        }
+
         filteredActivities.forEach(activity => {
-            if (activity.timestamp) {
+            if (activity && activity.timestamp) {
                 const hour = new Date(activity.timestamp).getHours();
                 if (hour >= 0 && hour < 24) {
                     hourCounts[hour]++;
@@ -630,13 +668,19 @@ window.ActivityWallCharts = {
 
         filteredActivities.forEach(activity => {
             const action = activity.action || 'Неизвестно';
-            actionCounts[action] = (actionCounts[action] || 0) + 1;
+
+            // ✅ ПРОВЕРКА дали Utils е зареден + fallback
+            let translatedAction = action;
+            if (window.ActivityWallUtils && window.ActivityWallUtils.translateAction) {
+                translatedAction = window.ActivityWallUtils.translateAction(action);
+            }
+
+            actionCounts[translatedAction] = (actionCounts[translatedAction] || 0) + 1;
         });
 
-        // Взимаме само топ 10 за по-четливи графики
+        // ✅ ПОКАЗВАМЕ ВСИЧКИ действия
         const sortedActions = Object.entries(actionCounts)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 10);
+            .sort(([,a], [,b]) => b - a);
 
         return {
             labels: sortedActions.map(([action]) => action),
@@ -818,11 +862,18 @@ window.ActivityWallCharts = {
     // ===== INTEGRATION METHODS =====
 
     async onFiltersChanged(filteredActivities) {
-        console.log('🔄 Charts received filtered data:', filteredActivities.length, 'activities');
 
         const container = document.getElementById('activity-charts-container');
         if (container && container.style.display !== 'none') {
-            await this.updateAllCharts(filteredActivities);
+            // ✅ Обновяваме само долните графики с филтрираните данни
+            // Горната остава с всички данни
+            await Promise.all([
+                this.createHourlyActivityChart(filteredActivities),
+                this.createActionsDistributionChart(filteredActivities),
+                this.createUserActivityChart(filteredActivities),
+                this.createTimelineChart(filteredActivities),
+                this.createActivityHeatmap(filteredActivities)
+            ]);
         }
     },
 

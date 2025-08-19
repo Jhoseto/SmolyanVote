@@ -265,7 +265,35 @@ window.ActivityWallAdvanced = {
     },
 
     async showPerformanceAnalysis() {
-        await this.performAnalysis('performance', 'Анализ на производителността', this.performPerformanceAnalysis.bind(this), this.renderPerformanceAnalysis.bind(this));
+        try {
+            // ✅ Използва ВСИЧКИ активности, не филтрираните
+            const allActivities = this.getActivities(false);
+
+            if (!allActivities.length) {
+                this.showError('Няма активности за анализ');
+                return;
+            }
+
+            // Show loading
+            this.showAnalysisLoading('Анализ на производителността');
+
+            // Винаги прави нов анализ с всички данни (без кеш)
+            console.log(`🔍 Performing performance analysis on ${allActivities.length} total activities...`);
+
+            const analysis = await this.runAnalysisWithTimeout(
+                this.performPerformanceAnalysis.bind(this),
+                allActivities,
+                10000
+            );
+
+            // Render results
+            const renderedContent = this.renderPerformanceAnalysis(analysis);
+            this.displayAnalysis('Анализ на производителността', renderedContent);
+
+        } catch (error) {
+            console.error('❌ Error in performance analysis:', error);
+            this.showError('Грешка при анализ на производителността');
+        }
     },
 
     async performAnalysis(type, title, analysisFunction, renderFunction) {
@@ -704,85 +732,135 @@ window.ActivityWallAdvanced = {
 
     renderPerformanceAnalysis(analysis) {
         return `
-            <div class="analysis-results">
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.totalActivities}</h3>
-                            <p>Общо активности</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.avgLoad}</h3>
-                            <p>Средно на час</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.peakHour}:00</h3>
-                            <p>Пиков час</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3 class="text-${analysis.loadTrend === 'increasing' ? 'danger' : analysis.loadTrend === 'decreasing' ? 'success' : 'info'}">
-                                ${analysis.loadTrend === 'increasing' ? '↗' : analysis.loadTrend === 'decreasing' ? '↘' : '→'}
-                            </h3>
-                            <p>Тенденция на натоварването</p>
-                        </div>
+        <div class="analysis-results">
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Обща натовареност:</strong> Тази графика показва всички активности независимо от зададените филтри
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="analysis-stat">
+                        <h3>${analysis.totalActivities}</h3>
+                        <p>Общо активности</p>
                     </div>
                 </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-bar-chart me-2"></i>Най-чести действия</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Действие</th>
-                                        <th>Брой</th>
-                                        <th>Процент</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${analysis.actionLoad.map(([action, count]) => {
-            const percent = analysis.totalActivities > 0 ? Math.round((count / analysis.totalActivities) * 100) : 0;
-            return `
-                                            <tr>
-                                                <td><code>${this.escapeHtml(action)}</code></td>
-                                                <td><span class="badge bg-primary">${count}</span></td>
-                                                <td>
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar" style="width: ${percent}%">${percent}%</div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        `;
-        }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="col-md-3">
+                    <div class="analysis-stat">
+                        <h3>${analysis.avgLoad}</h3>
+                        <p>Средно на час</p>
                     </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-clock me-2"></i>Натоварване по часове</h6>
-                        <div class="hourly-load-chart">
+                </div>
+                <div class="col-md-3">
+                    <div class="analysis-stat">
+                        <h3>${analysis.peakHour}:00</h3>
+                        <p>Пиков час</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="analysis-stat">
+                        <h3 class="text-${analysis.loadTrend === 'increasing' ? 'danger' : analysis.loadTrend === 'decreasing' ? 'success' : 'info'}">
+                            ${analysis.loadTrend === 'increasing' ? '↗' : analysis.loadTrend === 'decreasing' ? '↘' : '→'}
+                        </h3>
+                        <p>Тенденция</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ✅ НАТОВАРВАНЕ ПО ЧАСОВЕ - СТАТИЧНА ГРАФИКА -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6><i class="bi bi-clock me-2"></i>Обща натовареност по часове (всички събития)</h6>
+                    <div class="hourly-load-chart p-3" style="background: #f8f9fa; border-radius: 8px;">
+                        <div class="d-flex justify-content-between align-items-end" style="height: 200px;">
                             ${analysis.hourlyLoad.map((load, hour) => {
             const maxLoad = Math.max(...analysis.hourlyLoad);
-            const height = maxLoad > 0 ? (load / maxLoad) * 100 : 0;
+            const height = maxLoad > 0 ? Math.max((load / maxLoad) * 180, 2) : 2;
+            const color = load === maxLoad ? '#dc3545' : load > analysis.avgLoad ? '#ffc107' : '#28a745';
+
             return `
-                                    <div class="hour-bar" title="${hour}:00 - ${load} активности">
-                                        <div class="bar" style="height: ${height}%"></div>
-                                        <div class="hour-label">${hour}</div>
+                                    <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                        <div class="mb-1 small text-muted" style="writing-mode: vertical-rl; text-orientation: mixed;">
+                                            ${load}
+                                        </div>
+                                        <div 
+                                            style="
+                                                width: 20px; 
+                                                height: ${height}px; 
+                                                background-color: ${color}; 
+                                                border-radius: 2px;
+                                                transition: all 0.3s ease;
+                                                cursor: pointer;
+                                            "
+                                            title="Час ${hour}:00 - ${load} активности"
+                                            onmouseover="this.style.opacity='0.7'"
+                                            onmouseout="this.style.opacity='1'"
+                                        ></div>
+                                        <div class="mt-1 small text-muted">${hour}</div>
                                     </div>
                                 `;
         }).join('')}
                         </div>
+                        <div class="mt-2 d-flex justify-content-between small text-muted">
+                            <span>🟢 Ниско (< средно)</span>
+                            <span>🟡 Средно (≥ средно)</span>
+                            <span>🔴 Пик (максимум)</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        `;
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-bar-chart me-2"></i>Най-чести действия</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Действие</th>
+                                    <th>Брой</th>
+                                    <th>Процент</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${analysis.actionLoad.slice(0, 8).map(([action, count]) => {
+            const percent = analysis.totalActivities > 0 ? Math.round((count / analysis.totalActivities) * 100) : 0;
+            return `
+                                        <tr>
+                                            <td><code>${this.escapeHtml(action)}</code></td>
+                                            <td><span class="badge bg-primary">${count}</span></td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar" style="width: ${percent}%">${percent}%</div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+        }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-speedometer2 me-2"></i>Performance Insights</h6>
+                    <div class="performance-insights">
+                        <div class="alert alert-info mb-2">
+                            <strong>🕐 Пиков период:</strong> ${analysis.peakHour}:00 с ${Math.max(...analysis.hourlyLoad)} активности
+                        </div>
+                        <div class="alert alert-${analysis.loadTrend === 'increasing' ? 'warning' : 'success'} mb-2">
+                            <strong>📈 Тенденция:</strong> ${analysis.loadTrend === 'increasing' ? 'Нарастваща активност' : analysis.loadTrend === 'decreasing' ? 'Намаляваща активност' : 'Стабилна активност'}
+                        </div>
+                        <div class="alert alert-secondary mb-2">
+                            <strong>⚡ Интензивност:</strong> ${analysis.avgLoad} активности/час средно
+                        </div>
+                        <div class="alert alert-primary mb-0">
+                            <strong>💡 Препоръка:</strong> ${this.getPerformanceRecommendation(analysis)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
     },
 
     // ===== EXPORT METHODS (IMPROVED) =====
@@ -1012,8 +1090,13 @@ window.ActivityWallAdvanced = {
 
     // ===== UTILITY METHODS =====
 
-    getActivities() {
-        return window.activityWallInstance?.filteredActivities || [];
+    getActivities(useFiltered = true) {
+        if (useFiltered) {
+            return window.activityWallInstance?.filteredActivities || [];
+        } else {
+            // Връща ВСИЧКИ активности, независимо от филтрите
+            return window.activityWallInstance?.activities || [];
+        }
     },
 
     displayAnalysis(title, content) {
@@ -1099,6 +1182,19 @@ window.ActivityWallAdvanced = {
         if (highSeverity > 0) return 'high';
         if (mediumSeverity > 2) return 'medium';
         return 'low';
+    },
+
+    getPerformanceRecommendation(analysis) {
+        if (analysis.loadTrend === 'increasing') {
+            return 'Разгледайте scaling опциите заради нарастващата активност';
+        }
+        if (analysis.avgLoad > 100) {
+            return 'Високо натоварване - мониторирайте production производителността';
+        }
+        if (analysis.avgLoad < 10) {
+            return 'Ниска активност - проверете дали системата работи правилно';
+        }
+        return 'Нормално ниво на активност - системата работи стабилно';
     },
 
     calculateLoadTrend(hourlyLoad) {

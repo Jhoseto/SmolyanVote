@@ -90,7 +90,7 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
     private void handleGetRecentActivities(WebSocketSession session, WebSocketMessageDto clientMessage) {
         try {
             // Извличаме limit от клиентското съобщение
-            int limit = 50; // default
+            int limit = 0; // default
             if (clientMessage.getData() instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> data = (Map<String, Object>) clientMessage.getData();

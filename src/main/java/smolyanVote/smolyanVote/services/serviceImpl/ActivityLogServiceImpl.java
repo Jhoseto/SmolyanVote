@@ -141,20 +141,21 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Override
     @Transactional(readOnly = true)
     public List<ActivityLogEntity> getRecentActivities(int limit) {
-        limit = Math.min(Math.max(1, limit), 1000);
-        return activityLogRepository.findTop100ByOrderByTimestampDesc()
-                .stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+        try {
+            return activityLogRepository.findAllByOrderByTimestampDesc();
+        } catch (Exception e) {
+            System.err.println("Error fetching recent activities: " + e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ActivityLogEntity> getActivitiesSinceId(Long lastId) {
         if (lastId == null || lastId <= 0) {
-            return getRecentActivities(50);
+            return getRecentActivities(0);
         }
-        return activityLogRepository.findActivitiesSinceId(lastId);
+        return activityLogRepository.findAllActivitiesSinceId(lastId);
     }
 
     @Override
