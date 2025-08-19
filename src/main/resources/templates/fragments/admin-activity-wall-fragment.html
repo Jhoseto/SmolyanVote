@@ -312,12 +312,6 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="security-tab" data-bs-toggle="tab"
-                            data-bs-target="#security-content" type="button" role="tab">
-                        <i class="bi bi-shield-check"></i> Сигурност
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tools-tab" data-bs-toggle="tab"
                             data-bs-target="#tools-content" type="button" role="tab">
                         <i class="bi bi-tools"></i> Инструменти
@@ -382,7 +376,7 @@
                         <!-- Activity Heatmap -->
                         <div class="chart-card full-width">
                             <div class="chart-header">
-                                <h6><i class="bi bi-grid"></i> "Heatmap" на активностите</h6>
+                                <h6><i class="bi bi-grid"></i> Heatmap на активностите</h6>
                                 <div class="chart-controls">
                                     <button type="button" class="btn btn-sm btn-outline-secondary"
                                             data-chart="heatmap-refresh">
@@ -447,56 +441,6 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Security Tab -->
-                <div class="tab-pane fade" id="security-content" role="tabpanel">
-                    <div class="security-analysis">
-
-                        <div class="analysis-controls">
-                            <h6><i class="bi bi-shield-check"></i> Анализ на сигурността</h6>
-                            <button type="button" class="btn btn-sm btn-warning" id="refresh-security-analysis">
-                                <i class="bi bi-arrow-clockwise"></i> Обнови анализа
-                            </button>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="security-card">
-                                    <h6><i class="bi bi-exclamation-triangle"></i> Сигурност алерти</h6>
-                                    <div id="security-alerts-list">
-                                        <!-- Will be populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="security-card">
-                                    <h6><i class="bi bi-geo-alt"></i> Подозрителни IP адреси</h6>
-                                    <div id="suspicious-ips-list">
-                                        <!-- Will be populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="security-card">
-                                    <h6><i class="bi bi-clock-history"></i> Необичайна активност</h6>
-                                    <div id="unusual-activity-list">
-                                        <!-- Will be populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <div class="security-card">
-                                    <h6>Сигурност статистики</h6>
-                                    <canvas id="security-stats-chart"></canvas>
                                 </div>
                             </div>
                         </div>
