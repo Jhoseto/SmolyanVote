@@ -532,7 +532,7 @@
 }
 
 .vote-menu-container-glass.show {
-    margin-top: 50px; /* Точно под navbar-а */
+    margin-top: 60px; /* Точно под navbar-а */
     max-height: 400px;
     padding: 1.5rem 0;
 }
