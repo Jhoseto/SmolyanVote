@@ -954,8 +954,170 @@ window.ActivityWallCharts = {
         this.pendingUpdates = [];
 
         console.log('✅ Activity Wall Charts destroyed');
+    },
+
+    // ===== PERFORMANCE CHART (ЗА ADVANCED MODULE) =====
+
+    async createPerformanceChart(analysisData) {
+        if (!this.isChartJSLoaded || typeof Chart === 'undefined') {
+            console.warn('⚠️ Chart.js not loaded, cannot create performance chart');
+            return;
+        }
+
+        const ctx = document.getElementById('performance-hourly-chart');
+        if (!ctx) {
+            console.warn('⚠️ Performance chart canvas not found');
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.charts.performance) {
+            this.charts.performance.destroy();
+        }
+
+        try {
+            const hourlyData = analysisData.hourlyLoad || [];
+            const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+
+            const maxValue = Math.max(...hourlyData);
+            const avgValue = analysisData.avgLoad || 0;
+
+            this.charts.performance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Активности',
+                        data: hourlyData,
+                        backgroundColor: hourlyData.map(value => {
+                            if (value === maxValue) return '#dc3545'; // Peak hour - red
+                            if (value > avgValue) return '#ffc107';   // Above average - yellow
+                            return '#28a745';                        // Normal - green
+                        }),
+                        borderColor: '#2c5530',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `Час: ${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const percentage = maxValue > 0 ? Math.round((value / maxValue) * 100) : 0;
+                                    return `${value} активности (${percentage}% от пика)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Час от денонощието',
+                                color: '#495057',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#6c757d',
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Брой активности',
+                                color: '#495057',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: '#f1f3f4',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                color: '#6c757d',
+                                font: {
+                                    size: 11
+                                },
+                                stepSize: Math.max(1, Math.ceil(maxValue / 10))
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 750,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            console.log('✅ Performance chart created successfully');
+
+        } catch (error) {
+            console.error('❌ Error creating performance chart:', error);
+        }
+    },
+
+    // Метод за показване на charts container (ако не е видим)
+    async showCharts(activities) {
+        const container = document.getElementById('activity-charts-container');
+        if (container) {
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+            }
+
+            // Update existing charts with new data
+            await this.updateAllCharts(activities);
+        } else {
+            console.warn('⚠️ Charts container not found');
+        }
+    },
+
+    // Подобрена cleanup за performance chart
+    destroy() {
+        console.log('🧹 Destroying Activity Wall Charts...');
+
+        // Destroy all chart instances
+        Object.keys(this.charts).forEach(key => {
+            if (this.charts[key]) {
+                this.charts[key].destroy();
+                this.charts[key] = null;
+            }
+        });
+
+        // Reset state
+        this.isInitialized = false;
+        this.pendingUpdates = [];
+
+        console.log('✅ Activity Wall Charts destroyed');
     }
 };
+
 
 // ===== CSS STYLES FOR HEATMAP (IMPROVED) =====
 const heatmapStyles = `
@@ -1035,6 +1197,7 @@ const heatmapStyles = `
         transition: all 0.3s ease;
     }
 `;
+
 
 // Add styles if not already added
 if (!document.getElementById('activity-charts-styles')) {

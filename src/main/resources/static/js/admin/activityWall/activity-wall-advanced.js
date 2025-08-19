@@ -735,7 +735,6 @@ window.ActivityWallAdvanced = {
         <div class="analysis-results">
             <div class="alert alert-info mb-3">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>Обща натовареност:</strong> Тази графика показва всички активности независимо от зададените филтри
             </div>
 
             <div class="row mb-4">
@@ -763,49 +762,6 @@ window.ActivityWallAdvanced = {
                             ${analysis.loadTrend === 'increasing' ? '↗' : analysis.loadTrend === 'decreasing' ? '↘' : '→'}
                         </h3>
                         <p>Тенденция</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ✅ НАТОВАРВАНЕ ПО ЧАСОВЕ - СТАТИЧНА ГРАФИКА -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h6><i class="bi bi-clock me-2"></i>Обща натовареност по часове (всички събития)</h6>
-                    <div class="hourly-load-chart p-3" style="background: #f8f9fa; border-radius: 8px;">
-                        <div class="d-flex justify-content-between align-items-end" style="height: 200px;">
-                            ${analysis.hourlyLoad.map((load, hour) => {
-            const maxLoad = Math.max(...analysis.hourlyLoad);
-            const height = maxLoad > 0 ? Math.max((load / maxLoad) * 180, 2) : 2;
-            const color = load === maxLoad ? '#dc3545' : load > analysis.avgLoad ? '#ffc107' : '#28a745';
-
-            return `
-                                    <div class="d-flex flex-column align-items-center" style="flex: 1;">
-                                        <div class="mb-1 small text-muted" style="writing-mode: vertical-rl; text-orientation: mixed;">
-                                            ${load}
-                                        </div>
-                                        <div 
-                                            style="
-                                                width: 20px; 
-                                                height: ${height}px; 
-                                                background-color: ${color}; 
-                                                border-radius: 2px;
-                                                transition: all 0.3s ease;
-                                                cursor: pointer;
-                                            "
-                                            title="Час ${hour}:00 - ${load} активности"
-                                            onmouseover="this.style.opacity='0.7'"
-                                            onmouseout="this.style.opacity='1'"
-                                        ></div>
-                                        <div class="mt-1 small text-muted">${hour}</div>
-                                    </div>
-                                `;
-        }).join('')}
-                        </div>
-                        <div class="mt-2 d-flex justify-content-between small text-muted">
-                            <span>🟢 Ниско (< средно)</span>
-                            <span>🟡 Средно (≥ средно)</span>
-                            <span>🔴 Пик (максимум)</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1309,7 +1265,7 @@ const advancedStyles = `
         text-align: center;
         padding: 1rem;
         background: #f8f9fa;
-        border-radius: 8px;
+        border-radius: 8px;А
         border: 1px solid #dee2e6;
         transition: transform 0.2s ease;
     }
