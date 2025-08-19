@@ -1,460 +1,325 @@
-// ====== ADMIN ACTIVITY WALL - UTILITIES (FIXED) ======
-// Файл: src/main/resources/static/js/admin/activityWall/activity-wall-utils.js
+// ====== ADMIN ACTIVITY WALL - PROFESSIONAL UTILS ======
+// File: src/main/resources/static/js/admin/activityWall/activity-wall-utils.js
 
 window.ActivityWallUtils = {
-
-    // ===== STATE MANAGEMENT =====
     isInitialized: false,
-    performanceData: null,
-    notificationSettings: null,
+    toastContainer: null,
+    performanceMonitor: null,
+    audioContext: null,
+    notificationSettings: {
+        enabled: true,
+        sound: true,
+        position: 'top-end',
+        duration: 4000
+    },
 
-    // ===== BROWSER SUPPORT DETECTION =====
-    browserSupport: {
+    // Browser capability detection
+    capabilities: {
         localStorage: false,
         clipboard: false,
         notifications: false,
-        audioContext: false
+        audioContext: false,
+        webWorkers: false,
+        offlineStorage: false
     },
 
-    // ===== INITIALIZATION =====
-
+    // Initialize utilities
     init() {
         if (this.isInitialized) return;
 
-        this.detectBrowserSupport();
-        this.setupToastContainer();
+        this.detectCapabilities();
+        this.setupToastSystem();
+        this.loadSettings();
+        this.initPerformanceMonitor();
         this.isInitialized = true;
-
-        console.log('✅ Activity Wall Utils: Initialized with browser support:', this.browserSupport);
     },
 
-    detectBrowserSupport() {
+    // Detect browser capabilities
+    detectCapabilities() {
         // localStorage support
         try {
-            const test = '__localStorage_test__';
+            const test = '__storage_test__';
             localStorage.setItem(test, test);
             localStorage.removeItem(test);
-            this.browserSupport.localStorage = true;
+            this.capabilities.localStorage = true;
         } catch (e) {
-            this.browserSupport.localStorage = false;
-            console.warn('⚠️ localStorage not supported');
+            this.capabilities.localStorage = false;
         }
 
         // Clipboard API support
-        this.browserSupport.clipboard = !!navigator.clipboard;
+        this.capabilities.clipboard = !!(navigator.clipboard && navigator.clipboard.writeText);
 
         // Notifications support
-        this.browserSupport.notifications = 'Notification' in window;
+        this.capabilities.notifications = 'Notification' in window;
 
         // AudioContext support
-        this.browserSupport.audioContext = !!(window.AudioContext || window.webkitAudioContext);
+        this.capabilities.audioContext = !!(window.AudioContext || window.webkitAudioContext);
+
+        // Web Workers support
+        this.capabilities.webWorkers = typeof Worker !== 'undefined';
+
+        // IndexedDB support
+        this.capabilities.offlineStorage = 'indexedDB' in window;
     },
 
-    // ===== TOAST NOTIFICATIONS (IMPROVED) =====
+    // Setup toast notification system
+    setupToastSystem() {
+        if (this.toastContainer) return;
 
-    showToast(message, type = 'info', duration = 4000) {
-        if (!message) return null;
-
-        try {
-            const toast = this.createToast(message, type, duration);
-            const container = this.getToastContainer();
-            container.appendChild(toast);
-
-            // Use Bootstrap Toast if available
-            if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
-                const bsToast = new bootstrap.Toast(toast, { delay: duration });
-                bsToast.show();
-
-                toast.addEventListener('hidden.bs.toast', () => {
-                    this.removeToast(toast);
-                });
-
-                return bsToast;
-            } else {
-                // Fallback implementation
-                this.showFallbackToast(toast, duration);
-                return toast;
-            }
-        } catch (error) {
-            console.error('❌ Error showing toast:', error);
-            // Ultimate fallback
-            console.log(`[${type.toUpperCase()}] ${message}`);
-            return null;
-        }
+        this.toastContainer = document.createElement('div');
+        this.toastContainer.className = 'toast-container position-fixed p-3';
+        this.toastContainer.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        `;
+        document.body.appendChild(this.toastContainer);
     },
 
-    createToast(message, type, duration) {
+    // Show professional toast notification
+    showToast(message, type = 'info', duration = null) {
+        if (!this.toastContainer) this.setupToastSystem();
+
+        const toastId = 'toast_' + Date.now();
+        const actualDuration = duration || this.notificationSettings.duration;
+
+        const icons = {
+            success: 'bi-check-circle-fill',
+            error: 'bi-exclamation-triangle-fill',
+            warning: 'bi-exclamation-circle-fill',
+            info: 'bi-info-circle-fill'
+        };
+
+        const colors = {
+            success: 'text-bg-success',
+            error: 'text-bg-danger',
+            warning: 'text-bg-warning',
+            info: 'text-bg-primary'
+        };
+
         const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${this.getBootstrapTypeClass(type)} border-0`;
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'assertive');
-        toast.setAttribute('aria-atomic', 'true');
-
-        const iconClass = this.getToastIcon(type);
+        toast.id = toastId;
+        toast.className = `toast align-items-center ${colors[type]} border-0`;
+        toast.style.cssText = `
+            pointer-events: auto;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        `;
 
         toast.innerHTML = `
             <div class="d-flex">
-                <div class="toast-body">
-                    <i class="bi ${iconClass} me-2"></i>
-                    ${this.escapeHtml(message)}
+                <div class="toast-body d-flex align-items-center">
+                    <i class="bi ${icons[type]} me-2"></i>
+                    <span>${this.escapeHtml(message)}</span>
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" 
-                        data-bs-dismiss="toast" onclick="this.closest('.toast').remove()"></button>
+                        onclick="ActivityWallUtils.hideToast('${toastId}')"></button>
             </div>
         `;
 
-        return toast;
+        this.toastContainer.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
+            requestAnimationFrame(() => {
+                toast.style.transform = 'translateX(0)';
+            });
+        });
+
+        // Auto hide
+        setTimeout(() => this.hideToast(toastId), actualDuration);
+
+        // Play sound notification
+        if (this.notificationSettings.sound && type !== 'info') {
+            this.playNotificationSound(type);
+        }
+
+        return toastId;
     },
 
-    showFallbackToast(toast, duration) {
-        toast.style.display = 'block';
+    // Hide specific toast
+    hideToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (!toast) return;
+
+        toast.style.transition = 'transform 0.2s ease-in, opacity 0.2s ease-in';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.opacity = '0';
 
         setTimeout(() => {
-            this.removeToast(toast);
-        }, duration);
-    },
-
-    removeToast(toast) {
-        if (toast && toast.parentNode) {
-            toast.style.transition = 'opacity 0.3s ease';
-            toast.style.opacity = '0';
-
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 300);
-        }
-    },
-
-    getToastContainer() {
-        let container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            container.style.zIndex = '1080';
-            document.body.appendChild(container);
-        }
-        return container;
-    },
-
-    setupToastContainer() {
-        this.getToastContainer(); // Ensure container exists
-    },
-
-    getBootstrapTypeClass(type) {
-        const typeMap = {
-            'success': 'success',
-            'error': 'danger',
-            'warning': 'warning',
-            'info': 'info'
-        };
-        return typeMap[type] || 'info';
-    },
-
-    getToastIcon(type) {
-        const iconMap = {
-            'success': 'bi-check-circle-fill',
-            'error': 'bi-exclamation-triangle-fill',
-            'warning': 'bi-exclamation-circle-fill',
-            'info': 'bi-info-circle-fill'
-        };
-        return iconMap[type] || 'bi-info-circle-fill';
-    },
-
-    // ===== CLIPBOARD OPERATIONS (IMPROVED) =====
-
-    async copyToClipboard(text) {
-        if (!text) return false;
-
-        try {
-            // Modern Clipboard API
-            if (this.browserSupport.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(text);
-                return true;
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
             }
-
-            // Fallback for older browsers
-            return this.fallbackCopyToClipboard(text);
-
-        } catch (error) {
-            console.error('❌ Clipboard API failed:', error);
-            return this.fallbackCopyToClipboard(text);
-        }
+        }, 200);
     },
 
-    fallbackCopyToClipboard(text) {
+    // Play subtle notification sound
+    playNotificationSound(type) {
+        if (!this.capabilities.audioContext || !this.notificationSettings.sound) return;
+
         try {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            textArea.style.opacity = '0';
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
 
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
 
-            const successful = document.execCommand('copy');
-            document.body.removeChild(textArea);
+            // Different tones for different types
+            const frequencies = {
+                success: 800,
+                error: 400,
+                warning: 600,
+                info: 500
+            };
 
-            return successful;
+            oscillator.frequency.setValueAtTime(frequencies[type] || 500, audioContext.currentTime);
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+
+            setTimeout(() => audioContext.close(), 200);
         } catch (error) {
-            console.error('❌ Fallback copy failed:', error);
-            return false;
+            // Silent fail for audio issues
         }
     },
 
-    async copyActivityDetails(activityId) {
-        if (!window.activityWallInstance) {
-            this.showToast('Activity Wall не е инициализиран', 'error');
+    // Copy to clipboard with feedback
+    async copyToClipboard(text, feedbackMessage = 'Копирано в клипборда') {
+        if (!this.capabilities.clipboard) {
+            this.showToast('Клипбордът не е поддържан от браузъра', 'error');
             return false;
         }
 
-        const activity = window.activityWallInstance.activities.find(a => a.id == activityId);
-        if (!activity) {
-            this.showToast('Активността не е намерена', 'error');
-            return false;
-        }
-
-        const details = this.formatActivityForCopy(activity);
-        const success = await this.copyToClipboard(details);
-
-        if (success) {
-            this.showToast('Детайлите са копирани в клипборда', 'success');
-        } else {
-            this.showToast('Грешка при копирането', 'error');
-        }
-
-        return success;
-    },
-
-    formatActivityForCopy(activity) {
-        const timestamp = new Date(activity.timestamp).toLocaleString('bg-BG');
-
-        return `ACTIVITY DETAILS
-═══════════════════
-ID: ${activity.id}
-Време: ${timestamp}
-Потребител: ${activity.username || 'Анонимен'}
-Действие: ${activity.action}
-Тип съдържание: ${activity.entityType || 'N/A'}
-ID на съдържанието: ${activity.entityId || 'N/A'}
-IP адрес: ${activity.ipAddress || 'N/A'}
-Детайли: ${activity.details || 'Няма детайли'}
-User Agent: ${activity.userAgent || 'N/A'}
-═══════════════════
-Експортирано от SmolyanVote Activity Wall
-${new Date().toLocaleString('bg-BG')}`;
-    },
-
-    // ===== FILE DOWNLOAD (IMPROVED) =====
-
-    downloadAsFile(content, filename, mimeType = 'text/plain') {
         try {
-            const blob = new Blob([content], { type: mimeType });
-            const url = window.URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = this.sanitizeFilename(filename);
-            a.style.display = 'none';
-
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            // Clean up the URL object
-            setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-            }, 100);
-
+            await navigator.clipboard.writeText(text);
+            this.showToast(feedbackMessage, 'success');
             return true;
         } catch (error) {
-            console.error('❌ File download error:', error);
-            this.showToast('Грешка при изтегляне на файла', 'error');
+            console.error('Clipboard copy failed:', error);
+            this.showToast('Грешка при копиране', 'error');
             return false;
         }
     },
 
-    sanitizeFilename(filename) {
-        // Remove invalid characters for filenames
-        return filename.replace(/[<>:"/\\|?*]/g, '_');
-    },
-
-    downloadJSON(data, filename) {
-        try {
-            const jsonString = JSON.stringify(data, null, 2);
-            const sanitizedFilename = filename.endsWith('.json') ? filename : filename + '.json';
-            return this.downloadAsFile(jsonString, sanitizedFilename, 'application/json');
-        } catch (error) {
-            console.error('❌ JSON download error:', error);
-            this.showToast('Грешка при експорт на JSON файла', 'error');
-            return false;
-        }
-    },
-
-    downloadCSV(activities, filename) {
-        try {
-            const headers = ['ID', 'Време', 'Потребител', 'Действие', 'Тип съдържание', 'ID на съдържанието', 'IP адрес', 'Детайли'];
-
-            const csvContent = [
-                headers.join(','),
-                ...activities.map(activity => [
-                    activity.id,
-                    `"${new Date(activity.timestamp).toLocaleString('bg-BG')}"`,
-                    `"${(activity.username || 'Анонимен').replace(/"/g, '""')}"`,
-                    `"${activity.action.replace(/"/g, '""')}"`,
-                    `"${(activity.entityType || 'N/A').replace(/"/g, '""')}"`,
-                    activity.entityId || 'N/A',
-                    `"${(activity.ipAddress || 'N/A').replace(/"/g, '""')}"`,
-                    `"${(activity.details || 'Няма детайли').replace(/"/g, '""')}"`
-                ].join(','))
-            ].join('\n');
-
-            const sanitizedFilename = filename.endsWith('.csv') ? filename : filename + '.csv';
-            return this.downloadAsFile('\uFEFF' + csvContent, sanitizedFilename, 'text/csv;charset=utf-8');
-        } catch (error) {
-            console.error('❌ CSV download error:', error);
-            this.showToast('Грешка при експорт на CSV файла', 'error');
-            return false;
-        }
-    },
-
-    // ===== HTML UTILITIES =====
-
-    escapeHtml(unsafe) {
-        if (typeof unsafe !== 'string') return String(unsafe);
-
-        const div = document.createElement('div');
-        div.textContent = unsafe;
-        return div.innerHTML;
-    },
-
-    createElement(tag, className = '', content = '') {
-        const element = document.createElement(tag);
-        if (className) element.className = className;
-        if (content) element.innerHTML = content;
-        return element;
-    },
-
-    // ===== TIME UTILITIES =====
-
-    timeAgo(date) {
-        try {
-            const now = new Date();
-            const inputDate = new Date(date);
-            const diffInSeconds = Math.floor((now - inputDate) / 1000);
-
-            if (diffInSeconds < 60) return 'преди малко';
-            if (diffInSeconds < 3600) return `преди ${Math.floor(diffInSeconds / 60)} мин`;
-            if (diffInSeconds < 86400) return `преди ${Math.floor(diffInSeconds / 3600)} ч`;
-            if (diffInSeconds < 2592000) return `преди ${Math.floor(diffInSeconds / 86400)} дни`;
-
-            return inputDate.toLocaleDateString('bg-BG');
-        } catch (error) {
-            console.error('❌ Error in timeAgo:', error);
-            return 'неизвестно';
-        }
-    },
-
-    formatDateTime(timestamp) {
-        try {
-            const date = new Date(timestamp);
-            return date.toLocaleString('bg-BG', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        } catch (error) {
-            console.error('❌ Error formatting date:', error);
-            return 'Невалидна дата';
-        }
-    },
-
-    getTimeRangeDate(range) {
-        const now = new Date();
-
-        switch (range) {
-            case '1h':
-                return new Date(now - 60 * 60 * 1000);
-            case '5h':
-                return new Date(now - 5 * 60 * 60 * 1000);
-            case '12h':
-                return new Date(now - 12 * 60 * 60 * 1000);
-            case '24h':
-                return new Date(now - 24 * 60 * 60 * 1000);
-            case '48h':
-                return new Date(now - 48 * 60 * 60 * 1000);
+    // Format data for export
+    formatDataForExport(activities, format = 'csv') {
+        switch (format.toLowerCase()) {
+            case 'csv':
+                return this.formatAsCSV(activities);
+            case 'json':
+                return this.formatAsJSON(activities);
+            case 'excel':
+                return this.formatAsExcel(activities);
             default:
-                return null;
+                return this.formatAsCSV(activities);
         }
     },
 
-    // ===== VALIDATION UTILITIES =====
+    // Format as CSV
+    formatAsCSV(activities) {
+        const headers = [
+            'ID', 'Време', 'Потребител', 'Действие', 'Тип обект',
+            'Детайли', 'IP адрес', 'User Agent'
+        ];
 
-    isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+        const rows = activities.map(activity => [
+            activity.id,
+            new Date(activity.timestamp).toLocaleString('bg-BG'),
+            activity.username || 'Система',
+            this.translateAction(activity.action),
+            activity.entityType || '',
+            this.cleanForCSV(activity.details || ''),
+            activity.ipAddress || '',
+            this.cleanForCSV(activity.userAgent || '')
+        ]);
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(field => this.escapeCSVField(field)).join(','))
+            .join('\n');
+
+        return csvContent;
     },
 
-    isValidIP(ip) {
-        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-        return ipv4Regex.test(ip);
+    // Format as JSON
+    formatAsJSON(activities) {
+        return JSON.stringify(activities.map(activity => ({
+            id: activity.id,
+            timestamp: activity.timestamp,
+            username: activity.username,
+            action: activity.action,
+            actionTranslated: this.translateAction(activity.action),
+            entityType: activity.entityType,
+            entityId: activity.entityId,
+            details: activity.details,
+            ipAddress: activity.ipAddress,
+            userAgent: activity.userAgent
+        })), null, 2);
     },
 
-    // ===== ARRAY UTILITIES =====
+    // Download data as file
+    downloadData(data, filename, mimeType = 'text/csv') {
+        const blob = new Blob([data], { type: mimeType + ';charset=utf-8;' });
+        const link = document.createElement('a');
 
-    groupBy(array, key) {
-        if (!Array.isArray(array)) return {};
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    },
 
-        return array.reduce((groups, item) => {
-            const group = item[key];
-            if (!groups[group]) {
-                groups[group] = [];
+    // Performance monitoring
+    initPerformanceMonitor() {
+        if (!performance || !performance.now) return;
+
+        this.performanceMonitor = {
+            startTime: performance.now(),
+            metrics: {
+                memoryUsage: 0,
+                renderTime: 0,
+                apiCalls: 0,
+                errors: 0
             }
-            groups[group].push(item);
-            return groups;
-        }, {});
-    },
-
-    sortBy(array, key, direction = 'asc') {
-        if (!Array.isArray(array)) return [];
-
-        return array.slice().sort((a, b) => {
-            let aVal = a[key];
-            let bVal = b[key];
-
-            if (typeof aVal === 'string') {
-                aVal = aVal.toLowerCase();
-                bVal = bVal.toLowerCase();
-            }
-
-            if (direction === 'desc') {
-                return bVal > aVal ? 1 : -1;
-            }
-            return aVal > bVal ? 1 : -1;
-        });
-    },
-
-    // ===== EVENT UTILITIES =====
-
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
         };
+
+        // Monitor memory usage if available
+        if (performance.memory) {
+            setInterval(() => {
+                this.performanceMonitor.metrics.memoryUsage = performance.memory.usedJSHeapSize;
+            }, 10000);
+        }
     },
 
+    // Measure operation performance
+    measurePerformance(operation, callback) {
+        if (!this.performanceMonitor) return callback();
+
+        const startTime = performance.now();
+        const result = callback();
+        const endTime = performance.now();
+
+        this.performanceMonitor.metrics.renderTime = endTime - startTime;
+
+        return result;
+    },
+
+    // Throttle function calls
     throttle(func, limit) {
         let inThrottle;
         return function() {
@@ -468,517 +333,261 @@ ${new Date().toLocaleString('bg-BG')}`;
         };
     },
 
-    // ===== DOM UTILITIES =====
-
-    addSpinnerToButton(button) {
-        if (!button) return null;
-
-        const originalContent = button.innerHTML;
-        const originalDisabled = button.disabled;
-
-        button.innerHTML = `
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            Зареждане...
-        `;
-        button.disabled = true;
-
-        return () => {
-            button.innerHTML = originalContent;
-            button.disabled = originalDisabled;
+    // Debounce function calls
+    debounce(func, delay) {
+        let timeoutId;
+        return function() {
+            const args = arguments;
+            const context = this;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(context, args), delay);
         };
     },
 
-    removeSpinnerFromButton(button, originalContent) {
-        if (!button) return;
-        button.innerHTML = originalContent;
-        button.disabled = false;
+    // Format file size
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     },
 
-    // ===== STATISTICS UTILITIES =====
+    // Format date/time
+    formatDateTime(date, format = 'full') {
+        const d = new Date(date);
 
-    calculatePercentage(value, total) {
-        if (total === 0) return 0;
-        return Math.round((value / total) * 100 * 100) / 100;
-    },
-
-    getTopItems(items, key, limit = 5) {
-        if (!Array.isArray(items)) return [];
-
-        const grouped = this.groupBy(items, key);
-        const counts = Object.entries(grouped).map(([name, items]) => ({
-            name,
-            count: items.length
-        }));
-
-        return this.sortBy(counts, 'count', 'desc').slice(0, limit);
-    },
-
-    // ===== FILTER PERSISTENCE (SAFE) =====
-
-    saveFilterState(filters) {
-        if (!this.browserSupport.localStorage) {
-            console.warn('⚠️ localStorage not supported, cannot save filter state');
-            return false;
-        }
-
-        try {
-            const filterState = {
-                ...filters,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('activityWall_filters', JSON.stringify(filterState));
-            return true;
-        } catch (error) {
-            console.error('❌ Failed to save filter state:', error);
-            return false;
+        switch (format) {
+            case 'date':
+                return d.toLocaleDateString('bg-BG');
+            case 'time':
+                return d.toLocaleTimeString('bg-BG');
+            case 'short':
+                return d.toLocaleDateString('bg-BG') + ' ' + d.toLocaleTimeString('bg-BG', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            case 'relative':
+                return this.getRelativeTime(d);
+            default:
+                return d.toLocaleString('bg-BG');
         }
     },
 
-    loadFilterState() {
-        if (!this.browserSupport.localStorage) {
-            return null;
-        }
+    // Get relative time (e.g., "2 минути назад")
+    getRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
 
-        try {
-            const saved = localStorage.getItem('activityWall_filters');
-            if (!saved) return null;
+        if (diffSeconds < 60) return 'Току-що';
+        if (diffMinutes < 60) return `${diffMinutes} минути назад`;
+        if (diffHours < 24) return `${diffHours} часа назад`;
+        if (diffDays < 7) return `${diffDays} дни назад`;
 
-            const filterState = JSON.parse(saved);
-
-            // Check if saved state is not too old (max 24 hours)
-            const maxAge = 24 * 60 * 60 * 1000;
-            if (Date.now() - filterState.timestamp > maxAge) {
-                this.clearFilterState();
-                return null;
-            }
-
-            delete filterState.timestamp;
-            return filterState;
-        } catch (error) {
-            console.error('❌ Failed to load filter state:', error);
-            return null;
-        }
+        return date.toLocaleDateString('bg-BG');
     },
 
-    clearFilterState() {
-        if (!this.browserSupport.localStorage) return;
-
-        try {
-            localStorage.removeItem('activityWall_filters');
-        } catch (error) {
-            console.error('❌ Failed to clear filter state:', error);
-        }
+    // Validate data
+    validateActivityData(activity) {
+        const required = ['id', 'timestamp', 'action'];
+        return required.every(field => activity.hasOwnProperty(field) && activity[field] !== null);
     },
 
-    // ===== PERFORMANCE MONITORING (OPTIMIZED) =====
+    // Generate activity summary
+    generateActivitySummary(activities) {
+        const totalActivities = activities.length;
+        const uniqueUsers = new Set(activities.map(a => a.username).filter(Boolean)).size;
+        const uniqueIPs = new Set(activities.map(a => a.ipAddress).filter(Boolean)).size;
 
-    startPerformanceMonitoring() {
-        if (!this.browserSupport.audioContext) {
-            console.warn('⚠️ Performance monitoring limited due to browser support');
-        }
-
-        this.performanceData = {
-            apiCalls: [],
-            websocketMetrics: {
-                connectTime: null,
-                messageCount: 0,
-                errors: 0,
-                lastPing: null
-            },
-            memoryUsage: [],
-            renderTimes: []
-        };
-
-        // Monitor memory usage every 60 seconds (reduced frequency)
-        this.performanceInterval = setInterval(() => {
-            this.collectMemoryMetrics();
-        }, 60000);
-
-        console.log('✅ Performance monitoring started');
-    },
-
-    collectMemoryMetrics() {
-        if (!performance.memory) return;
-
-        try {
-            this.performanceData.memoryUsage.push({
-                timestamp: Date.now(),
-                used: performance.memory.usedJSHeapSize,
-                total: performance.memory.totalJSHeapSize,
-                limit: performance.memory.jsHeapSizeLimit
-            });
-
-            // Keep only last 50 measurements (reduced)
-            if (this.performanceData.memoryUsage.length > 50) {
-                this.performanceData.memoryUsage.shift();
-            }
-
-            this.checkMemoryUsage();
-        } catch (error) {
-            console.error('❌ Error collecting memory metrics:', error);
-        }
-    },
-
-    trackAPICall(url, startTime, endTime, success) {
-        if (!this.performanceData) return;
-
-        const duration = endTime - startTime;
-
-        this.performanceData.apiCalls.push({
-            url,
-            duration,
-            success,
-            timestamp: startTime
+        const actionCounts = {};
+        activities.forEach(activity => {
+            actionCounts[activity.action] = (actionCounts[activity.action] || 0) + 1;
         });
 
-        // Keep only last 20 API calls (reduced)
-        if (this.performanceData.apiCalls.length > 20) {
-            this.performanceData.apiCalls.shift();
-        }
+        const topAction = Object.entries(actionCounts)
+            .sort(([,a], [,b]) => b - a)[0];
 
-        // Alert on slow API calls (increased threshold)
-        if (duration > 10000) { // 10 seconds
-            this.showToast(`Бавна API заявка: ${url} (${Math.round(duration)}ms)`, 'warning');
-        }
+        const timeRange = activities.length > 0 ? {
+            earliest: new Date(Math.min(...activities.map(a => new Date(a.timestamp)))),
+            latest: new Date(Math.max(...activities.map(a => new Date(a.timestamp))))
+        } : null;
 
-        return duration;
-    },
-
-    checkMemoryUsage() {
-        const latest = this.performanceData.memoryUsage.slice(-3);
-        if (latest.length < 3) return;
-
-        const growth = latest[2].used - latest[0].used;
-        const growthPercent = (growth / latest[0].used) * 100;
-
-        // Alert if memory usage increased by more than 75% in last 3 measurements
-        if (growthPercent > 75) {
-            this.showToast('Засечено възможно изтичане на памет', 'warning');
-        }
-    },
-
-    // ===== SMART NOTIFICATIONS (IMPROVED) =====
-
-    setupSmartNotifications() {
-        this.notificationSettings = {
-            enabled: true,
-            sound: this.browserSupport.audioContext,
-            browser: this.browserSupport.notifications,
-            patterns: {
-                security: true,
-                performance: true,
-                errors: true
-            }
+        return {
+            totalActivities,
+            uniqueUsers,
+            uniqueIPs,
+            topAction: topAction ? {
+                action: topAction[0],
+                count: topAction[1],
+                translated: this.translateAction(topAction[0])
+            } : null,
+            timeRange,
+            generatedAt: new Date()
         };
-
-        // Request browser notification permission if supported
-        if (this.browserSupport.notifications && Notification.permission === 'default') {
-            Notification.requestPermission().then(permission => {
-                this.notificationSettings.browser = permission === 'granted';
-                console.log('🔔 Notification permission:', permission);
-            });
-        }
-
-        console.log('✅ Smart notifications setup completed');
     },
 
-    checkForCriticalEvents(newActivity) {
-        if (!this.notificationSettings || !this.notificationSettings.enabled) return;
-
-        const criticalActions = [
-            'ADMIN_LOGIN',
-            'BAN_USER',
-            'DELETE_USER_CONTENT',
-            'SUSPICIOUS_ACTIVITY',
-            'CSRF_ATTACK_BLOCKED',
-            'SYSTEM_MAINTENANCE'
-        ];
-
-        if (criticalActions.includes(newActivity.action)) {
-            this.sendCriticalNotification(newActivity);
-        }
-    },
-
-    sendCriticalNotification(activity) {
-        const message = `Критично действие: ${this.formatActivityForNotification(activity)}`;
-
-        // Toast notification
-        this.showToast(message, 'error', 8000);
-
-        // Sound notification (if supported and enabled)
-        if (this.notificationSettings.sound && this.browserSupport.audioContext) {
-            this.playNotificationSound();
-        }
-
-        // Browser notification (if supported and permitted)
-        if (this.notificationSettings.browser && Notification.permission === 'granted') {
-            try {
-                new Notification('SmolyanVote Admin Alert', {
-                    body: message,
-                    icon: '/images/logo1.png',
-                    tag: 'critical-activity',
-                    requireInteraction: true
-                });
-            } catch (error) {
-                console.error('❌ Browser notification error:', error);
-            }
-        }
-    },
-
-    formatActivityForNotification(activity) {
-        return `${activity.username || 'Анонимен'} - ${activity.action}`;
-    },
-
-    playNotificationSound(type = 'critical') {
-        if (!this.browserSupport.audioContext) return;
+    // Settings management
+    loadSettings() {
+        if (!this.capabilities.localStorage) return;
 
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioContext = new AudioContext();
-
-            const frequency = type === 'critical' ? 800 : 600;
-            const duration = type === 'critical' ? 200 : 150;
-
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            oscillator.type = 'square';
-
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration / 1000);
-
-            // Clean up
-            setTimeout(() => {
-                audioContext.close();
-            }, duration + 100);
+            const saved = localStorage.getItem('activityWall_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                this.notificationSettings = { ...this.notificationSettings, ...settings };
+            }
         } catch (error) {
-            console.error('❌ Failed to play notification sound:', error);
+            // Silent fail for settings load
         }
     },
 
-    // ===== CLEANUP =====
+    saveSettings() {
+        if (!this.capabilities.localStorage) return;
 
+        try {
+            localStorage.setItem('activityWall_settings', JSON.stringify(this.notificationSettings));
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+        }
+    },
+
+    updateSettings(newSettings) {
+        this.notificationSettings = { ...this.notificationSettings, ...newSettings };
+        this.saveSettings();
+    },
+
+    // Utility helper functions
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    escapeCSVField(field) {
+        const str = String(field);
+        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    },
+
+    cleanForCSV(text) {
+        return String(text)
+            .replace(/[\r\n]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    translateAction(action) {
+        const translations = {
+            'CREATE_PUBLICATION': 'Създаване на публикация',
+            'CREATE_EVENT': 'Създаване на събитие',
+            'CREATE_REFERENDUM': 'Създаване на референдум',
+            'CREATE_MULTI_POLL': 'Създаване на анкета',
+            'CREATE_SIGNAL': 'Създаване на сигнал',
+            'CREATE_COMMENT': 'Създаване на коментар',
+            'LOGIN': 'Вход в системата',
+            'LOGOUT': 'Изход от системата',
+            'REGISTER': 'Регистрация',
+            'UPDATE_PROFILE': 'Актуализиране на профил',
+            'VOTE_REFERENDUM': 'Гласуване в референдум',
+            'VOTE_MULTI_POLL': 'Гласуване в анкета',
+            'VOTE_SIMPLEEVENT': 'Гласуване в проста анкета',
+            'LIKE_PUBLICATION': 'Харесване на публикация',
+            'UNLIKE_PUBLICATION': 'Махане на харесване',
+            'VIEW_PUBLICATION': 'Преглед на публикация',
+            'VIEW_EVENT': 'Преглед на събитие',
+            'VIEW_REFERENDUM': 'Преглед на референдум',
+            'VIEW_SIGNAL': 'Преглед на сигнал',
+            'VIEW_PROFILE': 'Преглед на профил',
+            'SEARCH_CONTENT': 'Търсене в съдържанието',
+            'FILTER_CONTENT': 'Филтриране на съдържание',
+            'EDIT_PUBLICATION': 'Редактиране на публикация',
+            'EDIT_EVENT': 'Редактиране на събитие',
+            'EDIT_REFERENDUM': 'Редактиране на референдум',
+            'EDIT_MULTI_POLL': 'Редактиране на анкета',
+            'EDIT_SIGNAL': 'Редактиране на сигнал',
+            'EDIT_COMMENT': 'Редактиране на коментар',
+            'EDIT_PROFILE': 'Редактиране на профил',
+            'DELETE_PUBLICATION': 'Изтриване на публикация',
+            'DELETE_EVENT': 'Изтриване на събитие',
+            'DELETE_REFERENDUM': 'Изтриване на референдум',
+            'DELETE_COMMENT': 'Изтриване на коментар',
+            'DELETE_SIGNAL': 'Изтриване на сигнал',
+            'ADMIN_REVIEW_REPORT': 'Преглед на доклад (админ)',
+            'ADMIN_DELETE_CONTENT': 'Изтриване на съдържание (админ)',
+            'ADMIN_BAN_USER': 'Блокиране на потребител',
+            'ADMIN_UNBAN_USER': 'Отблокиране на потребител',
+            'ADMIN_PROMOTE_USER': 'Повишаване на потребител',
+            'ADMIN_DEMOTE_USER': 'Понижаване на потребител',
+            'CONTACT_MESSAGE': 'Съобщение до контакт',
+            'UPDATE_NOTIFICATIONS': 'Актуализиране на нотификации',
+            'UPDATE_PRIVACY': 'Актуализиране на поверителност',
+            'EXPORT_DATA': 'Експортиране на данни',
+            'DELETE_ACCOUNT': 'Изтриване на акаунт',
+            'SYSTEM_BACKUP': 'Системен backup',
+            'SYSTEM_MAINTENANCE': 'Системна поддръжка',
+            'API_ACCESS': 'API достъп'
+        };
+        return translations[action] || action.replace(/_/g, ' ');
+    },
+
+    // Performance helpers
+    isHighPerformanceDevice() {
+        return navigator.hardwareConcurrency >= 4 &&
+            (performance.memory ? performance.memory.jsHeapSizeLimit > 1000000000 : true);
+    },
+
+    // Get system information
+    getSystemInfo() {
+        return {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            cookieEnabled: navigator.cookieEnabled,
+            onlineStatus: navigator.onLine,
+            screenResolution: `${screen.width}x${screen.height}`,
+            colorDepth: screen.colorDepth,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            capabilities: this.capabilities,
+            performance: this.performanceMonitor?.metrics
+        };
+    },
+
+    // Cleanup resources
     destroy() {
-        console.log('🧹 Destroying Activity Wall Utils...');
-
-        // Clear performance monitoring
-        if (this.performanceInterval) {
-            clearInterval(this.performanceInterval);
-            this.performanceInterval = null;
+        if (this.toastContainer && this.toastContainer.parentNode) {
+            this.toastContainer.parentNode.removeChild(this.toastContainer);
         }
 
-        // Clear data
-        this.performanceData = null;
-        this.notificationSettings = null;
+        if (this.audioContext) {
+            this.audioContext.close();
+        }
 
-        // Reset state
+        this.performanceMonitor = null;
         this.isInitialized = false;
-
-        console.log('✅ Activity Wall Utils destroyed');
     }
 };
 
-// ===== INTEGRATION WITH ACTIVITY WALL =====
-
-// Safe copy activity details button handler
-document.addEventListener('click', function(e) {
-    if (e.target.id === 'copy-activity-details') {
-        e.preventDefault();
-        const modal = e.target.closest('.modal');
-        if (modal) {
-            const activityId = document.getElementById('modal-activity-id')?.textContent;
-            if (activityId) {
-                window.ActivityWallUtils.copyActivityDetails(activityId);
-            }
-        }
-    }
-});
-
-// Global toast function for backward compatibility
-if (!window.showToast) {
-    window.showToast = function(message, type = 'info') {
-        if (window.ActivityWallUtils && window.ActivityWallUtils.showToast) {
-            window.ActivityWallUtils.showToast(message, type);
-        } else {
-            console.log(`[${type.toUpperCase()}] ${message}`);
-        }
-    };
-}
-
-// ===== SAFE AUTO-START =====
+// Auto initialization
 document.addEventListener('DOMContentLoaded', function() {
-    try {
-        window.ActivityWallUtils.init();
-
-        if (document.getElementById('activity-wall')) {
-            window.ActivityWallUtils.startPerformanceMonitoring();
-            window.ActivityWallUtils.setupSmartNotifications();
-
-            // Add required CSS for new features
-            const style = document.createElement('style');
-            style.id = 'activity-wall-utils-styles';
-            style.textContent = `
-                .activity-highlight {
-                    background: rgba(255, 235, 59, 0.6) !important;
-                    font-weight: bold !important;
-                    border-radius: 3px;
-                    padding: 1px 3px;
-                }
-                
-                .search-match {
-                    background: rgba(76, 175, 80, 0.1) !important;
-                    border-left: 3px solid #4CAF50 !important;
-                }
-                
-                .search-no-match {
-                    opacity: 0.5;
-                }
-                
-                .pattern-alert {
-                    background: rgba(244, 67, 54, 0.1) !important;
-                    border-left: 3px solid #f44336 !important;
-                    animation: patternAlertPulse 2s infinite;
-                }
-                
-                @keyframes patternAlertPulse {
-                    0% { background: rgba(244, 67, 54, 0.1); }
-                    50% { background: rgba(244, 67, 54, 0.2); }
-                    100% { background: rgba(244, 67, 54, 0.1); }
-                }
-                
-                .performance-warning {
-                    border-left: 3px solid #ff9800 !important;
-                    background: rgba(255, 152, 0, 0.1) !important;
-                }
-                
-                .critical-notification {
-                    animation: criticalAlert 1s ease-in-out 3;
-                }
-                
-                @keyframes criticalAlert {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); }
-                }
-                
-                .toast-container {
-                    z-index: 9999 !important;
-                }
-            `;
-
-            if (!document.getElementById('activity-wall-utils-styles')) {
-                document.head.appendChild(style);
-            }
-        }
-    } catch (error) {
-        console.error('❌ Failed to initialize Activity Wall Utils:', error);
-    }
+    window.ActivityWallUtils.init();
 });
 
-// ===== ACTION TRANSLATIONS (SHARED) =====
-window.ActivityWallUtils.actionTranslations = {
-    // ===== АВТЕНТИКАЦИЯ =====
-    'USER_LOGIN': 'Влезе в системата',
-    'USER_LOGOUT': 'Излезе от системата',
-    'USER_REGISTER': 'Регистрира се',
-    'USER_PASSWORD_CHANGE': 'Смени паролата',
-    'USER_EMAIL_VERIFY': 'Потвърди имейла',
-    'USER_PASSWORD_RESET': 'Нулира паролата',
-
-    // ===== СЪЗДАВАНЕ =====
-    'CREATE_PUBLICATION': 'Създаде публикация',
-    'CREATE_SIMPLE_EVENT': 'Създаде събитие',
-    'CREATE_REFERENDUM': 'Създаде референдум',
-    'CREATE_MULTI_POLL': 'Създаде анкета',
-    'CREATE_COMMENT': 'Коментира',
-    'CREATE_SIGNAL': 'Подаде сигнал',
-
-    // ===== ВЗАИМОДЕЙСТВИЯ =====
-    'LIKE_PUBLICATION': 'Хареса публикация',
-    'DISLIKE_PUBLICATION': 'Не хареса публикация',
-    'LIKE_COMMENT': 'Хареса коментар',
-    'DISLIKE_COMMENT': 'Не хареса коментар',
-    'VOTE_SIMPLE_EVENT': 'Гласува в събитие',
-    'VOTE_REFERENDUM': 'Гласува в референдум',
-    'VOTE_MULTI_POLL': 'Гласува в анкета',
-    'SHARE_PUBLICATION': 'Сподели публикация',
-    'BOOKMARK_CONTENT': 'Добави в отметки',
-    'FOLLOW_USER': 'Последва потребител',
-    'UNFOLLOW_USER': 'Спря да следва потребител',
-
-    // ===== ПРЕГЛЕЖДАНЕ =====
-    'VIEW_PUBLICATION': 'Прегледа публикация',
-    'VIEW_EVENT': 'Прегледа събитие',
-    'VIEW_REFERENDUM': 'Прегледа референдум',
-    'VIEW_MULTI_POLL': 'Прегледа анкета',
-    'VIEW_SIGNAL': 'Прегледа сигнал',
-    'VIEW_PROFILE': 'Прегледа профил',
-    'SEARCH_CONTENT': 'Търси съдържание',
-    'FILTER_CONTENT': 'Филтрира съдържание',
-
-    // ===== РЕДАКТИРАНЕ =====
-    'EDIT_PUBLICATION': 'Редактира публикация',
-    'EDIT_EVENT': 'Редактира събитие',
-    'EDIT_REFERENDUM': 'Редактира референдум',
-    'EDIT_MULTI_POLL': 'Редактира анкета',
-    'EDIT_SIGNAL': 'Редактира сигнал',
-    'EDIT_COMMENT': 'Редактира коментар',
-    'EDIT_PROFILE': 'Редактира профил',
-
-    // ===== ИЗТРИВАНЕ =====
-    'DELETE_PUBLICATION': 'Изтри публикация',
-    'DELETE_EVENT': 'Изтри събитие',
-    'DELETE_REFERENDUM': 'Изтри референдум',
-    'DELETE_COMMENT': 'Изтри коментар',
-    'DELETE_SIGNAL': 'Изтри сигнал',
-
-    // ===== ДОКЛАДВАНЕ =====
-    'REPORT_PUBLICATION': 'Докладва публикация',
-    'REPORT_EVENT': 'Докладва събитие',
-    'REPORT_REFERENDUM': 'Докладва референдум',
-    'REPORT_COMMENT': 'Докладва коментар',
-    'REPORT_USER': 'Докладва потребител',
-
-    // ===== АДМИНИСТРАЦИЯ =====
-    'ADMIN_REVIEW_REPORT': 'Прегледа доклад',
-    'ADMIN_DELETE_CONTENT': 'Изтри съдържание (админ)',
-    'ADMIN_BAN_USER': 'Блокира потребител',
-    'ADMIN_UNBAN_USER': 'Отблокира потребител',
-    'ADMIN_PROMOTE_USER': 'Повиши потребител',
-    'ADMIN_DEMOTE_USER': 'Понижи потребител',
-    'CONTACT_MESSAGE': 'Съобщение до контакт',
-
-    // ===== НАСТРОЙКИ =====
-    'UPDATE_NOTIFICATIONS': 'Актуализира нотификации',
-    'UPDATE_PRIVACY': 'Актуализира поверителност',
-    'EXPORT_DATA': 'Експортира данни',
-    'DELETE_ACCOUNT': 'Изтриване на акаунт',
-
-    // ===== СИСТЕМА =====
-    'SYSTEM_BACKUP': 'Системен backup',
-    'SYSTEM_MAINTENANCE': 'Системна поддръжка',
-    'API_ACCESS': 'API достъп'
-};
-
-// ===== HELPER METHOD =====
-window.ActivityWallUtils.translateAction = function(action) {
-    return this.actionTranslations[action] || action;
-};
-
-
-// Cleanup on page unload
+// Global cleanup
 window.addEventListener('beforeunload', function() {
     if (window.ActivityWallUtils) {
         window.ActivityWallUtils.destroy();
     }
 });
 
-// Export for global access
-window.ActivityWallUtils = window.ActivityWallUtils;
+// Export for global access and backwards compatibility
+window.showToast = function(message, type = 'info') {
+    return window.ActivityWallUtils.showToast(message, type);
+};
