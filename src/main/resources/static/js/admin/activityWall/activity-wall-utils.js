@@ -284,6 +284,10 @@ window.ActivityWallUtils = {
         }
     },
 
+    formatAsExcel(activities) {
+        return this.formatAsCSV(activities); // Excel reads CSV format
+    },
+
     // Performance monitoring
     initPerformanceMonitor() {
         if (!performance || !performance.now) return;
@@ -357,7 +361,18 @@ window.ActivityWallUtils = {
 
     // Format date/time
     formatDateTime(date, format = 'full') {
-        const d = new Date(date);
+        // Parse Java LocalDateTime array or regular date
+        const d = Array.isArray(date)
+            ? new Date(
+                date[0],                               // year
+                date[1] - 1,                          // month (Java 1-12 -> JS 0-11)
+                date[2],                              // day
+                date[3] || 0,                         // hour
+                date[4] || 0,                         // minute
+                date[5] || 0,                         // second
+                Math.floor((date[6] || 0) / 1000000)  // nano to milliseconds
+            )
+            : new Date(date);
 
         switch (format) {
             case 'date':

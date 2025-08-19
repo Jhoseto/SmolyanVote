@@ -626,6 +626,23 @@ window.ActivityWallCharts = {
         const labels = [];
         const data = [];
 
+        // Helper function за правилно парсиране на timestamp
+        const parseTimestamp = (timestamp) => {
+            if (Array.isArray(timestamp)) {
+                // Java LocalDateTime array: [year, month, day, hour, minute, second, nano]
+                return new Date(
+                    timestamp[0],           // year
+                    timestamp[1] - 1,       // month (Java месеците са 1-12, JS са 0-11)
+                    timestamp[2],           // day
+                    timestamp[3] || 0,      // hour
+                    timestamp[4] || 0,      // minute
+                    timestamp[5] || 0,      // second
+                    Math.floor((timestamp[6] || 0) / 1000000) // nano to milliseconds
+                );
+            }
+            return new Date(timestamp);
+        };
+
         for (let i = hours - 1; i >= 0; i--) {
             const hour = new Date(now - i * 60 * 60 * 1000);
             const hourStart = new Date(hour);
@@ -633,11 +650,29 @@ window.ActivityWallCharts = {
             const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
 
             const count = activities.filter(activity => {
-                const activityTime = new Date(activity.timestamp);
+                const activityTime = parseTimestamp(activity.timestamp);
                 return activityTime >= hourStart && activityTime < hourEnd;
             }).length;
 
-            labels.push(hour.getHours().toString().padStart(2, '0'));
+            // Генериране на labels
+            const isToday = hour.toDateString() === now.toDateString();
+            const isYesterday = hour.toDateString() === new Date(now - 24*60*60*1000).toDateString();
+
+            if (hours <= 12) {
+                // Къси периоди - само час
+                labels.push(hour.getHours().toString().padStart(2, '0') + 'ч');
+            } else if (isToday) {
+                // Днес
+                labels.push('Днес ' + hour.getHours().toString().padStart(2, '0') + 'ч');
+            } else if (isYesterday) {
+                // Вчера
+                labels.push('Вчера ' + hour.getHours().toString().padStart(2, '0') + 'ч');
+            } else {
+                // Други дни - дата + час
+                labels.push(hour.toLocaleDateString('bg-BG', {day: '2-digit', month: '2-digit'}) +
+                    ' ' + hour.getHours().toString().padStart(2, '0') + 'ч');
+            }
+
             data.push(count);
         }
 

@@ -163,6 +163,7 @@ class ActivityWall {
         this.renderActivitiesTable();
         this.updateStatusBar();
         this.notifyFiltersChanged();
+        this.updateMainTimeline();
     }
 
     // Check if activity passes time filter
@@ -783,7 +784,7 @@ class ActivityWall {
     // Update main timeline chart
     updateMainTimeline() {
         if (window.ActivityWallCharts && window.ActivityWallCharts.updateMainTimeline) {
-            window.ActivityWallCharts.updateMainTimeline(this.activities);
+            window.ActivityWallCharts.updateMainTimeline(this.filteredActivities);
         }
     }
 
