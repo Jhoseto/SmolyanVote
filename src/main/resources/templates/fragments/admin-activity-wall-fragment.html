@@ -1,4 +1,4 @@
-<!-- Fragment: admin-activity-wall-fragment.html (FIXED) -->
+<!-- Fragment: admin-activity-wall-fragment.html -->
 <!-- Път: src/main/resources/templates/fragments/admin-activity-wall-fragment.html -->
 
 <div th:fragment="activityWall" class="monitoring-section">
@@ -9,466 +9,675 @@
 
     <div class="collapsible-content" id="activity-wall">
 
-        <!-- ===== CONNECTION STATUS INDICATOR ===== -->
-        <div class="connection-status-bar mb-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="connection-info">
-                    <span class="connection-label">Състояние на връзката:</span>
-                    <span class="connection-status" id="connection-status">
-                        <i class="bi bi-circle-fill text-secondary"></i>
-                        <span>Инициализиране...</span>
-                    </span>
-                </div>
-                <div class="system-info">
-                    <small class="text-muted" id="system-info">
-                        Зареждане на системна информация...
-                    </small>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== TIMELINE VISUALIZATION ===== -->
-        <div class="activity-timeline-section">
+        <!-- ===== 1. MAIN TIMELINE CHART (TOP) ===== -->
+        <div class="main-timeline-section">
             <div class="timeline-header">
-                <h4><i class="bi bi-graph-up"></i> Активност по часове</h4>
-                <div class="timeline-period" id="timeline-period">Последните 24 часа</div>
+                <h4><i class="bi bi-graph-up-arrow"></i> Активност по часове</h4>
+                <div class="timeline-period" id="main-timeline-period">Последните 24 часа</div>
             </div>
-            <div class="timeline-chart-container">
-                <canvas id="activity-timeline-chart" width="800" height="200"></canvas>
-                <div class="timeline-fallback" id="timeline-fallback" style="display: none;">
+            <div class="main-timeline-container">
+                <canvas id="main-activity-timeline-chart" width="100%" height="200"></canvas>
+                <div class="timeline-fallback" id="main-timeline-fallback" style="display: none;">
                     <div class="text-center text-muted p-4">
                         <i class="bi bi-graph-up" style="font-size: 2rem;"></i>
-                        <p class="mt-2">Графиката ще се покаже когато Chart.js се зареди</p>
+                        <p class="mt-2">Графиката ще се покаже когато се заредят данните</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== CONTROL PANEL ===== -->
+        <!-- ===== 2. CONTROL PANEL WITH FILTERS ===== -->
         <div class="activity-control-panel">
-            <!-- Live Status & Quick Actions -->
-            <div class="control-section">
+
+            <!-- Connection Status -->
+            <div class="connection-status-section">
+                <div class="connection-status-indicator" id="connection-status">
+                    <i class="bi bi-circle-fill text-secondary"></i>
+                    <span>Инициализиране...</span>
+                </div>
+                <div class="system-info" id="system-info">
+                    <small class="text-muted">Зареждане...</small>
+                </div>
+            </div>
+
+            <!-- Live Controls -->
+            <div class="live-controls-section">
                 <div class="live-status-indicator" id="live-status-indicator">
                     <div class="live-dot"></div>
                     <span class="live-text">Live</span>
                 </div>
 
-                <button id="activity-toggle-btn" class="control-btn control-btn-primary">
-                    <i class="bi bi-pause-fill"></i>
-                    <span>Пауза</span>
-                </button>
-
-                <button id="activity-refresh-btn" class="control-btn control-btn-secondary" title="Ръчно обновяване">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-
-                <button id="activity-clear-btn" class="control-btn control-btn-danger" title="Изчисти всички активности">
-                    <i class="bi bi-trash"></i>
-                    <span>Изчисти</span>
-                </button>
-            </div>
-
-            <!-- Actions -->
-            <div class="control-section">
-                <button id="activity-export-btn" class="control-btn control-btn-success" title="Експорт на данните">
-                    <i class="bi bi-download"></i>
-                    <span>Експорт</span>
-                </button>
-
-                <button id="activity-reset-filters-btn" class="control-btn control-btn-outline" title="Нулиране на всички филтри">
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>Нулиране</span>
-                </button>
-            </div>
-
-            <!-- ===== CUSTOM DATE RANGE (ПРЕМЕСТЕНА ТУК) ===== -->
-            <div id="custom-date-range" class="custom-date-range" style="display: none;">
-                <div class="date-range-inputs">
-                    <div class="date-input-group">
-                        <label for="date-start-input">📅 От дата и час:</label>
-                        <input type="datetime-local" id="date-start-input" class="date-input" title="Начална дата и час">
-                    </div>
-                    <div class="date-input-group">
-                        <label for="date-end-input">📅 До дата и час:</label>
-                        <input type="datetime-local" id="date-end-input" class="date-input" title="Крайна дата и час">
-                    </div>
-                    <button id="apply-date-range-btn" class="control-btn control-btn-primary" title="Приложи избрания период">
-                        <i class="bi bi-calendar-check"></i>
-                        <span>Приложи период</span>
+                <div class="control-buttons">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="live-toggle-btn">
+                        <i class="bi bi-pause-fill"></i>
+                        <span>Пауза</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="activity-refresh-btn">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span>Refresh</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Time Range Filters -->
-            <div class="control-section">
-                <span class="control-label">Период:</span>
-                <div class="time-range-buttons">
-                    <button class="time-btn active" data-range="all">Всички</button>
-                    <button class="time-btn" data-range="1h">1ч</button>
-                    <button class="time-btn" data-range="5h">5ч</button>
-                    <button class="time-btn" data-range="12h">12ч</button>
-                    <button class="time-btn" data-range="24h">24ч</button>
-                    <button class="time-btn" data-range="48h">48ч</button>
-                    <button class="time-btn" data-range="custom">📅 Персонализиран</button>
+            <!-- Filters Row 1: Time and Basic Filters -->
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label class="filter-label">Период:</label>
+                    <select class="form-select form-select-sm" id="time-range-filter">
+                        <option value="all">Всички</option>
+                        <option value="1h">Последен 1 час</option>
+                        <option value="2h">Последни 2 часа</option>
+                        <option value="6h">Последни 6 часа</option>
+                        <option value="12h">Последни 12 часа</option>
+                        <option value="24h">Последни 24 часа</option>
+                        <option value="48h">Последни 48 часа</option>
+                        <option value="72h">Последни 72 часа</option>
+                        <option value="custom">Персонализиран период</option>
+                    </select>
                 </div>
-            </div>
 
-            <!-- Search Filters -->
-            <div class="control-section">
-                <span class="control-label">Филтри:</span>
-                <div class="search-filters">
-                    <div class="filter-input-group">
-                        <input type="text" id="user-search-input" class="filter-input"
-                               placeholder="Потребител..." autocomplete="off" maxlength="100">
-                        <button id="clear-user-search" class="clear-filter-btn" style="display: none;" title="Изчисти филтъра">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-
-                    <div class="filter-input-group">
-                        <input type="text" id="ip-search-input" class="filter-input"
-                               placeholder="IP адрес..." autocomplete="off" maxlength="45">
-                        <button id="clear-ip-search" class="clear-filter-btn" style="display: none;" title="Изчисти філтъра">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-
-                    <select id="action-filter-select" class="filter-select" title="Филтриране по действие">
+                <div class="filter-group">
+                    <label class="filter-label">Действие:</label>
+                    <select class="form-select form-select-sm" id="action-filter">
                         <option value="">Всички действия</option>
-
-                        <optgroup label="═══ ПУБЛИКАЦИИ ═══">
-                            <option value="CREATE_PUBLICATION">Създаде публикация</option>
-                            <option value="UPDATE_PUBLICATION">Редактира публикация</option>
-                            <option value="DELETE_PUBLICATION">Изтри публикация</option>
-                            <option value="VIEW_PUBLICATION">Прегледа публикация</option>
-                        </optgroup>
-
-                        <optgroup label="═══ ОПРОСТЕН ВИД СЪБИТИЕ ═══">
-                            <option value="CREATE_SIMPLE_EVENT">Създаде опростен вид събитие</option>
-                            <option value="UPDATE_SIMPLE_EVENT">Редактира опростен вид събитие</option>
-                            <option value="DELETE_SIMPLE_EVENT">Изтри опростен вид събитие</option>
-                            <option value="VOTE_SIMPLE_EVENT">Гласува в опростен вид събитие</option>
-                            <option value="CHANGE_VOTE_SIMPLE_EVENT">Промени гласа в опростен вид събитие</option>
-                            <option value="VIEW_SIMPLE_EVENT">Прегледа опростен вид събитие</option>
-                        </optgroup>
-
-                        <optgroup label="═══ РЕФЕРЕНДУМИ ═══">
-                            <option value="CREATE_REFERENDUM">Създаде референдум</option>
-                            <option value="UPDATE_REFERENDUM">Редактира референдум</option>
-                            <option value="DELETE_REFERENDUM">Изтри референдум</option>
-                            <option value="VOTE_REFERENDUM">Гласува в референдум</option>
-                            <option value="CHANGE_VOTE_REFERENDUM">Промени гласа в референдум</option>
-                            <option value="VIEW_REFERENDUM">Прегледа референдум</option>
-                        </optgroup>
-
-                        <optgroup label="═══ АНКЕТИ С МНОЖЕСТВЕН ИЗБОР ═══">
-                            <option value="CREATE_MULTI_POLL">Създаде анкета с множествен избор</option>
-                            <option value="UPDATE_MULTI_POLL">Редактира анкета с множествен избор</option>
-                            <option value="DELETE_MULTI_POLL">Изтри анкета с множествен избор</option>
-                            <option value="VOTE_MULTI_POLL">Гласува в анкета с множествен избор</option>
-                            <option value="CHANGE_VOTE_MULTI_POLL">Промени гласа в анкета с множествен избор</option>
-                            <option value="VIEW_MULTI_POLL">Прегледа анкета с множествен избор</option>
-                        </optgroup>
-
-                        <optgroup label="═══ СИГНАЛИ ═══">
-                            <option value="CREATE_SIGNAL">Подаде сигнал</option>
-                            <option value="UPDATE_SIGNAL">Редактира сигнал</option>
-                            <option value="DELETE_SIGNAL">Изтри сигнал</option>
-                            <option value="VIEW_SIGNAL">Прегледа сигнал</option>
-                            <option value="RESOLVE_SIGNAL">Реши сигнала</option>
-                            <option value="ASSIGN_SIGNAL">Назначи сигнала</option>
-                        </optgroup>
-
-                        <optgroup label="═══ КОМЕНТАРИ ═══">
-                            <option value="CREATE_COMMENT">Коментира</option>
-                            <option value="UPDATE_COMMENT">Редактира коментар</option>
-                            <option value="DELETE_COMMENT">Изтри коментар</option>
-                            <option value="REPLY_COMMENT">Отговори на коментар</option>
-                        </optgroup>
-
-                        <optgroup label="═══ РЕАКЦИИ ═══">
-                            <option value="LIKE_CONTENT">Хареса съдържание</option>
-                            <option value="UNLIKE_CONTENT">Премахна харесване</option>
-                            <option value="DISLIKE_CONTENT">Не хареса съдържание</option>
-                            <option value="REMOVE_DISLIKE">Премахна нехаресване</option>
-                        </optgroup>
-
-                        <optgroup label="═══ АВТЕНТИКАЦИЯ ═══">
-                            <option value="USER_LOGIN">Влезе в системата</option>
-                            <option value="USER_LOGOUT">Излезе от системата</option>
-                            <option value="USER_REGISTER">Регистрира се</option>
-                            <option value="FAILED_LOGIN">Неуспешен опит за вход</option>
-                            <option value="PASSWORD_RESET_REQUEST">Заяви смяна на парола</option>
-                            <option value="PASSWORD_RESET_COMPLETE">Смени паролата</option>
-                            <option value="EMAIL_VERIFICATION">Потвърди имейла</option>
-                            <option value="RESEND_VERIFICATION">Изпрати отново потвърждение</option>
-                        </optgroup>
-
-                        <optgroup label="═══ ПРОФИЛ ═══">
-                            <option value="UPDATE_PROFILE">Обнови профила</option>
-                            <option value="CHANGE_AVATAR">Смени снимката</option>
-                            <option value="CHANGE_PASSWORD">Смени паролата</option>
-                            <option value="UPDATE_EMAIL">Смени имейла</option>
-                            <option value="DEACTIVATE_ACCOUNT">Деактивира профила</option>
-                            <option value="REACTIVATE_ACCOUNT">Активира профила</option>
-                        </optgroup>
-
-                        <optgroup label="═══ ФАЙЛОВЕ ═══">
-                            <option value="UPLOAD_IMAGE">Качи снимка</option>
-                            <option value="DELETE_IMAGE">Изтри снимка</option>
-                            <option value="UPLOAD_DOCUMENT">Качи документ</option>
-                            <option value="DELETE_DOCUMENT">Изтри документ</option>
-                        </optgroup>
-
-                        <optgroup label="═══ АДМИН ДЕЙСТВИЯ ═══">
-                            <option value="ADMIN_LOGIN">Админ вход</option>
-                            <option value="BAN_USER">Блокира потребител</option>
-                            <option value="UNBAN_USER">Разблокира потребител</option>
-                            <option value="DELETE_USER_CONTENT">Изтри съдържание на потребител</option>
-                            <option value="MODERATE_CONTENT">Модерира съдържание</option>
-                            <option value="APPROVE_CONTENT">Одобри съдържание</option>
-                            <option value="REJECT_CONTENT">Отхвърли съдържание</option>
-                            <option value="WARN_USER">Предупреди потребител</option>
-                            <option value="PROMOTE_USER">Повиши потребител</option>
-                            <option value="DEMOTE_USER">Понижи потребител</option>
-                        </optgroup>
-
-                        <optgroup label="═══ НАВИГАЦИЯ ═══">
-                            <option value="SEARCH_CONTENT">Търси съдържание</option>
-                            <option value="VIEW_HOMEPAGE">Посети началната страница</option>
-                            <option value="VIEW_PROFILE">Прегледа профил</option>
-                            <option value="VIEW_ADMIN_DASHBOARD">Отвори админ панела</option>
-                        </optgroup>
-
-                        <optgroup label="═══ СИСТЕМНИ ═══">
-                            <option value="SYSTEM_BACKUP">Системно резервно копие</option>
-                            <option value="SYSTEM_MAINTENANCE">Системна поддръжка</option>
-                            <option value="DATABASE_CLEANUP">Почистване на базата данни</option>
-                            <option value="CACHE_CLEAR">Изчистване на кеша</option>
-                            <option value="EMAIL_SENT">Изпрати имейл</option>
-                            <option value="EMAIL_FAILED">Неуспешен имейл</option>
-                        </optgroup>
-
-                        <optgroup label="═══ СИГУРНОСТ ═══">
-                            <option value="SUSPICIOUS_ACTIVITY">Подозрителна активност</option>
-                            <option value="BLOCKED_REQUEST">Блокирана заявка</option>
-                            <option value="CSRF_ATTACK_BLOCKED">Блокирана CSRF атака</option>
-                            <option value="SPAM_DETECTED">Открит спам</option>
-                            <option value="BOT_DETECTED">Открит бот</option>
-                        </optgroup>
-
-                        <optgroup label="═══ ДРУГИ ═══">
-                            <option value="EXPORT_DATA">Експорт на данни</option>
-                            <option value="IMPORT_DATA">Импорт на данни</option>
-                            <option value="GENERATE_REPORT">Генерира отчет</option>
-                            <option value="SCHEDULE_TASK">Планира задача</option>
-                            <option value="COMPLETE_TASK">Завърши задача</option>
-                        </optgroup>
+                        <option value="CREATE_PUBLICATION">Създаване на публикация</option>
+                        <option value="CREATE_EVENT">Създаване на събитие</option>
+                        <option value="CREATE_REFERENDUM">Създаване на референдум</option>
+                        <option value="CREATE_MULTI_POLL">Създаване на анкета</option>
+                        <option value="CREATE_SIGNAL">Създаване на сигнал</option>
+                        <option value="CREATE_COMMENT">Създаване на коментар</option>
+                        <option value="LOGIN">Вход в системата</option>
+                        <option value="LOGOUT">Изход от системата</option>
+                        <option value="REGISTER">Регистрация</option>
+                        <option value="UPDATE_PROFILE">Актуализиране на профил</option>
+                        <option value="VOTE_REFERENDUM">Гласуване в референдум</option>
+                        <option value="VOTE_MULTI_POLL">Гласуване в анкета</option>
+                        <option value="VOTE_SIMPLEEVENT">Гласуване в проста анкета</option>
+                        <option value="LIKE_PUBLICATION">Харесване на публикация</option>
+                        <option value="UNLIKE_PUBLICATION">Махане на харесване</option>
+                        <option value="VIEW_PUBLICATION">Преглед на публикация</option>
+                        <option value="VIEW_EVENT">Преглед на събитие</option>
+                        <option value="VIEW_REFERENDUM">Преглед на референдум</option>
+                        <option value="VIEW_SIGNAL">Преглед на сигнал</option>
+                        <option value="VIEW_PROFILE">Преглед на профил</option>
+                        <option value="SEARCH_CONTENT">Търсене в съдържанието</option>
+                        <option value="FILTER_CONTENT">Филтриране на съдържание</option>
+                        <option value="EDIT_PUBLICATION">Редактиране на публикация</option>
+                        <option value="EDIT_EVENT">Редактиране на събитие</option>
+                        <option value="EDIT_REFERENDUM">Редактиране на референдум</option>
+                        <option value="EDIT_MULTI_POLL">Редактиране на анкета</option>
+                        <option value="EDIT_SIGNAL">Редактиране на сигнал</option>
+                        <option value="EDIT_COMMENT">Редактиране на коментар</option>
+                        <option value="EDIT_PROFILE">Редактиране на профил</option>
+                        <option value="DELETE_PUBLICATION">Изтриване на публикация</option>
+                        <option value="DELETE_EVENT">Изтриване на събитие</option>
+                        <option value="DELETE_REFERENDUM">Изтриване на референдум</option>
+                        <option value="DELETE_COMMENT">Изтриване на коментар</option>
+                        <option value="DELETE_SIGNAL">Изтриване на сигнал</option>
+                        <option value="ADMIN_REVIEW_REPORT">Преглед на доклад (админ)</option>
+                        <option value="ADMIN_DELETE_CONTENT">Изтриване на съдържание (админ)</option>
+                        <option value="ADMIN_BAN_USER">Блокиране на потребител</option>
+                        <option value="ADMIN_UNBAN_USER">Отблокиране на потребител</option>
+                        <option value="ADMIN_PROMOTE_USER">Повишаване на потребител</option>
+                        <option value="ADMIN_DEMOTE_USER">Понижаване на потребител</option>
+                        <option value="CONTACT_MESSAGE">Съобщение до контакт</option>
+                        <option value="UPDATE_NOTIFICATIONS">Актуализиране на нотификации</option>
+                        <option value="UPDATE_PRIVACY">Актуализиране на поверителност</option>
+                        <option value="EXPORT_DATA">Експортиране на данни</option>
+                        <option value="DELETE_ACCOUNT">Изтриване на акаунт</option>
+                        <option value="SYSTEM_BACKUP">Системен backup</option>
+                        <option value="SYSTEM_MAINTENANCE">Системна поддръжка</option>
+                        <option value="API_ACCESS">API достъп</option>
                     </select>
+                </div>
 
-                    <select id="entity-filter-select" class="filter-select" title="Филтриране по тип съдържание">
-                        <option value="">Всички типове съдържание</option>
-                        <option value="PUBLICATION">📄 Публикации</option>
-                        <option value="SIMPLEEVENT">🎪 Опростен вид събитие</option>
-                        <option value="REFERENDUM">🗳️ Референдуми</option>
-                        <option value="MULTI_POLL">📊 Анкети с множествен избор</option>
-                        <option value="SIGNAL">🚨 Граждански сигнали</option>
-                        <option value="COMMENT">💬 Коментари</option>
-                        <option value="USER">👤 Потребители</option>
-                        <option value="SYSTEM">⚙️ Системни</option>
-                        <option value="OTHER">📋 Други</option>
+                <div class="filter-group">
+                    <label class="filter-label">Тип обект:</label>
+                    <select class="form-select form-select-sm" id="entity-type-filter">
+                        <option value="">Всички типове</option>
+                        <option value="PUBLICATION">Публикация</option>
+                        <option value="EVENT">Събитие</option>
+                        <option value="REFERENDUM">Референдум</option>
+                        <option value="MULTI_POLL">Анкета</option>
+                        <option value="SIGNAL">Сигнал</option>
+                        <option value="COMMENT">Коментар</option>
+                        <option value="USER">Потребител</option>
+                        <option value="REPORT">Доклад</option>
+                        <option value="SYSTEM">Система</option>
                     </select>
                 </div>
             </div>
-        </div>
 
-        <!-- ===== STATISTICS CARDS ===== -->
-        <div class="activity-stats-grid">
-            <div class="stats-card">
-                <div class="stats-icon">
-                    <i class="bi bi-list-ul"></i>
+            <!-- Filters Row 2: Search Fields -->
+            <div class="filters-row">
+                <div class="filter-group flex-fill">
+                    <label class="filter-label">Потребител:</label>
+                    <input type="text" class="form-control form-control-sm" id="user-filter"
+                           placeholder="Търси по потребителско име...">
                 </div>
-                <div class="stats-content">
-                    <div class="stats-number" id="total-activities-count">0</div>
-                    <div class="stats-label">Общо активности</div>
+
+                <div class="filter-group flex-fill">
+                    <label class="filter-label">IP адрес:</label>
+                    <input type="text" class="form-control form-control-sm" id="ip-filter"
+                           placeholder="Търси по IP адрес...">
+                </div>
+
+                <div class="filter-group">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="clear-filters-btn">
+                        <i class="bi bi-x-circle"></i>
+                        <span>Изчисти филтри</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="stats-card">
-                <div class="stats-icon">
-                    <i class="bi bi-funnel"></i>
-                </div>
-                <div class="stats-content">
-                    <div class="stats-number" id="filtered-activities-count">0</div>
-                    <div class="stats-label">Филтрирани</div>
-                </div>
-            </div>
-
-            <div class="stats-card">
-                <div class="stats-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-                <div class="stats-content">
-                    <div class="stats-number" id="active-users-count">0</div>
-                    <div class="stats-label">Активни потребители</div>
-                </div>
-            </div>
-
-            <div class="stats-card">
-                <div class="stats-icon">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <div class="stats-content">
-                    <div class="stats-number" id="last-update-time">--</div>
-                    <div class="stats-label">Последно обновяване</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== ACTIVITY STREAM ===== -->
-        <div class="activity-stream-section">
-            <div class="stream-header">
-                <h4><i class="bi bi-stream"></i> Activity Stream</h4>
-                <div class="stream-controls">
-                    <div class="pagination-info">
-                        <span id="pagination-info">Показване 1-20 от 0</span>
+            <!-- Custom Date Range (Hidden by default) -->
+            <div class="custom-date-range" id="custom-date-range" style="display: none;">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label">От дата:</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="date-start-filter">
                     </div>
-                    <div class="pagination-controls">
-                        <button id="prev-page-btn" class="pagination-btn" disabled title="Предишна страница">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <span id="page-info">Страница 1 от 1</span>
-                        <button id="next-page-btn" class="pagination-btn" disabled title="Следваща страница">
-                            <i class="bi bi-chevron-right"></i>
+                    <div class="filter-group">
+                        <label class="filter-label">До дата:</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="date-end-filter">
+                    </div>
+                    <div class="filter-group">
+                        <button type="button" class="btn btn-sm btn-primary" id="apply-custom-date-btn">
+                            <i class="bi bi-check2"></i>
+                            <span>Приложи</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="activity-table-container">
-                <table class="activity-table" id="activity-table">
+        </div>
+
+        <!-- ===== 3. STATUS BAR ===== -->
+        <div class="activity-status-bar">
+            <div class="status-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-activities-count">0</div>
+                    <div class="stat-label">Общо активности</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="filtered-activities-count">0</div>
+                    <div class="stat-label">Филтрирани активности</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="unique-users-count">0</div>
+                    <div class="stat-label">Уникални потребители</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="active-users-count">0</div>
+                    <div class="stat-label">Активни потребители</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avg-per-hour-count">0</div>
+                    <div class="stat-label">Средно на час</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="security-alerts-count">0</div>
+                    <div class="stat-label">Сигурност алерти</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="last-update-time">--:--:--</div>
+                    <div class="stat-label">Последно обновяване</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 4. ACTIVITIES TABLE ===== -->
+        <div class="activities-table-section">
+            <div class="table-header">
+                <h5><i class="bi bi-list"></i> Логове на активностите</h5>
+                <div class="table-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-btn">
+                        <i class="bi bi-check-all"></i>
+                        <span>Избери всички</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="export-selected-btn" disabled>
+                        <i class="bi bi-download"></i>
+                        <span>Експорт избрани</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover activity-table" id="activities-table">
                     <thead>
                     <tr>
-                        <th class="col-time">Време</th>
-                        <th class="col-user">Потребител</th>
-                        <th class="col-action">Действие</th>
-                        <th class="col-entity">Съдържание</th>
-                        <th class="col-ip">IP адрес</th>
-                        <th class="col-actions">Действия</th>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" id="select-all-checkbox">
+                        </th>
+                        <th class="sortable" data-column="timestamp" style="width: 140px;">
+                            <i class="bi bi-clock"></i> Време
+                            <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="username" style="width: 120px;">
+                            <i class="bi bi-person"></i> Потребител
+                            <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="action" style="width: 150px;">
+                            <i class="bi bi-gear"></i> Действие
+                            <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="entityType" style="width: 100px;">
+                            <i class="bi bi-bookmark"></i> Тип
+                            <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th style="width: 200px;">
+                            <i class="bi bi-info-circle"></i> Детайли
+                        </th>
+                        <th class="sortable" data-column="ipAddress" style="width: 120px;">
+                            <i class="bi bi-geo"></i> IP адрес
+                            <i class="bi bi-chevron-expand sort-icon"></i>
+                        </th>
+                        <th style="width: 80px;">
+                            <i class="bi bi-three-dots"></i> Действия
+                        </th>
                     </tr>
                     </thead>
-                    <tbody id="activity-table-body">
-                    <tr id="loading-row">
-                        <td colspan="6" class="loading-cell">
-                            <div class="loading-content">
-                                <div class="loading-spinner"></div>
-                                <span>Зареждане на активности...</span>
-                            </div>
-                        </td>
-                    </tr>
+                    <tbody id="activities-table-body">
+                    <!-- Activities will be loaded here by JavaScript -->
                     </tbody>
                 </table>
             </div>
 
-            <!-- Empty State -->
-            <div id="empty-state" class="empty-state" style="display: none;">
-                <div class="empty-icon">
-                    <i class="bi bi-inbox"></i>
+            <!-- Pagination -->
+            <div class="pagination-section">
+                <div class="pagination-info">
+                    <span id="pagination-info">Показване на 0 - 0 от 0 записа</span>
                 </div>
-                <h3>Няма активности</h3>
-                <p>Не са намерени активности съответстващи на зададените филтри.</p>
-                <button id="clear-filters-btn" class="control-btn control-btn-primary">
-                    <i class="bi bi-funnel-fill"></i>
-                    <span>Изчисти филтрите</span>
-                </button>
+                <nav>
+                    <ul class="pagination pagination-sm justify-content-end" id="pagination-controls">
+                        <!-- Pagination will be generated by JavaScript -->
+                    </ul>
+                </nav>
             </div>
         </div>
 
-        <!-- ===== ERROR STATE ===== -->
-        <div id="error-state" class="error-state" style="display: none;">
-            <div class="error-icon">
-                <i class="bi bi-exclamation-triangle text-danger"></i>
-            </div>
-            <h3>Възникна грешка</h3>
-            <p id="error-message">Грешка при зареждане на активностите.</p>
-            <div class="error-actions">
-                <button id="retry-btn" class="control-btn control-btn-primary">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    <span>Опитай отново</span>
-                </button>
-                <button id="report-error-btn" class="control-btn control-btn-outline">
-                    <i class="bi bi-bug"></i>
-                    <span>Съобщи за грешката</span>
-                </button>
+        <!-- ===== 5. TABS SECTION ===== -->
+        <div class="activity-tabs-section">
+            <ul class="nav nav-tabs" id="activity-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="charts-tab" data-bs-toggle="tab"
+                            data-bs-target="#charts-content" type="button" role="tab">
+                        <i class="bi bi-graph-up"></i> Графики
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="users-tab" data-bs-toggle="tab"
+                            data-bs-target="#users-content" type="button" role="tab">
+                        <i class="bi bi-people"></i> Потребители
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="security-tab" data-bs-toggle="tab"
+                            data-bs-target="#security-content" type="button" role="tab">
+                        <i class="bi bi-shield-check"></i> Сигурност
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tools-tab" data-bs-toggle="tab"
+                            data-bs-target="#tools-content" type="button" role="tab">
+                        <i class="bi bi-tools"></i> Инструменти
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="activity-tab-content">
+
+                <!-- Charts Tab -->
+                <div class="tab-pane fade show active" id="charts-content" role="tabpanel">
+                    <div class="charts-grid">
+
+                        <!-- Hourly Activity Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h6><i class="bi bi-clock"></i> Активности по часове</h6>
+                                <div class="chart-controls">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-chart="hourly-refresh">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-body">
+                                <canvas id="hourly-activity-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Actions Distribution Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h6><i class="bi bi-pie-chart"></i> Разпределение по действия</h6>
+                                <div class="chart-controls">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-chart="actions-refresh">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-body">
+                                <canvas id="actions-distribution-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- User Activity Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h6><i class="bi bi-person-lines-fill"></i> Топ потребители</h6>
+                                <div class="chart-controls">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-chart="users-refresh">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-body">
+                                <canvas id="user-activity-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Activity Heatmap -->
+                        <div class="chart-card full-width">
+                            <div class="chart-header">
+                                <h6><i class="bi bi-grid"></i> "Heatmap" на активностите</h6>
+                                <div class="chart-controls">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-chart="heatmap-refresh">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-body">
+                                <div id="activity-heatmap-container"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div class="tab-pane fade" id="users-content" role="tabpanel">
+                    <div class="users-analysis">
+
+                        <div class="analysis-controls">
+                            <h6><i class="bi bi-people"></i> Анализ на потребителите</h6>
+                            <button type="button" class="btn btn-sm btn-primary" id="refresh-users-analysis">
+                                <i class="bi bi-arrow-clockwise"></i> Обнови анализа
+                            </button>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="analysis-card">
+                                    <h6>Топ активни потребители</h6>
+                                    <div id="top-users-list">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="analysis-card">
+                                    <h6>Потребителска активност по време</h6>
+                                    <canvas id="users-time-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="analysis-card">
+                                    <h6>Детайлна таблица на потребителите</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm" id="users-detailed-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Потребител</th>
+                                                <th>Общо активности</th>
+                                                <th>Последна активност</th>
+                                                <th>Най-често действие</th>
+                                                <th>IP адреси</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="users-detailed-body">
+                                            <!-- Will be populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="tab-pane fade" id="security-content" role="tabpanel">
+                    <div class="security-analysis">
+
+                        <div class="analysis-controls">
+                            <h6><i class="bi bi-shield-check"></i> Анализ на сигурността</h6>
+                            <button type="button" class="btn btn-sm btn-warning" id="refresh-security-analysis">
+                                <i class="bi bi-arrow-clockwise"></i> Обнови анализа
+                            </button>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="security-card">
+                                    <h6><i class="bi bi-exclamation-triangle"></i> Сигурност алерти</h6>
+                                    <div id="security-alerts-list">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="security-card">
+                                    <h6><i class="bi bi-geo-alt"></i> Подозрителни IP адреси</h6>
+                                    <div id="suspicious-ips-list">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="security-card">
+                                    <h6><i class="bi bi-clock-history"></i> Необичайна активност</h6>
+                                    <div id="unusual-activity-list">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="security-card">
+                                    <h6>Сигурност статистики</h6>
+                                    <canvas id="security-stats-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Tools Tab -->
+                <div class="tab-pane fade" id="tools-content" role="tabpanel">
+                    <div class="tools-panel">
+
+                        <div class="tools-section">
+                            <h6><i class="bi bi-download"></i> Експорт на данни</h6>
+                            <div class="export-controls">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Формат:</label>
+                                        <select class="form-select" id="export-format">
+                                            <option value="csv">CSV</option>
+                                            <option value="excel">Excel</option>
+                                            <option value="json">JSON</option>
+                                            <option value="pdf">PDF доклад</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Период:</label>
+                                        <select class="form-select" id="export-period">
+                                            <option value="current">Текущи филтри</option>
+                                            <option value="1h">Последен час</option>
+                                            <option value="24h">Последно денонощие</option>
+                                            <option value="7d">Последната седмица</option>
+                                            <option value="30d">Последният месец</option>
+                                            <option value="all">Всички данни</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Детайли:</label>
+                                        <select class="form-select" id="export-details">
+                                            <option value="basic">Основни данни</option>
+                                            <option value="detailed">Подробни данни</option>
+                                            <option value="full">Пълни данни</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-primary d-block" id="export-data-btn">
+                                            <i class="bi bi-download"></i> Експорт
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tools-section">
+                            <h6><i class="bi bi-file-text"></i> Доклади</h6>
+                            <div class="reports-controls">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary" id="generate-activity-report">
+                                        <i class="bi bi-file-bar-graph"></i> Доклад за активност
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info" id="generate-users-report">
+                                        <i class="bi bi-people"></i> Доклад за потребители
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning" id="generate-security-report">
+                                        <i class="bi bi-shield"></i> Доклад за сигурност
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tools-section">
+                            <h6><i class="bi bi-gear"></i> Настройки на системата</h6>
+                            <div class="system-controls">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="setting-item">
+                                            <label class="form-label">Auto-refresh интервал (секунди):</label>
+                                            <input type="number" class="form-control" id="refresh-interval"
+                                                   value="5" min="1" max="60">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="setting-item">
+                                            <label class="form-label">Максимум записи в таблицата:</label>
+                                            <input type="number" class="form-control" id="max-records"
+                                                   value="1000" min="100" max="5000">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-success" id="save-settings-btn">
+                                            <i class="bi bi-check2"></i> Запази настройки
+                                        </button>
+                                        <button type="button" class="btn btn-danger" id="clear-cache-btn">
+                                            <i class="bi bi-trash"></i> Изчисти кеша
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
 
     </div>
 </div>
 
-<!-- ===== ACTIVITY DETAILS MODAL (IMPROVED) ===== -->
-<div th:fragment="activityModal" class="modal fade" id="activity-details-modal" tabindex="-1"
-     aria-labelledby="activityDetailsModalLabel" aria-hidden="true">
+<!-- ===== ACTIVITY DETAILS MODAL ===== -->
+<div th:fragment="activityModal" class="modal fade" id="activity-details-modal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="activityDetailsModalLabel">
-                    <i class="bi bi-info-circle me-2"></i>Детайли за активност
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle"></i> Детайли за активността
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="detail-group">
-                            <label class="detail-label">ID:</label>
-                            <div id="modal-activity-id" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">Време:</label>
-                            <div id="modal-activity-timestamp" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">Потребител:</label>
-                            <div id="modal-activity-username" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">Действие:</label>
-                            <div id="modal-activity-action" class="detail-value">--</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="detail-group">
-                            <label class="detail-label">Тип съдържание:</label>
-                            <div id="modal-activity-entity-type" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">ID на съдържанието:</label>
-                            <div id="modal-activity-entity-id" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">IP адрес:</label>
-                            <div id="modal-activity-ip" class="detail-value">--</div>
-                        </div>
-                        <div class="detail-group">
-                            <label class="detail-label">User Agent:</label>
-                            <div id="modal-activity-user-agent" class="detail-value text-break"
-                                 style="max-height: 100px; overflow-y: auto;">--</div>
-                        </div>
-                    </div>
-                </div>
+                <div class="activity-details-content">
 
-                <div class="detail-group full-width">
-                    <label class="detail-label">Детайли:</label>
-                    <div id="modal-activity-details" class="detail-value detail-box"
-                         style="max-height: 150px; overflow-y: auto;">--</div>
+                    <div class="detail-section">
+                        <h6>Основна информация</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>ID:</strong> <span id="modal-activity-id">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Време:</strong> <span id="modal-activity-timestamp">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Потребител:</strong> <span id="modal-activity-username">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>IP адрес:</strong> <span id="modal-activity-ip">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h6>Действие</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Тип:</strong> <span id="modal-activity-action">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Обект:</strong> <span id="modal-activity-entity-type">-</span>
+                            </div>
+                            <div class="col-md-12">
+                                <strong>Детайли:</strong> <span id="modal-activity-details">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h6>Техническа информация</h6>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <strong>User Agent:</strong> <span id="modal-activity-user-agent">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Сесия ID:</strong> <span id="modal-activity-session-id">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Обект ID:</strong> <span id="modal-activity-entity-id">-</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="copy-activity-details" class="btn btn-outline-primary" title="Копирай всички детайли">
-                    <i class="bi bi-clipboard me-2"></i>Копирай детайлите
+                <button type="button" class="btn btn-outline-secondary" id="copy-activity-details">
+                    <i class="bi bi-clipboard"></i> Копирай детайлите
                 </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Затвори</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i> Затвори
+                </button>
             </div>
         </div>
     </div>

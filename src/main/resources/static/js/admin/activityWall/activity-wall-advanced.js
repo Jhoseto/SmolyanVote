@@ -1,1435 +1,977 @@
-// ====== ADMIN ACTIVITY WALL - ADVANCED FEATURES (FIXED) ======
-// Файл: src/main/resources/static/js/admin/activityWall/activity-wall-advanced.js
+// ====== ADMIN ACTIVITY WALL - ADVANCED ANALYTICS ======
+// File: src/main/resources/static/js/admin/activityWall/activity-wall-advanced.js
 
 window.ActivityWallAdvanced = {
-
-    // ===== INTERNAL STATE =====
-    analysisCache: new Map(),
-    updateCallbacks: [],
     isInitialized: false,
-    analysisWorker: null,
-    currentAnalysisRequest: null,
+    currentTab: 'charts',
+    analysisCache: new Map(),
+    refreshTimers: {},
 
-    // ===== INITIALIZATION (IMPROVED) =====
+    // Advanced analysis data
+    analysisData: {
+        users: null,
+        security: null,
+        lastUpdated: null
+    },
 
-    async init() {
+    // Initialize advanced features
+    init() {
         if (this.isInitialized) return;
 
-        try {
-            console.log('🚀 Initializing Activity Wall Advanced...');
-
-            await this.setupAdvancedUI();
-            this.bindAdvancedEvents();
-            this.setupAnalysisCache();
-            this.isInitialized = true;
-
-            console.log('✅ Activity Wall Advanced: Initialized successfully');
-        } catch (error) {
-            console.error('❌ Activity Wall Advanced initialization failed:', error);
-        }
+        this.setupTabSystem();
+        this.setupToolsPanel();
+        this.isInitialized = true;
     },
 
-    async setupAdvancedUI() {
-        await this.createAdvancedControlPanel();
-        await this.createAnalysisPanel();
-        await this.createStatsPanel();
-    },
+    // Setup tab navigation system
+    setupTabSystem() {
+        const tabs = document.querySelectorAll('#activity-tabs .nav-link');
 
-    setupAnalysisCache() {
-        // Clear cache every 5 minutes to prevent memory leaks
-        setInterval(() => {
-            const now = Date.now();
-            for (const [key, value] of this.analysisCache.entries()) {
-                if (now - value.timestamp > 300000) { // 5 minutes
-                    this.analysisCache.delete(key);
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const targetTab = e.target.dataset.bsTarget?.replace('#', '').replace('-content', '');
+                if (targetTab) {
+                    this.switchToTab(targetTab);
                 }
-            }
-        }, 300000);
-    },
-
-    async createAdvancedControlPanel() {
-        const existingPanel = document.getElementById('advanced-control-panel');
-        if (existingPanel) return;
-
-        const controlPanel = document.createElement('div');
-        controlPanel.id = 'advanced-control-panel';
-        controlPanel.className = 'advanced-control-panel mt-3';
-        controlPanel.innerHTML = this.getAdvancedControlPanelHTML();
-
-        const activityWall = document.getElementById('activity-wall');
-        if (activityWall) {
-            activityWall.appendChild(controlPanel);
-        }
-    },
-
-    getAdvancedControlPanelHTML() {
-        return `
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">
-                        <i class="bi bi-tools me-2"></i>Разширени инструменти
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="control-group">
-                                <label class="control-label">
-                                    <i class="bi bi-graph-up me-2"></i>Анализи:
-                                </label>
-                                <div class="btn-group-vertical d-grid gap-1" role="group">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="show-user-analysis-btn">
-                                        <i class="bi bi-people"></i> Потребители
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning btn-sm" id="show-security-analysis-btn">
-                                        <i class="bi bi-shield-check"></i> Сигурност
-                                    </button>
-                                    <button type="button" class="btn btn-outline-info btn-sm" id="show-performance-analysis-btn">
-                                        <i class="bi bi-speedometer2"></i> Производителност
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="control-group">
-                                <label class="control-label">
-                                    <i class="bi bi-download me-2"></i>Експорт:
-                                </label>
-                                <div class="btn-group-vertical d-grid gap-1" role="group">
-                                    <button type="button" class="btn btn-outline-success btn-sm" id="export-excel-btn">
-                                        <i class="bi bi-file-earmark-excel"></i> Excel отчет
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" id="export-pdf-btn">
-                                        <i class="bi bi-file-earmark-pdf"></i> PDF доклад
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="export-xml-btn">
-                                        <i class="bi bi-file-earmark-code"></i> XML данни
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="control-group">
-                                <label class="control-label">
-                                    <i class="bi bi-bar-chart me-2"></i>Визуализации:
-                                </label>
-                                <div class="btn-group-vertical d-grid gap-1" role="group">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="show-charts-btn">
-                                        <i class="bi bi-graph-up"></i> Покажи графики
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="generate-report-btn">
-                                        <i class="bi bi-file-text"></i> Генерирай отчет
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    },
-
-    async createAnalysisPanel() {
-        const existingPanel = document.getElementById('analysis-panel');
-        if (existingPanel) return;
-
-        const analysisPanel = document.createElement('div');
-        analysisPanel.id = 'analysis-panel';
-        analysisPanel.className = 'analysis-panel mt-3';
-        analysisPanel.style.display = 'none';
-        analysisPanel.innerHTML = `
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0" id="analysis-title">
-                        <i class="bi bi-bar-chart me-2"></i>
-                        Разширен анализ
-                    </h5>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary" id="refresh-analysis-btn" title="Обнови анализа">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" id="close-analysis-btn" title="Затвори">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body" id="analysis-content">
-                    <!-- Analysis content will be inserted here -->
-                </div>
-            </div>
-        `;
-
-        const activityWall = document.getElementById('activity-wall');
-        if (activityWall) {
-            activityWall.appendChild(analysisPanel);
-        }
-    },
-
-    async createStatsPanel() {
-        const existingPanel = document.getElementById('stats-panel');
-        if (existingPanel) return;
-
-        const statsPanel = document.createElement('div');
-        statsPanel.id = 'stats-panel';
-        statsPanel.className = 'stats-panel mt-3';
-        statsPanel.innerHTML = `
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="bi bi-activity text-primary"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h4 class="stat-number" id="total-activities-stat">0</h4>
-                            <p class="stat-label">Общо активности</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="bi bi-people text-success"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h4 class="stat-number" id="unique-users-stat">0</h4>
-                            <p class="stat-label">Уникални потребители</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="bi bi-clock text-warning"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h4 class="stat-number" id="avg-per-hour-stat">0</h4>
-                            <p class="stat-label">Средно на час</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="bi bi-shield-check text-danger"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h4 class="stat-number" id="security-alerts-stat">0</h4>
-                            <p class="stat-label">Сигурност алерти</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const activityWall = document.getElementById('activity-wall');
-        if (activityWall) {
-            activityWall.appendChild(statsPanel);
-        }
-    },
-
-    bindAdvancedEvents() {
-        // Analysis Buttons
-        this.bindEventSafely('show-user-analysis-btn', 'click', () => this.showUserAnalysis());
-        this.bindEventSafely('show-security-analysis-btn', 'click', () => this.showSecurityAnalysis());
-        this.bindEventSafely('show-performance-analysis-btn', 'click', () => this.showPerformanceAnalysis());
-
-        // Export Buttons
-        this.bindEventSafely('export-excel-btn', 'click', () => this.exportAsExcel());
-        this.bindEventSafely('export-pdf-btn', 'click', () => this.exportAsPDF());
-        this.bindEventSafely('export-xml-btn', 'click', () => this.exportAsXML());
-
-        // Other Buttons
-        this.bindEventSafely('show-charts-btn', 'click', () => this.showCharts());
-        this.bindEventSafely('generate-report-btn', 'click', () => this.generateReport());
-        this.bindEventSafely('close-analysis-btn', 'click', () => this.hideAnalysis());
-        this.bindEventSafely('refresh-analysis-btn', 'click', () => this.refreshCurrentAnalysis());
-    },
-
-    bindEventSafely(elementId, event, handler) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.addEventListener(event, handler);
-        } else {
-            console.warn(`⚠️ Element not found: ${elementId}`);
-        }
-    },
-
-    // ===== ANALYSIS METHODS (IMPROVED) =====
-
-    async showUserAnalysis() {
-        await this.performAnalysis('user', 'Анализ на потребителите', this.performUserAnalysis.bind(this), this.renderUserAnalysis.bind(this));
-    },
-
-    async showSecurityAnalysis() {
-        await this.performAnalysis('security', 'Анализ на сигурността', this.performSecurityAnalysis.bind(this), this.renderSecurityAnalysis.bind(this));
-    },
-
-    async showPerformanceAnalysis() {
-        try {
-            // ✅ Използва ВСИЧКИ активности, не филтрираните
-            const allActivities = this.getActivities(false);
-
-            if (!allActivities.length) {
-                this.showError('Няма активности за анализ');
-                return;
-            }
-
-            // Show loading
-            this.showAnalysisLoading('Анализ на производителността');
-
-            // Винаги прави нов анализ с всички данни (без кеш)
-            console.log(`🔍 Performing performance analysis on ${allActivities.length} total activities...`);
-
-            const analysis = await this.runAnalysisWithTimeout(
-                this.performPerformanceAnalysis.bind(this),
-                allActivities,
-                10000
-            );
-
-            // Render results
-            const renderedContent = this.renderPerformanceAnalysis(analysis);
-            this.displayAnalysis('Анализ на производителността', renderedContent);
-
-        } catch (error) {
-            console.error('❌ Error in performance analysis:', error);
-            this.showError('Грешка при анализ на производителността');
-        }
-    },
-
-    async performAnalysis(type, title, analysisFunction, renderFunction) {
-        try {
-            const activities = this.getActivities();
-            if (!activities.length) {
-                this.showError('Няма активности за анализ');
-                return;
-            }
-
-            // Show loading
-            this.showAnalysisLoading(title);
-
-            // Check cache first
-            const cacheKey = `${type}_${activities.length}_${this.getActivitiesHash(activities)}`;
-            let analysis = this.getFromCache(cacheKey);
-
-            if (!analysis) {
-                console.log(`🔍 Performing ${type} analysis on ${activities.length} activities...`);
-
-                // Cancel any existing analysis
-                if (this.currentAnalysisRequest) {
-                    this.currentAnalysisRequest.cancelled = true;
-                }
-
-                // Create new analysis request
-                this.currentAnalysisRequest = { cancelled: false };
-                const currentRequest = this.currentAnalysisRequest;
-
-                // Perform analysis
-                analysis = await this.runAnalysisWithTimeout(analysisFunction, activities, 10000);
-
-                // Check if request was cancelled
-                if (currentRequest.cancelled) {
-                    return;
-                }
-
-                // Cache the result
-                this.saveToCache(cacheKey, analysis);
-            } else {
-                console.log(`📋 Using cached ${type} analysis`);
-            }
-
-            // Render results
-            const renderedContent = renderFunction(analysis);
-            this.displayAnalysis(title, renderedContent);
-
-        } catch (error) {
-            console.error(`❌ Error in ${type} analysis:`, error);
-            this.showError(`Грешка при ${type} анализ: ${error.message}`);
-        }
-    },
-
-    async runAnalysisWithTimeout(analysisFunction, activities, timeout) {
-        return new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-                reject(new Error('Анализът отне твърде много време'));
-            }, timeout);
-
-            try {
-                const result = analysisFunction(activities);
-                clearTimeout(timeoutId);
-                resolve(result);
-            } catch (error) {
-                clearTimeout(timeoutId);
-                reject(error);
-            }
+            });
         });
+
+        // Initialize with charts tab
+        this.switchToTab('charts');
     },
 
-    getActivitiesHash(activities) {
-        // Simple hash for cache key
-        return activities.length + '_' + (activities[0]?.timestamp || '') + '_' + (activities[activities.length - 1]?.timestamp || '');
-    },
+    // Switch to specific tab and load content
+    async switchToTab(tabName) {
+        this.currentTab = tabName;
+        this.clearRefreshTimers();
 
-    getFromCache(key) {
-        const cached = this.analysisCache.get(key);
-        if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutes
-            return cached.data;
+        switch (tabName) {
+            case 'charts':
+                break;
+            case 'users':
+                await this.loadUsersAnalysis();
+                // ⚡ RESIZE FIX
+                setTimeout(() => {
+                    if (this.charts?.usersTime) {
+                        this.charts.usersTime.resize();
+                    }
+                }, 100);
+                break;
+            case 'security':
+                await this.loadSecurityAnalysis();
+                // ⚡ RESIZE FIX
+                setTimeout(() => {
+                    if (this.charts?.security) {
+                        this.charts.security.resize();
+                    }
+                }, 100);
+                break;
+            case 'tools':
+                this.setupToolsPanel();
+                break;
         }
-        return null;
     },
 
-    saveToCache(key, data) {
-        this.analysisCache.set(key, {
-            data,
-            timestamp: Date.now()
-        });
+    // Users analysis tab
+    async loadUsersAnalysis() {
+        if (!window.activityWall?.filteredActivities) return;
+
+        this.showTabLoading('users-content');
+
+        try {
+            const activities = window.activityWall.filteredActivities;
+            const analysis = this.performUsersAnalysis(activities);
+
+            this.renderUsersAnalysis(analysis);
+            this.analysisData.users = analysis;
+            this.analysisData.lastUpdated = new Date();
+
+            // Setup auto-refresh for users tab
+            this.setupTabRefresh('users', 30000); // 30 seconds
+
+            const usersContent = document.getElementById('users-content');
+            if (usersContent) {
+                usersContent.style.opacity = '1';
+                usersContent.style.pointerEvents = 'auto';
+            }
+        } catch (error) {
+            console.error('Users analysis failed:', error);
+            this.showTabError('users-content', 'Грешка при анализа на потребителите');
+        }
     },
 
-    // ===== ANALYSIS IMPLEMENTATIONS (OPTIMIZED) =====
+    // Perform comprehensive users analysis
+    performUsersAnalysis(activities) {
+        const userStats = {};
+        const userTimeline = {};
+        const userActions = {};
 
-    performUserAnalysis(activities) {
-        const userStats = new Map();
-        const ipStats = new Map();
-
+        // Process each activity
         activities.forEach(activity => {
-            const username = activity.username || 'Анонимен';
-            const ip = activity.ipAddress || 'Неизвестен';
+            const username = activity.username || 'Система';
+            const hour = new Date(activity.timestamp).getHours();
 
-            // User statistics
-            if (!userStats.has(username)) {
-                userStats.set(username, {
-                    username,
+            // Basic stats
+            if (!userStats[username]) {
+                userStats[username] = {
                     totalActivities: 0,
-                    actions: new Set(),
-                    ips: new Set(),
-                    firstActivity: activity.timestamp,
-                    lastActivity: activity.timestamp,
-                    hourlyDistribution: new Array(24).fill(0)
-                });
+                    lastActivity: null,
+                    firstActivity: null,
+                    ipAddresses: new Set(),
+                    actions: {}
+                };
             }
 
-            const stats = userStats.get(username);
-            stats.totalActivities++;
-            stats.actions.add(activity.action);
-            stats.ips.add(ip);
+            userStats[username].totalActivities++;
+            userStats[username].lastActivity = !userStats[username].lastActivity ||
+            new Date(activity.timestamp) > new Date(userStats[username].lastActivity)
+                ? activity.timestamp : userStats[username].lastActivity;
 
-            const hour = new Date(activity.timestamp).getHours();
-            if (hour >= 0 && hour < 24) {
-                stats.hourlyDistribution[hour]++;
+            userStats[username].firstActivity = !userStats[username].firstActivity ||
+            new Date(activity.timestamp) < new Date(userStats[username].firstActivity)
+                ? activity.timestamp : userStats[username].firstActivity;
+
+            if (activity.ipAddress) {
+                userStats[username].ipAddresses.add(activity.ipAddress);
             }
 
-            if (new Date(activity.timestamp) < new Date(stats.firstActivity)) {
-                stats.firstActivity = activity.timestamp;
-            }
-            if (new Date(activity.timestamp) > new Date(stats.lastActivity)) {
-                stats.lastActivity = activity.timestamp;
-            }
+            // Action tracking
+            userStats[username].actions[activity.action] =
+                (userStats[username].actions[activity.action] || 0) + 1;
 
-            // IP statistics
-            ipStats.set(ip, (ipStats.get(ip) || 0) + 1);
+            // Timeline data
+            if (!userTimeline[hour]) userTimeline[hour] = {};
+            userTimeline[hour][username] = (userTimeline[hour][username] || 0) + 1;
+
+            // Action distribution
+            if (!userActions[activity.action]) userActions[activity.action] = 0;
+            userActions[activity.action]++;
         });
 
-        // Convert Maps to arrays and process
-        const processedUserStats = Array.from(userStats.values()).map(stats => ({
-            ...stats,
-            uniqueActions: stats.actions.size,
-            uniqueIPs: stats.ips.size,
-            actions: Array.from(stats.actions),
-            ips: Array.from(stats.ips)
-        })).sort((a, b) => b.totalActivities - a.totalActivities);
+        // Convert Sets to Arrays and find most common actions
+        Object.keys(userStats).forEach(username => {
+            userStats[username].ipAddresses = Array.from(userStats[username].ipAddresses);
+            userStats[username].uniqueIPs = userStats[username].ipAddresses.length;
 
-        const processedIpStats = Array.from(ipStats.entries())
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 20);
+            const actions = Object.entries(userStats[username].actions);
+            userStats[username].mostCommonAction = actions.length > 0
+                ? actions.sort(([,a], [,b]) => b - a)[0]
+                : null;
+        });
 
         return {
-            userStats: processedUserStats,
-            ipStats: processedIpStats,
-            totalUsers: userStats.size,
-            totalIPs: ipStats.size
+            userStats,
+            userTimeline,
+            userActions,
+            topUsers: Object.entries(userStats)
+                .sort(([,a], [,b]) => b.totalActivities - a.totalActivities)
+                .slice(0, 20),
+            totalUsers: Object.keys(userStats).length,
+            totalActivities: activities.length
         };
     },
 
+    // Render users analysis
+    renderUsersAnalysis(analysis) {
+        this.renderTopUsersList(analysis.topUsers);
+        this.renderUsersTimeChart(analysis.userTimeline);
+        this.renderUsersDetailedTable(analysis.userStats);
+    },
+
+    // Render top users list
+    renderTopUsersList(topUsers) {
+        const container = document.getElementById('top-users-list');
+        if (!container) return;
+
+        const html = topUsers.map(([ username, stats ], index) => `
+            <div class="user-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div class="user-info">
+                    <div class="user-rank">#${index + 1}</div>
+                    <div class="user-name fw-bold">${this.escapeHtml(username)}</div>
+                    <small class="text-muted">
+                        ${stats.mostCommonAction ?
+            window.ActivityWallUtils.translateAction(stats.mostCommonAction[0]) :
+            'Няма данни'}
+                    </small>
+                </div>
+                <div class="user-stats text-end">
+                    <div class="fw-bold text-primary">${stats.totalActivities}</div>
+                    <small class="text-muted">активности</small>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html || '<div class="text-muted p-3">Няма данни</div>';
+    },
+
+    // Render users time chart
+    renderUsersTimeChart(userTimeline) {
+        const canvas = document.getElementById('users-time-chart');
+        if (!canvas || !window.Chart) return;
+
+        // Destroy existing chart
+        if (this.charts?.usersTime) {
+            this.charts.usersTime.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        const hours = Array.from({length: 24}, (_, i) => i);
+        const hourlyTotals = hours.map(hour => {
+            return Object.values(userTimeline[hour] || {}).reduce((sum, count) => sum + count, 0);
+        });
+
+        if (!this.charts) this.charts = {};
+
+        this.charts.usersTime = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: hours.map(h => h.toString().padStart(2, '0') + ':00'),
+                datasets: [{
+                    label: 'Потребителска активност',
+                    data: hourlyTotals,
+                    borderColor: '#4b9f3e',
+                    backgroundColor: 'rgba(75, 159, 62, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,  // ⚡ KEY FIX
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    },
+
+    // Render detailed users table
+    renderUsersDetailedTable(userStats) {
+        const tbody = document.getElementById('users-detailed-body');
+        if (!tbody) return;
+
+        const sortedUsers = Object.entries(userStats)
+            .sort(([,a], [,b]) => b.totalActivities - a.totalActivities);
+
+        const html = sortedUsers.map(([username, stats]) => `
+            <tr>
+                <td>
+                    <strong>${this.escapeHtml(username)}</strong>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-primary">${stats.totalActivities}</span>
+                </td>
+                <td>
+                    <small>${window.ActivityWallUtils.formatDateTime(stats.lastActivity, 'relative')}</small>
+                </td>
+                <td>
+                    <small>${stats.mostCommonAction ?
+            window.ActivityWallUtils.translateAction(stats.mostCommonAction[0]) :
+            '-'}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${stats.uniqueIPs}</span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="ActivityWallAdvanced.showUserDetails('${this.escapeHtml(username)}')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.innerHTML = html || '<tr><td colspan="6" class="text-muted text-center">Няма данни</td></tr>';
+    },
+
+    // Security analysis tab
+    async loadSecurityAnalysis() {
+        if (!window.activityWall?.filteredActivities) return;
+
+        this.showTabLoading('security-content');
+
+        try {
+            const activities = window.activityWall.filteredActivities;
+            const analysis = this.performSecurityAnalysis(activities);
+
+            this.renderSecurityAnalysis(analysis);
+            this.analysisData.security = analysis;
+
+            // Setup auto-refresh for security tab
+            this.setupTabRefresh('security', 15000); // 15 seconds
+
+            const securityContent = document.getElementById('security-content');
+            if (securityContent) {
+                securityContent.style.opacity = '1';
+                securityContent.style.pointerEvents = 'auto';
+            }
+        } catch (error) {
+            console.error('Security analysis failed:', error);
+            this.showTabError('security-content', 'Грешка при анализа на сигурността');
+        }
+    },
+
+    // Perform security analysis
     performSecurityAnalysis(activities) {
-        const suspiciousPatterns = [];
-        const adminActions = [];
-        const failedAttempts = [];
-        const ipViolations = new Map();
+        const alerts = [];
+        const suspiciousIPs = new Map();
+        const unusualActivity = [];
+        const ipStats = {};
+        const userAgentStats = {};
 
+        // Analyze activities for security issues
         activities.forEach(activity => {
-            // Admin actions
-            if (activity.action && activity.action.includes('ADMIN')) {
-                adminActions.push(activity);
-            }
-
-            // Failed attempts
-            if (activity.action && (activity.action.includes('FAIL') || activity.action.includes('ERROR'))) {
-                failedAttempts.push(activity);
-            }
-
-            // IP violations
             const ip = activity.ipAddress;
-            if (ip && ip !== 'N/A') {
-                ipViolations.set(ip, (ipViolations.get(ip) || 0) + 1);
+            const userAgent = activity.userAgent;
+            const timestamp = new Date(activity.timestamp);
+
+            // IP tracking
+            if (ip) {
+                if (!ipStats[ip]) {
+                    ipStats[ip] = {
+                        count: 0,
+                        users: new Set(),
+                        actions: new Set(),
+                        firstSeen: timestamp,
+                        lastSeen: timestamp
+                    };
+                }
+
+                ipStats[ip].count++;
+                ipStats[ip].users.add(activity.username || 'Система');
+                ipStats[ip].actions.add(activity.action);
+                ipStats[ip].lastSeen = timestamp > ipStats[ip].lastSeen ? timestamp : ipStats[ip].lastSeen;
+            }
+
+            // User agent tracking
+            if (userAgent) {
+                userAgentStats[userAgent] = (userAgentStats[userAgent] || 0) + 1;
             }
         });
 
-        // Find suspicious IPs
-        for (const [ip, count] of ipViolations.entries()) {
-            if (count > 100) {
-                suspiciousPatterns.push({
-                    type: 'high_activity_ip',
-                    severity: count > 500 ? 'high' : 'medium',
-                    message: `IP ${ip} има ${count} активности`,
-                    ip,
-                    count
+        // Detect suspicious IPs
+        Object.entries(ipStats).forEach(([ip, stats]) => {
+            const score = this.calculateSuspicionScore(stats);
+
+            if (score > 0.7) {
+                suspiciousIPs.set(ip, {
+                    ...stats,
+                    users: Array.from(stats.users),
+                    actions: Array.from(stats.actions),
+                    score: score,
+                    reasons: this.getSuspicionReasons(stats)
+                });
+
+                alerts.push({
+                    type: 'high',
+                    title: 'Подозрителен IP адрес',
+                    message: `IP ${ip} показва необичайна активност`,
+                    timestamp: new Date(),
+                    details: `${stats.count} активности от ${stats.users.size} потребителя`
                 });
             }
-        }
-
-        // Find rapid successive actions
-        const sortedActivities = activities.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        for (let i = 1; i < Math.min(sortedActivities.length, 1000); i++) { // Limit for performance
-            const prev = sortedActivities[i - 1];
-            const curr = sortedActivities[i];
-
-            if (prev.username === curr.username && prev.ipAddress === curr.ipAddress) {
-                const timeDiff = new Date(curr.timestamp) - new Date(prev.timestamp);
-                if (timeDiff < 1000 && timeDiff > 0) {
-                    suspiciousPatterns.push({
-                        type: 'rapid_actions',
-                        severity: 'medium',
-                        message: `Бързи действия от ${curr.username} (${timeDiff}ms разлика)`,
-                        username: curr.username,
-                        timeDiff
-                    });
-                }
-            }
-        }
-
-        return {
-            suspiciousPatterns: suspiciousPatterns.sort((a, b) => {
-                const severityOrder = { high: 3, medium: 2, low: 1 };
-                return severityOrder[b.severity] - severityOrder[a.severity];
-            }).slice(0, 50), // Limit results
-            adminActions: adminActions.slice(0, 20),
-            failedAttempts: failedAttempts.slice(0, 20),
-            totalSuspicious: suspiciousPatterns.length,
-            riskLevel: this.calculateRiskLevel(suspiciousPatterns)
-        };
-    },
-
-    performPerformanceAnalysis(activities) {
-        const hourlyLoad = new Array(24).fill(0);
-        const actionLoad = new Map();
-        const timeWindows = this.groupByTimeWindows(activities, 15);
-
-        activities.forEach(activity => {
-            const hour = new Date(activity.timestamp).getHours();
-            if (hour >= 0 && hour < 24) {
-                hourlyLoad[hour]++;
-            }
-
-            const action = activity.action || 'UNKNOWN';
-            actionLoad.set(action, (actionLoad.get(action) || 0) + 1);
         });
 
-        const peakHour = hourlyLoad.indexOf(Math.max(...hourlyLoad));
-        const avgLoad = activities.length / 24;
+        // Detect unusual activity patterns
+        const now = new Date();
+        const recentActivities = activities.filter(a =>
+            (now - new Date(a.timestamp)) < 60 * 60 * 1000 // Last hour
+        );
+
+        if (recentActivities.length > 100) {
+            alerts.push({
+                type: 'medium',
+                title: 'Висока активност',
+                message: 'Регистрирана е необичайно висока активност',
+                timestamp: new Date(),
+                details: `${recentActivities.length} активности през последния час`
+            });
+        }
+
+        // Check for failed login attempts or errors
+        const errorActions = activities.filter(a =>
+            a.action.includes('ERROR') || a.action.includes('FAILED')
+        );
+
+        if (errorActions.length > 10) {
+            alerts.push({
+                type: 'medium',
+                title: 'Множество грешки',
+                message: 'Регистрирани са множество неуспешни операции',
+                timestamp: new Date(),
+                details: `${errorActions.length} неуспешни операции`
+            });
+        }
 
         return {
-            hourlyLoad,
-            actionLoad: Array.from(actionLoad.entries())
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 10),
-            timeWindows: timeWindows.slice(-20),
-            peakHour,
-            avgLoad: Math.round(avgLoad * 100) / 100,
-            totalActivities: activities.length,
-            loadTrend: this.calculateLoadTrend(hourlyLoad)
+            alerts: alerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)),
+            suspiciousIPs: Array.from(suspiciousIPs.entries())
+                .sort(([,a], [,b]) => b.score - a.score),
+            unusualActivity,
+            totalIPs: Object.keys(ipStats).length,
+            securityScore: this.calculateOverallSecurityScore(alerts, suspiciousIPs.size)
         };
     },
 
-    // ===== RENDERING METHODS (SAFE) =====
+    // Calculate suspicion score for IP
+    calculateSuspicionScore(stats) {
+        let score = 0;
 
-    renderUserAnalysis(analysis) {
-        return `
-            <div class="analysis-results">
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="analysis-stat">
-                            <h3>${analysis.totalUsers}</h3>
-                            <p>Общо потребители</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="analysis-stat">
-                            <h3>${analysis.totalIPs}</h3>
-                            <p>Уникални IP адреси</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="analysis-stat">
-                            <h3>${analysis.totalUsers > 0 ? Math.round(analysis.userStats.reduce((sum, u) => sum + u.totalActivities, 0) / analysis.totalUsers) : 0}</h3>
-                            <p>Средно активности/потребител</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-people me-2"></i>Най-активни потребители</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Потребител</th>
-                                        <th>Активности</th>
-                                        <th>Уникални IP</th>
-                                        <th>Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${analysis.userStats.slice(0, 10).map(user => `
-                                        <tr>
-                                            <td><strong>${this.escapeHtml(user.username)}</strong></td>
-                                            <td><span class="badge bg-primary">${user.totalActivities}</span></td>
-                                            <td><span class="badge bg-warning">${user.uniqueIPs}</span></td>
-                                            <td><span class="badge bg-info">${user.uniqueActions}</span></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-router me-2"></i>Най-активни IP адреси</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>IP Адрес</th>
-                                        <th>Активности</th>
-                                        <th>Статус</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${analysis.ipStats.slice(0, 10).map(([ip, count]) => `
-                                        <tr>
-                                            <td><code>${this.escapeHtml(ip)}</code></td>
-                                            <td><span class="badge bg-primary">${count}</span></td>
-                                            <td>
-                                                <span class="badge ${count > 100 ? 'bg-danger' : count > 50 ? 'bg-warning' : 'bg-success'}">
-                                                    ${count > 100 ? 'Подозрителен' : count > 50 ? 'Активен' : 'Нормален'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        // High activity count
+        if (stats.count > 100) score += 0.3;
+        if (stats.count > 500) score += 0.3;
+
+        // Multiple users from same IP
+        if (stats.users.size > 3) score += 0.2;
+        if (stats.users.size > 10) score += 0.3;
+
+        // Diverse actions (could indicate automation)
+        if (stats.actions.size > 10) score += 0.2;
+
+        // Time-based analysis
+        const timeSpan = stats.lastSeen - stats.firstSeen;
+        const activitiesPerMinute = stats.count / (timeSpan / 60000);
+        if (activitiesPerMinute > 2) score += 0.3;
+
+        return Math.min(score, 1);
     },
 
+    // Get suspicion reasons
+    getSuspicionReasons(stats) {
+        const reasons = [];
+
+        if (stats.count > 100) reasons.push('Висок брой активности');
+        if (stats.users.size > 3) reasons.push('Множество потребители');
+        if (stats.actions.size > 10) reasons.push('Разнообразни действия');
+
+        const timeSpan = stats.lastSeen - stats.firstSeen;
+        const activitiesPerMinute = stats.count / (timeSpan / 60000);
+        if (activitiesPerMinute > 2) reasons.push('Висока честота');
+
+        return reasons;
+    },
+
+    // Calculate overall security score
+    calculateOverallSecurityScore(alerts, suspiciousIPCount) {
+        let score = 100;
+
+        // Deduct points for alerts
+        alerts.forEach(alert => {
+            switch (alert.type) {
+                case 'high': score -= 20; break;
+                case 'medium': score -= 10; break;
+                case 'low': score -= 5; break;
+            }
+        });
+
+        // Deduct points for suspicious IPs
+        score -= suspiciousIPCount * 5;
+
+        return Math.max(score, 0);
+    },
+
+    // Render security analysis
     renderSecurityAnalysis(analysis) {
-        return `
-            <div class="analysis-results">
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3 class="text-${analysis.riskLevel === 'high' ? 'danger' : analysis.riskLevel === 'medium' ? 'warning' : 'success'}">
-                                ${analysis.riskLevel.toUpperCase()}
-                            </h3>
-                            <p>Ниво на риск</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.totalSuspicious}</h3>
-                            <p>Подозрителни модели</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.adminActions.length}</h3>
-                            <p>Админ действия</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="analysis-stat">
-                            <h3>${analysis.failedAttempts.length}</h3>
-                            <p>Неуспешни опити</p>
-                        </div>
-                    </div>
-                </div>
-
-                ${analysis.suspiciousPatterns.length > 0 ? `
-                    <div class="mb-4">
-                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Подозрителни модели</h6>
-                        <div class="alert-list">
-                            ${analysis.suspiciousPatterns.slice(0, 10).map(pattern => `
-                                <div class="alert alert-${pattern.severity === 'high' ? 'danger' : 'warning'} alert-dismissible">
-                                    <strong>${pattern.type.toUpperCase()}:</strong> ${this.escapeHtml(pattern.message)}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : '<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>Не са открити подозрителни модели</div>'}
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-shield-check me-2"></i>Скорошни админ действия</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Време</th>
-                                        <th>Потребител</th>
-                                        <th>Действие</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${analysis.adminActions.slice(0, 5).map(action => `
-                                        <tr>
-                                            <td><small>${new Date(action.timestamp).toLocaleString('bg-BG')}</small></td>
-                                            <td><strong>${this.escapeHtml(action.username || 'N/A')}</strong></td>
-                                            <td><code>${this.escapeHtml(action.action)}</code></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-x-circle me-2"></i>Неуспешни опити</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Време</th>
-                                        <th>IP</th>
-                                        <th>Тип</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${analysis.failedAttempts.slice(0, 5).map(attempt => `
-                                        <tr>
-                                            <td><small>${new Date(attempt.timestamp).toLocaleString('bg-BG')}</small></td>
-                                            <td><code>${this.escapeHtml(attempt.ipAddress || 'N/A')}</code></td>
-                                            <td><span class="badge bg-danger">${this.escapeHtml(attempt.action)}</span></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        this.renderSecurityAlerts(analysis.alerts);
+        this.renderSuspiciousIPs(analysis.suspiciousIPs);
+        this.renderUnusualActivity(analysis.unusualActivity);
+        this.renderSecurityChart(analysis);
     },
 
-    renderPerformanceAnalysis(analysis) {
-        return `
-        <div class="analysis-results">
-            <div class="alert alert-info mb-3">
-                <i class="bi bi-info-circle me-2"></i>
-            </div>
+    // Render security alerts
+    renderSecurityAlerts(alerts) {
+        const container = document.getElementById('security-alerts-list');
+        if (!container) return;
 
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="analysis-stat">
-                        <h3>${analysis.totalActivities}</h3>
-                        <p>Общо активности</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="analysis-stat">
-                        <h3>${analysis.avgLoad}</h3>
-                        <p>Средно на час</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="analysis-stat">
-                        <h3>${analysis.peakHour}:00</h3>
-                        <p>Пиков час</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="analysis-stat">
-                        <h3 class="text-${analysis.loadTrend === 'increasing' ? 'danger' : analysis.loadTrend === 'decreasing' ? 'success' : 'info'}">
-                            ${analysis.loadTrend === 'increasing' ? '↗' : analysis.loadTrend === 'decreasing' ? '↘' : '→'}
-                        </h3>
-                        <p>Тенденция</p>
-                    </div>
-                </div>
-            </div>
+        const alertColors = {
+            high: 'danger',
+            medium: 'warning',
+            low: 'info'
+        };
 
-            <div class="row">
-                <div class="col-md-6">
-                    <h6><i class="bi bi-bar-chart me-2"></i>Най-чести действия</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Действие</th>
-                                    <th>Брой</th>
-                                    <th>Процент</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${analysis.actionLoad.slice(0, 8).map(([action, count]) => {
-            const percent = analysis.totalActivities > 0 ? Math.round((count / analysis.totalActivities) * 100) : 0;
-            return `
-                                        <tr>
-                                            <td><code>${this.escapeHtml(action)}</code></td>
-                                            <td><span class="badge bg-primary">${count}</span></td>
-                                            <td>
-                                                <div class="progress" style="height: 20px;">
-                                                    <div class="progress-bar" style="width: ${percent}%">${percent}%</div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `;
-        }).join('')}
-                            </tbody>
-                        </table>
+        const html = alerts.slice(0, 10).map(alert => `
+            <div class="alert alert-${alertColors[alert.type]} alert-sm mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${this.escapeHtml(alert.title)}</strong>
+                        <div>${this.escapeHtml(alert.message)}</div>
+                        <small class="text-muted">${alert.details}</small>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <h6><i class="bi bi-speedometer2 me-2"></i>Performance Insights</h6>
-                    <div class="performance-insights">
-                        <div class="alert alert-info mb-2">
-                            <strong>🕐 Пиков период:</strong> ${analysis.peakHour}:00 с ${Math.max(...analysis.hourlyLoad)} активности
-                        </div>
-                        <div class="alert alert-${analysis.loadTrend === 'increasing' ? 'warning' : 'success'} mb-2">
-                            <strong>📈 Тенденция:</strong> ${analysis.loadTrend === 'increasing' ? 'Нарастваща активност' : analysis.loadTrend === 'decreasing' ? 'Намаляваща активност' : 'Стабилна активност'}
-                        </div>
-                        <div class="alert alert-secondary mb-2">
-                            <strong>⚡ Интензивност:</strong> ${analysis.avgLoad} активности/час средно
-                        </div>
-                        <div class="alert alert-primary mb-0">
-                            <strong>💡 Препоръка:</strong> ${this.getPerformanceRecommendation(analysis)}
-                        </div>
-                    </div>
+                    <small class="text-muted">
+                        ${window.ActivityWallUtils.formatDateTime(alert.timestamp, 'relative')}
+                    </small>
                 </div>
             </div>
-        </div>
-    `;
+        `).join('');
+
+        container.innerHTML = html || '<div class="text-muted p-3">Няма алерти</div>';
     },
 
-    // ===== EXPORT METHODS (IMPROVED) =====
+    // Render suspicious IPs
+    renderSuspiciousIPs(suspiciousIPs) {
+        const container = document.getElementById('suspicious-ips-list');
+        if (!container) return;
 
-    async exportAsExcel() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма данни за експорт');
+        const html = suspiciousIPs.slice(0, 10).map(([ip, data]) => `
+            <div class="suspicious-ip-item p-2 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <code class="text-danger">${this.escapeHtml(ip)}</code>
+                        <div class="mt-1">
+                            <small class="badge bg-danger">${Math.round(data.score * 100)}% риск</small>
+                            <small class="badge bg-secondary ms-1">${data.count} активности</small>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" 
+                            onclick="ActivityWallAdvanced.showIPDetails('${this.escapeHtml(ip)}')">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        ${data.reasons.join(', ')}
+                    </small>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html || '<div class="text-muted p-3">Няма подозрителни IP адреси</div>';
+    },
+
+    // Render unusual activity
+    renderUnusualActivity(unusualActivity) {
+        const container = document.getElementById('unusual-activity-list');
+        if (!container) return;
+
+        if (unusualActivity.length === 0) {
+            container.innerHTML = '<div class="text-muted p-3">Няма необичайна активност</div>';
             return;
         }
 
-        this.showInfo('Excel експорт ще бъде имплементиран в следваща версия. Използвайте CSV експорт от основното меню.');
+        const html = unusualActivity.map(activity => `
+            <div class="unusual-activity-item p-2 border-bottom">
+                <div class="fw-bold">${this.escapeHtml(activity.title)}</div>
+                <div class="text-muted">${this.escapeHtml(activity.description)}</div>
+                <small class="text-muted">
+                    ${window.ActivityWallUtils.formatDateTime(activity.timestamp, 'relative')}
+                </small>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
     },
 
-    async exportAsPDF() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма данни за експорт');
-            return;
+    // Render security statistics chart
+    renderSecurityChart(analysis) {
+        const canvas = document.getElementById('security-stats-chart');
+        if (!canvas || !window.Chart) return;
+
+        if (this.charts?.security) {
+            this.charts.security.destroy();
         }
 
-        try {
-            this.generatePDFReport(activities);
-        } catch (error) {
-            console.error('❌ PDF export error:', error);
-            this.showError('Грешка при генериране на PDF отчета');
-        }
-    },
+        const ctx = canvas.getContext('2d');
+        if (!this.charts) this.charts = {};
 
-    async exportAsXML() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма данни за експорт');
-            return;
-        }
-
-        try {
-            const xmlContent = this.generateXML(activities);
-
-            if (window.ActivityWallUtils) {
-                const success = window.ActivityWallUtils.downloadAsFile(
-                    xmlContent,
-                    `activity-export-${new Date().toISOString().split('T')[0]}.xml`,
-                    'application/xml'
-                );
-
-                if (success) {
-                    this.showSuccess('XML файлът е изтеглен успешно');
-                } else {
-                    this.showError('Грешка при изтегляне на XML файла');
+        this.charts.security = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Безопасни IP', 'Подозрителни IP', 'Алерти'],
+                datasets: [{
+                    data: [
+                        analysis.totalIPs - analysis.suspiciousIPs.length,
+                        analysis.suspiciousIPs.length,
+                        analysis.alerts.length
+                    ],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,  // ⚡ KEY FIX
+                plugins: {
+                    legend: { position: 'bottom' }
                 }
             }
-        } catch (error) {
-            console.error('❌ XML export error:', error);
-            this.showError('Грешка при генериране на XML файла');
+        });
+    },
+
+    // Tools panel setup
+    setupToolsPanel() {
+        this.bindExportEvents();
+        this.bindReportEvents();
+        this.bindSettingsEvents();
+        this.loadSavedSettings();
+    },
+
+    // Bind export events
+    bindExportEvents() {
+        const exportBtn = document.getElementById('export-data-btn');
+        if (exportBtn) {
+            exportBtn.replaceWith(exportBtn.cloneNode(true)); // Remove existing listeners
+            document.getElementById('export-data-btn').addEventListener('click', () => this.handleDataExport());
         }
     },
 
-    generatePDFReport(activities) {
-        const userAnalysis = this.performUserAnalysis(activities);
-        const securityAnalysis = this.performSecurityAnalysis(activities);
-        const performanceAnalysis = this.performPerformanceAnalysis(activities);
+    // Handle data export
+    async handleDataExport() {
+        const format = document.getElementById('export-format')?.value || 'csv';
+        const period = document.getElementById('export-period')?.value || 'current';
+        const details = document.getElementById('export-details')?.value || 'basic';
 
-        const reportContent = `
+        try {
+            const activities = this.getActivitiesForExport(period);
+            const filename = `activities_${new Date().toISOString().split('T')[0]}.${format}`;
+
+            let data;
+            switch (format) {
+                case 'csv':
+                    data = window.ActivityWallUtils.formatDataForExport(activities, 'csv');
+                    break;
+                case 'json':
+                    data = window.ActivityWallUtils.formatDataForExport(activities, 'json');
+                    break;
+                case 'excel':
+                    data = window.ActivityWallUtils.formatDataForExport(activities, 'excel');
+                    break;
+                case 'pdf':
+                    await this.generatePDFReport(activities, details);
+                    return;
+            }
+
+            window.ActivityWallUtils.downloadData(data, filename, this.getMimeType(format));
+            window.ActivityWallUtils.showToast(`Експортът е завършен успешно (${filename})`, 'success');
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            window.ActivityWallUtils.showToast('Грешка при експорта', 'error');
+        }
+    },
+
+    // Get activities for export based on period
+    getActivitiesForExport(period) {
+        const allActivities = window.activityWall?.activities || [];
+
+        switch (period) {
+            case 'current':
+                return window.activityWall?.filteredActivities || [];
+            case '1h':
+                return this.filterActivitiesByTime(allActivities, 1);
+            case '24h':
+                return this.filterActivitiesByTime(allActivities, 24);
+            case '7d':
+                return this.filterActivitiesByTime(allActivities, 24 * 7);
+            case '30d':
+                return this.filterActivitiesByTime(allActivities, 24 * 30);
+            case 'all':
+            default:
+                return allActivities;
+        }
+    },
+
+    // Filter activities by time period
+    filterActivitiesByTime(activities, hours) {
+        const now = new Date();
+        const cutoff = new Date(now - hours * 60 * 60 * 1000);
+        return activities.filter(activity => new Date(activity.timestamp) >= cutoff);
+    },
+
+    // Get MIME type for export format
+    getMimeType(format) {
+        const types = {
+            csv: 'text/csv',
+            json: 'application/json',
+            excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        };
+        return types[format] || 'text/plain';
+    },
+
+    // Bind report generation events
+    bindReportEvents() {
+        ['generate-activity-report', 'generate-users-report', 'generate-security-report'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.replaceWith(btn.cloneNode(true));
+                document.getElementById(id).addEventListener('click', () => {
+                    const reportType = id.replace('generate-', '').replace('-report', '');
+                    this.generateReport(reportType);
+                });
+            }
+        });
+    },
+
+    // Generate reports
+    async generateReport(type) {
+        try {
+            window.ActivityWallUtils.showToast(`Генериране на ${type} доклад...`, 'info');
+
+            const activities = window.activityWall?.filteredActivities || [];
+            let reportData;
+
+            switch (type) {
+                case 'activity':
+                    reportData = this.generateActivityReport(activities);
+                    break;
+                case 'users':
+                    reportData = this.generateUsersReport(activities);
+                    break;
+                case 'security':
+                    reportData = this.generateSecurityReport(activities);
+                    break;
+            }
+
+            const filename = `${type}_report_${new Date().toISOString().split('T')[0]}.html`;
+            window.ActivityWallUtils.downloadData(reportData, filename, 'text/html');
+            window.ActivityWallUtils.showToast('Докладът е генериран успешно', 'success');
+
+        } catch (error) {
+            console.error('Report generation failed:', error);
+            window.ActivityWallUtils.showToast('Грешка при генериране на доклада', 'error');
+        }
+    },
+
+    // Generate activity report
+    generateActivityReport(activities) {
+        const summary = window.ActivityWallUtils.generateActivitySummary(activities);
+
+        return `
             <!DOCTYPE html>
-            <html>
+            <html lang="bg">
             <head>
                 <meta charset="UTF-8">
-                <title>Отчет за активностите - SmolyanVote</title>
+                <title>Доклад за активност - SmolyanVote</title>
                 <style>
-                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                    h1 { text-align: center; color: #333; }
-                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
-                    .stat { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { border-bottom: 2px solid #4b9f3e; padding-bottom: 10px; margin-bottom: 20px; }
+                    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+                    .stat-box { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+                    .stat-value { font-size: 24px; font-weight: bold; color: #4b9f3e; }
                 </style>
             </head>
             <body>
-                <h1>Отчет за активностите</h1>
-                <p style="text-align: center; color: #666;">Генериран на ${new Date().toLocaleDateString('bg-BG')}</p>
+                <div class="header">
+                    <h1>SmolyanVote - Доклад за активност</h1>
+                    <p>Генериран на: ${new Date().toLocaleString('bg-BG')}</p>
+                </div>
                 
-                <h2>Обобщение</h2>
-                <div class="stat">Общо активности: ${activities.length}</div>
-                <div class="stat">Уникални потребители: ${userAnalysis.totalUsers}</div>
-                <div class="stat">Уникални IP адреси: ${userAnalysis.totalIPs}</div>
-                <div class="stat">Ниво на риск: ${securityAnalysis.riskLevel}</div>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value">${summary.totalActivities}</div>
+                        <div>Общо активности</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${summary.uniqueUsers}</div>
+                        <div>Уникални потребители</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${summary.uniqueIPs}</div>
+                        <div>Уникални IP адреси</div>
+                    </div>
+                </div>
 
-                <h2>Най-активни потребители</h2>
-                <table>
-                    <tr><th>Потребител</th><th>Активности</th><th>Уникални IP</th></tr>
-                    ${userAnalysis.userStats.slice(0, 10).map(user => `
-                        <tr>
-                            <td>${this.escapeHtml(user.username)}</td>
-                            <td>${user.totalActivities}</td>
-                            <td>${user.uniqueIPs}</td>
-                        </tr>
-                    `).join('')}
-                </table>
+                <h2>Най-често действие</h2>
+                <p>${summary.topAction ?
+            `${summary.topAction.translated}: ${summary.topAction.count} пъти` :
+            'Няма данни'}</p>
 
-                <h2>Анализ на сигурността</h2>
-                <p>Открити са ${securityAnalysis.totalSuspicious} подозрителни модела.</p>
-                
-                <h2>Производителност</h2>
-                <div class="stat">Пиков час: ${performanceAnalysis.peakHour}:00</div>
-                <div class="stat">Средно активности на час: ${performanceAnalysis.avgLoad}</div>
+                <h2>Период на данните</h2>
+                <p>${summary.timeRange ?
+            `От ${new Date(summary.timeRange.earliest).toLocaleString('bg-BG')} до ${new Date(summary.timeRange.latest).toLocaleString('bg-BG')}` :
+            'Няма данни'}</p>
             </body>
             </html>
         `;
+    },
 
-        // Open in new window for printing
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(reportContent);
-            printWindow.document.close();
-            printWindow.print();
-            this.showSuccess('PDF отчетът е генериран');
-        } else {
-            this.showError('Грешка - попъп блокер възпрепятства отварянето на отчета');
+    // Bind settings events
+    bindSettingsEvents() {
+        const saveBtn = document.getElementById('save-settings-btn');
+        const clearBtn = document.getElementById('clear-cache-btn');
+
+        if (saveBtn) {
+            saveBtn.replaceWith(saveBtn.cloneNode(true));
+            document.getElementById('save-settings-btn').addEventListener('click', () => this.saveSettings());
+        }
+
+        if (clearBtn) {
+            clearBtn.replaceWith(clearBtn.cloneNode(true));
+            document.getElementById('clear-cache-btn').addEventListener('click', () => this.clearCache());
         }
     },
 
-    generateXML(activities) {
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<activityReport>\n';
-        xml += `  <metadata>\n`;
-        xml += `    <exportDate>${new Date().toISOString()}</exportDate>\n`;
-        xml += `    <totalRecords>${activities.length}</totalRecords>\n`;
-        xml += `    <generator>SmolyanVote Activity Wall</generator>\n`;
-        xml += `  </metadata>\n`;
-        xml += `  <activities>\n`;
+    // Save settings
+    saveSettings() {
+        const refreshInterval = document.getElementById('refresh-interval')?.value;
+        const maxRecords = document.getElementById('max-records')?.value;
 
-        activities.forEach(activity => {
-            xml += '    <activity>\n';
-            xml += `      <id>${activity.id}</id>\n`;
-            xml += `      <timestamp>${activity.timestamp}</timestamp>\n`;
-            xml += `      <username><![CDATA[${activity.username || ''}]]></username>\n`;
-            xml += `      <action><![CDATA[${activity.action || ''}]]></action>\n`;
-            xml += `      <entityType><![CDATA[${activity.entityType || ''}]]></entityType>\n`;
-            xml += `      <entityId>${activity.entityId || ''}</entityId>\n`;
-            xml += `      <ipAddress><![CDATA[${activity.ipAddress || ''}]]></ipAddress>\n`;
-            xml += `      <details><![CDATA[${activity.details || ''}]]></details>\n`;
-            xml += '    </activity>\n';
-        });
+        if (refreshInterval && window.activityWall) {
+            // Update refresh interval
+            window.activityWall.refreshInterval = parseInt(refreshInterval) * 1000;
+        }
 
-        xml += '  </activities>\n';
-        xml += '</activityReport>';
+        if (maxRecords && window.activityWall) {
+            // Update max records
+            window.activityWall.maxActivities = parseInt(maxRecords);
+        }
 
-        return xml;
+        window.ActivityWallUtils.showToast('Настройките са запазени', 'success');
     },
 
-    // ===== OTHER METHODS =====
-
-    async showCharts() {
-        if (window.ActivityWallCharts) {
-            const activities = this.getActivities();
-            await window.ActivityWallCharts.showCharts(activities);
-        } else {
-            this.showError('Графиките не са достъпни');
-        }
-    },
-
-    async generateReport() {
-        const activities = this.getActivities();
-        if (!activities.length) {
-            this.showError('Няма данни за отчет');
-            return;
-        }
-
-        try {
-            this.showAnalysisLoading('Генериране на пълен отчет');
-
-            const [userAnalysis, securityAnalysis, performanceAnalysis] = await Promise.all([
-                this.runAnalysisWithTimeout(this.performUserAnalysis.bind(this), activities, 5000),
-                this.runAnalysisWithTimeout(this.performSecurityAnalysis.bind(this), activities, 5000),
-                this.runAnalysisWithTimeout(this.performPerformanceAnalysis.bind(this), activities, 5000)
-            ]);
-
-            const reportHtml = `
-                <div class="comprehensive-report">
-                    <h4>Пълен отчет за активностите</h4>
-                    <div class="report-section">
-                        ${this.renderUserAnalysis(userAnalysis)}
-                    </div>
-                    <div class="report-section">
-                        ${this.renderSecurityAnalysis(securityAnalysis)}
-                    </div>
-                    <div class="report-section">
-                        ${this.renderPerformanceAnalysis(performanceAnalysis)}
-                    </div>
-                </div>
-            `;
-
-            this.displayAnalysis('Пълен отчет', reportHtml);
-        } catch (error) {
-            console.error('❌ Error generating report:', error);
-            this.showError('Грешка при генериране на отчета');
-        }
-    },
-
-    async refreshCurrentAnalysis() {
-        const panel = document.getElementById('analysis-panel');
-        if (!panel || panel.style.display === 'none') {
-            this.showInfo('Няма отворен анализ за обновяване');
-            return;
-        }
-
-        // Clear cache and regenerate
+    // Clear cache
+    clearCache() {
         this.analysisCache.clear();
+        this.analysisData = { users: null, security: null, lastUpdated: null };
 
-        // Determine which analysis to refresh based on title
-        const titleElement = document.getElementById('analysis-title');
-        const title = titleElement?.textContent || '';
+        if (window.activityWall) {
+            window.activityWall.activities = [];
+            window.activityWall.filteredActivities = [];
+            window.activityWall.loadInitialActivities();
+        }
 
-        if (title.includes('потребителите')) {
-            await this.showUserAnalysis();
-        } else if (title.includes('сигурността')) {
-            await this.showSecurityAnalysis();
-        } else if (title.includes('производителността')) {
-            await this.showPerformanceAnalysis();
-        } else if (title.includes('Пълен отчет')) {
-            await this.generateReport();
-        } else {
-            this.showInfo('Не можах да определя типа анализ за обновяване');
+        window.ActivityWallUtils.showToast('Кешът е изчистен', 'success');
+    },
+
+    // Load saved settings
+    loadSavedSettings() {
+        const refreshInterval = document.getElementById('refresh-interval');
+        const maxRecords = document.getElementById('max-records');
+
+        if (refreshInterval && window.activityWall) {
+            refreshInterval.value = (window.activityWall.refreshInterval || 5000) / 1000;
+        }
+
+        if (maxRecords && window.activityWall) {
+            maxRecords.value = window.activityWall.maxActivities || 1000;
         }
     },
 
-    // ===== UTILITY METHODS =====
+    // Setup tab auto-refresh
+    setupTabRefresh(tabName, interval) {
+        this.clearRefreshTimer(tabName);
 
-    getActivities(useFiltered = true) {
-        if (useFiltered) {
-            return window.activityWallInstance?.filteredActivities || [];
-        } else {
-            // Връща ВСИЧКИ активности, независимо от филтрите
-            return window.activityWallInstance?.activities || [];
-        }
-    },
-
-    displayAnalysis(title, content) {
-        const panel = document.getElementById('analysis-panel');
-        const titleElement = document.getElementById('analysis-title');
-        const contentElement = document.getElementById('analysis-content');
-
-        if (titleElement) {
-            titleElement.innerHTML = `<i class="bi bi-bar-chart me-2"></i>${this.escapeHtml(title)}`;
-        }
-
-        if (contentElement) {
-            contentElement.innerHTML = content;
-        }
-
-        if (panel) {
-            panel.style.display = 'block';
-            panel.scrollIntoView({ behavior: 'smooth' });
-        }
-    },
-
-    showAnalysisLoading(title) {
-        const titleElement = document.getElementById('analysis-title');
-        const contentElement = document.getElementById('analysis-content');
-
-        if (titleElement) {
-            titleElement.innerHTML = `<i class="bi bi-bar-chart me-2"></i>${this.escapeHtml(title)}`;
-        }
-
-        if (contentElement) {
-            contentElement.innerHTML = `
-                <div class="text-center p-5">
-                    <div class="spinner-border text-primary me-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <span>Изпълнява се анализ...</span>
-                </div>
-            `;
-        }
-
-        const panel = document.getElementById('analysis-panel');
-        if (panel) {
-            panel.style.display = 'block';
-        }
-    },
-
-    hideAnalysis() {
-        const panel = document.getElementById('analysis-panel');
-        if (panel) {
-            panel.style.display = 'none';
-        }
-    },
-
-    updateStats(activities) {
-        if (!activities) return;
-
-        try {
-            const userAnalysis = this.performUserAnalysis(activities);
-            const securityAnalysis = this.performSecurityAnalysis(activities);
-            const performanceAnalysis = this.performPerformanceAnalysis(activities);
-
-            // Update stat cards safely
-            this.updateStatElement('total-activities-stat', activities.length);
-            this.updateStatElement('unique-users-stat', userAnalysis.totalUsers);
-            this.updateStatElement('avg-per-hour-stat', Math.round(performanceAnalysis.avgLoad));
-            this.updateStatElement('security-alerts-stat', securityAnalysis.totalSuspicious);
-        } catch (error) {
-            console.error('❌ Error updating stats:', error);
-        }
-    },
-
-    updateStatElement(id, value) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    },
-
-    calculateRiskLevel(suspiciousPatterns) {
-        const highSeverity = suspiciousPatterns.filter(p => p.severity === 'high').length;
-        const mediumSeverity = suspiciousPatterns.filter(p => p.severity === 'medium').length;
-
-        if (highSeverity > 0) return 'high';
-        if (mediumSeverity > 2) return 'medium';
-        return 'low';
-    },
-
-    getPerformanceRecommendation(analysis) {
-        if (analysis.loadTrend === 'increasing') {
-            return 'Разгледайте scaling опциите заради нарастващата активност';
-        }
-        if (analysis.avgLoad > 100) {
-            return 'Високо натоварване - мониторирайте production производителността';
-        }
-        if (analysis.avgLoad < 10) {
-            return 'Ниска активност - проверете дали системата работи правилно';
-        }
-        return 'Нормално ниво на активност - системата работи стабилно';
-    },
-
-    calculateLoadTrend(hourlyLoad) {
-        if (hourlyLoad.length < 12) return 'stable';
-
-        const recent = hourlyLoad.slice(-6);
-        const previous = hourlyLoad.slice(-12, -6);
-
-        const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-        const previousAvg = previous.reduce((a, b) => a + b, 0) / previous.length;
-
-        const change = previousAvg > 0 ? (recentAvg - previousAvg) / previousAvg : 0;
-
-        if (change > 0.2) return 'increasing';
-        if (change < -0.2) return 'decreasing';
-        return 'stable';
-    },
-
-    groupByTimeWindows(activities, minutes) {
-        const windows = new Map();
-        const windowMs = minutes * 60 * 1000;
-
-        activities.forEach(activity => {
-            const timestamp = new Date(activity.timestamp).getTime();
-            const windowStart = Math.floor(timestamp / windowMs) * windowMs;
-            const windowKey = new Date(windowStart).toISOString();
-
-            if (!windows.has(windowKey)) {
-                windows.set(windowKey, { timestamp: windowKey, count: 0 });
+        this.refreshTimers[tabName] = setInterval(async () => {
+            if (this.currentTab === tabName) {
+                if (tabName === 'users') {
+                    await this.loadUsersAnalysis();
+                } else if (tabName === 'security') {
+                    await this.loadSecurityAnalysis();
+                }
             }
-            windows.get(windowKey).count++;
-        });
-
-        return Array.from(windows.values()).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }, interval);
     },
 
-    escapeHtml(unsafe) {
-        if (typeof unsafe !== 'string') return String(unsafe);
-
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    // Clear refresh timers
+    clearRefreshTimers() {
+        Object.values(this.refreshTimers).forEach(timer => clearInterval(timer));
+        this.refreshTimers = {};
     },
 
-    showSuccess(message) {
-        if (window.ActivityWallUtils) {
-            window.ActivityWallUtils.showToast(message, 'success');
-        } else {
-            console.log(`✅ ${message}`);
+    clearRefreshTimer(tabName) {
+        if (this.refreshTimers[tabName]) {
+            clearInterval(this.refreshTimers[tabName]);
+            delete this.refreshTimers[tabName];
         }
     },
 
-    showError(message) {
-        if (window.ActivityWallUtils) {
-            window.ActivityWallUtils.showToast(message, 'error');
-        } else {
-            console.error(`❌ ${message}`);
+    // Show loading state for tab
+    showTabLoading(contentId) {
+        const content = document.getElementById(contentId);
+        if (content) {
+            content.style.opacity = '0.6';
+            content.style.pointerEvents = 'none';
         }
     },
 
-    showInfo(message) {
-        if (window.ActivityWallUtils) {
-            window.ActivityWallUtils.showToast(message, 'info');
-        } else {
-            console.log(`ℹ️ ${message}`);
+    // Show error state for tab
+    showTabError(contentId, message) {
+        const content = document.getElementById(contentId);
+        if (content) {
+            content.style.opacity = '1';
+            content.style.pointerEvents = 'auto';
+        }
+        window.ActivityWallUtils.showToast(message, 'error');
+    },
+
+    // External integration methods
+    async onFiltersChanged(filteredActivities) {
+        if (this.currentTab === 'users' && this.analysisData.users) {
+            await this.loadUsersAnalysis();
+        } else if (this.currentTab === 'security' && this.analysisData.security) {
+            await this.loadSecurityAnalysis();
         }
     },
 
-    // ===== INTEGRATION METHODS =====
+    // Show user details (modal or detailed view)
+    showUserDetails(username) {
+        if (!this.analysisData.users) return;
 
-    onFiltersChanged(filteredActivities) {
-        this.updateStats(filteredActivities);
-        this.analysisCache.clear();
+        const userStats = this.analysisData.users.userStats[username];
+        if (!userStats) return;
+
+        const details = `
+            Потребител: ${username}
+            Общо активности: ${userStats.totalActivities}
+            Последна активност: ${window.ActivityWallUtils.formatDateTime(userStats.lastActivity)}
+            Уникални IP адреси: ${userStats.uniqueIPs}
+            Най-често действие: ${userStats.mostCommonAction ?
+            window.ActivityWallUtils.translateAction(userStats.mostCommonAction[0]) : 'Няма'}
+        `;
+
+        window.ActivityWallUtils.copyToClipboard(details, 'Детайлите за потребителя са копирани');
     },
 
-    integrateWithActivityWall() {
-        if (window.activityWallInstance) {
-            const activities = window.activityWallInstance.filteredActivities || [];
-            this.updateStats(activities);
-            console.log('✅ Activity Wall Advanced: Integrated with Activity Wall');
-        }
+    // Show IP details
+    showIPDetails(ip) {
+        if (!this.analysisData.security) return;
+
+        const ipData = this.analysisData.security.suspiciousIPs.find(([ipAddr]) => ipAddr === ip);
+        if (!ipData) return;
+
+        const [, data] = ipData;
+        const details = `
+            IP адрес: ${ip}
+            Ниво на риск: ${Math.round(data.score * 100)}%
+            Активности: ${data.count}
+            Потребители: ${data.users.join(', ')}
+            Причини: ${data.reasons.join(', ')}
+        `;
+
+        window.ActivityWallUtils.copyToClipboard(details, 'Детайлите за IP адреса са копирани');
     },
 
-    // ===== CLEANUP =====
+    // Utility methods
+    escapeHtml(text) {
+        return window.ActivityWallUtils.escapeHtml(text);
+    },
 
+    // Cleanup
     destroy() {
-        console.log('🧹 Destroying Activity Wall Advanced...');
+        this.clearRefreshTimers();
 
-        // Cancel any running analysis
-        if (this.currentAnalysisRequest) {
-            this.currentAnalysisRequest.cancelled = true;
+        if (this.charts) {
+            Object.values(this.charts).forEach(chart => {
+                if (chart && chart.destroy) chart.destroy();
+            });
         }
 
-        // Clear cache
         this.analysisCache.clear();
-
-        // Reset state
         this.isInitialized = false;
-        this.updateCallbacks = [];
-        this.currentAnalysisRequest = null;
-
-        console.log('✅ Activity Wall Advanced destroyed');
     }
 };
 
-// ===== CSS STYLES (IMPROVED) =====
-const advancedStyles = `
-    .analysis-stat {
-        text-align: center;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 8px;А
-        border: 1px solid #dee2e6;
-        transition: transform 0.2s ease;
-    }
-    
-    .analysis-stat:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .analysis-stat h3 {
-        margin: 0;
-        font-size: 2rem;
-        font-weight: bold;
-    }
-    
-    .analysis-stat p {
-        margin: 0.5rem 0 0 0;
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-    
-    .stat-card {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-        transition: transform 0.2s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .stat-icon {
-        font-size: 2rem;
-        margin-right: 1rem;
-    }
-    
-    .stat-content h4 {
-        margin: 0;
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-    
-    .stat-content p {
-        margin: 0;
-        color: #6c757d;
-        font-size: 0.875rem;
-    }
-    
-    .hourly-load-chart {
-        display: flex;
-        align-items: end;
-        height: 200px;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 4px;
-        gap: 2px;
-    }
-    
-    .hour-bar {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        cursor: pointer;
-    }
-    
-    .bar {
-        width: 100%;
-        background: linear-gradient(to top, #007bff, #66b3ff);
-        border-radius: 2px 2px 0 0;
-        min-height: 2px;
-        transition: all 0.3s ease;
-    }
-    
-    .hour-bar:hover .bar {
-        background: linear-gradient(to top, #0056b3, #4da6ff);
-        transform: scaleY(1.1);
-    }
-    
-    .hour-label {
-        font-size: 0.7rem;
-        margin-top: 0.25rem;
-        color: #6c757d;
-        font-weight: 500;
-    }
-    
-    .report-section {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .control-group {
-        margin-bottom: 1rem;
-    }
-    
-    .control-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #495057;
-    }
-    
-    .analysis-results {
-        animation: fadeIn 0.3s ease-in;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .alert-list .alert {
-        margin-bottom: 0.5rem;
-        border-radius: 6px;
-    }
-    
-    .comprehensive-report {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-    
-    .table-responsive {
-        border-radius: 6px;
-        overflow: hidden;
-    }
-    
-    .progress {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    
-    .progress-bar {
-        transition: width 0.6s ease;
-    }
-`;
-
-// Add styles if not already added
-if (!document.getElementById('activity-advanced-styles')) {
-    const advancedStyleSheet = document.createElement('style');
-    advancedStyleSheet.id = 'activity-advanced-styles';
-    advancedStyleSheet.textContent = advancedStyles;
-    document.head.appendChild(advancedStyleSheet);
-}
-
-// ===== AUTO INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        await window.ActivityWallAdvanced.init();
-    } catch (error) {
-        console.error('❌ Failed to initialize Activity Wall Advanced:', error);
-    }
+// Auto initialization
+document.addEventListener('DOMContentLoaded', function() {
+    window.ActivityWallAdvanced.init();
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
-    window.ActivityWallAdvanced.destroy();
+    if (window.ActivityWallAdvanced) {
+        window.ActivityWallAdvanced.destroy();
+    }
 });
-
-// Export for global access
-window.ActivityWallAdvanced = window.ActivityWallAdvanced;
