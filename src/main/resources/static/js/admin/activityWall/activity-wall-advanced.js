@@ -10,7 +10,6 @@ window.ActivityWallAdvanced = {
     // Advanced analysis data
     analysisData: {
         users: null,
-        security: null,
         lastUpdated: null
     },
 
@@ -19,7 +18,7 @@ window.ActivityWallAdvanced = {
         if (this.isInitialized) return;
 
         this.setupTabSystem();
-        this.setupToolsPanel();
+        this.setupToolsContent(); // ⚡ FIXED: setupToolsPanel → setupToolsContent
         this.isInitialized = true;
     },
 
@@ -43,31 +42,19 @@ window.ActivityWallAdvanced = {
     // Switch to specific tab and load content
     async switchToTab(tabName) {
         this.currentTab = tabName;
+
+        // Clear any existing refresh timers
         this.clearRefreshTimers();
 
         switch (tabName) {
             case 'charts':
+                // Charts are handled by ActivityWallCharts
                 break;
             case 'users':
                 await this.loadUsersAnalysis();
-                // ⚡ RESIZE FIX
-                setTimeout(() => {
-                    if (this.charts?.usersTime) {
-                        this.charts.usersTime.resize();
-                    }
-                }, 100);
-                break;
-            case 'security':
-                await this.loadSecurityAnalysis();
-                // ⚡ RESIZE FIX
-                setTimeout(() => {
-                    if (this.charts?.security) {
-                        this.charts.security.resize();
-                    }
-                }, 100);
                 break;
             case 'tools':
-                this.setupToolsPanel();
+                this.setupToolsContent();
                 break;
         }
     },
@@ -89,11 +76,13 @@ window.ActivityWallAdvanced = {
             // Setup auto-refresh for users tab
             this.setupTabRefresh('users', 30000); // 30 seconds
 
+            // ⚡ RESTORE NORMAL STATE
             const usersContent = document.getElementById('users-content');
             if (usersContent) {
                 usersContent.style.opacity = '1';
                 usersContent.style.pointerEvents = 'auto';
             }
+
         } catch (error) {
             console.error('Users analysis failed:', error);
             this.showTabError('users-content', 'Грешка при анализа на потребителите');
@@ -238,12 +227,12 @@ window.ActivityWallAdvanced = {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,  // ⚡ KEY FIX
-                plugins: {
-                    legend: { display: false }
-                },
+                maintainAspectRatio: false,
                 scales: {
                     y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
                 }
             }
         });
@@ -304,11 +293,13 @@ window.ActivityWallAdvanced = {
             // Setup auto-refresh for security tab
             this.setupTabRefresh('security', 15000); // 15 seconds
 
+            // ⚡ RESTORE NORMAL STATE
             const securityContent = document.getElementById('security-content');
             if (securityContent) {
                 securityContent.style.opacity = '1';
                 securityContent.style.pointerEvents = 'auto';
             }
+
         } catch (error) {
             console.error('Security analysis failed:', error);
             this.showTabError('security-content', 'Грешка при анализа на сигурността');
@@ -593,7 +584,7 @@ window.ActivityWallAdvanced = {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,  // ⚡ KEY FIX
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom' }
                 }
@@ -602,7 +593,7 @@ window.ActivityWallAdvanced = {
     },
 
     // Tools panel setup
-    setupToolsPanel() {
+    setupToolsContent() {
         this.bindExportEvents();
         this.bindReportEvents();
         this.bindSettingsEvents();
@@ -693,7 +684,7 @@ window.ActivityWallAdvanced = {
 
     // Bind report generation events
     bindReportEvents() {
-        ['generate-activity-report', 'generate-users-report', 'generate-security-report'].forEach(id => {
+        ['generate-activity-report', 'generate-users-report'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
                 btn.replaceWith(btn.cloneNode(true));
@@ -719,9 +710,6 @@ window.ActivityWallAdvanced = {
                     break;
                 case 'users':
                     reportData = this.generateUsersReport(activities);
-                    break;
-                case 'security':
-                    reportData = this.generateSecurityReport(activities);
                     break;
             }
 
@@ -855,11 +843,16 @@ window.ActivityWallAdvanced = {
         this.clearRefreshTimer(tabName);
 
         this.refreshTimers[tabName] = setInterval(async () => {
+            // ⚡ SKIP REFRESH if popups are open
+            if (document.getElementById('user-details-popup') ||
+                document.getElementById('user-actions-mini-popup') ||
+                document.getElementById('user-ips-mini-popup')) {
+                return; // Don't refresh while user is viewing popups
+            }
+
             if (this.currentTab === tabName) {
                 if (tabName === 'users') {
                     await this.loadUsersAnalysis();
-                } else if (tabName === 'security') {
-                    await this.loadSecurityAnalysis();
                 }
             }
         }, interval);
@@ -898,11 +891,9 @@ window.ActivityWallAdvanced = {
     },
 
     // External integration methods
-    async onFiltersChanged(filteredActivities) {
+    onFiltersChanged(filteredActivities) {
         if (this.currentTab === 'users' && this.analysisData.users) {
-            await this.loadUsersAnalysis();
-        } else if (this.currentTab === 'security' && this.analysisData.security) {
-            await this.loadSecurityAnalysis();
+            this.loadUsersAnalysis();
         }
     },
 
@@ -913,35 +904,284 @@ window.ActivityWallAdvanced = {
         const userStats = this.analysisData.users.userStats[username];
         if (!userStats) return;
 
-        const details = `
-            Потребител: ${username}
-            Общо активности: ${userStats.totalActivities}
-            Последна активност: ${window.ActivityWallUtils.formatDateTime(userStats.lastActivity)}
-            Уникални IP адреси: ${userStats.uniqueIPs}
-            Най-често действие: ${userStats.mostCommonAction ?
-            window.ActivityWallUtils.translateAction(userStats.mostCommonAction[0]) : 'Няма'}
-        `;
-
-        window.ActivityWallUtils.copyToClipboard(details, 'Детайлите за потребителя са копирани');
+        // Show custom user popup instead of copy to clipboard
+        this.showUserDetailsPopup(username, userStats, event.clientX + 10, event.clientY + 10);
     },
 
-    // Show IP details
-    showIPDetails(ip) {
-        if (!this.analysisData.security) return;
+    // Create user details popup
+    createUserDetailsPopup() {
+        if (document.getElementById('user-details-popup')) return;
 
-        const ipData = this.analysisData.security.suspiciousIPs.find(([ipAddr]) => ipAddr === ip);
-        if (!ipData) return;
-
-        const [, data] = ipData;
-        const details = `
-            IP адрес: ${ip}
-            Ниво на риск: ${Math.round(data.score * 100)}%
-            Активности: ${data.count}
-            Потребители: ${data.users.join(', ')}
-            Причини: ${data.reasons.join(', ')}
+        const popup = document.createElement('div');
+        popup.id = 'user-details-popup';
+        popup.className = 'user-details-popup';
+        popup.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            z-index: 9999;
+            display: none;
+            min-width: 320px;
+            max-width: 400px;
+            backdrop-filter: blur(8px);
         `;
 
-        window.ActivityWallUtils.copyToClipboard(details, 'Детайлите за IP адреса са копирани');
+        document.body.appendChild(popup);
+    },
+
+    // Show user details popup
+    showUserDetailsPopup(username, userStats, x, y) {
+        this.createUserDetailsPopup();
+        const popup = document.getElementById('user-details-popup');
+
+        // Get user activities for detailed analysis
+        const userActivities = window.activityWall.filteredActivities.filter(a => a.username === username);
+
+        // Activity breakdown
+        const actionCounts = Object.entries(userStats.actions)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5);
+
+        // Time analysis
+        const hourCounts = {};
+        userActivities.forEach(a => {
+            const hour = new Date(a.timestamp).getHours();
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        });
+        const topHour = Object.entries(hourCounts)
+            .sort(([,a], [,b]) => b - a)[0];
+
+        let content = `
+            <div class="user-popup-header">
+                <strong><i class="bi bi-person-circle"></i> ${this.escapeHtml(username)}</strong>
+                <button type="button" class="btn-close" onclick="ActivityWallAdvanced.hideUserDetailsPopup()"
+                        style="background: none; border: none; font-size: 1.2rem; opacity: 0.7; float: right; cursor: pointer;">&times;</button>
+            </div>
+            <hr style="margin: 0.75rem 0;">
+            
+            <div class="user-popup-stats">
+                <div class="row text-center mb-2">
+                    <div class="col-6">
+                        <div class="h5 text-primary mb-0 clickable-count" 
+                             onclick="ActivityWallAdvanced.showUserActionsPopup('${this.escapeHtml(username)}')"
+                             style="cursor: pointer;" title="Кликни за всички действия">
+                            ${userStats.totalActivities}
+                        </div>
+                        <small class="text-muted">Активности</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h5 text-info mb-0 clickable-count" 
+                             onclick="ActivityWallAdvanced.showUserIPsPopup('${this.escapeHtml(username)}')"
+                             style="cursor: pointer;" title="Кликни за всички IP адреси">
+                            ${userStats.uniqueIPs}
+                        </div>
+                        <small class="text-muted">IP адреса</small>
+                    </div>
+                </div>
+                
+                <div><strong>Период:</strong><br>
+                <small>${window.ActivityWallUtils.formatDateTime(userStats.firstActivity, 'short')} - 
+                ${window.ActivityWallUtils.formatDateTime(userStats.lastActivity, 'short')}</small></div>
+        `;
+
+        if (actionCounts.length > 0) {
+            content += `
+                <div class="mt-2">
+                    <strong>Топ действия:</strong><br>
+                    ${actionCounts.map(([action, count]) =>
+                `<small>• ${window.ActivityWallUtils.translateAction(action)}: <span class="badge bg-secondary">${count}</span></small>`
+            ).join('<br>')}
+                </div>
+            `;
+        }
+
+        if (topHour) {
+            content += `
+                <div class="mt-2">
+                    <strong>Най-активен час:</strong> ${topHour[0]}:00ч (${topHour[1]} активности)
+                </div>
+            `;
+        }
+
+        if (userStats.ipAddresses.length > 0) {
+            content += `
+                <div class="mt-2">
+                    <strong>IP адреси:</strong><br>
+                    ${userStats.ipAddresses.slice(0, 3).map(ip =>
+                `<small><code>${ip}</code></small>`
+            ).join('<br>')}
+                    ${userStats.ipAddresses.length > 3 ? `<br><small class="text-muted">+${userStats.ipAddresses.length - 3} още</small>` : ''}
+                </div>
+            `;
+        }
+
+        content += `
+            </div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-sm btn-primary me-2" 
+                        onclick="ActivityWallAdvanced.filterByUser('${this.escapeHtml(username)}')">
+                    <i class="bi bi-funnel"></i> Филтрирай таблицата
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                        onclick="ActivityWallAdvanced.copyUserInfo('${this.escapeHtml(username)}')">
+                    <i class="bi bi-clipboard"></i> Копирай
+                </button>
+            </div>
+        `;
+
+        popup.innerHTML = content;
+        popup.style.display = 'block';
+
+        // ⚡ CENTER POSITIONING for main popup
+        popup.style.left = '50%';
+        popup.style.top = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        popup.style.maxHeight = (window.innerHeight - 40) + 'px';
+        popup.style.overflowY = 'auto';
+    },
+
+    // Hide user details popup
+    hideUserDetailsPopup() {
+        const popup = document.getElementById('user-details-popup');
+        if (popup) popup.style.display = 'none';
+    },
+
+    // Filter main table by user
+    filterByUser(username) {
+        if (window.activityWall) {
+            document.getElementById('user-filter').value = username;
+            window.activityWall.updateFilter('user', username);
+        }
+        this.hideUserDetailsPopup();
+    },
+
+    // Copy user info to clipboard
+    copyUserInfo(username) {
+        if (!this.analysisData.users) return;
+
+        const userStats = this.analysisData.users.userStats[username];
+        if (!userStats) return;
+
+        const details = `
+Потребител: ${username}
+Общо активности: ${userStats.totalActivities}
+Уникални IP адреси: ${userStats.uniqueIPs}
+Първа активност: ${window.ActivityWallUtils.formatDateTime(userStats.firstActivity)}
+Последна активност: ${window.ActivityWallUtils.formatDateTime(userStats.lastActivity)}
+Най-често действие: ${userStats.mostCommonAction ?
+            window.ActivityWallUtils.translateAction(userStats.mostCommonAction[0]) + ': ' + userStats.mostCommonAction[1] : 'Няма'}
+IP адреси: ${userStats.ipAddresses.join(', ')}
+        `.trim();
+
+        window.ActivityWallUtils.copyToClipboard(details, 'Потребителските детайли са копирани');
+        this.hideUserDetailsPopup();
+    },
+
+    // Show user actions mini popup
+    showUserActionsPopup(username) {
+        if (!this.analysisData.users) return;
+
+        const userStats = this.analysisData.users.userStats[username];
+        if (!userStats) return;
+
+        // Get main popup position
+        const mainPopup = document.getElementById('user-details-popup');
+        const mainRect = mainPopup ? mainPopup.getBoundingClientRect() : null;
+
+        const miniPopup = document.createElement('div');
+        miniPopup.id = 'user-actions-mini-popup';
+        miniPopup.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10001;
+            max-width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            ${mainRect ? `left: ${mainRect.right + 10}px; top: ${mainRect.top}px;` : 'left: 60%; top: 30%;'}
+        `;
+
+        const allActions = Object.entries(userStats.actions)
+            .sort(([,a], [,b]) => b - a);
+
+        miniPopup.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Всички действия на ${username}</strong>
+                <button type="button" onclick="this.parentElement.parentElement.remove()"
+                        style="background: none; border: none; font-size: 1.2rem; opacity: 0.7; cursor: pointer;">&times;</button>
+            </div>
+            <div style="max-height: 200px; overflow-y: auto;">
+                ${allActions.map(([action, count]) => `
+                    <div class="d-flex justify-content-between border-bottom py-1">
+                        <small>${window.ActivityWallUtils.translateAction(action)}</small>
+                        <span class="badge bg-primary">${count}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        document.body.appendChild(miniPopup);
+
+        // Auto remove after 15 seconds (longer since user is interacting)
+        setTimeout(() => {
+            if (miniPopup.parentNode) miniPopup.remove();
+        }, 15000);
+    },
+
+    // Show user IPs mini popup
+    showUserIPsPopup(username) {
+        if (!this.analysisData.users) return;
+
+        const userStats = this.analysisData.users.userStats[username];
+        if (!userStats) return;
+
+        // Get main popup position
+        const mainPopup = document.getElementById('user-details-popup');
+        const mainRect = mainPopup ? mainPopup.getBoundingClientRect() : null;
+
+        const miniPopup = document.createElement('div');
+        miniPopup.id = 'user-ips-mini-popup';
+        miniPopup.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10001;
+            max-width: 280px;
+            max-height: 250px;
+            overflow-y: auto;
+            ${mainRect ? `left: ${mainRect.left - 290}px; top: ${mainRect.top}px;` : 'left: 20%; top: 30%;'}
+        `;
+
+        miniPopup.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>IP адреси на ${username}</strong>
+                <button type="button" onclick="this.parentElement.parentElement.remove()"
+                        style="background: none; border: none; font-size: 1.2rem; opacity: 0.7; cursor: pointer;">&times;</button>
+            </div>
+            <div style="max-height: 150px; overflow-y: auto;">
+                ${userStats.ipAddresses.map(ip => `
+                    <div class="py-1">
+                        <code class="small">${ip}</code>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        document.body.appendChild(miniPopup);
+
+        // Auto remove after 12 seconds
+        setTimeout(() => {
+            if (miniPopup.parentNode) miniPopup.remove();
+        }, 12000);
     },
 
     // Utility methods
@@ -957,6 +1197,23 @@ window.ActivityWallAdvanced = {
             Object.values(this.charts).forEach(chart => {
                 if (chart && chart.destroy) chart.destroy();
             });
+        }
+
+        // Cleanup user details popup
+        const userPopup = document.getElementById('user-details-popup');
+        if (userPopup && userPopup.parentNode) {
+            userPopup.parentNode.removeChild(userPopup);
+        }
+
+        // Cleanup mini popups
+        const actionsPopup = document.getElementById('user-actions-mini-popup');
+        if (actionsPopup && actionsPopup.parentNode) {
+            actionsPopup.parentNode.removeChild(actionsPopup);
+        }
+
+        const ipsPopup = document.getElementById('user-ips-mini-popup');
+        if (ipsPopup && ipsPopup.parentNode) {
+            ipsPopup.parentNode.removeChild(ipsPopup);
         }
 
         this.analysisCache.clear();
