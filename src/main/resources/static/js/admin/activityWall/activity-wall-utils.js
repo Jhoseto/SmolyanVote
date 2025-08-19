@@ -882,6 +882,97 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ===== ACTION TRANSLATIONS (SHARED) =====
+window.ActivityWallUtils.actionTranslations = {
+    // ===== АВТЕНТИКАЦИЯ =====
+    'USER_LOGIN': 'Влезе в системата',
+    'USER_LOGOUT': 'Излезе от системата',
+    'USER_REGISTER': 'Регистрира се',
+    'USER_PASSWORD_CHANGE': 'Смени паролата',
+    'USER_EMAIL_VERIFY': 'Потвърди имейла',
+    'USER_PASSWORD_RESET': 'Нулира паролата',
+
+    // ===== СЪЗДАВАНЕ =====
+    'CREATE_PUBLICATION': 'Създаде публикация',
+    'CREATE_SIMPLE_EVENT': 'Създаде събитие',
+    'CREATE_REFERENDUM': 'Създаде референдум',
+    'CREATE_MULTI_POLL': 'Създаде анкета',
+    'CREATE_COMMENT': 'Коментира',
+    'CREATE_SIGNAL': 'Подаде сигнал',
+
+    // ===== ВЗАИМОДЕЙСТВИЯ =====
+    'LIKE_PUBLICATION': 'Хареса публикация',
+    'DISLIKE_PUBLICATION': 'Не хареса публикация',
+    'LIKE_COMMENT': 'Хареса коментар',
+    'DISLIKE_COMMENT': 'Не хареса коментар',
+    'VOTE_SIMPLE_EVENT': 'Гласува в събитие',
+    'VOTE_REFERENDUM': 'Гласува в референдум',
+    'VOTE_MULTI_POLL': 'Гласува в анкета',
+    'SHARE_PUBLICATION': 'Сподели публикация',
+    'BOOKMARK_CONTENT': 'Добави в отметки',
+    'FOLLOW_USER': 'Последва потребител',
+    'UNFOLLOW_USER': 'Спря да следва потребител',
+
+    // ===== ПРЕГЛЕЖДАНЕ =====
+    'VIEW_PUBLICATION': 'Прегледа публикация',
+    'VIEW_EVENT': 'Прегледа събитие',
+    'VIEW_REFERENDUM': 'Прегледа референдум',
+    'VIEW_MULTI_POLL': 'Прегледа анкета',
+    'VIEW_SIGNAL': 'Прегледа сигнал',
+    'VIEW_PROFILE': 'Прегледа профил',
+    'SEARCH_CONTENT': 'Търси съдържание',
+    'FILTER_CONTENT': 'Филтрира съдържание',
+
+    // ===== РЕДАКТИРАНЕ =====
+    'EDIT_PUBLICATION': 'Редактира публикация',
+    'EDIT_EVENT': 'Редактира събитие',
+    'EDIT_REFERENDUM': 'Редактира референдум',
+    'EDIT_MULTI_POLL': 'Редактира анкета',
+    'EDIT_SIGNAL': 'Редактира сигнал',
+    'EDIT_COMMENT': 'Редактира коментар',
+    'EDIT_PROFILE': 'Редактира профил',
+
+    // ===== ИЗТРИВАНЕ =====
+    'DELETE_PUBLICATION': 'Изтри публикация',
+    'DELETE_EVENT': 'Изтри събитие',
+    'DELETE_REFERENDUM': 'Изтри референдум',
+    'DELETE_COMMENT': 'Изтри коментар',
+    'DELETE_SIGNAL': 'Изтри сигнал',
+
+    // ===== ДОКЛАДВАНЕ =====
+    'REPORT_PUBLICATION': 'Докладва публикация',
+    'REPORT_EVENT': 'Докладва събитие',
+    'REPORT_REFERENDUM': 'Докладва референдум',
+    'REPORT_COMMENT': 'Докладва коментар',
+    'REPORT_USER': 'Докладва потребител',
+
+    // ===== АДМИНИСТРАЦИЯ =====
+    'ADMIN_REVIEW_REPORT': 'Прегледа доклад',
+    'ADMIN_DELETE_CONTENT': 'Изтри съдържание (админ)',
+    'ADMIN_BAN_USER': 'Блокира потребител',
+    'ADMIN_UNBAN_USER': 'Отблокира потребител',
+    'ADMIN_PROMOTE_USER': 'Повиши потребител',
+    'ADMIN_DEMOTE_USER': 'Понижи потребител',
+    'CONTACT_MESSAGE': 'Съобщение до контакт',
+
+    // ===== НАСТРОЙКИ =====
+    'UPDATE_NOTIFICATIONS': 'Актуализира нотификации',
+    'UPDATE_PRIVACY': 'Актуализира поверителност',
+    'EXPORT_DATA': 'Експортира данни',
+    'DELETE_ACCOUNT': 'Изтриване на акаунт',
+
+    // ===== СИСТЕМА =====
+    'SYSTEM_BACKUP': 'Системен backup',
+    'SYSTEM_MAINTENANCE': 'Системна поддръжка',
+    'API_ACCESS': 'API достъп'
+};
+
+// ===== HELPER METHOD =====
+window.ActivityWallUtils.translateAction = function(action) {
+    return this.actionTranslations[action] || action;
+};
+
+
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
     if (window.ActivityWallUtils) {

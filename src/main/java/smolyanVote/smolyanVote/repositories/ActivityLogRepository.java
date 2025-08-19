@@ -115,6 +115,17 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
             "GROUP BY a.action ORDER BY COUNT(a) DESC")
     List<Object[]> findMostFrequentActions(@Param("since") LocalDateTime since);
 
+    /**
+     * Намира ВСИЧКИ активности без никакъв лимит
+     */
+    List<ActivityLogEntity> findAllByOrderByTimestampDesc();
+
+    /**
+     * Намира всички активности след ID без лимит
+     */
+    @Query("SELECT a FROM ActivityLogEntity a WHERE a.id > :lastId ORDER BY a.timestamp DESC")
+    List<ActivityLogEntity> findAllActivitiesSinceId(@Param("lastId") Long lastId);
+
     // ===== CLEANUP QUERIES =====
 
     /**

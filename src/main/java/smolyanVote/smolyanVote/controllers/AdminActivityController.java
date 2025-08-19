@@ -36,12 +36,11 @@ public class AdminActivityController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getActivities(
-            @RequestParam(defaultValue = "50") int limit) {
+            @RequestParam(defaultValue = "0") int limit) {
 
         try {
-            limit = Math.min(Math.max(1, limit), 500);
 
-            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
+            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(0);
             Map<String, Object> stats = activityLogService.getActivityStatistics();
 
             Map<String, Object> response = new HashMap<>();
@@ -63,12 +62,10 @@ public class AdminActivityController {
 
     @GetMapping("/recent")
     public ResponseEntity<Map<String, Object>> getRecentActivities(
-            @RequestParam(defaultValue = "50") int limit) {
+            @RequestParam(defaultValue = "0") int limit) {
 
         try {
-            limit = Math.min(Math.max(1, limit), 500);
-
-            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(limit);
+            List<ActivityLogEntity> activities = activityLogService.getRecentActivities(0);
             Map<String, Object> stats = activityLogService.getActivityStatistics();
 
             Map<String, Object> response = new HashMap<>();

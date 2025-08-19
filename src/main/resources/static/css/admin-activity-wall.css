@@ -8,7 +8,7 @@
     --activity-primary-light: #2d2d2d;
     --activity-primary-dark: #000000;
     --activity-secondary: #6b7280;
-    --activity-accent: #3b82f6;
+    --activity-accent: #4b9f3e;
     --activity-success: #10b981;
     --activity-warning: #f59e0b;
     --activity-danger: #ef4444;
@@ -63,7 +63,8 @@
     border-radius: var(--activity-radius-lg);
     box-shadow: var(--activity-shadow-sm);
     border: 1px solid var(--activity-border);
-    overflow: hidden;
+    overflow: visible;
+    margin-bottom: 3rem;
 }
 
 /* ===== CONTROL PANEL ===== */
@@ -71,13 +72,14 @@
     background: var(--activity-surface-2);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--activity-border);
-    padding: var(--activity-space-lg);
+    padding: var(--activity-space-xl);
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--activity-space-lg);
-    align-items: center;
     justify-content: space-between;
-    min-height: 60px;
+    align-items: center;
+    gap: var(--activity-space-lg);
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
 }
 
 .control-section {
@@ -423,7 +425,7 @@
 .stats-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--activity-accent), #1e40af);
+    background: linear-gradient(135deg, var(--activity-accent), #015231);
     border-radius: var(--activity-radius-md);
     display: flex;
     align-items: center;
@@ -572,8 +574,9 @@
 
 /* ===== ACTIVITY TABLE ===== */
 .activity-table-container {
-    max-height: 500px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
+    min-height: 200px;
 }
 
 .activity-table {
