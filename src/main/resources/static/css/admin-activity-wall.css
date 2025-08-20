@@ -990,11 +990,26 @@
     border-radius: 2px;
 }
 
-.heatmap-legend-cell[data-level="0"] { background: var(--sw-slate-100); }
-.heatmap-legend-cell[data-level="1"] { background: rgba(75, 159, 62, 0.2); }
-.heatmap-legend-cell[data-level="2"] { background: rgba(75, 159, 62, 0.4); }
-.heatmap-legend-cell[data-level="3"] { background: rgba(75, 159, 62, 0.6); }
-.heatmap-legend-cell[data-level="4"] { background: rgba(75, 159, 62, 0.8); }
+.heatmap-legend-cell[data-level="0"] { background: #d3d3d3; }      /* intensity 0 */
+.heatmap-legend-cell[data-level="1"] { background: #e4f3e4; }      /* intensity 1 */
+.heatmap-legend-cell[data-level="2"] { background: #cad9ca; }      /* intensity 2 */
+.heatmap-legend-cell[data-level="3"] { background: #c5e1c5; }      /* intensity 3 */
+.heatmap-legend-cell[data-level="4"] { background: #b5d7b5; }      /* intensity 4 */
+.heatmap-legend-cell[data-level="5"] { background: #a0d5a0; }      /* intensity 5 */
+.heatmap-legend-cell[data-level="6"] { background: #a6e5a6; }      /* intensity 6 */
+.heatmap-legend-cell[data-level="7"] { background: #96da96; }      /* intensity 7 */
+.heatmap-legend-cell[data-level="8"] { background: #84d084; }      /* intensity 8 */
+.heatmap-legend-cell[data-level="9"] { background: #6dc06d; }      /* intensity 9 */
+.heatmap-legend-cell[data-level="10"] { background: #4b9f3e; }     /* intensity 10 - SmolyanVote зелено */
+.heatmap-legend-cell[data-level="11"] { background: #449139; }     /* intensity 11 */
+.heatmap-legend-cell[data-level="12"] { background: #3d8334; }     /* intensity 12 */
+.heatmap-legend-cell[data-level="13"] { background: #36752f; }     /* intensity 13 */
+.heatmap-legend-cell[data-level="14"] { background: #2f672a; }     /* intensity 14 */
+.heatmap-legend-cell[data-level="15"] { background: #285925; }     /* intensity 15 */
+.heatmap-legend-cell[data-level="16"] { background: #214b20; }     /* intensity 16 */
+.heatmap-legend-cell[data-level="17"] { background: #1a3d1b; }     /* intensity 17 */
+.heatmap-legend-cell[data-level="18"] { background: #132f16; }     /* intensity 18 */
+.heatmap-legend-cell[data-level="19"] { background: #0c2111; }
 
 .heatmap-legend-label {
     color: var(--sw-slate-500);
