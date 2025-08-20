@@ -186,8 +186,82 @@ window.ActivityWallCharts = {
 
         this.destroyChart('mainTimeline');
 
-        const hourlyData = this.processHourlyData(activities, 24);
+        // Get filter context from ActivityWall
+        const activityWall = window.activityWall;
+        let timeConfig = 24; // default
+        let periodText = 'Последните 24 часа';
+
+        if (activityWall && activityWall.filters) {
+            switch (activityWall.filters.timeRange) {
+                case '1h':
+                    timeConfig = 1;
+                    periodText = 'Последният 1 час';
+                    break;
+                case '2h':
+                    timeConfig = 2;
+                    periodText = 'Последните 2 часа';
+                    break;
+                case '6h':
+                    timeConfig = 6;
+                    periodText = 'Последните 6 часа';
+                    break;
+                case '12h':
+                    timeConfig = 12;
+                    periodText = 'Последните 12 часа';
+                    break;
+                case '24h':
+                    timeConfig = 24;
+                    periodText = 'Последните 24 часа';
+                    break;
+                case '48h':
+                    timeConfig = 48;
+                    periodText = 'Последните 48 часа';
+                    break;
+                case '72h':
+                    timeConfig = 72;
+                    periodText = 'Последните 72 часа';
+                    break;
+                case 'custom':
+                    if (activityWall.filters.dateStart && activityWall.filters.dateEnd) {
+                        timeConfig = {
+                            start: activityWall.filters.dateStart,
+                            end: activityWall.filters.dateEnd
+                        };
+                        periodText = 'Избран период';
+                    }
+                    break;
+                case 'all':
+                    // Find full timespan of all activities
+                    if (activityWall.activities && activityWall.activities.length > 0) {
+                        const timestamps = activityWall.activities.map(a => new Date(a.timestamp));
+                        const earliest = new Date(Math.min(...timestamps));
+                        const latest = new Date(Math.max(...timestamps));
+
+                        timeConfig = {
+                            start: earliest,
+                            end: latest
+                        };
+                        periodText = 'Всички активности';
+                    } else {
+                        timeConfig = 24;
+                        periodText = 'Няма данни';
+                    }
+                    break;
+            }
+        }
+
+        // Update period label
+        const periodElement = document.getElementById('main-timeline-period');
+        if (periodElement) {
+            periodElement.textContent = periodText;
+        }
+
+        const hourlyData = this.processHourlyData(activities, timeConfig);
         const ctx = canvas.getContext('2d');
+
+        // Calculate proper Y-axis max
+        const maxValue = Math.max(...hourlyData.data);
+        const suggestedMax = maxValue > 0 ? Math.max(maxValue + Math.ceil(maxValue * 0.1), 10) : 10;
 
         // Create premium gradient
         const backgroundGradient = this.createGradient(
@@ -212,48 +286,44 @@ window.ActivityWallCharts = {
                     backgroundColor: backgroundGradient,
                     borderColor: borderGradient,
                     borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
                     pointRadius: 0,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: this.colors.accent.main,
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 3,
-                    pointHoverBackgroundColor: this.colors.accent.light,
-                    pointHoverBorderWidth: 4
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
                 ...this.getChartDefaults(),
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 scales: {
                     x: {
                         grid: {
-                            color: 'rgba(100, 116, 139, 0.1)',
-                            drawBorder: false
+                            color: 'rgba(148, 163, 184, 0.1)',
+                            drawOnChartArea: true
                         },
                         ticks: {
-                            color: this.colors.neutral.medium,
-                            font: {
-                                size: 11,
-                                weight: '500'
-                            },
-                            maxRotation: 0
+                            maxTicksLimit: typeof timeConfig === 'object' ?
+                                Math.min(Math.ceil((timeConfig.end - timeConfig.start) / (1000 * 60 * 60)), 24) :
+                                Math.min(timeConfig, 24),
+                            color: this.colors.neutral.medium
                         }
                     },
                     y: {
                         beginAtZero: true,
+                        suggestedMax: suggestedMax,
                         grid: {
-                            color: 'rgba(100, 116, 139, 0.1)',
-                            drawBorder: false
+                            color: 'rgba(148, 163, 184, 0.1)'
                         },
                         ticks: {
                             color: this.colors.neutral.medium,
-                            font: {
-                                size: 11,
-                                weight: '500'
-                            },
+                            stepSize: Math.max(1, Math.ceil(suggestedMax / 10)),
                             callback: function(value) {
-                                return value % 1 === 0 ? value : '';
+                                return Number.isInteger(value) ? value : '';
                             }
                         }
                     }
@@ -265,7 +335,7 @@ window.ActivityWallCharts = {
                     tooltip: {
                         callbacks: {
                             title: function(context) {
-                                return `${context[0].label}ч.`;
+                                return `${context[0].label}`;
                             },
                             label: function(context) {
                                 return `Активности: ${context.parsed.y}`;
@@ -287,13 +357,18 @@ window.ActivityWallCharts = {
         const hourlyData = this.processHourlyData(activities, 12);
         const ctx = canvas.getContext('2d');
 
-        // Create sophisticated bar gradients
-        const gradients = hourlyData.data.map((_, index) => {
-            const intensity = Math.min(hourlyData.data[index] / Math.max(...hourlyData.data), 1);
+        // Create sophisticated bar gradients - FIX за NaN
+        const maxValue = Math.max(...hourlyData.data);
+        const gradients = hourlyData.data.map((value, index) => {
+            // Fix for NaN when no data or all zeros
+            const intensity = maxValue > 0 ? Math.min(value / maxValue, 1) : 0;
+            const alpha1 = Math.max(0.3, 0.8 * intensity); // Min opacity 0.3
+            const alpha2 = Math.max(0.1, 0.3 * intensity); // Min opacity 0.1
+
             return this.createGradient(
                 ctx,
-                `rgba(75, 159, 62, ${0.8 * intensity})`,
-                `rgba(75, 159, 62, ${0.3 * intensity})`
+                `rgba(75, 159, 62, ${alpha1})`,
+                `rgba(75, 159, 62, ${alpha2})`
             );
         });
 
@@ -328,6 +403,7 @@ window.ActivityWallCharts = {
                     },
                     y: {
                         beginAtZero: true,
+                        suggestedMax: maxValue > 0 ? Math.max(maxValue + Math.ceil(maxValue * 0.1), 10) : 10,
                         grid: {
                             color: 'rgba(100, 116, 139, 0.08)',
                             drawBorder: false
@@ -338,7 +414,10 @@ window.ActivityWallCharts = {
                                 size: 10,
                                 weight: '500'
                             },
-                            stepSize: 1
+                            stepSize: Math.max(1, Math.ceil((maxValue > 0 ? maxValue : 10) / 10)),
+                            callback: function(value) {
+                                return Number.isInteger(value) ? value : '';
+                            }
                         }
                     }
                 },
@@ -349,7 +428,7 @@ window.ActivityWallCharts = {
                     tooltip: {
                         callbacks: {
                             title: function(context) {
-                                return `${context[0].label}ч.`;
+                                return `${context[0].label}`;
                             },
                             label: function(context) {
                                 return `Активности: ${context.parsed.y}`;
@@ -621,7 +700,7 @@ window.ActivityWallCharts = {
     },
 
     // Data processing methods
-    processHourlyData(activities, hours = 24) {
+    processHourlyData(activities, timeConfig = 24) {
         const now = new Date();
         const labels = [];
         const data = [];
@@ -629,7 +708,6 @@ window.ActivityWallCharts = {
         // Helper function за правилно парсиране на timestamp
         const parseTimestamp = (timestamp) => {
             if (Array.isArray(timestamp)) {
-                // Java LocalDateTime array: [year, month, day, hour, minute, second, nano]
                 return new Date(
                     timestamp[0],           // year
                     timestamp[1] - 1,       // month (Java месеците са 1-12, JS са 0-11)
@@ -643,32 +721,65 @@ window.ActivityWallCharts = {
             return new Date(timestamp);
         };
 
-        for (let i = hours - 1; i >= 0; i--) {
-            const hour = new Date(now - i * 60 * 60 * 1000);
+        // Parse all activity timestamps first
+        const activityTimes = activities.map(activity => ({
+            timestamp: parseTimestamp(activity.timestamp),
+            activity: activity
+        }));
+
+        // Determine time range for bucketing
+        let startTime, endTime, hours;
+
+        if (typeof timeConfig === 'object') {
+            // Custom time range
+            startTime = timeConfig.start;
+            endTime = timeConfig.end;
+            hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+        } else if (activityTimes.length > 0) {
+            // For hour-based configs, use the actual span of filtered activities
+            const timestamps = activityTimes.map(at => at.timestamp);
+            const earliest = new Date(Math.min(...timestamps));
+            const latest = new Date(Math.max(...timestamps));
+
+            // Use the config hours, but adjust to cover the actual data span
+            const configSpan = new Date(now - timeConfig * 60 * 60 * 1000);
+            startTime = earliest < configSpan ? earliest : configSpan;
+            endTime = latest > now ? latest : now;
+            hours = Math.ceil((endTime - startTime) / (1000 * 60 * 60)) || timeConfig;
+        } else {
+            // No activities - fallback to standard timespan
+            hours = timeConfig;
+            endTime = now;
+            startTime = new Date(now - hours * 60 * 60 * 1000);
+        }
+
+        // Generate hourly buckets - NO FILTERING, just bucketing!
+        for (let i = 0; i < hours; i++) {
+            const hour = new Date(startTime.getTime() + i * 60 * 60 * 1000);
             const hourStart = new Date(hour);
             hourStart.setMinutes(0, 0, 0);
             const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
 
-            const count = activities.filter(activity => {
-                const activityTime = parseTimestamp(activity.timestamp);
-                return activityTime >= hourStart && activityTime < hourEnd;
+            // Count activities in this hour bucket (activities already filtered!)
+            const count = activityTimes.filter(at => {
+                return at.timestamp >= hourStart && at.timestamp < hourEnd;
             }).length;
 
-            // Генериране на labels
+            // Generate smart labels
             const isToday = hour.toDateString() === now.toDateString();
             const isYesterday = hour.toDateString() === new Date(now - 24*60*60*1000).toDateString();
 
             if (hours <= 12) {
-                // Къси периоди - само час
+                // Short periods - just hour
                 labels.push(hour.getHours().toString().padStart(2, '0') + 'ч');
-            } else if (isToday) {
-                // Днес
+            } else if (hours <= 48 && isToday) {
+                // Today
                 labels.push('Днес ' + hour.getHours().toString().padStart(2, '0') + 'ч');
-            } else if (isYesterday) {
-                // Вчера
+            } else if (hours <= 48 && isYesterday) {
+                // Yesterday
                 labels.push('Вчера ' + hour.getHours().toString().padStart(2, '0') + 'ч');
             } else {
-                // Други дни - дата + час
+                // Other days - date + hour
                 labels.push(hour.toLocaleDateString('bg-BG', {day: '2-digit', month: '2-digit'}) +
                     ' ' + hour.getHours().toString().padStart(2, '0') + 'ч');
             }
