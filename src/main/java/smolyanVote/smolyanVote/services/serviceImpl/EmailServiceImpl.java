@@ -15,6 +15,7 @@ import org.thymeleaf.context.Context;
 import smolyanVote.smolyanVote.models.PodcastEpisodeEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SubscriptionType;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
 import smolyanVote.smolyanVote.services.interfaces.EmailService;
@@ -65,7 +66,7 @@ public class EmailServiceImpl implements EmailService {
                     .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
 
             // Проверка дали е активен
-            if (user.isActive()) {
+            if (user.getStatus().equals(UserStatusEnum.ACTIVE)) {
                 throw new IllegalStateException("Потребителят вече е активиран");
             }
 

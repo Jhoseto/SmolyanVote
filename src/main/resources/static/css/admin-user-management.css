@@ -59,7 +59,7 @@
 
 .user-stat-card.primary .stat-icon { background: linear-gradient(135deg, #4b9f3e, #3a7b30); }
 .user-stat-card.success .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
-.user-stat-card.info .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.user-stat-card.info .stat-icon { background: linear-gradient(135deg, #f3f0f0, #dedcdc); }
 .user-stat-card.warning .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .user-stat-card.admin .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .user-stat-card.engagement .stat-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
@@ -365,6 +365,11 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+}
+.text-success {
+    --bs-text-opacity: 1;
+    color: green !important;
+    background-color: white !important;
 }
 
 /* ===== BAN FORM SPECIFIC ===== */

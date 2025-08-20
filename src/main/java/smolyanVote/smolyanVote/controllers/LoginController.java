@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.UserLoginViewModel;
@@ -59,7 +60,7 @@ public class LoginController {
 
         UserEntity user = userOptional.get();
 
-        if (!user.isActive()) {
+        if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
             redirectAttributes.addFlashAttribute("error", "Вашият акаунт не е активен. Моля, активирайте го чрез изпратения имейл.");
             return "redirect:/viewLogin";
         }

@@ -238,15 +238,4 @@ public class UserEntity extends BaseEntity {
         this.publicationsCount = publicationsCount;
     }
 
-    // Legacy support
-    @Deprecated
-    public boolean isActive() {
-        return status == UserStatusEnum.ACTIVE;
-    }
-
-    @Deprecated
-    public UserEntity setActive(boolean active) {
-        this.status = active ? UserStatusEnum.ACTIVE : UserStatusEnum.PENDING_ACTIVATION;
-        return this;
-    }
 }

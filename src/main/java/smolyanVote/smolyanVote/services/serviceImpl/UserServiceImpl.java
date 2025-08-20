@@ -289,7 +289,7 @@ public class UserServiceImpl implements UserService {
         newUser.setUsername(userRegistrationViewModel.getUsername())
                 .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
                 .setEmail(userRegistrationViewModel.getEmail())
-                .setActive(false)
+                .setStatus(UserStatusEnum.PENDING_ACTIVATION)
                 .setImageUrl(defaultUserImage)
                 .setUserConfirmationCode(confirmationCode)
                 .setRole(userRole);
