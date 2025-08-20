@@ -80,54 +80,110 @@
                     <label class="filter-label">Действие:</label>
                     <select class="form-select form-select-sm" id="action-filter">
                         <option value="">Всички действия</option>
-                        <option value="CREATE_PUBLICATION">Създаване на публикация</option>
-                        <option value="CREATE_EVENT">Създаване на събитие</option>
-                        <option value="CREATE_REFERENDUM">Създаване на референдум</option>
-                        <option value="CREATE_MULTI_POLL">Създаване на анкета</option>
-                        <option value="CREATE_SIGNAL">Създаване на сигнал</option>
-                        <option value="CREATE_COMMENT">Създаване на коментар</option>
-                        <option value="LOGIN">Вход в системата</option>
-                        <option value="LOGOUT">Изход от системата</option>
-                        <option value="REGISTER">Регистрация</option>
-                        <option value="UPDATE_PROFILE">Актуализиране на профил</option>
-                        <option value="VOTE_REFERENDUM">Гласуване в референдум</option>
-                        <option value="VOTE_MULTI_POLL">Гласуване в анкета</option>
-                        <option value="VOTE_SIMPLEEVENT">Гласуване в проста анкета</option>
-                        <option value="LIKE_PUBLICATION">Харесване на публикация</option>
-                        <option value="UNLIKE_PUBLICATION">Махане на харесване</option>
-                        <option value="VIEW_PUBLICATION">Преглед на публикация</option>
-                        <option value="VIEW_EVENT">Преглед на събитие</option>
-                        <option value="VIEW_REFERENDUM">Преглед на референдум</option>
-                        <option value="VIEW_SIGNAL">Преглед на сигнал</option>
-                        <option value="VIEW_PROFILE">Преглед на профил</option>
-                        <option value="SEARCH_CONTENT">Търсене в съдържанието</option>
-                        <option value="FILTER_CONTENT">Филтриране на съдържание</option>
-                        <option value="EDIT_PUBLICATION">Редактиране на публикация</option>
-                        <option value="EDIT_EVENT">Редактиране на събитие</option>
-                        <option value="EDIT_REFERENDUM">Редактиране на референдум</option>
-                        <option value="EDIT_MULTI_POLL">Редактиране на анкета</option>
-                        <option value="EDIT_SIGNAL">Редактиране на сигнал</option>
-                        <option value="EDIT_COMMENT">Редактиране на коментар</option>
-                        <option value="EDIT_PROFILE">Редактиране на профил</option>
-                        <option value="DELETE_PUBLICATION">Изтриване на публикация</option>
-                        <option value="DELETE_EVENT">Изтриване на събитие</option>
-                        <option value="DELETE_REFERENDUM">Изтриване на референдум</option>
-                        <option value="DELETE_COMMENT">Изтриване на коментар</option>
-                        <option value="DELETE_SIGNAL">Изтриване на сигнал</option>
-                        <option value="ADMIN_REVIEW_REPORT">Преглед на доклад (админ)</option>
-                        <option value="ADMIN_DELETE_CONTENT">Изтриване на съдържание (админ)</option>
-                        <option value="ADMIN_BAN_USER">Блокиране на потребител</option>
-                        <option value="ADMIN_UNBAN_USER">Отблокиране на потребител</option>
-                        <option value="ADMIN_PROMOTE_USER">Повишаване на потребител</option>
-                        <option value="ADMIN_DEMOTE_USER">Понижаване на потребител</option>
-                        <option value="CONTACT_MESSAGE">Съобщение до контакт</option>
-                        <option value="UPDATE_NOTIFICATIONS">Актуализиране на нотификации</option>
-                        <option value="UPDATE_PRIVACY">Актуализиране на поверителност</option>
-                        <option value="EXPORT_DATA">Експортиране на данни</option>
-                        <option value="DELETE_ACCOUNT">Изтриване на акаунт</option>
-                        <option value="SYSTEM_BACKUP">Системен backup</option>
-                        <option value="SYSTEM_MAINTENANCE">Системна поддръжка</option>
-                        <option value="API_ACCESS">API достъп</option>
+
+                        <!-- ===== СЪЗДАВАНЕ НА СЪДЪРЖАНИЕ ===== -->
+                        <optgroup label="Създаване на съдържание">
+                            <option value="CREATE_PUBLICATION">Създаде публикация</option>
+                            <option value="CREATE_SIMPLE_EVENT">Създаде събитие</option>
+                            <option value="CREATE_REFERENDUM">Създаде референдум</option>
+                            <option value="CREATE_MULTI_POLL">Създаде анкета</option>
+                            <option value="CREATE_COMMENT">Коментира</option>
+                            <option value="CREATE_SIGNAL">Създаде сигнал</option>
+                        </optgroup>
+
+                        <!-- ===== ВЗАИМОДЕЙСТВИЯ ===== -->
+                        <optgroup label="Взаимодействия">
+                            <option value="LIKE_PUBLICATION">Хареса публикация</option>
+                            <option value="DISLIKE_PUBLICATION">Не хареса публикация</option>
+                            <option value="LIKE_COMMENT">Хареса коментар</option>
+                            <option value="DISLIKE_COMMENT">Не хареса коментар</option>
+                            <option value="VOTE_SIMPLE_EVENT">Гласува в събитие</option>
+                            <option value="VOTE_REFERENDUM">Гласува в референдум</option>
+                            <option value="VOTE_MULTI_POLL">Гласува в анкета</option>
+                            <option value="SHARE_PUBLICATION">Сподели публикация</option>
+                            <option value="SHARE_EVENT">Сподели събитие</option>
+                            <option value="SHARE_REFERENDUM">Сподели референдум</option>
+                            <option value="BOOKMARK_CONTENT">Добави в отметки</option>
+                            <option value="FOLLOW_USER">Последва потребител</option>
+                            <option value="UNFOLLOW_USER">Спря да следва потребител</option>
+                        </optgroup>
+
+                        <!-- ===== ПРЕГЛЕЖДАНЕ ===== -->
+                        <optgroup label="Преглеждане">
+                            <option value="VIEW_PUBLICATION">Прегледа публикация</option>
+                            <option value="VIEW_EVENT">Прегледа събитие</option>
+                            <option value="VIEW_REFERENDUM">Прегледа референдум</option>
+                            <option value="VIEW_MULTI_POLL">Прегледа множествена анкета</option>
+                            <option value="VIEW_SIGNAL">Прегледа сигнал</option>
+                            <option value="VIEW_PROFILE">Прегледа профил</option>
+                            <option value="SEARCH_CONTENT">Търсене в съдържанието</option>
+                            <option value="FILTER_CONTENT">Филтриране на съдържание</option>
+                        </optgroup>
+
+                        <!-- ===== РЕДАКТИРАНЕ ===== -->
+                        <optgroup label="Редактиране">
+                            <option value="EDIT_PUBLICATION">Редактира публикация</option>
+                            <option value="EDIT_EVENT">Редактира събитие</option>
+                            <option value="EDIT_REFERENDUM">Редактира референдум</option>
+                            <option value="EDIT_MULTI_POLL">Редактира множествена анкета</option>
+                            <option value="EDIT_SIGNAL">Редактира сигнал</option>
+                            <option value="EDIT_COMMENT">Редактира коментар</option>
+                            <option value="EDIT_PROFILE">Редактира профил</option>
+                        </optgroup>
+
+                        <!-- ===== ИЗТРИВАНЕ ===== -->
+                        <optgroup label="Изтриване">
+                            <option value="DELETE_PUBLICATION">Изтри публикация</option>
+                            <option value="DELETE_EVENT">Изтри събитие</option>
+                            <option value="DELETE_REFERENDUM">Изтри референдум</option>
+                            <option value="DELETE_COMMENT">Изтри коментар</option>
+                            <option value="DELETE_SIGNAL">Изтри сигнал</option>
+                        </optgroup>
+
+                        <!-- ===== ДОКЛАДВАНЕ ===== -->
+                        <optgroup label="Докладване">
+                            <option value="REPORT_PUBLICATION">Докладва публикация</option>
+                            <option value="REPORT_EVENT">Докладва събитие</option>
+                            <option value="REPORT_REFERENDUM">Докладва референдум</option>
+                            <option value="REPORT_COMMENT">Докладва коментар</option>
+                            <option value="REPORT_USER">Докладва потребител</option>
+                        </optgroup>
+
+                        <!-- ===== АДМИНИСТРАЦИЯ ===== -->
+                        <optgroup label="Администрация">
+                            <option value="ADMIN_REVIEW_REPORT">Прегледа доклад</option>
+                            <option value="ADMIN_DELETE_CONTENT">Изтри съдържание (админ)</option>
+                            <option value="ADMIN_BAN_USER">Блокира потребител</option>
+                            <option value="ADMIN_UNBAN_USER">Отблокира потребител</option>
+                            <option value="ADMIN_PROMOTE_USER">Повиши потребител</option>
+                            <option value="ADMIN_DEMOTE_USER">Понижи потребител</option>
+                            <option value="CONTACT_MESSAGE">Съобщение до контакт</option>
+                        </optgroup>
+
+                        <!-- ===== АВТЕНТИКАЦИЯ ===== -->
+                        <optgroup label="Автентикация">
+                            <option value="USER_REGISTER">Регистрация</option>
+                            <option value="USER_LOGIN">Вход в системата</option>
+                            <option value="USER_LOGOUT">Изход от системата</option>
+                            <option value="USER_PASSWORD_CHANGE">Смяна на парола</option>
+                            <option value="USER_EMAIL_VERIFY">Потвърждение на имейл</option>
+                            <option value="USER_PASSWORD_RESET">Нулиране на парола</option>
+                        </optgroup>
+
+                        <!-- ===== НАСТРОЙКИ ===== -->
+                        <optgroup label="Настройки">
+                            <option value="UPDATE_NOTIFICATIONS">Актуализира нотификации</option>
+                            <option value="UPDATE_PRIVACY">Актуализира поверителност</option>
+                            <option value="EXPORT_DATA">Експортира данни</option>
+                            <option value="DELETE_ACCOUNT">Изтриване на акаунт</option>
+                        </optgroup>
+
+                        <!-- ===== СИСТЕМА ===== -->
+                        <optgroup label="Система">
+                            <option value="SYSTEM_BACKUP">Системен backup</option>
+                            <option value="SYSTEM_MAINTENANCE">Системна поддръжка</option>
+                            <option value="API_ACCESS">API достъп</option>
+                        </optgroup>
                     </select>
                 </div>
 
@@ -136,7 +192,7 @@
                     <select class="form-select form-select-sm" id="entity-type-filter">
                         <option value="">Всички типове</option>
                         <option value="PUBLICATION">Публикация</option>
-                        <option value="EVENT">Събитие</option>
+                        <option value="SIMPLEEVENT">Опростен вид Събитие</option>
                         <option value="REFERENDUM">Референдум</option>
                         <option value="MULTI_POLL">Анкета</option>
                         <option value="SIGNAL">Сигнал</option>

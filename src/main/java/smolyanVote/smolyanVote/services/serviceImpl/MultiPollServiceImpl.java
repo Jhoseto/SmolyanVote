@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.MultiPollImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.VoteMultiPollEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.MultiPollImageRepository;
@@ -52,7 +53,7 @@ public class MultiPollServiceImpl implements MultiPollService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.CREATE_MULTI_POLL, entityType = EventType.MULTI_POLL,
+    @LogActivity(action = ActivityActionEnum.CREATE_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             details = "Title: {title}, Location: {location}", includeTitle = true)
 
     public void createMultiPoll(CreateMultiPollView dto) {
@@ -109,7 +110,7 @@ public class MultiPollServiceImpl implements MultiPollService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VIEW_MULTI_POLL, entityType = EventType.MULTI_POLL,
+    @LogActivity(action = ActivityActionEnum.VIEW_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             entityIdParam = "id", includeTitle = true, includeText = true)
 
     public MultiPollDetailViewDTO getMultiPollDetail(Long id) {

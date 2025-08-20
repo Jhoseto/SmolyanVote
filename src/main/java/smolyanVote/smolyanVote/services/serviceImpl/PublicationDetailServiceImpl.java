@@ -8,6 +8,7 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
@@ -37,7 +38,7 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = EventType.PUBLICATION,
+    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION,
             entityIdParam = "publicationId", includeTitle = true, includeText = true)
 
     public PublicationResponseDTO getPublicationForModal(Long publicationId, Authentication auth) {

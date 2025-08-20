@@ -13,10 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.ConfirmationLinkService;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
@@ -92,7 +89,7 @@ public class UserServiceImpl implements UserService {
      */
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.USER_LOGIN, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.USER_LOGIN, entityType = ActivityTypeEnum.USER,
             details = "Email: {email}, Username: {username}", onSuccessOnly = false)
 
     public Authentication authenticateUser(String email, String password) {
@@ -154,7 +151,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER, entityType = ActivityTypeEnum.USER,
             details = "Promoted to admin: {username}")
 
     public void promoteUserToAdmin(String username) {
@@ -176,7 +173,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = ActivityTypeEnum.USER,
             details = "Demoted to user: {username}")
 
     public void promoteAdminToUser(String username) {
@@ -279,7 +276,7 @@ public class UserServiceImpl implements UserService {
 
     //CREATE NEW USER
     @Override
-    @LogActivity(action = ActivityActionEnum.USER_REGISTER, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.USER_REGISTER, entityType = ActivityTypeEnum.USER,
             details = "Username: {username}, Email: {email}")
 
     public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
@@ -317,7 +314,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    @LogActivity(action = ActivityActionEnum.EDIT_PROFILE, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.EDIT_PROFILE, entityType = ActivityTypeEnum.USER,
             details = "Bio: {bio}, Location: {location}")
 
     public void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException {

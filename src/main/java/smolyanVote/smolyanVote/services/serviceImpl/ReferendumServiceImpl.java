@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
@@ -57,7 +58,7 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.CREATE_REFERENDUM, entityType = EventType.REFERENDUM,
+    @LogActivity(action = ActivityActionEnum.CREATE_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
 
     public void createReferendum(String topic,
@@ -123,7 +124,7 @@ public class ReferendumServiceImpl implements ReferendumService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VIEW_REFERENDUM, entityType = EventType.REFERENDUM,
+    @LogActivity(action = ActivityActionEnum.VIEW_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             entityIdParam = "referendumId", includeTitle = true, includeText = true)
 
     public ReferendumDetailViewDTO getReferendumDetail(Long referendumId) {

@@ -14,7 +14,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
@@ -136,11 +136,11 @@ public class ActivityLoggingAspect {
      * Извлича entity type от анотацията - ПОПРАВЕНО
      */
     private String extractEntityType(LogActivity logActivity) {
-        EventType eventType = logActivity.entityType();
-        if (eventType == null || eventType == EventType.DEFAULT) {
+        ActivityTypeEnum activityType = logActivity.entityType();
+        if (activityType == null || activityType == ActivityTypeEnum.DEFAULT) {
             return null;
         }
-        return eventType.name(); // PUBLICATION, SIMPLEEVENT, etc.
+        return activityType.name(); // PUBLICATION, SIMPLEEVENT, etc.
     }
 
     /**
@@ -165,9 +165,9 @@ public class ActivityLoggingAspect {
         String[] commonIdNames = {"id", "entityId"};
 
         // 4. Добавяме специфични имена според entity type
-        EventType entityType = logActivity.entityType();
-        if (entityType != null && entityType != EventType.DEFAULT) {
-            String[] specificNames = generateEntitySpecificIdNames(entityType);
+        ActivityTypeEnum activityType = logActivity.entityType();
+        if (activityType != null && activityType != ActivityTypeEnum.DEFAULT) {
+            String[] specificNames = generateEntitySpecificIdNames(activityType);
             commonIdNames = combineArrays(commonIdNames, specificNames);
         }
 
@@ -193,13 +193,16 @@ public class ActivityLoggingAspect {
     /**
      * Генерира възможни имена на ID параметри според entity type
      */
-    private String[] generateEntitySpecificIdNames(EventType entityType) {
-        return switch (entityType) {
+    private String[] generateEntitySpecificIdNames(ActivityTypeEnum activityType) {
+        return switch (activityType) {
             case PUBLICATION -> new String[]{"publicationId", "pubId"};
             case SIMPLEEVENT -> new String[]{"simpleEventId", "eventId"};
             case REFERENDUM -> new String[]{"referendumId", "refId"};
             case MULTI_POLL -> new String[]{"multiPollId", "pollId"};
-            case SIGNAL -> new String[]{"signalId"};
+            case SIGNAL -> new String[]{"signalId", "signlId"};
+            case COMMENT -> new String[]{"commentId", "comId"};
+            case USER -> new String[]{"userId", "usrId"};
+            case SYSTEM -> new String[]{"systemId", "sysId"};
             default -> new String[]{};
         };
     }

@@ -1,7 +1,7 @@
 package smolyanVote.smolyanVote.annotations;
 
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -46,7 +46,7 @@ public @interface LogActivity {
      * За CREATE_PUBLICATION -> автоматично PUBLICATION
      * За CREATE_COMMENT -> автоматично DEFAULT (защото коментарът не е основно entity)
      */
-    EventType entityType() default EventType.DEFAULT;
+    ActivityTypeEnum entityType() default ActivityTypeEnum.DEFAULT;
 
     /**
      * Target entity type - за действия върху други entity-та
@@ -55,7 +55,7 @@ public @interface LogActivity {
      *
      * Ако е зададено, entityId ще се търси към target entity-то вместо към основното
      */
-    EventType targetEntityType() default EventType.DEFAULT;
+    ActivityTypeEnum targetEntityType() default ActivityTypeEnum.DEFAULT;
 
     /**
      * Стратегия за намиране на entity ID

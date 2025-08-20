@@ -12,10 +12,7 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
+import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
@@ -74,7 +71,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = EventType.SIGNAL,
+    @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = ActivityTypeEnum.SIGNAL,
             details = "Title: {title}, Category: {category}, Urgency: {urgency}", includeTitle = true, includeText = true)
 
     public SignalsEntity create(String title, String description, SignalsCategory category,

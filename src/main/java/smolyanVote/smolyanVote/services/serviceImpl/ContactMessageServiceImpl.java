@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.ContactMessageEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.ContactMessageRepository;
 import smolyanVote.smolyanVote.services.interfaces.ContactMessageService;
@@ -27,7 +28,7 @@ public class ContactMessageServiceImpl implements ContactMessageService {
 
 
     @Override
-    @LogActivity(action = ActivityActionEnum.CONTACT_MESSAGE, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.CONTACT_MESSAGE, entityType = ActivityTypeEnum.SYSTEM,
             details = "From: {name} ({email}), Subject: {subject}, Message: {message}")
 
     public void saveContactMessage(ContactFormView contactFormView) {

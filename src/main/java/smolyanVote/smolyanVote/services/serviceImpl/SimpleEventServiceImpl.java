@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
@@ -71,7 +72,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VIEW_EVENT, entityType = EventType.SIMPLEEVENT,
+    @LogActivity(action = ActivityActionEnum.VIEW_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             entityIdParam = "id", includeTitle = true, includeText = true)
 
     public SimpleEventDetailViewDTO getSimpleEventDetails(Long id) {
@@ -109,7 +110,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT,
+    @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             details = "Title: {title}, Location: {location}", includeTitle = true, includeText = true)
 
     public List<String> createEvent(CreateEventView dto,
