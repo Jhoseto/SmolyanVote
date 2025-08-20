@@ -1,0 +1,395 @@
+/* ===== ADMIN USER MANAGEMENT - SPECIFIC STYLES ===== */
+/* File: src/main/resources/static/css/admin-user-management.css */
+/* Only unique styles for User Management section */
+
+/* ===== USER STATISTICS CARDS (Different from dashboard cards) ===== */
+
+.user-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.user-stat-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.user-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+}
+
+.user-stat-card.primary::before { background: #4b9f3e; }
+.user-stat-card.success::before { background: #10b981; }
+.user-stat-card.info::before { background: #3b82f6; }
+.user-stat-card.warning::before { background: #f59e0b; }
+.user-stat-card.admin::before { background: #8b5cf6; }
+.user-stat-card.engagement::before { background: #ef4444; }
+
+.user-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.user-stat-card.primary .stat-icon { background: linear-gradient(135deg, #4b9f3e, #3a7b30); }
+.user-stat-card.success .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.user-stat-card.info .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.user-stat-card.warning .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.user-stat-card.admin .stat-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.user-stat-card.engagement .stat-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+}
+
+.stat-change {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+}
+
+.change-indicator {
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.change-indicator.positive {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.change-period {
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+/* ===== USER SEARCH CONTROLS ===== */
+
+.user-search-controls {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.search-filters-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.search-filters-row.secondary {
+    grid-template-columns: 1fr 1fr auto;
+    margin-bottom: 0;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.search-input-wrapper .form-control {
+    padding-left: 2.25rem;
+}
+
+/* ===== BULK OPERATIONS BAR ===== */
+
+.bulk-operations-bar {
+    background: linear-gradient(135deg, #4b9f3e, #3a7b30);
+    color: white;
+    padding: 0.875rem 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 3px 10px rgba(75, 159, 62, 0.3);
+}
+
+.bulk-info {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.bulk-actions .btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.bulk-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ===== USERS TABLE SPECIFIC ===== */
+
+.users-table thead th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.users-table thead th.sortable:hover {
+    background-color: #f1f5f9;
+    color: #4b9f3e;
+}
+
+.sort-icon {
+    font-size: 0.7rem;
+    margin-left: 0.25rem;
+    transition: transform 0.2s ease;
+    opacity: 0.5;
+}
+
+.users-table thead th.sortable.asc .sort-icon {
+    transform: rotate(180deg);
+    opacity: 1;
+    color: #4b9f3e;
+}
+
+.users-table thead th.sortable.desc .sort-icon {
+    opacity: 1;
+    color: #4b9f3e;
+}
+
+/* ===== USER STATUS BADGES ===== */
+
+.user-status-badge, .role-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.user-status-badge.active { background: #dcfce7; color: #166534; }
+.user-status-badge.inactive { background: #fef3c7; color: #92400e; }
+.user-status-badge.online { background: #dbeafe; color: #1e40af; }
+.user-status-badge.banned { background: #fecaca; color: #991b1b; }
+
+.role-badge.user { background: #e0e7ff; color: #3730a3; }
+.role-badge.admin { background: #fdf4ff; color: #7c2d12; }
+
+/* ===== ACTIVITY SCORE VISUAL ===== */
+
+.activity-score {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.activity-bar {
+    width: 35px;
+    height: 5px;
+    background: #f3f4f6;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.activity-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.activity-fill.high { background: #10b981; }
+.activity-fill.medium { background: #f59e0b; }
+.activity-fill.low { background: #ef4444; }
+
+.activity-score-text {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+/* ===== PERMISSION MATRIX ===== */
+
+.permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.permission-category {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.permission-category h6 {
+    color: #374151;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.permission-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.permission-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.permission-name {
+    font-size: 0.8rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+.permission-roles {
+    display: flex;
+    gap: 0.3rem;
+}
+
+/* ===== USER DETAILS MODAL SPECIFIC ===== */
+
+.user-avatar-section {
+    position: relative;
+    text-align: center;
+}
+
+.user-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e5e7eb;
+}
+
+.user-status-indicator {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.user-status-indicator.online { background: #10b981; }
+.user-status-indicator.away { background: #f59e0b; }
+.user-status-indicator.offline { background: #6b7280; }
+
+.activity-stat {
+    text-align: center;
+    padding: 0.875rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.activity-stat .stat-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #4b9f3e;
+    margin-bottom: 0.2rem;
+}
+
+.activity-stat .stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* ===== BAN FORM SPECIFIC ===== */
+
+#ban-duration-section, #custom-ban-date-section {
+    transition: all 0.3s ease;
+}
+
+/* ===== RESPONSIVE OVERRIDES ===== */
+
+@media (max-width: 768px) {
+    .user-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .search-filters-row {
+        grid-template-columns: 1fr;
+    }
+
+    .bulk-operations-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .permissions-grid {
+        grid-template-columns: 1fr;
+    }
+}

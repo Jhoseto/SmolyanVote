@@ -4,10 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -26,7 +25,22 @@ public class UserEntity extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String email;
 
-    private boolean isActive;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private UserStatusEnum status = UserStatusEnum.PENDING_ACTIVATION;
+
+    @Column(name = "ban_end_date")
+    private Instant banEndDate;
+
+    @Column(name = "ban_reason", length = 500)
+    private String banReason;
+
+    @Column(name = "banned_by_username", length = 50)
+    private String bannedByUsername;
+
+    @Column(name = "ban_date")
+    private Instant banDate;
+
     @Column(length = 1000)
     private String imageUrl;
 
@@ -50,10 +64,7 @@ public class UserEntity extends BaseEntity {
 
     private int publicationsCount;
 
-
-
-
-
+    // ===== GETTERS AND SETTERS =====
 
     public String getUsername() {
         return username;
@@ -99,13 +110,45 @@ public class UserEntity extends BaseEntity {
         return this;
     }
 
-    public boolean isActive() {
-        return isActive;
+    public UserStatusEnum getStatus() {
+        return status;
     }
 
-    public UserEntity setActive(boolean active) {
-        isActive = active;
+    public UserEntity setStatus(UserStatusEnum status) {
+        this.status = status;
         return this;
+    }
+
+    public Instant getBanEndDate() {
+        return banEndDate;
+    }
+
+    public void setBanEndDate(Instant banEndDate) {
+        this.banEndDate = banEndDate;
+    }
+
+    public String getBanReason() {
+        return banReason;
+    }
+
+    public void setBanReason(String banReason) {
+        this.banReason = banReason;
+    }
+
+    public String getBannedByUsername() {
+        return bannedByUsername;
+    }
+
+    public void setBannedByUsername(String bannedByUsername) {
+        this.bannedByUsername = bannedByUsername;
+    }
+
+    public Instant getBanDate() {
+        return banDate;
+    }
+
+    public void setBanDate(Instant banDate) {
+        this.banDate = banDate;
     }
 
     public String getImageUrl() {
@@ -130,8 +173,8 @@ public class UserEntity extends BaseEntity {
         return userEventsCount;
     }
 
-    public UserEntity setUserEventsCount(int userOffersCount) {
-        this.userEventsCount = userOffersCount;
+    public UserEntity setUserEventsCount(int userEventsCount) {
+        this.userEventsCount = userEventsCount;
         return this;
     }
 
@@ -193,5 +236,17 @@ public class UserEntity extends BaseEntity {
 
     public void setPublicationsCount(int publicationsCount) {
         this.publicationsCount = publicationsCount;
+    }
+
+    // Legacy support
+    @Deprecated
+    public boolean isActive() {
+        return status == UserStatusEnum.ACTIVE;
+    }
+
+    @Deprecated
+    public UserEntity setActive(boolean active) {
+        this.status = active ? UserStatusEnum.ACTIVE : UserStatusEnum.PENDING_ACTIVATION;
+        return this;
     }
 }

@@ -9,6 +9,7 @@
     <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
     <link rel="stylesheet" href="/css/admin-dashboard.css">
     <link rel="stylesheet" href="/css/admin-activity-wall.css">
+    <link rel="stylesheet" href="/css/admin-user-management.css">
 </head>
 <body>
 
@@ -201,11 +202,14 @@
     </div>
 
     <!-- ====== ACTIVITY WALL SECTION ====== -->
-
     <div th:replace="~{fragments/admin-activity-wall-fragment :: activityWall}"></div>
-
     <!-- Activity Details Modal -->
     <div th:replace="~{fragments/admin-activity-wall-fragment :: activityModal}"></div>
+
+    <!-- ====== USER MANAGEMENT SECTION ====== -->
+    <div th:replace="~{fragments/admin-user-management-fragment :: userManagement}"></div>
+    <!-- User Management Modals -->
+    <div th:replace="~{fragments/admin-user-management-fragment :: userModals}"></div>
 </div>
 
 <!-- Footer -->
