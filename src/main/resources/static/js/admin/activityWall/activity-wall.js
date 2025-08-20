@@ -567,6 +567,45 @@ class ActivityWall {
         }, 5000);
     }
 
+    // Get hours for current filter
+    getFilterHours() {
+        switch (this.filters.timeRange) {
+            case '1h': return 1;
+            case '2h': return 2;
+            case '6h': return 6;
+            case '12h': return 12;
+            case '24h': return 24;
+            case '48h': return 48;
+            case '72h': return 72;
+            case 'custom':
+                if (this.filters.dateStart && this.filters.dateEnd) {
+                    const diff = this.filters.dateEnd - this.filters.dateStart;
+                    return Math.min(Math.ceil(diff / (1000 * 60 * 60)), 72);
+                }
+                return 24;
+            default: return 24;
+        }
+    }
+
+    updatePeriodLabel() {
+        const periodElement = document.getElementById('main-timeline-period');
+        if (!periodElement) return;
+
+        const labels = {
+            'all': 'Всички активности',
+            '1h': 'Последният 1 час',
+            '2h': 'Последните 2 часа',
+            '6h': 'Последните 6 часа',
+            '12h': 'Последните 12 часа',
+            '24h': 'Последните 24 часа',
+            '48h': 'Последните 48 часа',
+            '72h': 'Последните 72 часа',
+            'custom': 'Избран период'
+        };
+
+        periodElement.textContent = labels[this.filters.timeRange] || 'Последните 24 часа';
+    }
+
     // Render activities table
     renderActivitiesTable() {
         const tbody = document.getElementById('activities-table-body');
@@ -784,7 +823,9 @@ class ActivityWall {
     // Update main timeline chart
     updateMainTimeline() {
         if (window.ActivityWallCharts && window.ActivityWallCharts.updateMainTimeline) {
-            window.ActivityWallCharts.updateMainTimeline(this.filteredActivities);
+            const hours = this.getFilterHours();
+            window.ActivityWallCharts.updateMainTimeline(this.filteredActivities, hours);
+            this.updatePeriodLabel();
         }
     }
 
