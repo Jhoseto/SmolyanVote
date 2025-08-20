@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 
 import java.util.Optional;
@@ -30,8 +31,8 @@ public class EmailConfirmationController {
         if (userOptional.isPresent()) {
             UserEntity user = userOptional.get();
 
-            if (user.getUserConfirmationCode().equals(code) && !user.isActive()) {
-                user.setActive(true);
+            if (user.getUserConfirmationCode().equals(code) && user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
+                user.setStatus(UserStatusEnum.ACTIVE);
                 userRepository.save(user);
 
                 redirectAttributes.addFlashAttribute(
