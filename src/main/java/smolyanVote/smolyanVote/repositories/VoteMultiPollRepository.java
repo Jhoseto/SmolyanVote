@@ -8,6 +8,7 @@ import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.VoteMultiPollEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 
 import java.util.List;
@@ -23,6 +24,6 @@ public interface VoteMultiPollRepository extends JpaRepository<VoteMultiPollEnti
     boolean existsByMultiPollIdAndUserId(Long multiPollId, Long userId);
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.DELETE_EVENT, entityType = EventType.MULTI_POLL)
+    @LogActivity(action = ActivityActionEnum.DELETE_EVENT, entityType = ActivityTypeEnum.MULTI_POLL)
     void deleteAllByMultiPollId(Long eventId);
 }

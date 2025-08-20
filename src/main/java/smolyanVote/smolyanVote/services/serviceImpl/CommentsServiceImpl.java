@@ -14,10 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
-import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.CommentReactionType;
-import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
@@ -196,7 +193,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.PUBLICATION,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.PUBLICATION,
             entityIdParam = "publicationId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToPublication(Long publicationId, String text, UserEntity author) {
@@ -226,7 +223,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIMPLEEVENT,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             entityIdParam = "simpleEventId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToSimpleEvent(Long simpleEventId, String text, UserEntity author) {
@@ -248,7 +245,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.REFERENDUM,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.REFERENDUM,
             entityIdParam = "referendumId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToReferendum(Long referendumId, String text, UserEntity author) {
@@ -270,7 +267,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.MULTI_POLL,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.MULTI_POLL,
             entityIdParam = "multiPollId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToMultiPoll(Long multiPollId, String text, UserEntity author) {
@@ -292,7 +289,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.SIGNAL,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.SIGNAL,
             entityIdParam = "signalId", details = "Comment: {text}")
 
     public CommentsEntity addCommentToSignal(Long signalId, String text, UserEntity author) {
@@ -321,7 +318,7 @@ public class CommentsServiceImpl implements CommentsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.CREATE_COMMENT, entityType = ActivityTypeEnum.COMMENT,
             entityIdParam = "parentCommentId", details = "Reply: {text}")
 
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {

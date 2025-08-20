@@ -55,7 +55,7 @@ public class ReportsServiceImpl implements ReportsService {
     // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
 
     @Override
-    @LogActivity(action = ActivityActionEnum.REPORT_EVENT, entityType = EventType.REPORT,
+    @LogActivity(action = ActivityActionEnum.REPORT_EVENT, entityType = ActivityTypeEnum.REPORT,
             entityIdParam = "entityId", details = "Reported {entityType}: {reasonString}")
 
     public void createReport(ReportableEntityType entityType, Long entityId, UserEntity reporter,
@@ -180,7 +180,7 @@ public class ReportsServiceImpl implements ReportsService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_REVIEW_REPORT, entityType = EventType.REPORT,
+    @LogActivity(action = ActivityActionEnum.ADMIN_REVIEW_REPORT, entityType = ActivityTypeEnum.REPORT,
             entityIdParam = "reportId", details = "Status: {status}, Notes: {adminNotes}")
 
     public void reviewReport(Long reportId, UserEntity admin, String status, String adminNotes) {

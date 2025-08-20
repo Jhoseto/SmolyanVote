@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 
 import java.util.Optional;
@@ -19,7 +20,7 @@ public interface VoteReferendumRepository extends JpaRepository<VoteReferendumEn
     Optional<VoteReferendumEntity> findByReferendum_IdAndUser_Id(Long referendumId, Long userId);
 
     @Transactional
-    @LogActivity(action = ActivityActionEnum.DELETE_EVENT, entityType = EventType.REFERENDUM)
+    @LogActivity(action = ActivityActionEnum.DELETE_EVENT, entityType = ActivityTypeEnum.REFERENDUM)
     void deleteAllByReferendumId(Long referendumId);
 
 }

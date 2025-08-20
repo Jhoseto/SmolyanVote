@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
@@ -43,7 +44,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = EventType.SIMPLEEVENT,
+    @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             entityIdParam = "eventId", details = "User: {userName}", includeChoice = true)
 
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
@@ -98,7 +99,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = EventType.REFERENDUM,
+    @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             entityIdParam = "referendumId", details = "User: {userName}", includeChoice = true)
 
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
@@ -153,7 +154,7 @@ public class VoteServiceImpl implements VoteService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = EventType.MULTI_POLL,
+    @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             entityIdParam = "pollId", details = "User: {userName}", includeChoice = true)
 
     public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {

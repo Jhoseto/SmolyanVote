@@ -74,7 +74,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.CREATE_PUBLICATION, entityType = EventType.PUBLICATION,
+    @LogActivity(action = ActivityActionEnum.CREATE_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION,
             details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
 
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
@@ -413,7 +413,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.LIKE_PUBLICATION, entityType = EventType.PUBLICATION)
+    @LogActivity(action = ActivityActionEnum.LIKE_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION)
     public boolean toggleLike(Long publicationId, UserEntity user) {
         PublicationEntity publication = findById(publicationId);
         if (publication == null) return false;
@@ -439,7 +439,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Transactional
     @Override
-    @LogActivity(action = ActivityActionEnum.DISLIKE_PUBLICATION, entityType = EventType.PUBLICATION)
+    @LogActivity(action = ActivityActionEnum.DISLIKE_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION)
     public boolean toggleDislike(Long publicationId, UserEntity user) {
         PublicationEntity publication = findById(publicationId);
         if (publication == null) return false;
@@ -479,7 +479,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.BOOKMARK_CONTENT, entityType = EventType.PUBLICATION,
+    @LogActivity(action = ActivityActionEnum.BOOKMARK_CONTENT, entityType = ActivityTypeEnum.PUBLICATION,
             entityIdParam = "publicationId", details = "Bookmark toggled")
 
     public boolean toggleBookmark(Long publicationId, UserEntity user) {
@@ -502,7 +502,7 @@ public class PublicationServiceImpl implements PublicationService {
 
     @Override
     @Transactional
-    @LogActivity(action = ActivityActionEnum.SHARE_PUBLICATION, entityType = EventType.PUBLICATION,
+    @LogActivity(action = ActivityActionEnum.SHARE_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION,
             entityIdParam = "publicationId", details = "Publication shared")
 
     public void incrementShareCount(Long publicationId) {

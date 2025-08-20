@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 
@@ -25,7 +26,7 @@ public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
     }
 
     @Override
-    @LogActivity(action = ActivityActionEnum.USER_LOGOUT, entityType = EventType.DEFAULT,
+    @LogActivity(action = ActivityActionEnum.USER_LOGOUT, entityType = ActivityTypeEnum.USER,
             details = "Username: {username}, Email: {email}")
 
     public void onLogoutSuccess(HttpServletRequest request,
