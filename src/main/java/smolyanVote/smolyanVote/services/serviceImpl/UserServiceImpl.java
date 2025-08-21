@@ -150,69 +150,6 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
-    @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_PROMOTE_USER, entityType = ActivityTypeEnum.USER,
-            details = "Promoted to admin: {username}")
-
-    public void promoteUserToAdmin(String username) {
-        Optional<UserEntity> userOptional = userRepository.findByUsername(username);
-        UserRole newRole = UserRole.ADMIN;
-
-        if (userOptional.isPresent()) {
-            UserEntity user = userOptional.get();
-
-            if (!user.getRole().equals(newRole)) {
-                user.setRole(newRole);
-                userRepository.save(user);
-            } else {
-                throw new RuntimeException("User is already an ADMIN.");
-            }
-        } else {
-            throw new RuntimeException("User not found with username: " + username);
-        }
-    }
-
-    @Transactional
-    @LogActivity(action = ActivityActionEnum.ADMIN_DEMOTE_USER, entityType = ActivityTypeEnum.USER,
-            details = "Demoted to user: {username}")
-
-    public void promoteAdminToUser(String username) {
-        Optional<UserEntity> userOptional = userRepository.findByUsername(username);
-        UserRole newRole = UserRole.USER;
-
-        if (userOptional.isPresent()) {
-            UserEntity user = userOptional.get();
-
-            if (!user.getRole().equals(newRole)) {
-                user.setRole(newRole);
-                userRepository.save(user);
-            } else {
-                throw new RuntimeException("Role 'USER' not found in the database.");
-            }
-        } else {
-            throw new RuntimeException("User not found with username: " + username);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void changeUserRole(Long userId) {
-        Optional<UserEntity> user = userRepository.findById(userId);
-
-        if (user.isPresent()){
-            UserEntity currentUser = user.get();
-            if (currentUser.getRole().equals(UserRole.USER)){
-                promoteUserToAdmin(currentUser.getUsername());
-            }else {
-                promoteAdminToUser(currentUser.getUsername());
-            }
-            userRepository.save(currentUser);
-
-        }else {
-            throw new RuntimeException("User not found !");
-        }
-    }
-
 
     /**
      * Deletes a user from the repository based on the provided user ID.

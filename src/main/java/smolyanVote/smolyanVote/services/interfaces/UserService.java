@@ -29,11 +29,6 @@ public interface UserService {
 
     UserEntity getCurrentUser();
 
-    void promoteUserToAdmin(String username);
-
-    void promoteAdminToUser(String username);
-
-    void changeUserRole(Long userId);
 
     void deleteUser(Long userId);
 
