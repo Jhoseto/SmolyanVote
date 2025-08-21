@@ -1,6 +1,6 @@
 /**
  * User Management JavaScript - SmolyanVote Admin
- * FINAL WORKING VERSION - 100% functional
+ * COMPLETE VERSION - всички функции от оригинала + фиксове
  */
 
 // ===== STATE MANAGEMENT =====
@@ -31,8 +31,19 @@ function update(id, value) {
 function showNotification(message, type = 'info') {
     if (window.showToast) {
         window.showToast(message, type);
+    } else if (window.Swal) {
+        window.Swal.fire({
+            title: type === 'error' ? 'Грешка!' : 'Информация',
+            text: message,
+            icon: type === 'error' ? 'error' : 'success',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
     } else {
         console.log(`${type.toUpperCase()}: ${message}`);
+        alert(message);
     }
 }
 
@@ -41,12 +52,10 @@ function elementExists(id) {
     const element = $(id);
     const exists = element !== null;
     const visible = exists && element.offsetParent !== null;
-    console.log(`${id}: ${exists ? '✅ Exists' : '❌ Missing'} ${visible ? '(Visible)' : '(Hidden)'}`);
     return exists;
 }
 
 function debugElements() {
-    console.log('🔍 Checking HTML elements...');
     const elements = [
         'users-table-body',
         'users-table',
@@ -54,13 +63,11 @@ function debugElements() {
         'total-users-count',
         'bulk-operations-bar'
     ];
-
     elements.forEach(elementExists);
 }
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 User Management initializing...');
     initializeWithRetry();
 });
 
@@ -74,18 +81,15 @@ async function initializeWithRetry() {
         await initializeUI();
 
     } catch (error) {
-        console.error('❌ Initialization error:', error);
+        console.error('Initialization error:', error);
         // Retry after delay
         setTimeout(() => {
-            console.log('🔄 Retrying initialization...');
             initializeWithRetry();
         }, 1000);
     }
 }
 
 async function initializeUI() {
-    console.log('🎨 Initializing UI...');
-
     // Wait for critical elements
     try {
         debugElements();
@@ -93,42 +97,32 @@ async function initializeUI() {
         // Initialize event listeners (works even if some elements are missing)
         initializeEventListeners();
 
-        // 🔥 FIXED: Added missing quotes around element ID
         if ($('users-table-body')) {
             updateUsersTable();
             updatePagination();
         }
 
         UserManagement.initialized = true;
-        console.log('✅ User Management fully initialized');
 
-        // 🔥 CRITICAL FIX: Update table with loaded data after UI initialization
+        // Update table with loaded data after UI initialization
         if (UserManagement.filteredUsers.length > 0) {
-            console.log('🔄 UI now initialized - updating table with existing data...');
             updateUsersTable();
             updatePagination();
         } else if (UserManagement.users.length > 0) {
-            console.log('🔄 Re-applying filters after UI initialization...');
             applyFiltersAndUpdate();
         }
 
     } catch (error) {
-        console.warn('⚠️ UI initialization partial:', error.message);
+        console.warn('UI initialization partial:', error.message);
         UserManagement.initialized = true; // Still mark as initialized
     }
 }
 
 function initializeEventListeners() {
-    console.log('🔗 Setting up event listeners...');
-
-    // Safe event listener setup - only attach if element exists
     const setupListener = (id, event, handler) => {
         const element = $(id);
         if (element) {
             element.addEventListener(event, handler);
-            console.log(`✅ Listener added: ${id}`);
-        } else {
-            console.log(`⚠️ Element missing: ${id}`);
         }
     };
 
@@ -153,24 +147,29 @@ function initializeEventListeners() {
     setupListener('prev-page-btn', 'click', () => changePage(-1));
     setupListener('next-page-btn', 'click', () => changePage(1));
 
-    // Modal actions
-    setupListener('modal-ban-user-btn', 'click', () => showBanModal());
-    setupListener('modal-promote-user-btn', 'click', () => showRoleChangeModal());
+    // Modal form actions
     setupListener('confirm-ban-btn', 'click', confirmBanUser);
     setupListener('confirm-role-change-btn', 'click', confirmRoleChange);
 
-    // Table sorting - use querySelectorAll for dynamic elements
+    // Table sorting
     document.querySelectorAll('.sortable').forEach(header => {
         header.addEventListener('click', () => handleSort(header.dataset.column));
     });
 
-    console.log('✅ Event listeners setup complete');
+    // FIXED: Event delegation for user checkboxes
+    const tableBody = $('users-table-body');
+    if (tableBody) {
+        tableBody.addEventListener('change', function(e) {
+            if (e.target.classList.contains('user-select')) {
+                handleUserSelect(e);
+            }
+        });
+    }
 }
 
 // ===== API CALLS =====
 async function loadUserStatistics() {
     try {
-        console.log('📊 Loading statistics...');
         const response = await fetch('/admin/users/statistics');
 
         if (!response.ok) {
@@ -178,43 +177,34 @@ async function loadUserStatistics() {
         }
 
         const stats = await response.json();
-        console.log('📊 Statistics loaded:', stats);
         updateStatisticsDisplay(stats);
     } catch (error) {
-        console.error('❌ Statistics error:', error);
+        console.error('Statistics error:', error);
         showNotification('Грешка при зареждане на статистиките: ' + error.message, 'error');
     }
 }
 
 async function loadAllUsers() {
     try {
-        console.log('👥 Loading users from API...');
-
         const response = await fetch('/admin/users');
-        console.log('👥 API response status:', response.status);
 
         if (!response.ok) {
             throw new Error(`API failed: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log('👥 API response data:', data);
 
         UserManagement.users = data.users || [];
-        console.log(`📊 Loaded ${UserManagement.users.length} users`);
 
         if (UserManagement.users.length === 0) {
-            console.warn('⚠️ No users returned from API');
+            console.warn('No users returned from API');
         }
-
-        console.log('🔄 About to apply filters and update...');
-        console.log('🏁 UserManagement.initialized:', UserManagement.initialized);
 
         // Apply filters and update UI if initialized
         applyFiltersAndUpdate();
 
     } catch (error) {
-        console.error('❌ Users loading error:', error);
+        console.error('Users loading error:', error);
         showNotification('Грешка при зареждане на потребителите: ' + error.message, 'error');
 
         // Show error in table if element exists
@@ -242,8 +232,6 @@ function updateStatisticsDisplay(stats) {
         const element = $(id);
         if (element) {
             element.textContent = value;
-        } else {
-            console.log(`⚠️ Stats element missing: ${id}`);
         }
     };
 
@@ -251,27 +239,19 @@ function updateStatisticsDisplay(stats) {
     safeUpdate('active-users-count', stats.activeUsers || 0);
     safeUpdate('online-users-count', stats.onlineUsers || 0);
     safeUpdate('admin-users-count', stats.adminCount || 0);
-    // 🔥 REMOVED: These elements don't exist in HTML
-    // safeUpdate('pending-users-count', stats.pendingUsers || 0);
-    // safeUpdate('banned-users-count', (stats.tempBannedUsers || 0) + (stats.permBannedUsers || 0));
     safeUpdate('total-users-change', `+${stats.weekRegistrations || 0}`);
     safeUpdate('user-stats-period', 'Обновено: ' + new Date().toLocaleTimeString('bg-BG'));
 }
 
 function updateUsersTable() {
-    console.log('📋 Updating users table...');
-
     const tbody = $('users-table-body');
     if (!tbody) {
-        console.log('⚠️ Table body not available, skipping update');
         return;
     }
 
     const start = (UserManagement.pagination.currentPage - 1) * UserManagement.pagination.usersPerPage;
     const end = start + UserManagement.pagination.usersPerPage;
     const paginatedUsers = UserManagement.filteredUsers.slice(start, end);
-
-    console.log(`📊 Displaying ${paginatedUsers.length} users (${start}-${end} of ${UserManagement.filteredUsers.length})`);
 
     if (paginatedUsers.length === 0) {
         tbody.innerHTML = `
@@ -287,21 +267,13 @@ function updateUsersTable() {
     }
 
     try {
-        console.log('🔧 Creating rows for users:', paginatedUsers.length);
         const userRows = paginatedUsers.map((user, index) => {
-            console.log(`🔧 Creating row ${index + 1} for user:`, user.username);
             return createUserRow(user);
         });
 
         tbody.innerHTML = userRows.join('');
-        console.log('✅ Table updated successfully');
 
-        // Add event listeners to checkboxes
-        tbody.querySelectorAll('.user-select').forEach(checkbox => {
-            checkbox.addEventListener('change', handleUserSelect);
-        });
-
-        // 🎨 Initialize avatars using avatarUtils.js if available
+        // Initialize avatars using avatarUtils.js if available
         if (window.avatarUtils) {
             setTimeout(() => {
                 window.avatarUtils.initializeAllAvatars();
@@ -310,7 +282,7 @@ function updateUsersTable() {
 
         updateBulkOperationsBar();
     } catch (error) {
-        console.error('❌ Error updating table:', error);
+        console.error('Error updating table:', error);
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-center py-4 text-danger">
@@ -322,10 +294,7 @@ function updateUsersTable() {
     }
 }
 
-// 🚀 ENHANCED: createUserRow with full information display (FIXED HTML ALIGNMENT)
 function createUserRow(user) {
-    console.log('🔧 Creating row for user:', user.username, 'with image:', user.imageUrl);
-
     try {
         const activityScore = (user.userEventsCount || 0) + (user.publicationsCount || 0) + (user.totalVotes || 0);
         const activityLevel = activityScore >= 10 ? 'high' : activityScore >= 3 ? 'medium' : activityScore > 0 ? 'low' : 'inactive';
@@ -370,13 +339,11 @@ function createUserRow(user) {
             return `<span class="badge bg-${levelInfo.class}" title="${score} действия">${levelInfo.text}</span>`;
         };
 
-        // 🎯 TEMPORARY FIX: Use simple IMG instead of avatarUtils to avoid conflicts
         const avatarHtml = `<img src="${user.imageUrl || '/images/default-avatar.png'}" 
                            alt="${user.username}" class="rounded-circle me-2" 
                            style="width: 32px; height: 32px; object-fit: cover;"
                            onerror="this.src='/images/default-avatar.png'">`;
 
-        // 🎯 FIXED: Column alignment matching HTML structure exactly
         const rowHtml = `
             <tr>
                 <td>
@@ -436,11 +403,10 @@ function createUserRow(user) {
             </tr>
         `;
 
-        console.log('✅ Row created successfully for:', user.username);
         return rowHtml;
 
     } catch (error) {
-        console.error('❌ Error creating row for user:', user.username, error);
+        console.error('Error creating row for user:', user.username, error);
         return `<tr><td colspan="9" class="text-danger">Грешка при зареждане на ${user.username}</td></tr>`;
     }
 }
@@ -484,9 +450,6 @@ function clearAllFilters() {
 }
 
 function applyFiltersAndUpdate() {
-    console.log('🔍 Applying filters and updating...');
-    console.log('📊 Total users before filtering:', UserManagement.users.length);
-
     UserManagement.filteredUsers = UserManagement.users.filter(user => {
         const { search, role, status, activity, dateFrom, dateTo } = UserManagement.currentFilters;
 
@@ -524,18 +487,13 @@ function applyFiltersAndUpdate() {
         return true;
     });
 
-    console.log('📊 Filtered users count:', UserManagement.filteredUsers.length);
-
     applySorting();
     UserManagement.pagination.currentPage = 1;
 
     // Only update UI if initialized
     if (UserManagement.initialized) {
-        console.log('✅ UI is initialized, updating table and pagination...');
         updateUsersTable();
         updatePagination();
-    } else {
-        console.log('⚠️ UI not yet initialized, skipping table update');
     }
 }
 
@@ -587,20 +545,33 @@ function updateSortingIcons() {
     }
 }
 
-// ===== BULK OPERATIONS =====
+// FIXED: Bulk operations with proper event handling
 function handleSelectAll(e) {
     const isChecked = e.target.checked;
-    document.querySelectorAll('.user-select').forEach(checkbox => {
+    const checkboxes = document.querySelectorAll('.user-select');
+
+    UserManagement.selectedUsers.clear(); // Clear first
+
+    checkboxes.forEach(checkbox => {
         checkbox.checked = isChecked;
         const userId = parseInt(checkbox.dataset.userId);
-        isChecked ? UserManagement.selectedUsers.add(userId) : UserManagement.selectedUsers.delete(userId);
+        if (userId && isChecked) {
+            UserManagement.selectedUsers.add(userId);
+        }
     });
     updateBulkOperationsBar();
 }
 
 function handleUserSelect(e) {
     const userId = parseInt(e.target.dataset.userId);
-    e.target.checked ? UserManagement.selectedUsers.add(userId) : UserManagement.selectedUsers.delete(userId);
+    if (!userId) return;
+
+    if (e.target.checked) {
+        UserManagement.selectedUsers.add(userId);
+    } else {
+        UserManagement.selectedUsers.delete(userId);
+    }
+
     updateBulkOperationsBar();
     updateSelectAllCheckbox();
 }
@@ -610,9 +581,10 @@ function updateBulkOperationsBar() {
     const countElement = $('selected-users-count');
 
     if (bulkBar && countElement) {
-        if (UserManagement.selectedUsers.size > 0) {
+        const selectedCount = UserManagement.selectedUsers.size;
+        if (selectedCount > 0) {
             bulkBar.style.display = 'flex';
-            countElement.textContent = UserManagement.selectedUsers.size;
+            countElement.textContent = selectedCount;
         } else {
             bulkBar.style.display = 'none';
         }
@@ -625,14 +597,14 @@ function updateSelectAllCheckbox() {
         const userCheckboxes = document.querySelectorAll('.user-select');
         const checkedCount = document.querySelectorAll('.user-select:checked').length;
 
-        selectAllCheckbox.checked = checkedCount === userCheckboxes.length;
+        selectAllCheckbox.checked = checkedCount === userCheckboxes.length && userCheckboxes.length > 0;
         selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < userCheckboxes.length;
     }
 }
 
 // ===== PAGINATION =====
 function updatePagination() {
-    UserManagement.pagination.totalPages = Math.ceil(UserManagement.filteredUsers.length / UserManagement.pagination.usersPerPage);
+    UserManagement.pagination.totalPages = Math.ceil(UserManagement.filteredUsers.length / UserManagement.pagination.usersPerPage) || 1;
 
     const start = (UserManagement.pagination.currentPage - 1) * UserManagement.pagination.usersPerPage + 1;
     const end = Math.min(start + UserManagement.pagination.usersPerPage - 1, UserManagement.filteredUsers.length);
@@ -673,9 +645,57 @@ async function showUserDetails(userId) {
         const user = await response.json();
         populateUserDetailsModal(user);
 
+        // ===== FIXED: Enhanced modal opening with multiple fallbacks
         const modal = $('user-details-modal');
         if (modal) {
-            new bootstrap.Modal(modal).show();
+            // Method 1: Bootstrap 5 Modal (preferred)
+            if (window.bootstrap && window.bootstrap.Modal) {
+                try {
+                    const bsModal = new window.bootstrap.Modal(modal, {
+                        backdrop: true,
+                        keyboard: true,
+                        focus: true
+                    });
+                    bsModal.show();
+                    return;
+                } catch (bsError) {
+                    console.error('Bootstrap 5 Modal failed:', bsError);
+                }
+            }
+
+            // Method 2: jQuery Bootstrap Modal (fallback)
+            if (window.$ && window.$.fn && window.$.fn.modal) {
+                try {
+                    window.$(modal).modal('show');
+                    return;
+                } catch (jqError) {
+                    console.error('jQuery Modal failed:', jqError);
+                }
+            }
+
+            // Method 3: Manual display (last resort)
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('role', 'dialog');
+            modal.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            // Create backdrop manually
+            let backdrop = document.querySelector('.modal-backdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.style.zIndex = '1040';
+                backdrop.onclick = () => closeUserDetailsModal();
+                document.body.appendChild(backdrop);
+            }
+
+            // Add close button listener
+            const closeBtn = modal.querySelector('.btn-close, [data-bs-dismiss="modal"]');
+            if (closeBtn) {
+                closeBtn.onclick = () => closeUserDetailsModal();
+            }
         }
     } catch (error) {
         console.error('User details error:', error);
@@ -683,8 +703,24 @@ async function showUserDetails(userId) {
     }
 }
 
+// Helper function to close modal manually
+function closeUserDetailsModal() {
+    const modal = $('user-details-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.removeAttribute('aria-modal');
+        modal.removeAttribute('role');
+        document.body.classList.remove('modal-open');
+
+        // Remove backdrop
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+    }
+}
+
 function populateUserDetailsModal(user) {
-    // ===== BASIC USER INFO =====
     const safeUpdate = (id, value) => {
         const element = $(id);
         if (element) element.textContent = value;
@@ -699,29 +735,19 @@ function populateUserDetailsModal(user) {
     safeUpdate('modal-user-username', user.username || '-');
     safeUpdate('modal-user-email', user.email || '-');
     safeUpdate('modal-user-role', user.role || '-');
-
-    // Enhanced status with ban info
-    const statusHTML = getEnhancedStatusDisplay(user);
-    safeUpdateHTML('modal-user-status-text', statusHTML);
-
     safeUpdate('modal-user-registration', user.created ? new Date(user.created).toLocaleDateString('bg-BG') : '-');
-
-    // Real name and bio
     safeUpdate('modal-user-real-name', user.realName || 'Не е указано');
     safeUpdate('modal-user-bio', user.bio || 'Няма био информация');
     safeUpdate('modal-user-location', user.location || 'Не е указано');
-
-    // Enhanced timestamps
     safeUpdate('modal-user-last-online', getLastOnlineDisplay(user.lastOnline, user.onlineStatus));
     safeUpdate('modal-user-last-modified', user.modified ? new Date(user.modified).toLocaleString('bg-BG') : '-');
 
-    // ===== ACTIVITY STATISTICS =====
-    populateActivityStats(user);
+    const statusHTML = getEnhancedStatusDisplay(user);
+    safeUpdateHTML('modal-user-status-text', statusHTML);
 
-    // ===== BAN INFORMATION =====
+    populateActivityStats(user);
     populateBanInformation(user);
 
-    // ===== AVATAR AND STATUS INDICATOR =====
     const avatar = $('modal-user-avatar');
     if (avatar) {
         avatar.src = user.imageUrl || '/images/default-avatar.png';
@@ -733,39 +759,112 @@ function populateUserDetailsModal(user) {
         statusIndicator.className = `user-status-indicator ${user.onlineStatus === 1 ? 'online' : 'offline'}`;
     }
 
-    // ===== MODAL ACTION BUTTONS =====
+    // FIXED: Modal action buttons with proper event listeners
     const banBtn = $('modal-ban-user-btn');
     const promoteBtn = $('modal-promote-user-btn');
 
     if (banBtn) {
         banBtn.dataset.userId = user.id;
+        banBtn.onclick = () => showBanModal(user.id);
 
-        // Update ban button based on current status
         if (user.status?.includes('BANNED')) {
             banBtn.className = 'btn btn-success';
             banBtn.innerHTML = '<i class="bi bi-check-circle"></i> Отблокирай';
-            banBtn.title = 'Отблокирай потребителя';
         } else {
             banBtn.className = 'btn btn-warning';
             banBtn.innerHTML = '<i class="bi bi-ban"></i> Блокирай';
-            banBtn.title = 'Блокирай потребителя';
         }
     }
 
     if (promoteBtn) {
         promoteBtn.dataset.userId = user.id;
+        promoteBtn.onclick = () => showRoleChangeModal(user.id);
 
-        // Update role button based on current role
         if (user.role === 'ADMIN') {
             promoteBtn.className = 'btn btn-outline-secondary';
             promoteBtn.innerHTML = '<i class="bi bi-arrow-down-circle"></i> Понижи до User';
-            promoteBtn.title = 'Понижи до обикновен потребител';
         } else {
             promoteBtn.className = 'btn btn-success';
             promoteBtn.innerHTML = '<i class="bi bi-arrow-up-circle"></i> Повиши до Admin';
-            promoteBtn.title = 'Повиши до администратор';
         }
     }
+}
+
+function populateActivityStats(user) {
+    const safeUpdate = (id, value) => {
+        const element = $(id);
+        if (element) element.textContent = value;
+    };
+
+    // FIXED: Use correct HTML element IDs from template
+    safeUpdate('modal-user-publications', user.publicationsCount || 0);
+    safeUpdate('modal-user-votes', user.totalVotes || 0);
+    safeUpdate('modal-user-events', user.userEventsCount || 0);
+    safeUpdate('modal-user-comments', user.commentsCount || 0);
+    safeUpdate('modal-user-reports', user.reportsCount || 0);
+
+    // Calculate and display activity score
+    const activityScore = (user.publicationsCount || 0) + (user.totalVotes || 0) + (user.userEventsCount || 0);
+    safeUpdate('modal-user-activity-score', activityScore);
+}
+
+function populateBanInformation(user) {
+    const banInfoSection = $('modal-ban-info-section');
+    if (!banInfoSection) return;
+
+    if (user.status?.includes('BANNED')) {
+        banInfoSection.style.display = 'block';
+        const safeUpdate = (id, value) => {
+            const element = $(id);
+            if (element) element.textContent = value;
+        };
+
+        safeUpdate('modal-ban-reason', user.banReason || 'Няма указана причина');
+        safeUpdate('modal-ban-date', user.bannedDate ? new Date(user.bannedDate).toLocaleString('bg-BG') : '-');
+        safeUpdate('modal-ban-until', user.bannedUntil ? new Date(user.bannedUntil).toLocaleString('bg-BG') : 'Перманентно');
+        safeUpdate('modal-ban-by', user.bannedBy || 'Система');
+    } else {
+        banInfoSection.style.display = 'none';
+    }
+}
+
+function getLastOnlineDisplay(lastOnline, onlineStatus) {
+    if (onlineStatus === 1) return 'Онлайн сега';
+    if (!lastOnline) return 'Никога';
+
+    const lastDate = new Date(lastOnline);
+    const now = new Date();
+    const diffMs = now - lastDate;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Днес';
+    if (diffDays === 1) return 'Вчера';
+    if (diffDays < 7) return `Преди ${diffDays} дни`;
+    if (diffDays < 30) return `Преди ${Math.floor(diffDays / 7)} седмици`;
+    if (diffDays < 365) return `Преди ${Math.floor(diffDays / 30)} месеца`;
+    return `Преди ${Math.floor(diffDays / 365)} години`;
+}
+
+function getEnhancedStatusDisplay(user) {
+    let statusText = getStatusText(user.status);
+    let statusClass = 'user-status-badge ';
+
+    if (user.status?.includes('BANNED')) {
+        statusClass += 'banned';
+        if (user.banReason) {
+            statusText += `<br><small class="text-muted">Причина: ${user.banReason}</small>`;
+        }
+        if (user.bannedUntil) {
+            const bannedDate = new Date(user.bannedUntil).toLocaleDateString('bg-BG');
+            statusText += `<br><small class="text-muted">До: ${bannedDate}</small>`;
+        }
+    } else if (user.status === 'ACTIVE') {
+        statusClass += 'active';
+    } else {
+        statusClass += 'pending';
+    }
+
+    return `<span class="${statusClass}">${statusText}</span>`;
 }
 
 function getStatusText(status) {
@@ -778,10 +877,8 @@ function getStatusText(status) {
     return statusMap[status] || status;
 }
 
-// ===== 🔥 FIXED BAN MODAL - MATCHES REAL HTML STRUCTURE =====
+// ===== BAN MODAL =====
 async function showBanModal(userId) {
-    console.log('🚫 Opening ban modal for user:', userId);
-
     if (!userId) {
         showNotification('Грешка: Няма избран потребител', 'error');
         return;
@@ -809,10 +906,14 @@ async function showBanModal(userId) {
         confirmBtn.dataset.username = user.username;
     }
 
-    // 🔥 FIXED: Reset form using REAL HTML element IDs
+    // Set username in modal
+    const usernameSpan = $('ban-username');
+    if (usernameSpan) usernameSpan.textContent = user.username;
+
+    // Reset form using REAL HTML element IDs
     resetBanForm();
 
-    // 🔥 FIXED: Setup ban type change listener for REAL HTML structure
+    // Setup ban type change listener for REAL HTML structure
     setupBanTypeListener();
 
     // Show modal
@@ -823,41 +924,34 @@ async function showBanModal(userId) {
 }
 
 function resetBanForm() {
-    console.log('🔧 Resetting ban form...');
-
     // Reset ban type select
     const banTypeSelect = $('ban-type-select');
     if (banTypeSelect) {
         banTypeSelect.value = 'permanent';
-        console.log('✅ Ban type reset to permanent');
     }
 
     // Reset duration select
     const durationSelect = $('ban-duration-select');
     if (durationSelect) {
         durationSelect.value = '7';
-        console.log('✅ Duration select reset');
     }
 
     // Reset custom date
     const customDate = $('custom-ban-date');
     if (customDate) {
         customDate.value = '';
-        console.log('✅ Custom date reset');
     }
 
     // Reset reason select
     const reasonSelect = $('ban-reason-select');
     if (reasonSelect) {
         reasonSelect.value = 'violation';
-        console.log('✅ Reason select reset');
     }
 
     // Reset notes
     const notesField = $('ban-notes');
     if (notesField) {
         notesField.value = '';
-        console.log('✅ Notes field reset');
     }
 
     // Initially hide duration sections
@@ -871,7 +965,6 @@ function setupBanTypeListener() {
         banTypeSelect.removeEventListener('change', toggleBanDurationVisibility);
         // Add new listener
         banTypeSelect.addEventListener('change', toggleBanDurationVisibility);
-        console.log('✅ Ban type listener setup');
     }
 }
 
@@ -880,16 +973,14 @@ function toggleBanDurationVisibility() {
     const durationSection = $('ban-duration-section');
 
     if (!banTypeSelect || !durationSection) {
-        console.warn('⚠️ Ban form elements not found');
+        console.warn('Ban form elements not found');
         return;
     }
 
     if (banTypeSelect.value === 'temporary') {
         durationSection.style.display = 'block';
-        console.log('✅ Duration section shown');
     } else {
         durationSection.style.display = 'none';
-        console.log('✅ Duration section hidden');
     }
 
     // Also handle custom date section
@@ -920,8 +1011,6 @@ function toggleCustomDate() {
 }
 
 async function confirmBanUser() {
-    console.log('🚫 Confirming ban user...');
-
     const confirmBtn = $('confirm-ban-btn');
     if (!confirmBtn) {
         showNotification('Грешка: Бутон за потвърждение не е намерен', 'error');
@@ -936,7 +1025,7 @@ async function confirmBanUser() {
         return;
     }
 
-    // 🔥 FIXED: Get form data using REAL HTML element IDs
+    // Get form data using REAL HTML element IDs
     const banTypeSelect = $('ban-type-select');
     const banType = banTypeSelect ? banTypeSelect.value : 'permanent';
 
@@ -1014,8 +1103,6 @@ async function confirmBanUser() {
             requestBody.durationDays = durationDays;
         }
 
-        console.log('🚫 Sending ban request:', requestBody);
-
         // Send request
         const response = await fetch(`/admin/users/${userId}/ban`, {
             method: 'POST',
@@ -1029,7 +1116,6 @@ async function confirmBanUser() {
         }
 
         const result = await response.json();
-        console.log('🚫 Ban result:', result);
 
         showNotification(result.message || 'Потребителят е блокиран успешно', 'success');
 
@@ -1041,7 +1127,7 @@ async function confirmBanUser() {
         if (modal) modal.hide();
 
     } catch (error) {
-        console.error('❌ Ban user error:', error);
+        console.error('Ban user error:', error);
         showNotification('Грешка при блокиране: ' + error.message, 'error');
     } finally {
         // Re-enable button
@@ -1050,10 +1136,8 @@ async function confirmBanUser() {
     }
 }
 
-// ===== 🔥 FIXED ROLE CHANGE MODAL =====
+// ===== ROLE CHANGE MODAL =====
 async function showRoleChangeModal(userId) {
-    console.log('👑 Opening role change modal for user:', userId);
-
     if (!userId) {
         showNotification('Грешка: Няма избран потребител', 'error');
         return;
@@ -1081,6 +1165,10 @@ async function showRoleChangeModal(userId) {
         roleSelect.value = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
     }
 
+    // Update modal text
+    const usernameSpan = $('role-change-username');
+    if (usernameSpan) usernameSpan.textContent = user.username;
+
     // Reset reason field
     const reasonField = $('role-change-reason');
     if (reasonField) reasonField.value = '';
@@ -1093,11 +1181,9 @@ async function showRoleChangeModal(userId) {
 }
 
 async function confirmRoleChange() {
-    console.log('👑 Starting role change confirmation...');
-
     const confirmBtn = $('confirm-role-change-btn');
     if (!confirmBtn) {
-        console.error('❌ Confirm role change button not found');
+        console.error('Confirm role change button not found');
         showNotification('Грешка: Бутонът за потвърждение не е намерен', 'error');
         return;
     }
@@ -1105,8 +1191,6 @@ async function confirmRoleChange() {
     const userId = confirmBtn.dataset.userId;
     const username = confirmBtn.dataset.username;
     const currentRole = confirmBtn.dataset.currentRole;
-
-    console.log('👑 Role change data:', { userId, username, currentRole });
 
     if (!userId) {
         showNotification('Грешка: Няма избран потребител', 'error');
@@ -1118,8 +1202,6 @@ async function confirmRoleChange() {
     const newRole = roleSelect ? roleSelect.value : null;
     const reasonField = $('role-change-reason');
     const reason = reasonField ? reasonField.value.trim() : '';
-
-    console.log('👑 Form data:', { newRole, reason });
 
     if (!newRole) {
         showNotification('Моля изберете нова роля', 'error');
@@ -1154,8 +1236,6 @@ async function confirmRoleChange() {
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Променяне...';
 
-        console.log('👑 Sending role change request to:', `/admin/users/${userId}/role`);
-
         // Send request
         const response = await fetch(`/admin/users/${userId}/role`, {
             method: 'POST',
@@ -1163,16 +1243,13 @@ async function confirmRoleChange() {
             body: JSON.stringify({ role: newRole, reason })
         });
 
-        console.log('👑 Role change response status:', response.status);
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ Role change failed:', errorText);
+            console.error('Role change failed:', errorText);
             throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
-        console.log('👑 Role change result:', result);
 
         showNotification(result.message || 'Ролята е променена успешно', 'success');
 
@@ -1184,7 +1261,7 @@ async function confirmRoleChange() {
         if (modal) modal.hide();
 
     } catch (error) {
-        console.error('❌ Role change error:', error);
+        console.error('Role change error:', error);
         showNotification('Грешка при промяна на ролята: ' + error.message, 'error');
     } finally {
         // Re-enable button
@@ -1308,7 +1385,15 @@ async function bulkAction(url, data) {
 
 // ===== UTILITY FUNCTIONS =====
 function refreshUsers() {
-    console.log('🔄 Refreshing users...');
     loadAllUsers();
     showNotification('Потребителите са обновени', 'success');
 }
+
+// ===== GLOBAL FUNCTIONS =====
+window.showUserDetails = showUserDetails;
+window.showBanModal = showBanModal;
+window.confirmBanUser = confirmBanUser;
+window.showRoleChangeModal = showRoleChangeModal;
+window.confirmRoleChange = confirmRoleChange;
+window.loadAllUsers = loadAllUsers;
+window.loadUserStatistics = loadUserStatistics;
