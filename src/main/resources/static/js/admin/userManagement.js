@@ -1320,13 +1320,13 @@ async function deleteUser(userId) {
 async function handleBulkPromote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Повишаване на ${UserManagement.selectedUsers.size} потребители до администратори?`)) return;
-    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers), role: 'ADMIN' });
+    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers).map(String), role: 'ADMIN' });
 }
 
 async function handleBulkDemote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Понижаване на ${UserManagement.selectedUsers.size} потребители до обикновени потребители?`)) return;
-    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers), role: 'USER' });
+    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers).map(String), role: 'USER' });
 }
 
 async function handleBulkBan() {
@@ -1334,7 +1334,7 @@ async function handleBulkBan() {
     const reason = prompt(`Причина за блокиране на ${UserManagement.selectedUsers.size} потребители:`);
     if (!reason) return;
     await bulkAction('/admin/users/bulk-ban', {
-        userIds: Array.from(UserManagement.selectedUsers),
+        userIds: Array.from(UserManagement.selectedUsers).map(String),
         banType: 'permanent',
         reason
     });
