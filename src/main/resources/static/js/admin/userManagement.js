@@ -1017,13 +1017,8 @@ async function confirmBanUser() {
         return;
     }
 
-    const userId = confirmBtn.dataset.userId;
-    const username = confirmBtn.dataset.username;
-
-    if (!userId) {
-        showNotification('Грешка: Няма избран потребител', 'error');
-        return;
-    }
+    const isBulk = confirmBtn.dataset.isBulk === 'true';
+    const selectedCount = parseInt(confirmBtn.dataset.selectedCount) || 0;
 
     // Get form data using REAL HTML element IDs
     const banTypeSelect = $('ban-type-select');
@@ -1035,41 +1030,9 @@ async function confirmBanUser() {
     const notesField = $('ban-notes');
     const notes = notesField ? notesField.value.trim() : '';
 
-    let durationDays = null;
-
-    // Handle duration for temporary bans
-    if (banType === 'temporary') {
-        const durationSelect = $('ban-duration-select');
-        if (durationSelect) {
-            if (durationSelect.value === 'custom') {
-                const customDate = $('custom-ban-date');
-                if (customDate && customDate.value) {
-                    const endDate = new Date(customDate.value);
-                    const now = new Date();
-                    durationDays = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-
-                    if (durationDays <= 0) {
-                        showNotification('Крайната дата трябва да е в бъдещето', 'error');
-                        return;
-                    }
-                } else {
-                    showNotification('Моля въведете крайна дата', 'error');
-                    return;
-                }
-            } else {
-                durationDays = parseInt(durationSelect.value);
-            }
-        }
-
-        if (!durationDays || durationDays < 1) {
-            showNotification('Моля въведете валидна продължителност', 'error');
-            return;
-        }
-    }
-
     // Build reason text
     const reasonTexts = {
-        'spam': 'Спам съдържание',
+        'spam': 'Спам',
         'inappropriate': 'Неподходящо съдържание',
         'harassment': 'Тормоз',
         'fake_account': 'Фалшив акаунт',
@@ -1077,47 +1040,112 @@ async function confirmBanUser() {
         'other': 'Друго'
     };
 
-    let fullReason = reasonTexts[reasonCode] || 'Нарушение на правилата';
+    let fullReason = reasonTexts[reasonCode] || reasonCode;
     if (notes) {
         fullReason += ` - ${notes}`;
     }
 
-    // Confirmation
-    const banDurationText = banType === 'permanent' ? 'перманентно' : `за ${durationDays} дни`;
-    if (!confirm(`Сигурни ли сте че искате да блокирате ${username} ${banDurationText}?\n\nПричина: ${fullReason}`)) {
-        return;
+    // Calculate duration
+    let durationDays = null;
+    if (banType === 'temporary') {
+        const durationSelect = $('ban-duration-select');
+        if (durationSelect && durationSelect.value === 'custom') {
+            const customDate = $('custom-ban-date');
+            if (customDate && customDate.value) {
+                const today = new Date();
+                const selectedDate = new Date(customDate.value);
+                durationDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
+            }
+        } else if (durationSelect) {
+            durationDays = parseInt(durationSelect.value);
+        }
+
+        if (!durationDays || durationDays <= 0) {
+            showNotification('Моля въведете валидна продължителност за временното блокиране', 'error');
+            return;
+        }
+    }
+
+    // Confirmation text
+    if (isBulk) {
+        const banDurationText = banType === 'permanent' ? 'перманентно' : `за ${durationDays} дни`;
+        if (!confirm(`Сигурни ли сте че искате да блокирате ${selectedCount} потребители ${banDurationText}?\n\nПричина: ${fullReason}`)) {
+            return;
+        }
+    } else {
+        const userId = confirmBtn.dataset.userId;
+        const username = confirmBtn.dataset.username;
+        if (!userId) {
+            showNotification('Грешка: Няма избран потребител', 'error');
+            return;
+        }
+        const banDurationText = banType === 'permanent' ? 'перманентно' : `за ${durationDays} дни`;
+        if (!confirm(`Сигурни ли сте че искате да блокирате ${username} ${banDurationText}?\n\nПричина: ${fullReason}`)) {
+            return;
+        }
     }
 
     try {
         // Disable button
         confirmBtn.disabled = true;
+        const originalText = confirmBtn.innerHTML;
         confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Блокиране...';
 
-        // Prepare request
-        const requestBody = {
-            banType,
-            reason: fullReason
-        };
+        if (isBulk) {
+            // Bulk ban request
+            const requestBody = {
+                userIds: Array.from(UserManagement.selectedUsers),
+                banType,
+                reason: fullReason
+            };
 
-        if (banType === 'temporary' && durationDays) {
-            requestBody.durationDays = durationDays;
+            if (banType === 'temporary' && durationDays) {
+                requestBody.durationDays = durationDays;
+            }
+
+            const response = await fetch('/admin/users/bulk-ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            showNotification(result.message || `${selectedCount} потребители блокирани успешно`, 'success');
+
+            // Clear selection
+            UserManagement.selectedUsers.clear();
+            updateBulkOperationsBar();
+        } else {
+            // Single user ban request
+            const userId = confirmBtn.dataset.userId;
+            const requestBody = {
+                banType,
+                reason: fullReason
+            };
+
+            if (banType === 'temporary' && durationDays) {
+                requestBody.durationDays = durationDays;
+            }
+
+            const response = await fetch(`/admin/users/${userId}/ban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            showNotification(result.message || 'Потребителят е блокиран успешно', 'success');
         }
-
-        // Send request
-        const response = await fetch(`/admin/users/${userId}/ban`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-
-        showNotification(result.message || 'Потребителят е блокиран успешно', 'success');
 
         // Refresh data and close modal
         await loadAllUsers();
@@ -1126,6 +1154,9 @@ async function confirmBanUser() {
         const modal = bootstrap.Modal.getInstance($('ban-user-modal'));
         if (modal) modal.hide();
 
+        // Reset modal state
+        resetModalState();
+
     } catch (error) {
         console.error('Ban user error:', error);
         showNotification('Грешка при блокиране: ' + error.message, 'error');
@@ -1133,6 +1164,29 @@ async function confirmBanUser() {
         // Re-enable button
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = '<i class="bi bi-ban"></i> Блокирай потребителя';
+    }
+}
+
+// ===== RESET MODAL STATE =====
+function resetModalState() {
+    const confirmBtn = $('confirm-ban-btn');
+    if (confirmBtn) {
+        delete confirmBtn.dataset.isBulk;
+        delete confirmBtn.dataset.selectedCount;
+    }
+
+    // Връщаме оригиналния текст
+    const modalTitle = document.querySelector('#ban-user-modal .modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = '<i class="bi bi-ban text-danger"></i> Блокиране на потребител';
+    }
+
+    const warningText = document.querySelector('#ban-user-modal .text-warning');
+    if (warningText) {
+        warningText.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i>
+            Сигурни ли сте че искате да блокирате потребителя?
+        `;
     }
 }
 
@@ -1320,24 +1374,27 @@ async function deleteUser(userId) {
 async function handleBulkPromote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Повишаване на ${UserManagement.selectedUsers.size} потребители до администратори?`)) return;
-    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers).map(String), role: 'ADMIN' });
+    // ✅ ПОПРАВКА: Премахнат .map(String) - оставяме числата като Long
+    await bulkAction('/admin/users/bulk-role', {
+        userIds: Array.from(UserManagement.selectedUsers),
+        role: 'ADMIN'
+    });
 }
 
 async function handleBulkDemote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Понижаване на ${UserManagement.selectedUsers.size} потребители до обикновени потребители?`)) return;
-    await bulkAction('/admin/users/bulk-role', { userIds: Array.from(UserManagement.selectedUsers).map(String), role: 'USER' });
+    // ✅ ПОПРАВКА: Премахнат .map(String) - оставяме числата като Long
+    await bulkAction('/admin/users/bulk-role', {
+        userIds: Array.from(UserManagement.selectedUsers),
+        role: 'USER'
+    });
 }
 
 async function handleBulkBan() {
     if (UserManagement.selectedUsers.size === 0) return;
-    const reason = prompt(`Причина за блокиране на ${UserManagement.selectedUsers.size} потребители:`);
-    if (!reason) return;
-    await bulkAction('/admin/users/bulk-ban', {
-        userIds: Array.from(UserManagement.selectedUsers).map(String),
-        banType: 'permanent',
-        reason
-    });
+
+    showBulkBanModal();
 }
 
 async function handleBulkUnban() {
@@ -1345,16 +1402,27 @@ async function handleBulkUnban() {
     if (!confirm(`Отблокиране на ${UserManagement.selectedUsers.size} потребители?`)) return;
 
     try {
-        await Promise.all(Array.from(UserManagement.selectedUsers).map(userId =>
+        // ✅ ПОПРАВКА: Използваме individual endpoints (няма bulk-unban в backend)
+        const promises = Array.from(UserManagement.selectedUsers).map(userId =>
             fetch(`/admin/users/${userId}/unban`, { method: 'POST' })
-        ));
+        );
+
+        const responses = await Promise.all(promises);
+
+        // Проверяваме дали всички заявки са успешни
+        const failedRequests = responses.filter(response => !response.ok);
+        if (failedRequests.length > 0) {
+            throw new Error(`${failedRequests.length} заявки неуспешни`);
+        }
 
         showNotification(`${UserManagement.selectedUsers.size} потребители отблокирани`, 'success');
         UserManagement.selectedUsers.clear();
-        loadAllUsers();
+        updateBulkOperationsBar(); // ✅ ДОБАВЕНО: Скрива bulk bar-а
+        await loadAllUsers();
+        await loadUserStatistics();
     } catch (error) {
         console.error('Bulk unban error:', error);
-        showNotification('Грешка при отблокиране', 'error');
+        showNotification('Грешка при отблокиране: ' + error.message, 'error');
     }
 }
 
@@ -1375,11 +1443,46 @@ async function bulkAction(url, data) {
         showNotification(result.message || 'Операцията е извършена успешно', 'success');
 
         UserManagement.selectedUsers.clear();
+        updateBulkOperationsBar(); // ✅ ДОБАВЕНО: Скрива bulk bar-а
         await loadAllUsers();
         await loadUserStatistics();
     } catch (error) {
         console.error('Bulk action error:', error);
         showNotification('Грешка при bulk операцията: ' + error.message, 'error');
+    }
+}
+
+function showBulkBanModal() {
+    // Маркираме че това е bulk операция
+    const confirmBtn = $('confirm-ban-btn');
+    if (confirmBtn) {
+        confirmBtn.dataset.isBulk = 'true';
+        confirmBtn.dataset.selectedCount = UserManagement.selectedUsers.size;
+    }
+
+    const usernameSpan = $('ban-username');
+    if (usernameSpan) {
+        usernameSpan.textContent = `${UserManagement.selectedUsers.size} потребители`;
+    }
+
+    const modalTitle = document.querySelector('#ban-user-modal .modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = '<i class="bi bi-ban text-danger"></i> Масово блокиране на потребители';
+    }
+
+    const warningText = document.querySelector('#ban-user-modal .text-warning');
+    if (warningText) {
+        warningText.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i>
+            Сигурни ли сте че искате да блокирате <strong>${UserManagement.selectedUsers.size} потребители</strong>?
+        `;
+    }
+    resetBanForm();
+    setupBanTypeListener();
+
+    const modal = $('ban-user-modal');
+    if (modal) {
+        new bootstrap.Modal(modal).show();
     }
 }
 
