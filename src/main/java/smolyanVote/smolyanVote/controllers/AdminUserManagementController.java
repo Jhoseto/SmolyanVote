@@ -6,17 +6,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.UserRoleAndBansHistoryEntity;
-import smolyanVote.smolyanVote.repositories.UserRoleAndBansHistoryRepository;
 import smolyanVote.smolyanVote.services.interfaces.AdminUserManagementService;
 import smolyanVote.smolyanVote.services.mappers.AdminUserManagementMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.AdminUserViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.UserBanAndRolesHistoryDto;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -48,89 +45,79 @@ public class AdminUserManagementController {
     @GetMapping("/{userId}")
     public ResponseEntity<AdminUserViewDTO> getUserDetails(@PathVariable Long userId) {
         UserEntity user = adminUserManagementService.getUserById(userId);
-        return ResponseEntity.ok(adminUserManagementMapper.mapUserToAdminView(user));
+        AdminUserViewDTO mappedUser = adminUserManagementMapper.mapUserToAdminView(user);
+        return ResponseEntity.ok(mappedUser);
     }
 
     @PostMapping("/{userId}/ban")
-    public ResponseEntity<Map<String, Object>> banUser(@PathVariable Long userId,
-                                                       @RequestBody Map<String, Object> request) {
-        String banType = (String) request.get("banType");
+    public ResponseEntity<Map<String, String>> banUser(@PathVariable Long userId, @RequestBody Map<String, Object> request) {
         String reason = (String) request.get("reason");
+        String banType = (String) request.get("banType");
         Integer durationDays = (Integer) request.get("durationDays");
 
-        if ("permanent".equals(banType)) {
-            adminUserManagementService.banUserPermanently(userId, reason);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е блокиран перманентно"));
-        } else if ("temporary".equals(banType) && durationDays != null) {
-            adminUserManagementService.banUserTemporarily(userId, reason, durationDays);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е блокиран за " + durationDays + " дни"));
+        Map<String, String> result = adminUserManagementService.banUser(userId, reason, banType, durationDays);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
         }
-        return ResponseEntity.badRequest().body(Map.of("error", "Невалиден тип блокиране"));
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{userId}/unban")
-    public ResponseEntity<Map<String, Object>> unbanUser(@PathVariable Long userId) {
-        adminUserManagementService.unbanUser(userId);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е отблокиран успешно"));
+    public ResponseEntity<Map<String, String>> unbanUser(@PathVariable Long userId) {
+        Map<String, String> result = adminUserManagementService.unbanUser(userId);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{userId}/role")
-    public ResponseEntity<Map<String, Object>> changeUserRole(@PathVariable Long userId,
-                                                              @RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, String>> changeUserRole(@PathVariable Long userId, @RequestBody Map<String, String> request) {
         String newRole = request.get("role");
+        String reason = request.get("reason");
 
-        if ("ADMIN".equals(newRole)) {
-            adminUserManagementService.promoteUserToAdmin(userId);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е повишен до администратор"));
-        } else if ("USER".equals(newRole)) {
-            adminUserManagementService.demoteUserToUser(userId);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е понижен до обикновен потребител"));
+        Map<String, String> result = adminUserManagementService.changeUserRole(userId, newRole, reason);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
         }
-        return ResponseEntity.badRequest().body(Map.of("error", "Невалидна роля"));
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long userId) {
-        adminUserManagementService.deleteUser(userId);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Потребителят е изтрит успешно"));
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long userId) {
+        Map<String, String> result = adminUserManagementService.deleteUser(userId);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/bulk-role-change")
+    public ResponseEntity<Map<String, Object>> bulkRoleChange(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Long> userIds = (List<Long>) request.get("userIds");
+        String newRole = (String) request.get("newRole");
+        return ResponseEntity.ok(adminUserManagementService.bulkRoleChange(userIds, newRole));
     }
 
     @PostMapping("/bulk-ban")
     public ResponseEntity<Map<String, Object>> bulkBanUsers(@RequestBody Map<String, Object> request) {
-
         @SuppressWarnings("unchecked")
-        List<Integer> userIdsInt = (List<Integer>) request.get("userIds");
-        List<Long> userIds = userIdsInt.stream().map(Integer::longValue).collect(Collectors.toList());
-
+        List<Long> userIds = (List<Long>) request.get("userIds");
         String banType = (String) request.get("banType");
         String reason = (String) request.get("reason");
         Integer durationDays = (Integer) request.get("durationDays");
-
         return ResponseEntity.ok(adminUserManagementService.bulkBanUsers(userIds, banType, reason, durationDays));
     }
 
-    @PostMapping("/bulk-role")
-    public ResponseEntity<Map<String, Object>> bulkChangeRole(@RequestBody Map<String, Object> request) {
-
-        @SuppressWarnings("unchecked")
-        List<Integer> userIdsInt = (List<Integer>) request.get("userIds");
-        List<Long> userIds = userIdsInt.stream().map(Integer::longValue).collect(Collectors.toList());
-
-        String newRole = (String) request.get("role");
-
-        return ResponseEntity.ok(adminUserManagementService.bulkRoleChange(userIds, newRole));
-    }
-
-
     @GetMapping("/history")
-    public ResponseEntity<List<Map<String, Object>>> getUserRoleAndBansHistory() {
+    public ResponseEntity<List<UserBanAndRolesHistoryDto>> getUserRoleAndBansHistory() {
         try {
-            List<UserRoleAndBansHistoryEntity> history = getAllUsers();
-
-            List<Map<String, Object>> historyData = history.stream()
-                    .map(this::mapHistoryToResponse)
-                    .collect(Collectors.toList());
-
+            List<UserBanAndRolesHistoryDto> historyData = adminUserManagementService.getAllHistory();
             return ResponseEntity.ok(historyData);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -138,30 +125,25 @@ public class AdminUserManagementController {
         }
     }
 
-    private Map<String, Object> mapHistoryToResponse(UserRoleAndBansHistoryEntity history) {
-        Map<String, Object> response = new HashMap<>();
-
-        response.put("id", history.getId());
-        response.put("targetUsername", history.getTargetUsername());
-        response.put("adminUsername", history.getAdminUsername());
-        response.put("actionType", history.getActionType());
-        response.put("actionTimestamp", history.getActionTimestamp());
-        response.put("reason", history.getReason());
-
-        // Role change data
-        if ("ROLE_CHANGE".equals(history.getActionType())) {
-            response.put("oldRole", history.getOldRole());
-            response.put("newRole", history.getNewRole());
+    @GetMapping("/{username}/history")
+    public ResponseEntity<List<UserBanAndRolesHistoryDto>> getUserSpecificHistory(@PathVariable String username) {
+        try {
+            List<UserBanAndRolesHistoryDto> historyData = adminUserManagementService.getHistoryForUser(username);
+            return ResponseEntity.ok(historyData);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
         }
+    }
 
-        // Ban data
-        if ("BAN".equals(history.getActionType()) || "UNBAN".equals(history.getActionType())) {
-            response.put("banType", history.getBanType());
-            response.put("banDurationDays", history.getBanDurationDays());
-            response.put("oldStatus", history.getOldStatus());
-            response.put("newStatus", history.getNewStatus());
+    @GetMapping("/history/recent")
+    public ResponseEntity<List<UserBanAndRolesHistoryDto>> getRecentHistory(@RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<UserBanAndRolesHistoryDto> historyData = adminUserManagementService.getRecentHistory(limit);
+            return ResponseEntity.ok(historyData);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
         }
-
-        return response;
     }
 }
