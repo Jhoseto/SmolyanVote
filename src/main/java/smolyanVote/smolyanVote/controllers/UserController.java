@@ -44,10 +44,17 @@ public class UserController {
         UserEntity currentUser = userService.getCurrentUser();
         List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(currentUser.getUsername());
 
+
+
         model.addAttribute("locations", Locations.values());
-        model.addAttribute("currentUser", currentUser);
+        model.addAttribute("user", currentUser);
         model.addAttribute("userEvents", userEvents);
-        return "userEditProfile";
+        model.addAttribute("isOwnProfile", isOwnProfile(currentUser));
+        return "unified-profile";
+    }
+
+    private boolean isOwnProfile(UserEntity user) {
+        return user.equals(userService.getCurrentUser());
     }
 
 
@@ -62,7 +69,7 @@ public class UserController {
         model.addAttribute("user", user);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("userEvents", userEvents);
-        return "userProfile";
+        return "unified-profile";
     }
 
 
