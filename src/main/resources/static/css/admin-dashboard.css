@@ -32,7 +32,7 @@
 
 /* ===== MONITORING SECTIONS ===== */
 .monitoring-section {
-    margin-bottom: 2rem;
+    margin-bottom: 0rem;
     position: relative;
     z-index: 1;
 }
@@ -88,7 +88,8 @@
     overflow: visible;
     transition: max-height 0.4s ease, opacity 0.3s ease;
     opacity: 1;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
+    padding: 0 10px
 }
 
 .collapsible-content.collapsed {

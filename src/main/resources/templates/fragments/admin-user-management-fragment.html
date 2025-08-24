@@ -262,29 +262,84 @@
                     <button type="button" class="btn btn-sm btn-outline-info" id="role-history-btn">
                         <i class="bi bi-clock-history"></i> History
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="history-filters-toggle" style="display: none;">
+                        <i class="bi bi-funnel"></i> Филтри
+                    </button>
                 </div>
             </div>
 
-            <!-- Role Change History -->
+            <!-- History Filters Section -->
+            <div class="history-filters-section" id="history-filters-section" style="display: none;">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm"
+                               id="history-search-input" placeholder="Търси по потребител...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="history-action-filter">
+                            <option value="">Всички действия</option>
+                            <option value="ROLE_CHANGE">Промяна на роля</option>
+                            <option value="BAN">Блокиране</option>
+                            <option value="UNBAN">Разблокиране</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="history-admin-filter">
+                            <option value="">Всички админи</option>
+                            <!-- JavaScript ще попълни опциите -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="clear-history-filters">
+                            <i class="bi bi-x-circle"></i> Изчисти
+                        </button>
+                    </div>
+                </div>
+                <div class="row g-2 mt-1">
+                    <div class="col-md-3">
+                        <input type="date" class="form-control form-control-sm" id="history-date-from" placeholder="От дата">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control form-control-sm" id="history-date-to" placeholder="До дата">
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-end">
+                            <small class="text-muted align-self-center">
+                                Показани: <span id="filtered-history-count">0</span> от <span id="total-history-count">0</span> записа
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Actions History -->
             <div class="role-history-container">
                 <table class="table table-striped role-history-table" id="role-history-table">
                     <thead>
                     <tr>
-                        <th style="width: 150px;">Потребител</th>
-                        <th style="width: 100px;">От роля</th>
-                        <th style="width: 100px;">Към роля</th>
-                        <th style="width: 150px;">Променен от</th>
-                        <th style="width: 140px;">Дата</th>
-                        <th>Причина</th>
+                        <th style="width: 180px;">
+                            <i class="bi bi-person-circle"></i> Потребител
+                        </th>
+                        <th style="width: 120px;">
+                            <i class="bi bi-activity"></i> Действие
+                        </th>
+                        <th style="width: 200px;">
+                            <i class="bi bi-info-circle"></i> Детайли
+                        </th>
+                        <th style="width: 160px;">
+                            <i class="bi bi-clock"></i> Дата/час
+                        </th>
+                        <th>
+                            <i class="bi bi-chat-text"></i> Причина
+                        </th>
                     </tr>
                     </thead>
                     <tbody id="role-history-body">
-                    <!-- JavaScript ще попълни тук -->
+                    <!-- JavaScript  -->
                     </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 </div>
 

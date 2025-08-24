@@ -14,6 +14,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.UserBanAndRolesHistoryDto;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -99,7 +100,10 @@ public class AdminUserManagementController {
     @PostMapping("/bulk-role-change")
     public ResponseEntity<Map<String, Object>> bulkRoleChange(@RequestBody Map<String, Object> request) {
         @SuppressWarnings("unchecked")
-        List<Long> userIds = (List<Long>) request.get("userIds");
+        List<Object> userIdObjects = (List<Object>) request.get("userIds");
+        List<Long> userIds = userIdObjects.stream()
+                .map(obj -> Long.valueOf(obj.toString()))
+                .collect(Collectors.toList());
         String newRole = (String) request.get("newRole");
         return ResponseEntity.ok(adminUserManagementService.bulkRoleChange(userIds, newRole));
     }
@@ -107,7 +111,10 @@ public class AdminUserManagementController {
     @PostMapping("/bulk-ban")
     public ResponseEntity<Map<String, Object>> bulkBanUsers(@RequestBody Map<String, Object> request) {
         @SuppressWarnings("unchecked")
-        List<Long> userIds = (List<Long>) request.get("userIds");
+        List<Object> userIdObjects = (List<Object>) request.get("userIds");
+        List<Long> userIds = userIdObjects.stream()
+                .map(obj -> Long.valueOf(obj.toString()))
+                .collect(Collectors.toList());
         String banType = (String) request.get("banType");
         String reason = (String) request.get("reason");
         Integer durationDays = (Integer) request.get("durationDays");
