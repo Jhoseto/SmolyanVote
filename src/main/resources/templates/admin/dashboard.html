@@ -19,8 +19,8 @@
     <div class="admin-header">
         <h1><i class="bi bi-gear-fill"></i> Admin Dashboard</h1>
         <p>SmolyanVote system</p>
-        <h3><i class="bi bi-clock"></i> Last Refresh</h3>
-        <p>Updated: <span class="last-refresh">--</span></p>
+        <h3><i class="bi bi-clock"></i> Последно обновяване</h3>
+        <p>Обновено: <span class="last-refresh">--</span></p>
         <button id="refresh-btn" class="btn btn-outline-success btn-sm">
             <i class="bi bi-arrow-clockwise"></i> Обнови данни
         </button>
@@ -29,157 +29,159 @@
     <!-- ОСНОВНИ СИСТЕМНИ СТАТУСИ -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="system-status">
-            <i class="bi bi-activity"></i> Health Status
+            <i class="bi bi-activity"></i> Здравен статус
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
         <div class="dashboard-grid collapsible-content" id="system-status">
             <div class="dashboard-card">
                 <h3><i class="bi bi-heart-pulse"></i> Общо здраве</h3>
-                <p>Status: <span id="health-status" class="status-active">--</span></p>
+                <p>Статус: <span id="health-status" class="status-active">--</span></p>
                 <p>Uptime: <span id="uptime">--</span> мин</p>
             </div>
 
             <div class="dashboard-card">
                 <h3><i class="bi bi-database"></i> База данни</h3>
                 <p>Връзка: <span id="db-status">--</span></p>
-                <p>Active connections: <strong id="db-active-connections">--</strong></p>
-                <p>Pending: <strong id="db-pending-connections">--</strong></p>
+                <p>Активни връзки: <strong id="db-active-connections">--</strong></p>
+                <p>Изчакващи: <strong id="db-pending-connections">--</strong></p>
             </div>
 
             <div class="dashboard-card">
                 <h3><i class="bi bi-cloud"></i> Cloudinary</h3>
-                <p>Service: <span id="cloudinary-status">--</span></p>
+                <p>Услуга: <span id="cloudinary-status">--</span></p>
                 <p>Cloud: <span id="cloudinary-name">--</span></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-envelope"></i> Email Service</h3>
-                <p>Service: <span id="email-status">--</span></p>
-                <p>Host: <span id="email-host">--</span></p>
+                <h3><i class="bi bi-envelope"></i> Email услуга</h3>
+                <p>Услуга: <span id="email-status">--</span></p>
+                <p>Хост: <span id="email-host">--</span></p>
             </div>
         </div>
     </div>
 
-    <!-- PERFORMANCE METRICS -->
+    <!-- ПРОИЗВОДИТЕЛНОСТ И МЕТРИКИ -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="performance-metrics">
-            <i class="bi bi-speedometer2"></i> Performance Metrics
+            <i class="bi bi-speedometer2"></i> Метрики за производителност
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
         <div class="dashboard-grid collapsible-content collapsed" id="performance-metrics">
             <div class="dashboard-card">
-                <h3><i class="bi bi-cpu"></i> CPU & Memory</h3>
-                <p>CPU Usage: <strong id="cpu-usage">--</strong>%</p>
-                <p>Memory Used: <strong id="memory-used">--</strong>MB / <strong id="memory-max">--</strong>MB</p>
-                <p>Usage: <strong id="memory-usage-percent">--</strong>%</p>
+                <h3><i class="bi bi-cpu"></i> CPU и памет</h3>
+                <p>Използване на CPU: <strong id="cpu-usage">--</strong>%</p>
+                <p>Използвана памет: <strong id="memory-used">--</strong>MB / <strong id="memory-max">--</strong>MB</p>
+                <p>Използване: <strong id="memory-usage-percent">--</strong>%</p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-graph-up"></i> Response Times</h3>
-                <p>Avg Response: <strong id="avg-response-time">--</strong>ms</p>
-                <p>Requests/sec: <strong id="requests-per-second">--</strong></p>
-                <p>Error Rate: <strong id="error-rate">--</strong>%</p>
+                <h3><i class="bi bi-graph-up"></i> Време за отговор</h3>
+                <p>Средно време за отговор: <strong id="avg-response-time">--</strong>ms</p>
+                <p>Заявки/сек: <strong id="requests-per-second">--</strong></p>
+                <p>Процент грешки: <strong id="error-rate">--</strong>%</p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-hdd"></i> Disk & Storage</h3>
-                <p>Disk Usage: <strong id="disk-usage-percent">--</strong>%</p>
-                <p>Free Space: <strong id="disk-free-space">--</strong>GB</p>
+                <h3><i class="bi bi-hdd"></i> Диск и хранилище</h3>
+                <p>Използване на диска: <strong id="disk-usage-percent">--</strong>%</p>
+                <p>Свободно място: <strong id="disk-free-space">--</strong>GB</p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-diagram-3"></i> JVM Threads</h3>
-                <p>Live Threads: <strong id="threads-live">--</strong></p>
-                <p>Peak Threads: <strong id="threads-peak">--</strong></p>
+                <h3><i class="bi bi-diagram-3"></i> JVM нишки</h3>
+                <p>Активни нишки: <strong id="threads-live">--</strong></p>
+                <p>Пикови нишки: <strong id="threads-peak">--</strong></p>
             </div>
         </div>
     </div>
 
-    <!-- HTTP STATUS MONITORING -->
+    <!-- HTTP STATUS МОНИТОРИНГ -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="http-monitoring">
-            <i class="bi bi-bar-chart"></i> HTTP Status Monitoring
+            <i class="bi bi-bar-chart"></i> HTTP статус мониторинг
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
         <div class="dashboard-grid collapsible-content collapsed" id="http-monitoring">
             <div class="dashboard-card">
-                <h3><i class="bi bi-check-circle text-success"></i> Success Responses</h3>
+                <h3><i class="bi bi-check-circle text-success"></i> Успешни отговори</h3>
                 <p>HTTP 200: <strong id="http-200">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-exclamation-triangle text-warning"></i> Client Errors</h3>
+                <h3><i class="bi bi-exclamation-triangle text-warning"></i> Клиентски грешки</h3>
                 <p>HTTP 404: <strong id="http-404">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-x-circle text-danger"></i> Server Errors</h3>
+                <h3><i class="bi bi-x-circle text-danger"></i> Сървърни грешки</h3>
                 <p>HTTP 500: <strong id="http-500">--</strong></p>
             </div>
 
             <div class="dashboard-card">
-                <h3><i class="bi bi-exclamation-circle"></i> Total Errors</h3>
-                <p>Total: <strong id="total-errors">--</strong></p>
+                <h3><i class="bi bi-exclamation-circle"></i> Общо грешки</h3>
+                <p>Общо: <strong id="total-errors">--</strong></p>
             </div>
         </div>
     </div>
 
-
-    <!-- REPORTS MANAGEMENT  -->
+    <!-- УПРАВЛЕНИЕ НА ДОКЛАДИ -->
     <div class="monitoring-section">
         <h2 class="section-header" data-toggle="reports-management">
-            <span><i class="bi bi-flag"></i> Reports Management</span>
+            <span><i class="bi bi-flag"></i> Управление на доклади</span>
             <i class="bi bi-chevron-down collapse-icon"></i>
         </h2>
         <div class="collapsible-content" id="reports-management">
 
-            <!-- Professional Header -->
+            <!-- Професионален хедър -->
             <div class="reports-management-header">
                 <div class="reports-stats">
                     <div class="stat-item">
                         <i class="bi bi-hourglass-split" style="color: #d97706;"></i>
-                        <span>Pending: <strong id="reports-pending-count">--</strong></span>
+                        <span>Изчакващи: <strong id="reports-pending-count">--</strong></span>
                     </div>
                     <div class="stat-item">
-                        <i class="bi bi-bar-chart" style="color: #3b82f6;"></i>
-                        <span>Total: <strong id="reports-total-count">--</strong></span>
+                        <i class="bi bi-flag" style="color: #6b7280;"></i>
+                        <span>Общо: <strong id="reports-total-count">--</strong></span>
                     </div>
                 </div>
                 <div class="reports-actions">
-                    <button id="reports-refresh-btn" class="btn btn-sm btn-outline-success">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    <button type="button" class="btn btn-outline-primary" id="reports-refresh-btn">
+                        <i class="bi bi-arrow-clockwise"></i> Обнови
                     </button>
-                    <button id="mark-reviewed-btn" class="btn btn-sm btn-success" disabled>
-                        <i class="bi bi-check"></i> Mark Reviewed
+                    <button type="button" class="btn btn-outline-success" id="mark-reviewed-btn">
+                        <i class="bi bi-check-circle"></i> Отбележи като прегледани
                     </button>
-                    <button id="delete-reports-btn" class="btn btn-sm btn-danger" disabled>
-                        <i class="bi bi-trash"></i> Delete
+                    <button type="button" class="btn btn-outline-danger" id="delete-reports-btn">
+                        <i class="bi bi-trash"></i> Изтрий избраните
                     </button>
                 </div>
             </div>
 
-            <!-- Professional Reports Table -->
+            <!-- Таблица с доклади -->
             <div class="reports-table-container">
-                <table id="reports-table" class="table">
+                <table class="table table-hover" id="reports-table">
                     <thead>
                     <tr>
                         <th style="width: 40px;">
-                            <input type="checkbox" id="select-all-reports">
+                            <input type="checkbox" class="form-check-input" id="select-all-reports">
                         </th>
-                        <th class="sortable" data-column="entityType" style="width: 120px;">
+                        <th class="sortable" data-column="entityType" style="width: 100px;">
                             Тип
                         </th>
-                        <th class="sortable" data-column="reportCount" style="width: 100px;">
-                            Брой репорти
+                        <th class="sortable" data-column="entityTitle" style="width: 200px;">
+                            Заглавие
                         </th>
-                        <th class="sortable" data-column="numberOfReporters" style="width: 150px;">
-                            Докладвачи
+                        <th class="sortable" data-column="reason" style="width: 120px;">
+                            Причина
                         </th>
-                        <th style="width: 200px;">
+                        <th class="sortable" data-column="reportCount" style="width: 80px;">
+                            Брой
+                        </th>
+                        <th style="width: 250px;">
                             Описание
                         </th>
-                        <th class="sortable" data-column="mostCommonReason" style="width: 150px;">
-                            Най-честа причина
+                        <th class="sortable" data-column="reporterUsername" style="width: 120px;">
+                            Докладчици
                         </th>
                         <th class="sortable" data-column="status" style="width: 100px;">
                             Статус
