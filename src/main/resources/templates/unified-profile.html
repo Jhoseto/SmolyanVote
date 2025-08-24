@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${isOwnProfile} ? 'Моят профил' : ${user.username} + ' - Профил'">Профил</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Existing Thymeleaf fragments -->
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/userProfile.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<!-- HERO SECTION -->
+<div class="profile-hero" id="profileHero">
+    <!-- Animated Background -->
+    <div class="hero-background">
+        <div class="gradient-overlay"></div>
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+    </div>
+
+    <!-- Profile Header Card -->
+    <div class="container">
+        <div class="profile-header-card glass-card">
+            <!-- Avatar Section -->
+            <div class="avatar-section">
+                <div class="avatar-container">
+                    <div class="user-avatar profile-avatar"
+                         th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
+                    </div>
+                    <div class="online-indicator" th:classappend="${user.onlineStatus == 1} ? 'online' : 'offline'"></div>
+                </div>
+            </div>
+
+            <!-- User Info Section -->
+            <div class="user-info-section">
+                <div class="name-and-role">
+                    <h1 class="username" th:text="${user.username}">Username</h1>
+                    <div class="role-badge" th:classappend="${user.role.name()}">
+                        <i class="bi bi-shield-check" th:if="${user.role.name() == 'ADMIN'}"></i>
+                        <i class="bi bi-person" th:if="${user.role.name() == 'USER'}"></i>
+                        <span th:text="${user.role.name() == 'ADMIN'} ? 'Администратор' : 'Потребител'">Потребител</span>
+                    </div>
+                </div>
+
+                <div class="bio-section" th:if="${user.bio != null and !user.bio.isEmpty()}">
+                    <p class="user-bio" th:text="${user.bio}">Биография на потребителя</p>
+                </div>
+
+                <div class="meta-info">
+                    <div class="info-item" th:if="${user.location != null}">
+                        <i class="bi bi-geo-alt"></i>
+                        <span th:text="${user.location.toBG()}">Локация</span>
+                    </div>
+<!--                    <div class="info-item">-->
+<!--                        <i class="bi bi-calendar-plus"></i>-->
+<!--                        <span th:text="${user.created != null} ? 'Член от ' + #temporals.format(user.created, 'MMMM yyyy') : 'Неизвестна дата'">Член от</span>-->
+<!--                    </div>-->
+<!--                    <div class="info-item">-->
+<!--                        <i class="bi bi-clock"></i>-->
+<!--                        <span th:text="${user.lastOnline != null} ? 'Последно онлайн ' + #temporals.format(user.lastOnline, 'dd.MM.yyyy HH:mm') : 'Неизвестно'">Последно онлайн</span>-->
+<!--                    </div>-->
+                </div>
+            </div>
+
+            <!-- Action Buttons Section -->
+            <div class="action-buttons">
+                <!-- Own Profile Actions -->
+                <div th:if="${isOwnProfile}" class="own-profile-actions">
+                    <button class="btn btn-primary action-btn edit-profile-btn" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i class="bi bi-pencil-square"></i>
+                        <span>Редактирай профил</span>
+                    </button>
+                    <button class="btn btn-outline-secondary action-btn settings-btn">
+                        <i class="bi bi-gear"></i>
+                        <span>Настройки</span>
+                    </button>
+                </div>
+
+                <!-- Other Profile Actions -->
+                <div th:unless="${isOwnProfile}" class="other-profile-actions">
+                    <button class="btn btn-primary action-btn follow-btn" data-action="follow" th:attr="data-user-id=${user.id}">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Следвай</span>
+                    </button>
+                    <button class="btn btn-outline-secondary action-btn message-btn">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Съобщение</span>
+                    </button>
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-outline-secondary action-btn dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-flag"></i> Докладвай</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-slash-circle"></i> Блокирай</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STATISTICS DASHBOARD -->
+<div class="statistics-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card glass-card">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" th:text="${user.userEventsCount ?: 0}">0</div>
+                    <div class="stat-label">События</div>
+                </div>
+                <div class="stat-progress">
+                    <div class="progress-bar" th:style="'width: ' + ${(user.userEventsCount ?: 0) * 10} + '%'"></div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card">
+                <div class="stat-icon">
+                    <i class="bi bi-hand-thumbs-up"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" th:text="${user.totalVotes ?: 0}">0</div>
+                    <div class="stat-label">Гласове</div>
+                </div>
+                <div class="stat-progress">
+                    <div class="progress-bar" th:style="'width: ' + ${(user.totalVotes ?: 0) / 10} + '%'"></div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card">
+                <div class="stat-icon">
+                    <i class="bi bi-file-text"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" th:text="${user.publicationsCount ?: 0}">0</div>
+                    <div class="stat-label">Публикации</div>
+                </div>
+                <div class="stat-progress">
+                    <div class="progress-bar" th:style="'width: ' + ${(user.publicationsCount ?: 0) * 20} + '%'"></div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card reputation-card">
+                <div class="stat-icon">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number reputation-score" id="reputationScore">--</div>
+                    <div class="stat-label">Репутация</div>
+                </div>
+                <div class="reputation-badge" id="reputationBadge">
+                    <span class="badge-text">Нов потребител</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTENT TABS -->
+<div class="content-section">
+    <div class="container">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation glass-card">
+            <button class="tab-btn active" data-tab="overview">
+                <i class="bi bi-house-door"></i>
+                <span>Преглед</span>
+            </button>
+            <button class="tab-btn" data-tab="events">
+                <i class="bi bi-calendar-event"></i>
+                <span>События</span>
+                <div class="tab-counter" th:text="${user.userEventsCount ?: 0}">0</div>
+            </button>
+            <button class="tab-btn" data-tab="publications">
+                <i class="bi bi-file-text"></i>
+                <span>Публикации</span>
+                <div class="tab-counter" th:text="${user.publicationsCount ?: 0}">0</div>
+            </button>
+            <button class="tab-btn" data-tab="signals">
+                <i class="bi bi-flag"></i>
+                <span>Сигнали</span>
+            </button>
+            <button class="tab-btn" data-tab="activity">
+                <i class="bi bi-activity"></i>
+                <span>Активност</span>
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content-container">
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview">
+                <div class="row">
+                    <!-- Recent Activity -->
+                    <div class="col-lg-8">
+                        <div class="content-card glass-card">
+                            <div class="card-header">
+                                <h3><i class="bi bi-clock-history"></i> Последна активност</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="activity-timeline">
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker"></div>
+                                        <div class="timeline-content">
+                                            <div class="activity-type">Създаде събитие</div>
+                                            <div class="activity-title">Нова инициатива за парк</div>
+                                            <div class="activity-time">Преди 2 часа</div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker"></div>
+                                        <div class="timeline-content">
+                                            <div class="activity-type">Гласува в референдум</div>
+                                            <div class="activity-title">Ремонт на общински пътища</div>
+                                            <div class="activity-time">Преди 5 часа</div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker"></div>
+                                        <div class="timeline-content">
+                                            <div class="activity-type">Публикува статия</div>
+                                            <div class="activity-title">Новини от общината</div>
+                                            <div class="activity-time">Преди 1 ден</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-primary load-more-btn">
+                                    <i class="bi bi-arrow-down-circle"></i>
+                                    Покажи повече
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="col-lg-4">
+                        <div class="content-card glass-card">
+                            <div class="card-header">
+                                <h3><i class="bi bi-graph-up"></i> Бърза статистика</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-stats">
+                                    <div class="quick-stat-item">
+                                        <div class="stat-icon-small">
+                                            <i class="bi bi-eye"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <div class="stat-value">1,247</div>
+                                            <div class="stat-name">Прегледи на профил</div>
+                                        </div>
+                                    </div>
+                                    <div class="quick-stat-item">
+                                        <div class="stat-icon-small">
+                                            <i class="bi bi-people"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <div class="stat-value">89</div>
+                                            <div class="stat-name">Последователи</div>
+                                        </div>
+                                    </div>
+                                    <div class="quick-stat-item">
+                                        <div class="stat-icon-small">
+                                            <i class="bi bi-heart"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <div class="stat-value">156</div>
+                                            <div class="stat-name">Получени харесвания</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Achievements -->
+                        <div class="content-card glass-card">
+                            <div class="card-header">
+                                <h3><i class="bi bi-trophy"></i> Постижения</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="achievements-grid">
+                                    <div class="achievement-badge earned">
+                                        <i class="bi bi-calendar-check"></i>
+                                        <span class="achievement-name">Първо събитие</span>
+                                    </div>
+                                    <div class="achievement-badge earned">
+                                        <i class="bi bi-hand-thumbs-up"></i>
+                                        <span class="achievement-name">10 гласа</span>
+                                    </div>
+                                    <div class="achievement-badge">
+                                        <i class="bi bi-people"></i>
+                                        <span class="achievement-name">50 последователя</span>
+                                    </div>
+                                    <div class="achievement-badge">
+                                        <i class="bi bi-star"></i>
+                                        <span class="achievement-name">VIP статус</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events Tab -->
+            <div class="tab-content" id="events">
+                <div class="content-header">
+                    <h2>События създадени от потребителя</h2>
+                    <div class="content-filters">
+                        <button class="filter-btn active" data-filter="all">Всички</button>
+                        <button class="filter-btn" data-filter="simple">Прости събития</button>
+                        <button class="filter-btn" data-filter="referendum">Референдуми</button>
+                        <button class="filter-btn" data-filter="poll">Анкети</button>
+                    </div>
+                </div>
+                <div class="events-grid" id="eventsGrid">
+                    <!-- Dynamic content loaded here -->
+                    <div class="event-card glass-card">
+                        <div class="event-image">
+                            <img src="/images/placeholder-event.jpg" alt="Event">
+                            <div class="event-type-badge">Събитие</div>
+                        </div>
+                        <div class="event-content">
+                            <h4 class="event-title">Пример за събитие</h4>
+                            <p class="event-description">Описание на събитието...</p>
+                            <div class="event-stats">
+                                <span><i class="bi bi-people"></i> 25 гласа</span>
+                                <span><i class="bi bi-eye"></i> 128 прегледа</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Publications Tab -->
+            <div class="tab-content" id="publications">
+                <div class="content-header">
+                    <h2>Публикации на потребителя</h2>
+                </div>
+                <div class="publications-grid" id="publicationsGrid">
+                    <!-- Dynamic content loaded here -->
+                </div>
+            </div>
+
+            <!-- Signals Tab -->
+            <div class="tab-content" id="signals">
+                <div class="content-header">
+                    <h2>Граждански сигнали</h2>
+                </div>
+                <div class="signals-grid" id="signalsGrid">
+                    <!-- Dynamic content loaded here -->
+                </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div class="tab-content" id="activity">
+                <div class="content-header">
+                    <h2>Подробна активност</h2>
+                </div>
+                <div class="activity-feed" id="activityFeed">
+                    <!-- Dynamic content loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" th:if="${isOwnProfile}">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="bi bi-pencil-square"></i>
+                    Редактиране на профила
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" th:action="@{/profile/update}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="avatar-upload-section">
+                                <div class="current-avatar">
+                                    <div class="user-avatar profile-avatar"
+                                         th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
+                                    </div>
+                                </div>
+                                <div class="upload-controls">
+                                    <input type="file" id="profileImage" name="profileImage" accept="image/*" class="d-none">
+                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('profileImage').click()">
+                                        <i class="bi bi-camera"></i>
+                                        Смени снимка
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="form-label">Биография</label>
+                                <textarea class="form-control" name="bio" rows="4" maxlength="240"
+                                          th:text="${user.bio}" placeholder="Разкажете нещо за себе си..."></textarea>
+                                <div class="form-text">Максимум 240 символа</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Локация</label>
+                                <select class="form-select" name="location" required>
+                                    <option value="">Избери локация</option>
+                                    <option th:each="loc : ${locations}"
+                                            th:value="${loc.name()}"
+                                            th:text="${loc.toBG()}"
+                                            th:selected="${user.location != null and user.location.name() == loc.name()}">
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i>
+                        Запази промените
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner-ring"></div>
+        <div class="loading-text">Зареждане...</div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+<!-- Scripts -->
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/userProfil/profile-interactions.js"></script>
+
+</body>
+</html>
