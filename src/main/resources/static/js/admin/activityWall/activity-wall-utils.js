@@ -8,7 +8,6 @@ window.ActivityWallUtils = {
     audioContext: null,
     notificationSettings: {
         enabled: true,
-        sound: true,
         position: 'top-end',
         duration: 4000
     },
@@ -135,10 +134,6 @@ window.ActivityWallUtils = {
         // Auto hide
         setTimeout(() => this.hideToast(toastId), actualDuration);
 
-        // Play sound notification
-        if (this.notificationSettings.sound && type !== 'info') {
-            this.playNotificationSound(type);
-        }
 
         return toastId;
     },
@@ -157,41 +152,6 @@ window.ActivityWallUtils = {
                 toast.parentNode.removeChild(toast);
             }
         }, 200);
-    },
-
-    // Play subtle notification sound
-    playNotificationSound(type) {
-        if (!this.capabilities.audioContext || !this.notificationSettings.sound) return;
-
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            // Different tones for different types
-            const frequencies = {
-                success: 800,
-                error: 400,
-                warning: 600,
-                info: 500
-            };
-
-            oscillator.frequency.setValueAtTime(frequencies[type] || 500, audioContext.currentTime);
-            oscillator.type = 'sine';
-
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
-
-            setTimeout(() => audioContext.close(), 200);
-        } catch (error) {
-            // Silent fail for audio issues
-        }
     },
 
     // Copy to clipboard with feedback

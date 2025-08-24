@@ -4,10 +4,10 @@
 :root {
     /* SmolyanVote Brand Colors */
     --user-primary: #4b9f3e;
-    --user-primary-dark: #3a7b30;
+    --user-primary-dark: #19861c;
     --user-primary-light: #5fb052;
-    --user-accent: #4b9f3e;
-    --user-accent-light: #5fb052;
+    --user-accent: #568d36;
+    --user-accent-light: #47b77c;
 
     /* Surfaces */
     --user-surface: #ffffff;
@@ -53,7 +53,9 @@
     align-items: center;
     margin-bottom: 1rem;
 }
-
+.monitoring-section h2{
+    color: white !important;
+}
 .stats-header h4 {
     font-size: 1.1rem;
     font-weight: 600;
@@ -674,9 +676,85 @@
 .role-history-container {
     background: var(--user-surface-secondary);
     border-radius: var(--user-radius);
-    min-height: 200px;
-    max-height: 300px;
+    min-height: 250px;
+    max-height: 400px;
     overflow-y: auto;
+    border: 1px solid var(--user-border-light);
+}
+
+.role-history-table {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+
+.role-history-table th {
+    background: var(--user-surface);
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--user-text);
+    border-bottom: 2px solid var(--user-border);
+    padding: 0.75rem 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.role-history-table th i {
+    color: var(--user-accent);
+    margin-right: 0.3rem;
+    font-size: 0.7rem;
+}
+
+.role-history-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--user-border-light);
+    font-size: 0.75rem;
+    vertical-align: middle;
+}
+
+.role-history-table tbody tr:hover {
+    background: var(--user-surface-tertiary);
+}
+
+/* Action type badges */
+.action-type-badge {
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--user-radius);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.action-type-badge.role-change {
+    background: var(--user-accent);
+    color: white;
+}
+
+.action-type-badge.ban {
+    background: var(--user-danger);
+    color: white;
+}
+
+.action-type-badge.unban {
+    background: var(--user-success);
+    color: white;
+}
+
+.action-details {
+    font-size: 0.7rem;
+    color: var(--user-text-secondary);
+}
+
+.action-details .detail-highlight {
+    font-weight: 600;
+    color: var(--user-text);
+}
+
+.history-date {
+    font-size: 0.65rem;
+    color: var(--user-text-secondary);
+    white-space: nowrap;
 }
 
 .history-list {
@@ -787,6 +865,82 @@
     margin-top: 0.3rem;
     padding-top: 0.3rem;
     border-top: 1px solid var(--user-border-light);
+}
+
+/* ===== HISTORY FILTERS ===== */
+.history-filters-section {
+    background: var(--user-surface-tertiary);
+    border: 1px solid var(--user-border-light);
+    border-radius: var(--user-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.history-filters-section .form-control,
+.history-filters-section .form-select {
+    font-size: 0.8rem;
+    border: 1px solid var(--user-border);
+    transition: var(--user-transition);
+}
+
+.history-filters-section .form-control:focus,
+.history-filters-section .form-select:focus {
+    border-color: var(--user-accent);
+    box-shadow: 0 0 0 0.2rem rgba(75, 159, 62, 0.25);
+}
+
+.role-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.role-actions .btn {
+    transition: var(--user-transition);
+}
+
+.role-actions .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* History table enhancements */
+.role-history-container {
+    position: relative;
+}
+
+.role-history-container.filtered::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--user-accent), transparent);
+    border-radius: var(--user-radius) var(--user-radius) 0 0;
+    z-index: 5;
+}
+
+.history-stats {
+    font-size: 0.75rem;
+    color: var(--user-text-secondary);
+}
+
+/* Empty state styling */
+.history-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--user-text-tertiary);
+}
+
+.history-empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
 }
 
 /* ===== MODALS ===== */

@@ -136,6 +136,7 @@ function initializeEventListeners() {
     setupListener('clear-filters-btn', 'click', clearAllFilters);
     setupListener('users-refresh-btn', 'click', refreshUsers);
 
+
     // Bulk operations
     setupListener('select-all-users', 'change', handleSelectAll);
     setupListener('bulk-promote-btn', 'click', handleBulkPromote);
@@ -165,6 +166,11 @@ function initializeEventListeners() {
             }
         });
     }
+    // Role history
+    setupListener('role-history-btn', 'click', loadRoleHistory);
+
+    // Setup history filters
+    setupHistoryFilters();
 }
 
 // ===== API CALLS =====
@@ -1094,18 +1100,21 @@ async function confirmBanUser() {
         if (isBulk) {
             // Bulk ban request
             const requestBody = {
-                userIds: Array.from(UserManagement.selectedUsers),
+                userIds: Array.from(UserManagement.selectedUsers).map(id => Number(id)),
                 banType,
                 reason: fullReason
             };
 
             if (banType === 'temporary' && durationDays) {
-                requestBody.durationDays = durationDays;
+                requestBody.durationDays = Number(durationDays);
             }
 
             const response = await fetch('/admin/users/bulk-ban', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(requestBody)
             });
 
@@ -1134,14 +1143,23 @@ async function confirmBanUser() {
 
             const response = await fetch(`/admin/users/${userId}/ban`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
+                let errorText;
+                try {
+                    const errorJson = await response.json();
+                    errorText = errorJson.message || errorJson.error || `HTTP ${response.status}`;
+                } catch {
+                    errorText = await response.text();
+                }
                 throw new Error(`Server error: ${response.status} - ${errorText}`);
-            }
+            }r
 
             const result = await response.json();
             showNotification(result.message || 'Потребителят е блокиран успешно', 'success');
@@ -1154,6 +1172,8 @@ async function confirmBanUser() {
         const modal = bootstrap.Modal.getInstance($('ban-user-modal'));
         if (modal) modal.hide();
 
+        // Reload history to show the new ban
+        setTimeout(loadRoleHistory, 500);
         // Reset modal state
         resetModalState();
 
@@ -1313,6 +1333,8 @@ async function confirmRoleChange() {
 
         const modal = bootstrap.Modal.getInstance($('role-change-modal'));
         if (modal) modal.hide();
+        // Reload history to show the new change
+        setTimeout(loadRoleHistory, 500);
 
     } catch (error) {
         console.error('Role change error:', error);
@@ -1374,10 +1396,10 @@ async function deleteUser(userId) {
 async function handleBulkPromote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Повишаване на ${UserManagement.selectedUsers.size} потребители до администратори?`)) return;
-    // ✅ ПОПРАВКА: Премахнат .map(String) - оставяме числата като Long
-    await bulkAction('/admin/users/bulk-role', {
-        userIds: Array.from(UserManagement.selectedUsers),
-        role: 'ADMIN'
+
+    await bulkAction('/admin/users/bulk-role-change', {
+        userIds: Array.from(UserManagement.selectedUsers).map(id => parseInt(id)),
+        newRole: 'ADMIN'
     });
 }
 
@@ -1385,7 +1407,7 @@ async function handleBulkDemote() {
     if (UserManagement.selectedUsers.size === 0) return;
     if (!confirm(`Понижаване на ${UserManagement.selectedUsers.size} потребители до обикновени потребители?`)) return;
     // ✅ ПОПРАВКА: Премахнат .map(String) - оставяме числата като Long
-    await bulkAction('/admin/users/bulk-role', {
+    await bulkAction('/admin/users/bulk-role-change', {
         userIds: Array.from(UserManagement.selectedUsers),
         role: 'USER'
     });
@@ -1428,14 +1450,28 @@ async function handleBulkUnban() {
 
 async function bulkAction(url, data) {
     try {
+        // Ensure userIds are sent as numbers (Long in Java)
+        if (data.userIds) {
+            data.userIds = data.userIds.map(id => Number(id));
+        }
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(data)
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
+            let errorText;
+            try {
+                const errorJson = await response.json();
+                errorText = errorJson.message || errorJson.error || `HTTP ${response.status}`;
+            } catch {
+                errorText = await response.text();
+            }
             throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
 
@@ -1443,9 +1479,10 @@ async function bulkAction(url, data) {
         showNotification(result.message || 'Операцията е извършена успешно', 'success');
 
         UserManagement.selectedUsers.clear();
-        updateBulkOperationsBar(); // ✅ ДОБАВЕНО: Скрива bulk bar-а
+        updateBulkOperationsBar();
         await loadAllUsers();
         await loadUserStatistics();
+        setTimeout(loadRoleHistory, 500);
     } catch (error) {
         console.error('Bulk action error:', error);
         showNotification('Грешка при bulk операцията: ' + error.message, 'error');
@@ -1485,6 +1522,300 @@ function showBulkBanModal() {
         new bootstrap.Modal(modal).show();
     }
 }
+
+// ===== ROLE & BAN HISTORY =====
+async function loadRoleHistory() {
+    try {
+        const response = await fetch('/admin/users/history');
+        if (!response.ok) throw new Error('Failed to load history');
+
+        const historyData = await response.json();
+        renderHistoryTable(historyData);
+
+        // Show history container
+        const container = $('.role-history-container');
+        if (container) container.style.display = 'block';
+
+    } catch (error) {
+        console.error('History load error:', error);
+        showNotification('Грешка при зареждане на историята', 'error');
+    }
+}
+
+function renderHistoryTable(historyData) {
+    const tbody = $('role-history-body');
+    if (!tbody) return;
+
+    // Store data for filtering
+    HistoryFilters.data = historyData || [];
+    HistoryFilters.filtered = [...HistoryFilters.data];
+
+    if (HistoryFilters.data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    <i class="bi bi-clock-history me-2"></i>Няма записана история на действия
+                </td>
+            </tr>
+        `;
+        // Hide filters if no data
+        const filtersToggle = $('history-filters-toggle');
+        const filtersSection = $('history-filters-section');
+        if (filtersToggle) filtersToggle.style.display = 'none';
+        if (filtersSection) filtersSection.style.display = 'none';
+        return;
+    }
+
+    // Show filters and populate admin dropdown
+    const filtersToggle = $('history-filters-toggle');
+    if (filtersToggle) filtersToggle.style.display = 'inline-block';
+
+    populateAdminFilter();
+    renderFilteredHistoryTable();
+    updateHistoryStats();
+}
+function createHistoryRow(item) {
+    const actionDate = new Date(item.actionTimestamp).toLocaleString('bg-BG', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    const reason = item.reason || 'Няма указана причина';
+
+    let actionBadge, actionDetails;
+
+    if (item.actionType === 'ROLE_CHANGE') {
+        actionBadge = '<span class="action-type-badge role-change">Промяна на роля</span>';
+        const oldRole = getRoleDisplayName(item.oldRole);
+        const newRole = getRoleDisplayName(item.newRole);
+        actionDetails = `<span class="action-details"><span class="detail-highlight">${oldRole}</span> → <span class="detail-highlight">${newRole}</span></span>`;
+
+    } else if (item.actionType === 'BAN') {
+        actionBadge = '<span class="action-type-badge ban">Блокиране</span>';
+        if (item.banType === 'PERMANENT') {
+            actionDetails = '<span class="action-details"><span class="detail-highlight">Перманентен бан</span></span>';
+        } else {
+            actionDetails = `<span class="action-details">Временен бан (<span class="detail-highlight">${item.banDurationDays} дни</span>)</span>`;
+        }
+
+    } else if (item.actionType === 'UNBAN') {
+        actionBadge = '<span class="action-type-badge unban">Разблокиране</span>';
+        actionDetails = '<span class="action-details"><span class="detail-highlight">Блокиран</span> → <span class="detail-highlight">Активен</span></span>';
+    }
+
+    return `
+        <tr>
+            <td><strong>${item.targetUsername}</strong></td>
+            <td>${actionBadge}</td>
+            <td>${actionDetails}</td>
+            <td>
+                <div class="history-date">${actionDate}</div>
+                <small class="text-muted">от ${item.adminUsername}</small>
+            </td>
+            <td><small class="text-muted">${reason}</small></td>
+        </tr>
+    `;
+}
+function getRoleDisplayName(role) {
+    const roleMap = {
+        'USER': 'Потребител',
+        'ADMIN': 'Администратор'
+    };
+    return roleMap[role] || role;
+}
+
+function getStatusDisplayName(status) {
+    const statusMap = {
+        'ACTIVE': 'Активен',
+        'PENDING_ACTIVATION': 'Чакащ активация',
+        'TEMPORARILY_BANNED': 'Временно блокиран',
+        'PERMANENTLY_BANNED': 'Перманентно блокиран'
+    };
+    return statusMap[status] || status;
+}
+
+// ===== HISTORY FILTERING =====
+const HistoryFilters = {
+    data: [],
+    filtered: [],
+    filters: {
+        search: '',
+        actionType: '',
+        admin: '',
+        dateFrom: '',
+        dateTo: ''
+    }
+};
+
+function setupHistoryFilters() {
+    const setupListener = (id, event, handler) => {
+        const element = $(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        }
+    };
+
+    setupListener('history-filters-toggle', 'click', toggleHistoryFilters);
+    setupListener('history-search-input', 'input', handleHistorySearch);
+    setupListener('history-action-filter', 'change', handleHistoryActionFilter);
+    setupListener('history-admin-filter', 'change', handleHistoryAdminFilter);
+    setupListener('history-date-from', 'change', handleHistoryDateFilter);
+    setupListener('history-date-to', 'change', handleHistoryDateFilter);
+    setupListener('clear-history-filters', 'click', clearHistoryFilters);
+}
+
+function toggleHistoryFilters() {
+    const filtersSection = $('history-filters-section');
+    const toggleBtn = $('history-filters-toggle');
+
+    if (filtersSection && toggleBtn) {
+        const isVisible = filtersSection.style.display !== 'none';
+        filtersSection.style.display = isVisible ? 'none' : 'block';
+        toggleBtn.innerHTML = isVisible ?
+            '<i class="bi bi-funnel"></i> Филтри' :
+            '<i class="bi bi-funnel-fill"></i> Скрий филтри';
+    }
+}
+
+function populateAdminFilter() {
+    const adminFilter = $('history-admin-filter');
+    if (!adminFilter || !HistoryFilters.data) return;
+
+    const admins = [...new Set(HistoryFilters.data.map(item => item.adminUsername))].sort();
+
+    adminFilter.innerHTML = '<option value="">Всички админи</option>';
+    admins.forEach(admin => {
+        const option = document.createElement('option');
+        option.value = admin;
+        option.textContent = admin;
+        adminFilter.appendChild(option);
+    });
+}
+
+function handleHistorySearch(e) {
+    HistoryFilters.filters.search = e.target.value.toLowerCase();
+    applyHistoryFilters();
+}
+
+function handleHistoryActionFilter(e) {
+    HistoryFilters.filters.actionType = e.target.value;
+    applyHistoryFilters();
+}
+
+function handleHistoryAdminFilter(e) {
+    HistoryFilters.filters.admin = e.target.value;
+    applyHistoryFilters();
+}
+
+function handleHistoryDateFilter() {
+    HistoryFilters.filters.dateFrom = $('history-date-from')?.value || '';
+    HistoryFilters.filters.dateTo = $('history-date-to')?.value || '';
+    applyHistoryFilters();
+}
+
+function applyHistoryFilters() {
+    const { search, actionType, admin, dateFrom, dateTo } = HistoryFilters.filters;
+
+    HistoryFilters.filtered = HistoryFilters.data.filter(item => {
+        // Search filter (target username or admin username)
+        if (search &&
+            !item.targetUsername.toLowerCase().includes(search) &&
+            !item.adminUsername.toLowerCase().includes(search)) {
+            return false;
+        }
+
+        // Action type filter
+        if (actionType && item.actionType !== actionType) {
+            return false;
+        }
+
+        // Admin filter
+        if (admin && item.adminUsername !== admin) {
+            return false;
+        }
+
+        // Date filters
+        if (dateFrom || dateTo) {
+            const itemDate = new Date(item.actionTimestamp);
+            if (dateFrom && itemDate < new Date(dateFrom)) return false;
+            if (dateTo && itemDate > new Date(dateTo + 'T23:59:59')) return false;
+        }
+
+        return true;
+    });
+
+    renderFilteredHistoryTable();
+    updateHistoryStats();
+}
+
+function renderFilteredHistoryTable() {
+    const tbody = $('role-history-body');
+    if (!tbody) return;
+
+    if (HistoryFilters.filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="history-empty-state">
+                    <i class="bi bi-search"></i>
+                    <div>Няма намерени записи</div>
+                    <small>Опитайте да промените филтрите</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = HistoryFilters.filtered.map(item => createHistoryRow(item)).join('');
+
+    // Add filtered indicator
+    const container = $('.role-history-container');
+    if (container) {
+        const hasFilters = Object.values(HistoryFilters.filters).some(f => f !== '');
+        container.classList.toggle('filtered', hasFilters);
+    }
+}
+
+function updateHistoryStats() {
+    const filteredCount = $('filtered-history-count');
+    const totalCount = $('total-history-count');
+
+    if (filteredCount) filteredCount.textContent = HistoryFilters.filtered.length;
+    if (totalCount) totalCount.textContent = HistoryFilters.data.length;
+}
+
+function clearHistoryFilters() {
+    // Reset all filter inputs
+    const inputs = [
+        'history-search-input',
+        'history-action-filter',
+        'history-admin-filter',
+        'history-date-from',
+        'history-date-to'
+    ];
+
+    inputs.forEach(id => {
+        const element = $(id);
+        if (element) element.value = '';
+    });
+
+    // Reset filter state
+    HistoryFilters.filters = {
+        search: '',
+        actionType: '',
+        admin: '',
+        dateFrom: '',
+        dateTo: ''
+    };
+
+    // Re-render without filters
+    HistoryFilters.filtered = [...HistoryFilters.data];
+    renderFilteredHistoryTable();
+    updateHistoryStats();
+}
+
+
 
 // ===== UTILITY FUNCTIONS =====
 function refreshUsers() {
