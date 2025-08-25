@@ -7,7 +7,7 @@
     --sv-primary-light: #8bc97f;
     --sv-primary-soft: #a8d4a0;
     --sv-primary-subtle: #c8e4c2;
-    --sv-accent: #5ca84f;
+    --sv-accent: #071c04;
 
     /* Apple-Style Neutrals */
     --white: #ffffff;
@@ -91,6 +91,7 @@ body {
     padding: var(--spacing-2xl) 0;
     background: var(--hero-gradient);
     overflow: hidden;
+    margin-top: 30px;
 }
 
 .hero-background {
@@ -994,6 +995,269 @@ body {
         opacity: 1;
     }
 }
+
+/* ===== ДОБАВКИ КЪМ СЪЩЕСТВУВАЩИЯ userProfile.css ===== */
+/* Добавя се в края на файла, след event-card стиловете */
+
+/* Гридове за новите табове */
+.signals-grid,
+.publications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--spacing-md);
+}
+.publication-card {
+    width: 300px;      /* фиксирана ширина */
+    height: 260px;     /* фиксирана височина */
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    overflow: hidden;
+    background: white;
+}
+
+.publication-image {
+    width: 100%;
+    height: 160px; /* винаги еднаква височина */
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.publication-image img.pub-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.publication-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+}
+
+/* Заглавие - макс 2 реда */
+.publication-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* макс 2 реда */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Описание - макс 3 реда */
+.publication-excerpt {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #444;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* макс 3 реда */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ===== SIGNAL CARD STYLES - В СЪЩИЯ СТИЛ КАТО EVENT CARDS ===== */
+.signal-card {
+    overflow: hidden;
+    transition: var(--transition);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    cursor: pointer;
+    padding: 0 15px;
+}
+
+.signal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.signal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+}
+
+.signal-category {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.signal-category i {
+    font-size: 0.85rem;
+    color: var(--sv-primary);
+}
+
+.urgency-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.signal-content {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.signal-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.3;
+}
+
+.signal-description {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: var(--spacing-sm);
+}
+
+.signal-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: var(--sv-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    overflow: hidden;
+}
+
+.author-name {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.signal-stats {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.signal-stats span {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.signal-stats i {
+    color: var(--sv-primary);
+}
+
+.time-info {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* ===== PUBLICATION CARD STYLES - В СЪЩИЯ СТИЛ КАТО EVENT CARDS ===== */
+.publication-card {
+    overflow: hidden;
+    transition: var(--transition);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    cursor: pointer;
+}
+
+.publication-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.publication-content {
+    padding: var(--spacing-md);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.publication-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.3;
+}
+
+.publication-excerpt {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: var(--spacing-sm);
+    flex: 1;
+}
+
+.publication-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.publication-stats {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.publication-stats span {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.publication-stats i {
+    color: var(--sv-primary);
+}
+
+/* ===== RESPONSIVE ДОБАВКИ ===== */
+@media (max-width: 768px) {
+    .signals-grid,
+    .publications-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1200px) {

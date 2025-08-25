@@ -15,7 +15,9 @@ import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.mappers.PublicationMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -70,7 +72,24 @@ public class PublicationServiceImpl implements PublicationService {
         return publicationRepository.findById(id).orElse(null);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<PublicationResponseDTO> findAllByAuthorId(Long authorId) {
+        List<PublicationEntity> publications = publicationRepository.findByAuthorIdOrderByCreatedDesc(authorId);
 
+        // lazy load на автора ако трябва
+        for (PublicationEntity p : publications) {
+            if (p.getAuthor() != null) {
+                p.getAuthor().getUsername();
+                p.getAuthor().getImageUrl();
+            }
+        }
+
+        return publications.stream()
+                .map(PublicationMapper::toDto)
+                .toList();
+
+    }
 
     @Override
     @Transactional

@@ -59,6 +59,44 @@ async function openSignalModal(signal) {
     }
 }
 
+window.openSignalModal = async function(signal) {
+    if (!signal) return;
+
+    try {
+        currentModalSignal = signal;
+        const modal = document.getElementById('signalModal');
+        if (!modal) {
+            console.error('Signal modal not found');
+            return;
+        }
+
+        updateModalContent(signal);
+
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+        });
+
+        document.body.style.overflow = 'hidden';
+        closeThreeDotsMenu();
+
+        window.SignalAPI.incrementViews(signal.id)
+            .then(freshSignal => {
+                if (freshSignal && currentModalSignal?.id === signal.id) {
+                    updateModalViews(freshSignal);
+                    updateSignalInCache(freshSignal);
+                }
+            })
+            .catch(error => {
+                console.error('Could not increment views:', error);
+            });
+
+    } catch (error) {
+        console.error('Error opening signal modal:', error);
+    }
+};
+
+
 // ===== FUNCTION FOR CACHE UPDATE =====
 function updateSignalInCache(updatedSignal) {
     if (window.signalManagement && window.signalManagement.getCurrentSignals) {

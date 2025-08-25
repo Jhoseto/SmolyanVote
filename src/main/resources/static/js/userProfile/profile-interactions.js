@@ -148,6 +148,7 @@ class ProfileManager {
         this.delegateEvent('.load-more-btn', 'click', this.loadMoreContent.bind(this));
         this.delegateEvent('.filter-btn', 'click', this.filterContent.bind(this));
         this.delegateEvent('#profileImage', 'change', this.handleImageUpload.bind(this));
+        this.delegateEvent('.event-card, .signal-card, .publication-card', 'click', this.handleCardClick.bind(this));
 
         document.addEventListener('keydown', this.handleKeyboard.bind(this));
     }
@@ -189,7 +190,8 @@ class ProfileManager {
 
     // ===== REAL API INTEGRATION =====
     async loadTabContent(tabId) {
-        if (!this.userId || tabId === 'overview') return;
+        // Events are already loaded statically in HTML with Thymeleaf
+        if (!this.userId || tabId === 'overview' || tabId === 'events') return;
 
         this.showLoading();
 
@@ -216,6 +218,173 @@ class ProfileManager {
         };
 
         return endpoints[tabId] || `${baseUrl}/${tabId}`;
+    }
+
+    // ===== CONTENT RENDERING =====
+    renderContent(tabId, data) {
+        const container = document.getElementById(`${tabId}Grid`);
+        if (!container) return;
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        if (tabId === 'signals') {
+            this.renderSignals(data, container);
+        } else if (tabId === 'publications') {
+            this.renderPublications(data, container);
+        }
+    }
+
+    renderSignals(signals, container) {
+        if (!signals.length) {
+            this.showEmptyState(container, 'signals');
+            return;
+        }
+
+        signals.forEach(signal => {
+            const signalCard = this.createSignalCard(signal);
+            container.appendChild(signalCard);
+        });
+    }
+
+    renderPublications(publications, container) {
+        if (!publications.length) {
+            this.showEmptyState(container, 'publications');
+            return;
+        }
+
+        publications.forEach(pub => {
+            const pubCard = this.createPublicationCard(pub);
+            container.appendChild(pubCard);
+        });
+    }
+
+    // ===== CARD CREATION METHODS =====
+    createSignalCard(signal) {
+        const card = document.createElement('div');
+        card.className = 'signal-card glass-card';
+        card.dataset.signalId = signal.id;
+
+        const categoryIcons = {
+            'ROAD_DAMAGE': 'cone-striped',
+            'SIDEWALK_DAMAGE': 'bricks',
+            'LIGHTING': 'lightbulb',
+            'TRAFFIC_SIGNS': 'sign-stop',
+            'WATER_SEWER': 'droplet',
+            'WASTE_MANAGEMENT': 'trash',
+            'ILLEGAL_DUMPING': 'trash2',
+            'TREE_ISSUES': 'tree',
+            'AIR_POLLUTION': 'cloud-haze',
+            'NOISE_POLLUTION': 'volume-up',
+            'HEALTHCARE': 'heart-pulse',
+            'EDUCATION': 'book',
+            'TRANSPORT': 'bus-front',
+            'PARKING': 'p-square',
+            'SECURITY': 'shield-check',
+            'VANDALISM': 'exclamation-triangle',
+            'ACCESSIBILITY': 'universal-access',
+            'OTHER': 'flag'
+        };
+
+        const urgencyColors = {
+            'LOW': '#28a745',
+            'MEDIUM': '#ffc107',
+            'HIGH': '#dc3545'
+        };
+
+        // ИЗПОЛЗВАМЕ БЪЛГАРСКИТЕ ИМЕНА ОТ BACKEND-А
+        const categoryName = signal.categoryBG || signal.category;
+        const urgencyName = signal.urgencyBG || signal.urgency;
+
+        card.innerHTML = `
+        <div class="signal-header">
+            <div class="signal-category">
+                <i class="bi bi-${categoryIcons[signal.category] || 'flag'}"></i>
+                <span>${categoryName}</span>
+            </div>
+            <span class="urgency-badge" style="background-color: ${urgencyColors[signal.urgency]}">
+                ${urgencyName}
+            </span>
+        </div>
+        <h4 class="signal-title">${signal.title}</h4>
+        <p class="signal-description">${signal.description && signal.description.length > 120 ? signal.description.substring(0, 120) + '...' : (signal.description || 'Няма описание')}</p>
+        <div class="signal-meta">
+            <div class="author-info">
+                <div class="author-avatar" style="${signal.authorImageUrl ? `background-image: url('${signal.authorImageUrl}'); background-size: cover; background-position: center;` : `background-color: ${this.generateAvatarColor(signal.authorUsername)}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700;`}">
+                    ${!signal.authorImageUrl ? this.getInitials(signal.authorUsername) : ''}
+                </div>
+                <span class="author-name">${signal.authorUsername}</span>
+            </div>
+            <div class="signal-stats">
+                <span><i class="bi bi-heart"></i> ${signal.likesCount || 0}</span>
+                <span><i class="bi bi-eye"></i> ${signal.viewsCount || 0}</span>
+            </div>
+        </div>
+        <div class="time-info">${this.formatTimeAgo(signal.created)}</div>
+    `;
+
+        return card;
+    }
+
+
+    createPublicationCard(pub) {
+        const card = document.createElement('div');
+        card.className = 'publication-card glass-card';
+        card.dataset.publicationId = pub.id;
+
+        card.innerHTML = `
+        <div class="publication-image">
+            ${pub.imageUrl
+            ? `<img src="${pub.imageUrl}" alt="Publication Image" class="pub-img"/>`
+            : `<div class="pub-placeholder">📷</div>`}
+        </div>
+        <div class="publication-content">
+            <p class="publication-excerpt">${pub.content || 'Няма съдържание'}</p>
+            <div class="publication-meta">
+            <div class="time-info">${this.formatTimeAgo(pub.createdAt || new Date().toISOString())}</div>
+                <div class="publication-stats">
+                    <span><i class="bi bi-heart"></i> ${pub.likesCount || 0}</span>
+                    <span><i class="bi bi-eye"></i> ${pub.viewsCount || 0}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+        return card;
+    }
+
+
+
+    // ===== CARD CLICK HANDLER =====
+    handleCardClick(e, card) {
+        if (e.target.closest('button, a, .dropdown, .reaction-btn')) return;
+
+        let url;
+
+        if (card.classList.contains('event-card')) {
+            const eventType = card.dataset.eventType;
+            const eventId = card.dataset.eventId;
+
+            const urlMap = {
+                'SIMPLEEVENT': 'event',
+                'REFERENDUM': 'referendum',
+                'MULTI_POLL': 'multipoll'
+            };
+
+            url = `/${urlMap[eventType]}/${eventId}`;
+
+        } else if (card.classList.contains('signal-card')) {
+            const signalId = card.dataset.signalId;
+            url = `/signals/mainView?openSignal=${signalId}`;
+
+        } else if (card.classList.contains('publication-card')) {
+            const pubId = card.dataset.publicationId;
+            this.autoOpenModal(pubId);
+        }
+
+        if (url) {
+            window.open(url, '_blank');
+        }
     }
 
     // ===== FOLLOW SYSTEM WITH REAL API =====
@@ -353,6 +522,35 @@ class ProfileManager {
         reader.readAsDataURL(file);
     }
 
+    // ===== CONTENT FILTERING =====
+    filterContent(e, button) {
+        const filter = button.dataset.filter;
+        const container = button.closest('.tab-content');
+
+        // Update filter UI
+        container.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        // Filter content
+        const cards = container.querySelectorAll('[data-event-type], [data-type]');
+        cards.forEach(card => {
+            const cardType = card.dataset.eventType || card.dataset.type;
+            const shouldShow = filter === 'all' || cardType === filter;
+            card.style.display = shouldShow ? 'block' : 'none';
+        });
+    }
+
+    // ===== MODAL HANDLERS =====
+    openEditModal(e, button) {
+        // The modal is already set up in HTML with data-bs-target
+        // Bootstrap will handle the opening
+    }
+
+    loadMoreContent(e, button) {
+        // Placeholder for load more functionality
+        button.style.display = 'none';
+    }
+
     // ===== USER PREFERENCES LOADING =====
     async loadUserPreferences() {
         if (!this.isOwnProfile) return;
@@ -444,24 +642,6 @@ class ProfileManager {
         if (tabButton) tabButton.click();
     }
 
-    // ===== CONTENT FILTERING =====
-    filterContent(e, button) {
-        const filter = button.dataset.filter;
-        const container = button.closest('.tab-content');
-
-        // Update filter UI
-        container.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-
-        // Filter content
-        const cards = container.querySelectorAll('[data-event-type], [data-type]');
-        cards.forEach(card => {
-            const cardType = card.dataset.eventType || card.dataset.type;
-            const shouldShow = filter === 'all' || cardType === filter;
-            card.style.display = shouldShow ? 'block' : 'none';
-        });
-    }
-
     // ===== KEYBOARD NAVIGATION =====
     handleKeyboard(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -480,7 +660,7 @@ class ProfileManager {
         }
     }
 
-    // ===== UTILITY METHODS =====
+    // ===== API METHODS =====
     async fetchWithAuth(url, method = 'GET', data = null) {
         const options = {
             method,
@@ -540,9 +720,10 @@ class ProfileManager {
                 const pubsCounter = document.querySelector('[data-stat="publications"] .stat-number');
                 if (pubsCounter) pubsCounter.textContent = this.formatNumber(userData.publicationsCount);
             }
-            if (userData.signalsCounts !== undefined) {
-                const pubsCounter = document.querySelector('[data-stat="signals"] .stat-number');
-                if (pubsCounter) pubsCounter.textContent = this.formatNumber(userData.signalsCounts);
+
+            if (userData.signalsCount !== undefined) {
+                const signalsCounter = document.querySelector('[data-stat="signals"] .stat-number');
+                if (signalsCounter) signalsCounter.textContent = this.formatNumber(userData.signalsCount);
             }
 
             if (userData.reputationScore !== undefined) {
@@ -568,8 +749,74 @@ class ProfileManager {
             }
 
         } catch (error) {
-            console.warn('Could not refresh user data:', error);
+            console.error('Could not refresh user data:', error);
         }
+    }
+
+    // ===== UTILITY METHODS =====
+    showEmptyState(container, type) {
+        const emptyMessages = {
+            'events': {
+                icon: 'calendar-event',
+                title: 'Няма събития',
+                message: this.isOwnProfile ? 'Все още не сте създали събития.' : 'Този потребител няма събития.'
+            },
+            'signals': {
+                icon: 'flag',
+                title: 'Няма сигнали',
+                message: this.isOwnProfile ? 'Все още не сте подали сигнали.' : 'Този потребител няма сигнали.'
+            },
+            'publications': {
+                icon: 'file-text',
+                title: 'Няма публикации',
+                message: this.isOwnProfile ? 'Все още не сте публикували нищо.' : 'Този потребител няма публикации.'
+            }
+        };
+
+        const config = emptyMessages[type];
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-${config.icon}"></i>
+                <h4>${config.title}</h4>
+                <p>${config.message}</p>
+            </div>
+        `;
+    }
+
+    formatTimeAgo(dateString) {
+        if (!dateString) return 'скоро';
+
+        let date;
+        if (dateString instanceof Date) {
+            date = dateString;
+        } else if (typeof dateString === 'string') {
+            // Handle both ISO strings and Instant format
+            date = new Date(dateString);
+        } else {
+            return 'скоро';
+        }
+
+        // Проверка дали датата е валидна
+        if (isNaN(date.getTime())) {
+            return 'скоро';
+        }
+
+        const now = new Date();
+        const diffMs = now - date;
+
+        // Ако разликата е отрицателна (бъдещо време), връщаме "скоро"
+        if (diffMs < 0) return 'скоро';
+
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'току-що';
+        if (diffMins < 60) return `преди ${diffMins} мин.`;
+        if (diffHours < 24) return `преди ${diffHours} ч.`;
+        if (diffDays < 7) return `преди ${diffDays} дни`;
+
+        return date.toLocaleDateString('bg-BG');
     }
 
     // ===== UI STATE MANAGEMENT =====
@@ -656,23 +903,6 @@ class ProfileManager {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
-    }
-
-    renderContent(tabId, data) {
-        // For now, just log the data
-        // This will be implemented when we have specific requirements
-        console.log(`Rendering ${tabId} content:`, data);
-    }
-
-    async loadMoreContent(e, button) {
-        // Placeholder for load more functionality
-        console.log('Load more content requested');
-        button.style.display = 'none';
-    }
-
-    openEditModal(e, button) {
-        // The modal is already set up in HTML with data-bs-target
-        // Bootstrap will handle the opening
     }
 }
 

@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.models.enums.PublicationStatus;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -126,4 +127,9 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
 
     @Query(value = "SELECT author_id FROM publications WHERE id = :publicationId", nativeQuery = true)
     Long findAuthorIdByPublicationId(@Param("publicationId") Long publicationId);
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.author.id = :authorId ORDER BY p.created DESC")
+    List<PublicationEntity> findByAuthorIdOrderByCreatedDesc(@Param("authorId") Long authorId);
+
 }
+

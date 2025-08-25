@@ -18,6 +18,72 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMap();
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.mapCore?.init === 'function') {
+        window.mapCore.init();
+    }
+
+    if (typeof window.signalManagement?.init === 'function') {
+        window.signalManagement.init();
+    }
+
+    setTimeout(() => {
+        initializeDropdowns();
+        initializeEventListeners();
+        loadSignalsData();
+        checkForAutoOpenSignal();
+    }, 500);
+});
+
+async function checkForAutoOpenSignal() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const signalIdToOpen = urlParams.get('openSignal');
+
+        if (signalIdToOpen) {
+            setTimeout(async () => {
+                try {
+                    const response = await window.SignalAPI.getSignalById(signalIdToOpen);
+
+                    if (response && typeof window.openSignalModal === 'function') {
+                        window.openSignalModal(response);
+
+                        if (response.coordinates && response.coordinates.length === 2) {
+                            focusMapOnSignal(response.coordinates[0], response.coordinates[1]);
+                        }
+
+                        const newUrl = window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                    } else {
+                        window.mapCore?.showNotification('Сигналът не е намерен', 'warning', 3000);
+                    }
+                } catch (error) {
+                    console.error('Error auto-opening signal:', error);
+                    window.mapCore?.showNotification('Грешка при отваряне на сигнала', 'error', 3000);
+                }
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Error checking for auto-open signal:', error);
+    }
+}
+
+function focusMapOnSignal(latitude, longitude) {
+    try {
+        if (window.mapCore && window.mapCore.map) {
+            const lat = parseFloat(latitude);
+            const lng = parseFloat(longitude);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                window.mapCore.map.setView([lat, lng], 16);
+                window.mapCore.showNotification('Картата е фокусирана върху сигнала', 'info', 2000);
+            }
+        }
+    } catch (error) {
+        console.error('Error focusing map on signal:', error);
+    }
+}
+
 async function initializeMap() {
     if (isInitialized) return;
 
