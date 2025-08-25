@@ -12,6 +12,11 @@ public class SignalsDto {
     private String description;
     private SignalsCategory category;
     private SignalsUrgencyLevel urgency;
+
+    // НОВИ ПОЛЕТА ЗА БЪЛГАРСКИ ИМЕНА
+    private String categoryBG;
+    private String urgencyBG;
+
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String imageUrl;
@@ -44,6 +49,13 @@ public class SignalsDto {
 
     public SignalsUrgencyLevel getUrgency() { return urgency; }
     public void setUrgency(SignalsUrgencyLevel urgency) { this.urgency = urgency; }
+
+    // НОВИ GETTERS/SETTERS
+    public String getCategoryBG() { return categoryBG; }
+    public void setCategoryBG(String categoryBG) { this.categoryBG = categoryBG; }
+
+    public String getUrgencyBG() { return urgencyBG; }
+    public void setUrgencyBG(String urgencyBG) { this.urgencyBG = urgencyBG; }
 
     public BigDecimal getLatitude() { return latitude; }
     public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }

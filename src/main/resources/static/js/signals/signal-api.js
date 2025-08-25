@@ -90,6 +90,7 @@ class HTTPClient {
     }
 }
 
+
 // ===== CUSTOM ERROR CLASS =====
 class APIError extends Error {
     constructor(message, status = 500, details = null) {
@@ -140,6 +141,28 @@ class SignalAPI {
             return [];
         }
     }
+
+    static async getSignalById(signalId) {
+        try {
+            const url = `${API_CONFIG.baseURL}/${signalId}`;
+            const response = await HTTPClient.retryRequest(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            return response;
+
+        } catch (error) {
+            console.error('Error fetching signal by ID:', error);
+            throw new APIError(
+                `Грешка при зареждане на сигнала: ${error.message}`,
+                error.status || 500
+            );
+        }
+    }
+
 
     // ===== CREATE NEW SIGNAL =====
     static async createSignal(signalData) {

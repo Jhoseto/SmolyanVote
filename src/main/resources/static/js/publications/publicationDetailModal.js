@@ -69,7 +69,6 @@ class PublicationDetailModal {
 
     async open(postId) {
         try {
-            console.log('🔧 DEBUG: Opening modal for post:', postId);
             this.showLoading();
 
             // Fetch publication data
@@ -85,14 +84,8 @@ class PublicationDetailModal {
             }
 
             const data = await response.json();
-            console.log('🔧 DEBUG: Publication data received:', data);
-
-            // ✅ FIX: Правилно извличаме data-та
             this.currentPost = data.publication || data;
-
-            // Populate modal content
             this.populateContent();
-
             // Show modal
             this.show(postId);
 
@@ -104,26 +97,20 @@ class PublicationDetailModal {
         }
     }
 
-    // ✅ FIX: Поправен show метод
     async show(postId) {
-        console.log('🔧 DEBUG: Showing modal for post:', postId);
 
         this.modal.classList.add('show');
         document.body.style.overflow = 'hidden';
         this.isVisible = true;
 
-        // ✅ Инициализираме commentsManager когато отваряме модала
         if (!window.commentsManager) {
             window.commentsManager = new CommentsManager();
         }
 
-        // ✅ Зареждаме коментарите
         await window.commentsManager.loadComments(postId);
     }
 
     close() {
-        console.log('🔧 DEBUG: Closing modal');
-
         // Ако има активен edit, отказваме го
         if (this.modal.querySelector('.modal-edit-form')) {
             this.cancelInlineEdit();
@@ -146,8 +133,6 @@ class PublicationDetailModal {
             console.error('❌ DEBUG: No post data to populate');
             return;
         }
-
-        console.log('🔧 DEBUG: Populating modal content:', post);
 
         // Author info
         this.setText('modalAuthorName', post.authorUsername || post.author?.username);
@@ -239,7 +224,6 @@ class PublicationDetailModal {
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
-            console.log('🔧 DEBUG: Toggling like for post:', this.currentPost.id);
             await window.postInteractions.toggleLike(this.currentPost.id);
             this.syncFromMainFeed();
         } catch (error) {
@@ -251,7 +235,6 @@ class PublicationDetailModal {
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
-            console.log('🔧 DEBUG: Toggling dislike for post:', this.currentPost.id);
             await window.postInteractions.toggleDislike(this.currentPost.id);
             this.syncFromMainFeed();
         } catch (error) {
@@ -268,7 +251,6 @@ class PublicationDetailModal {
         if (!this.currentPost || !window.postInteractions) return;
 
         try {
-            console.log('🔧 DEBUG: Sharing post:', this.currentPost.id);
             await window.postInteractions.sharePublication(this.currentPost.id);
             this.syncFromMainFeed();
         } catch (error) {
@@ -490,8 +472,6 @@ class PublicationDetailModal {
                 this.hideLinkContent();
                 return;
             }
-
-            console.log('🔧 DEBUG: Populating link content:', metadata);
 
             // Показваме link секцията
             const linkContent = document.getElementById('modalLinkContent');
@@ -735,8 +715,6 @@ class PublicationDetailModal {
         if (linkContent) {
             linkContent.style.display = 'none';
         }
-
-        console.log('🔧 DEBUG: Link content hidden');
     }
 
     showLoading() {
@@ -777,7 +755,6 @@ window.openPostModal = function(postId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     window.publicationModal = new PublicationDetailModal();
-    console.log('✅ DEBUG: PublicationDetailModal initialized');
 });
 
 // Export

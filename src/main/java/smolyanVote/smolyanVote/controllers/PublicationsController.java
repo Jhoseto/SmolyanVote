@@ -158,16 +158,8 @@ public class PublicationsController {
         }
 
         try {
-            System.out.println("🔄 Започвам създаване на публикация...");
-            System.out.println("📄 Request данни: " + request);
-            System.out.println("🖼️ Image URL: " + request.getImageUrl());
-
             UserEntity user = userService.getCurrentUser();
-            System.out.println("👤 Потребител: " + user.getUsername());
-
-            System.out.println("🚀 Извиквам publicationService.create()...");
             PublicationEntity publication = publicationService.create(request, user);
-            System.out.println("✅ Публикация създадена с ID: " + publication.getId());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

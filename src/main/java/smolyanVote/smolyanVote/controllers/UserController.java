@@ -13,10 +13,12 @@ import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
+import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 
@@ -32,18 +34,20 @@ public class UserController {
     private final UsersMapper usersMapper;
     private final SignalsService signalsService;
     private final SignalsRepository signalsRepository;
+    private final PublicationService publicationService;
 
     @Autowired
     public UserController(UserService userService,
                           MainEventsService mainEventsService,
                           UserRepository userRepository,
-                          UsersMapper usersMapper, SignalsService signalsService, SignalsRepository signalsRepository) {
+                          UsersMapper usersMapper, SignalsService signalsService, SignalsRepository signalsRepository, PublicationService publicationService) {
         this.userService = userService;
         this.mainEventsService = mainEventsService;
         this.userRepository = userRepository;
         this.usersMapper = usersMapper;
         this.signalsService = signalsService;
         this.signalsRepository = signalsRepository;
+        this.publicationService = publicationService;
     }
 
     // ===== UNIFIED PROFILE ENDPOINTS =====
@@ -189,25 +193,30 @@ public class UserController {
         }
     }
 
+
+
     @GetMapping(value = "/profile/api/publications", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getOwnPublications(Authentication auth) {
-        if (auth == null) {
-            return ResponseEntity.status(401).build();
+    public ResponseEntity<List<PublicationResponseDTO>> getOwnPublications() {
+        UserEntity currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build(); // Unauthorized
         }
 
-        // Placeholder - to be implemented with PublicationService + Mapper
-        List<Map<String, Object>> publications = new ArrayList<>();
+        List<PublicationResponseDTO> publications = publicationService.findAllByAuthorId(currentUser.getId());
         return ResponseEntity.ok(publications);
     }
 
     @GetMapping(value = "/user/{userId}/api/publications", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getUserPublications(@PathVariable Long userId) {
-        // Placeholder - to be implemented with PublicationService + Mapper
-        List<Map<String, Object>> publications = new ArrayList<>();
+    public ResponseEntity<List<PublicationResponseDTO>> getAllUserPublications(@PathVariable Long userId) {
+
+        List<PublicationResponseDTO> publications = publicationService.findAllByAuthorId(userId);
         return ResponseEntity.ok(publications);
     }
+
+
+
 
     @GetMapping(value = "/profile/api/signals", produces = "application/json")
     @ResponseBody

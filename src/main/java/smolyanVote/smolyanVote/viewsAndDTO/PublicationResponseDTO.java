@@ -52,6 +52,45 @@ public class PublicationResponseDTO {
     public PublicationResponseDTO() {
     }
 
+    public PublicationResponseDTO(Long id, String title, String content, String excerpt, CategoryEnum category,
+                                  PublicationStatus status, String imageUrl, String emotion, String emotionText,
+                                  Integer readingTime, Instant createdAt, Instant updatedAt, LocalDateTime publishedAt,
+                                  Integer viewsCount, Integer likesCount, Integer dislikesCount, Integer commentsCount,
+                                  Integer sharesCount, Long authorId, String authorUsername, String authorImageUrl,
+                                  Integer authorOnlineStatus, Instant authorLastOnline, Boolean isLiked,
+                                  Boolean isDisliked, Boolean isBookmarked, Boolean isOwner, String linkUrl,
+                                  String linkMetadata) {
+        this.id = id;
+        this.title = title;
+        this.content = content;
+        this.excerpt = excerpt;
+        this.category = category;
+        this.status = status;
+        this.imageUrl = imageUrl;
+        this.emotion = emotion;
+        this.emotionText = emotionText;
+        this.readingTime = readingTime;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.publishedAt = publishedAt;
+        this.viewsCount = viewsCount;
+        this.likesCount = likesCount;
+        this.dislikesCount = dislikesCount;
+        this.commentsCount = commentsCount;
+        this.sharesCount = sharesCount;
+        this.authorId = authorId;
+        this.authorUsername = authorUsername;
+        this.authorImageUrl = authorImageUrl;
+        this.authorOnlineStatus = authorOnlineStatus;
+        this.authorLastOnline = authorLastOnline;
+        this.isLiked = isLiked;
+        this.isDisliked = isDisliked;
+        this.isBookmarked = isBookmarked;
+        this.isOwner = isOwner;
+        this.linkUrl = linkUrl;
+        this.linkMetadata = linkMetadata;
+    }
+
     public PublicationResponseDTO(PublicationEntity publication) {
         this.id = publication.getId();
         this.title = publication.getTitle();

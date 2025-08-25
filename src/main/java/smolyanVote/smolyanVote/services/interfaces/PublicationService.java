@@ -8,6 +8,7 @@ import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,10 @@ public interface PublicationService {
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
 
     PublicationEntity findById(Long id);
+
+    @Transactional(readOnly = true)
+    List<PublicationResponseDTO> findAllByAuthorId(Long authorId);
+
     PublicationEntity create(PublicationRequestDTO request, UserEntity author);
     PublicationEntity update(PublicationEntity publication, PublicationRequestDTO request);
     void delete(Long id);
