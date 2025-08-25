@@ -63,6 +63,7 @@ public class UserEntity extends BaseEntity {
     private int totalVotes;
 
     private int publicationsCount;
+    private int signalsCount;
 
     // ===== GETTERS AND SETTERS =====
 
@@ -238,4 +239,11 @@ public class UserEntity extends BaseEntity {
         this.publicationsCount = publicationsCount;
     }
 
+    public int getSignalsCount() {
+        return signalsCount;
+    }
+
+    public void setSignalsCount(int signalsCount) {
+        this.signalsCount = signalsCount;
+    }
 }

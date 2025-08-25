@@ -809,7 +809,7 @@ body {
     top: var(--spacing-sm);
     right: var(--spacing-sm);
     padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(0, 0, 0, 0.7);
+    background: rgb(125, 180, 116);
     color: var(--white);
     border-radius: var(--radius-sm);
     font-size: 0.7rem;

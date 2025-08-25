@@ -10,11 +10,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
+import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 
 import java.io.IOException;
@@ -27,16 +30,20 @@ public class UserController {
     private final MainEventsService mainEventsService;
     private final UserRepository userRepository;
     private final UsersMapper usersMapper;
+    private final SignalsService signalsService;
+    private final SignalsRepository signalsRepository;
 
     @Autowired
     public UserController(UserService userService,
                           MainEventsService mainEventsService,
                           UserRepository userRepository,
-                          UsersMapper usersMapper) {
+                          UsersMapper usersMapper, SignalsService signalsService, SignalsRepository signalsRepository) {
         this.userService = userService;
         this.mainEventsService = mainEventsService;
         this.userRepository = userRepository;
         this.usersMapper = usersMapper;
+        this.signalsService = signalsService;
+        this.signalsRepository = signalsRepository;
     }
 
     // ===== UNIFIED PROFILE ENDPOINTS =====
@@ -204,42 +211,44 @@ public class UserController {
 
     @GetMapping(value = "/profile/api/signals", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getOwnSignals(Authentication auth) {
-        if (auth == null) {
-            return ResponseEntity.status(401).build();
+    public ResponseEntity<List<SignalsDto>> getCurrentUserSignals() {
+        UserEntity currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build(); // Unauthorized
         }
 
-        // Placeholder - to be implemented with SignalsService + Mapper
-        List<Map<String, Object>> signals = new ArrayList<>();
+        List<SignalsDto> signals = signalsService.findAllByAuthorId(currentUser.getId());
         return ResponseEntity.ok(signals);
     }
+
 
     @GetMapping(value = "/user/{userId}/api/signals", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getUserSignals(@PathVariable Long userId) {
-        // Placeholder - to be implemented with SignalsService + Mapper
-        List<Map<String, Object>> signals = new ArrayList<>();
+    public ResponseEntity<List<SignalsDto>> getUserSignals(@PathVariable Long userId) {
+        List<SignalsDto> signals = signalsService.findAllByAuthorId(userId);
+
         return ResponseEntity.ok(signals);
     }
 
-    @GetMapping(value = "/profile/api/activity", produces = "application/json")
+
+    @GetMapping(value = "/profile/api/messenger", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getOwnActivity(Authentication auth) {
+    public ResponseEntity<List<Map<String, Object>>> getOwnMessenger(Authentication auth) {
         if (auth == null) {
             return ResponseEntity.status(401).build();
         }
 
-        // Placeholder - to be implemented with ActivityLogService + Mapper
-        List<Map<String, Object>> activities = new ArrayList<>();
-        return ResponseEntity.ok(activities);
+        // Placeholder - to be implemented with messengerLogService + Mapper
+        List<Map<String, Object>> messenger = new ArrayList<>();
+        return ResponseEntity.ok(messenger);
     }
 
-    @GetMapping(value = "/user/{userId}/api/activity", produces = "application/json")
+    @GetMapping(value = "/user/{userId}/api/messenger", produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getUserActivity(@PathVariable Long userId) {
-        // Placeholder - to be implemented with ActivityLogService + Mapper
-        List<Map<String, Object>> activities = new ArrayList<>();
-        return ResponseEntity.ok(activities);
+    public ResponseEntity<List<Map<String, Object>>> getUserMessenger(@PathVariable Long userId) {
+        // Placeholder - to be implemented with messengerLogService + Mapper
+        List<Map<String, Object>> messenger = new ArrayList<>();
+        return ResponseEntity.ok(messenger);
     }
 
     // ===== FOLLOW SYSTEM ENDPOINT =====
