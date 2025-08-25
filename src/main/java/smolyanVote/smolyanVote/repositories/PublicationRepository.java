@@ -20,34 +20,29 @@ import java.util.List;
 @Repository
 public interface PublicationRepository extends JpaRepository<PublicationEntity, Long> {
 
-    // ====== С ПРАВИЛНИ ИНДЕКСИ (status, created, author_id) ======
     @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = :status ORDER BY p.created DESC")
     Page<PublicationEntity> findByStatusWithAuthorOrderByCreatedDesc(@Param("status") PublicationStatus status, Pageable pageable);
 
-    // ====== ФИЛТРИРАНЕ С FULLTEXT ======
-    // ====== ФИЛТРИРАНЕ С FULLTEXT ======
-    @Query(value = "SELECT * FROM publications p " +
-            "WHERE (:category IS NULL OR p.category = :category) " +
-            "AND (:status IS NULL OR p.status = :status) " +
-            "AND (:timeFilter IS NULL OR p.created >= :timeFilter) " +
-            "AND (:authorId IS NULL OR p.author_id = :authorId) " +
-            "AND (:search IS NULL OR MATCH(p.title, p.content, p.excerpt, p.tags, p.emotion_text) AGAINST (:search IN BOOLEAN MODE)) " +
-            "ORDER BY p.created DESC",
-            nativeQuery = true)
-    Page<PublicationEntity> findWithFiltersNative(@Param("search") String search,
-                                                  @Param("category") CategoryEnum category,
-                                                  @Param("status") PublicationStatus status,
-                                                  @Param("timeFilter") Instant timeFilter,
-                                                  @Param("authorId") Long authorId,
-                                                  Pageable pageable);
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE " +
+            "(:search IS NULL OR :search = '' OR " +
+            " LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            " LOWER(p.content) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+            "(:category IS NULL OR p.category = :category) AND " +
+            "(:status IS NULL OR p.status = :status) AND " +
+            "(:timeFilter IS NULL OR p.created >= :timeFilter) AND " +
+            "(:authorId IS NULL OR p.author.id = :authorId)")
+    Page<PublicationEntity> findWithFilters(@Param("search") String search,
+                                            @Param("category") CategoryEnum category,
+                                            @Param("status") PublicationStatus status,
+                                            @Param("timeFilter") Instant timeFilter,
+                                            @Param("authorId") Long authorId,
+                                            Pageable pageable);
 
-
-    // ====== СТАТИСТИКИ ======
     long countByStatus(PublicationStatus status);
     long countByCategoryAndStatus(CategoryEnum category, PublicationStatus status);
     long countByCreatedAfterAndStatus(Instant date, PublicationStatus status);
 
-    // ====== АКТИВНИ АВТОРИ ======
+    // ====== АКТИВНИ АВТОРИ (ОБЩО) ======
     @Query("SELECT p.author FROM PublicationEntity p " +
             "WHERE p.status = 'PUBLISHED' " +
             "GROUP BY p.author " +
@@ -85,6 +80,7 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
     @Query("SELECT COUNT(p) FROM PublicationEntity p WHERE p.status IN ('PUBLISHED', 'EDITED')")
     long countPublicPublications();
 
+
     @Query("SELECT COUNT(p) FROM PublicationEntity p WHERE " +
             "p.author = :author AND p.created >= :timeLimit")
     long countRecentPostsByAuthor(@Param("author") UserEntity author,
@@ -95,16 +91,27 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
         return countRecentPostsByAuthor(author, timeLimit) > 0;
     }
 
-    // ====== USER PREFERENCES (НЕ Е ОПТИМАЛНО, НО ЗА СЕГА ОСТАВА) ======
+    // ====== USER PREFERENCES QUERIES ======
+
+    /**
+     * Намира всички публикации които потребителят е харесал
+     */
     @Query("SELECT p.id FROM PublicationEntity p WHERE p.likedByUsers LIKE :userPattern")
     List<Long> findLikedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
 
+    /**
+     * Намира всички публикации които потребителят е дислайкнал
+     */
     @Query("SELECT p.id FROM PublicationEntity p WHERE p.dislikedByUsers LIKE :userPattern")
     List<Long> findDislikedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
 
+    /**
+     * Намира всички публикации които потребителят е bookmark-нал
+     */
     @Query("SELECT p.id FROM PublicationEntity p WHERE p.bookmarkedByUsers LIKE :userPattern")
     List<Long> findBookmarkedPublicationIdsByUsernamePattern(@Param("userPattern") String userPattern);
 
+    // Default методи за лесно използване
     default List<Long> findLikedPublicationIdsByUsername(String username) {
         return findLikedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
     }
@@ -117,11 +124,10 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
         return findBookmarkedPublicationIdsByUsernamePattern("%\"" + username + "\"%");
     }
 
-    // ====== БЪРЗА ЗАЯВКА ЗА АВТОР ======
     @Query(value = "SELECT author_id FROM publications WHERE id = :publicationId", nativeQuery = true)
     Long findAuthorIdByPublicationId(@Param("publicationId") Long publicationId);
 
-    // ====== ПУБЛИКАЦИИ ПО АВТОР (List, понеже максимум ~200 бр) ======
-    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.author.id = :authorId ORDER BY p.created DESC")
-    List<PublicationEntity> findByAuthorIdOrderByCreatedDesc(@Param("authorId") Long authorId);
+    List<PublicationEntity> findAllByAuthorId(Long authorId);
+
+    List<PublicationEntity> findByAuthorIdOrderByCreatedDesc(Long authorId);
 }

@@ -343,8 +343,10 @@ class ProfileManager {
             <div class="publication-meta">
             <div class="time-info">${this.formatTimeAgo(pub.createdAt || new Date().toISOString())}</div>
                 <div class="publication-stats">
-                    <span><i class="bi bi-heart"></i> ${pub.likesCount || 0}</span>
+                    <span><i class="bi bi-hand-thumbs-up-fill"></i> ${pub.likesCount || 0}</span>
+                    <span><i class="bi bi-hand-thumbs-down-fill"></i> ${pub.dislikesCount || 0}</span>
                     <span><i class="bi bi-eye"></i> ${pub.viewsCount || 0}</span>
+                    <span><i class="bi bi-chat-fill"></i> ${pub.commentsCount || 0}</span>
                 </div>
             </div>
         </div>
