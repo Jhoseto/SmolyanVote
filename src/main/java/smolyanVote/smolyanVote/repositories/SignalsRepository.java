@@ -75,4 +75,7 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
 
     @Query("SELECT s FROM SignalsEntity s JOIN FETCH s.author WHERE s.likesCount > :minLikes ORDER BY s.likesCount DESC")
     List<SignalsEntity> findPopularSignals(@Param("minLikes") Integer minLikes, Pageable pageable);
+
+
+    List<SignalsEntity> findAllByAuthorId(Long authorId);
 }

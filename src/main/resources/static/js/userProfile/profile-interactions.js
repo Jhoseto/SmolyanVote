@@ -212,7 +212,7 @@ class ProfileManager {
             'events': `${baseUrl}/events`,
             'publications': `${baseUrl}/publications`,
             'signals': `${baseUrl}/signals`,
-            'activity': `${baseUrl}/activity`
+            'messenger': `${baseUrl}/messenger`
         };
 
         return endpoints[tabId] || `${baseUrl}/${tabId}`;
@@ -428,7 +428,7 @@ class ProfileManager {
     }
 
     swipeTab(direction) {
-        const tabs = ['overview', 'events', 'publications', 'signals', 'activity'];
+        const tabs = ['overview', 'events', 'publications', 'signals', 'messenger'];
         const currentIndex = tabs.indexOf(this.currentTab);
 
         let newIndex;
@@ -471,7 +471,7 @@ class ProfileManager {
             '2': 'events',
             '3': 'publications',
             '4': 'signals',
-            '5': 'activity'
+            '5': 'messenger'
         };
 
         if (keys[e.key]) {
@@ -539,6 +539,10 @@ class ProfileManager {
             if (userData.publicationsCount !== undefined) {
                 const pubsCounter = document.querySelector('[data-stat="publications"] .stat-number');
                 if (pubsCounter) pubsCounter.textContent = this.formatNumber(userData.publicationsCount);
+            }
+            if (userData.signalsCounts !== undefined) {
+                const pubsCounter = document.querySelector('[data-stat="signals"] .stat-number');
+                if (pubsCounter) pubsCounter.textContent = this.formatNumber(userData.signalsCounts);
             }
 
             if (userData.reputationScore !== undefined) {

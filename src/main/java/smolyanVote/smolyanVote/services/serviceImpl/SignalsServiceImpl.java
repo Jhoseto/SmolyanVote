@@ -16,10 +16,13 @@ import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.mappers.SignalsMapper;
+import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,6 +39,7 @@ public class SignalsServiceImpl implements SignalsService {
     private final CommentsRepository commentsRepository;
     private final CommentVoteRepository commentVoteRepository;
     private final ActivityLogService activityLogService;
+    private final UserRepository userRepository;
 
     @Autowired
     public SignalsServiceImpl(SignalsRepository signalsRepository,
@@ -43,13 +47,14 @@ public class SignalsServiceImpl implements SignalsService {
                               UserService userService,
                               CommentsRepository commentsRepository,
                               CommentVoteRepository commentVoteRepository,
-                              ActivityLogService activityLogService) {
+                              ActivityLogService activityLogService, UserRepository userRepository) {
         this.signalsRepository = signalsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
         this.userService = userService;
         this.commentsRepository = commentsRepository;
         this.commentVoteRepository = commentVoteRepository;
         this.activityLogService = activityLogService;
+        this.userRepository = userRepository;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -68,6 +73,19 @@ public class SignalsServiceImpl implements SignalsService {
 
         return signal;
     }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SignalsDto> findAllByAuthorId(Long authorId) {
+        return signalsRepository.findAllByAuthorId(authorId)
+                .stream()
+                .map(SignalsMapper::toDto)
+                .toList();
+    }
+
+
+
 
     @Override
     @Transactional
@@ -94,6 +112,10 @@ public class SignalsServiceImpl implements SignalsService {
                 System.err.println("Error uploading image for signal: " + e.getMessage());
             }
         }
+        UserEntity user = userService.getCurrentUser();
+        user.setSignalsCount(user.getSignalsCount() + 1);
+        userRepository.save(user);
+
         return signal;
     }
 
@@ -190,6 +212,9 @@ public class SignalsServiceImpl implements SignalsService {
             } catch (Exception e) {
                 System.err.println("Failed to log signal deletion: " + e.getMessage());
             }
+            UserEntity user = userService.getCurrentUser();
+            user.setSignalsCount(user.getSignalsCount() - 1);
+            userRepository.save(user);
 
         } catch (Exception e) {
             System.err.println("FATAL ERROR in delete signal service:");
@@ -428,8 +453,8 @@ public class SignalsServiceImpl implements SignalsService {
         return results;
     }
 
-    @Override
     @Transactional(readOnly = true)
+    @Override
     public long getSignalsCountByAuthor(Long authorId) {
         return signalsRepository.countByAuthorId(authorId);
     }

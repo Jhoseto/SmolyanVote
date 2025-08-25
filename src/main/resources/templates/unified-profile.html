@@ -61,6 +61,7 @@
                     <p class="user-bio" th:text="${user.bio}">Биография на потребителя</p>
                 </div>
 
+                <!-- meta-info секцията - ПРАВИЛЕН ПОДХОД -->
                 <div class="meta-info">
                     <div class="info-item" th:if="${user.location != null}">
                         <i class="bi bi-geo-alt"></i>
@@ -68,11 +69,11 @@
                     </div>
                     <div class="info-item">
                         <i class="bi bi-calendar-plus"></i>
-                        <span th:text="${user.created != null} ? 'Член от ' + #temporals.format(user.created, 'MMMM yyyy') : 'Неизвестна дата'">Член от</span>
+                        <span th:text="${user.created != null ? 'Член от ' + #dates.format(user.created, 'MM.yyyy') : 'Неизвестна дата'}">Член от</span>
                     </div>
                     <div class="info-item">
                         <i class="bi bi-clock"></i>
-                        <span th:text="${user.lastOnline != null} ? 'Последно онлайн ' + #temporals.format(user.lastOnline, 'dd.MM.yyyy HH:mm') : 'Неизвестно'">Последно онлайн</span>
+                        <span th:text="${user.lastOnline != null ? 'Последно онлайн ' + #dates.format(user.lastOnline, 'dd.MM.yyyy HH:mm') : 'Неизвестно'}">Последно онлайн</span>
                     </div>
                 </div>
             </div>
@@ -107,7 +108,6 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="#"><i class="bi bi-flag"></i> Докладвай</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-slash-circle"></i> Блокирай</a></li>
                         </ul>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-number" th:text="${user.userEventsCount ?: 0}">0</div>
-                    <div class="stat-label">События</div>
+                    <div class="stat-label">Събития</div>
                 </div>
             </div>
 
@@ -147,6 +147,16 @@
                 <div class="stat-content">
                     <div class="stat-number" th:text="${user.publicationsCount ?: 0}">0</div>
                     <div class="stat-label">Публикации</div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card" data-stat="signals">
+                <div class="stat-icon">
+                    <i class="bi bi-flag"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" th:text="${user.signalsCount ?: 0}">0</div>
+                    <div class="stat-label">Сигнали</div>
                 </div>
             </div>
 
@@ -177,7 +187,7 @@
             </button>
             <button class="tab-btn" data-tab="events">
                 <i class="bi bi-calendar-event"></i>
-                <span>События</span>
+                <span>Събития</span>
                 <div class="tab-counter" th:text="${user.userEventsCount ?: 0}">0</div>
             </button>
             <button class="tab-btn" data-tab="publications">
@@ -189,9 +199,9 @@
                 <i class="bi bi-flag"></i>
                 <span>Сигнали</span>
             </button>
-            <button class="tab-btn" data-tab="activity">
-                <i class="bi bi-activity"></i>
-                <span>Активност</span>
+            <button class="tab-btn" data-tab="bi-messenger">
+                <i class="bi bi-messenger"></i>
+                <span>Лични Съобщения</span>
             </button>
         </div>
 
@@ -204,7 +214,7 @@
                     <div class="col-lg-8">
                         <div class="content-card glass-card">
                             <div class="card-header">
-                                <h3><i class="bi bi-clock-history"></i> Последна активност</h3>
+                                <h3><i class="bi bi-clock-history"></i> Известия </h3>
                             </div>
                             <div class="card-body">
                                 <div class="activity-timeline">
@@ -245,19 +255,10 @@
                     <div class="col-lg-4">
                         <div class="content-card glass-card">
                             <div class="card-header">
-                                <h3><i class="bi bi-graph-up"></i> Бърза статистика</h3>
+                                <h3><i class="bi bi-graph-up"></i> Статистика</h3>
                             </div>
                             <div class="card-body">
                                 <div class="quick-stats">
-                                    <div class="quick-stat-item">
-                                        <div class="stat-icon-small">
-                                            <i class="bi bi-eye"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-value">1,247</div>
-                                            <div class="stat-name">Прегледи на профил</div>
-                                        </div>
-                                    </div>
                                     <div class="quick-stat-item">
                                         <div class="stat-icon-small">
                                             <i class="bi bi-people"></i>
@@ -265,15 +266,6 @@
                                         <div class="stat-info">
                                             <div class="stat-value">89</div>
                                             <div class="stat-name">Последователи</div>
-                                        </div>
-                                    </div>
-                                    <div class="quick-stat-item">
-                                        <div class="stat-icon-small">
-                                            <i class="bi bi-heart"></i>
-                                        </div>
-                                        <div class="stat-info">
-                                            <div class="stat-value">156</div>
-                                            <div class="stat-name">Получени харесвания</div>
                                         </div>
                                     </div>
                                 </div>
@@ -313,22 +305,23 @@
             <!-- Events Tab -->
             <div class="tab-content" id="events">
                 <div class="content-header">
-                    <h2>События създадени от потребителя</h2>
+                    <h2>Събития на профила </h2>
                     <div class="content-filters">
                         <button class="filter-btn active" data-filter="all">Всички</button>
                         <button class="filter-btn" data-filter="SIMPLEEVENT">Прости събития</button>
                         <button class="filter-btn" data-filter="REFERENDUM">Референдуми</button>
-                        <button class="filter-btn" data-filter="MULTI_POLL">Анкети</button>
+                        <button class="filter-btn" data-filter="MULTI_POLL">Множествени Анкети</button>
                     </div>
                 </div>
                 <div class="events-grid" id="eventsGrid">
                     <!-- Real events from backend -->
-                    <div th:each="event : ${userEvents}" class="event-card glass-card" th:attr="data-event-type=${event.eventType.name()}">
+                    <div th:each="event : ${userEvents}" class="event-card glass-card"
+                         th:attr="data-event-type=${event.eventType.name()}">
                         <div class="event-image">
-                            <img th:src="${event.imageUrl != null and !event.imageUrl.isEmpty() ? event.imageUrl : '/images/eventImages/defaultEvent.png'}"
+                            <img th:src="${event.images != null and !event.images.isEmpty() ? event.images[0] : '/images/eventImages/defaultEvent.png'}"
                                  th:alt="${event.title}"
                                  onerror="this.src='/images/eventImages/defaultEvent.png';">
-                            <div class="event-type-badge" th:text="${event.eventType.name() == 'SIMPLEEVENT' ? 'Събитие' : (event.eventType.name() == 'REFERENDUM' ? 'Референдум' : 'Анкета')}">Събитие</div>
+                            <div class="event-type-badge" th:text="${event.eventType.name() == 'SIMPLEEVENT' ? 'Опростен Вид Събитие' : (event.eventType.name() == 'REFERENDUM' ? 'Референдум' : 'Множествена Анкета')}">Събитие</div>
                         </div>
                         <div class="event-content">
                             <h4 class="event-title" th:text="${event.title}">Заглавие на събитието</h4>
@@ -380,16 +373,16 @@
             </div>
 
             <!-- Activity Tab -->
-            <div class="tab-content" id="activity">
+            <div class="tab-content" id="messenger">
                 <div class="content-header">
-                    <h2>Подробна активност</h2>
+                    <h2>Лични съобщения</h2>
                 </div>
-                <div class="activity-feed" id="activityFeed">
+                <div class="activity-feed" id="messengerFeed">
                     <!-- Dynamic content loaded here via JavaScript -->
                     <div class="empty-state">
-                        <i class="bi bi-activity"></i>
-                        <h4>Няма регистрирана активност</h4>
-                        <p>Активността ще се показва тук когато има данни.</p>
+                        <i class="bi bi-messenger"></i>
+                        <h4>Няма съобщения</h4>
+                        <p>Съобщенията ще се показва тук...</p>
                     </div>
                 </div>
             </div>

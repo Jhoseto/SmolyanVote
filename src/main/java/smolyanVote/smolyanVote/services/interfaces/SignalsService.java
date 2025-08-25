@@ -9,6 +9,7 @@ import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
+import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,6 +20,9 @@ public interface SignalsService {
 
     SignalsEntity findById(Long id);
 
+
+    @Transactional(readOnly = true)
+    List<SignalsDto> findAllByAuthorId(Long authorId);
 
     SignalsEntity create(String title, String description, SignalsCategory category,
                          SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
@@ -64,5 +68,7 @@ public interface SignalsService {
     // ====== ПОТРЕБИТЕЛСКИ СИГНАЛИ ======
 
     Page<SignalsEntity> getSignalsByAuthor(Long authorId, Pageable pageable);
+
+    @Transactional(readOnly = true)
     long getSignalsCountByAuthor(Long authorId);
 }
