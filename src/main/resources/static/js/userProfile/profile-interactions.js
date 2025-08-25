@@ -379,7 +379,11 @@ class ProfileManager {
 
         } else if (card.classList.contains('publication-card')) {
             const pubId = card.dataset.publicationId;
-            this.autoOpenModal(pubId);
+            if (window.openPostModal) {
+                window.openPostModal(pubId);
+            } else {
+                console.error('openPostModal function not available');
+            }
         }
 
         if (url) {
