@@ -65,10 +65,11 @@ public class ApplicationSecurityConfiguration {
                         .requestMatchers("/admin/**", "/ws/**", "/sockjs-node/**", "/stomp/**").hasRole("ADMIN")
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
-                                "/user/**", "/profile/update", "/profile", "/userProfile",
+                                "/user/**", "/profile/update", "/userProfile",
                                 "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
-                                "/createEvent", "/createNewEvent", "/user/logout", "/user/profile/**",
-                                "/user/dashboard/**","/subscription/**","/api/reports/**"
+                                "/createEvent", "/createNewEvent", "/user/logout",
+                                "/user/dashboard/**","/subscription/**","/api/reports/**","/api/user/**",
+                                "/profile/**","/user/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )
