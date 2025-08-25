@@ -42,11 +42,12 @@
   <meta th:if="${ogAuthor}" name="twitter:creator" th:content="'@' + ${ogAuthor}" />
 
 
+    <!-- Existing Thymeleaf fragments -->
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/createPublication.css">
   <link rel="stylesheet" href="/css/publicationsDetailModal.css">
   <link rel="stylesheet" href="/css/comments.css">
-  <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}" />
   <link rel="stylesheet" href="/css/publications.css">
 
   <!-- Thymeleaf data for JavaScript -->

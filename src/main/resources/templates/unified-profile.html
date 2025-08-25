@@ -7,13 +7,12 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Existing Thymeleaf fragments -->
-    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
-
     <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- Existing Thymeleaf fragments -->
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/css/userProfile.css">
 </head>
@@ -40,7 +39,7 @@
             <!-- Avatar Section -->
             <div class="avatar-section">
                 <div class="avatar-container">
-                    <div class="user-avatar profile-avatar"
+                    <div class="user-avatar profile-avatar avatar-placeholder"
                          th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
                     </div>
                     <div class="online-indicator" th:classappend="${user.onlineStatus == 1} ? 'online' : 'offline'"></div>
@@ -48,7 +47,7 @@
             </div>
 
             <!-- User Info Section -->
-            <div class="user-info-section">
+            <div class="user-info-section" th:attr="data-user-id=${user.id}">
                 <div class="name-and-role">
                     <h1 class="username" th:text="${user.username}">Username</h1>
                     <div class="role-badge" th:classappend="${user.role.name()}">
@@ -67,14 +66,14 @@
                         <i class="bi bi-geo-alt"></i>
                         <span th:text="${user.location.toBG()}">Локация</span>
                     </div>
-<!--                    <div class="info-item">-->
-<!--                        <i class="bi bi-calendar-plus"></i>-->
-<!--                        <span th:text="${user.created != null} ? 'Член от ' + #temporals.format(user.created, 'MMMM yyyy') : 'Неизвестна дата'">Член от</span>-->
-<!--                    </div>-->
-<!--                    <div class="info-item">-->
-<!--                        <i class="bi bi-clock"></i>-->
-<!--                        <span th:text="${user.lastOnline != null} ? 'Последно онлайн ' + #temporals.format(user.lastOnline, 'dd.MM.yyyy HH:mm') : 'Неизвестно'">Последно онлайн</span>-->
-<!--                    </div>-->
+                    <div class="info-item">
+                        <i class="bi bi-calendar-plus"></i>
+                        <span th:text="${user.created != null} ? 'Член от ' + #temporals.format(user.created, 'MMMM yyyy') : 'Неизвестна дата'">Член от</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="bi bi-clock"></i>
+                        <span th:text="${user.lastOnline != null} ? 'Последно онлайн ' + #temporals.format(user.lastOnline, 'dd.MM.yyyy HH:mm') : 'Неизвестно'">Последно онлайн</span>
+                    </div>
                 </div>
             </div>
 
@@ -121,7 +120,7 @@
 <div class="statistics-section">
     <div class="container">
         <div class="stats-grid">
-            <div class="stat-card glass-card">
+            <div class="stat-card glass-card" data-stat="events">
                 <div class="stat-icon">
                     <i class="bi bi-calendar-event"></i>
                 </div>
@@ -129,12 +128,9 @@
                     <div class="stat-number" th:text="${user.userEventsCount ?: 0}">0</div>
                     <div class="stat-label">События</div>
                 </div>
-                <div class="stat-progress">
-                    <div class="progress-bar" th:style="'width: ' + ${(user.userEventsCount ?: 0) * 10} + '%'"></div>
-                </div>
             </div>
 
-            <div class="stat-card glass-card">
+            <div class="stat-card glass-card" data-stat="votes">
                 <div class="stat-icon">
                     <i class="bi bi-hand-thumbs-up"></i>
                 </div>
@@ -142,12 +138,9 @@
                     <div class="stat-number" th:text="${user.totalVotes ?: 0}">0</div>
                     <div class="stat-label">Гласове</div>
                 </div>
-                <div class="stat-progress">
-                    <div class="progress-bar" th:style="'width: ' + ${(user.totalVotes ?: 0) / 10} + '%'"></div>
-                </div>
             </div>
 
-            <div class="stat-card glass-card">
+            <div class="stat-card glass-card" data-stat="publications">
                 <div class="stat-icon">
                     <i class="bi bi-file-text"></i>
                 </div>
@@ -155,21 +148,18 @@
                     <div class="stat-number" th:text="${user.publicationsCount ?: 0}">0</div>
                     <div class="stat-label">Публикации</div>
                 </div>
-                <div class="stat-progress">
-                    <div class="progress-bar" th:style="'width: ' + ${(user.publicationsCount ?: 0) * 20} + '%'"></div>
-                </div>
             </div>
 
-            <div class="stat-card glass-card reputation-card">
+            <div class="stat-card glass-card reputation-card" data-stat="reputation">
                 <div class="stat-icon">
                     <i class="bi bi-star-fill"></i>
                 </div>
                 <div class="stat-content">
-                    <div class="stat-number reputation-score" id="reputationScore">--</div>
+                    <div class="stat-number reputation-score" th:text="${reputationScore ?: 0}">0</div>
                     <div class="stat-label">Репутация</div>
                 </div>
-                <div class="reputation-badge" id="reputationBadge">
-                    <span class="badge-text">Нов потребител</span>
+                <div class="reputation-badge">
+                    <span class="badge-text" th:text="${reputationBadge ?: 'Нов потребител'}">Нов потребител</span>
                 </div>
             </div>
         </div>
@@ -326,26 +316,35 @@
                     <h2>События създадени от потребителя</h2>
                     <div class="content-filters">
                         <button class="filter-btn active" data-filter="all">Всички</button>
-                        <button class="filter-btn" data-filter="simple">Прости събития</button>
-                        <button class="filter-btn" data-filter="referendum">Референдуми</button>
-                        <button class="filter-btn" data-filter="poll">Анкети</button>
+                        <button class="filter-btn" data-filter="SIMPLEEVENT">Прости събития</button>
+                        <button class="filter-btn" data-filter="REFERENDUM">Референдуми</button>
+                        <button class="filter-btn" data-filter="MULTI_POLL">Анкети</button>
                     </div>
                 </div>
                 <div class="events-grid" id="eventsGrid">
-                    <!-- Dynamic content loaded here -->
-                    <div class="event-card glass-card">
+                    <!-- Real events from backend -->
+                    <div th:each="event : ${userEvents}" class="event-card glass-card" th:attr="data-event-type=${event.eventType.name()}">
                         <div class="event-image">
-                            <img src="/images/placeholder-event.jpg" alt="Event">
-                            <div class="event-type-badge">Събитие</div>
+                            <img th:src="${event.imageUrl != null and !event.imageUrl.isEmpty() ? event.imageUrl : '/images/eventImages/defaultEvent.png'}"
+                                 th:alt="${event.title}"
+                                 onerror="this.src='/images/eventImages/defaultEvent.png';">
+                            <div class="event-type-badge" th:text="${event.eventType.name() == 'SIMPLEEVENT' ? 'Събитие' : (event.eventType.name() == 'REFERENDUM' ? 'Референдум' : 'Анкета')}">Събитие</div>
                         </div>
                         <div class="event-content">
-                            <h4 class="event-title">Пример за събитие</h4>
-                            <p class="event-description">Описание на събитието...</p>
+                            <h4 class="event-title" th:text="${event.title}">Заглавие на събитието</h4>
+                            <p class="event-description" th:text="${#strings.abbreviate(event.description ?: 'Няма описание', 100)}">Описание на събитието...</p>
                             <div class="event-stats">
-                                <span><i class="bi bi-people"></i> 25 гласа</span>
-                                <span><i class="bi bi-eye"></i> 128 прегледа</span>
+                                <span><i class="bi bi-people"></i> <span th:text="${event.totalVotes ?: 0}">0</span> гласа</span>
+                                <span><i class="bi bi-eye"></i> <span th:text="${event.viewCounter ?: 0}">0</span> прегледа</span>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div th:if="${#lists.isEmpty(userEvents)}" class="empty-state">
+                        <i class="bi bi-calendar-x"></i>
+                        <h4>Няма събития</h4>
+                        <p th:text="${isOwnProfile} ? 'Все още не сте създали събития.' : 'Този потребител няма събития.'">Няма събития.</p>
                     </div>
                 </div>
             </div>
@@ -356,7 +355,12 @@
                     <h2>Публикации на потребителя</h2>
                 </div>
                 <div class="publications-grid" id="publicationsGrid">
-                    <!-- Dynamic content loaded here -->
+                    <!-- Dynamic content loaded here via JavaScript -->
+                    <div class="empty-state">
+                        <i class="bi bi-file-text"></i>
+                        <h4>Няма публикации</h4>
+                        <p th:text="${isOwnProfile} ? 'Все още не сте публикували нищо.' : 'Този потребител няма публикации.'">Няма публикации.</p>
+                    </div>
                 </div>
             </div>
 
@@ -366,7 +370,12 @@
                     <h2>Граждански сигнали</h2>
                 </div>
                 <div class="signals-grid" id="signalsGrid">
-                    <!-- Dynamic content loaded here -->
+                    <!-- Dynamic content loaded here via JavaScript -->
+                    <div class="empty-state">
+                        <i class="bi bi-flag"></i>
+                        <h4>Няма сигнали</h4>
+                        <p th:text="${isOwnProfile} ? 'Все още не сте подали сигнали.' : 'Този потребител няма сигнали.'">Няма сигнали.</p>
+                    </div>
                 </div>
             </div>
 
@@ -376,7 +385,12 @@
                     <h2>Подробна активност</h2>
                 </div>
                 <div class="activity-feed" id="activityFeed">
-                    <!-- Dynamic content loaded here -->
+                    <!-- Dynamic content loaded here via JavaScript -->
+                    <div class="empty-state">
+                        <i class="bi bi-activity"></i>
+                        <h4>Няма регистрирана активност</h4>
+                        <p>Активността ще се показва тук когато има данни.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -401,7 +415,7 @@
                         <div class="col-md-4">
                             <div class="avatar-upload-section">
                                 <div class="current-avatar">
-                                    <div class="user-avatar profile-avatar"
+                                    <div class="user-avatar profile-avatar avatar-placeholder"
                                          th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
                                     </div>
                                 </div>
@@ -458,12 +472,19 @@
 
 <!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
-<!-- Scripts -->
-<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+
+<!-- User Data for JavaScript -->
+<div id="current-user-data" style="display: none;"
+     th:if="${currentUser != null}"
+     th:data-user-id="${currentUser.id}"
+     th:data-username="${currentUser.username}"
+     th:data-image-url="${currentUser.imageUrl}"
+     th:data-is-own-profile="${isOwnProfile}"></div>
 
 <!-- Scripts -->
+<div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/userProfil/profile-interactions.js"></script>
+<script src="/js/userProfile/profile-interactions.js"></script>
 
 </body>
 </html>
