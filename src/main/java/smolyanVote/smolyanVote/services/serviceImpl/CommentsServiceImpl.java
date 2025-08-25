@@ -214,7 +214,7 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity savedComment = commentsRepository.save(comment);
 
         // ✅ ПОПРАВКА: После инкрементираме брояча
-        publication.incrementComments();
+        publication.setCommentsCount(publication.getCommentsCount()+1);
         publicationRepository.save(publication);
 
         logger.info("Comment added to publication {}, new count: {}", publicationId, publication.getCommentsCount());

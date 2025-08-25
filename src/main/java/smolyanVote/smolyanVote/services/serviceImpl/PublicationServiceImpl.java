@@ -328,7 +328,7 @@ public class PublicationServiceImpl implements PublicationService {
             Long authorId = calculateAuthorFilter(author, auth);
 
             // Използваме repository метода с филтри
-            return publicationRepository.findWithFiltersNative(
+            return publicationRepository.findWithFilters(
                     search, categoryEnum, publicationStatus, timeFilter, authorId, pageable
             );
 

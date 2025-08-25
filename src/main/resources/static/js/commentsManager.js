@@ -1581,16 +1581,17 @@ class CommentsManager {
 
     async createComment(postId, text) {
         try {
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute("content");
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
+
             const response = await fetch(`/api/comments/${this.entityType}/${postId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    [window.appData.csrfHeader]: window.appData.csrfToken
+                    [csrfHeader]: csrfToken
                 },
-                body: JSON.stringify({
-                    text: text
-                })
+                body: JSON.stringify({ text })
             });
 
             if (!response.ok) {
@@ -1604,6 +1605,7 @@ class CommentsManager {
             throw error;
         }
     }
+
 
     async updateComment(commentId, newText) {
         try {

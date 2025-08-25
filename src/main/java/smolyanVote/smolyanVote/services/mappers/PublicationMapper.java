@@ -1,9 +1,20 @@
 package smolyanVote.smolyanVote.services.mappers;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.PublicationEntity;
+import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
+@Service
 public class PublicationMapper {
+
+    public static CommentsRepository commentsRepository;
+
+    @Autowired
+    public PublicationMapper(CommentsRepository commentsRepository) {
+        PublicationMapper.commentsRepository = commentsRepository;
+    }
 
     public static PublicationResponseDTO toDto(PublicationEntity publication) {
         if (publication == null) {
@@ -23,6 +34,8 @@ public class PublicationMapper {
         dto.setEmotion(publication.getEmotion());
         dto.setEmotionText(publication.getEmotionText());
         dto.setReadingTime(publication.getReadingTime());
+        int commentsCount = Math.toIntExact(commentsRepository.countByPublicationId(publication.getId()));
+        dto.setCommentsCount(commentsCount);
 
         // Дати
         dto.setCreatedAt(publication.getCreated());
