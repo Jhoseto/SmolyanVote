@@ -51,6 +51,7 @@
   /* Layout constraints */
   --max-width: 100vw;
   --container-max-width: min(1200px, calc(100vw - 2rem));
+
 }
 
 /* ====== GLOBAL FIXES ====== */
@@ -92,167 +93,354 @@ body {
 .skip-link:focus {
   top: 6px;
 }
+/* ====== HERO НАСТРОЙКИ ЗА СНИМКАТА  ====== */
+:root {
+    /* СНИМКА НАСТРОЙКИ */
+    --hero-image-size: 1850px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
+    --hero-image-x: 20px;            /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
+    --hero-image-y: 40px;            /* ГОРЕ-ДОЛУ: top, center, bottom или 0% до 100% */
 
-/* ====== HERO SECTION ====== */
-/* ====== HERO SECTION ====== */
+    /* ЦВЕТОВЕ И ЕФЕКТИ */
+    --hero-overlay-opacity: 0.1;       /* ПРОЗРАЧНОСТ НА ОВЕРЛЕЙ: 0 до 1 */
+    --text-shadow-strength: 0.05;      /* ПОПРАВЕНО: намалено от 0.15 за по-ясен текст */
+    --button-3d-depth: 8px;           /* ДЪЛБОЧИНА НА 3D БУТОН */
+
+    /* КОНСИСТЕНТНИ ЦВЕТОВЕ ОТ ПРОЕКТА */
+    --primary-green: #19861c;
+    --accent-green: #4CAF50;
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+}
+
+/* ====== ГЛАВНА HERO СЕКЦИЯ ====== */
 .hero {
     position: relative;
-    min-height: 80vh;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    text-align: center;
+    min-height: 85vh;
+    width: 100%;
     overflow: hidden;
-    padding: 2rem 0 0 0;
-    width: 100%;
-    max-width: 100vw;
+
+    /* СНИМКАТА КАТО BACKGROUND */
+    background-image: url('/images/web/hero1.jpg');
+    background-size: var(--hero-image-size);
+    background-position: var(--hero-image-x) var(--hero-image-y);
+    background-repeat: no-repeat;
+    /* ПОПРАВЕНО: премахнат fixed за по-ясен текст на всички браузъри */
+
+    /* ФЛЕКСБОКС ЗА ЦЕНТРИРАНЕ */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
 }
 
-.hero-video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -2;
-    --controls: none;
-    --media-object-fit: cover;
-    mask-size: cover;
-    mask-position: center;
-    mask-repeat: no-repeat;
-    -webkit-mask-size: cover;
-    -webkit-mask-position: center;
-    -webkit-mask-repeat: no-repeat;
-}
-
-.hero-video-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.3) 100%);
-    z-index: -1;
-}
-
-.hero .container {
-    position: relative;
-    z-index: 2;
-    padding: 2rem 1rem;
-    max-width: var(--container-max-width);
-    margin: 0 auto;
-    width: 100%;
-}
-
-.hero .display-4 {
-    font-family: var(--font-secondary), serif;
-    font-size: clamp(2.2rem, 6vw, 3.8rem);
-    font-weight: 800;
-    color: var(--white);
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-    text-shadow:
-            0 4px 8px rgba(0,0,0,0.4),
-            0 2px 4px rgba(0,0,0,0.3);
-    background: linear-gradient(135deg, #FFFFFF 0%, #F0F8FF 50%, #E8F5E8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: titleGlow var(--title-glow-duration) ease-in-out infinite alternate;
-    position: relative;
-    z-index: 2;
-}
-
-.hero .display-4::after {
+/* ЛЕКИ ЕНХАНСМЪНТИ С ОВЕРЛЕЙ */
+.hero::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.3) 50%, transparent 55%);
-    animation: titleShimmer var(--title-shimmer-duration) ease-in-out infinite;
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, var(--hero-overlay-opacity)) 0%,
+            rgba(25, 134, 28, 0.05) 100%
+    );
+    z-index: 1;
 }
 
-.hero .lead {
-    font-size: clamp(1rem, 2.5vw, 1.3rem);
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.95);
-    margin-bottom: 0.5rem;
-    font-style: normal;
-    letter-spacing: 0;
-    line-height: 1.6;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    animation: fadeInUp 1.4s var(--ease-out-expo) 0.4s forwards;
-    opacity: 0;
-    transform: translateY(40px);
+/* ====== КОНТЕЙНЕР И СЪДЪРЖАНИЕ ====== */
+.hero .container {
     position: relative;
-    z-index: 2;
+    z-index: 10;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 0 8rem 14rem;
+    padding: 0 2rem;
 }
 
-@keyframes fadeInUp {
+.hero-content {
+    width: 55%; /* ЗАЕМА ЛЯВАТА ЧАСТ */
+    max-width: 600px;
+    animation: heroContentSlideIn 1.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    opacity: 0;
+    transform: translateX(-50px);
+}
+
+@keyframes heroContentSlideIn {
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
 }
 
+/* ====== ЗАГЛАВИЕ ====== */
+.hero .display-4 {
+    font-family: var(--font-primary), serif;
+    font-size: clamp(2.5rem, 5.5vw, 4.2rem);
+    font-weight: 500;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+
+    /* ПОПРАВЕНО: заменен градиент с обикновен цвят за перфектна четливост */
+    color: var(--primary-green);
+
+    /* ПОПРАВЕНО: минимален text-shadow */
+    text-shadow: 0 1px 2px rgba(25, 134, 28, var(--text-shadow-strength));
+
+    /* ПОПРАВЕНО: по-мека анимация без filter ефекти */
+    animation: titleColorGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes titleColorGlow {
+    0% {
+        color: var(--primary-green);
+    }
+    100% {
+        color: var(--accent-green);
+    }
+}
+
+/* ====== ПОДЗАГЛАВИЕ ====== */
+.hero .lead {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(1.1rem, 2.8vw, 1.5rem);
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+
+    /* ПОПРАВЕНО: минимални ефекти за ясен текст */
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    opacity: 0.95;
+}
+
+/* ====== ОПРОСТЕН СТЪКЛЕН БУТОН ====== */
 .hero .btn {
-    background: linear-gradient(135deg, #0F7B59 0%, #4CAF50 50%, #66BB6A 100%);
-    color: var(--white);
-    padding: 0.8rem 2rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border-radius: 50px;
-    text-decoration: none;
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all var(--animation-normal) var(--ease-out-quart);
+    gap: 0.8rem;
+    padding: 1.2rem 3rem 1.2rem 2.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50px;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+    /* ДРАМАТИЧЕН СТЪКЛЕН ВИД */
+    background: rgba(25, 134, 28, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    /* ПЕРСПЕКТИВА ОТЛЯВО */
+    transform: perspective(800px) rotateY(15deg);
+
+    /* СИЛНИ СЕНКИ */
     box-shadow:
-            0 8px 25px rgba(15, 123, 89, 0.4),
-            0 4px 12px rgba(0, 0, 0, 0.15),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    position: relative;
+            -15px 15px 30px rgba(25, 134, 28, 0.6),
+            -8px 8px 0 rgba(25, 134, 28, 0.8),
+            inset 2px 2px 0 rgba(255, 255, 255, 0.7);
+
+    transition: all 0.3s ease;
+    cursor: pointer;
     overflow: hidden;
-    animation:
-            buttonPulse var(--button-pulse-duration) ease-in-out infinite,
-            fadeInUp 1.6s var(--ease-out-expo) 0.8s forwards;
-    opacity: 0;
-    transform: translateY(40px);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    z-index: 2;
 }
 
+/* ГОЛЯМО ДВИЖЕЩО СЕ ОТРАЖЕНИЕ */
+.hero .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+    );
+    animation: bigReflection 3s linear infinite;
+    border-radius: inherit;
+}
+
+@keyframes bigReflectionFast {
+    0% { left: 150%; }
+    100% { left: -150%; }
+}
+.hero .btn i {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 3;
+}
+
+/* ====== HOVER ЕФЕКТИ - БЕЗ ДВИЖЕНИЕ ====== */
 .hero .btn:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow:
-            0 15px 35px rgba(15, 123, 89, 0.5),
-            0 8px 20px rgba(0, 0, 0, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4);
-    background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 50%, #81C784 100%);
+    /* САМО ЦВЕТОВИ ПРОМЕНИ - БЕЗ ДВИЖЕНИЕ */
+    background: linear-gradient(145deg,
+    rgba(34, 169, 39, 0.9) 0%,
+    rgba(76, 175, 80, 1) 50%,
+    rgba(129, 199, 132, 0.9) 100%
+    );
+
     border-color: rgba(255, 255, 255, 0.4);
+
+    /* ЗАСИЛВАНЕ НА СТЪКЛЕНИТЕ ЕФЕКТИ */
+    box-shadow:
+            -8px 8px 25px rgba(25, 134, 28, 0.4),
+            -var(--button-3d-depth) var(--button-3d-depth) 0 rgba(25, 134, 28, 0.7),
+            0 15px 40px rgba(0, 0, 0, 0.15),
+            inset 1px 1px 0 rgba(255, 255, 255, 0.6),
+            inset -1px -1px 0 rgba(255, 255, 255, 0.2);
 }
 
-@keyframes buttonPulse {
-    0%, 100% {
-        box-shadow:
-                0 8px 25px rgba(15, 123, 89, 0.4),
-                0 4px 12px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3),
-                0 0 0 0 rgba(76, 175, 80, 0.4);
+/* ПО-БЪРЗИ ОТРАЖЕНИЯ ПРИ HOVER */
+.hero .btn:hover::before {
+    animation: glassReflection 2s linear infinite;
+}
+
+.hero .btn:hover::after {
+    animation: scrollReflection 3s ease-in-out infinite;
+    opacity: 1;
+}
+
+/* ВЪРТЕНЕ НА ИКОНАТА ПРИ HOVER */
+.hero .btn:hover i {
+    transform: rotate(360deg) scale(1.1);
+}
+
+/* ====== АКТИВЕН/НАТИСНАТ ЕФЕКТ - "ПОТЪВАНЕ С ДВИЖЕНИЕ" ====== */
+.hero .btn:active {
+    /* ПОТЪВАНЕ И УВЕЛИЧАВАНЕ НА ПЕРСПЕКТИВАТА */
+    transform: perspective(1000px) rotateY(12deg) translateY(3px) scale(0.98);
+
+    /* НАМАЛЯВАНЕ НА СТЪКЛЕНИТЕ СЕНКИ */
+    box-shadow:
+            -5px 5px 15px rgba(25, 134, 28, 0.3),
+            -6px 6px 0 rgba(25, 134, 28, 0.5),
+            0 8px 20px rgba(0, 0, 0, 0.1),
+                /* ВЪТРЕШНА СЯНКА ЗА ПОТИСНАТ ЕФЕКТ */
+            inset 2px 2px 8px rgba(0, 0, 0, 0.2),
+            inset -1px -1px 0 rgba(255, 255, 255, 0.1);
+
+    /* ПОТЪМНЯВАНЕ НА СТЪКЛОТО */
+    background: linear-gradient(145deg,
+    rgba(21, 107, 24, 0.9) 0%,
+    rgba(57, 141, 61, 0.95) 50%,
+    rgba(76, 175, 80, 0.9) 100%
+    );
+
+    border-color: rgba(255, 255, 255, 0.1);
+
+    /* ПО-КРАТЪК ПРЕХОД ЗА БЪРЗ ОТЗВУК */
+    transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ОБРЪЩАНЕ НА ОТРАЖЕНИЯТА ПРИ НАТИСКАНЕ */
+.hero .btn:active::before {
+    animation: glassReflectionReverse 1s linear infinite;
+}
+
+.hero .btn:active::after {
+    animation: scrollReflectionReverse 1.5s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+@keyframes glassReflectionReverse {
+    0% { left: 100%; }
+    100% { left: -100%; }
+}
+
+@keyframes scrollReflectionReverse {
+    0% {
+        background-position: 200% 0;
+        opacity: 0.6;
     }
     50% {
-        box-shadow:
-                0 8px 25px rgba(15, 123, 89, 0.4),
-                0 4px 12px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3),
-                0 0 0 25px rgba(76, 175, 80, 0);
+        background-position: -200% 0;
+        opacity: 0.4;
+    }
+    100% {
+        background-position: 200% 0;
+        opacity: 0.6;
+    }
+}
+
+/* ====== FOCUS ЕФЕКТИ ЗА ACCESSIBILITY ====== */
+.hero .btn:focus {
+    outline: none;
+    box-shadow:
+            0 var(--button-3d-depth) 20px rgba(25, 134, 28, 0.4),
+            var(--button-3d-depth) var(--button-3d-depth) 0 rgba(25, 134, 28, 0.8),
+            0 15px 35px rgba(0, 0, 0, 0.15),
+            inset 0 2px 0 rgba(255, 255, 255, 0.3),
+                /* FOCUS RING */
+            0 0 0 4px rgba(25, 134, 28, 0.3);
+}
+
+/* ====== МОБИЛНИ УСТРОЙСТВА ====== */
+@media (max-width: 768px) {
+    .hero {
+        min-height: 70vh;
+        /* ПОПРАВЕНО: премахнат fixed за мобилни */
+        align-items: flex-end;
+        padding-bottom: 2rem;
+    }
+
+    .hero .container {
+        margin: 0 auto; /* ПОПРАВЕНО: центриране на мобилни */
+    }
+
+    .hero-content {
+        width: 100%;
+        max-width: none;
+        text-align: center;
+    }
+
+    /* ПО-МАЛЪК СТЪКЛЕН ЕФЕКТ ЗА МОБИЛНИ */
+    .hero .btn {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        transform: perspective(800px) rotateY(5deg);
+        --button-3d-depth: 5px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    .hero .btn:hover {
+        /* БЕЗ ДВИЖЕНИЕ НА МОБИЛНИ */
+        transform: perspective(800px) rotateY(5deg);
+    }
+
+    .hero .btn:active {
+        transform: perspective(800px) rotateY(8deg) translateY(2px) scale(0.98);
+    }
+}
+
+/* ====== МАЛКИ ЕКРАНИ ====== */
+@media (max-width: 480px) {
+    .hero .container {
+        padding: 0 1rem;
+    }
+
+    .hero .btn {
+        padding: 0.8rem 1.6rem 0.8rem 1.3rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* ====== REDUCED MOTION ====== */
+@media (prefers-reduced-motion: reduce) {
+    .hero .btn::before {
+        animation: none;
+    }
+
+    .hero .btn {
+        transform: perspective(800px) rotateY(12deg);
     }
 }
 
