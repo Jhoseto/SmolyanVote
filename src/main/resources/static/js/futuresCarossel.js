@@ -70,7 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 velocity = 0; // Спираме, когато скоростта е твърде малка
             }
             velocity = Math.max(Math.min(velocity, 0.1), -0.1); // Ограничаваме скоростта
-            console.log("Animating velocity:", velocity, "rotation:", rotation);
         } else {
             rotation += 0.0015; // Автоматично въртене, когато няма инерция
         }
@@ -82,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function startAnimation() {
         if (!animationFrameId) {
             animationFrameId = requestAnimationFrame(animate);
-            console.log("Animation started");
         }
     }
 
@@ -90,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
-            console.log("Animation stopped");
         }
     }
 
@@ -101,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
         restartTimeoutId = setTimeout(() => {
             isInteracting = false;
             startAnimation();
-            console.log("Restart timer triggered");
         }, 1000);
     }
 
@@ -113,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     carousel.addEventListener("wheel", (e) => {
         e.preventDefault();
-        console.log("Wheel event triggered:", e.deltaY);
         userInteracted();
         const sensitivity = 0.3;
         rotation += (e.deltaY > 0 ? -rotationStep * sensitivity : rotationStep * sensitivity);
@@ -128,7 +123,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let lastTouchTime = 0;
 
     carousel.addEventListener("touchstart", (e) => {
-        console.log("Touchstart triggered");
         userInteracted();
         isTouching = true;
         touchStartX = e.touches[0].clientX;
@@ -148,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (deltaTime > 0 && deltaTime < 0.1) {
             lastVelocity = -deltaX * swipeSensitivity * 15; // Намален множител (от 30 на 15)
-            console.log("Touchmove lastVelocity:", lastVelocity);
         }
 
         rotation = rotationStart - (currentX - touchStartX) * swipeSensitivity;
@@ -159,7 +152,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     carousel.addEventListener("touchend", () => {
-        console.log("Touchend triggered, lastVelocity:", lastVelocity);
         isTouching = false;
         velocity = Math.abs(lastVelocity) > 0.02 ? lastVelocity * 0.3 : 0; // Намалена инерция (от 0.5 на 0.3)
         isInteracting = false;
@@ -180,7 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     carousel.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        console.log("Mousedown triggered");
         userInteracted();
         isDragging = true;
         dragStartX = e.clientX;
@@ -200,7 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (deltaTime > 0 && deltaTime < 0.1) {
             lastVelocity = -deltaX * dragSensitivity * 30; // Запазваме скоростта
-            console.log("Mousemove lastVelocity:", lastVelocity);
         }
 
         rotation = dragRotationStart - (currentX - dragStartX) * dragSensitivity;
@@ -214,7 +204,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isDragging) {
             isDragging = false;
             velocity = Math.abs(lastVelocity) > 0.02 ? lastVelocity * 0.5 : 0; // Инерция само при бързо движение
-            console.log("Mouseup velocity:", velocity);
             isInteracting = false;
             startAnimation(); // Рестартираме анимацията веднага
         }
