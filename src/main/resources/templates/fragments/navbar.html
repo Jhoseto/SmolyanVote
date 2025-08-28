@@ -10,8 +10,8 @@
                 <!-- Brand Section - вляво -->
                 <div class="navbar-brand-section">
                     <a class="navbar-brand-glass d-flex align-items-center" href="/">
-                        <img src="/images/logo1.png" alt="SmolyanVote Logo" class="brand-logo-glass">
-                        <span class="brand-text-glass">SmolyanVote</span>
+                        <img src="/images/logoNew.png" alt="SmolyanVote Logo" class="brand-logo-glass">
+                        <span class="brand-text-glass">SMOLYANVOTE</span>
                     </a>
                 </div>
 
@@ -24,16 +24,16 @@
 
                 <!-- Navigation Section - средата -->
                 <div class="navbar-nav-section-glass" id="navbarNavSection">
-                    <!-- Search Component -->
-                    <form th:action="@{/mainEvents}" method="get" class="search-container-glass">
-                        <input type="text" name="search" placeholder="Търси..." class="search-input-glass" th:value="${param.search}" />
-                        <button type="submit" class="search-submit-glass">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon-glass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="11" cy="11" r="8"/>
-                                <path d="m21 21-4.35-4.35"/>
-                            </svg>
-                        </button>
-                    </form>
+<!--                    &lt;!&ndash; Search Component &ndash;&gt;-->
+<!--                    <form th:action="@{/mainEvents}" method="get" class="search-container-glass">-->
+<!--                        <input type="text" name="search" placeholder="Търси..." class="search-input-glass" th:value="${param.search}" />-->
+<!--                        <button type="submit" class="search-submit-glass">-->
+<!--                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon-glass" fill="none" stroke="currentColor" viewBox="0 0 24 24">-->
+<!--                                <circle cx="11" cy="11" r="8"/>-->
+<!--                                <path d="m21 21-4.35-4.35"/>-->
+<!--                            </svg>-->
+<!--                        </button>-->
+<!--                    </form>-->
 
                     <!-- Navigation Links -->
                     <ul class="nav-links-glass">
@@ -256,11 +256,20 @@
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success w-100">Вход</button>
                     </div>
+
+                    <input type="hidden" name="source" value="modal">
+                    <input type="hidden" name="redirectUrl" id="modalRedirectUrl">
                 </form>
             </div>
         </div>
     </div>
     <div class="vote-overlay-glass" id="voteOverlay" onclick="closeVoteMenu()"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('modalRedirectUrl').value = window.location.pathname;
+        });
+    </script>
 
     <!-- SweetAlert2 CDN -  JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

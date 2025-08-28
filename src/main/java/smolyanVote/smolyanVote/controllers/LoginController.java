@@ -91,7 +91,14 @@ public class LoginController {
                 rememberMeServices.loginSuccess(request, response, authentication);
             }
 
-            return "redirect:/";
+            String source = request.getParameter("source");
+            String redirectUrl = request.getParameter("redirectUrl");
+
+            if ("modal".equals(source) && redirectUrl != null && (redirectUrl.startsWith("/") && !redirectUrl.startsWith("//"))) {
+                return "redirect:" + redirectUrl;
+            } else {
+                return "redirect:/";
+            }
         }
 
         redirectAttributes.addFlashAttribute("error", "Възникна неочаквана грешка. Моля, опитайте отново.");

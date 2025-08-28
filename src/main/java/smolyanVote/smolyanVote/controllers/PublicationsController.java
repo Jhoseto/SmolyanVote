@@ -673,7 +673,7 @@ public class PublicationsController {
 
                 String ogImage = publication.getImageUrl();
                 if (ogImage == null || ogImage.trim().isEmpty()) {
-                    ogImage = "https://smolyanvote.com/images/logo1.png";
+                    ogImage = "https://smolyanvote.com/images/logoNew.png";
                 } else if (ogImage.startsWith("/")) {
                     ogImage = "https://smolyanvote.com" + ogImage;
                 }
