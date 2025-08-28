@@ -1,56 +1,79 @@
-/* Модал - фон с ефект на замъгляване */
+/* --- Основни настройки за модала --- */
 .modal-dialog {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     min-height: 100vh;
-    margin-top: 210px;
     z-index: 15000;
 }
 
-.modal-content {
-    background: rgba(255, 255, 255, 0.77);
+.modal-lg {
+    max-width: 900px; /* по-широк модал */
+    width: 100%;
+}
+
+/* --- Контейнер с две колони (side by side) --- */
+.login-modal-content {
+    display: flex !important;       /* ключово: side by side */
+    flex-direction: row !important; /* подравняване хоризонтално */
+    overflow: hidden;
     border-radius: 20px;
-    border: 1px solid rgb(1, 82, 49); /* Тъмен тюркоаз за бордюра */
+    background: none;
+    border: none;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     animation: modalFadeIn 0.5s ease forwards;
+    min-height: 500px; /* за да изглежда като карта */
 }
 
-/* Анимация при появяване */
-@keyframes modalFadeIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+/* Лява част със снимка */
+.modal-left {
+    flex: 1;
+    display: flex;
+    align-items: center;   /* центриране по вертикала */
+    justify-content: center; /* центриране по хоризонтала */
+    overflow: hidden; /* ако снимката е по-голяма */
+    background: #ffffff; /* фон за контраст */
 }
 
-/* Хедър */
+/* Самото изображение */
+.modal-left img {
+    width: 100%;      /* или можеш да сложиш фиксирано: 80%, 70% и т.н. */
+    height: 70%;     /* ако искаш да запълва */
+    object-fit: cover; /* cover = запълва, contain = побира се изцяло */
+    object-position: center center; /* може да е top, bottom, left, right */
+    transition: transform 0.3s ease;
+}
+
+/* --- Дясна половина с формата --- */
+.modal-right {
+    flex: 1;
+    padding: 30px;
+    background: rgb(255, 255, 255);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* --- Хедър --- */
 .modal-header {
-    border-bottom: none;
-    padding-bottom: 0;
-    background-color: rgba(213, 213, 213, 0.45); /* Светъл тюркоаз */
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
+    border: none;
+    background: transparent;
+    padding-bottom: 10px;
 }
 
 .modal-title {
-    padding-left: 75px;
-    font-weight: 600; /* Леко по-тънко от "bold" */
-    color: #777777;
-    font-size: 1rem; /* Увеличаване на размера за по-изразителен ефект */
-    letter-spacing: 2px; /* Разстояние между буквите за по-модерен вид */
-    text-align: center; /* Центриране на текста */
-    text-transform: uppercase; /* Преобразуване на текста в главни букви за по-стилен вид */
-    font-family: 'Poppins', sans-serif; /* Шрифт "Poppins" за по-естетичен вид */
-    margin: 0 auto; /* Центриране по хоризонтала */
-    padding-bottom: 20px; /* Отстояние от съдържанието на модала */
+    font-weight: 600;
+    color: #333;
+    font-size: 1.2rem;
+    letter-spacing: 1.5px;
+    text-align: center;
+    text-transform: uppercase;
+    font-family: 'Poppins', sans-serif;
+    margin-left: 5rem;
 }
 
-/* Затварящ бутон */
+/* --- Затварящ бутон --- */
 .btn-close {
     background: none;
     border: none;
@@ -63,10 +86,10 @@
     transform: rotate(90deg);
 }
 
-/* Полета за вход */
+/* --- Полета за вход --- */
 .modal-body .form-control {
     background: #f1f1f1;
-    border: 1px solid #198754; /* Среден тюркоаз */
+    border: 1px solid #198754;
     border-radius: 10px;
     padding: 10px 15px;
     font-size: 1rem;
@@ -76,17 +99,17 @@
 .modal-body .form-control:focus {
     background: #ffffff;
     transform: scale(1.02);
-    box-shadow: 0 0 10px rgb(1, 82, 49);
+    box-shadow: 0 0 10px rgba(1, 82, 49, 0.5);
     border-color: #4b9f3e;
 }
 
-/* Етикети */
+/* --- Етикети --- */
 .modal-body .form-label {
     font-weight: 500;
     color: #4b9f3e;
 }
 
-/* Чекбокс */
+/* --- Чекбокс --- */
 .form-check-input {
     border-radius: 0.25rem;
     transition: background-color 0.3s ease;
@@ -97,7 +120,7 @@
     border-color: #4b9f3e;
 }
 
-/* Линкове */
+/* --- Линкове --- */
 .modal-body a {
     color: #4b9f3e;
     text-decoration: none;
@@ -110,44 +133,42 @@
     text-decoration: underline;
 }
 
-/* Бутон */
+/* --- Бутон за вход --- */
 .modal-footer .btn {
-    background-color: #7a807b;
+    background: linear-gradient(135deg, #4b9f3e, #198754);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     font-weight: bold;
     font-size: 1.1rem;
     padding: 10px;
     transition: background-color 0.3s ease, transform 0.3s ease;
-    color: #2a2a2a;
-}
-
-.modal-footer .btn:hover {
-    background-color: #4b9f3e;
-    transform: translateY(-2px) scale(1.02);
     color: #fff;
 }
 
+.modal-footer .btn:hover {
+    background: linear-gradient(135deg, #198754, #4b9f3e);
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* --- Фон при отворен модал --- */
 .modal-backdrop.show {
-    background-color: rgba(0, 0, 0, 0.62); /* Леко тъмен фон */
-    backdrop-filter: blur(5px); /* Замъгляване */
-    -webkit-backdrop-filter: blur(6px); /* За Safari */
+    background-color: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
-
-/* Анимация при затваряне */
-.modal.fade .modal-dialog {
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-    transform: translate(0, -25px);
-    opacity: 0;
+/* --- Анимация при отваряне/затваряне --- */
+@keyframes modalFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.modal.show .modal-dialog {
-    transform: translate(0, 0);
-    opacity: 1;
-}
-
-/* Анимация за затваряне */
 @keyframes modalFadeOut {
     0% {
         opacity: 1;
@@ -159,17 +180,28 @@
     }
 }
 
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: translate(0, -25px);
+    opacity: 0;
+}
+
+.modal.show .modal-dialog {
+    transform: translate(0, 0);
+    opacity: 1;
+}
+
 .modal.modal-closing .modal-dialog {
     animation: modalFadeOut 0.3s forwards;
 }
 
-/* Анимиран alert */
+/* --- Анимиран alert --- */
 .modal-body .alert {
     animation: shake 0.5s;
     border-radius: 10px;
 }
 
-/* Разклащане */
+/* --- Разклащане при грешка --- */
 @keyframes shake {
     0% { transform: translateX(0); }
     20% { transform: translateX(-5px); }
