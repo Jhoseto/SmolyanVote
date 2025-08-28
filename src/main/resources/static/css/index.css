@@ -96,7 +96,7 @@ body {
 /* ====== HERO НАСТРОЙКИ ЗА СНИМКАТА  ====== */
 :root {
     /* СНИМКА НАСТРОЙКИ */
-    --hero-image-size: 1850px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
+    --hero-image-size: 1900px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
     --hero-image-x: 20px;            /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
     --hero-image-y: 40px;            /* ГОРЕ-ДОЛУ: top, center, bottom или 0% до 100% */
 
@@ -120,7 +120,7 @@ body {
     overflow: hidden;
 
     /* СНИМКАТА КАТО BACKGROUND */
-    background-image: url('/images/web/hero1.jpg');
+    background-image: url('/images/web/hero3.jpg');
     background-size: var(--hero-image-size);
     background-position: var(--hero-image-x) var(--hero-image-y);
     background-repeat: no-repeat;
@@ -179,7 +179,8 @@ body {
     font-size: clamp(2.5rem, 5.5vw, 4.2rem);
     font-weight: 500;
     line-height: 1.1;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
+    margin-top: 6.5rem;
 
     /* ПОПРАВЕНО: заменен градиент с обикновен цвят за перфектна четливост */
     color: var(--primary-green);
@@ -203,11 +204,11 @@ body {
 /* ====== ПОДЗАГЛАВИЕ ====== */
 .hero .lead {
     font-family: 'Inter', sans-serif;
-    font-size: clamp(1.1rem, 2.8vw, 1.5rem);
+    font-size: clamp(1.1rem, 2.8vw, 1.3rem);
     font-weight: 300;
-    line-height: 1.6;
+    line-height: 4.6;
     color: var(--text-secondary);
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
 
     /* ПОПРАВЕНО: минимални ефекти за ясен текст */
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
@@ -220,13 +221,14 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.8rem;
-    padding: 1.2rem 3rem 1.2rem 2.5rem;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    padding: 0.9rem 2rem 0.9rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 50px;
+    margin-bottom: 4.5rem;
 
     font-family: 'Inter', sans-serif;
     font-size: 1.1rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -237,15 +239,15 @@ body {
     -webkit-backdrop-filter: blur(20px);
 
     /* ПЕРСПЕКТИВА ОТЛЯВО */
-    transform: perspective(800px) rotateY(15deg);
+    transform: perspective(800px) rotateY(0deg);
 
     /* СИЛНИ СЕНКИ */
     box-shadow:
-            -15px 15px 30px rgba(25, 134, 28, 0.6),
-            -8px 8px 0 rgba(25, 134, 28, 0.8),
-            inset 2px 2px 0 rgba(255, 255, 255, 0.7);
+            12px 10px 20px rgba(25, 134, 28, 0.6),
+            0 2px 0 rgba(25, 134, 28, 0.8),
+            inset 0 2px 0 rgba(255, 255, 255, 0.7);
 
-    transition: all 0.3s ease;
+    transition: all 0.5s ease;
     cursor: pointer;
     overflow: hidden;
 }
@@ -280,22 +282,12 @@ body {
 
 /* ====== HOVER ЕФЕКТИ - БЕЗ ДВИЖЕНИЕ ====== */
 .hero .btn:hover {
-    /* САМО ЦВЕТОВИ ПРОМЕНИ - БЕЗ ДВИЖЕНИЕ */
-    background: linear-gradient(145deg,
-    rgba(34, 169, 39, 0.9) 0%,
-    rgba(76, 175, 80, 1) 50%,
-    rgba(129, 199, 132, 0.9) 100%
-    );
+    background: rgba(25, 134, 28, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
 
-    border-color: rgba(255, 255, 255, 0.4);
-
-    /* ЗАСИЛВАНЕ НА СТЪКЛЕНИТЕ ЕФЕКТИ */
     box-shadow:
-            -8px 8px 25px rgba(25, 134, 28, 0.4),
-            -var(--button-3d-depth) var(--button-3d-depth) 0 rgba(25, 134, 28, 0.7),
-            0 15px 40px rgba(0, 0, 0, 0.15),
-            inset 1px 1px 0 rgba(255, 255, 255, 0.6),
-            inset -1px -1px 0 rgba(255, 255, 255, 0.2);
+            8px 8px 20px rgba(25, 134, 28, 0.6),
+            4px 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* ПО-БЪРЗИ ОТРАЖЕНИЯ ПРИ HOVER */
@@ -1041,12 +1033,18 @@ mux-player {
 
 /* Platform Community Section */
 .platform-community-section {
+    background-image: url('/images/web/platformComunitiSection.jpg');
+    background-size: 277px;
+    background-position-x: 278px;
+    background-position-y: 165px;
+    background-repeat: no-repeat;
   padding: 4rem 0;
-  background: var(--white);
+  /*background: var(--white);*/
   position: relative;
 }
 
 .platform-community-section .container {
+
   max-width: var(--container-max-width);
   margin: 0 auto;
   padding: 0 1rem;
