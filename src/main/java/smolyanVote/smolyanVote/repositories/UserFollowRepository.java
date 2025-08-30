@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserFollowEntity;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserFollowRepository extends JpaRepository<UserFollowEntity, Long> {
@@ -34,11 +35,75 @@ public interface UserFollowRepository extends JpaRepository<UserFollowEntity, Lo
     @Query(value = "DELETE FROM user_follows WHERE follower_id = :followerId AND following_id = :followingId", nativeQuery = true)
     void deleteByFollowerIdAndFollowingId(@Param("followerId") Long followerId, @Param("followingId") Long followingId);
 
-    // 🚀 BONUS: Batch check за множество users (ако ти трябва)
+    //  Batch check за множество users
     @Query(value = "SELECT following_id FROM user_follows WHERE follower_id = :followerId AND following_id IN :userIds", nativeQuery = true)
     java.util.List<Long> findFollowingUserIds(@Param("followerId") Long followerId, @Param("userIds") java.util.List<Long> userIds);
 
-    // 🚀 BONUS: Топ followed users (ако ти трябва)
+    // Топ followed users
     @Query(value = "SELECT following_id, COUNT(*) as followers_count FROM user_follows GROUP BY following_id ORDER BY followers_count DESC LIMIT :limit", nativeQuery = true)
     java.util.List<Object[]> findTopFollowedUsers(@Param("limit") int limit);
+
+
+
+    /**
+     * Списък последователи с pagination
+     */
+    @Query(value = """
+        SELECT u.id, u.username, u.image_url, u.role, u.online_status, 
+               u.created, uf.followed_at,
+               (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+        FROM user_follows uf 
+        INNER JOIN users u ON uf.follower_id = u.id 
+        WHERE uf.following_id = ?1 
+        ORDER BY uf.followed_at DESC 
+        LIMIT ?3 OFFSET ?2
+        """, nativeQuery = true)
+    List<Object[]> findFollowersWithPagination(Long userId, int offset, int limit);
+
+    /**
+     * Списък следвани с pagination
+     */
+    @Query(value = """
+        SELECT u.id, u.username, u.image_url, u.role, u.online_status, 
+               u.created, uf.followed_at,
+               (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+        FROM user_follows uf 
+        INNER JOIN users u ON uf.following_id = u.id 
+        WHERE uf.follower_id = ?1 
+        ORDER BY uf.followed_at DESC 
+        LIMIT ?3 OFFSET ?2
+        """, nativeQuery = true)
+    List<Object[]> findFollowingWithPagination(Long userId, int offset, int limit);
+
+    /**
+     * Търсене в последователи
+     */
+    @Query(value = """
+        SELECT u.id, u.username, u.image_url, u.role, u.online_status, 
+               u.created, uf.followed_at,
+               (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+        FROM user_follows uf 
+        INNER JOIN users u ON uf.follower_id = u.id 
+        WHERE uf.following_id = ?1 
+        AND u.username LIKE CONCAT('%', ?2, '%')
+        ORDER BY uf.followed_at DESC 
+        LIMIT ?4 OFFSET ?3
+        """, nativeQuery = true)
+    List<Object[]> searchFollowers(Long userId, String searchTerm, int offset, int limit);
+
+    /**
+     * Търсене в следвани
+     */
+    @Query(value = """
+        SELECT u.id, u.username, u.image_url, u.role, u.online_status, 
+               u.created, uf.followed_at,
+               (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+        FROM user_follows uf 
+        INNER JOIN users u ON uf.following_id = u.id 
+        WHERE uf.follower_id = ?1 
+        AND u.username LIKE CONCAT('%', ?2, '%')
+        ORDER BY uf.followed_at DESC 
+        LIMIT ?4 OFFSET ?3
+        """, nativeQuery = true)
+    List<Object[]> searchFollowing(Long userId, String searchTerm, int offset, int limit);
 }

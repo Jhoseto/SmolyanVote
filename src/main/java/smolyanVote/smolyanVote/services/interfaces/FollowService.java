@@ -1,5 +1,7 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
+import java.util.List;
+
 /**
  * Service за управление на user following relationships
  */
@@ -42,4 +44,43 @@ public interface FollowService {
      * @return брой following
      */
     long getFollowingCount(Long userId);
+
+
+    /**
+     * Взема списък с последователите на потребител
+     * @param userId ID на потребителя
+     * @param page номер на страницата (започва от 0)
+     * @param size брой потребители на страница
+     * @return списък с последователи
+     */
+    List<Object[]> getFollowers(Long userId, int page, int size);
+
+    /**
+     * Взема списък с потребителите които следва
+     * @param userId ID на потребителя
+     * @param page номер на страницата (започва от 0)
+     * @param size брой потребители на страница
+     * @return списък с следвани потребители
+     */
+    List<Object[]> getFollowing(Long userId, int page, int size);
+
+    /**
+     * Търсене в последователите на потребител
+     * @param userId ID на потребителя
+     * @param searchTerm текст за търсене
+     * @param page номер на страницата
+     * @param size брой потребители на страница
+     * @return списък с намерени последователи
+     */
+    List<Object[]> searchFollowers(Long userId, String searchTerm, int page, int size);
+
+    /**
+     * Търсене в следваните от потребител
+     * @param userId ID на потребителя
+     * @param searchTerm текст за търсене
+     * @param page номер на страницата
+     * @param size брой потребители на страница
+     * @return списък с намерени следвани
+     */
+    List<Object[]> searchFollowing(Long userId, String searchTerm, int page, int size);
 }

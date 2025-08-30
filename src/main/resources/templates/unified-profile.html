@@ -103,7 +103,7 @@
                             th:classappend="${isFollowing} ? 'btn-outline-secondary' : 'btn-primary'"
                             id="followButton">
                         <i th:class="${isFollowing} ? 'bi bi-person-dash' : 'bi bi-person-plus'"></i>
-                        <span th:text="${isFollowing} ? 'Не следвай' : 'Следвай'">Следвай</span>
+                        <span th:text="${isFollowing} ? 'Отследвай' : 'Следвай'">Следвай</span>
                     </button>
                     <button class="btn btn-outline-secondary action-btn message-btn">
                         <i class="bi bi-chat-dots"></i>
@@ -226,6 +226,10 @@
                 <i class="bi bi-flag"></i>
                 <span>Сигнали</span>
             </button>
+            <button class="tab-btn" data-tab="users">
+                <i class="bi bi-people"></i>
+                <span>Последователи</span>
+                <div class="tab-counter" th:text="${(followersCount ?: 0)}">0</div>            </button>
             <button class="tab-btn" data-tab="bi-messenger">
                 <i class="bi bi-messenger"></i>
                 <span>Лични Съобщения</span>
@@ -406,6 +410,168 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Users Tab -->
+            <div class="tab-content" id="users">
+                <div class="content-header">
+                    <h2>
+                        <i class="bi bi-people"></i> Потребители
+                    </h2>
+
+                    <!-- Search Bar -->
+                    <div class="users-search-container">
+                        <div class="search-input-group">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text"
+                                   class="form-control users-search-input"
+                                   placeholder="Търси потребители..."
+                                   id="usersSearchInput">
+                            <div class="search-spinner" id="searchSpinner" style="display: none;">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-tabs Navigation -->
+                <div class="users-sub-tabs glass-card">
+                    <button class="users-sub-tab-btn active" data-users-tab="followers">
+                        <i class="bi bi-person-hearts"></i>
+                        <span>Последователи</span>
+                        <div class="sub-tab-counter" th:text="${followersCount ?: 0}">0</div>
+                    </button>
+                    <button class="users-sub-tab-btn" data-users-tab="following">
+                        <i class="bi bi-person-check"></i>
+                        <span>Следва</span>
+                        <div class="sub-tab-counter" th:text="${followingCount ?: 0}">0</div>
+                    </button>
+                </div>
+
+                <!-- Users Content Container -->
+                <div class="users-content-wrapper">
+
+                    <!-- Followers Sub-tab -->
+                    <div class="users-sub-content active" id="followers-content">
+                        <div class="users-grid" id="followersGrid">
+                            <!-- Loading State -->
+                            <div class="users-loading-state" id="followersLoading">
+                                <div class="loading-spinner">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                                <p>Зареждане на последователи...</p>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div class="users-empty-state" id="followersEmpty" style="display: none;">
+                                <i class="bi bi-person-x"></i>
+                                <h4>Няма последователи</h4>
+                                <p th:text="${isOwnProfile} ? 'Все още никой не ви следва.' : 'Този потребител няма последователи.'">
+                                    Няма последователи.
+                                </p>
+                            </div>
+
+                            <!-- Users List - динамично се зарежда -->
+                        </div>
+                    </div>
+
+                    <!-- Following Sub-tab -->
+                    <div class="users-sub-content" id="following-content">
+                        <div class="users-grid" id="followingGrid">
+                            <!-- Loading State -->
+                            <div class="users-loading-state" id="followingLoading">
+                                <div class="loading-spinner">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                                <p>Зареждане на следвани...</p>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div class="users-empty-state" id="followingEmpty" style="display: none;">
+                                <i class="bi bi-person-dash"></i>
+                                <h4>Не следва никого</h4>
+                                <p th:text="${isOwnProfile} ? 'Все още не следвате никого.' : 'Този потребител не следва никого.'">
+                                    Не следва никого.
+                                </p>
+                            </div>
+
+                            <!-- Users List - динамично се зарежда -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="users-pagination-container">
+                    <div class="users-pagination" id="usersPagination">
+                        <!-- Пагинацията ще се генерира динамично -->
+                    </div>
+
+                    <!-- Results Info -->
+                    <div class="users-results-info" id="usersResultsInfo">
+                        <span class="results-count">Показани: <span id="currentResultsCount">0</span> от <span id="totalResultsCount">0</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============= USER CARD TEMPLATE (за клониране с JavaScript) ============= -->
+            <template id="userCardTemplate">
+                <div class="user-card glass-card" data-user-id="">
+                    <div class="user-card-inner">
+                        <!-- Avatar Section -->
+                        <div class="user-avatar-section">
+                            <div class="user-avatar avatar-placeholder" data-user-image="" data-username="">
+                                <!-- Avatar ще се генерира динамично -->
+                            </div>
+                            <div class="online-indicator"></div>
+                        </div>
+
+                        <!-- User Info Section -->
+                        <div class="user-info-section">
+                            <div class="user-basic-info">
+                                <h4 class="user-card-username">Username</h4>
+                                <div class="user-card-role">
+                                    <i class="bi bi-person"></i>
+                                    <span class="role-text">Потребител</span>
+                                </div>
+                            </div>
+
+                            <div class="user-meta-info">
+                                <div class="user-stats">
+                        <span class="stat-item">
+                            <i class="bi bi-people"></i>
+                            <span class="followers-count">0</span>
+                        </span>
+                                    <span class="stat-item">
+                            <i class="bi bi-calendar-event"></i>
+                            <span class="events-count">0</span>
+                        </span>
+                                </div>
+                                <div class="user-join-date">
+                                    <i class="bi bi-calendar-plus"></i>
+                                    <span class="join-date-text">Член от...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Section -->
+                        <div class="user-card-actions">
+                            <button class="user-follow-btn" data-user-id="" data-action="follow">
+                                <i class="bi bi-person-plus"></i>
+                                <span>Следвай</span>
+                            </button>
+
+                            <!-- Ако се следва -->
+                            <button class="btn btn-outline-secondary btn-sm user-follow-btn following-state"
+                                    data-user-id="" data-action="unfollow" style="display: none;">
+                                <i class="bi bi-person-dash"></i>
+                                <span>Не следвай</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Click Overlay за отваряне на профил -->
+                    <div class="user-card-overlay" title="Отвори профил"></div>
+                </div>
+            </template>
 
             <!-- Activity Tab -->
             <div class="tab-content" id="messenger">

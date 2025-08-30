@@ -12,10 +12,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
-import smolyanVote.smolyanVote.services.interfaces.PublicationService;
-import smolyanVote.smolyanVote.services.interfaces.SignalsService;
-import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
@@ -35,12 +32,16 @@ public class UserController {
     private final SignalsService signalsService;
     private final SignalsRepository signalsRepository;
     private final PublicationService publicationService;
+    private final FollowService followService;
 
     @Autowired
     public UserController(UserService userService,
                           MainEventsService mainEventsService,
                           UserRepository userRepository,
-                          UsersMapper usersMapper, SignalsService signalsService, SignalsRepository signalsRepository, PublicationService publicationService) {
+                          UsersMapper usersMapper, SignalsService signalsService,
+                          SignalsRepository signalsRepository,
+                          PublicationService publicationService,
+                          FollowService followService) {
         this.userService = userService;
         this.mainEventsService = mainEventsService;
         this.userRepository = userRepository;
@@ -48,6 +49,7 @@ public class UserController {
         this.signalsService = signalsService;
         this.signalsRepository = signalsRepository;
         this.publicationService = publicationService;
+        this.followService = followService;
     }
 
     // ===== UNIFIED PROFILE ENDPOINTS =====
@@ -62,6 +64,8 @@ public class UserController {
             return "redirect:/login";
         }
 
+        model.addAttribute("followersCount", followService.getFollowersCount(currentUser.getId()));
+        model.addAttribute("followingCount", followService.getFollowingCount(currentUser.getId()));
         return buildProfileView(currentUser, currentUser, model, true);
     }
 
@@ -73,6 +77,8 @@ public class UserController {
         UserEntity currentUser = (auth != null) ? userService.getCurrentUser() : null;
         boolean isOwnProfile = currentUser != null && currentUser.getUsername().equals(username);
 
+        model.addAttribute("followersCount", followService.getFollowersCount(targetUser.getId()));
+        model.addAttribute("followingCount", followService.getFollowingCount(targetUser.getId()));
         return buildProfileView(targetUser, currentUser, model, isOwnProfile);
     }
 
