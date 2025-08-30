@@ -1250,6 +1250,99 @@ body {
     color: var(--sv-primary);
 }
 
+/* Follow System Styles */
+.follow-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 130px;
+}
+
+.follow-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.follow-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.follow-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Stat update animation */
+.stat-updated {
+    animation: statPulse 1s ease-in-out;
+}
+
+@keyframes statPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); background-color: rgba(25, 134, 28, 0.1); }
+    100% { transform: scale(1); }
+}
+
+/* Notification popup */
+.notification-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    backdrop-filter: blur(20px);
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-popup .bi {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Enhanced stat cards for followers/following */
+.stat-card[data-stat="followers"],
+.stat-card[data-stat="following"] {
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, rgba(25, 134, 28, 0.1), rgba(72, 162, 76, 0.1));
+}
+
+.stat-card[data-stat="followers"]:hover,
+.stat-card[data-stat="following"]:hover {
+    border-color: rgba(25, 134, 28, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(25, 134, 28, 0.2);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .follow-btn {
+        min-width: 100px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .notification-popup {
+        min-width: 250px;
+        right: 10px;
+        top: 10px;
+    }
+}
+
 /* ===== RESPONSIVE ДОБАВКИ ===== */
 @media (max-width: 768px) {
     .signals-grid,

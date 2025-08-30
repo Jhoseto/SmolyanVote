@@ -19,14 +19,19 @@ import smolyanVote.smolyanVote.viewsAndDTO.UserFollowDto;
 @RequestMapping("/api/follow")
 public class UserFollowController {
 
-    @Autowired
-    private FollowService followService;
+    private final FollowService followService;
+    private final UserService userService;
+    private final UserFollowMapper userFollowMapper;
+
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
-    private UserFollowMapper userFollowMapper;
+    public UserFollowController(FollowService followService,
+                                UserService userService,
+                                UserFollowMapper userFollowMapper) {
+        this.followService = followService;
+        this.userService = userService;
+        this.userFollowMapper = userFollowMapper;
+    }
 
     /**
      * Follow потребител

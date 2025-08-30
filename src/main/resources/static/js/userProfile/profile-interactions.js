@@ -142,7 +142,6 @@ class ProfileManager {
     // ===== EVENT LISTENERS =====
     setupEventListeners() {
         this.delegateEvent('.tab-btn', 'click', this.switchTab.bind(this));
-        this.delegateEvent('.follow-btn', 'click', this.handleFollow.bind(this));
         this.delegateEvent('.edit-profile-btn', 'click', this.openEditModal.bind(this));
         this.delegateEvent('.modal form', 'submit', this.handleFormSubmit.bind(this));
         this.delegateEvent('.load-more-btn', 'click', this.loadMoreContent.bind(this));
@@ -393,51 +392,7 @@ class ProfileManager {
         }
     }
 
-    // ===== FOLLOW SYSTEM WITH REAL API =====
-    async handleFollow(e, button) {
-        e.preventDefault();
-        if (this.isLoading || !this.userId) return;
 
-        const isFollowing = button.dataset.action === 'unfollow';
-
-        // Optimistic UI update
-        this.updateFollowButton(button, !isFollowing);
-
-        try {
-            const response = await this.fetchWithAuth(
-                `/api/users/${this.userId}/follow`,
-                'POST'
-            );
-
-            if (response.success || response.isFollowing !== undefined) {
-                const nowFollowing = response.isFollowing;
-                this.updateFollowButton(button, nowFollowing);
-                this.showSuccess(response.message ||
-                    (nowFollowing ? 'Започнахте да следвате потребителя' : 'Спряхте да следвате потребителя'));
-            }
-        } catch (error) {
-            // Revert on error
-            this.updateFollowButton(button, isFollowing);
-            this.showError('Грешка при промяна на следването');
-        }
-    }
-
-    updateFollowButton(button, following) {
-        const icon = button.querySelector('i');
-        const text = button.querySelector('span');
-
-        if (following) {
-            button.dataset.action = 'unfollow';
-            button.className = 'btn btn-outline-secondary action-btn follow-btn';
-            icon.className = 'bi bi-person-check';
-            text.textContent = 'Следвате';
-        } else {
-            button.dataset.action = 'follow';
-            button.className = 'btn btn-primary action-btn follow-btn';
-            icon.className = 'bi bi-person-plus';
-            text.textContent = 'Следвай';
-        }
-    }
 
     // ===== FORM HANDLING WITH REAL SUBMISSION =====
     async handleFormSubmit(e, form) {

@@ -69,7 +69,7 @@ public class ApplicationSecurityConfiguration {
                                 "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
                                 "/createEvent", "/createNewEvent", "/user/logout",
                                 "/user/dashboard/**","/subscription/**","/api/reports/**","/api/user/**",
-                                "/profile/**","/user/**"
+                                "/profile/**","/user/**","/api/follow/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )

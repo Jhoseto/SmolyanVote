@@ -244,7 +244,7 @@ class PublicationsManager {
         <div class="post-header">
             ${authorAvatarHTML}
             <div class="post-author-info">
-                <a href="/users/${authorId}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
+                <a href="/user/${authorUsername}" class="post-author-name">${this.escapeHtml(authorUsername)}</a>
                 <div class="post-meta">
                     <span>${timeAgo}</span>
                     <i class="bi bi-circle online-status-indicator ${this.getOnlineStatus(post.author)}" title="${this.getOnlineStatusText(post.author)}"></i>

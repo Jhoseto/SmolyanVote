@@ -32,9 +32,6 @@ import java.util.concurrent.Executors;
 @Service
 public class MainEventsServiceImpl implements MainEventsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(MainEventsServiceImpl.class);
-
-
     private final AllEventsSimplePreviewMapper allEventsSimplePreviewMapper;
     private final ExecutorService executorService;
 
@@ -66,10 +63,7 @@ public class MainEventsServiceImpl implements MainEventsService {
             return findEventsFromAllTypes(params, pageable);
 
         } catch (Exception e) {
-            logger.error("Error in findAllEvents", e);
             throw new RuntimeException("Failed to retrieve events", e);
-        } finally {
-            logger.debug("findAllEvents completed in {} ms", System.currentTimeMillis() - startTime);
         }
     }
 
@@ -104,11 +98,9 @@ public class MainEventsServiceImpl implements MainEventsService {
             // Сортираме по дата на създаване (най-новите първо)
             userEvents.sort((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()));
 
-            logger.info("Found {} events for user with email: {}", userEvents.size(), username);
             return userEvents;
 
         } catch (Exception e) {
-            logger.error("Error retrieving user events for email: {}", username, e);
             return new ArrayList<>();
         }
     }
@@ -151,7 +143,6 @@ public class MainEventsServiceImpl implements MainEventsService {
             allEvents.addAll(multiPollsFuture.get());
 
         } catch (Exception e) {
-            logger.error("Error combining events from all types", e);
             throw new RuntimeException("Failed to retrieve events", e);
         }
 
@@ -430,8 +421,7 @@ public class MainEventsServiceImpl implements MainEventsService {
         if (StringUtils.hasText(location)) {
             try {
                 locationEnum = Locations.valueOf(location.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                logger.warn("Invalid location parameter: {}", location);
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -483,7 +473,6 @@ public class MainEventsServiceImpl implements MainEventsService {
                 default -> 0;
             };
         } catch (Exception e) {
-            logger.warn("Error comparing events by property: {}", property, e);
             return 0;
         }
     }
