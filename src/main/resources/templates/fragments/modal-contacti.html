@@ -1,0 +1,66 @@
+<section class="hero" style="background-image: url('/images/web/contacts.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh;">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow p-4">
+                    <h2 class="card-title text-center mb-4">Свържете се с нас</h2>
+
+                    <form id="contactForm" method="post" th:action="@{/contact}" th:object="${contactForm}">
+                        <!-- CSRF токен -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                        <!-- Honeypot поле -->
+                        <input type="text" name="middleName" style="display: none;" tabindex="-1" autocomplete="off">
+
+                        <!-- Timestamp -->
+                        <input type="hidden" name="formRenderedAt" th:value="${T(java.time.Instant).now().toEpochMilli()}">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Име</label>
+                            <input type="text" th:field="*{name}" class="form-control" id="name" placeholder="Въведете вашето име" autocomplete="off" required aria-describedby="nameError">
+                            <div id="nameError" class="invalid-feedback" th:errors="*{name}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Имейл адрес</label>
+                            <input type="email" th:field="*{email}" class="form-control" id="email" placeholder="Въведете вашия имейл" autocomplete="off" required aria-describedby="emailError">
+                            <div id="emailError" class="invalid-feedback" th:errors="*{email}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Тема</label>
+                            <input type="text" th:field="*{subject}" class="form-control" id="subject" placeholder="Въведете темата" autocomplete="off" required aria-describedby="subjectError">
+                            <div id="subjectError" class="invalid-feedback" th:errors="*{subject}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Съобщение</label>
+                            <textarea th:field="*{message}" class="form-control" id="message" rows="5" placeholder="Въведете вашето съобщение" autocomplete="off" required aria-describedby="messageError"></textarea>
+                            <div id="messageError" class="invalid-feedback" th:errors="*{message}"></div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success" id="submitButton">Изпрати</button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="/" class="small">Върни се към началната страница</a>
+                    </div>
+
+                    <!-- Съобщения -->
+                    <div th:if="${error}" class="error-message">
+                        <p th:text="${error}" class="error-text"></p>
+                    </div>
+                    <div th:if="${successMessage}" class="success-message">
+                        <p th:text="${successMessage}" class="success-text"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.getElementById('contactForm').addEventListener('submit', function(event) {
+        const submitButton = document.getElementById('submitButton');
+        submitButton.disabled = true; // Предотвратява двойно изпращане
+        submitButton.textContent = 'Изпращане...';
+    });
+</script>
