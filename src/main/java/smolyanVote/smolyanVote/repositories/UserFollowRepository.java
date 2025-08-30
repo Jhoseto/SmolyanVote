@@ -12,8 +12,9 @@ import java.util.Optional;
 public interface UserFollowRepository extends JpaRepository<UserFollowEntity, Long> {
 
     // 🚀 NATIVE SQL за максимална скорост
-    @Query(value = "SELECT COUNT(*) > 0 FROM user_follows WHERE follower_id = :followerId AND following_id = :followingId", nativeQuery = true)
-    boolean existsByFollowerIdAndFollowingId(@Param("followerId") Long followerId, @Param("followingId") Long followingId);
+    @Query(value = "SELECT COUNT(*) FROM user_follows WHERE follower_id = :followerId AND following_id = :followingId", nativeQuery = true)
+    long existsByFollowerIdAndFollowingIdRaw(@Param("followerId") Long followerId, @Param("followingId") Long followingId);
+
 
     // 🚀 JPQL с explicit select за по-бърз fetch
     @Query("SELECT uf FROM UserFollowEntity uf WHERE uf.follower.id = :followerId AND uf.following.id = :followingId")

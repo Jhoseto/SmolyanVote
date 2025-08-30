@@ -43,29 +43,32 @@ public class UserFollowController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
-            // Вземи текущия потребител
             UserEntity currentUser = userService.getCurrentUser();
             if (currentUser == null) {
+                System.err.println("Current user is null!"); // debug лог
                 return ResponseEntity.status(401)
                         .body(UserFollowDto.error("Трябва да влезете в профила си"));
             }
 
-            // Изпълни follow операцията
+            System.out.println("Current user: " + currentUser.getUsername() + " id=" + currentUser.getId());
+            System.out.println("Trying to follow userId=" + userId);
+
             followService.followUser(currentUser.getId(), userId);
 
-            // Създай response чрез mapper
             UserFollowDto response = userFollowMapper.createFollowResponse(currentUser, userId, "followed");
-
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
+            System.err.println("IllegalArgumentException: " + e.getMessage());
             return ResponseEntity.badRequest()
                     .body(UserFollowDto.error(e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace(); // ще покаже точния stack trace на 500
             return ResponseEntity.internalServerError()
                     .body(UserFollowDto.error("Възникна неочаквана грешка"));
         }
     }
+
 
     /**
      * Unfollow потребител

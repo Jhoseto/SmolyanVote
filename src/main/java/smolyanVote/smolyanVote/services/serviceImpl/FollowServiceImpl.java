@@ -16,11 +16,16 @@ import smolyanVote.smolyanVote.services.interfaces.FollowService;
 @Service
 public class FollowServiceImpl implements FollowService {
 
-    @Autowired
-    private UserFollowRepository userFollowRepository;
+
+    private final UserFollowRepository userFollowRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    public FollowServiceImpl(UserFollowRepository userFollowRepository,
+                             UserRepository userRepository) {
+        this.userFollowRepository = userFollowRepository;
+        this.userRepository = userRepository;
+    }
 
     @Override
     @Transactional
@@ -67,16 +72,13 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     public boolean isFollowing(Long followerId, Long followingId) {
-        if (followerId == null || followingId == null) {
+        if (followerId == null || followingId == null || followerId.equals(followingId)) {
             return false;
         }
-
-        if (followerId.equals(followingId)) {
-            return false; // никой не следва себе си
-        }
-
-        return userFollowRepository.existsByFollowerIdAndFollowingId(followerId, followingId);
+        long count = userFollowRepository.existsByFollowerIdAndFollowingIdRaw(followerId, followingId);
+        return count > 0;
     }
+
 
     @Override
     public long getFollowersCount(Long userId) {
