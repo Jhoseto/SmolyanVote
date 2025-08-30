@@ -3,6 +3,12 @@
  */
 class UserFollowSystem {
     constructor() {
+        // Вземаме CSRF токена и header името от meta таговете
+        const csrfMeta = document.querySelector('meta[name="_csrf"]');
+        const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+        this.csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+        this.csrfHeader = csrfHeaderMeta ? csrfHeaderMeta.getAttribute('content') : '';
+
         this.init();
     }
 
@@ -31,7 +37,6 @@ class UserFollowSystem {
             return;
         }
 
-        // Disable button during request
         this.setButtonLoading(button, true);
 
         try {
@@ -42,12 +47,14 @@ class UserFollowSystem {
                 response = await this.unfollowUser(userId);
             }
 
-            if (response.success) {
+            if (response && response.success) {
                 this.updateFollowButton(button, response.action);
                 this.updateFollowersCount(response.followersCount);
                 this.showNotification(response.message, 'success');
-            } else {
+            } else if (response) {
                 this.showNotification(response.message, 'error');
+            } else {
+                this.showNotification('Възникна грешка. Опитайте отново.', 'error');
             }
 
         } catch (error) {
@@ -59,25 +66,62 @@ class UserFollowSystem {
     }
 
     async followUser(userId) {
-        const response = await fetch(`/api/follow/${userId}`, {
+        const res = await fetch(`/api/follow/${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                [this.csrfHeader]: this.csrfToken
             }
         });
-        return await response.json();
+        return this.parseJSON(res);
     }
 
     async unfollowUser(userId) {
-        const response = await fetch(`/api/follow/${userId}`, {
+        const res = await fetch(`/api/follow/${userId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                [this.csrfHeader]: this.csrfToken
             }
         });
-        return await response.json();
+        return this.parseJSON(res);
+    }
+
+    async loadInitialFollowStatus() {
+        const followButton = document.getElementById('followButton');
+        if (!followButton) return;
+
+        const userId = followButton.dataset.userId;
+        if (!userId) return;
+
+        try {
+            const res = await fetch(`/api/follow/${userId}/status`, {
+                headers: {
+                    [this.csrfHeader]: this.csrfToken
+                }
+            });
+            const data = await this.parseJSON(res);
+
+            if (data && data.success) {
+                if (data.isFollowing) {
+                    this.updateFollowButton(followButton, 'followed');
+                }
+                this.updateFollowersCount(data.followersCount);
+                document.querySelectorAll('.following-count').forEach(el => el.textContent = data.followingCount);
+            }
+
+        } catch (error) {
+            console.error('Failed to load follow status:', error);
+        }
+    }
+
+    async parseJSON(response) {
+        try {
+            return await response.json();
+        } catch (err) {
+            console.error('Invalid JSON response:', await response.text());
+            return null;
+        }
     }
 
     updateFollowButton(button, action) {
@@ -93,14 +137,10 @@ class UserFollowSystem {
     }
 
     updateFollowersCount(newCount) {
-        const followersElements = document.querySelectorAll('.followers-count');
-        followersElements.forEach(el => {
+        document.querySelectorAll('.followers-count').forEach(el => {
             el.textContent = newCount;
-            // Add animation
             el.parentElement.classList.add('stat-updated');
-            setTimeout(() => {
-                el.parentElement.classList.remove('stat-updated');
-            }, 1000);
+            setTimeout(() => el.parentElement.classList.remove('stat-updated'), 1000);
         });
     }
 
@@ -113,56 +153,17 @@ class UserFollowSystem {
         }
     }
 
-    async loadInitialFollowStatus() {
-        const followButton = document.getElementById('followButton');
-        if (!followButton) return;
-
-        const userId = followButton.dataset.userId;
-        if (!userId) return;
-
-        try {
-            const response = await fetch(`/api/follow/${userId}/status`);
-            const data = await response.json();
-
-            if (data.success) {
-                if (data.isFollowing) {
-                    this.updateFollowButton(followButton, 'followed');
-                }
-                this.updateFollowersCount(data.followersCount);
-
-                // Update following count if element exists
-                const followingElements = document.querySelectorAll('.following-count');
-                followingElements.forEach(el => {
-                    el.textContent = data.followingCount;
-                });
-            }
-
-        } catch (error) {
-            console.error('Failed to load follow status:', error);
-        }
-    }
-
     showNotification(message, type) {
-        // Create notification element
         const notification = document.createElement('div');
         notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} notification-popup`;
-        notification.innerHTML = `
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'}"></i>
-            <span>${message}</span>
-        `;
-
+        notification.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'}"></i> <span>${message}</span>`;
         document.body.appendChild(notification);
-
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+        setTimeout(() => notification.remove(), 3000);
     }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize on profile pages
     if (document.querySelector('.profile-hero')) {
         new UserFollowSystem();
     }
