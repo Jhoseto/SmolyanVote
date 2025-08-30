@@ -97,9 +97,13 @@
 
                 <!-- Other Profile Actions -->
                 <div th:unless="${isOwnProfile}" class="other-profile-actions">
-                    <button class="btn btn-primary action-btn follow-btn" data-action="follow" th:attr="data-user-id=${user.id}">
-                        <i class="bi bi-person-plus"></i>
-                        <span>Следвай</span>
+                    <button class="btn btn-primary action-btn follow-btn"
+                            th:data-user-id="${user.id}"
+                            th:data-action="${isFollowing} ? 'unfollow' : 'follow'"
+                            th:classappend="${isFollowing} ? 'btn-outline-secondary' : 'btn-primary'"
+                            id="followButton">
+                        <i th:class="${isFollowing} ? 'bi bi-person-dash' : 'bi bi-person-plus'"></i>
+                        <span th:text="${isFollowing} ? 'Не следвай' : 'Следвай'">Следвай</span>
                     </button>
                     <button class="btn btn-outline-secondary action-btn message-btn">
                         <i class="bi bi-chat-dots"></i>
@@ -123,6 +127,26 @@
 <div class="statistics-section">
     <div class="container">
         <div class="stats-grid">
+
+            <div class="stat-card glass-card" data-stat="followers">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number followers-count" th:text="${followersCount ?: 0}">0</div>
+                    <div class="stat-label">Последователи</div>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card" data-stat="following">
+                <div class="stat-icon">
+                    <i class="bi bi-person-hearts"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number following-count" th:text="${followingCount ?: 0}">0</div>
+                    <div class="stat-label">Следва</div>
+                </div>
+            </div>
             <div class="stat-card glass-card" data-stat="events">
                 <div class="stat-icon">
                     <i class="bi bi-calendar-event"></i>
@@ -497,12 +521,14 @@
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/userProfile/profile-interactions.js"></script>
+
 <script src="/js/publications/filtersManager.js"></script>
 <script src="/js/publications/publicationsApi.js"></script>
 <script src="/js/publications/postInteractions.js"></script>
 <script src="/js/publications/publicationsMain.js"></script>
 <script src="/js/publications/publicationDetailModal.js"></script>
 <script src="/js/commentsManager.js"></script>
+<script src="/js/userProfile/followSystem.js"></script>
 
 <!-- Основна инициализация -->
 <script>
@@ -567,9 +593,6 @@
         }
     });
 </script>
-
-</body>
-</html>
 
 </body>
 </html>

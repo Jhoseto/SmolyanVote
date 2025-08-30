@@ -260,41 +260,6 @@ public class UserController {
         return ResponseEntity.ok(messenger);
     }
 
-    // ===== FOLLOW SYSTEM ENDPOINT =====
-
-    @PostMapping(value = "/api/users/{userId}/follow", produces = "application/json")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> toggleFollowUser(@PathVariable Long userId, Authentication auth) {
-        if (auth == null) {
-            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
-        }
-
-        try {
-            UserEntity currentUser = userService.getCurrentUser();
-
-            if (currentUser.getId().equals(userId)) {
-                return ResponseEntity.status(400).body(createErrorResponse("Не можете да следвате себе си"));
-            }
-
-            UserEntity targetUser = userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
-
-            // Placeholder follow logic - to be implemented
-            boolean isFollowing = false; // TODO: implement real follow check
-            boolean newFollowState = !isFollowing;
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("isFollowing", newFollowState);
-            response.put("message", newFollowState ?
-                    "Започнахте да следвате потребителя" :
-                    "Спряхте да следвате потребителя");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при следването"));
-        }
-    }
 
     // ===== PROFILE UPDATE ENDPOINTS =====
 

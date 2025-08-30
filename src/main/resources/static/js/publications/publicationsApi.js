@@ -143,13 +143,6 @@ class PublicationsAPI {
         return await this.request(url);
     }
 
-    async toggleFollowAuthor(authorId) {
-        const url = `/api/users/${authorId}/follow`;
-        return await this.request(url, {
-            method: 'POST'
-        });
-    }
-
     async uploadImage(file, onProgress = null) {
         const formData = new FormData();
         formData.append('image', file);
