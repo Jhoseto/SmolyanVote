@@ -1343,6 +1343,484 @@ body {
     }
 }
 
+/* ============= USERS TAB STYLES - userProfile.css ============= */
+
+/* Search Container */
+.users-search-container {
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+}
+
+.search-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-group .search-icon {
+    position: absolute;
+    left: 12px;
+    z-index: 3;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.users-search-input {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+    border-radius: 25px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.users-search-input:focus {
+    border-color: var(--sv-primary);
+    box-shadow: 0 0 0 0.2rem rgba(107, 184, 95, 0.25);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.search-spinner {
+    position: absolute;
+    right: 12px;
+    z-index: 3;
+    color: var(--sv-primary);
+}
+
+/* Sub-tabs Navigation */
+.users-sub-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 1.5rem;
+    border-radius: 15px;
+    overflow-x: auto;
+}
+
+.users-sub-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+}
+
+.users-sub-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+}
+
+.users-sub-tab-btn.active {
+    background: linear-gradient(135deg, var(--sv-primary), var(--sv-primary-light));
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(107, 184, 95, 0.3);
+}
+
+.sub-tab-counter {
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+}
+
+.users-sub-tab-btn.active .sub-tab-counter {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+/* Users Content Wrapper */
+.users-content-wrapper {
+    position: relative;
+    min-height: 400px;
+}
+
+.users-sub-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.users-sub-content.active {
+    display: block;
+}
+
+/* Users Grid */
+.users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+/* User Card */
+.user-card {
+    position: relative;
+    padding: 0.8rem;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    border: 2px solid transparent;
+}
+
+.user-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: rgba(107, 184, 95, 0.3);
+}
+
+.user-card-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* User Avatar Section */
+.user-avatar-section {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.user-card .user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.user-card:hover .user-avatar {
+    border-color: var(--sv-primary);
+    transform: scale(1.05);
+}
+
+.user-card .online-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid white;
+    border-radius: 50%;
+    background: #6c757d;
+}
+
+.user-card .online-indicator.online {
+    background: #28a745;
+}
+
+/* User Info Section */
+.user-info-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-basic-info {
+    margin-bottom: 0.5rem;
+}
+
+.user-card-username {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
+    text-decoration: none;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.user-card-role {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.user-card-role i {
+    font-size: 0.75rem;
+}
+
+/* User Meta Info */
+.user-meta-info {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.user-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.4rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.stat-item i {
+    font-size: 0.75rem;
+}
+
+.user-join-date {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.user-join-date i {
+    font-size: 0.75rem;
+}
+
+/* User Card Actions */
+.user-card-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 3;
+}
+
+.user-follow-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.user-follow-btn:hover {
+    transform: translateY(-1px);
+}
+
+.user-follow-btn i {
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+}
+
+.user-follow-btn.following-state {
+    display: none;
+}
+
+.user-card[data-following="true"] .user-follow-btn:not(.following-state) {
+    display: none;
+}
+
+.user-card[data-following="true"] .user-follow-btn.following-state {
+    display: inline-flex;
+}
+
+/* User Card Overlay */
+.user-card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: pointer;
+}
+
+/* Loading States */
+.users-loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+.users-loading-state .loading-spinner {
+    font-size: 2rem;
+    color: var(--sv-primary);
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+.users-loading-state p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Empty States */
+.users-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+.users-empty-state i {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.users-empty-state h4 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.users-empty-state p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Pagination */
+.users-pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 2rem;
+}
+
+.users-pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.pagination-btn {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    min-width: 36px;
+    text-align: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+}
+
+.pagination-btn.active {
+    background: linear-gradient(135deg, var(--sv-primary), var(--sv-primary-light));
+    color: white;
+    border-color: transparent;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Results Info */
+.users-results-info {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.results-count {
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .users-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .user-card-inner {
+        gap: 0.75rem;
+    }
+
+    .users-sub-tabs {
+        padding: 0.5rem;
+    }
+
+    .users-sub-tab-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .users-pagination-container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .users-search-container {
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-card {
+        padding: 1rem;
+    }
+
+    .user-card .user-avatar {
+        width: 45px;
+        height: 45px;
+    }
+
+    .user-card-username {
+        font-size: 1rem;
+    }
+
+    .user-follow-btn {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ADMIN Role Styling */
+.user-card[data-role="ADMIN"] .user-card-role {
+    color: #f0c674;
+}
+
+.user-card[data-role="ADMIN"] .user-card-role i {
+    color: #f0c674;
+}
 /* ===== RESPONSIVE ДОБАВКИ ===== */
 @media (max-width: 768px) {
     .signals-grid,

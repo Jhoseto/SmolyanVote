@@ -9,6 +9,9 @@ import smolyanVote.smolyanVote.repositories.UserFollowRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Implementation на FollowService
  * Оптимизирано за високи performance заявки
@@ -96,5 +99,46 @@ public class FollowServiceImpl implements FollowService {
         }
 
         return userFollowRepository.countByFollowerId(userId);
+    }
+
+
+    @Override
+    public List<Object[]> getFollowers(Long userId, int page, int size) {
+        if (userId == null) {
+            return new ArrayList<>();
+        }
+
+        int offset = page * size;
+        return userFollowRepository.findFollowersWithPagination(userId, offset, size);
+    }
+
+    @Override
+    public List<Object[]> getFollowing(Long userId, int page, int size) {
+        if (userId == null) {
+            return new ArrayList<>();
+        }
+
+        int offset = page * size;
+        return userFollowRepository.findFollowingWithPagination(userId, offset, size);
+    }
+
+    @Override
+    public List<Object[]> searchFollowers(Long userId, String searchTerm, int page, int size) {
+        if (userId == null || searchTerm == null || searchTerm.trim().isEmpty()) {
+            return getFollowers(userId, page, size);
+        }
+
+        int offset = page * size;
+        return userFollowRepository.searchFollowers(userId, searchTerm.trim(), offset, size);
+    }
+
+    @Override
+    public List<Object[]> searchFollowing(Long userId, String searchTerm, int page, int size) {
+        if (userId == null || searchTerm == null || searchTerm.trim().isEmpty()) {
+            return getFollowing(userId, page, size);
+        }
+
+        int offset = page * size;
+        return userFollowRepository.searchFollowing(userId, searchTerm.trim(), offset, size);
     }
 }

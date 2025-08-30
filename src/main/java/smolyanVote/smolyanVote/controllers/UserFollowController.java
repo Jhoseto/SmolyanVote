@@ -6,10 +6,16 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.repositories.UserFollowRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.UserFollowMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.UserFollowDto;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller за user follow/unfollow операции
@@ -22,15 +28,18 @@ public class UserFollowController {
     private final FollowService followService;
     private final UserService userService;
     private final UserFollowMapper userFollowMapper;
+    private final UserFollowRepository userFollowRepository;
 
 
     @Autowired
     public UserFollowController(FollowService followService,
                                 UserService userService,
-                                UserFollowMapper userFollowMapper) {
+                                UserFollowMapper userFollowMapper,
+                                UserFollowRepository userFollowRepository) {
         this.followService = followService;
         this.userService = userService;
         this.userFollowMapper = userFollowMapper;
+        this.userFollowRepository = userFollowRepository;
     }
 
     /**
@@ -141,6 +150,106 @@ public class UserFollowController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(UserFollowDto.error("Възникна грешка при зареждането на статистиките"));
+        }
+    }
+
+    /**
+     * Списък последователи на потребител
+     * GET /api/follow/{userId}/followers?page=0&size=20&search=
+     */
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<Map<String, Object>> getFollowers(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+
+        try {
+            List<Object[]> followers;
+
+            if (search != null && !search.trim().isEmpty()) {
+                followers = followService.searchFollowers(userId, search, page, size);
+            } else {
+                followers = followService.getFollowers(userId, page, size);
+            }
+
+            // Добавяме информация за follow статус на текущия потребител
+            UserEntity currentUser = userService.getCurrentUser();
+            List<Long> followingIds = new ArrayList<>();
+
+            if (currentUser != null && !followers.isEmpty()) {
+                List<Long> userIds = followers.stream()
+                        .map(row -> (Long) row[0])
+                        .collect(Collectors.toList());
+                followingIds = userFollowRepository.findFollowingUserIds(currentUser.getId(), userIds);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", followers);
+            response.put("currentPage", page);
+            response.put("pageSize", size);
+            response.put("hasNext", followers.size() == size);
+            response.put("followingIds", followingIds);
+            response.put("searchTerm", search);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Грешка при зареждане на последователите");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Списък следвани от потребител
+     * GET /api/follow/{userId}/following?page=0&size=20&search=
+     */
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<Map<String, Object>> getFollowing(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+
+        try {
+            List<Object[]> following;
+
+            if (search != null && !search.trim().isEmpty()) {
+                following = followService.searchFollowing(userId, search, page, size);
+            } else {
+                following = followService.getFollowing(userId, page, size);
+            }
+
+            // Добавяме информация за follow статус на текущия потребител
+            UserEntity currentUser = userService.getCurrentUser();
+            List<Long> followingIds = new ArrayList<>();
+
+            if (currentUser != null && !following.isEmpty()) {
+                List<Long> userIds = following.stream()
+                        .map(row -> (Long) row[0])
+                        .collect(Collectors.toList());
+                followingIds = userFollowRepository.findFollowingUserIds(currentUser.getId(), userIds);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", following);
+            response.put("currentPage", page);
+            response.put("pageSize", size);
+            response.put("hasNext", following.size() == size);
+            response.put("followingIds", followingIds);
+            response.put("searchTerm", search);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Грешка при зареждане на следваните");
+            return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 }
