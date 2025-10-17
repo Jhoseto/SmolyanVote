@@ -17,6 +17,8 @@ import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.CommentResultMapper;
@@ -42,6 +44,8 @@ public class CommentsServiceImpl implements CommentsService {
     private final UserService userService;
     private final CommentResultMapper resultMapper;
     private final SignalsRepository signalsRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     private final ActivityLogService activityLogService;
 
@@ -55,7 +59,9 @@ public class CommentsServiceImpl implements CommentsService {
                                UserService userService,
                                CommentResultMapper resultMapper,
                                SignalsRepository signalsRepository,
-                               ActivityLogService activityLogService) {
+                               ActivityLogService activityLogService,
+                               NotificationService notificationService,
+                               UserRepository userRepository) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
@@ -66,6 +72,8 @@ public class CommentsServiceImpl implements CommentsService {
         this.resultMapper = resultMapper;
         this.signalsRepository = signalsRepository;
         this.activityLogService = activityLogService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     // ====== ОСНОВНИ МЕТОДИ ======
@@ -218,6 +226,13 @@ public class CommentsServiceImpl implements CommentsService {
         publicationRepository.save(publication);
 
         logger.info("Comment added to publication {}, new count: {}", publicationId, publication.getCommentsCount());
+        // Notify publication author
+        try {
+            UserEntity contentAuthor = publication.getAuthor();
+            if (contentAuthor != null && !contentAuthor.getUsername().equals(author.getUsername())) {
+                notificationService.notifyComment(contentAuthor, author, "PUBLICATION", publicationId);
+            }
+        } catch (Exception ignored) {}
         return savedComment;
     }
 
@@ -240,7 +255,17 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setCreated(Instant.now());
         comment.setEdited(false);
 
-        return commentsRepository.save(comment);
+        CommentsEntity saved = commentsRepository.save(comment);
+        // Notify simple event creator
+        try {
+            String creatorName = simpleEvent.getCreatorName();
+            if (creatorName != null && !creatorName.equals(author.getUsername())) {
+                userRepository.findByUsername(creatorName).ifPresent(creator ->
+                        notificationService.notifyComment(creator, author, "SIMPLEEVENT", simpleEventId)
+                );
+            }
+        } catch (Exception ignored) {}
+        return saved;
     }
 
     @Override
@@ -262,7 +287,17 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setCreated(Instant.now());
         comment.setEdited(false);
 
-        return commentsRepository.save(comment);
+        CommentsEntity saved = commentsRepository.save(comment);
+        // Notify referendum creator
+        try {
+            String creatorName = referendum.getCreatorName();
+            if (creatorName != null && !creatorName.equals(author.getUsername())) {
+                userRepository.findByUsername(creatorName).ifPresent(creator ->
+                        notificationService.notifyComment(creator, author, "REFERENDUM", referendumId)
+                );
+            }
+        } catch (Exception ignored) {}
+        return saved;
     }
 
     @Override
@@ -284,7 +319,17 @@ public class CommentsServiceImpl implements CommentsService {
         comment.setCreated(Instant.now());
         comment.setEdited(false);
 
-        return commentsRepository.save(comment);
+        CommentsEntity saved = commentsRepository.save(comment);
+        // Notify multipoll creator
+        try {
+            String creatorName = multiPoll.getCreatorName();
+            if (creatorName != null && !creatorName.equals(author.getUsername())) {
+                userRepository.findByUsername(creatorName).ifPresent(creator ->
+                        notificationService.notifyComment(creator, author, "MULTI_POLL", multiPollId)
+                );
+            }
+        } catch (Exception ignored) {}
+        return saved;
     }
 
     @Override
@@ -313,6 +358,13 @@ public class CommentsServiceImpl implements CommentsService {
         signal.setCommentsCount(signal.getCommentsCount() +1);
         signalsRepository.save(signal);
 
+        // Notify signal author
+        try {
+            UserEntity contentAuthor = signal.getAuthor();
+            if (contentAuthor != null && !contentAuthor.getUsername().equals(author.getUsername())) {
+                notificationService.notifyComment(contentAuthor, author, "SIGNAL", signalId);
+            }
+        } catch (Exception ignored) {}
         return savedComment;
     }
 
@@ -352,6 +404,15 @@ public class CommentsServiceImpl implements CommentsService {
 
 
         CommentsEntity savedReply = commentsRepository.save(reply);
+        // Notify original comment author
+        try {
+            String parentAuthorUsername = parentComment.getAuthor();
+            if (parentAuthorUsername != null && !parentAuthorUsername.equals(author.getUsername())) {
+                userRepository.findByUsername(parentAuthorUsername).ifPresent(parentAuthor ->
+                        notificationService.notifyReply(parentAuthor, author, parentCommentId)
+                );
+            }
+        } catch (Exception ignored) {}
 
         //  ПОПРАВКА: И отговорите се броят в общата бройка!
         if (parentComment.getPublication() != null) {
