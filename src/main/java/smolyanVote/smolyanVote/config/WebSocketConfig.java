@@ -6,6 +6,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 
 /**
@@ -18,12 +19,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ActivityWebSocketHandler activityWebSocketHandler;
     private final Environment environment;
+    private final NotificationWebSocketHandler notificationWebSocketHandler;
 
     @Autowired
     public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
-                           Environment environment) {
+                           Environment environment,
+                           NotificationWebSocketHandler notificationWebSocketHandler) {
         this.activityWebSocketHandler = activityWebSocketHandler;
         this.environment = environment;
+        this.notificationWebSocketHandler = notificationWebSocketHandler;
     }
 
     @Override
@@ -31,6 +35,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
         String[] allowedOrigins = getAllowedOrigins();
 
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .withSockJS();
+
+        // ⭐ NEW: Notification handler за всички потребители
+        registry.addHandler(notificationWebSocketHandler, "/ws/notifications")
                 .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS();
     }
@@ -62,4 +71,5 @@ public class WebSocketConfig implements WebSocketConfigurer {
             };
         }
     }
+
 }
