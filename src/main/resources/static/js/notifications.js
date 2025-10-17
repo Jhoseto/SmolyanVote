@@ -238,7 +238,9 @@ class NotificationSystem {
             return;
         }
 
-        container.innerHTML = this.notifications.map(n => this.createNotificationHTML(n)).join('');
+        // Group by type + entityType + entityId (frontend-only grouping)
+        const grouped = this.groupNotifications(this.notifications);
+        container.innerHTML = grouped.map(n => this.createNotificationHTML(n)).join('');
     }
 
     createNotificationHTML(n) {
@@ -307,6 +309,65 @@ class NotificationSystem {
             }
         };
     }
+
+    // ====== GROUPING (frontend only) ======
+    groupNotifications(items) {
+        const map = new Map();
+        for (const n of items) {
+            const key = `${n.type}|${n.entityType || ''}|${n.entityId || ''}`;
+            if (!map.has(key)) {
+                map.set(key, {
+                    ...n,
+                    _actors: n.actorUsername ? [n.actorUsername] : [],
+                    _count: 1,
+                });
+            } else {
+                const g = map.get(key);
+                g._count += 1;
+                if (n.createdAt && (!g.createdAt || n.createdAt > g.createdAt)) {
+                    g.createdAt = n.createdAt;
+                    g.timeAgo = n.timeAgo;
+                    g.actionUrl = n.actionUrl;
+                }
+                if (n.actorUsername && !g._actors.includes(n.actorUsername)) {
+                    g._actors.push(n.actorUsername);
+                }
+                // keep unread dot if any item unread
+                if (!n.read) g.read = false;
+            }
+        }
+
+        // Build display message for groups with more than 1
+        const result = Array.from(map.values()).map(g => {
+            if (g._count > 1) {
+                const first = g._actors[0] || '';
+                const others = g._count - 1;
+                const suffix = this.groupSuffixForType(g.type);
+                g.message = `${first} и още ${others} ${suffix}`;
+            }
+            return g;
+        });
+
+        return result;
+    }
+
+    groupSuffixForType(type) {
+        switch ((type || '').toUpperCase()) {
+            case 'COMMENT':
+            case 'REPLY':
+                return 'коментираха вашето съдържание';
+            case 'LIKE':
+                return 'харесаха вашето съдържание';
+            case 'NEW_FOLLOWER':
+                return 'започнаха да ви следват';
+            case 'UNFOLLOW':
+                return 'спряха да ви следват';
+            case 'NEW_VOTE':
+                return 'гласуваха във вашето събитие';
+            default:
+                return 'извършиха действие';
+        }
+    }
 }
 
 // ====== AUTO-INIT ======
@@ -323,5 +384,7 @@ function initNotifications() {
     if (bell) {
         notificationSystem = new NotificationSystem();
         window.notificationSystem = notificationSystem;
+        // expose grouping for other pages (e.g., profile)
+        window.groupNotifications = notificationSystem.groupNotifications.bind(notificationSystem);
     }
 }
