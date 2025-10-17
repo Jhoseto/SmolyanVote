@@ -7,9 +7,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
 
 import java.util.List;
 
-/**
- * Минимален интерфейс - максимална функционалност
- */
+
 public interface NotificationService {
 
     // ====== CREATE (единствен create метод) ======
@@ -48,4 +46,9 @@ public interface NotificationService {
     void delete(Long notificationId, UserEntity user);
     void deleteAll(UserEntity user);
     void cleanup(int daysToKeep);
+
+    // Нови методи за follow и vote нотификации
+    void notifyNewFollower(UserEntity followed, UserEntity follower);
+    void notifyUnfollow(UserEntity unfollowed, UserEntity unfollower);
+    void notifyNewVote(UserEntity eventCreator, UserEntity voter, String eventType, Long eventId, String eventTitle);
 }
