@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.repositories;
 
-import io.micrometer.observation.ObservationFilter;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,8 +7,6 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
-
 import java.util.Optional;
 
 
