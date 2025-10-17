@@ -9,6 +9,7 @@ import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class VoteServiceImpl implements VoteService {
     private final VoteReferendumRepository voteReferendumRepository;
     private final MultiPollRepository multiPollRepository;
     private final VoteMultiPollRepository voteMultiPollRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     public VoteServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -31,7 +33,8 @@ public class VoteServiceImpl implements VoteService {
                            ReferendumRepository referendumRepository,
                            VoteReferendumRepository voteReferendumRepository,
                            MultiPollRepository multiPollRepository,
-                           VoteMultiPollRepository voteMultiPollRepository) {
+                           VoteMultiPollRepository voteMultiPollRepository,
+                           NotificationService notificationService) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -39,6 +42,7 @@ public class VoteServiceImpl implements VoteService {
         this.voteReferendumRepository = voteReferendumRepository;
         this.multiPollRepository = multiPollRepository;
         this.voteMultiPollRepository = voteMultiPollRepository;
+        this.notificationService = notificationService;
     }
 
 
@@ -46,7 +50,6 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             entityIdParam = "eventId", details = "User: {userName}", includeChoice = true)
-
     public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
         SimpleEventEntity event = simpleEventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Събитие не е намерено"));
@@ -83,6 +86,14 @@ public class VoteServiceImpl implements VoteService {
 
         user.setTotalVotes(user.getTotalVotes() + 1);
         userRepository.save(user);
+
+
+        // ✅ НОТИФИКАЦИЯ - намери creator-а на събитието
+        UserEntity creator = userRepository.findByUsername(event.getCreatorName())
+                .orElse(null);
+        if (creator != null) {
+            notificationService.notifyNewVote(creator, user, "SIMPLEEVENT", eventId, event.getTitle());
+        }
     }
 
 
@@ -97,11 +108,11 @@ public class VoteServiceImpl implements VoteService {
     }
 
 
+
     @Transactional
     @Override
     @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             entityIdParam = "referendumId", details = "User: {userName}", includeChoice = true)
-
     public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен."));
@@ -147,6 +158,13 @@ public class VoteServiceImpl implements VoteService {
         vote.setReferendum(referendum);
         vote.setVoteValue(voteIndex);
         voteReferendumRepository.save(vote);
+
+        // ✅ НОТИФИКАЦИЯ
+        UserEntity creator = userRepository.findByUsername(referendum.getCreatorName())
+                .orElse(null);
+        if (creator != null) {
+            notificationService.notifyNewVote(creator, user, "REFERENDUM", referendumId, referendum.getTitle());
+        }
 
         return "Гласът беше успешно отчетен.";
     }
@@ -218,6 +236,14 @@ public class VoteServiceImpl implements VoteService {
             vote.setOptionText(optionText);
 
             voteMultiPollRepository.save(vote);
+
+        }
+
+
+        UserEntity creator = userRepository.findByUsername(poll.getCreatorName())
+                .orElse(null);
+        if (creator != null) {
+            notificationService.notifyNewVote(creator, user, "MULTI_POLL", pollId, poll.getTitle());
         }
     }
 }

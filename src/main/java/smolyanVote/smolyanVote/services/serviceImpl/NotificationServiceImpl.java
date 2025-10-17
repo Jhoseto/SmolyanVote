@@ -201,4 +201,58 @@ public class NotificationServiceImpl implements NotificationService {
     private String buildUrl(String entityType, Long entityId) {
         return "/" + entityType.toLowerCase() + "s/" + entityId;
     }
+
+    // ====== NEW FOLLOW/VOTE NOTIFICATIONS ======
+
+    @Override
+    public void notifyNewFollower(UserEntity followed, UserEntity follower) {
+        if (isSelf(followed, follower)) return;
+
+        create(followed, "NEW_FOLLOWER",
+                follower.getUsername() + " започна да ви следва",
+                follower.getUsername(), follower.getImageUrl(),
+                "USER", follower.getId(), "/profile/" + follower.getUsername());
+    }
+
+    @Override
+    public void notifyUnfollow(UserEntity unfollowed, UserEntity unfollower) {
+        if (isSelf(unfollowed, unfollower)) return;
+
+        create(unfollowed, "UNFOLLOW",
+                unfollower.getUsername() + " спря да ви следва",
+                unfollower.getUsername(), unfollower.getImageUrl(),
+                "USER", unfollower.getId(), "/profile/" + unfollower.getUsername());
+    }
+
+    @Override
+    public void notifyNewVote(UserEntity eventCreator, UserEntity voter, String eventType, Long eventId, String eventTitle) {
+        if (isSelf(eventCreator, voter)) return;
+
+        String entityTypeFormatted = formatEventType(eventType);
+        String actionUrl = buildVoteUrl(eventType, eventId);
+
+        create(eventCreator, "NEW_VOTE",
+                voter.getUsername() + " гласува във твоя" + entityTypeFormatted + " \"" + eventTitle + "\"",
+                voter.getUsername(), voter.getImageUrl(),
+                eventType, eventId, actionUrl);
+    }
+
+    // Helper методи за NEW_VOTE
+    private String formatEventType(String eventType) {
+        return switch (eventType.toUpperCase()) {
+            case "SIMPLEEVENT", "SIMPLE_EVENT" -> "т Опростен вид събитие";
+            case "REFERENDUM" -> "т референдум";
+            case "MULTI_POLL", "MULTIPOLL" -> "та Множествена анкета";
+            default -> "то Събитие";
+        };
+    }
+
+    private String buildVoteUrl(String eventType, Long eventId) {
+        return switch (eventType.toUpperCase()) {
+            case "SIMPLEEVENT", "SIMPLE_EVENT" -> "/event/" + eventId;
+            case "REFERENDUM" -> "/referendum/" + eventId;
+            case "MULTI_POLL", "MULTIPOLL" -> "/multiPoll/" + eventId;
+            default -> "/event/" + eventId;
+        };
+    }
 }

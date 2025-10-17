@@ -8,6 +8,7 @@ import smolyanVote.smolyanVote.models.UserFollowEntity;
 import smolyanVote.smolyanVote.repositories.UserFollowRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +23,14 @@ public class FollowServiceImpl implements FollowService {
 
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     public FollowServiceImpl(UserFollowRepository userFollowRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository, NotificationService notificationService) {
         this.userFollowRepository = userFollowRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -55,6 +58,9 @@ public class FollowServiceImpl implements FollowService {
         // Create follow relationship
         UserFollowEntity followEntity = new UserFollowEntity(follower, following);
         userFollowRepository.save(followEntity);
+
+        // ✅НОТИФИКАЦИЯ
+        notificationService.notifyNewFollower(following, follower);
     }
 
     @Override
@@ -69,9 +75,19 @@ public class FollowServiceImpl implements FollowService {
             throw new IllegalArgumentException("Не следвате този потребител");
         }
 
+        // ✅  Fetch users за нотификацията
+        UserEntity follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new IllegalArgumentException("Потребителят не съществува"));
+        UserEntity following = userRepository.findById(followingId)
+                .orElseThrow(() -> new IllegalArgumentException("Потребителят не съществува"));
+
         // Bulk delete - най-бързо
         userFollowRepository.deleteByFollowerIdAndFollowingId(followerId, followingId);
+
+        // ✅ НОТИФИКАЦИЯ
+        notificationService.notifyUnfollow(following, follower);
     }
+
 
     @Override
     public boolean isFollowing(Long followerId, Long followingId) {

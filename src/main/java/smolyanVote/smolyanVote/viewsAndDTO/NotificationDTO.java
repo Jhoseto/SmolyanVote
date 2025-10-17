@@ -72,6 +72,8 @@ public class NotificationDTO {
             case "PUBLICATION_APPROVED" -> "bi-check-circle-fill";
             case "SIGNAL_REVIEWED" -> "bi-flag-fill";
             case "NEW_FOLLOWER" -> "bi-person-plus";
+            case "UNFOLLOW" -> "bi-person-dash";
+            case "NEW_VOTE" -> "bi-hand-thumbs-up";
             case "ROLE_CHANGED" -> "bi-shield-check";
             default -> "bi-bell";
         };
@@ -88,6 +90,8 @@ public class NotificationDTO {
             case "PUBLICATION_APPROVED" -> "Публикация одобрена";
             case "SIGNAL_REVIEWED" -> "Сигнал разгледан";
             case "NEW_FOLLOWER" -> "Нов последовател";
+            case "UNFOLLOW" -> "Спря да следва";
+            case "NEW_VOTE" -> "Ново гласуване";
             case "ROLE_CHANGED" -> "Промяна на роля";
             default -> "Известие";
         };
