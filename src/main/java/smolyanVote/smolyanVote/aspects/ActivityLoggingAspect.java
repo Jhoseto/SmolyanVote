@@ -78,6 +78,7 @@ public class ActivityLoggingAspect {
     /**
      * Записва активността в базата данни
      */
+    @SuppressWarnings("deprecation") // allow legacy support path using actionString()
     private void recordActivity(ProceedingJoinPoint joinPoint, LogActivity logActivity,
                                 Object result, Exception exception) {
 

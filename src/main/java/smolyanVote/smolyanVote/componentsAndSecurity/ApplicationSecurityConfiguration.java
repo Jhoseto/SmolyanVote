@@ -105,7 +105,6 @@ public class ApplicationSecurityConfiguration {
                 )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat")
-                        .ignoringRequestMatchers("/admin/**")// Edinstvenoto reshenie za sega no /admin e zashtiteno ot Roliata"ADMIN"
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

@@ -2,7 +2,6 @@ package smolyanVote.smolyanVote.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import smolyanVote.smolyanVote.models.CommentVoteEntity;
-import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
 
 import java.util.Optional;
