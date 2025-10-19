@@ -34,6 +34,133 @@
                             <a class="nav-link-glass vote-toggle-glass" href="#" onclick="toggleVoteMenu(event)">Vote
                                 <i class="bi bi-chevron-down vote-arrow-glass"></i>
                             </a>
+                            
+                            <!-- Vote Menu Container - ВЪТРЕ В MOBILE MENU -->
+                            <div class="vote-menu-container-glass" id="voteMenuContainer">
+                                <div class="vote-sections-grid-glass">
+                                    <!-- Създай събитие секция -->
+                                    <div class="vote-section-glass">
+                                        <h5 class="vote-section-title-glass">
+                                            <i class="bi bi-plus-circle me-2 text-success"></i>
+                                            Създай събитие
+                                        </h5>
+                                        <div class="vote-items-glass">
+                                            <!-- Опростен вид -->
+                                            <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Опростен вид</h6>
+                                                    <p>Създайте просто гласуване с да/не варианти</p>
+                                                </div>
+                                            </a>
+                                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Опростен вид</h6>
+                                                    <p>Създайте просто гласуване с да/не варианти</p>
+                                                </div>
+                                            </a>
+
+                                            <!-- Референдум -->
+                                            <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-file-earmark-plus"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Референдум</h6>
+                                                    <p>Организирайте вашия референдум</p>
+                                                </div>
+                                            </a>
+                                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-file-earmark-plus"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Референдум</h6>
+                                                    <p>Организирайте вашия референдум</p>
+                                                </div>
+                                            </a>
+
+                                            <!-- Анкета с множествен избор -->
+                                            <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-list-check"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Анкета с множествен избор</h6>
+                                                    <p>Създайте анкета с множество варианти</p>
+                                                </div>
+                                            </a>
+                                            <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-list-check"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Анкета с множествен избор</h6>
+                                                    <p>Създайте анкета с множество варианти</p>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Разгледай събития секция -->
+                                    <div class="vote-section-glass">
+                                        <h5 class="vote-section-title-glass">
+                                            <i class="bi bi-eye me-2 text-primary"></i>
+                                            Прегледай / Гласувай
+                                        </h5>
+                                        <div class="vote-items-glass">
+                                            <!-- Опростени видове -->
+                                            <a href="/mainEvents?type=event" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-eye"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Опростени видове</h6>
+                                                    <p>Вижте всички опростени гласувания</p>
+                                                </div>
+                                            </a>
+
+                                            <!-- Референдуми -->
+                                            <a href="/mainEvents?type=referendum" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-eye"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Референдуми</h6>
+                                                    <p>Прегледайte всички референдуми</p>
+                                                </div>
+                                            </a>
+
+                                            <!-- Анкети -->
+                                            <a href="/mainEvents?type=poll" class="vote-item-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-eye"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Анкети с множествен избор</h6>
+                                                    <p>Вижте всички анкети и въпроси</p>
+                                                </div>
+                                            </a>
+
+                                            <!-- Всички събития -->
+                                            <a href="/mainEvents" class="vote-item-glass vote-item-highlight-glass">
+                                                <div class="vote-item-icon-glass">
+                                                    <i class="bi bi-grid"></i>
+                                                </div>
+                                                <div class="vote-item-content-glass">
+                                                    <h6>Разгледай всички</h6>
+                                                    <p>Общ преглед на всички събития</p>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </li>
 
                         <li class="nav-item-glass"><a class="nav-link-glass" href="/publications">Публикации</a></li>
@@ -122,135 +249,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- Expandable Vote Menu -->
-    <div class="vote-menu-container-glass" id="voteMenuContainer">
-        <div class="vote-sections-grid-glass">
-            <!-- Създай събитие секция -->
-            <div class="vote-section-glass">
-                <h5 class="vote-section-title-glass">
-                    <i class="bi bi-plus-circle me-2 text-success"></i>
-                    Създай събитие
-                </h5>
-                <div class="vote-items-glass">
-                    <!-- Опростен вид -->
-                    <a sec:authorize="isAuthenticated()" th:href="@{/createNewEvent}" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-pencil-square"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Опростен вид</h6>
-                            <p>Създайте просто гласуване с да/не варианти</p>
-                        </div>
-                    </a>
-                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-pencil-square"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Опростен вид</h6>
-                            <p>Създайте просто гласуване с да/не варианти</p>
-                        </div>
-                    </a>
-
-                    <!-- Референдум -->
-                    <a sec:authorize="isAuthenticated()" th:href="@{/referendum}" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-file-earmark-plus"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Референдум</h6>
-                            <p>Организирайте вашия референдум</p>
-                        </div>
-                    </a>
-                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-file-earmark-plus"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Референдум</h6>
-                            <p>Организирайте вашия референдум</p>
-                        </div>
-                    </a>
-
-                    <!-- Анкета с множествен избор -->
-                    <a sec:authorize="isAuthenticated()" th:href="@{/multipoll/createMultiPoll}" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-list-check"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Анкета с множествен избор</h6>
-                            <p>Създайте анкета с множество варианти</p>
-                        </div>
-                    </a>
-                    <a sec:authorize="!isAuthenticated()" href="javascript:void(0);" class="vote-item-glass" onclick="showLoginWarning()">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-list-check"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Анкета с множествен избор</h6>
-                            <p>Създайте анкета с множество варианти</p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Разгледай събития секция -->
-            <div class="vote-section-glass">
-                <h5 class="vote-section-title-glass">
-                    <i class="bi bi-eye me-2 text-primary"></i>
-                    Прегледай / Гласувай
-                </h5>
-
-                <!-- В секцията "Прегледай / Гласувай" -->
-                <div class="vote-items-glass">
-                    <!-- Опростени видове -->
-                    <a href="/mainEvents?type=event" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-eye"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Опростени видове</h6>
-                            <p>Вижте всички опростени гласувания</p>
-                        </div>
-                    </a>
-
-                    <!-- Референдуми -->
-                    <a href="/mainEvents?type=referendum" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-eye"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Референдуми</h6>
-                            <p>Прегледайte всички референдуми</p>
-                        </div>
-                    </a>
-
-                    <!-- Анкети -->
-                    <a href="/mainEvents?type=poll" class="vote-item-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-eye"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Анкети с множествен избор</h6>
-                            <p>Вижте всички анкети и въпроси</p>
-                        </div>
-                    </a>
-
-                    <!-- Всички събития (без филтър) -->
-                    <a href="/mainEvents" class="vote-item-glass vote-item-highlight-glass">
-                        <div class="vote-item-icon-glass">
-                            <i class="bi bi-grid"></i>
-                        </div>
-                        <div class="vote-item-content-glass">
-                            <h6>Разгледай всички</h6>
-                            <p>Общ преглед на всички събития</p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
