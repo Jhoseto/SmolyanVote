@@ -1,112 +1,203 @@
-// Mobile Menu Toggle Function
+/* ============================================
+   MOBILE MENU JAVASCRIPT
+   Управлява mobile navigation menu
+   ============================================ */
+
+let mobileMenuOpen = false;
+let voteMenuOpen = false;
+
+/**
+ * Toggle Mobile Menu
+ */
 function toggleMobileMenu() {
-    console.log('🍔 Mobile menu toggle clicked');
-    
-    const menu = document.getElementById('navbarNavSection');
-    const overlay = document.querySelector('.mobile-menu-overlay');
+    const navSection = document.getElementById('navbarNavSection');
     const body = document.body;
     
-    if (!menu) {
-        console.error('❌ Mobile menu element not found!');
-        return;
-    }
+    if (!navSection) return;
     
-    // Toggle menu visibility
-    if (menu.classList.contains('active')) {
+    if (mobileMenuOpen) {
         // Close menu
-        menu.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
+        navSection.classList.remove('show');
         body.classList.remove('mobile-menu-open');
-        console.log('📱 Mobile menu closed');
+        mobileMenuOpen = false;
     } else {
         // Open menu
-        menu.classList.add('active');
-        if (overlay) overlay.classList.add('active');
+        navSection.classList.add('show');
         body.classList.add('mobile-menu-open');
-        console.log('📱 Mobile menu opened');
+        mobileMenuOpen = true;
     }
 }
 
-// Close menu when clicking outside
-document.addEventListener('click', function(event) {
-    const menu = document.getElementById('navbarNavSection');
-    const toggler = document.querySelector('.mobile-toggler-glass');
-    
-    if (menu && menu.classList.contains('active')) {
-        if (!menu.contains(event.target) && !toggler.contains(event.target)) {
-            menu.classList.remove('active');
-            const overlay = document.querySelector('.mobile-menu-overlay');
-            if (overlay) overlay.classList.remove('active');
-            document.body.classList.remove('mobile-menu-open');
-            console.log('📱 Mobile menu closed by outside click');
-        }
-    }
-});
-
-// Close menu on escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        const menu = document.getElementById('navbarNavSection');
-        if (menu && menu.classList.contains('active')) {
-            menu.classList.remove('active');
-            const overlay = document.querySelector('.mobile-menu-overlay');
-            if (overlay) overlay.classList.remove('active');
-            document.body.classList.remove('mobile-menu-open');
-            console.log('📱 Mobile menu closed by Escape key');
-        }
-    }
-});
-
-// Vote Menu Toggle Function
+/**
+ * Toggle Vote Menu (Accordion in mobile)
+ */
 function toggleVoteMenu(event) {
     event.preventDefault();
-    console.log('🗳️ Vote menu toggle clicked');
     
-    const voteItem = event.target.closest('.nav-item-glass');
-    if (!voteItem) return;
+    const container = document.getElementById('voteMenuContainer');
+    const arrow = document.querySelector('.vote-arrow-glass');
     
-    const voteMenu = voteItem.querySelector('.vote-menu-glass');
-    const arrow = voteItem.querySelector('.vote-arrow-glass');
+    if (!container || !arrow) return;
     
-    if (!voteMenu || !arrow) return;
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 768;
     
-    // Toggle vote menu
-    if (voteItem.classList.contains('vote-menu-open')) {
-        // Close vote menu
-        voteItem.classList.remove('vote-menu-open');
-        voteMenu.style.display = 'none';
-        console.log('🗳️ Vote menu closed');
+    if (isMobile) {
+        // Mobile: Accordion behavior
+        if (voteMenuOpen) {
+            container.classList.remove('show');
+            arrow.classList.remove('rotated');
+            voteMenuOpen = false;
+        } else {
+            container.classList.add('show');
+            arrow.classList.add('rotated');
+            voteMenuOpen = true;
+        }
     } else {
-        // Close other vote menus first
-        document.querySelectorAll('.nav-item-glass.vote-menu-open').forEach(item => {
-            item.classList.remove('vote-menu-open');
-            const menu = item.querySelector('.vote-menu-glass');
-            if (menu) menu.style.display = 'none';
-        });
+        // Desktop: Original behavior (dropdown with overlay)
+        const overlay = document.getElementById('voteOverlay');
         
-        // Open this vote menu
-        voteItem.classList.add('vote-menu-open');
-        voteMenu.style.display = 'flex';
-        console.log('🗳️ Vote menu opened');
+        if (voteMenuOpen) {
+            container.classList.remove('show');
+            arrow.classList.remove('rotated');
+            if (overlay) overlay.classList.remove('show');
+            voteMenuOpen = false;
+        } else {
+            container.classList.add('show');
+            arrow.classList.add('rotated');
+            if (overlay) overlay.classList.add('show');
+            voteMenuOpen = true;
+        }
     }
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 Mobile menu script loaded');
+/**
+ * Close Vote Menu
+ */
+function closeVoteMenu() {
+    const container = document.getElementById('voteMenuContainer');
+    const arrow = document.querySelector('.vote-arrow-glass');
+    const overlay = document.getElementById('voteOverlay');
     
-    // Add overlay if it doesn't exist
-    if (!document.querySelector('.mobile-menu-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.className = 'mobile-menu-overlay';
-        document.body.appendChild(overlay);
-        console.log('📱 Mobile menu overlay created');
+    if (container) container.classList.remove('show');
+    if (arrow) arrow.classList.remove('rotated');
+    if (overlay) overlay.classList.remove('show');
+    voteMenuOpen = false;
+}
+
+/**
+ * Close Mobile Menu
+ */
+function closeMobileMenu() {
+    const navSection = document.getElementById('navbarNavSection');
+    const body = document.body;
+    
+    if (navSection) {
+        navSection.classList.remove('show');
+        body.classList.remove('mobile-menu-open');
+        mobileMenuOpen = false;
+    }
+}
+
+/**
+ * Close menu when clicking outside
+ */
+document.addEventListener('click', function(e) {
+    const navSection = document.getElementById('navbarNavSection');
+    const toggler = document.querySelector('.mobile-toggler-glass');
+    
+    // Close mobile menu if clicking outside
+    if (mobileMenuOpen && 
+        navSection && 
+        !navSection.contains(e.target) && 
+        toggler && 
+        !toggler.contains(e.target)) {
+        closeMobileMenu();
+    }
+});
+
+/**
+ * Close menu on Escape key
+ */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (mobileMenuOpen) closeMobileMenu();
+        if (voteMenuOpen) closeVoteMenu();
+    }
+});
+
+/**
+ * Handle window resize
+ */
+let resizeTimer;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+        // Close mobile menu if resizing to desktop
+        if (window.innerWidth > 768 && mobileMenuOpen) {
+            closeMobileMenu();
+        }
+        
+        // Reset vote menu behavior on resize
+        if (window.innerWidth > 768 && voteMenuOpen) {
+            const container = document.getElementById('voteMenuContainer');
+            if (container) {
+                container.style.maxHeight = '';
+            }
+        }
+    }, 250);
+});
+
+/**
+ * Prevent body scroll when mobile menu is open
+ */
+function preventBodyScroll() {
+    if (mobileMenuOpen) {
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+    } else {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+    }
+}
+
+/**
+ * Initialize mobile menu
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Mobile menu initialized');
+    
+    // Check if mobile menu elements exist
+    const toggler = document.querySelector('.mobile-toggler-glass');
+    const navSection = document.getElementById('navbarNavSection');
+    
+    if (toggler && navSection) {
+        console.log('✅ Mobile menu elements found');
+    } else {
+        console.warn('⚠️ Mobile menu elements not found');
     }
     
-    // Add vote menu event listeners
-    document.querySelectorAll('.vote-toggle-glass').forEach(toggle => {
-        toggle.addEventListener('click', toggleVoteMenu);
+    // Add click listener to all nav links to close menu
+    const navLinks = document.querySelectorAll('.nav-link-glass:not(.vote-toggle-glass)');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
     });
     
-    console.log('🗳️ Vote menu listeners added');
+    // Add click listener to vote items
+    const voteItems = document.querySelectorAll('.vote-item-glass');
+    voteItems.forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
+    });
 });
+
+console.log('✅ mobile-menu.js loaded');

@@ -24,17 +24,6 @@
 
                 <!-- Navigation Section - средата -->
                 <div class="navbar-nav-section-glass" id="navbarNavSection">
-<!--                    &lt;!&ndash; Search Component &ndash;&gt;-->
-<!--                    <form th:action="@{/mainEvents}" method="get" class="search-container-glass">-->
-<!--                        <input type="text" name="search" placeholder="Търси..." class="search-input-glass" th:value="${param.search}" />-->
-<!--                        <button type="submit" class="search-submit-glass">-->
-<!--                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon-glass" fill="none" stroke="currentColor" viewBox="0 0 24 24">-->
-<!--                                <circle cx="11" cy="11" r="8"/>-->
-<!--                                <path d="m21 21-4.35-4.35"/>-->
-<!--                            </svg>-->
-<!--                        </button>-->
-<!--                    </form>-->
-
                     <!-- Navigation Links -->
                     <ul class="nav-links-glass">
                         <li class="nav-item-glass"><a class="nav-link-glass" href="/">Начало</a></li>
@@ -52,6 +41,41 @@
                         <li class="nav-item-glass"><a class="nav-link-glass" href="/podcast">Podcast</a></li>
                         <li class="nav-item-glass"><a class="nav-link-glass" href="/contacts">Контакти</a></li>
                     </ul>
+                    
+                    <!-- Auth Buttons for Mobile (shown only when NOT authenticated) -->
+                    <div class="auth-buttons-glass" sec:authorize="!isAuthenticated()">
+                        <a class="auth-link-glass" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Вход</a>
+                        <a class="auth-link-glass" href="/register">Регистрация</a>
+                    </div>
+                    
+                    <!-- Profile Dropdown for Mobile (shown only when authenticated) -->
+                    <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
+                        <a class="profile-toggle-glass d-flex align-items-center" href="#" role="button">
+                            <div class="profile-image-glass avatar-placeholder"
+                                 th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
+                            </div>
+                            <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
+                        </a>
+                        <ul class="dropdown-menu-glass dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item-glass" href="/profile">
+                                    <i class="bi bi-person-circle"></i> Профил
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item-glass" href="/admin/dashboard">
+                                    <i class="bi bi-gear"></i> Admin
+                                </a>
+                            </li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item-glass logout-btn-glass">
+                                        <i class="bi bi-box-arrow-right"></i> Изход
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- Auth/Profile Section - вдясно -->
