@@ -594,3 +594,163 @@
         display: none !important;
     }
 }
+
+/* ============================================
+   MOBILE NAVBAR OPTIMIZATION - PORTRAIT ONLY
+   ============================================ */
+@media (max-width: 768px) and (orientation: portrait) {
+    /* Navbar Container - Compact Height */
+    .navbar-glassmorphism {
+        height: 48px !important;
+        padding: 0 !important;
+    }
+    
+    .navbar-content {
+        padding: 6px 12px !important;
+        height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        background: rgba(25, 134, 28, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+    }
+    
+    /* Brand Section - Compact */
+    .navbar-brand-section {
+        display: flex !important;
+        align-items: center !important;
+        margin-left: 0 !important;
+    }
+    
+    .navbar-brand-glass {
+        padding: 2px 4px !important;
+        gap: 6px !important;
+    }
+    
+    .brand-logo-glass {
+        height: 24px !important;
+        width: 24px !important;
+    }
+    
+    .brand-text-glass {
+        color: white !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+    }
+    
+    /* Mobile Toggler - Visible */
+    .mobile-toggler-glass {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-direction: column !important;
+        cursor: pointer !important;
+        z-index: 10 !important;
+        border-radius: 8px !important;
+        padding: 6px !important;
+    }
+    
+    /* Auth Profile Section - Mobile */
+    .auth-profile-section-glass {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-left: none !important;
+        position: static !important;
+    }
+    
+    .auth-profile-section-glass::before {
+        display: none !important;
+    }
+    
+    .toggler-line-glass {
+        width: 22px !important;
+        height: 3px !important;
+        margin: 2px 0 !important;
+        background-color: white !important;
+        border-radius: 2px !important;
+    }
+    
+    /* Auth Buttons - Compact */
+    .auth-buttons-glass {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        width: 100% !important;
+    }
+    
+    .auth-link-glass {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 10px 16px !important;
+        margin: 0 !important;
+        display: block !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        border-radius: 8px !important;
+        min-height: 40px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .auth-link-glass:first-of-type {
+        background: rgba(255, 255, 255, 0.25) !important;
+    }
+    
+    .auth-link-glass:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    /* Mobile Menu - Hidden by default */
+    .navbar-nav-section-glass {
+        position: fixed !important;
+        top: 48px !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(25, 134, 28, 0.98) !important;
+        transform: translateX(100%) !important;
+        transition: transform 0.3s ease !important;
+        z-index: 1020 !important;
+        padding: 20px 16px !important;
+        overflow-y: auto !important;
+    }
+    
+    .navbar-nav-section-glass.active {
+        transform: translateX(0) !important;
+    }
+    
+    /* Nav Links - Mobile */
+    .nav-links-glass {
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+    
+    .nav-link-glass {
+        display: flex !important;
+        align-items: center !important;
+        padding: 12px 16px !important;
+        color: white !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        border-radius: 8px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        text-decoration: none !important;
+        min-height: 44px !important;
+    }
+}
