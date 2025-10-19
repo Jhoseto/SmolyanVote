@@ -117,10 +117,6 @@
   border: none !important;
 }
 
-/* PWA Button - СКРИВАМЕ */
-.pwa-install-btn-desktop {
-  display: none !important;
-}
 
 /* Auth Buttons - СКРИВАМЕ от navbar, ще са в менюто */
 .auth-profile-section-glass .auth-buttons-glass {
