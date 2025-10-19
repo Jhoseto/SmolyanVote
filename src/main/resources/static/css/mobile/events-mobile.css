@@ -3,7 +3,7 @@
    Simple Events, Referendums, Multi-Polls
    ============================================ */
 
-@media (max-width: 360px) and (orientation: portrait) {`n`n/* Events Page Layout */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Events Page Layout */
 .events-container {
   padding: 16px 0 !important;
 }
@@ -414,4 +414,4 @@
 }
 
 
-} /* End of @media (max-width: 360px) and (orientation: portrait) */
+} /* End of @media (max-width: 480px) and (orientation: portrait) */

@@ -3,7 +3,7 @@
    Interactive Map, Signal Cards, Geolocation
    ============================================ */
 
-@media (max-width: 360px) and (orientation: portrait) {`n`n/* Signals Page Layout */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Signals Page Layout */
 .signals-page {
   height: 100vh !important;
   display: flex !important;
@@ -649,4 +649,4 @@
 }
 
 
-} /* End of @media (max-width: 360px) and (orientation: portrait) */
+} /* End of @media (max-width: 480px) and (orientation: portrait) */
