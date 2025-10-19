@@ -3,7 +3,9 @@
    Nested comments, replies, reactions
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Comments Section */
+@media (max-width: 768px) {
+
+/* Comments Section */
 .comments-section {
   padding: 0 !important;
 }

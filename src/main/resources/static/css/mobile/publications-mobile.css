@@ -3,7 +3,9 @@
    Card layout, filters, interactions
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Publications Page Layout */
+@media (max-width: 768px) {
+
+/* Publications Page Layout */
 .publications-container {
   padding: 16px 0 !important;
 }

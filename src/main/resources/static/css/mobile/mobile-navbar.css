@@ -1,8 +1,15 @@
 /* ============================================
    MOBILE NAVBAR - PROPER DROPDOWN DESIGN
+   Optimized for touch devices & perfect UX
    ============================================ */
 
 @media (max-width: 768px) {
+
+/* Remove iOS tap highlights globally for navbar */
+.navbar-glassmorphism * {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+}
 
 /* NAVBAR - Keep desktop glassmorphism */
 .navbar-glassmorphism {
@@ -17,9 +24,31 @@
   align-items: center !important;
 }
 
-/* BRAND - Compact */
+/* HAMBURGER - LEFT side, visible, touch-optimized */
+.mobile-toggler-glass {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 48px !important; /* Larger touch target */
+  height: 48px !important;
+  gap: 5px !important;
+  cursor: pointer !important;
+  order: 1 !important; /* First - left side */
+  border-radius: 10px !important;
+  background: rgba(76, 175, 80, 0.08) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  -webkit-tap-highlight-color: transparent !important; /* Remove iOS tap highlight */
+  margin-right: 8px !important;
+}
+
+/* BRAND - Center */
 .navbar-brand-section {
-  order: 1 !important;
+  order: 2 !important;
+  flex: 1 !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
 .brand-logo-glass {
@@ -31,25 +60,28 @@
   font-size: 16px !important;
 }
 
-/* HAMBURGER - Right side, visible */
-.mobile-toggler-glass {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  width: 44px !important;
-  height: 44px !important;
-  gap: 5px !important;
-  cursor: pointer !important;
-  order: 3 !important;
-  border-radius: 8px !important;
-  background: rgba(76, 175, 80, 0.08) !important;
-  transition: all 0.2s ease !important;
+/* Ripple effect on tap */
+.mobile-toggler-glass::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(76, 175, 80, 0.3) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: width 0.4s ease, height 0.4s ease !important;
 }
 
 .mobile-toggler-glass:active {
   background: rgba(76, 175, 80, 0.15) !important;
-  transform: scale(0.95) !important;
+  transform: scale(0.92) !important;
+}
+
+.mobile-toggler-glass:active::before {
+  width: 60px !important;
+  height: 60px !important;
 }
 
 .toggler-line-glass {
@@ -78,6 +110,115 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   display: none !important;
 }
 
+/* NOTIFICATIONS - Right side, visible */
+.notification-wrapper {
+  order: 3 !important; /* Last - right side */
+  margin-left: auto !important;
+}
+
+.notification-bell {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  background: rgba(76, 175, 80, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+
+.notification-bell:active {
+  background: rgba(76, 175, 80, 0.15) !important;
+  transform: scale(0.92) !important;
+}
+
+.notification-bell i {
+  font-size: 24px !important;
+  color: #4cb15c !important;
+}
+
+/* NOTIFICATION DROPDOWN - Mobile optimized */
+.notification-dropdown {
+  position: fixed !important; /* Changed from absolute */
+  top: 56px !important; /* Below navbar */
+  left: 8px !important;
+  right: 8px !important;
+  width: auto !important; /* Full width with margins */
+  max-height: calc(100vh - 64px) !important; /* Full screen minus navbar */
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  z-index: 1041 !important; /* Above everything */
+  transform: translateY(-10px) scale(0.95) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.notification-dropdown.active {
+  transform: translateY(0) scale(1) !important;
+}
+
+/* Backdrop for notifications */
+.notification-dropdown.active::before {
+  content: '' !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  z-index: -1 !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.notification-list {
+  max-height: calc(100vh - 140px) !important; /* Account for header/footer */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Notification badge - more visible */
+.notification-badge {
+  min-width: 20px !important;
+  height: 20px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+/* Notification items - touch-friendly */
+.notification-item {
+  padding: 16px !important;
+  min-height: 80px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.notification-item:active {
+  background: #f8f9fa !important;
+}
+
+.notification-header {
+  padding: 16px 20px !important;
+  position: sticky !important;
+  top: 0 !important;
+  background: white !important;
+  z-index: 1 !important;
+}
+
+.notification-header h3 {
+  font-size: 18px !important;
+}
+
+.notification-footer {
+  padding: 16px 20px !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  background: white !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.notification-footer button {
+  min-height: 44px !important;
+  font-size: 15px !important;
+}
+
 /* MOBILE DROPDOWN - Proper mobile design */
 .navbar-nav-section-glass {
   position: absolute !important;
@@ -90,17 +231,38 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   transform: translateY(-100%) !important;
   opacity: 0 !important;
   visibility: hidden !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.3s ease,
+              visibility 0s 0.35s !important; /* Delay hiding */
   z-index: 1025 !important;
-  max-height: 80vh !important;
+  max-height: calc(100vh - 56px) !important; /* Full screen minus navbar */
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e0 transparent !important;
+}
+
+/* Custom scrollbar for webkit */
+.navbar-nav-section-glass::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.navbar-nav-section-glass::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.navbar-nav-section-glass::-webkit-scrollbar-thumb {
+  background: #cbd5e0 !important;
+  border-radius: 2px !important;
 }
 
 .navbar-nav-section-glass.show {
   transform: translateY(0) !important;
   opacity: 1 !important;
   visibility: visible !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.3s ease !important; /* No delay on show */
 }
 
 /* NAV LINKS - Clean mobile list */
@@ -125,6 +287,24 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   border-bottom: 1px solid #f0f0f0 !important;
+  min-height: 52px !important; /* Touch-friendly */
+  position: relative !important;
+}
+
+/* Subtle left border accent on active */
+.nav-link-glass::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 0 !important;
+  background: #4cb15c !important;
+  transition: width 0.2s ease !important;
+}
+
+.nav-link-glass:active::before {
+  width: 4px !important;
 }
 
 .nav-link-glass:last-child {
@@ -133,6 +313,7 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 
 .nav-link-glass:active {
   background: #f8f9fa !important;
+  transform: translateX(4px) !important;
 }
 
 /* VOTE DROPDOWN - Mobile accordion */
@@ -147,15 +328,24 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   transform: rotate(180deg) !important;
 }
 
+/* Visual hint when vote menu is open */
+.vote-toggle-glass.active {
+  background: rgba(76, 175, 80, 0.05) !important;
+}
+
 .vote-menu-container-glass {
   max-height: 0 !important;
   overflow: hidden !important;
   transition: max-height 0.3s ease !important;
   background: #f8f9fa !important;
+  position: relative !important;
 }
 
 .vote-menu-container-glass.show {
   max-height: 500px !important;
+  border-radius: 8px !important;
+  margin-top: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Vote sections - Mobile cards */
@@ -227,16 +417,21 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 
 .vote-item-content-glass h6 {
   font-size: 14px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: #212529 !important;
-  margin: 0 0 2px 0 !important;
+  margin: 0 0 4px 0 !important;
+  line-height: 1.3 !important;
 }
 
 .vote-item-content-glass p {
   font-size: 12px !important;
   color: #6c757d !important;
   margin: 0 !important;
-  line-height: 1.3 !important;
+  line-height: 1.4 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
 
 /* AUTH BUTTONS - Mobile style */
@@ -254,13 +449,38 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   align-items: center !important;
   justify-content: center !important;
   padding: 16px 20px !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
   color: white !important;
-  background: #4cb15c !important;
+  background: linear-gradient(135deg, #4cb15c 0%, #3a9b4a 100%) !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   border-bottom: 1px solid #e9ecef !important;
+  min-height: 56px !important; /* Touch-friendly */
+  border-radius: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Ripple effect on touch */
+.navbar-nav-section-glass .auth-link-glass::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: width 0.6s, height 0.6s !important;
+}
+
+.navbar-nav-section-glass .auth-link-glass:active::after {
+  width: 300px !important;
+  height: 300px !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass:last-child {
@@ -270,18 +490,20 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 .navbar-nav-section-glass .auth-link-glass:nth-of-type(2) {
   background: white !important;
   color: #4cb15c !important;
-  border: 1px solid #4cb15c !important;
+  border: 2px solid #4cb15c !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass:active {
-  background: #3a9b4a !important;
+  background: linear-gradient(135deg, #3a9b4a 0%, #2d7a38 100%) !important;
+  transform: scale(0.98) !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass:nth-of-type(2):active {
-  background: #f8f9fa !important;
+  background: #f0f9f1 !important;
+  transform: scale(0.98) !important;
 }
 
-/* PROFILE - Mobile style */
+/* PROFILE - Mobile style - Consistent with nav links */
 .navbar-nav-section-glass .profile-dropdown-glass {
   margin-top: 8px !important;
   padding-top: 8px !important;
@@ -293,16 +515,28 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   align-items: center !important;
   gap: 12px !important;
   padding: 16px 20px !important;
-  background: #f8f9fa !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #212529 !important;
+  background: white !important;
+  border-radius: 0 !important;
   text-decoration: none !important;
-  border-bottom: 1px solid #e9ecef !important;
+  transition: all 0.2s ease !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  min-height: 56px !important; /* Touch-friendly */
+}
+
+.navbar-nav-section-glass .profile-toggle-glass:active {
+  background: #f8f9fa !important;
 }
 
 .navbar-nav-section-glass .profile-image-glass {
-  width: 40px !important;
-  height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 50% !important;
   border: 2px solid #4cb15c !important;
+  flex-shrink: 0 !important;
+  object-fit: cover !important;
 }
 
 .navbar-nav-section-glass .username-glass {
@@ -310,12 +544,16 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   font-size: 16px !important;
   font-weight: 600 !important;
   color: #212529 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
+/* Profile dropdown items - Consistent style */
 .navbar-nav-section-glass .dropdown-menu-glass {
   margin: 0 !important;
   padding: 0 !important;
-  background: white !important;
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   display: block !important;
@@ -326,13 +564,15 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
-  padding: 12px 20px !important;
-  font-size: 14px !important;
+  padding: 16px 20px 16px 56px !important; /* Indent to align with username */
+  font-size: 15px !important;
   font-weight: 500 !important;
   color: #212529 !important;
+  background: #f8f9fa !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
-  border-bottom: 1px solid #f0f0f0 !important;
+  border-bottom: 1px solid #e9ecef !important;
+  min-height: 52px !important; /* Touch-friendly */
 }
 
 .navbar-nav-section-glass .dropdown-item-glass:last-child {
@@ -340,14 +580,30 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 }
 
 .navbar-nav-section-glass .dropdown-item-glass:active {
-  background: #f8f9fa !important;
+  background: #e9ecef !important;
+  transform: translateX(4px) !important;
 }
 
 .navbar-nav-section-glass .dropdown-item-glass i {
-  font-size: 16px !important;
+  font-size: 18px !important;
+  color: #6c757d !important;
+  flex-shrink: 0 !important;
 }
 
+/* Logout button - Red accent */
 .navbar-nav-section-glass .logout-btn-glass {
+  color: #dc3545 !important;
+  border: none !important;
+  background: #f8f9fa !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.navbar-nav-section-glass .logout-btn-glass:active {
+  background: #fee !important;
+}
+
+.navbar-nav-section-glass .logout-btn-glass i {
   color: #dc3545 !important;
 }
 

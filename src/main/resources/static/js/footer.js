@@ -164,3 +164,57 @@ function initializeNewsletterForm() {
         }
     });
 }
+
+/**
+ * Back to Top Button Functionality
+ * Works universally across all pages
+ */
+function initializeBackToTop() {
+    // Check if back-to-top button exists, if not create it
+    let backToTopBtn = document.querySelector('.back-to-top');
+    
+    if (!backToTopBtn) {
+        backToTopBtn = document.createElement('button');
+        backToTopBtn.className = 'back-to-top';
+        backToTopBtn.setAttribute('aria-label', 'Връщане в началото');
+        backToTopBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+        document.body.appendChild(backToTopBtn);
+    }
+
+    // Show/hide button based on scroll position
+    let scrollTimeout;
+    window.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            if (window.pageYOffset > 400) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        }, 100);
+    });
+
+    // Scroll to top when clicked
+    backToTopBtn.addEventListener('click', function() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Keyboard accessibility
+    backToTopBtn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    });
+}
+
+// Initialize back to top button
+document.addEventListener('DOMContentLoaded', function() {
+    initializeBackToTop();
+});

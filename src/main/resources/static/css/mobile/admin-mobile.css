@@ -3,7 +3,9 @@
    Simplified admin interface for mobile
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Admin Container */
+@media (max-width: 768px) {
+
+/* Admin Container */
 .admin-container {
   padding: 16px !important;
   padding-bottom: 100px !important;

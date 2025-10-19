@@ -3,7 +3,9 @@
    Touch-friendly form controls
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Form Groups */
+@media (max-width: 768px) {
+
+/* Form Groups */
 .form-group,
 .mb-3 {
   margin-bottom: 20px !important;
