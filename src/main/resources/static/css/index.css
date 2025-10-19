@@ -1032,3 +1032,81 @@ mux-player {
   font-weight: 500;
   opacity: 0.8;
 }
+
+/* ============================================
+   MOBILE STYLES - DIRECT IN INDEX.CSS
+   ============================================ */
+@media (max-width: 768px) and (orientation: portrait) {
+  /* Test body background */
+  body {
+    background-color: lightblue !important;
+  }
+  
+  /* Test navbar visibility */
+  .navbar-glassmorphism {
+    background-color: red !important;
+    border: 3px solid yellow !important;
+    height: 48px !important;
+  }
+  
+  .navbar-content {
+    background-color: orange !important;
+    border: 2px solid purple !important;
+    padding: 6px 12px !important;
+    height: 48px !important;
+  }
+  
+  /* Test mobile toggler */
+  .mobile-toggler-glass {
+    background-color: lime !important;
+    border: 3px solid black !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Test auth buttons */
+  .auth-link-glass {
+    background-color: pink !important;
+    border: 2px solid red !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    margin: 4px 0 !important;
+  }
+  
+  /* Test brand */
+  .brand-text-glass {
+    color: yellow !important;
+    font-size: 10px !important;
+  }
+  
+  /* Mobile navbar adjustments */
+  .navbar-brand-glass {
+    padding: 2px 4px !important;
+  }
+  
+  .brand-logo-glass {
+    height: 24px !important;
+    width: 24px !important;
+  }
+  
+  /* Mobile menu */
+  .navbar-nav-section-glass {
+    position: fixed !important;
+    top: 48px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(25, 134, 28, 0.98) !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.3s ease !important;
+    z-index: 1020 !important;
+    padding: 20px 16px !important;
+  }
+  
+  .navbar-nav-section-glass.active {
+    transform: translateX(0) !important;
+  }
+}
