@@ -12,11 +12,11 @@
    ============================================ */
 :root {
   /* РАЗМЕР НА СНИМКАТА */
-  --mobile-hero-image-size: cover;  
+  --mobile-hero-image-size: 1140px;  
   /* Опции: cover (запълва), contain (побира се), 150%, 200%, 300% и т.н. */
   
   /* ПОЗИЦИЯ ХОРИЗОНТАЛНА (ляво-дясно) */
-  --mobile-hero-image-x: center;
+  --mobile-hero-image-x: -65px;
   /* Опции: left (ляво), center (център), right (дясно), 0%, 50%, 100% и т.н. */
   
   /* ПОЗИЦИЯ ВЕРТИКАЛНА (горе-долу) */
@@ -24,7 +24,7 @@
   /* Опции: top (горе), center (център), bottom (долу), 0%, 50%, 100% и т.н. */
   
   /* ВИСОЧИНА НА HERO СЕКЦИЯТА */
-  --mobile-hero-height: 60vh;
+  --mobile-hero-height: 50vh;
   /* Опции: 50vh, 60vh, 70vh, 80vh, 100vh и т.н. */
 }
 
@@ -33,7 +33,7 @@
    ============================================ */
 .hero {
   min-height: var(--mobile-hero-height) !important;
-  padding: 40px 0 !important;
+  padding: 10px 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -99,13 +99,13 @@
    2. TITLE SECTION - COMPACT
    ============================================ */
 .title-section {
-  padding: 40px 16px !important;
-  margin: 0 !important;
+  padding: 15px 0 !important;
+  margin: 18px !important;
 }
 
 .clickable-title {
   text-align: center !important;
-  padding: 20px 16px !important;
+  padding: 14px 0px !important;
   cursor: pointer !important;
 }
 

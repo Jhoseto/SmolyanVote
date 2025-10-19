@@ -2050,7 +2050,7 @@ F
     }
 
     .scroll-to-top {
-        bottom: 80px; /* Над filter toggle */
+        display: none !important; /* Скрит на мобилни - използва се глобалния .back-to-top от footer */
     }
 
     /* ====== MOBILE RESPONSIVE ЗА НОВАТА СТРУКТУРА ====== */
@@ -2111,10 +2111,7 @@ F
     }
 
     .scroll-to-top {
-        width: 44px;
-        height: 44px;
-        font-size: 18px;
-        bottom: 70px;
+        display: none !important; /* Скрит на мобилни */
     }
 
     .post-stats {

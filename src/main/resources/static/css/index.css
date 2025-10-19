@@ -79,8 +79,8 @@ body {
 /* ====== HERO НАСТРОЙКИ ЗА СНИМКАТА  ====== */
 :root {
     /* СНИМКА НАСТРОЙКИ */
-    --hero-image-size: 1900px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
-    --hero-image-x: 20px;            /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
+    --hero-image-size: 1905px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
+    --hero-image-x: 0;            /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
     --hero-image-y: 40px;            /* ГОРЕ-ДОЛУ: top, center, bottom или 0% до 100% */
 
     /* ЦВЕТОВЕ И ЕФЕКТИ */
