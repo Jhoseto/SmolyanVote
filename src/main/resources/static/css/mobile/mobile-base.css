@@ -74,8 +74,8 @@ input[type="submit"],
 .bi,
 .icon,
 i[class*="bi-"] {
-  padding: 8px !important;
-  margin: -8px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Form Controls */
