@@ -110,15 +110,17 @@
     transition: all 0.3s ease;
 }
 
-/* Navigation Section - ориентирана наляво с разстояние от auth */
-.navbar-nav-section-glass {
-    display: flex;
-    align-items: center;
-    gap: 5rem;
-    flex: 1; /* Заема останалото пространство */
-    justify-content: flex-end;
-    max-width: none; /* Премахваме ограничението */
-    margin-right: 5rem; /* Добавяме разстояние до auth секцията */
+/* Navigation Section - desktop only */
+@media (min-width: 769px) {
+    .navbar-nav-section-glass {
+        display: flex;
+        align-items: center;
+        gap: 5rem;
+        flex: 1;
+        justify-content: flex-end;
+        max-width: none;
+        margin-right: 5rem;
+    }
 }
 
 /* Search Component в navigation section-а */
@@ -159,119 +161,123 @@
     pointer-events: none;
 }
 
-/* Navigation Links - като обикновени надписи */
-.nav-links-glass {
-    display: flex;
-    align-items: center;
-    gap: 2.0rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+/* Navigation Links - desktop only */
+@media (min-width: 769px) {
+    .nav-links-glass {
+        display: flex;
+        align-items: center;
+        gap: 2.0rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .nav-item-glass {
+        list-style: none;
+    }
+
+    .nav-link-glass {
+        font-family: var(--font-primary);
+        font-size: 0.9rem;
+        font-weight: 100;
+        color: var(--text-primary);
+        text-decoration: none;
+        padding: 0.3rem 0;
+        transition: all 0.3s ease;
+        position: relative;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .nav-link-glass::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(45deg, var(--primary-green), var(--accent-green));
+        transition: all 0.3s ease;
+    }
+
+    .nav-link-glass:hover {
+        color: var(--primary-green);
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .nav-link-glass:hover::after {
+        width: 100%;
+    }
+
+    /* Vote Toggle - desktop */
+    .vote-toggle-glass {
+        color: var(--text-primary) !important;
+        background: none !important;
+        border: none !important;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-weight: 100;
+        padding-bottom: 7px;
+    }
+
+    .vote-toggle-glass:hover {
+        color: var(--primary-green) !important;
+    }
+
+    .vote-arrow-glass {
+        transition: transform 0.3s ease;
+        font-size: 0.7rem;
+        padding-top: 5px;
+    }
+
+    .vote-arrow-glass.rotated {
+        transform: rotate(180deg);
+    }
+} /* End desktop nav styles */
+
+/* Auth/Profile Section - desktop only */
+@media (min-width: 769px) {
+    .auth-profile-section-glass {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1040;
+        justify-content: flex-end;
+        border-left: 0 solid rgba(255, 255, 255, 0.15);
+        margin-left: 1rem;
+    }
+
+    .auth-profile-section-glass::before {
+        content: '';
+        position: absolute;
+        left: -1rem;
+        top: 20%;
+        bottom: 20%;
+        width: 0;
+        background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 20%,
+        rgba(255, 255, 255, 0.3) 80%,
+        transparent 100%);
+        pointer-events: none;
+    }
 }
 
-.nav-item-glass {
-    list-style: none;
-}
+/* Auth Buttons & Links - desktop only */
+@media (min-width: 769px) {
+    .auth-buttons-glass {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
 
-.nav-link-glass {
-    font-family: var(--font-primary);
-    font-size: 0.9rem;
-    font-weight: 100;
-    color: var(--text-primary);
-    text-decoration: none;
-    padding: 0.3rem 0;
-    transition: all 0.3s ease;
-    position: relative;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.nav-link-glass::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(45deg, var(--primary-green), var(--accent-green));
-    transition: all 0.3s ease;
-}
-
-.nav-link-glass:hover {
-    color: var(--primary-green);
-    text-decoration: none;
-    transform: translateY(-1px);
-}
-
-.nav-link-glass:hover::after {
-    width: 100%;
-}
-
-/* Vote Toggle - обикновен надпис с arrow */
-.vote-toggle-glass {
-    color: var(--text-primary) !important;
-    background: none !important;
-    border: none !important;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-weight: 100;
-    padding-bottom: 7px;
-}
-
-.vote-toggle-glass:hover {
-    color: var(--primary-green) !important;
-}
-
-.vote-arrow-glass {
-    transition: transform 0.3s ease;
-    font-size: 0.7rem;
-    padding-top: 5px;
-}
-
-.vote-arrow-glass.rotated {
-    transform: rotate(180deg);
-}
-
-/* Auth/Profile Section - най-вдясно (нова структура) */
-.auth-profile-section-glass {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1040;
-    justify-content: flex-end; /* Подравнява съдържанието вдясно */
-    border-left: 0 solid rgba(255, 255, 255, 0.15); /* Визуално разграничение */
-    margin-left: 1rem; /* Допълнително разстояние */
-}
-
-/* Subtle визуален акцент за auth секцията */
-.auth-profile-section-glass::before {
-    content: '';
-    position: absolute;
-    left: -1rem;
-    top: 20%;
-    bottom: 20%;
-    width: 0;
-    background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.3) 20%,
-    rgba(255, 255, 255, 0.3) 80%,
-    transparent 100%);
-    pointer-events: none;
-}
-
-/* Auth Buttons Container */
-.auth-buttons-glass {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-/* Auth Links като привлекателни бутони */
-.auth-link-glass {
+    /* Auth Links като привлекателни бутони */
+    .auth-link-glass {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--white);
@@ -426,11 +432,12 @@
     transition: all 0.3s ease;
 }
 
-.username-glass {
-    font-weight: 100;
-    font-size: 1rem;
-    padding-right: 12px;
-}
+    .username-glass {
+        font-weight: 100;
+        font-size: 1rem;
+        padding-right: 12px;
+    }
+} /* End auth & profile desktop styles */
 
 /* Dropdown Menu - оправен z-index */
 .dropdown-menu-glass {
@@ -488,28 +495,17 @@
     text-align: left;
 }
 
-/* Mobile Toggler - основни стилове */
-.mobile-toggler-glass {
-    display: none;
-    flex-direction: column;
-    gap: 3px;
-    padding: 0.4rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.toggler-line-glass {
-    width: 20px;
-    height: 2px;
-    background: var(--text-primary);
-    border-radius: 1px;
-    transition: all 0.3s ease;
-}
-
-.mobile-toggler-glass:hover .toggler-line-glass {
-    background: var(--primary-green);
+/* Mobile elements - hide on desktop */
+@media (min-width: 769px) {
+    .mobile-toggler-glass {
+        display: none !important;
+    }
+    
+    /* Hide mobile auth/profile that's inside mobile menu */
+    .navbar-nav-section-glass .auth-buttons-glass,
+    .navbar-nav-section-glass .profile-dropdown-glass {
+        display: none !important;
+    }
 }
 
 /* Vote Menu Container */
