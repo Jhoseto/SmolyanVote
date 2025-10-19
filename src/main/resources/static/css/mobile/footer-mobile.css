@@ -3,7 +3,7 @@
    Compact footer for mobile devices
    ============================================ */
 
-@media (max-width: 480px) and (orientation: portrait) {`n`n/* Footer Container */
+@media (max-width: 360px) and (orientation: portrait) {`n`n/* Footer Container */
 .footer {
   padding: 32px 16px 24px 16px !important;
   margin-top: 48px !important;
@@ -266,4 +266,4 @@
 }
 
 
-} /* End of @media (max-width: 480px) and (orientation: portrait) */
+} /* End of @media (max-width: 360px) and (orientation: portrait) */
