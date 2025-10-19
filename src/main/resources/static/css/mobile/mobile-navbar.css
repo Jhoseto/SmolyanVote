@@ -48,7 +48,7 @@
   order: 2 !important;
   flex: 1 !important;
   display: flex !important;
-  justify-content: center !important;
+  justify-content: left !important;
 }
 
 .brand-logo-glass {
@@ -279,7 +279,8 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 .nav-link-glass {
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
   padding: 16px 20px !important;
   font-size: 16px !important;
   font-weight: 500 !important;
@@ -289,6 +290,16 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   border-bottom: 1px solid #f0f0f0 !important;
   min-height: 52px !important; /* Touch-friendly */
   position: relative !important;
+}
+
+.nav-link-glass i {
+  font-size: 20px !important;
+  color: #4cb15c !important;
+  flex-shrink: 0 !important;
+}
+
+.nav-link-glass span {
+  flex: 1 !important;
 }
 
 /* Subtle left border accent on active */
@@ -317,10 +328,19 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 }
 
 /* VOTE DROPDOWN - Mobile accordion */
+.vote-toggle-glass {
+  justify-content: space-between !important;
+}
+
+.vote-toggle-glass i:first-child {
+  margin-right: 12px !important;
+}
+
 .vote-arrow-glass {
   font-size: 14px !important;
   color: #6c757d !important;
   transition: transform 0.3s ease !important;
+  margin-left: auto !important;
 }
 
 .vote-toggle-glass.active .vote-arrow-glass,
@@ -342,7 +362,9 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 }
 
 .vote-menu-container-glass.show {
-  max-height: 500px !important;
+  max-height: 1000px !important; /* Increased from 500px to show all content */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   border-radius: 8px !important;
   margin-top: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
@@ -448,6 +470,7 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  gap: 10px !important;
   padding: 16px 20px !important;
   font-size: 17px !important;
   font-weight: 700 !important;
@@ -462,6 +485,11 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   letter-spacing: 0.5px !important;
   position: relative !important;
   overflow: hidden !important;
+}
+
+.navbar-nav-section-glass .auth-link-glass i {
+  font-size: 22px !important;
+  color: white !important;
 }
 
 /* Ripple effect on touch */

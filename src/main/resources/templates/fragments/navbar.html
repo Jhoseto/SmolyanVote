@@ -26,12 +26,24 @@
                 <div class="navbar-nav-section-glass" id="navbarNavSection">
                     <!-- Navigation Links -->
                     <ul class="nav-links-glass">
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/">Начало</a></li>
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/about">За нас</a></li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/">
+                                <i class="bi bi-house-door"></i>
+                                <span>Начало</span>
+                            </a>
+                        </li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/about">
+                                <i class="bi bi-info-circle"></i>
+                                <span>За нас</span>
+                            </a>
+                        </li>
 
                         <!-- Vote Link with Expand -->
                         <li class="nav-item-glass">
-                            <a class="nav-link-glass vote-toggle-glass" href="#" onclick="toggleVoteMenu(event)">Vote
+                            <a class="nav-link-glass vote-toggle-glass" href="#" onclick="toggleVoteMenu(event)">
+                                <i class="bi bi-hand-index-thumb"></i>
+                                <span>Vote</span>
                                 <i class="bi bi-chevron-down vote-arrow-glass"></i>
                             </a>
                             
@@ -163,16 +175,42 @@
                             </div>
                         </li>
 
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/publications">Публикации</a></li>
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/signals/mainView">Карта/Сигнали</a></li>
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/podcast">Podcast</a></li>
-                        <li class="nav-item-glass"><a class="nav-link-glass" href="/contacts">Контакти</a></li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/publications">
+                                <i class="bi bi-newspaper"></i>
+                                <span>Публикации</span>
+                            </a>
+                        </li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/signals/mainView">
+                                <i class="bi bi-geo-alt"></i>
+                                <span>Карта/Сигнали</span>
+                            </a>
+                        </li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/podcast">
+                                <i class="bi bi-broadcast"></i>
+                                <span>Podcast</span>
+                            </a>
+                        </li>
+                        <li class="nav-item-glass">
+                            <a class="nav-link-glass" href="/contacts">
+                                <i class="bi bi-envelope"></i>
+                                <span>Контакти</span>
+                            </a>
+                        </li>
                     </ul>
                     
                     <!-- Auth Buttons for Mobile (shown only when NOT authenticated) -->
                     <div class="auth-buttons-glass" sec:authorize="!isAuthenticated()">
-                        <a class="auth-link-glass" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Вход</a>
-                        <a class="auth-link-glass" href="/register">Регистрация</a>
+                        <a class="auth-link-glass" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <span>Вход</span>
+                        </a>
+                        <a class="auth-link-glass" href="/register">
+                            <i class="bi bi-person-plus"></i>
+                            <span>Регистрация</span>
+                        </a>
                     </div>
                     
                     <!-- Profile Dropdown for Mobile (shown only when authenticated) -->
