@@ -82,10 +82,6 @@
 }
 
 /* Publication Detail Modal */
-#publicationDetailModal .modal-dialog {
-  /* Same fullscreen rules apply */
-}
-
 #publicationDetailModal .modal-post-content {
   font-size: 15px !important;
   line-height: 1.6 !important;
@@ -230,40 +226,196 @@
   color: #adb5bd !important;
 }
 
-/* Login Modal */
+/* Login Modal - Mobile Optimized */
 #loginModal .modal-dialog {
-  margin: auto !important;
-  height: auto !important;
-  max-height: 90vh !important;
+  margin: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 #loginModal .modal-content {
-  border-radius: 20px 20px 0 0 !important;
+  border-radius: 0 !important;
+  height: 100% !important;
+  max-height: 100vh !important;
 }
 
+/* Променяме layout-а на login modal от хоризонтален на вертикален */
+#loginModal .login-modal-content {
+  flex-direction: column !important;
+  min-height: 100vh !important;
+  height: 100% !important;
+}
+
+/* Скриваме или намаляваме снимката на мобилна версия */
+#loginModal .modal-left {
+  display: none !important; /* Скриваме снимката за повече място */
+}
+
+/* Алтернативно: показваме снимката, но много малка */
+/*
+#loginModal .modal-left {
+  flex: 0 0 120px !important;
+  min-height: 120px !important;
+  max-height: 120px !important;
+}
+
+#loginModal .modal-left img {
+  height: 100% !important;
+  object-fit: cover !important;
+}
+*/
+
+/* Дясната част (формата) да заема цялото пространство */
+#loginModal .modal-right {
+  flex: 1 !important;
+  padding: 20px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Header на модала */
+#loginModal .modal-header {
+  position: sticky !important;
+  top: 0 !important;
+  background: white !important;
+  z-index: 10 !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #e9ecef !important;
+  margin: 0 !important;
+}
+
+#loginModal .modal-title {
+  font-size: 18px !important;
+  margin-left: 0 !important;
+  text-align: left !important;
+  letter-spacing: 0.5px !important;
+}
+
+#loginModal .btn-close {
+  width: var(--mobile-touch-target, 44px) !important;
+  height: var(--mobile-touch-target, 44px) !important;
+  padding: 12px !important;
+  margin: 0 !important;
+}
+
+/* Body на модала */
 #loginModal .modal-body {
-  padding: 32px 24px !important;
+  padding: 24px 20px !important;
+  flex: 1 !important;
+  overflow-y: visible !important;
 }
 
-#loginModal input {
+/* Input полета */
+#loginModal input,
+#loginModal .form-control {
   padding: 14px 16px !important;
   font-size: 16px !important;
   border-radius: 12px !important;
+  min-height: 50px !important;
 }
 
-#loginModal .btn-primary {
+#loginModal .form-label {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+}
+
+#loginModal .mb-3 {
+  margin-bottom: 20px !important;
+}
+
+/* Checkbox и линкове */
+#loginModal .d-flex.justify-content-between {
+  flex-direction: column !important;
+  gap: 12px !important;
+  align-items: flex-start !important;
+}
+
+/* Form Check контейнер */
+#loginModal .form-check {
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-left: 0 !important;
+  min-height: 44px !important;
+}
+
+/* Checkbox input - по-голям за мобилна версия */
+#loginModal .form-check-input {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  border: 2px solid #198754 !important;
+  border-radius: 6px !important;
+}
+
+#loginModal .form-check-input:checked {
+  background-color: #4b9f3e !important;
+  border-color: #4b9f3e !important;
+}
+
+#loginModal .form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25) !important;
+  border-color: #4b9f3e !important;
+}
+
+/* Checkbox label - подравнен и с по-голям font */
+#loginModal .form-check-label {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  line-height: 1.5 !important;
+}
+
+/* Линкове */
+#loginModal .small {
+  font-size: 15px !important;
+  display: block !important;
+  margin-bottom: 4px !important;
+  padding: 8px 0 !important;
+  min-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Footer на модала */
+#loginModal .modal-footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  background: white !important;
+  padding: 16px 20px !important;
+  border-top: 1px solid #e9ecef !important;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05) !important;
+  margin: 0 !important;
+}
+
+#loginModal .modal-footer .btn {
   padding: 14px !important;
   font-size: 16px !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
   min-height: 50px !important;
+  width: 100% !important;
 }
 
 /* Signal Modal */
-#signalModal .modal-dialog {
-  /* Fullscreen */
-}
-
 #signalModal .signal-image {
   width: 100% !important;
   height: auto !important;
