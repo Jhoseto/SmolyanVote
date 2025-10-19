@@ -14,15 +14,24 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  /* Below fixes keep header readable and aligned on mobile */
+  background-size: cover !important;
+  background-position: center top !important;
+  margin-top: 56px !important; /* offset fixed navbar */
 }
 
 .hero .container {
-  padding: 0 20px !important;
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  padding: 0 16px !important;
 }
 
 .hero-content {
   text-align: center !important;
   padding: 20px !important;
+  width: 100% !important;
+  max-width: 640px !important;
+  margin: 0 auto !important;
 }
 
 .hero-content h1,
@@ -39,6 +48,14 @@
   line-height: 1.5 !important;
   margin-bottom: 24px !important;
   opacity: 0.95 !important;
+}
+
+/* Slightly stronger overlay for readability on photos */
+.hero::before {
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.15) 100%) !important;
 }
 
 .hero-content .btn {
