@@ -56,6 +56,12 @@
 
                 <!-- Auth/Profile Section - вдясно -->
                 <div class="auth-profile-section-glass">
+                    <!-- PWA Install Button (видима само когато е възможно инсталиране) -->
+                    <button id="navbar-pwa-install" class="pwa-install-btn-desktop" style="display: none;">
+                        <i class="bi bi-download"></i>
+                        <span>Инсталирай</span>
+                    </button>
+                    
                     <!-- Нелогнати потребители -->
                     <div class="auth-buttons-glass" sec:authorize="!isAuthenticated()">
                         <a class="auth-link-glass" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Вход</a>
