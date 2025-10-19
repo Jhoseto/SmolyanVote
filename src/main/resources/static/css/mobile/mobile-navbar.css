@@ -11,12 +11,44 @@
   top: 0 !important;
   z-index: 1030 !important;
   height: var(--mobile-header-height) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Navbar Content - Mobile Override */
+.navbar-content {
   padding: 8px 12px !important;
+  margin: 0 !important;
+  height: var(--mobile-header-height) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(25, 134, 28, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+}
+
+/* Brand Section - Mobile */
+.navbar-brand-section {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  margin-left: 0 !important;
 }
 
 /* Brand Logo */
 .navbar-brand-glass {
   padding: 4px 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
 }
 
 .brand-logo-glass {
