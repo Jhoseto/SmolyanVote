@@ -44,6 +44,7 @@ function toggleVoteMenu(event) {
     
     const container = document.getElementById('voteMenuContainer');
     const arrow = document.querySelector('.vote-arrow-glass');
+    const voteToggle = document.querySelector('.vote-toggle-glass');
     
     if (!container) {
         console.error('voteMenuContainer not found!');
@@ -59,11 +60,13 @@ function toggleVoteMenu(event) {
         if (voteMenuOpen) {
             container.classList.remove('show');
             if (arrow) arrow.classList.remove('rotated');
+            if (voteToggle) voteToggle.classList.remove('active');
             voteMenuOpen = false;
             console.log('Vote menu CLOSED (mobile accordion)');
         } else {
             container.classList.add('show');
             if (arrow) arrow.classList.add('rotated');
+            if (voteToggle) voteToggle.classList.add('active');
             voteMenuOpen = true;
             console.log('Vote menu OPENED (mobile accordion)');
         }
@@ -94,10 +97,12 @@ function closeVoteMenu() {
     const container = document.getElementById('voteMenuContainer');
     const arrow = document.querySelector('.vote-arrow-glass');
     const overlay = document.getElementById('voteOverlay');
+    const voteToggle = document.querySelector('.vote-toggle-glass');
     
     if (container) container.classList.remove('show');
     if (arrow) arrow.classList.remove('rotated');
     if (overlay) overlay.classList.remove('show');
+    if (voteToggle) voteToggle.classList.remove('active');
     voteMenuOpen = false;
     console.log('Vote menu force CLOSED');
 }
@@ -125,6 +130,20 @@ document.addEventListener('click', function(e) {
     
     const navSection = document.getElementById('navbarNavSection');
     const toggler = document.querySelector('.mobile-toggler-glass');
+    const voteContainer = document.getElementById('voteMenuContainer');
+    const voteToggle = document.querySelector('.vote-toggle-glass');
+    
+    // Close vote menu if clicking outside of it (but inside mobile menu)
+    if (voteMenuOpen && 
+        voteContainer && 
+        !voteContainer.contains(e.target) &&
+        voteToggle &&
+        !voteToggle.contains(e.target) &&
+        navSection &&
+        navSection.contains(e.target)) {
+        closeVoteMenu();
+        console.log('Vote menu closed - clicked outside vote area');
+    }
     
     // Close mobile menu if clicking outside
     if (mobileMenuOpen && 
@@ -141,8 +160,16 @@ document.addEventListener('click', function(e) {
  */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        if (mobileMenuOpen) closeMobileMenu();
-        if (voteMenuOpen && window.innerWidth > 768) closeVoteMenu(); // Desktop only
+        // Close vote menu first if open
+        if (voteMenuOpen) {
+            closeVoteMenu();
+            console.log('Vote menu closed - Escape key');
+        }
+        // Then close mobile menu
+        else if (mobileMenuOpen) {
+            closeMobileMenu();
+            console.log('Mobile menu closed - Escape key');
+        }
     }
 });
 

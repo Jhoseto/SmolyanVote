@@ -3,7 +3,9 @@
    User profile, tabs, content sections
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Profile Page Container */
+@media (max-width: 768px) {
+
+/* Profile Page Container */
 .profile-page {
   padding-bottom: 80px !important;
 }

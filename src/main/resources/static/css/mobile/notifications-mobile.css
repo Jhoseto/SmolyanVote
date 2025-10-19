@@ -3,7 +3,9 @@
    Notification center, toast messages
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Notifications Page */
+@media (max-width: 768px) {
+
+/* Notifications Page */
 .notifications-page {
   padding-bottom: 80px !important;
 }

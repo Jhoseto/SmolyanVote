@@ -3,7 +3,9 @@
    Fullscreen modals с swipe-to-close
    ============================================ */
 
-@media (max-width: 768px) {`n`n/* Modal Backdrop */
+@media (max-width: 768px) {
+
+/* Modal Backdrop */
 .modal-backdrop {
   backdrop-filter: blur(8px) !important;
 }
