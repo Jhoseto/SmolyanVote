@@ -4,7 +4,7 @@
    Target: iPhone SE, iPhone 14, Samsung Galaxy, Pixel
    ============================================ */
 
-@media (max-width: 768px) and (orientation: portrait) {
+@media (max-width: 768px) {
 
 /* CSS Variables за Mobile Portrait */
 :root {
@@ -245,7 +245,7 @@ code {
 }
 
 /* Very Small Devices (Samsung Galaxy S21 - 360px) */
-@media (max-width: 768px) and (orientation: portrait) {
+@media (max-width: 768px) {
   :root {
     --mobile-padding: 10px;
   }

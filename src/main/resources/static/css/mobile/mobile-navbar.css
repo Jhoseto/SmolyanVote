@@ -1,54 +1,39 @@
-Ц1/* ============================================
+/* ============================================
    MOBILE NAVBAR OPTIMIZATION
-   Подобрява навигацията за mobile устройства
+   Оптимизира navigation за мобилни устройства
    ============================================ */
 
-@media (max-width: 768px) and (orientation: portrait) {
+@media (max-width: 768px) {
 
-/* Navbar Container */
+/* Navbar Container - Compact Height */
 .navbar-glassmorphism {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1030 !important;
   height: 48px !important;
   padding: 0 !important;
-  margin: 0 !important;
-  width: 100% !important;
 }
 
-/* Navbar Content - Mobile Override */
 .navbar-content {
   padding: 6px 12px !important;
-  margin: 0 !important;
   height: 48px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   background: rgba(25, 134, 28, 0.95) !important;
   backdrop-filter: blur(10px) !important;
-  border-radius: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
-  transition: all 0.3s ease !important;
-  width: 100% !important;
 }
 
-/* Brand Section - Mobile */
+/* Brand Section - Compact */
 .navbar-brand-section {
   display: flex !important;
   align-items: center !important;
-  flex-shrink: 0 !important;
   margin-left: 0 !important;
+  flex-shrink: 0 !important;
 }
 
-/* Brand Logo - Mobile Optimized */
 .navbar-brand-glass {
   padding: 2px 4px !important;
+  gap: 6px !important;
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  text-decoration: none !important;
-  transition: all 0.3s ease !important;
 }
 
 .brand-logo-glass {
@@ -58,33 +43,33 @@
 }
 
 .brand-text-glass {
+  color: white !important;
   font-size: 14px !important;
   font-weight: 700 !important;
-  color: white !important;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
 }
 
-/* Mobile Toggler - Compact size */
+/* Mobile Toggler - Visible and Clickable */
 .mobile-toggler-glass {
-  width: 40px !important;
-  height: 40px !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 8px !important;
-  border-radius: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
   background: rgba(255, 255, 255, 0.15) !important;
-  backdrop-filter: blur(10px) !important;
-  cursor: pointer !important;
   border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  padding: 8px !important;
+  gap: 3px !important;
   transition: all 0.2s ease !important;
   flex-shrink: 0 !important;
-  z-index: 10 !important;
 }
 
 .mobile-toggler-glass:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-  transform: scale(1.05) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 .mobile-toggler-glass:active {
@@ -94,10 +79,15 @@
 .toggler-line-glass {
   width: 22px !important;
   height: 3px !important;
-  margin: 2px 0 !important;
-  border-radius: 2px !important;
   background-color: white !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+  border-radius: 2px !important;
+  display: block !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Auth Profile Section - Mobile Layout */
+.auth-profile-section-glass {
+  display: none !important;
 }
 
 /* Mobile Menu - Full Screen Overlay */
@@ -131,7 +121,7 @@
   margin: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  gap: 4px !important;
 }
 
 .nav-item-glass {
@@ -141,7 +131,7 @@
 .nav-link-glass {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  justify-content: space-between !important;
   padding: 12px 16px !important;
   color: white !important;
   font-size: 15px !important;
@@ -151,6 +141,11 @@
   min-height: 44px !important;
   background: rgba(255, 255, 255, 0.05) !important;
   text-decoration: none !important;
+}
+
+.nav-link-glass:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
 }
 
 .nav-link-glass:active {
@@ -197,24 +192,14 @@
   min-height: 40px !important;
 }
 
-/* User Actions */
-.navbar-user-section-glass {
-  margin-top: auto !important;
-  padding-top: 24px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-}
-
-/* Auth Buttons - Mobile Override */
+/* Auth Buttons in Mobile Menu */
 .auth-buttons-glass {
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
+  margin-top: 20px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 .auth-link-glass {
@@ -226,165 +211,87 @@
   text-decoration: none !important;
   text-align: center !important;
   border-radius: 8px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   transition: all 0.2s ease !important;
   min-height: 44px !important;
-  line-height: 1.2 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
 }
 
 .auth-link-glass:first-of-type {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
   font-weight: 700 !important;
-}
-
-.auth-link-glass:last-of-type {
-  background: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  color: white !important;
 }
 
 .auth-link-glass:hover {
   background: rgba(255, 255, 255, 0.3) !important;
-  transform: none !important;
-  box-shadow: none !important;
   color: white !important;
-  text-decoration: none !important;
+  transform: translateY(-1px) !important;
 }
 
 .auth-link-glass:active {
   transform: scale(0.98) !important;
-  background: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Notifications Button */
-.notifications-btn-glass {
-  position: relative !important;
-  width: var(--mobile-touch-target) !important;
-  height: var(--mobile-touch-target) !important;
+/* Profile Dropdown - Mobile */
+.profile-dropdown-glass {
+  margin-top: 20px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.profile-toggle-glass {
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  border-radius: 50% !important;
+  padding: 12px 16px !important;
   background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  color: white !important;
+  text-decoration: none !important;
+  gap: 12px !important;
 }
 
-.notification-badge-glass {
-  position: absolute !important;
-  top: 8px !important;
-  right: 8px !important;
-  min-width: 18px !important;
-  height: 18px !important;
-  padding: 0 5px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  line-height: 18px !important;
-  text-align: center !important;
-  border-radius: 9px !important;
-}
-
-/* User Dropdown */
-.user-dropdown-glass {
-  position: relative !important;
-}
-
-.user-avatar-wrapper {
-  width: var(--mobile-touch-target) !important;
-  height: var(--mobile-touch-target) !important;
-  padding: 4px !important;
-}
-
-.user-avatar-glass {
-  width: 36px !important;
-  height: 36px !important;
+.profile-image-glass {
+  width: 40px !important;
+  height: 40px !important;
   border-radius: 50% !important;
+  flex-shrink: 0 !important;
 }
 
-.user-dropdown-menu-glass {
+.username-glass {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: white !important;
+}
+
+.dropdown-menu-glass {
   position: static !important;
   width: 100% !important;
   margin-top: 8px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
-  border-radius: 12px !important;
-  padding: 8px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  display: block !important;
 }
 
 .dropdown-item-glass {
   padding: 12px 16px !important;
   color: white !important;
-  border-radius: 8px !important;
-  min-height: var(--mobile-touch-target) !important;
+  border-radius: 6px !important;
+  min-height: 44px !important;
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
-}
-
-.dropdown-item-glass:active {
-  background: rgba(255, 255, 255, 0.15) !important;
-}
-
-/* Login Button */
-.login-btn-glass {
-  width: 100% !important;
-  padding: 14px 24px !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  border-radius: 12px !important;
-  background: white !important;
-  color: #19861C !important;
-  min-height: 50px !important;
-}
-
-/* Overlay for closing menu */
-.mobile-menu-overlay {
-  display: none;
-  position: fixed;
-  top: var(--mobile-header-height);
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1020;
-  backdrop-filter: blur(4px);
-}
-
-.mobile-menu-overlay.active {
-  display: block;
-}
-
-/* Search in mobile menu */
-.search-container-glass {
-  width: 100% !important;
-  margin-bottom: 16px !important;
-}
-
-.search-input-glass {
-  width: 100% !important;
-  padding: 14px 16px 14px 44px !important;
-  font-size: 16px !important;
-  border-radius: 12px !important;
-  background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
-}
-
-.search-input-glass::placeholder {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.search-submit-glass {
-  position: absolute !important;
-  left: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
   background: transparent !important;
   border: none !important;
+  width: 100% !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.dropdown-item-glass:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
   color: white !important;
-  padding: 8px !important;
 }
 
 /* Prevent body scroll when menu open */
@@ -394,29 +301,21 @@ body.mobile-menu-open {
   width: 100% !important;
 }
 
-/* PWA Install Button in Navbar */
-.pwa-install-nav-btn {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 12px 16px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 8px !important;
-  color: white !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-  margin: 8px 0 !important;
+/* Mobile menu overlay */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 48px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1019;
+  backdrop-filter: blur(4px);
 }
 
-.pwa-install-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-  transform: translateY(-1px) !important;
+.mobile-menu-overlay.active {
+  display: block;
 }
 
-.pwa-install-nav-btn i {
-  font-size: 16px !important;
-}
-
-} /* End of @media (max-width: 768px) and (orientation: portrait) */
+} /* End of @media (max-width: 768px) */
