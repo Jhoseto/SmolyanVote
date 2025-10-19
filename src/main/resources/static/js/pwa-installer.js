@@ -58,6 +58,20 @@ class PWAInstaller {
       if (this.isPWAInstallable()) {
         console.log('⏰ Fallback: Showing install button after timeout');
         this.showNavbarInstallButton();
+        
+        // If still no prompt after 5 more seconds, check why
+        setTimeout(() => {
+          if (!this.deferredPrompt) {
+            console.warn('⚠️ No beforeinstallprompt event received after 8 seconds');
+            console.log('Possible reasons:');
+            console.log('- PWA already installed');
+            console.log('- Browser does not support PWA installation');
+            console.log('- Site criteria not met (HTTPS, manifest, service worker)');
+            console.log('- User has dismissed prompt multiple times (browser blocks it)');
+          }
+        }, 5000);
+      } else {
+        console.log('❌ PWA not installable - criteria not met');
       }
     }, 3000);
   }
@@ -158,14 +172,47 @@ class PWAInstaller {
   }
 
   async install() {
-    if (!this.deferredPrompt) return;
-
-    this.deferredPrompt.prompt();
-    const { outcome } = await this.deferredPrompt.userChoice;
+    console.log('🔘 Install button clicked');
     
-    console.log(`User response: ${outcome}`);
-    this.deferredPrompt = null;
-    this.hideInstallButton();
+    // Check if deferred prompt is available
+    if (!this.deferredPrompt) {
+      console.warn('⚠️ No install prompt available');
+      
+      // Check if it's iOS
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone === true;
+      
+      if (isIOS && !isStandalone) {
+        // Show iOS installation instructions
+        this.showIOSInstructions();
+        return;
+      }
+      
+      // For other browsers, show generic message
+      alert('Инсталирането не е налично в момента.\n\nМоля, опитайте:\n1. Отворете в Chrome/Edge browser\n2. Проверете дали сайтът е достъпен през HTTPS\n3. Опитайте отново след няколко секунди');
+      return;
+    }
+
+    // Show the install prompt
+    try {
+      this.deferredPrompt.prompt();
+      const { outcome } = await this.deferredPrompt.userChoice;
+      
+      console.log(`✅ User response: ${outcome}`);
+      
+      if (outcome === 'accepted') {
+        console.log('🎉 PWA installation accepted!');
+      } else {
+        console.log('❌ PWA installation dismissed');
+      }
+      
+      this.deferredPrompt = null;
+      this.hideInstallButton();
+      this.hideNavbarInstallButton();
+    } catch (error) {
+      console.error('❌ Error during installation:', error);
+      alert('Грешка при инсталиране. Моля, опитайте отново.');
+    }
   }
 
   // Add install button to navbar
@@ -239,6 +286,66 @@ class PWAInstaller {
     const notAlreadyInstalled = !window.matchMedia('(display-mode: standalone)').matches && window.navigator.standalone !== true;
     
     return hasServiceWorker && hasManifest && isHTTPS && notAlreadyInstalled;
+  }
+
+  // Show iOS installation instructions
+  showIOSInstructions() {
+    const modal = document.createElement('div');
+    modal.id = 'ios-install-modal';
+    modal.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      " onclick="this.parentElement.remove()">
+        <div style="
+          background: white;
+          border-radius: 16px;
+          padding: 24px;
+          max-width: 400px;
+          width: 100%;
+          text-align: center;
+        " onclick="event.stopPropagation()">
+          <h3 style="margin: 0 0 16px 0; font-size: 20px; color: #19861C;">
+            📱 Инсталирай SmolyanVote на iOS
+          </h3>
+          <div style="text-align: left; line-height: 1.8; color: #333; font-size: 15px;">
+            <p style="margin: 16px 0;"><strong>Стъпки за инсталиране:</strong></p>
+            <ol style="padding-left: 20px; margin: 12px 0;">
+              <li>Натиснете бутона <strong>Share</strong> <span style="font-size: 24px;">⎙</span> в долния край на екрана</li>
+              <li>Превъртете надолу и изберете <strong>"Add to Home Screen"</strong> <span style="font-size: 20px;">➕</span></li>
+              <li>Натиснете <strong>"Add"</strong> за потвърждение</li>
+            </ol>
+            <p style="margin: 16px 0; font-size: 13px; color: #666;">
+              След това SmolyanVote ще се появи като приложение на началния ви екран!
+            </p>
+          </div>
+          <button onclick="this.closest('#ios-install-modal').remove()" style="
+            width: 100%;
+            padding: 12px;
+            background: #19861C;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+          ">
+            Разбрах
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
   }
 }
 

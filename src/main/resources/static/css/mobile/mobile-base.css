@@ -1,15 +1,20 @@
 /* ============================================
-   MOBILE BASE STYLES
-   Използва се САМО на устройства ≤ 768px
+   MOBILE BASE STYLES - PORTRAIT ONLY
+   Оптимизирано за 360px - 430px portrait mode
+   Target: iPhone SE, iPhone 14, Samsung Galaxy, Pixel
    ============================================ */
 
-/* CSS Variables за Mobile */
+@media (max-width: 480px) and (orientation: portrait) {
+
+/* CSS Variables за Mobile Portrait */
 :root {
   --mobile-header-height: 56px;
   --mobile-bottom-nav-height: 60px;
   --mobile-padding: 16px;
   --mobile-touch-target: 44px;
   --mobile-border-radius: 12px;
+  --mobile-max-width: 430px;
+  --mobile-min-width: 360px;
 }
 
 /* Body Adjustments */
@@ -179,4 +184,75 @@ p,
 .description {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* iOS Viewport Height Fix */
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent horizontal overflow globally */
+*,
+*::before,
+*::after {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Images responsive by default */
+img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Pre/code blocks word-wrap */
+pre,
+code {
+  overflow-x: auto !important;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+/* Disable pull-to-refresh on specific elements */
+.no-pull-refresh {
+  overscroll-behavior-y: contain;
+}
+
+/* Close portrait-only media query */
+}
+
+/* Extra Small Devices (360px and below) */
+@media (max-width: 375px) and (orientation: portrait) {
+  :root {
+    --mobile-padding: 12px;
+  }
+  
+  h1, .h1 { font-size: 22px !important; }
+  h2, .h2 { font-size: 18px !important; }
+  
+  .container,
+  .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* Very Small Devices (Samsung Galaxy S21 - 360px) */
+@media (max-width: 360px) and (orientation: portrait) {
+  :root {
+    --mobile-padding: 10px;
+  }
+  
+  h1, .h1 { font-size: 20px !important; }
+  
+  button,
+  .btn {
+    padding: 10px 16px !important;
+  }
 }
