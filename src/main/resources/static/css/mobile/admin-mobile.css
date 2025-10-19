@@ -1,0 +1,374 @@
+/* ============================================
+   ADMIN DASHBOARD MOBILE OPTIMIZATION
+   Simplified admin interface for mobile
+   ============================================ */
+
+/* Admin Container */
+.admin-container {
+  padding: 16px !important;
+  padding-bottom: 100px !important;
+}
+
+/* Admin Header */
+.admin-header {
+  padding: 20px 16px !important;
+  background: linear-gradient(135deg, #19861C 0%, #5cb85c 100%) !important;
+  color: white !important;
+  margin: -16px -16px 16px -16px !important;
+  border-radius: 0 0 20px 20px !important;
+}
+
+.admin-header h1 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+}
+
+.admin-header p {
+  font-size: 14px !important;
+  opacity: 0.9 !important;
+}
+
+.last-refresh {
+  font-size: 12px !important;
+  opacity: 0.8 !important;
+  margin-top: 8px !important;
+}
+
+#refresh-btn {
+  margin-top: 12px !important;
+  padding: 10px 20px !important;
+  font-size: 14px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+/* Monitoring Section */
+.monitoring-section {
+  margin-bottom: 24px !important;
+}
+
+.section-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px !important;
+  background: white !important;
+  border-radius: 12px 12px 0 0 !important;
+  cursor: pointer !important;
+  border: 1px solid #e9ecef !important;
+  border-bottom: none !important;
+}
+
+.section-header h2 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.collapse-icon {
+  font-size: 18px !important;
+  color: #6c757d !important;
+  transition: transform 0.3s ease !important;
+}
+
+.section-header.collapsed .collapse-icon {
+  transform: rotate(-90deg) !important;
+}
+
+/* Collapsible Content */
+.collapsible-content {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  transition: max-height 0.3s ease !important;
+}
+
+.collapsible-content.expanded {
+  max-height: 5000px !important;
+}
+
+/* Dashboard Grid - Single Column */
+.dashboard-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  background: white !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* Dashboard Card */
+.dashboard-card {
+  background: #f8f9fa !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  border: 1px solid #e9ecef !important;
+}
+
+.dashboard-card h3 {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.dashboard-card p {
+  font-size: 14px !important;
+  color: #6c757d !important;
+  margin-bottom: 8px !important;
+}
+
+.dashboard-card strong {
+  color: #212529 !important;
+  font-weight: 600 !important;
+}
+
+/* Status Indicators */
+.status-active {
+  color: #28a745 !important;
+  font-weight: 700 !important;
+}
+
+.status-error {
+  color: #dc3545 !important;
+  font-weight: 700 !important;
+}
+
+.status-warning {
+  color: #ffc107 !important;
+  font-weight: 700 !important;
+}
+
+/* User Stats Card */
+.user-stat-card {
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  border: 1px solid #e9ecef !important;
+  margin-bottom: 12px !important;
+}
+
+.stat-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(25, 134, 28, 0.1) !important;
+  color: #19861C !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  margin-bottom: 12px !important;
+}
+
+.stat-content {
+  text-align: left !important;
+}
+
+.stat-value {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 4px !important;
+}
+
+.stat-label {
+  font-size: 13px !important;
+  color: #6c757d !important;
+  font-weight: 600 !important;
+}
+
+.stat-change {
+  margin-top: 8px !important;
+  font-size: 12px !important;
+}
+
+.change-indicator {
+  font-weight: 600 !important;
+}
+
+.change-indicator.positive {
+  color: #28a745 !important;
+}
+
+.change-indicator.negative {
+  color: #dc3545 !important;
+}
+
+/* Activity Wall - Mobile Optimized */
+.activity-wall-container {
+  background: white !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.activity-item {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f1f3f5 !important;
+  font-size: 14px !important;
+}
+
+.activity-item:last-child {
+  border-bottom: none !important;
+}
+
+.activity-timestamp {
+  font-size: 12px !important;
+  color: #6c757d !important;
+}
+
+.activity-user {
+  font-weight: 600 !important;
+  color: #19861C !important;
+}
+
+.activity-action {
+  color: #495057 !important;
+}
+
+/* Reports Table - Card View */
+.reports-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.report-card {
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  border: 1px solid #e9ecef !important;
+}
+
+.report-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  margin-bottom: 12px !important;
+}
+
+.report-entity {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+}
+
+.report-status-badge {
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+.report-status-badge.pending {
+  background: rgba(255, 193, 7, 0.1) !important;
+  color: #d39e00 !important;
+}
+
+.report-status-badge.reviewed {
+  background: rgba(40, 167, 69, 0.1) !important;
+  color: #28a745 !important;
+}
+
+.report-card-body {
+  font-size: 14px !important;
+  color: #6c757d !important;
+  margin-bottom: 12px !important;
+}
+
+.report-card-footer {
+  display: flex !important;
+  gap: 8px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #f1f3f5 !important;
+}
+
+.report-action-btn {
+  flex: 1 !important;
+  padding: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  border: none !important;
+}
+
+.report-action-btn.approve {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+.report-action-btn.reject {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+/* Hide Complex Charts on Mobile */
+.chart-container,
+.complex-visualization {
+  display: none !important;
+}
+
+/* Show Simplified Stats Instead */
+.mobile-stats-summary {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+}
+
+.stat-summary-item {
+  background: #f8f9fa !important;
+  padding: 16px !important;
+  border-radius: 10px !important;
+  text-align: center !important;
+}
+
+.stat-summary-value {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 4px !important;
+}
+
+.stat-summary-label {
+  font-size: 12px !important;
+  color: #6c757d !important;
+  font-weight: 600 !important;
+}
+
+/* User Management - Mobile */
+.user-management-filters {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-bottom: 16px !important;
+}
+
+.user-search-mobile {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  border: 2px solid #e9ecef !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+}
+
+/* Hide Desktop Tables, Show Cards */
+.desktop-table {
+  display: none !important;
+}
+
+.mobile-user-cards {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}

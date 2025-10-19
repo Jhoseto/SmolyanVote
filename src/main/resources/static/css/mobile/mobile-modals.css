@@ -1,0 +1,327 @@
+/* ============================================
+   MOBILE MODALS OPTIMIZATION
+   Fullscreen modals с swipe-to-close
+   ============================================ */
+
+/* Modal Backdrop */
+.modal-backdrop {
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Modal Dialog - Fullscreen on mobile */
+.modal-dialog {
+  margin: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+/* Modal Content */
+.modal-content {
+  height: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* Modal Header - Sticky */
+.modal-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1050 !important;
+  background: white !important;
+  border-bottom: 1px solid #e9ecef !important;
+  padding: 16px 20px !important;
+  min-height: var(--mobile-header-height) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+
+.modal-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  flex: 1 !important;
+}
+
+/* Close Button - Larger touch target */
+.btn-close,
+.modal-header .btn-close {
+  width: var(--mobile-touch-target) !important;
+  height: var(--mobile-touch-target) !important;
+  padding: 12px !important;
+  margin: 0 !important;
+  opacity: 0.6 !important;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 20px !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  flex: 1 !important;
+}
+
+/* Modal Footer - Sticky */
+.modal-footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  background: white !important;
+  border-top: 1px solid #e9ecef !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05) !important;
+  gap: 12px !important;
+}
+
+.modal-footer .btn {
+  flex: 1 !important;
+  min-height: 48px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+}
+
+/* Publication Detail Modal */
+#publicationDetailModal .modal-dialog {
+  /* Same fullscreen rules apply */
+}
+
+#publicationDetailModal .modal-post-content {
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  padding: 16px 0 !important;
+}
+
+#publicationDetailModal .modal-post-image {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 12px !important;
+  margin: 16px 0 !important;
+}
+
+/* Link Preview in Modal */
+.website-preview-card {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  margin: 16px 0 !important;
+}
+
+.website-preview-image {
+  width: 100% !important;
+  height: 200px !important;
+  object-fit: cover !important;
+}
+
+.website-preview-content {
+  padding: 16px !important;
+}
+
+/* Post Stats */
+.modal-post-stats {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 16px 0 !important;
+  border-top: 1px solid #e9ecef !important;
+  border-bottom: 1px solid #e9ecef !important;
+  margin: 16px 0 !important;
+}
+
+.stat-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 14px !important;
+  color: #6c757d !important;
+}
+
+/* Post Actions */
+.modal-post-actions {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+  padding: 16px 0 !important;
+}
+
+.modal-action-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 12px !important;
+  border: none !important;
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  color: #495057 !important;
+  min-height: 70px !important;
+  transition: all 0.2s ease !important;
+}
+
+.modal-action-btn i {
+  font-size: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.modal-action-btn:active {
+  background: #e9ecef !important;
+  transform: scale(0.95) !important;
+}
+
+.modal-action-btn.active {
+  background: #19861C !important;
+  color: white !important;
+}
+
+/* Comments Section in Modal */
+.modal-comments-section {
+  margin-top: 24px !important;
+}
+
+.comments-header {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+/* Comment Composer */
+.comment-composer {
+  position: sticky !important;
+  bottom: 0 !important;
+  background: white !important;
+  padding: 12px 16px !important;
+  border-top: 1px solid #e9ecef !important;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05) !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+.comment-input {
+  flex: 1 !important;
+  padding: 12px 16px !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 24px !important;
+  font-size: 15px !important;
+  background: #f8f9fa !important;
+  resize: none !important;
+  max-height: 100px !important;
+}
+
+.comment-send-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: #19861C !important;
+  color: white !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  padding: 0 !important;
+}
+
+.comment-send-btn:disabled {
+  background: #e9ecef !important;
+  color: #adb5bd !important;
+}
+
+/* Login Modal */
+#loginModal .modal-dialog {
+  margin: auto !important;
+  height: auto !important;
+  max-height: 90vh !important;
+}
+
+#loginModal .modal-content {
+  border-radius: 20px 20px 0 0 !important;
+}
+
+#loginModal .modal-body {
+  padding: 32px 24px !important;
+}
+
+#loginModal input {
+  padding: 14px 16px !important;
+  font-size: 16px !important;
+  border-radius: 12px !important;
+}
+
+#loginModal .btn-primary {
+  padding: 14px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  min-height: 50px !important;
+}
+
+/* Signal Modal */
+#signalModal .modal-dialog {
+  /* Fullscreen */
+}
+
+#signalModal .signal-image {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 300px !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+}
+
+/* Create Modals (Publication, Event, etc.) */
+.create-modal .form-group {
+  margin-bottom: 20px !important;
+}
+
+.create-modal label {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+
+.create-modal textarea {
+  min-height: 120px !important;
+}
+
+/* Image Preview in Create Modal */
+.image-preview-container {
+  position: relative !important;
+  margin-top: 12px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.image-preview {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 300px !important;
+  object-fit: cover !important;
+}
+
+.remove-image-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  background: rgba(0,0,0,0.7) !important;
+  color: white !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+}
+
+/* Swipe Indicator (for fullscreen modals) */
+.modal-swipe-indicator {
+  width: 40px !important;
+  height: 4px !important;
+  background: #dee2e6 !important;
+  border-radius: 2px !important;
+  margin: 8px auto !important;
+}

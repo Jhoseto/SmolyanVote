@@ -1,0 +1,649 @@
+/* ============================================
+   SIGNALS MOBILE OPTIMIZATION
+   Interactive Map, Signal Cards, Geolocation
+   ============================================ */
+
+/* Signals Page Layout */
+.signals-page {
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Map Header */
+.map-header {
+  padding: 16px !important;
+  background: linear-gradient(135deg, #19861C 0%, #5cb85c 100%) !important;
+  color: white !important;
+  flex-shrink: 0 !important;
+}
+
+.map-header h1 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+}
+
+.map-header p {
+  font-size: 14px !important;
+  opacity: 0.9 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Search Bar in Header */
+.signals-search {
+  margin-top: 16px !important;
+}
+
+.signals-search-wrapper {
+  position: relative !important;
+  width: 100% !important;
+}
+
+.signals-search-input {
+  width: 100% !important;
+  padding: 12px 16px 12px 44px !important;
+  font-size: 15px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.signals-search-icon {
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 18px !important;
+  color: #6c757d !important;
+}
+
+/* Map Container */
+.map-container {
+  flex: 1 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+#map {
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* Map Controls - Repositioned for mobile */
+.leaflet-control-zoom {
+  margin-top: 16px !important;
+  margin-left: 16px !important;
+}
+
+.leaflet-control-zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 20px !important;
+  border-radius: 12px !important;
+}
+
+/* Geolocation Button */
+.geolocation-btn {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: white !important;
+  border: 2px solid rgba(0,0,0,0.2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  color: #19861C !important;
+  z-index: 1000 !important;
+  cursor: pointer !important;
+}
+
+.geolocation-btn:active {
+  background: #f8f9fa !important;
+}
+
+.geolocation-btn.loading {
+  animation: pulse 1.5s infinite !important;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Map Layers Toggle */
+.map-layers-btn {
+  position: absolute !important;
+  top: 76px !important;
+  right: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: white !important;
+  border: 2px solid rgba(0,0,0,0.2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  color: #495057 !important;
+  z-index: 1000 !important;
+}
+
+/* Fullscreen Map Toggle */
+.fullscreen-toggle {
+  position: absolute !important;
+  bottom: 80px !important;
+  right: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: white !important;
+  border: 2px solid rgba(0,0,0,0.2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  color: #495057 !important;
+  z-index: 1000 !important;
+}
+
+/* Custom Marker Cluster */
+.marker-cluster {
+  background: rgba(25, 134, 28, 0.9) !important;
+  color: white !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  border: 3px solid white !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+
+/* Custom Signal Marker */
+.signal-marker {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: #19861C !important;
+  border: 3px solid white !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  font-size: 16px !important;
+}
+
+.signal-marker.urgency-low {
+  background: #28a745 !important;
+}
+
+.signal-marker.urgency-medium {
+  background: #ffc107 !important;
+}
+
+.signal-marker.urgency-high {
+  background: #fd7e14 !important;
+}
+
+.signal-marker.urgency-critical {
+  background: #dc3545 !important;
+  animation: marker-pulse 2s infinite !important;
+}
+
+@keyframes marker-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 8px rgba(220, 53, 69, 0);
+  }
+}
+
+/* Popup Customization */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  padding: 0 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  min-width: 260px !important;
+}
+
+.signal-popup {
+  padding: 16px !important;
+}
+
+.signal-popup-header {
+  margin-bottom: 12px !important;
+}
+
+.signal-popup-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 6px !important;
+}
+
+.signal-popup-category {
+  display: inline-block !important;
+  padding: 4px 10px !important;
+  background: rgba(25, 134, 28, 0.1) !important;
+  color: #19861C !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+}
+
+.signal-popup-description {
+  font-size: 14px !important;
+  color: #495057 !important;
+  line-height: 1.5 !important;
+  margin-bottom: 12px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.signal-popup-image {
+  width: 100% !important;
+  height: 120px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.signal-popup-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #e9ecef !important;
+}
+
+.signal-popup-likes {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+  color: #6c757d !important;
+}
+
+.signal-popup-view-btn {
+  padding: 8px 16px !important;
+  background: #19861C !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Bottom Sheet - Signal List */
+.signals-bottom-sheet {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: white !important;
+  border-radius: 20px 20px 0 0 !important;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.15) !important;
+  z-index: 1001 !important;
+  max-height: 60vh !important;
+  transform: translateY(calc(100% - 80px)) !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.signals-bottom-sheet.expanded {
+  transform: translateY(0) !important;
+}
+
+.sheet-handle {
+  width: 40px !important;
+  height: 4px !important;
+  background: #dee2e6 !important;
+  border-radius: 2px !important;
+  margin: 12px auto 8px !important;
+  cursor: grab !important;
+}
+
+.sheet-header {
+  padding: 16px 20px 12px 20px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.sheet-title {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 4px !important;
+}
+
+.sheet-subtitle {
+  font-size: 13px !important;
+  color: #6c757d !important;
+}
+
+.sheet-content {
+  padding: 16px !important;
+  overflow-y: auto !important;
+  max-height: calc(60vh - 100px) !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Signal List Cards */
+.signal-list-card {
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 12px !important;
+  border: 1px solid #e9ecef !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease !important;
+}
+
+.signal-list-card:active {
+  transform: scale(0.98) !important;
+}
+
+.signal-list-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  margin-bottom: 8px !important;
+}
+
+.signal-list-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #212529 !important;
+  flex: 1 !important;
+  margin-right: 12px !important;
+}
+
+.signal-list-urgency {
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+.urgency-low {
+  background: rgba(40, 167, 69, 0.1) !important;
+  color: #28a745 !important;
+}
+
+.urgency-medium {
+  background: rgba(255, 193, 7, 0.1) !important;
+  color: #d39e00 !important;
+}
+
+.urgency-high {
+  background: rgba(253, 126, 20, 0.1) !important;
+  color: #fd7e14 !important;
+}
+
+.urgency-critical {
+  background: rgba(220, 53, 69, 0.1) !important;
+  color: #dc3545 !important;
+}
+
+.signal-list-description {
+  font-size: 13px !important;
+  color: #6c757d !important;
+  line-height: 1.5 !important;
+  margin-bottom: 8px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.signal-list-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-size: 12px !important;
+  color: #6c757d !important;
+}
+
+.signal-meta-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* Create Signal FAB */
+.create-signal-fab {
+  position: fixed !important;
+  bottom: calc(var(--mobile-bottom-nav-height) + 16px) !important;
+  right: 16px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #19861C 0%, #5cb85c 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(25, 134, 28, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 24px !important;
+  z-index: 1002 !important;
+}
+
+.create-signal-fab:active {
+  transform: scale(0.92) !important;
+}
+
+/* Signal Detail Modal (reuses mobile-modals.css) */
+#signalDetailModal .signal-detail-image {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 300px !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+  margin-bottom: 16px !important;
+  cursor: pointer !important;
+}
+
+.signal-detail-header {
+  margin-bottom: 20px !important;
+}
+
+.signal-detail-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+  margin-bottom: 12px !important;
+}
+
+.signal-detail-badges {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 12px !important;
+}
+
+.signal-detail-description {
+  font-size: 15px !important;
+  color: #495057 !important;
+  line-height: 1.6 !important;
+  margin-bottom: 20px !important;
+}
+
+.signal-detail-meta {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+.signal-meta-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  color: #495057 !important;
+}
+
+.signal-meta-label {
+  font-weight: 600 !important;
+  color: #6c757d !important;
+}
+
+/* Signal Map in Detail */
+.signal-detail-map {
+  width: 100% !important;
+  height: 200px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  margin-bottom: 20px !important;
+}
+
+/* Filter Drawer for Signals */
+.signals-filter-drawer {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 300px !important;
+  max-width: 85vw !important;
+  height: 100vh !important;
+  background: white !important;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.15) !important;
+  z-index: 1100 !important;
+  transform: translateX(100%) !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.signals-filter-drawer.open {
+  transform: translateX(0) !important;
+}
+
+.filter-drawer-header {
+  padding: 20px !important;
+  border-bottom: 1px solid #e9ecef !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.filter-drawer-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #212529 !important;
+}
+
+.filter-drawer-close {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  background: #f8f9fa !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  color: #6c757d !important;
+}
+
+.filter-drawer-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 20px !important;
+}
+
+.filter-drawer-footer {
+  padding: 16px 20px !important;
+  border-top: 1px solid #e9ecef !important;
+  display: flex !important;
+  gap: 12px !important;
+}
+
+.filter-drawer-footer .btn {
+  flex: 1 !important;
+}
+
+/* Filter Overlay */
+.filter-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.5) !important;
+  z-index: 1099 !important;
+  backdrop-filter: blur(4px) !important;
+  display: none !important;
+}
+
+.filter-overlay.active {
+  display: block !important;
+}
+
+/* Image Lightbox for Signal Images */
+.signal-image-lightbox {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.95) !important;
+  z-index: 2000 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.signal-image-lightbox.active {
+  display: flex !important;
+}
+
+.lightbox-image {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  border-radius: 8px !important;
+}
+
+.lightbox-close {
+  position: absolute !important;
+  top: 20px !important;
+  right: 20px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.2) !important;
+  backdrop-filter: blur(10px) !important;
+  border: none !important;
+  color: white !important;
+  font-size: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
