@@ -1,0 +1,220 @@
+/* ============================================
+   MOBILE TABLES OPTIMIZATION
+   Card-based responsive tables
+   ============================================ */
+
+/* Hide table on mobile, show cards instead */
+.table-responsive {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-radius: 12px !important;
+}
+
+/* Admin tables - horizontal scroll with better UX */
+.admin-table-wrapper {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin: 0 -16px !important;
+  padding: 0 16px !important;
+}
+
+table {
+  min-width: 600px !important;
+  font-size: 14px !important;
+}
+
+thead {
+  position: sticky !important;
+  top: 0 !important;
+  background: white !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+th {
+  padding: 12px 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+td {
+  padding: 12px 8px !important;
+  font-size: 14px !important;
+  vertical-align: middle !important;
+}
+
+/* Card-based table alternative for complex tables */
+.table-card-view {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .table-desktop-view {
+    display: none !important;
+  }
+  
+  .table-card-view {
+    display: block !important;
+  }
+}
+
+.table-card {
+  background: white !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  border: 1px solid #e9ecef !important;
+}
+
+.table-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.table-card-title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #212529 !important;
+}
+
+.table-card-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.table-card-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 8px 0 !important;
+}
+
+.table-card-label {
+  font-size: 13px !important;
+  color: #6c757d !important;
+  font-weight: 600 !important;
+}
+
+.table-card-value {
+  font-size: 14px !important;
+  color: #212529 !important;
+  text-align: right !important;
+}
+
+.table-card-actions {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #e9ecef !important;
+}
+
+.table-card-actions .btn {
+  flex: 1 !important;
+  padding: 10px !important;
+  font-size: 14px !important;
+  min-height: 40px !important;
+}
+
+/* Pagination */
+.pagination {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  padding: 20px 0 !important;
+}
+
+.page-item {
+  margin: 0 !important;
+}
+
+.page-link {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  padding: 10px !important;
+}
+
+/* Table Filters on Mobile */
+.table-filters {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+.filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.filter-label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+}
+
+.filter-select,
+.filter-input {
+  padding: 12px 14px !important;
+  border: 2px solid #e9ecef !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+  background: #f8f9fa !important;
+}
+
+/* Status Badges in Tables */
+.badge {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  white-space: nowrap !important;
+}
+
+/* Action Buttons in Tables */
+.btn-sm {
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+}
+
+.btn-group-sm .btn {
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+/* Scroll Hint for Tables */
+.scroll-hint {
+  text-align: center !important;
+  font-size: 13px !important;
+  color: #6c757d !important;
+  padding: 8px !important;
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.scroll-hint i {
+  font-size: 16px !important;
+}
