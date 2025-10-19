@@ -10,21 +10,28 @@ let voteMenuOpen = false;
  * Toggle Mobile Menu
  */
 function toggleMobileMenu() {
+    console.log('toggleMobileMenu called, current state:', mobileMenuOpen);
+    
     const navSection = document.getElementById('navbarNavSection');
     const body = document.body;
     
-    if (!navSection) return;
+    if (!navSection) {
+        console.error('navbarNavSection not found!');
+        return;
+    }
     
     if (mobileMenuOpen) {
         // Close menu
         navSection.classList.remove('show');
         body.classList.remove('mobile-menu-open');
         mobileMenuOpen = false;
+        console.log('Mobile menu CLOSED');
     } else {
         // Open menu
         navSection.classList.add('show');
         body.classList.add('mobile-menu-open');
         mobileMenuOpen = true;
+        console.log('Mobile menu OPENED');
     }
 }
 
@@ -33,40 +40,49 @@ function toggleMobileMenu() {
  */
 function toggleVoteMenu(event) {
     event.preventDefault();
+    console.log('toggleVoteMenu called');
     
     const container = document.getElementById('voteMenuContainer');
     const arrow = document.querySelector('.vote-arrow-glass');
     
-    if (!container || !arrow) return;
+    if (!container) {
+        console.error('voteMenuContainer not found!');
+        return;
+    }
     
     // Check if we're on mobile
     const isMobile = window.innerWidth <= 768;
+    console.log('Is mobile:', isMobile, 'Window width:', window.innerWidth);
     
     if (isMobile) {
-        // Mobile: Accordion behavior
+        // Mobile: Accordion behavior INSIDE the mobile menu
         if (voteMenuOpen) {
             container.classList.remove('show');
-            arrow.classList.remove('rotated');
+            if (arrow) arrow.classList.remove('rotated');
             voteMenuOpen = false;
+            console.log('Vote menu CLOSED (mobile accordion)');
         } else {
             container.classList.add('show');
-            arrow.classList.add('rotated');
+            if (arrow) arrow.classList.add('rotated');
             voteMenuOpen = true;
+            console.log('Vote menu OPENED (mobile accordion)');
         }
     } else {
-        // Desktop: Original behavior (dropdown with overlay)
+        // Desktop: Original dropdown behavior
         const overlay = document.getElementById('voteOverlay');
         
         if (voteMenuOpen) {
             container.classList.remove('show');
-            arrow.classList.remove('rotated');
+            if (arrow) arrow.classList.remove('rotated');
             if (overlay) overlay.classList.remove('show');
             voteMenuOpen = false;
+            console.log('Vote menu CLOSED (desktop)');
         } else {
             container.classList.add('show');
-            arrow.classList.add('rotated');
+            if (arrow) arrow.classList.add('rotated');
             if (overlay) overlay.classList.add('show');
             voteMenuOpen = true;
+            console.log('Vote menu OPENED (desktop)');
         }
     }
 }
@@ -83,6 +99,7 @@ function closeVoteMenu() {
     if (arrow) arrow.classList.remove('rotated');
     if (overlay) overlay.classList.remove('show');
     voteMenuOpen = false;
+    console.log('Vote menu force CLOSED');
 }
 
 /**
@@ -96,13 +113,16 @@ function closeMobileMenu() {
         navSection.classList.remove('show');
         body.classList.remove('mobile-menu-open');
         mobileMenuOpen = false;
+        console.log('Mobile menu force CLOSED');
     }
 }
 
 /**
- * Close menu when clicking outside
+ * Close menu when clicking outside (only on mobile)
  */
 document.addEventListener('click', function(e) {
+    if (window.innerWidth > 768) return; // Desktop only
+    
     const navSection = document.getElementById('navbarNavSection');
     const toggler = document.querySelector('.mobile-toggler-glass');
     
@@ -122,7 +142,7 @@ document.addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         if (mobileMenuOpen) closeMobileMenu();
-        if (voteMenuOpen) closeVoteMenu();
+        if (voteMenuOpen && window.innerWidth > 768) closeVoteMenu(); // Desktop only
     }
 });
 
@@ -138,8 +158,9 @@ window.addEventListener('resize', function() {
             closeMobileMenu();
         }
         
-        // Reset vote menu behavior on resize
+        // Reset vote menu on resize
         if (window.innerWidth > 768 && voteMenuOpen) {
+            // On desktop, vote menu is dropdown, not accordion
             const container = document.getElementById('voteMenuContainer');
             if (container) {
                 container.style.maxHeight = '';
@@ -149,42 +170,41 @@ window.addEventListener('resize', function() {
 });
 
 /**
- * Prevent body scroll when mobile menu is open
- */
-function preventBodyScroll() {
-    if (mobileMenuOpen) {
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-    } else {
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-    }
-}
-
-/**
  * Initialize mobile menu
  */
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Mobile menu initialized');
+    console.log('✅ Mobile menu JavaScript initialized');
     
     // Check if mobile menu elements exist
     const toggler = document.querySelector('.mobile-toggler-glass');
     const navSection = document.getElementById('navbarNavSection');
+    const voteContainer = document.getElementById('voteMenuContainer');
     
-    if (toggler && navSection) {
-        console.log('✅ Mobile menu elements found');
+    if (toggler) {
+        console.log('✅ Mobile toggler found');
     } else {
-        console.warn('⚠️ Mobile menu elements not found');
+        console.warn('⚠️ Mobile toggler NOT found');
     }
     
-    // Add click listener to all nav links to close menu
+    if (navSection) {
+        console.log('✅ Nav section found');
+    } else {
+        console.warn('⚠️ Nav section NOT found');
+    }
+    
+    if (voteContainer) {
+        console.log('✅ Vote container found');
+    } else {
+        console.warn('⚠️ Vote container NOT found');
+    }
+    
+    // Add click listener to all nav links to close menu on mobile
     const navLinks = document.querySelectorAll('.nav-link-glass:not(.vote-toggle-glass)');
     navLinks.forEach(link => {
         link.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
-                closeMobileMenu();
+                console.log('Nav link clicked, closing menu');
+                setTimeout(() => closeMobileMenu(), 100);
             }
         });
     });
@@ -194,10 +214,16 @@ document.addEventListener('DOMContentLoaded', function() {
     voteItems.forEach(item => {
         item.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
-                closeMobileMenu();
+                console.log('Vote item clicked, closing menu');
+                setTimeout(() => {
+                    closeVoteMenu();
+                    closeMobileMenu();
+                }, 100);
             }
         });
     });
+    
+    console.log('✅ Mobile menu event listeners attached');
 });
 
-console.log('✅ mobile-menu.js loaded');
+console.log('✅ mobile-menu.js loaded successfully');
