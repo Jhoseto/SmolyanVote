@@ -3,7 +3,7 @@
    Card layout, filters, interactions
    ============================================ */
 
-/* Publications Page Layout */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Publications Page Layout */
 .publications-container {
   padding: 16px 0 !important;
 }
@@ -577,3 +577,6 @@
 @keyframes rotate {
   to { transform: rotate(360deg); }
 }
+
+
+} /* End of @media (max-width: 480px) and (orientation: portrait) */

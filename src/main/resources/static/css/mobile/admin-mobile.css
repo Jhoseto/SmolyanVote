@@ -3,7 +3,7 @@
    Simplified admin interface for mobile
    ============================================ */
 
-/* Admin Container */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Admin Container */
 .admin-container {
   padding: 16px !important;
   padding-bottom: 100px !important;
@@ -372,3 +372,6 @@
   flex-direction: column !important;
   gap: 12px !important;
 }
+
+
+} /* End of @media (max-width: 480px) and (orientation: portrait) */
