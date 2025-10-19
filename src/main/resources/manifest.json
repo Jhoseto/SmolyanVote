@@ -1,0 +1,42 @@
+{
+  "name": "SmolyanVote - Гласът на Смолян",
+  "short_name": "SmolyanVote",
+  "description": "Платформа за гражданско участие в Смолян",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#19861C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/logoNew.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logoNew.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "government", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Публикации",
+      "url": "/publications",
+      "icons": [{"src": "/images/logoNew.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Събития",
+      "url": "/mainEvents",
+      "icons": [{"src": "/images/logoNew.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Сигнали",
+      "url": "/signals",
+      "icons": [{"src": "/images/logoNew.png", "sizes": "192x192"}]
+    }
+  ]
+}
