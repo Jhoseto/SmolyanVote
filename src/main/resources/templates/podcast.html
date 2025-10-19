@@ -38,6 +38,7 @@
   <!-- Персонализиран CSS -->
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/podcast.css">
+  <link rel="stylesheet" href="/css/mobile/podcast-mobile.css">
 </head>
 <body>
 <!-- Landscape Warning - Mobile Portrait Only -->
@@ -122,6 +123,9 @@
         <h4 id="currentTrackTitle">Изберете епизод</h4>
         <p id="currentTrackDescription">Кликнете върху епизод за възпроизвеждане</p>
       </div>
+      <button class="player-expand-btn" id="playerExpandBtn">
+        <i class="fas fa-chevron-up"></i>
+      </button>
     </div>
 
     <div class="player-controls">
@@ -147,7 +151,10 @@
       <span class="time-duration" id="duration">0:00</span>
     </div>
 
-    <div class="volume-controls">
+    <button class="volume-toggle" id="volumeToggle">
+      <i class="fas fa-volume-up"></i>
+    </button>
+    <div class="volume-controls" id="volumeControls">
       <button class="control-btn" id="volumeBtn">
         <i class="fas fa-volume-up"></i>
       </button>

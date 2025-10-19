@@ -14,15 +14,17 @@ body {
 }
 
 /* Секция hero */
-.hero {
+.hero,
+.registration-hero {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding-top: 100px; /* Намален отстъп за по-добър баланс */
+    padding-top: 100px;
     padding-bottom: 40px;
+    position: relative;
 }
 
 /* Карта за формата */
