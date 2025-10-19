@@ -3,7 +3,7 @@
    Notification center, toast messages
    ============================================ */
 
-@media (max-width: 360px) and (orientation: portrait) {`n`n/* Notifications Page */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Notifications Page */
 .notifications-page {
   padding-bottom: 80px !important;
 }
@@ -487,4 +487,4 @@
 }
 
 
-} /* End of @media (max-width: 360px) and (orientation: portrait) */
+} /* End of @media (max-width: 480px) and (orientation: portrait) */

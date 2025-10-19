@@ -4,15 +4,15 @@
    Target: iPhone SE, iPhone 14, Samsung Galaxy, Pixel
    ============================================ */
 
-@media (max-width: 360px) and (orientation: portrait) {
+@media (max-width: 480px) and (orientation: portrait) {
 
 /* CSS Variables за Mobile Portrait */
 :root {
-  --mobile-header-height: 56px;
+  --mobile-header-height: 48px;
   --mobile-bottom-nav-height: 60px;
-  --mobile-padding: 16px;
-  --mobile-touch-target: 44px;
-  --mobile-border-radius: 12px;
+  --mobile-padding: 12px;
+  --mobile-touch-target: 36px;
+  --mobile-border-radius: 8px;
   --mobile-max-width: 430px;
   --mobile-min-width: 360px;
 }
@@ -57,16 +57,17 @@ small, .small {
   font-size: 13px !important;
 }
 
-/* Touch Targets - Minimum 44x44px */
+/* Touch Targets - Mobile Optimized */
 button,
 .btn,
 a.btn,
 input[type="button"],
 input[type="submit"],
 .clickable {
-  min-height: var(--mobile-touch-target) !important;
-  min-width: var(--mobile-touch-target) !important;
-  padding: 12px 20px !important;
+  min-height: 36px !important;
+  min-width: 36px !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
 }
 
 /* Increase clickable area for icons */
@@ -244,7 +245,7 @@ code {
 }
 
 /* Very Small Devices (Samsung Galaxy S21 - 360px) */
-@media (max-width: 360px) and (orientation: portrait) {
+@media (max-width: 480px) and (orientation: portrait) {
   :root {
     --mobile-padding: 10px;
   }
