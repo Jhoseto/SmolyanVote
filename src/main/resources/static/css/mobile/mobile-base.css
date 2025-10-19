@@ -4,7 +4,7 @@
    Target: iPhone SE, iPhone 14, Samsung Galaxy, Pixel
    ============================================ */
 
-@media (max-width: 480px) and (orientation: portrait) {
+@media (max-width: 360px) and (orientation: portrait) {
 
 /* CSS Variables за Mobile Portrait */
 :root {
