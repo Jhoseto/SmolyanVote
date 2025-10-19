@@ -11,6 +11,7 @@
 
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/register.css">
+  <link rel="stylesheet" href="/css/mobile/register-mobile.css">
 
   <style>
     .hero h1, .hero p {
@@ -58,8 +59,19 @@
               <label for="confirmPassword" class="form-label">Повторете паролата</label>
               <input type="password" th:field="*{confirmPassword}" class="form-control" id="confirmPassword" placeholder="Повторете паролата" required>
             </div>
+            
+            <!-- Terms and Conditions Agreement -->
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="termsCheckbox" name="termsAccepted" required>
+              <label class="form-check-label terms-label" for="termsCheckbox">
+                С тази регистрация вие потвърждавате, че сте запознати и ще спазвате нашите 
+                <a href="/terms-and-conditions" target="_blank" class="terms-link">Условия за ползване и Политика за поверителност</a> 
+                на платформата!
+              </label>
+            </div>
+            
             <div class="d-grid">
-              <button type="submit" class="btn btn-success">Регистрирай се</button>
+              <button type="submit" class="btn btn-success" id="registerBtn" disabled>Регистрирай се</button>
             </div>
           </form>
           <div class="text-center mt-3">
@@ -85,5 +97,12 @@
 
 
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+
+<script>
+document.getElementById('termsCheckbox').addEventListener('change', function() {
+    document.getElementById('registerBtn').disabled = !this.checked;
+});
+</script>
+
 </body>
 </html>
