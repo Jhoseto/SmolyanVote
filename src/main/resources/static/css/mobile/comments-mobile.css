@@ -3,7 +3,7 @@
    Nested comments, replies, reactions
    ============================================ */
 
-/* Comments Section */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Comments Section */
 .comments-section {
   padding: 0 !important;
 }
@@ -543,3 +543,6 @@
 .comments-scroll-top:active {
   transform: scale(0.92) !important;
 }
+
+
+} /* End of @media (max-width: 480px) and (orientation: portrait) */

@@ -3,6 +3,8 @@
    Подобрява навигацията за mobile устройства
    ============================================ */
 
+@media (max-width: 480px) and (orientation: portrait) {
+
 /* Navbar Container */
 .navbar-glassmorphism {
   position: sticky !important;
@@ -307,3 +309,5 @@ body.mobile-menu-open {
 .pwa-install-nav-btn i {
   font-size: 16px !important;
 }
+
+} /* End of @media (max-width: 480px) and (orientation: portrait) */

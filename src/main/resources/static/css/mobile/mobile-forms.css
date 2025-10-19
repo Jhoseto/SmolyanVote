@@ -3,7 +3,7 @@
    Touch-friendly form controls
    ============================================ */
 
-/* Form Groups */
+@media (max-width: 480px) and (orientation: portrait) {`n`n/* Form Groups */
 .form-group,
 .mb-3 {
   margin-bottom: 20px !important;
@@ -363,3 +363,6 @@ button.loading::after,
   color: #19861C !important;
   font-weight: 600 !important;
 }
+
+
+} /* End of @media (max-width: 480px) and (orientation: portrait) */
