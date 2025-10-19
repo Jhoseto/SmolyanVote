@@ -1,298 +1,178 @@
 /* ============================================
-   MOBILE NAVBAR OPTIMIZATION
-   Перфектен mobile navbar за SmolyanVote
+   MOBILE NAVBAR - BEAUTIFUL & FUNCTIONAL
    ============================================ */
 
 @media (max-width: 768px) {
 
-/* ============================================
-   1. NAVBAR CONTAINER - ЗАПАЗВАМЕ DESKTOP СТИЛ
-   ============================================ */
+/* NAVBAR - Keep desktop glassmorphism */
 .navbar-glassmorphism {
   height: 56px !important;
-  padding: 0 !important;
-  /* Запазваме desktop glassmorphism - НЕ ПРОМЕНЯМЕ */
 }
 
 .navbar-content {
-  padding: 8px 16px !important;
   height: 56px !important;
+  padding: 0 16px !important;
   display: flex !important;
-  align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px !important;
-  /* Запазваме desktop стилове - НЕ ПРОМЕНЯМЕ background */
+  align-items: center !important;
 }
 
-/* ============================================
-   2. BRAND SECTION - COMPACT & LEFT
-   ============================================ */
+/* BRAND - Compact */
 .navbar-brand-section {
-  display: flex !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  margin-left: 0 !important;
   order: 1 !important;
 }
 
-.navbar-brand-glass {
-  padding: 4px 6px !important;
-  gap: 8px !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
 .brand-logo-glass {
-  height: 28px !important;
-  width: 28px !important;
-  object-fit: contain !important;
+  height: 32px !important;
+  width: 32px !important;
 }
 
 .brand-text-glass {
   font-size: 16px !important;
-  font-weight: 700 !important;
-  /* Запазваме gradient от desktop */
 }
 
-/* ============================================
-   3. MOBILE HAMBURGER - RIGHT SIDE, ВИДИМ
-   ============================================ */
+/* HAMBURGER - Right side, visible */
 .mobile-toggler-glass {
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
   justify-content: center !important;
+  align-items: center !important;
   width: 44px !important;
   height: 44px !important;
-  background: rgba(76, 175, 80, 0.1) !important;
-  border: 1px solid rgba(76, 175, 80, 0.3) !important;
-  border-radius: 8px !important;
+  gap: 5px !important;
   cursor: pointer !important;
-  z-index: 1030 !important;
-  padding: 10px !important;
-  gap: 4px !important;
-  transition: all 0.2s ease !important;
-  flex-shrink: 0 !important;
   order: 3 !important;
-  position: relative !important;
-}
-
-.mobile-toggler-glass:hover {
-  background: rgba(76, 175, 80, 0.2) !important;
+  border-radius: 8px !important;
+  background: rgba(76, 175, 80, 0.08) !important;
+  transition: all 0.2s ease !important;
 }
 
 .mobile-toggler-glass:active {
+  background: rgba(76, 175, 80, 0.15) !important;
   transform: scale(0.95) !important;
 }
 
 .toggler-line-glass {
-  width: 24px !important;
-  height: 3px !important;
+  width: 22px !important;
+  height: 2.5px !important;
   background: linear-gradient(135deg, #4cb15c 0%, #228e55 100%) !important;
   border-radius: 2px !important;
-  display: block !important;
   transition: all 0.3s ease !important;
 }
 
-/* Hamburger animation when menu is open */
-.mobile-menu-open .mobile-toggler-glass .toggler-line-glass:nth-child(1) {
-  transform: translateY(7px) rotate(45deg) !important;
+/* Hamburger animation when open */
+body.mobile-menu-open .toggler-line-glass:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg) !important;
 }
 
-.mobile-menu-open .mobile-toggler-glass .toggler-line-glass:nth-child(2) {
+body.mobile-menu-open .toggler-line-glass:nth-child(2) {
   opacity: 0 !important;
 }
 
-.mobile-menu-open .mobile-toggler-glass .toggler-line-glass:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg) !important;
+body.mobile-menu-open .toggler-line-glass:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg) !important;
 }
 
-/* ============================================
-   4. AUTH PROFILE SECTION - ПОКАЗВАМЕ САМО AVATAR
-   ============================================ */
+/* HIDE auth section on navbar */
 .auth-profile-section-glass {
-  display: flex !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  order: 2 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-/* Auth Buttons - СКРИВАМЕ от navbar */
-.auth-profile-section-glass .auth-buttons-glass {
   display: none !important;
 }
 
-/* Profile Dropdown - САМО AVATAR на navbar */
-.auth-profile-section-glass .profile-dropdown-glass {
-  display: block !important;
-}
-
-.auth-profile-section-glass .profile-toggle-glass {
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0 !important;
-}
-
-.auth-profile-section-glass .profile-image-glass {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  border: 2px solid rgba(76, 175, 80, 0.3) !important;
-}
-
-.auth-profile-section-glass .username-glass {
-  display: none !important;
-}
-
-/* Desktop Dropdown Menu - СКРИВАМЕ */
-.auth-profile-section-glass .dropdown-menu-glass {
-  display: none !important;
-}
-
-/* ============================================
-   5. MOBILE MENU - FULL SCREEN OVERLAY
-   ============================================ */
+/* MOBILE MENU - Beautiful slide-in */
 .navbar-nav-section-glass {
   position: fixed !important;
   top: 56px !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: linear-gradient(
-    180deg,
-    rgba(248, 249, 250, 0.98) 0%,
-    rgba(255, 255, 255, 0.95) 100%
-  ) !important;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(248, 249, 250, 0.98)) !important;
   backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
   transform: translateX(100%) !important;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
   overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  padding: 20px 16px 80px 16px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0 !important;
+  padding: 24px 16px 100px 16px !important;
   z-index: 1025 !important;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15) !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12) !important;
 }
 
 .navbar-nav-section-glass.show {
   transform: translateX(0) !important;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
-/* ============================================
-   6. NAVIGATION LINKS - VERTICAL LIST
-   ============================================ */
+/* NAV LINKS - Clean list */
 .nav-links-glass {
   list-style: none !important;
   padding: 0 !important;
-  margin: 0 0 20px 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
+  margin: 0 !important;
 }
 
 .nav-item-glass {
-  width: 100% !important;
+  margin-bottom: 4px !important;
 }
 
 .nav-link-glass {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 14px 16px !important;
-  color: #1c1e21 !important;
-  font-size: 16px !important;
+  padding: 16px 20px !important;
+  font-size: 17px !important;
   font-weight: 500 !important;
-  border-radius: 10px !important;
-  transition: all 0.2s ease !important;
-  min-height: 48px !important;
-  background: transparent !important;
+  color: #1c1e21 !important;
+  background: white !important;
+  border-radius: 12px !important;
   text-decoration: none !important;
-}
-
-.nav-link-glass:hover {
-  background: #f0f2f5 !important;
-  color: #4cb15c !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
 }
 
 .nav-link-glass:active {
-  background: rgba(76, 175, 80, 0.1) !important;
+  background: #f8f9fa !important;
   transform: scale(0.98) !important;
 }
 
-/* ============================================
-   7. VOTE MENU - ACCORDION IN MOBILE
-   ============================================ */
-.vote-toggle-glass {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  width: 100% !important;
-  cursor: pointer !important;
-}
-
+/* VOTE DROPDOWN - Accordion style */
 .vote-arrow-glass {
-  transition: transform 0.3s ease !important;
   font-size: 14px !important;
-  color: #65676b !important;
+  color: #6c757d !important;
+  transition: transform 0.3s ease !important;
 }
 
-/* Vote Menu Container - ACCORDION */
-.vote-menu-container-glass {
-  position: static !important;
-  width: 100% !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  max-height: 0 !important;
-  overflow: hidden !important;
-  transition: max-height 0.4s ease !important;
-  border-radius: 0 !important;
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-}
-
-.vote-menu-container-glass.show {
-  max-height: 1500px !important;
-  margin-bottom: 12px !important;
-}
-
-/* Vote Arrow rotation */
-.vote-arrow-glass.rotated {
+.vote-menu-open .vote-arrow-glass {
   transform: rotate(180deg) !important;
 }
 
-/* Vote Sections */
+.vote-menu-container-glass {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  transition: max-height 0.4s ease !important;
+  margin-top: 0 !important;
+}
+
+.vote-menu-container-glass.show {
+  max-height: 2000px !important;
+  margin-top: 8px !important;
+}
+
+/* Vote sections - Clean cards */
 .vote-sections-grid-glass {
   display: flex !important;
   flex-direction: column !important;
-  gap: 16px !important;
-  padding: 12px 0 12px 16px !important;
+  gap: 12px !important;
+  padding: 12px 0 !important;
 }
 
 .vote-section-glass {
-  background: #f0f2f5 !important;
-  border-radius: 10px !important;
-  padding: 12px !important;
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
 }
 
 .vote-section-title-glass {
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 700 !important;
-  color: #1c1e21 !important;
-  margin-bottom: 8px !important;
+  color: #212529 !important;
+  margin-bottom: 12px !important;
   display: flex !important;
   align-items: center !important;
 }
@@ -300,40 +180,39 @@
 .vote-items-glass {
   display: flex !important;
   flex-direction: column !important;
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
 .vote-item-glass {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  padding: 10px 12px !important;
+  gap: 12px !important;
+  padding: 12px !important;
   background: white !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
-  border: 1px solid #e4e6ea !important;
+  border: 1px solid #e9ecef !important;
 }
 
-.vote-item-glass:hover {
-  background: #f0f2f5 !important;
-  border-color: #4cb15c !important;
+.vote-item-glass:active {
+  background: #f8f9fa !important;
   transform: translateX(4px) !important;
 }
 
 .vote-item-icon-glass {
-  width: 36px !important;
-  height: 36px !important;
+  width: 40px !important;
+  height: 40px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   background: rgba(76, 175, 80, 0.1) !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   flex-shrink: 0 !important;
 }
 
 .vote-item-icon-glass i {
-  font-size: 18px !important;
+  font-size: 20px !important;
   color: #4cb15c !important;
 }
 
@@ -342,139 +221,116 @@
 }
 
 .vote-item-content-glass h6 {
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 600 !important;
-  color: #1c1e21 !important;
-  margin: 0 0 2px 0 !important;
+  color: #212529 !important;
+  margin: 0 0 4px 0 !important;
 }
 
 .vote-item-content-glass p {
-  font-size: 12px !important;
-  color: #65676b !important;
+  font-size: 13px !important;
+  color: #6c757d !important;
   margin: 0 !important;
+  line-height: 1.4 !important;
 }
 
-/* ============================================
-   8. AUTH BUTTONS - IN MOBILE MENU
-   ============================================ */
+/* AUTH BUTTONS - Bottom of menu */
 .navbar-nav-section-glass .auth-buttons-glass {
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
-  margin-top: 20px !important;
-  padding-top: 20px !important;
-  border-top: 1px solid #e4e6ea !important;
+  gap: 12px !important;
+  margin-top: 24px !important;
+  padding-top: 24px !important;
+  border-top: 2px solid #e9ecef !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass {
-  display: block !important;
-  padding: 14px 16px !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: white !important;
-  text-decoration: none !important;
-  text-align: center !important;
-  border-radius: 10px !important;
-  background: linear-gradient(135deg, #4cb15c 0%, #228e55 100%) !important;
-  border: none !important;
-  transition: all 0.2s ease !important;
-  min-height: 48px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-}
-
-.navbar-nav-section-glass .auth-link-glass:first-of-type {
+  padding: 16px !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: white !important;
   background: linear-gradient(135deg, #4cb15c 0%, #228e55 100%) !important;
+  border-radius: 12px !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25) !important;
+  transition: all 0.2s ease !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass:nth-of-type(2) {
   background: white !important;
   color: #4cb15c !important;
   border: 2px solid #4cb15c !important;
-}
-
-.navbar-nav-section-glass .auth-link-glass:hover {
-  opacity: 0.9 !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+  box-shadow: none !important;
 }
 
 .navbar-nav-section-glass .auth-link-glass:active {
-  transform: scale(0.98) translateY(0) !important;
+  transform: scale(0.97) !important;
 }
 
-/* ============================================
-   9. PROFILE DROPDOWN - IN MOBILE MENU
-   ============================================ */
+/* PROFILE - Bottom of menu */
 .navbar-nav-section-glass .profile-dropdown-glass {
-  margin-top: 20px !important;
-  padding-top: 20px !important;
-  border-top: 1px solid #e4e6ea !important;
-  display: block !important;
+  margin-top: 24px !important;
+  padding-top: 24px !important;
+  border-top: 2px solid #e9ecef !important;
 }
 
 .navbar-nav-section-glass .profile-toggle-glass {
   display: flex !important;
   align-items: center !important;
-  padding: 12px 16px !important;
-  background: #f0f2f5 !important;
-  border-radius: 10px !important;
-  color: #1c1e21 !important;
-  text-decoration: none !important;
   gap: 12px !important;
+  padding: 16px !important;
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  text-decoration: none !important;
 }
 
 .navbar-nav-section-glass .profile-image-glass {
   width: 48px !important;
   height: 48px !important;
   border-radius: 50% !important;
-  flex-shrink: 0 !important;
   border: 2px solid #4cb15c !important;
 }
 
 .navbar-nav-section-glass .username-glass {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: #1c1e21 !important;
   flex: 1 !important;
-  display: block !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: #212529 !important;
 }
 
 .navbar-nav-section-glass .dropdown-menu-glass {
-  position: static !important;
-  width: 100% !important;
-  margin-top: 8px !important;
+  margin-top: 12px !important;
+  padding: 0 !important;
   background: transparent !important;
   border: none !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  display: block !important;
   box-shadow: none !important;
+  display: block !important;
+  position: static !important;
 }
 
 .navbar-nav-section-glass .dropdown-item-glass {
-  padding: 14px 16px !important;
-  color: #1c1e21 !important;
-  border-radius: 10px !important;
-  min-height: 48px !important;
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
-  background: transparent !important;
-  border: none !important;
-  width: 100% !important;
-  text-align: left !important;
-  text-decoration: none !important;
-  transition: all 0.2s ease !important;
+  padding: 16px 20px !important;
+  margin-bottom: 8px !important;
   font-size: 16px !important;
   font-weight: 500 !important;
-  margin-bottom: 4px !important;
+  color: #212529 !important;
+  background: white !important;
+  border-radius: 12px !important;
+  text-decoration: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease !important;
 }
 
-.navbar-nav-section-glass .dropdown-item-glass:hover {
-  background: #f0f2f5 !important;
-  color: #4cb15c !important;
+.navbar-nav-section-glass .dropdown-item-glass:active {
+  background: #f8f9fa !important;
 }
 
 .navbar-nav-section-glass .dropdown-item-glass i {
@@ -482,27 +338,17 @@
 }
 
 .navbar-nav-section-glass .logout-btn-glass {
-  color: #e74c3c !important;
+  color: #dc3545 !important;
 }
 
-.navbar-nav-section-glass .logout-btn-glass:hover {
-  background: rgba(231, 76, 60, 0.1) !important;
-  color: #e74c3c !important;
-}
-
-/* ============================================
-   10. BODY SCROLL LOCK
-   ============================================ */
+/* BODY SCROLL LOCK */
 body.mobile-menu-open {
   overflow: hidden !important;
   position: fixed !important;
   width: 100% !important;
-  height: 100% !important;
 }
 
-/* ============================================
-   11. OVERLAY
-   ============================================ */
+/* OVERLAY */
 .vote-overlay-glass {
   display: none !important;
 }
@@ -514,9 +360,9 @@ body.mobile-menu-open .vote-overlay-glass {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
   z-index: 1024 !important;
   backdrop-filter: blur(2px) !important;
 }
 
-} /* End of @media (max-width: 768px) */
+} /* End mobile */
