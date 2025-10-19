@@ -3,7 +3,7 @@
    User profile, tabs, content sections
    ============================================ */
 
-/* Profile Page Container */
+@media (max-width: 360px) and (orientation: portrait) {`n`n/* Profile Page Container */
 .profile-page {
   padding-bottom: 80px !important;
 }
@@ -612,3 +612,6 @@
   font-size: 24px !important;
   animation: spin 1s linear infinite !important;
 }
+
+
+} /* End of @media (max-width: 360px) and (orientation: portrait) */

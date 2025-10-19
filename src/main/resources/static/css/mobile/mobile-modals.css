@@ -3,7 +3,7 @@
    Fullscreen modals с swipe-to-close
    ============================================ */
 
-/* Modal Backdrop */
+@media (max-width: 360px) and (orientation: portrait) {`n`n/* Modal Backdrop */
 .modal-backdrop {
   backdrop-filter: blur(8px) !important;
 }
@@ -325,3 +325,6 @@
   border-radius: 2px !important;
   margin: 8px auto !important;
 }
+
+
+} /* End of @media (max-width: 360px) and (orientation: portrait) */
