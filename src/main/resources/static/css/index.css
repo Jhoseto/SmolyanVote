@@ -76,23 +76,6 @@ body {
   color: var(--text-primary);
 }
 
-/* ====== ACCESSIBILITY ====== */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 6px;
-  background: var(--primary-green);
-  color: white;
-  padding: 8px;
-  text-decoration: none;
-  border-radius: 4px;
-  z-index: 1000;
-  transition: top 0.3s;
-}
-
-.skip-link:focus {
-  top: 6px;
-}
 /* ====== HERO НАСТРОЙКИ ЗА СНИМКАТА  ====== */
 :root {
     /* СНИМКА НАСТРОЙКИ */

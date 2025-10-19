@@ -5,21 +5,21 @@
 
 @media (max-width: 768px) {
 
-/* Footer Container - Override desktop dark theme with mobile-friendly light theme */
+/* Footer Container - Keep dark theme like desktop, but optimized for mobile */
 .footer,
 .footer-modern {
-  padding: 40px 16px 80px 16px !important; /* Extra padding for mobile safe area */
-  margin-top: 48px !important;
-  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%) !important;
-  border-top: 1px solid #e9ecef !important;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04) !important;
+  padding: 32px 16px 24px 16px !important; /* Compact padding */
+  margin-top: 0 !important;
+  background-color: #181a1f !important; /* Dark graphite like desktop */
+  border-top: 3px solid #4a5568 !important;
+  box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Override dark theme main content grid */
 .footer-main-content {
   display: flex !important;
   flex-direction: column !important;
-  gap: 24px !important;
+  gap: 16px !important; /* Reduced gap for compactness */
   max-width: 100% !important;
   margin: 0 !important;
 }
@@ -28,210 +28,135 @@
 .footer-content {
   display: flex !important;
   flex-direction: column !important;
-  gap: 32px !important;
+  gap: 16px !important; /* Reduced gap */
   max-width: 100% !important;
 }
 
-/* Footer Sections - Mobile cards */
+/* Footer Sections - Compact dark theme cards */
 .footer-about,
 .footer-navigation,
 .footer-legal,
 .footer-contact {
-  background: white !important;
-  padding: 20px 16px !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  background: #2d3748 !important; /* Dark card background */
+  padding: 16px 12px !important; /* Reduced padding */
+  border-radius: 8px !important; /* Smaller radius */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   grid-column: 1 !important;
+  border: 1px solid #4a5568 !important; /* Subtle border */
 }
 
-/* Footer Brand */
+/* Footer Brand - Removed (too much space) */
 .footer-brand {
-  text-align: center !important;
-  margin-bottom: 24px !important;
-  padding: 20px 16px !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  display: none !important; /* Hide on mobile for compactness */
 }
 
 .footer-logo {
-  height: 48px !important;
+  height: 40px !important;
   width: auto !important;
-  margin-bottom: 16px !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+  margin-bottom: 12px !important;
+  filter: brightness(1.2) !important;
 }
 
 .footer-brand-text {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  background: linear-gradient(135deg, #4cb15c 0%, #228e55 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  margin-bottom: 12px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #e2e8f0 !important;
+  margin-bottom: 8px !important;
   display: block !important;
 }
 
 .footer-description {
-  font-size: 14px !important;
-  color: #6c757d !important;
-  line-height: 1.6 !important;
-  max-width: 320px !important;
-  margin: 0 auto !important;
+  font-size: 13px !important;
+  color: #a0aec0 !important;
+  line-height: 1.5 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
 }
 
-/* Override desktop footer title dark colors */
+/* Override desktop footer title - Dark theme */
 .footer-title {
-  color: #212529 !important;
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  margin-bottom: 16px !important;
+  color: #e2e8f0 !important; /* Light color for dark bg */
+  font-size: 14px !important; /* Smaller for compactness */
+  font-weight: 600 !important;
+  margin-bottom: 12px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
+  display: block !important; /* Block instead of flex */
 }
 
 .footer-title i {
-  font-size: 18px !important;
-  color: #4cb15c !important;
+  display: none !important; /* Hide icons for compactness */
 }
 
-/* Override footer text colors */
+/* Override footer text colors - Dark theme */
 .footer-text {
-  color: #6c757d !important;
-  font-size: 14px !important;
-  line-height: 1.6 !important;
+  color: #a0aec0 !important; /* Light grey for dark bg */
+  font-size: 13px !important;
+  line-height: 1.5 !important;
 }
 
-/* Footer nav links */
+/* Footer nav links - Compact dark theme */
 .footer-nav {
   display: flex !important;
   flex-direction: column !important;
-  gap: 8px !important;
+  gap: 4px !important; /* Reduced gap */
 }
 
 .footer-nav .footer-link {
-  color: #6c757d !important;
-  padding: 10px 8px !important;
-  border-radius: 8px !important;
+  color: #a0aec0 !important; /* Light grey */
+  padding: 8px 0 !important; /* Less padding */
+  font-size: 13px !important;
+  border-radius: 4px !important;
   transition: all 0.2s ease !important;
   background: transparent !important;
+  gap: 1.5rem !important;
+
 }
 
 .footer-nav .footer-link:hover,
 .footer-nav .footer-link:active {
-  color: #4cb15c !important;
-  background: rgba(76, 175, 80, 0.05) !important;
-  transform: translateX(4px) !important;
+  color: #e2e8f0 !important; /* Brighter on tap */
+  transform: translateX(2px) !important; /* Subtle shift */
 }
 
-/* Sign in links */
+/* Sign in links - Compact */
 .stat-signIn {
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important; /* Horizontal */
   gap: 8px !important;
-  margin-top: 16px !important;
+  margin-top: 12px !important;
+  justify-content: center !important;
 }
 
 .stat-signIn .footer-link {
-  padding: 12px 16px !important;
-  background: #f8f9fa !important;
-  border-radius: 10px !important;
-  color: #6c757d !important;
+  padding: 8px 16px !important;
+  background: #4a5568 !important; /* Dark button */
+  border-radius: 6px !important;
+  color: #e2e8f0 !important;
   font-weight: 500 !important;
+  font-size: 13px !important;
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 6px !important;
   transition: all 0.2s ease !important;
+  flex: 1 !important;
+  justify-content: center !important;
 }
 
 .stat-signIn .footer-link:active {
-  background: linear-gradient(135deg, #4cb15c 0%, #3a9b4a 100%) !important;
-  color: white !important;
-  transform: scale(0.98) !important;
-}
-
-/* Footer Links Grid */
-.footer-links {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 20px !important;
-}
-
-.footer-column {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  background: white !important;
-  padding: 20px 16px !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
-}
-
-.footer-column-title {
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  color: #212529 !important;
-  margin-bottom: 12px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-.footer-column-title i {
-  font-size: 16px !important;
-  color: #4cb15c !important;
-}
-
-.footer-link {
-  font-size: 14px !important;
-  color: #6c757d !important;
-  text-decoration: none !important;
-  padding: 10px 8px !important;
-  transition: all 0.2s ease !important;
-  min-height: 44px !important;
-  display: flex !important;
-  align-items: center !important;
-  border-radius: 8px !important;
-  position: relative !important;
-}
-
-.footer-link::before {
-  content: '' !important;
-  position: absolute !important;
-  left: 0 !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 0 !important;
-  height: 2px !important;
   background: #4cb15c !important;
-  transition: width 0.2s ease !important;
+  color: white !important;
+  transform: scale(0.95) !important;
 }
 
-.footer-link:active {
-  color: #4cb15c !important;
-  background: rgba(76, 175, 80, 0.05) !important;
-  transform: translateX(4px) !important;
+/* Footer Links Grid - Hide (redundant with footer sections) */
+.footer-links {
+  display: none !important;
 }
 
-.footer-link:active::before {
-  width: 20px !important;
-}
-
-/* Social Links */
+/* Social Links - Hide for compactness */
 .footer-social {
-  display: flex !important;
-  justify-content: center !important;
-  gap: 12px !important;
-  margin: 24px 0 !important;
-  padding: 24px 16px !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  display: none !important;
 }
 
 .footer-social-title {
@@ -312,68 +237,71 @@
   background: linear-gradient(135deg, #0077b5 0%, #005885 100%) !important;
 }
 
-/* Footer Extended section - Newsletter + Security */
+/* Footer Extended section - Compact */
 .footer-extended {
   display: flex !important;
   flex-direction: column !important;
-  gap: 20px !important;
-  margin: 24px 0 !important;
+  gap: 12px !important;
+  margin: 16px 0 !important;
   padding: 0 !important;
   border: none !important;
   grid-template-columns: 1fr !important;
 }
 
-/* Security section - mobile card */
+/* Security section - Compact dark card */
 .footer-security {
-  background: white !important;
-  border-radius: 16px !important;
-  padding: 24px 20px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  background: #2d3748 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   margin: 0 !important;
   grid-column: 1 !important;
   align-self: stretch !important;
+  border: 1px solid #4a5568 !important;
 }
 
 .security-title {
-  color: #212529 !important;
-  font-size: 15px !important;
-  font-weight: 700 !important;
+  color: #a0aec0 !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 8px !important;
+  text-align: center !important;
 }
 
 .security-links {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  gap: 16px !important;
+  gap: 12px !important;
   flex-wrap: wrap !important;
 }
 
 .security-links a img {
-  height: 32px !important;
-  filter: none !important;
-  opacity: 0.7 !important;
+  height: 18px !important; /* Smaller */
+  filter: brightness(0.85) saturate(0.9) !important;
+  opacity: 1 !important;
   transition: all 0.2s ease !important;
 }
 
 .security-links a:active img {
-  opacity: 1 !important;
+  filter: brightness(1.1) !important;
   transform: scale(1.05) !important;
 }
 
-/* Footer Bottom */
+/* Footer Bottom - Compact dark theme */
 .footer-bottom {
   text-align: center !important;
-  padding: 24px 16px !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-  margin-top: 24px !important;
+  padding: 16px 12px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-top: 16px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
+  border-top: 1px solid #4a5568 !important;
 }
 
 .footer-bottom-center {
@@ -381,15 +309,15 @@
 }
 
 .footer-copy {
-  color: #212529 !important;
+  color: #e2e8f0 !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
-  margin-bottom: 12px !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px !important;
 }
 
 .footer-info {
-  color: #6c757d !important;
-  font-size: 12px !important;
+  color: #a0aec0 !important;
+  font-size: 11px !important;
   margin-bottom: 0 !important;
 }
 
@@ -439,16 +367,9 @@
   font-size: 14px !important;
 }
 
-/* Newsletter Signup (if exists) */
+/* Newsletter Signup - Hide for compactness */
 .footer-newsletter {
-  background: linear-gradient(135deg, #4cb15c 0%, #3a9b4a 100%) !important;
-  border-radius: 16px !important;
-  padding: 28px 20px !important;
-  text-align: center !important;
-  margin: 24px 0 !important;
-  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.2) !important;
-  position: relative !important;
-  overflow: hidden !important;
+  display: none !important;
 }
 
 .footer-newsletter::before {
@@ -533,36 +454,22 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Contact Info */
-.footer-contact {
-  background: white !important;
-  border-radius: 16px !important;
-  padding: 24px 20px !important;
-  margin: 24px 0 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-}
-
+/* Contact Info - Compact version */
 .footer-contact-title {
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  color: #212529 !important;
-  text-align: center !important;
-  margin-bottom: 16px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  display: none !important; /* Hide title for compactness */
 }
 
 .contact-item {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 12px !important;
-  font-size: 14px !important;
-  color: #6c757d !important;
-  margin-bottom: 12px !important;
-  padding: 12px 16px !important;
-  background: #f8f9fa !important;
-  border-radius: 10px !important;
+  gap: 25px !important;
+  font-size: 13px !important;
+  color: #a0aec0 !important;
+  margin-bottom: 8px !important;
+  padding: 6px 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   transition: all 0.2s ease !important;
 }
 
@@ -571,26 +478,21 @@
 }
 
 .contact-item i {
-  font-size: 18px !important;
+  font-size: 14px !important;
   color: #4cb15c !important;
-  width: 24px !important;
+  width: 16px !important;
   text-align: center !important;
   flex-shrink: 0 !important;
 }
 
 .contact-item a {
-  color: #6c757d !important;
+  color: #a0aec0 !important;
   text-decoration: none !important;
   transition: color 0.2s ease !important;
 }
 
-.contact-item:active {
-  background: rgba(76, 175, 80, 0.08) !important;
-  transform: translateX(4px) !important;
-}
-
 .contact-item:active a {
-  color: #4cb15c !important;
+  color: #e2e8f0 !important;
 }
 
 /* Back to Top Button */
@@ -598,8 +500,8 @@
   position: fixed !important;
   bottom: 24px !important;
   right: 16px !important;
-  width: 56px !important;
-  height: 56px !important;
+  width: 35px !important;
+  height: 35px !important;
   border-radius: 50% !important;
   background: linear-gradient(135deg, #4cb15c 0%, #3a9b4a 100%) !important;
   color: white !important;
@@ -631,8 +533,8 @@
 .back-to-top::before {
   content: '' !important;
   position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
+  top: 70% !important;
+  left: 70% !important;
   width: 100% !important;
   height: 100% !important;
   border-radius: 50% !important;
@@ -647,92 +549,28 @@
 }
 
 .back-to-top i {
-  position: relative !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
   z-index: 1 !important;
   animation: bounce 2s ease-in-out infinite !important;
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%, 100% { 
+    transform: translate(-50%, -50%) translateY(0); 
+  }
+  50% { 
+    transform: translate(-50%, -50%) translateY(-4px); 
+  }
 }
 
-/* Additional mobile optimizations */
-.footer-divider {
-  height: 1px !important;
-  background: linear-gradient(to right, transparent 0%, #e9ecef 50%, transparent 100%) !important;
-  margin: 24px 0 !important;
-  border: none !important;
-}
-
-/* App Download Badges (if exists) */
-.footer-app-badges {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-  margin: 24px 0 !important;
-  padding: 24px 20px !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-}
-
-.footer-app-badges-title {
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  color: #212529 !important;
-  text-align: center !important;
-  margin-bottom: 12px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-}
-
-.app-badge {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 12px 20px !important;
-  background: #212529 !important;
-  border-radius: 10px !important;
-  text-decoration: none !important;
-  transition: all 0.2s ease !important;
-}
-
-.app-badge img {
-  height: 40px !important;
-  width: auto !important;
-}
-
-.app-badge:active {
-  transform: scale(0.95) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Trust badges / Certifications */
+/* Hide extra elements for compactness */
+.footer-divider,
+.footer-app-badges,
 .footer-trust-badges {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 16px !important;
-  flex-wrap: wrap !important;
-  padding: 20px 16px !important;
-  background: white !important;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-  margin: 24px 0 !important;
-}
-
-.trust-badge {
-  height: 40px !important;
-  width: auto !important;
-  opacity: 0.6 !important;
-  filter: grayscale(100%) !important;
-  transition: all 0.2s ease !important;
-}
-
-.trust-badge:active {
-  opacity: 1 !important;
-  filter: grayscale(0%) !important;
+  display: none !important;
 }
 
 /* Responsive Adjustments for very small screens */
