@@ -1,0 +1,37 @@
+/* MOBILE DEBUG CSS - Test if mobile styles apply */
+@media (max-width: 768px) and (orientation: portrait) {
+  /* Test body background */
+  body {
+    background-color: lightblue !important;
+  }
+  
+  /* Test navbar visibility */
+  .navbar-glassmorphism {
+    background-color: red !important;
+    border: 3px solid yellow !important;
+  }
+  
+  .navbar-content {
+    background-color: orange !important;
+    border: 2px solid purple !important;
+  }
+  
+  /* Test mobile toggler */
+  .mobile-toggler-glass {
+    background-color: lime !important;
+    border: 3px solid black !important;
+  }
+  
+  /* Test auth buttons */
+  .auth-link-glass {
+    background-color: pink !important;
+    border: 2px solid red !important;
+    font-size: 12px !important;
+  }
+  
+  /* Test brand */
+  .brand-text-glass {
+    color: yellow !important;
+    font-size: 10px !important;
+  }
+}
