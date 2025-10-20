@@ -65,4 +65,11 @@ public interface EmailService {
      * @param type типът абонамент от който се отписва
      */
     void sendUnsubscribeConfirmation(UserEntity user, SubscriptionType type);
+
+    /**
+     * Изпраща имейл за възстановяване на парола
+     * @param recipientEmail email адресът на получателя
+     * @param token токенът за възстановяване
+     */
+    void sendPasswordResetEmail(String recipientEmail, String token);
 }
