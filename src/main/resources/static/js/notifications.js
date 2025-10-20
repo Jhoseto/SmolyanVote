@@ -40,6 +40,12 @@ class NotificationSystem {
         newBell.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Добавяме вибрация за мобилни устройства
+            if (window.innerWidth <= 768 && 'vibrate' in navigator) {
+                navigator.vibrate(30); // По-кратка вибрация за нотификации
+            }
+            
             this.toggleDropdown();
         });
 
@@ -48,6 +54,12 @@ class NotificationSystem {
             markAllBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                // Добавяме вибрация за мобилни устройства
+                if (window.innerWidth <= 768 && 'vibrate' in navigator) {
+                    navigator.vibrate([50, 30, 50]); // Двойна вибрация за важни действия
+                }
+                
                 this.markAllAsRead();
             });
         }

@@ -13,6 +13,11 @@ function toggleVoteMenu(event) {
     const arrow = document.querySelector('.vote-arrow-glass');
     const overlay = document.getElementById('voteOverlay');
 
+    // Добавяме вибрация за мобилни устройства
+    if (window.innerWidth <= 768) {
+        vibrateMobile();
+    }
+
     if (voteMenuOpen) {
         closeVoteMenu();
     } else {
@@ -44,8 +49,20 @@ function closeVoteMenu() {
 
 // ===== MOBILE MENU FUNCTIONS =====
 
+// Функция за вибрация на мобилно устройство
+function vibrateMobile() {
+    // Проверяваме дали браузърът поддържа вибрация
+    if ('vibrate' in navigator) {
+        // Кратка вибрация (50ms) за тактилен feedback
+        navigator.vibrate(50);
+    }
+}
+
 function toggleMobileMenu() {
     const navSection = document.getElementById('navbarNavSection');
+
+    // Добавяме вибрация при отваряне/затваряне на менюто
+    vibrateMobile();
 
     if (mobileMenuOpen) {
         navSection.classList.remove('show');
@@ -167,6 +184,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mobileProfileToggle && mobileDropdownMenu) {
         mobileProfileToggle.addEventListener('click', function(e) {
             e.preventDefault();
+            // Добавяме вибрация за мобилни устройства
+            if (window.innerWidth <= 768) {
+                vibrateMobile();
+            }
             openDropdown(mobileDropdownMenu);
         });
     }
