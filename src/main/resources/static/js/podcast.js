@@ -194,11 +194,21 @@ class PodcastPlayer {
 
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeBtn = document.getElementById('volumeBtn');
+        const volumeToggle = document.getElementById('volumeToggle');
+        const volumeControls = document.getElementById('volumeControls');
+        const playerExpandBtn = document.getElementById('playerExpandBtn');
+        
         if (volumeSlider) {
             volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
         }
         if (volumeBtn) {
             volumeBtn.addEventListener('click', () => this.toggleMute());
+        }
+        if (volumeToggle) {
+            volumeToggle.addEventListener('click', () => this.toggleVolumeControls());
+        }
+        if (playerExpandBtn) {
+            playerExpandBtn.addEventListener('click', () => this.togglePlayerExpansion());
         }
 
         const progressBar = document.getElementById('progressBar');
@@ -543,6 +553,40 @@ class PodcastPlayer {
             const restoreVolume = this.previousVolume || 1;
             this.setVolume(restoreVolume);
             if (volumeSlider) volumeSlider.value = restoreVolume;
+        }
+    }
+
+    toggleVolumeControls() {
+        const volumeControls = document.getElementById('volumeControls');
+        const volumeToggle = document.getElementById('volumeToggle');
+        
+        if (volumeControls && volumeToggle) {
+            const isVisible = volumeControls.classList.contains('show');
+            
+            if (isVisible) {
+                volumeControls.classList.remove('show');
+                volumeToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+            } else {
+                volumeControls.classList.add('show');
+                volumeToggle.innerHTML = '<i class="fas fa-volume-down"></i>';
+            }
+        }
+    }
+
+    togglePlayerExpansion() {
+        const playerContainer = document.querySelector('.player-container');
+        const playerExpandBtn = document.getElementById('playerExpandBtn');
+        
+        if (playerContainer && playerExpandBtn) {
+            const isExpanded = playerContainer.classList.contains('expanded');
+            
+            if (isExpanded) {
+                playerContainer.classList.remove('expanded');
+                playerExpandBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            } else {
+                playerContainer.classList.add('expanded');
+                playerExpandBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            }
         }
     }
 
