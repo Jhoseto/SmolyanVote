@@ -7,7 +7,6 @@ import com.mailjet.client.MailjetResponse;
 import com.mailjet.client.resource.Emailv31;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -40,7 +39,6 @@ public class EmailServiceImpl implements EmailService {
     @Value("${mailjet.sender.name}")
     private String senderName;
 
-    @Autowired
     public EmailServiceImpl(@Value("${mailjet.api.key}") String apiKey,
                             @Value("${mailjet.api.secret}") String apiSecret,
                             TemplateEngine templateEngine,
@@ -176,6 +174,40 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendUnsubscribeConfirmation(UserEntity user, SubscriptionType type) {
         // TODO: Implement later
+    }
+
+    @Override
+    public void sendPasswordResetEmail(String recipientEmail, String token) {
+        try {
+            String resetLink = "https://smolyanvote.com/reset-password?token=" + token;
+            
+            Context context = new Context();
+            context.setVariable("resetLink", resetLink);
+            String htmlContent = templateEngine.process("passwordResetTemplate", context);
+
+            MailjetRequest request = new MailjetRequest(Emailv31.resource)
+                    .property(Emailv31.MESSAGES, new JSONArray()
+                            .put(new JSONObject()
+                                    .put(Emailv31.Message.FROM, new JSONObject()
+                                            .put("Email", senderEmail)
+                                            .put("Name", senderName))
+                                    .put(Emailv31.Message.TO, new JSONArray()
+                                            .put(new JSONObject()
+                                                    .put("Email", recipientEmail)))
+                                    .put(Emailv31.Message.SUBJECT, "SmolyanVote.bg - Възстановяване на парола")
+                                    .put(Emailv31.Message.HTMLPART, htmlContent)
+                                    .put(Emailv31.Message.TEXTPART,
+                                            "Моля, кликнете на линка за възстановяване на парола: " + resetLink)));
+
+            MailjetResponse response = client.post(request);
+
+            if (response.getStatus() != 200) {
+                throw new RuntimeException("Failed to send password reset email. Status: " + response.getStatus());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error sending password reset email: " + e.getMessage(), e);
+        }
     }
 
     private String getUnsubscribeToken(UserEntity user, SubscriptionType type) {
