@@ -215,7 +215,7 @@
                     
                     <!-- Profile Dropdown for Mobile (shown only when authenticated) -->
                     <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
-                        <a class="profile-toggle-glass d-flex align-items-center" href="#" role="button">
+                        <a class="profile-toggle-glass d-flex align-items-center" id="mobileProfileToggle" href="#" role="button">
                             <div class="profile-image-glass avatar-placeholder"
                                  th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
                             </div>
@@ -253,7 +253,7 @@
 
                     <!-- Логнати потребители -->
                     <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
-                        <a class="profile-toggle-glass d-flex align-items-center" href="#" role="button">
+                        <a class="profile-toggle-glass d-flex align-items-center" id="desktopProfileToggle" href="#" role="button">
                             <!-- ПРОМЯНА: Заменяме цялата объркана логика с един avatar-placeholder -->
                             <div class="profile-image-glass avatar-placeholder me-2"
                                  th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
@@ -374,155 +374,10 @@
         };
     </script>
 
-    <!-- JavaScript за Vote Menu -->
-    <script>
-        let voteMenuOpen = false;
-        let mobileMenuOpen = false;
-        let profileDropdownOpen = false; // НОВО: за profile dropdown
-
-        function toggleVoteMenu(event) {
-            event.preventDefault();
-            const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow-glass');
-            const overlay = document.getElementById('voteOverlay');
-
-            if (voteMenuOpen) {
-                closeVoteMenu();
-            } else {
-                openVoteMenu();
-            }
-        }
-
-        function openVoteMenu() {
-            const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow-glass');
-            const overlay = document.getElementById('voteOverlay');
-
-            container.classList.add('show');
-            arrow.classList.add('rotated');
-            overlay.classList.add('show');
-            voteMenuOpen = true;
-        }
-
-        function closeVoteMenu() {
-            const container = document.getElementById('voteMenuContainer');
-            const arrow = document.querySelector('.vote-arrow-glass');
-            const overlay = document.getElementById('voteOverlay');
-
-            container.classList.remove('show');
-            arrow.classList.remove('rotated');
-            overlay.classList.remove('show');
-            voteMenuOpen = false;
-        }
-
-        function toggleMobileMenu() {
-            const navSection = document.getElementById('navbarNavSection');
-
-            if (mobileMenuOpen) {
-                navSection.classList.remove('show');
-                mobileMenuOpen = false;
-            } else {
-                navSection.classList.add('show');
-                mobileMenuOpen = true;
-            }
-        }
-
-        // НОВО: Custom Profile Dropdown функции
-        function toggleProfileDropdown() {
-            const dropdownMenu = document.querySelector('.dropdown-menu-glass');
-
-            if (profileDropdownOpen) {
-                dropdownMenu.classList.remove('show');
-                profileDropdownOpen = false;
-            } else {
-                dropdownMenu.classList.add('show');
-                profileDropdownOpen = true;
-            }
-        }
-
-        // Затваряне при натискане на Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (voteMenuOpen) closeVoteMenu();
-                if (mobileMenuOpen) toggleMobileMenu();
-                if (profileDropdownOpen) { // НОВО: затваряне на profile dropdown
-                    document.querySelector('.dropdown-menu-glass').classList.remove('show');
-                    profileDropdownOpen = false;
-                }
-            }
-        });
-
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(e) {
-            const navSection = document.getElementById('navbarNavSection');
-            const toggler = document.querySelector('.mobile-toggler-glass');
-
-            if (mobileMenuOpen && !navSection.contains(e.target) && !toggler.contains(e.target)) {
-                toggleMobileMenu();
-            }
-        });
-
-        // НОВО: Custom Profile Dropdown Event Listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            const profileToggle = document.querySelector('.profile-toggle-glass');
-            const dropdownMenu = document.querySelector('.dropdown-menu-glass');
-
-            if (profileToggle && dropdownMenu) {
-                // Клик върху profile toggle
-                profileToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    toggleProfileDropdown();
-                });
-
-                // Затваряне при клик извън менюто
-                document.addEventListener('click', function(e) {
-                    if (profileDropdownOpen &&
-                        !profileToggle.contains(e.target) &&
-                        !dropdownMenu.contains(e.target)) {
-                        dropdownMenu.classList.remove('show');
-                        profileDropdownOpen = false;
-                    }
-                });
-            }
-        });
-    </script>
+    <!-- Navbar JavaScript -->
+    <script src="/js/navbar.js"></script>
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Heartbeat скрипт за автентикирани потребители -->
-    <script th:if="${#authorization.expression('isAuthenticated()')}">
-        document.addEventListener('DOMContentLoaded', function() {
-            const csrfToken = document.querySelector('meta[name="_csrf"]');
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
-
-            function sendHeartbeat() {
-                const headers = { 'Content-Type': 'application/json' };
-                if (csrfToken && csrfHeader) {
-                    headers[csrfHeader.content] = csrfToken.content;
-                }
-
-                fetch('/heartbeat', {
-                    method: 'POST',
-                    headers: headers
-                }).catch(error => console.warn('Heartbeat error:', error));
-            }
-
-            sendHeartbeat();
-            setInterval(sendHeartbeat, 60000);
-        });
-    </script>
-
-    <!-- Modal анимации -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('loginModal');
-            if (modal) {
-                modal.addEventListener('hide.bs.modal', () => {
-                    modal.classList.add('modal-closing');
-                    setTimeout(() => modal.classList.remove('modal-closing'), 300);
-                });
-            }
-        });
-    </script>
 </div>
