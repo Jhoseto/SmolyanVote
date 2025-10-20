@@ -2143,7 +2143,7 @@ body {
     .bi-pencil-square2,
     .bi-poll-check,
     .bi-ballot-check {
-        left: -1.5rem;
+        left: 0rem;
         padding: 0.4rem 0.8rem 0.5rem 0.8rem;
         font-size: 0.8rem;
     }
@@ -2357,9 +2357,10 @@ body {
 
     .options-dropdown {
         left: 50%;
+        top: 17%;
         transform: translateX(-50%) translateY(-10px);
         width: 100%;
-        max-width: 200px;
+        max-width: 140px;
     }
 
     .options-dropdown.show {
