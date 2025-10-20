@@ -124,7 +124,12 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   justify-content: center !important;
   border-radius: 10px !important;
   background: rgba(76, 175, 80, 0.08) !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.notification-bell:hover {
+  background: rgba(76, 175, 80, 0.12) !important;
+  transform: scale(1.05) !important;
 }
 
 .notification-bell:active {
@@ -135,6 +140,11 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 .notification-bell i {
   font-size: 24px !important;
   color: #4cb15c !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.notification-bell:hover i {
+  transform: scale(1.05) !important;
 }
 
 /* NOTIFICATION DROPDOWN - Mobile optimized */

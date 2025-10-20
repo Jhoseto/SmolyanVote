@@ -43,16 +43,22 @@
         cursor: pointer;
         padding: 0.5rem;
         border-radius: 50%;
-        transition: background 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .notification-bell:hover {
         background: rgba(25, 134, 28, 0.1);
+        transform: scale(1.1);
     }
 
     .notification-bell i {
         font-size: 1.5rem;
         color: var(--text-primary, #2c3e50);
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .notification-bell:hover i {
+        transform: scale(1.05);
     }
 
     .notification-badge {
