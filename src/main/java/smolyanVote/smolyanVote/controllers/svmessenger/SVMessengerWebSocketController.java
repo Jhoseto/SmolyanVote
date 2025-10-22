@@ -1,0 +1,168 @@
+package smolyanVote.smolyanVote.controllers.svmessenger;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVSendMessageRequest;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
+import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
+
+import java.security.Principal;
+
+/**
+ * WebSocket Controller за SVMessenger
+ * Обработва STOMP съобщения от clients
+ */
+@Controller
+@Slf4j
+public class SVMessengerWebSocketController {
+    
+    private final SVMessengerService messengerService;
+    private final SVMessengerWebSocketHandler wsHandler;
+    private final UserRepository userRepository;
+    
+    public SVMessengerWebSocketController(
+            SVMessengerService messengerService,
+            SVMessengerWebSocketHandler wsHandler,
+            UserRepository userRepository) {
+        this.messengerService = messengerService;
+        this.wsHandler = wsHandler;
+        this.userRepository = userRepository;
+    }
+    
+    // ========== MESSAGE SENDING ==========
+    
+    /**
+     * Client изпраща съобщение
+     * Endpoint: /app/svmessenger/send
+     * 
+     * Client изпраща: { "conversationId": 1, "text": "Hello!" }
+     */
+    @MessageMapping("/svmessenger/send")
+    public void sendMessage(@Payload SVSendMessageRequest request, Principal principal) {
+        log.debug("WebSocket: sendMessage from user {}", principal.getName());
+        
+        try {
+            // Вземи current user
+            UserEntity sender = getUserFromPrincipal(principal);
+            
+            // Изпрати съобщението (през service)
+            SVMessageDTO message = messengerService.sendMessage(
+                    request.getConversationId(),
+                    request.getText(),
+                    sender
+            );
+            
+            log.info("Message {} sent via WebSocket", message.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending message via WebSocket", e);
+        }
+    }
+    
+    // ========== TYPING STATUS ==========
+    
+    /**
+     * Client съобщава че пише
+     * Endpoint: /app/svmessenger/typing
+     * 
+     * Client изпраща: { "conversationId": 1, "isTyping": true }
+     */
+    @MessageMapping("/svmessenger/typing")
+    public void updateTypingStatus(@Payload SVTypingStatusDTO status, Principal principal) {
+        log.debug("WebSocket: typing status from user {}", principal.getName());
+        
+        try {
+            // Вземи current user
+            UserEntity user = getUserFromPrincipal(principal);
+            
+            // Update typing status (през service)
+            messengerService.updateTypingStatus(
+                    status.getConversationId(),
+                    user,
+                    status.getIsTyping()
+            );
+            
+        } catch (Exception e) {
+            log.error("Error updating typing status via WebSocket", e);
+        }
+    }
+    
+    // ========== CONNECTION EVENTS ==========
+    
+    /**
+     * WebSocket connection established
+     */
+    @EventListener
+    public void handleWebSocketConnectListener(SessionConnectedEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        
+        log.info("WebSocket connection established: sessionId={}", headerAccessor.getSessionId());
+        
+        try {
+            // Извади user info от session
+            Principal principal = headerAccessor.getUser();
+            if (principal != null) {
+                UserEntity user = getUserFromPrincipal(principal);
+                
+                // Broadcast че е онлайн
+                wsHandler.broadcastOnlineStatus(user.getId(), true);
+                
+                log.info("User {} connected to SVMessenger WebSocket", user.getId());
+            }
+        } catch (Exception e) {
+            log.error("Error handling WebSocket connect", e);
+        }
+    }
+    
+    /**
+     * WebSocket connection closed
+     */
+    @EventListener
+    public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        
+        log.info("WebSocket connection closed: sessionId={}", headerAccessor.getSessionId());
+        
+        try {
+            // Извади user info от session
+            Principal principal = headerAccessor.getUser();
+            if (principal != null) {
+                UserEntity user = getUserFromPrincipal(principal);
+                
+                // Broadcast че е офлайн
+                wsHandler.broadcastOnlineStatus(user.getId(), false);
+                
+                log.info("User {} disconnected from SVMessenger WebSocket", user.getId());
+            }
+        } catch (Exception e) {
+            log.error("Error handling WebSocket disconnect", e);
+        }
+    }
+    
+    // ========== HELPER METHODS ==========
+    
+    /**
+     * Извлича UserEntity от Principal
+     */
+    private UserEntity getUserFromPrincipal(Principal principal) {
+        if (principal == null) {
+            throw new IllegalStateException("User not authenticated");
+        }
+        
+        String identifier = principal.getName();
+        
+        return userRepository.findByEmail(identifier)
+                .or(() -> userRepository.findByUsername(identifier))
+                .orElseThrow(() -> new IllegalStateException("User not found: " + identifier));
+    }
+}
