@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test SVMessenger</title>
+    <link rel="stylesheet" th:href="@{/svmessenger/svmessenger.css}">
+</head>
+<body>
+    <h1>Test SVMessenger</h1>
+    
+    <!-- React root element -->
+    <div id="svmessenger-root"></div>
+    
+    <!-- Test user data -->
+    <script>
+        window.SVMESSENGER_USER_DATA = {
+            id: 1,
+            username: 'testuser',
+            email: 'test@example.com',
+            imageUrl: '',
+            isAuthenticated: true
+        };
+    </script>
+    
+    <!-- React bundle -->
+    <script th:src="@{/svmessenger/svmessenger.js}"></script>
+    
+    <script>
+        // Test if React loaded
+        setTimeout(() => {
+            console.log('SVMessenger loaded:', window.SVMessenger);
+            console.log('Root element:', document.getElementById('svmessenger-root'));
+        }, 2000);
+    </script>
+</body>
+</html>

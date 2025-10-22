@@ -12,4 +12,6 @@ if (rootElement) {
       <App />
     </React.StrictMode>
   );
+} else {
+  console.warn('SVMessenger: Root element #svmessenger-root not found');
 }

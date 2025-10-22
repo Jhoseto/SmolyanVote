@@ -1,70 +1,60 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
-import ConversationList from './ConversationList';
-import ChatWindow from './ChatWindow';
-import UserSearch from './UserSearch';
-import './SVMessengerWidget.css';
+import SVConversationList from './SVConversationList';
+import SVChatWindow from './SVChatWindow';
+import SVUserSearch from './SVUserSearch';
 
 /**
  * Главен SVMessenger Widget компонент
+ * Floating button + chat windows + conversation list
  */
-function SVMessengerWidget() {
+const SVMessengerWidget = () => {
   const {
-    isOpen,
-    isLoading,
-    error,
-    currentUser,
-    loadConversations,
-    clearError
+    isChatListOpen,
+    isSearchOpen,
+    activeChats,
+    totalUnreadCount,
+    openChatList,
+    closeChatList,
+    openSearch,
+    closeSearch
   } = useSVMessenger();
-  
-  // Load conversations on mount
-  useEffect(() => {
-    if (currentUser) {
-      loadConversations();
-    }
-  }, [currentUser, loadConversations]);
-  
-  // Clear error after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        clearError();
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, clearError]);
-  
-  if (!currentUser) {
-    return null;
-  }
-  
+
   return (
-    <div className={`svmessenger-widget ${isOpen ? 'open' : ''}`}>
-      {/* Error notification */}
-      {error && (
-        <div className="svmessenger-error">
-          <span>{error}</span>
-          <button onClick={clearError} className="close-error">×</button>
-        </div>
-      )}
-      
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="svmessenger-loading">
-          <div className="spinner"></div>
-          <span>Зареждане...</span>
-        </div>
-      )}
-      
-      {/* Main content */}
-      <div className="svmessenger-content">
-        <ConversationList />
-        <ChatWindow />
-        <UserSearch />
+    <div className="svmessenger-widget">
+      {/* Floating Action Button */}
+      <div className="svmessenger-fab" onClick={openChatList}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+        
+        {/* Unread count badge */}
+        {totalUnreadCount > 0 && (
+          <span className="svmessenger-badge">
+            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+          </span>
+        )}
       </div>
+
+      {/* Conversation List Popup */}
+      {isChatListOpen && (
+        <SVConversationList onClose={closeChatList} onSearchClick={openSearch} />
+      )}
+
+      {/* User Search Popup */}
+      {isSearchOpen && (
+        <SVUserSearch onClose={closeSearch} />
+      )}
+
+      {/* Active Chat Windows */}
+      {activeChats.map((chat) => (
+        <SVChatWindow
+          key={chat.id}
+          conversation={chat}
+        />
+      ))}
     </div>
   );
-}
+};
 
 export default SVMessengerWidget;

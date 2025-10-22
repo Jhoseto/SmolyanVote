@@ -6,39 +6,62 @@ export default defineConfig({
   
   // Build configuration
   build: {
-    // Output директория в Spring Boot static папката
+    // Output в Spring Boot static папката
     outDir: '../src/main/resources/static/svmessenger',
     emptyOutDir: true,
     
+    // Minification и optimization
+    minify: 'terser',
+    sourcemap: false,
+    
     rollupOptions: {
       output: {
-        // Single file output names
+        // Single bundle files
         entryFileNames: 'svmessenger.js',
         chunkFileNames: 'svmessenger-[name].js',
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') {
+          // CSS файлове директно в root
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
             return 'svmessenger.css';
           }
-          return 'svmessenger-[name].[ext]';
+          // Други assets (images, fonts, etc.) в подпапка
+          return 'assets/[name].[ext]';
+        },
+        
+        // Manual chunks за code splitting
+        manualChunks: {
+          'vendor': ['react', 'react-dom'],
+          'websocket': ['sockjs-client', '@stomp/stompjs']
         }
       }
-    }
+    },
+    
+    // Chunk size warning limit
+    chunkSizeWarningLimit: 1000
   },
   
   // Dev server configuration
   server: {
     port: 5173,
+    open: false,
+    
+    // Proxy API calls към Spring Boot
     proxy: {
-      // Proxy API calls към Spring Boot
       '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
+        target: 'http://localhost:2662',
+        changeOrigin: true,
+        secure: false
       },
-      // Proxy WebSocket calls
       '/ws-svmessenger': {
-        target: 'ws://localhost:8080',
-        ws: true
+        target: 'ws://localhost:2662',
+        ws: true,
+        changeOrigin: true
       }
     }
+  },
+  
+  // Optimization
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'sockjs-client', '@stomp/stompjs']
   }
 });

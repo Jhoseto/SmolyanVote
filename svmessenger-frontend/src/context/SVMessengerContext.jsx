@@ -1,376 +1,559 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { svMessengerService } from '../services/svMessengerService';
-import { useWebSocket } from '../hooks/useWebSocket';
+/**
+ * Global State Management за SVMessenger
+ * Използва React Context API
+ */
 
-// Initial state
-const initialState = {
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { svMessengerAPI } from '../services/svMessengerAPI';
+import svWebSocketService from '../services/svWebSocketService';
+
+const SVMessengerContext = createContext(null);
+
+export const useSVMessenger = () => {
+  const context = useContext(SVMessengerContext);
+  if (!context) {
+    throw new Error('useSVMessenger must be used within SVMessengerProvider');
+  }
+  return context;
+};
+
+export const SVMessengerProvider = ({ children, userData }) => {
+  
+  // ========== STATE ==========
+  
+  // User data
+  const [currentUser] = useState(userData);
+  
+  // Conversations
+  const [conversations, setConversations] = useState([]);
+  const [activeChats, setActiveChats] = useState([]); // Max 3 open chats
+  
+  // Messages by conversation ID
+  const [messagesByConversation, setMessagesByConversation] = useState({});
+  
+  // Loading states
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState({});
+  
   // UI State
-  isOpen: false,
-  activeConversationId: null,
-  isTyping: false,
-  isLoading: false,
+  const [isChatListOpen, setIsChatListOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  // Data
-  conversations: [],
-  messages: {},
-  users: {},
-  typingStatus: {},
+  // Typing indicators
+  const [typingUsers, setTypingUsers] = useState({});
   
-  // User info
-  currentUser: null,
+  // Unread count
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   
-  // Error handling
-  error: null
-};
-
-// Action types
-const ActionTypes = {
-  // UI Actions
-  TOGGLE_WIDGET: 'TOGGLE_WIDGET',
-  OPEN_CONVERSATION: 'OPEN_CONVERSATION',
-  CLOSE_CONVERSATION: 'CLOSE_CONVERSATION',
-  SET_LOADING: 'SET_LOADING',
-  SET_ERROR: 'SET_ERROR',
-  CLEAR_ERROR: 'CLEAR_ERROR',
+  // WebSocket connection status
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   
-  // Data Actions
-  SET_CONVERSATIONS: 'SET_CONVERSATIONS',
-  ADD_CONVERSATION: 'ADD_CONVERSATION',
-  UPDATE_CONVERSATION: 'UPDATE_CONVERSATION',
-  SET_MESSAGES: 'SET_MESSAGES',
-  ADD_MESSAGE: 'ADD_MESSAGE',
-  UPDATE_MESSAGE: 'UPDATE_MESSAGE',
-  SET_USERS: 'SET_USERS',
-  ADD_USER: 'ADD_USER',
+  // Refs
+  const typingTimeouts = useRef({});
+  const messageSound = useRef(null);
   
-  // Typing Actions
-  SET_TYPING: 'SET_TYPING',
-  CLEAR_TYPING: 'CLEAR_TYPING',
+  // ========== EFFECTS ==========
   
-  // User Actions
-  SET_CURRENT_USER: 'SET_CURRENT_USER'
-};
-
-// Reducer
-function svMessengerReducer(state, action) {
-  switch (action.type) {
-    case ActionTypes.TOGGLE_WIDGET:
-      return {
-        ...state,
-        isOpen: !state.isOpen,
-        error: null
-      };
-      
-    case ActionTypes.OPEN_CONVERSATION:
-      return {
-        ...state,
-        activeConversationId: action.payload.conversationId,
-        error: null
-      };
-      
-    case ActionTypes.CLOSE_CONVERSATION:
-      return {
-        ...state,
-        activeConversationId: null
-      };
-      
-    case ActionTypes.SET_LOADING:
-      return {
-        ...state,
-        isLoading: action.payload
-      };
-      
-    case ActionTypes.SET_ERROR:
-      return {
-        ...state,
-        error: action.payload,
-        isLoading: false
-      };
-      
-    case ActionTypes.CLEAR_ERROR:
-      return {
-        ...state,
-        error: null
-      };
-      
-    case ActionTypes.SET_CONVERSATIONS:
-      return {
-        ...state,
-        conversations: action.payload,
-        isLoading: false
-      };
-      
-    case ActionTypes.ADD_CONVERSATION:
-      return {
-        ...state,
-        conversations: [action.payload, ...state.conversations]
-      };
-      
-    case ActionTypes.UPDATE_CONVERSATION:
-      return {
-        ...state,
-        conversations: state.conversations.map(conv =>
-          conv.id === action.payload.id ? { ...conv, ...action.payload } : conv
-        )
-      };
-      
-    case ActionTypes.SET_MESSAGES:
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [action.payload.conversationId]: action.payload.messages
-        }
-      };
-      
-    case ActionTypes.ADD_MESSAGE:
-      const { conversationId, message } = action.payload;
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [conversationId]: [
-            ...(state.messages[conversationId] || []),
-            message
-          ]
-        }
-      };
-      
-    case ActionTypes.UPDATE_MESSAGE:
-      const { conversationId: convId, messageId, updates } = action.payload;
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [convId]: state.messages[convId]?.map(msg =>
-            msg.id === messageId ? { ...msg, ...updates } : msg
-          ) || []
-        }
-      };
-      
-    case ActionTypes.SET_USERS:
-      return {
-        ...state,
-        users: action.payload
-      };
-      
-    case ActionTypes.ADD_USER:
-      return {
-        ...state,
-        users: {
-          ...state.users,
-          [action.payload.id]: action.payload
-        }
-      };
-      
-    case ActionTypes.SET_TYPING:
-      return {
-        ...state,
-        typingStatus: {
-          ...state.typingStatus,
-          [action.payload.conversationId]: {
-            ...state.typingStatus[action.payload.conversationId],
-            [action.payload.userId]: action.payload.isTyping
-          }
-        }
-      };
-      
-    case ActionTypes.CLEAR_TYPING:
-      const { conversationId: clearConvId, userId: clearUserId } = action.payload;
-      const newTypingStatus = { ...state.typingStatus };
-      if (newTypingStatus[clearConvId]) {
-        delete newTypingStatus[clearConvId][clearUserId];
-      }
-      return {
-        ...state,
-        typingStatus: newTypingStatus
-      };
-      
-    case ActionTypes.SET_CURRENT_USER:
-      return {
-        ...state,
-        currentUser: action.payload
-      };
-      
-    default:
-      return state;
-  }
-}
-
-// Context
-const SVMessengerContext = createContext();
-
-// Provider component
-export function SVMessengerProvider({ children, userData }) {
-  const [state, dispatch] = useReducer(svMessengerReducer, initialState);
-  
-  // Initialize current user
+  // Initialize WebSocket connection
   useEffect(() => {
-    if (userData && userData.isAuthenticated) {
-      dispatch({
-        type: ActionTypes.SET_CURRENT_USER,
-        payload: userData
-      });
-    }
-  }, [userData]);
-  
-  // WebSocket connection
-  const { sendMessage, isConnected } = useWebSocket({
-    onMessage: handleWebSocketMessage,
-    onError: handleWebSocketError
-  });
-  
-  // WebSocket message handlers
-  function handleWebSocketMessage(message) {
-    switch (message.type) {
-      case 'NEW_MESSAGE':
-        dispatch({
-          type: ActionTypes.ADD_MESSAGE,
-          payload: {
-            conversationId: message.data.conversationId,
-            message: message.data.message
-          }
-        });
-        break;
-        
-      case 'MESSAGE_READ':
-        dispatch({
-          type: ActionTypes.UPDATE_MESSAGE,
-          payload: {
-            conversationId: message.data.conversationId,
-            messageId: message.data.messageId,
-            updates: { isRead: true, readAt: message.data.readAt }
-          }
-        });
-        break;
-        
-      case 'TYPING_STATUS':
-        dispatch({
-          type: ActionTypes.SET_TYPING,
-          payload: {
-            conversationId: message.data.conversationId,
-            userId: message.data.userId,
-            isTyping: message.data.isTyping
-          }
-        });
-        break;
-        
-      case 'USER_ONLINE':
-        dispatch({
-          type: ActionTypes.ADD_USER,
-          payload: message.data.user
-        });
-        break;
-    }
-  }
-  
-  function handleWebSocketError(error) {
-    dispatch({
-      type: ActionTypes.SET_ERROR,
-      payload: 'Връзката с сървъра е прекъсната'
+    console.log('SVMessenger: Initializing WebSocket connection');
+    
+    svWebSocketService.connect({
+      onConnect: handleWebSocketConnect,
+      onDisconnect: handleWebSocketDisconnect,
+      onError: handleWebSocketError,
+      onNewMessage: handleNewMessage,
+      onTypingStatus: handleTypingStatus,
+      onReadReceipt: handleReadReceipt,
+      onOnlineStatus: handleOnlineStatus
     });
-  }
+    
+    // Load initial data
+    loadConversations();
+    loadUnreadCount();
+    
+    // Request notification permission
+    requestNotificationPermission();
+    
+    // Cleanup на unmount
+    return () => {
+      svWebSocketService.disconnect();
+    };
+  }, []);
   
-  // Action creators
-  const actions = {
-    // UI Actions
-    toggleWidget: () => dispatch({ type: ActionTypes.TOGGLE_WIDGET }),
-    openConversation: (conversationId) => dispatch({
-      type: ActionTypes.OPEN_CONVERSATION,
-      payload: { conversationId }
-    }),
-    closeConversation: () => dispatch({ type: ActionTypes.CLOSE_CONVERSATION }),
-    setLoading: (loading) => dispatch({
-      type: ActionTypes.SET_LOADING,
-      payload: loading
-    }),
-    setError: (error) => dispatch({
-      type: ActionTypes.SET_ERROR,
-      payload: error
-    }),
-    clearError: () => dispatch({ type: ActionTypes.CLEAR_ERROR }),
+  // Subscribe to typing status за active chats
+  useEffect(() => {
+    activeChats.forEach(chat => {
+      svWebSocketService.subscribeToTyping(chat.id, handleTypingStatus);
+    });
     
-    // Data Actions
-    loadConversations: async () => {
-      try {
-        dispatch({ type: ActionTypes.SET_LOADING, payload: true });
-        const conversations = await svMessengerService.getConversations();
-        dispatch({ type: ActionTypes.SET_CONVERSATIONS, payload: conversations });
-      } catch (error) {
-        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
-      }
-    },
-    
-    loadMessages: async (conversationId, page = 0) => {
-      try {
-        const messages = await svMessengerService.getMessages(conversationId, page);
-        dispatch({
-          type: ActionTypes.SET_MESSAGES,
-          payload: { conversationId, messages }
-        });
-      } catch (error) {
-        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
-      }
-    },
-    
-    sendMessage: async (conversationId, messageText) => {
-      try {
-        const message = await svMessengerService.sendMessage(conversationId, messageText);
-        dispatch({
-          type: ActionTypes.ADD_MESSAGE,
-          payload: { conversationId, message }
-        });
-        
-        // Send via WebSocket for real-time delivery
-        sendMessage({
-          type: 'SEND_MESSAGE',
-          data: { conversationId, message }
-        });
-      } catch (error) {
-        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
-      }
-    },
-    
-    startConversation: async (recipientId) => {
-      try {
-        const conversation = await svMessengerService.startConversation(recipientId);
-        dispatch({ type: ActionTypes.ADD_CONVERSATION, payload: conversation });
-        return conversation;
-      } catch (error) {
-        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
-        throw error;
-      }
-    },
-    
-    searchUsers: async (query) => {
-      try {
-        return await svMessengerService.searchUsers(query);
-      } catch (error) {
-        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
-        return [];
-      }
-    },
-    
-    // Typing actions
-    startTyping: (conversationId) => {
-      sendMessage({
-        type: 'TYPING_START',
-        data: { conversationId, userId: state.currentUser.id }
+    // Cleanup subscriptions когато chats се променят
+    return () => {
+      activeChats.forEach(chat => {
+        svWebSocketService.unsubscribeFromTyping(chat.id);
       });
-    },
+    };
+  }, [activeChats.map(c => c.id).join(',')]);
+  
+  // ========== WEBSOCKET HANDLERS ==========
+  
+  const handleWebSocketConnect = useCallback(() => {
+    console.log('SVMessenger: WebSocket connected');
+    setIsWebSocketConnected(true);
+  }, []);
+  
+  const handleWebSocketDisconnect = useCallback(() => {
+    console.log('SVMessenger: WebSocket disconnected');
+    setIsWebSocketConnected(false);
+  }, []);
+  
+  const handleWebSocketError = useCallback((error) => {
+    console.error('SVMessenger: WebSocket error', error);
+  }, []);
+  
+  const handleNewMessage = useCallback((message) => {
+    console.log('SVMessenger: New message received', message);
     
-    stopTyping: (conversationId) => {
-      sendMessage({
-        type: 'TYPING_STOP',
-        data: { conversationId, userId: state.currentUser.id }
+    // Add message to conversation
+    setMessagesByConversation(prev => ({
+      ...prev,
+      [message.conversationId]: [
+        message,
+        ...(prev[message.conversationId] || [])
+      ]
+    }));
+    
+    // Update conversation list
+    loadConversations();
+    
+    // Check ако chat window е отворен
+    const chatIsOpen = activeChats.some(c => c.id === message.conversationId);
+    
+    if (chatIsOpen) {
+      // Auto mark as read ако chat-а е отворен
+      markAsRead(message.conversationId);
+    } else {
+      // Increase unread count
+      setTotalUnreadCount(prev => prev + 1);
+      
+      // Play notification sound
+      playNotificationSound();
+      
+      // Show browser notification
+      showBrowserNotification(message);
+    }
+  }, [activeChats]);
+  
+  const handleTypingStatus = useCallback((status) => {
+    console.log('SVMessenger: Typing status', status);
+    
+    const { conversationId, userId, isTyping } = status;
+    
+    if (isTyping) {
+      // Add user to typing list
+      setTypingUsers(prev => ({
+        ...prev,
+        [conversationId]: userId
+      }));
+      
+      // Clear previous timeout
+      if (typingTimeouts.current[conversationId]) {
+        clearTimeout(typingTimeouts.current[conversationId]);
+      }
+      
+      // Auto-clear след 3 секунди
+      typingTimeouts.current[conversationId] = setTimeout(() => {
+        setTypingUsers(prev => {
+          const updated = { ...prev };
+          delete updated[conversationId];
+          return updated;
+        });
+      }, 3000);
+    } else {
+      // Remove user от typing list
+      setTypingUsers(prev => {
+        const updated = { ...prev };
+        delete updated[conversationId];
+        return updated;
+      });
+      
+      // Clear timeout
+      if (typingTimeouts.current[conversationId]) {
+        clearTimeout(typingTimeouts.current[conversationId]);
+        delete typingTimeouts.current[conversationId];
+      }
+    }
+  }, []);
+  
+  const handleReadReceipt = useCallback((receipt) => {
+    console.log('SVMessenger: Read receipt', receipt);
+    
+    const { messageId, conversationId, readAt } = receipt;
+    
+    if (receipt.type === 'BULK_READ') {
+      // All messages marked as read
+      setMessagesByConversation(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map(m => ({
+          ...m,
+          isRead: true,
+          readAt: readAt
+        }))
+      }));
+    } else {
+      // Single message marked as read
+      setMessagesByConversation(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map(m =>
+          m.id === messageId ? { ...m, isRead: true, readAt } : m
+        )
+      }));
+    }
+  }, []);
+  
+  const handleOnlineStatus = useCallback((status) => {
+    console.log('SVMessenger: Online status', status);
+    
+    const { userId, isOnline } = status;
+    
+    // Update user online status в conversations
+    setConversations(prev => prev.map(conv => {
+      if (conv.otherUser.id === userId) {
+        return {
+          ...conv,
+          otherUser: {
+            ...conv.otherUser,
+            isOnline
+          }
+        };
+      }
+      return conv;
+    }));
+    
+    // Update в active chats
+    setActiveChats(prev => prev.map(chat => {
+      if (chat.otherUser.id === userId) {
+        return {
+          ...chat,
+          otherUser: {
+            ...chat.otherUser,
+            isOnline
+          }
+        };
+      }
+      return chat;
+    }));
+  }, []);
+  
+  // ========== API METHODS ==========
+  
+  const loadConversations = useCallback(async () => {
+    setIsLoadingConversations(true);
+    try {
+      const data = await svMessengerAPI.getConversations();
+      setConversations(data);
+      console.log('SVMessenger: Loaded conversations', data.length);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, []);
+  
+  const loadMessages = useCallback(async (conversationId, page = 0) => {
+    // Set loading state
+    setLoadingMessages(prev => ({ ...prev, [conversationId]: true }));
+    
+    try {
+      const data = await svMessengerAPI.getMessages(conversationId, page);
+      
+      setMessagesByConversation(prev => ({
+        ...prev,
+        [conversationId]: page === 0 
+          ? data.content 
+          : [...(prev[conversationId] || []), ...data.content]
+      }));
+      
+      console.log(`SVMessenger: Loaded messages for conversation ${conversationId}, page ${page}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      return { content: [], totalPages: 0, last: true };
+    } finally {
+      setLoadingMessages(prev => ({ ...prev, [conversationId]: false }));
+    }
+  }, []);
+  
+  const sendMessage = useCallback(async (conversationId, text) => {
+    if (!text || text.trim().length === 0) {
+      return;
+    }
+    
+    // Optimistic UI update
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      conversationId,
+      senderId: currentUser.id,
+      senderUsername: currentUser.username,
+      senderImageUrl: currentUser.imageUrl,
+      text: text.trim(),
+      sentAt: new Date().toISOString(),
+      isRead: false,
+      isTemp: true
+    };
+    
+    // Add to local state immediately
+    setMessagesByConversation(prev => ({
+      ...prev,
+      [conversationId]: [tempMessage, ...(prev[conversationId] || [])]
+    }));
+    
+    try {
+      // Send via WebSocket (preferred)
+      if (isWebSocketConnected) {
+        const sent = svWebSocketService.sendMessage(conversationId, text.trim());
+        if (sent) {
+          console.log('SVMessenger: Message sent via WebSocket');
+          // Remove temp message (real one ще дойде от WebSocket)
+          setTimeout(() => {
+            setMessagesByConversation(prev => ({
+              ...prev,
+              [conversationId]: (prev[conversationId] || []).filter(m => m.id !== tempMessage.id)
+            }));
+          }, 500);
+        } else {
+          throw new Error('WebSocket send failed');
+        }
+      } else {
+        // Fallback to HTTP
+        console.log('SVMessenger: Sending message via HTTP fallback');
+        const message = await svMessengerAPI.sendMessage(conversationId, text.trim());
+        
+        // Replace temp message with real one
+        setMessagesByConversation(prev => ({
+          ...prev,
+          [conversationId]: [
+            message,
+            ...(prev[conversationId] || []).filter(m => m.id !== tempMessage.id)
+          ]
+        }));
+      }
+      
+      // Update conversation list
+      await loadConversations();
+      
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      
+      // Remove temp message on error
+      setMessagesByConversation(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).filter(m => m.id !== tempMessage.id)
+      }));
+      
+      // Show error to user
+      alert('Грешка при изпращане на съобщение. Моля опитайте отново.');
+    }
+  }, [currentUser, isWebSocketConnected]);
+  
+  const startConversation = useCallback(async (otherUserId) => {
+    try {
+      const conversation = await svMessengerAPI.startConversation(otherUserId);
+      
+      // Add to conversations list if not exists
+      setConversations(prev => {
+        const exists = prev.some(c => c.id === conversation.id);
+        return exists ? prev : [conversation, ...prev];
+      });
+      
+      // Open chat window
+      openChat(conversation.id);
+      
+      console.log('SVMessenger: Started conversation', conversation.id);
+      return conversation;
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      alert('Грешка при стартиране на разговор.');
+    }
+  }, []);
+  
+  const markAsRead = useCallback(async (conversationId) => {
+    try {
+      await svMessengerAPI.markAsRead(conversationId);
+      
+      // Update local state
+      setConversations(prev => prev.map(c =>
+        c.id === conversationId ? { ...c, unreadCount: 0 } : c
+      ));
+      
+      // Update messages
+      setMessagesByConversation(prev => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map(m => ({
+          ...m,
+          isRead: true,
+          readAt: new Date().toISOString()
+        }))
+      }));
+      
+      // Reload unread count
+      loadUnreadCount();
+      
+      console.log('SVMessenger: Marked conversation as read', conversationId);
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  }, []);
+  
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const data = await svMessengerAPI.getUnreadCount();
+      setTotalUnreadCount(data.count);
+    } catch (error) {
+      console.error('Failed to load unread count:', error);
+    }
+  }, []);
+  
+  const sendTypingStatus = useCallback((conversationId, isTyping) => {
+    if (isWebSocketConnected) {
+      svWebSocketService.sendTypingStatus(conversationId, isTyping);
+    }
+  }, [isWebSocketConnected]);
+  
+  // ========== UI METHODS ==========
+  
+  const openChatList = useCallback(() => {
+    setIsChatListOpen(true);
+    setIsSearchOpen(false);
+  }, []);
+  
+  const closeChatList = useCallback(() => {
+    setIsChatListOpen(false);
+    setIsSearchOpen(false);
+  }, []);
+  
+  const openSearch = useCallback(() => {
+    setIsSearchOpen(true);
+  }, []);
+  
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+  
+  const openChat = useCallback((conversationId) => {
+    // Find conversation
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+      console.warn('Conversation not found:', conversationId);
+      return;
+    }
+    
+    // Check if already open
+    if (activeChats.some(c => c.id === conversationId)) {
+      console.log('Chat already open:', conversationId);
+      return;
+    }
+    
+    // If 3 chats are open, close the oldest (first in array)
+    if (activeChats.length >= 3) {
+      setActiveChats(prev => [...prev.slice(1), { ...conversation, isMinimized: false }]);
+    } else {
+      setActiveChats(prev => [...prev, { ...conversation, isMinimized: false }]);
+    }
+    
+    // Load messages
+    loadMessages(conversationId);
+    
+    // Mark as read
+    markAsRead(conversationId);
+    
+    // Close chat list
+    closeChatList();
+    
+    console.log('SVMessenger: Opened chat', conversationId);
+  }, [conversations, activeChats, loadMessages, markAsRead, closeChatList]);
+  
+  const closeChat = useCallback((conversationId) => {
+    setActiveChats(prev => prev.filter(c => c.id !== conversationId));
+    console.log('SVMessenger: Closed chat', conversationId);
+  }, []);
+  
+  const minimizeChat = useCallback((conversationId) => {
+    setActiveChats(prev => prev.map(c =>
+      c.id === conversationId ? { ...c, isMinimized: !c.isMinimized } : c
+    ));
+  }, []);
+  
+  // ========== HELPER METHODS ==========
+  
+  const requestNotificationPermission = () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
       });
     }
   };
   
+  const playNotificationSound = () => {
+    // TODO: Add notification sound file
+    // try {
+    //   if (!messageSound.current) {
+    //     messageSound.current = new Audio('/svmessenger/svmessenger-assets/notification.mp3');
+    //   }
+    //   messageSound.current.play().catch(err => {
+    //     console.log('Could not play sound:', err);
+    //   });
+    // } catch (error) {
+    //   console.error('Error playing sound:', error);
+    // }
+  };
+  
+  const showBrowserNotification = (message) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(`Ново съобщение от ${message.senderUsername}`, {
+          body: message.text.substring(0, 100),
+          icon: message.senderImageUrl || '/images/default-avatar.png',
+          badge: '/images/svmessenger-icon.png',
+          tag: `svmessenger-${message.conversationId}`,
+          requireInteraction: false
+        });
+      } catch (error) {
+        console.error('Error showing notification:', error);
+      }
+    }
+  };
+  
+  // ========== CONTEXT VALUE ==========
+  
   const value = {
-    ...state,
-    ...actions,
-    isConnected
+    // State
+    currentUser,
+    conversations,
+    activeChats,
+    messagesByConversation,
+    isChatListOpen,
+    isSearchOpen,
+    isLoadingConversations,
+    loadingMessages,
+    typingUsers,
+    totalUnreadCount,
+    isWebSocketConnected,
+    
+    // Methods
+    loadConversations,
+    loadMessages,
+    sendMessage,
+    startConversation,
+    markAsRead,
+    sendTypingStatus,
+    openChatList,
+    closeChatList,
+    openSearch,
+    closeSearch,
+    openChat,
+    closeChat,
+    minimizeChat
   };
   
   return (
@@ -378,13 +561,4 @@ export function SVMessengerProvider({ children, userData }) {
       {children}
     </SVMessengerContext.Provider>
   );
-}
-
-// Hook to use context
-export function useSVMessenger() {
-  const context = useContext(SVMessengerContext);
-  if (!context) {
-    throw new Error('useSVMessenger must be used within SVMessengerProvider');
-  }
-  return context;
-}
+};
