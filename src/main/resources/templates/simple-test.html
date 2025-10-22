@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-container { border: 1px solid #ccc; padding: 20px; margin: 20px 0; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>SVMessenger Test</h1>
+    
+    <div class="test-container">
+        <h2>File Loading Test</h2>
+        <div id="file-test">Loading...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>React Mount Test</h2>
+        <div id="svmessenger-root">React will mount here...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Console Logs</h2>
+        <div id="console-logs"></div>
+    </div>
+    
+    <!-- Test user data -->
+    <script>
+        window.SVMESSENGER_USER_DATA = {
+            id: 1,
+            username: 'testuser',
+            email: 'test@example.com',
+            imageUrl: '',
+            isAuthenticated: true
+        };
+        
+        // Override console.log to show in page
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logContainer = document.getElementById('console-logs');
+        
+        function addLog(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(div);
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        // Test file loading
+        window.addEventListener('load', function() {
+            const fileTest = document.getElementById('file-test');
+            fileTest.innerHTML = '<span class="success">✓ Page loaded successfully</span>';
+            
+            // Check if SVMessenger is available
+            setTimeout(() => {
+                if (window.SVMessenger) {
+                    addLog('✓ SVMessenger global object found');
+                } else {
+                    addLog('✗ SVMessenger global object not found', 'error');
+                }
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Load SVMessenger -->
+    <script src="/svmessenger/svmessenger.js" onload="console.log('✓ SVMessenger script loaded')" onerror="console.error('✗ Failed to load SVMessenger script')"></script>
+</body>
+</html>

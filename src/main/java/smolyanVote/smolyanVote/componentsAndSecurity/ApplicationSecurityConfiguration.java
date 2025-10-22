@@ -55,6 +55,7 @@ public class ApplicationSecurityConfiguration {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(
                                 "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**","/static/**",
+                                "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration", "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",

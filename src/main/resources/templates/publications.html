@@ -41,9 +41,8 @@
   <meta name="twitter:site" content="@SmolyanVote" />
   <meta th:if="${ogAuthor}" name="twitter:creator" th:content="'@' + ${ogAuthor}" />
 
-
-    <!-- Existing Thymeleaf fragments -->
-    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+  <!-- Existing Thymeleaf fragments -->
+  <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></th:block>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/createPublication.css">
   <link rel="stylesheet" href="/css/publicationsDetailModal.css">
