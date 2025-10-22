@@ -22,10 +22,14 @@ const SVChatWindow = ({ conversation, index = 0 }) => {
   // Initialize position on mount
   useEffect(() => {
     const initializePosition = () => {
-      setPosition({
-        x: window.innerWidth - 420 - (index * 420),
-        y: window.innerHeight - 680
-      });
+      // Position chat windows side by side, starting from right
+      const chatWidth = 400;
+      const chatSpacing = 20;
+      const newX = Math.max(0, window.innerWidth - chatWidth - (index * (chatWidth + chatSpacing)));
+      const newY = Math.max(0, window.innerHeight - 680);
+      
+      console.log('Initializing chat position:', { index, newX, newY, windowWidth: window.innerWidth });
+      setPosition({ x: newX, y: newY });
     };
 
     // Initialize immediately if window is available

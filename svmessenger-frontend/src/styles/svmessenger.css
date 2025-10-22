@@ -151,7 +151,9 @@
 
 /* ========== FLOATING ACTION BUTTON ========== */
 .svmessenger-fab {
-  position: relative;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
   width: 64px;
   height: 64px;
   background: var(--svm-gradient-primary);
@@ -167,6 +169,7 @@
   user-select: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  z-index: var(--svm-z-high);
 }
 
 /* Floating Animation */
@@ -257,9 +260,9 @@
 
 /* ========== CONVERSATION LIST ========== */
 .svmessenger-conversation-list {
-  position: absolute;
-  bottom: 80px;
-  right: 0;
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
   width: 400px;
   max-height: 600px;
   background: var(--svm-glass-bg);
@@ -272,6 +275,7 @@
   flex-direction: column;
   overflow: hidden;
   animation: slideUpFade 0.4s var(--svm-transition-bounce);
+  z-index: var(--svm-z-high);
 }
 
 @keyframes slideUpFade {
