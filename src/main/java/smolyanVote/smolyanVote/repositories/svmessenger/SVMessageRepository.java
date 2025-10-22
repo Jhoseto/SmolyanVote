@@ -36,12 +36,12 @@ public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long
     /**
      * Вземи последното съобщение в разговор
      */
-    @Query(value = "SELECT m FROM SVMessageEntity m WHERE " +
+    @Query("SELECT m FROM SVMessageEntity m WHERE " +
            "m.conversation.id = :conversationId AND " +
            "m.isDeleted = false " +
            "ORDER BY m.sentAt DESC")
-    Optional<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId, 
-                                               Pageable pageable);
+    List<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId, 
+                                          Pageable pageable);
     
     /**
      * Списък с последното съобщение за всеки разговор
