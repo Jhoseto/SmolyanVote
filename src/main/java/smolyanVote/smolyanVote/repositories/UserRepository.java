@@ -29,4 +29,13 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query("SELECT u FROM UserEntity u ORDER BY u.created DESC")
     List<UserEntity> findAllUsersForAdminDashboard();
 
+    // ===== МЕТОДИ ЗА SVMESSENGER =====
+
+    @Query("SELECT u FROM UserEntity u WHERE " +
+           "(LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.realName) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "u.status = 'ACTIVE' " +
+           "ORDER BY u.username")
+    List<UserEntity> findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(@Param("query") String query);
+
 }

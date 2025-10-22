@@ -70,7 +70,7 @@ public class ApplicationSecurityConfiguration {
                                 "/createEvent", "/createNewEvent", "/user/logout",
                                 "/user/dashboard/**","/subscription/**","/api/reports/**","/api/user/**",
                                 "/profile/**","/user/**","/api/follow/**","/api/notifications/**",
-                                "/ws/notifications/**"
+                                "/ws/notifications/**","/api/svmessenger/**","/ws-svmessenger/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )
