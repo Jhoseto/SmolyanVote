@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 /**
  * DTO за едно съобщение
@@ -50,12 +51,14 @@ public class SVMessageDTO {
             dto.setSenderUsername(message.getSender().getUsername());
             dto.setSenderImageUrl(message.getSender().getImageUrl());
             dto.setText(message.getMessageText());
-            dto.setSentAt(message.getSentAt());
+            dto.setSentAt(message.getSentAt().atZone(ZoneId.systemDefault()).toInstant());
             dto.setIsRead(message.getIsRead());
-            dto.setReadAt(message.getReadAt());
+            dto.setReadAt(message.getReadAt() != null ? 
+                message.getReadAt().atZone(ZoneId.systemDefault()).toInstant() : null);
             dto.setMessageType(message.getMessageType().name());
             dto.setIsEdited(message.getIsEdited());
-            dto.setEditedAt(message.getEditedAt());
+            dto.setEditedAt(message.getEditedAt() != null ? 
+                message.getEditedAt().atZone(ZoneId.systemDefault()).toInstant() : null);
             
             return dto;
         }

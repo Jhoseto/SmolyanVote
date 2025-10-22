@@ -38,4 +38,5 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
            "ORDER BY u.username")
     List<UserEntity> findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(@Param("query") String query);
 
+    List<UserEntity> findByUsernameContainingIgnoreCase(String trim);
 }

@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:fragment="svMessengerStyles">
-    <!-- SVMessenger CSS -->
-    <link rel="stylesheet" th:href="@{/svmessenger/svmessenger.css}">
-</head>
 
-<body>
-    <!-- SVMessenger Widget Fragment -->
-    <div th:fragment="svMessengerWidget">
-        
-        <!-- React root element -->
-        <div id="svmessenger-root"></div>
-        
-        <!-- Pass user data to React (only if authenticated) -->
-        <script sec:authorize="isAuthenticated()" th:inline="javascript">
-            window.SVMESSENGER_USER_DATA = {
-                id: /*[[${#authentication.principal.id}]]*/ null,
-                username: /*[[${#authentication.principal.username}]]*/ '',
-                email: /*[[${#authentication.principal.email}]]*/ '',
-                imageUrl: /*[[${#authentication.principal.imageUrl}]]*/ '',
-                isAuthenticated: true
-            };
-        </script>
-        
-        <!-- For non-authenticated users -->
-        <script sec:authorize="!isAuthenticated()">
-            window.SVMESSENGER_USER_DATA = {
-                isAuthenticated: false
-            };
-        </script>
-        
-        <!-- React bundle (compiled from vite) -->
-        <script type="module" th:src="@{/svmessenger/svmessenger.js}"></script>
-    </div>
+<!-- SVMessenger Widget Fragment -->
+<div th:fragment="svMessengerWidget">
     
-</body>
+    <!-- React root element -->
+    <div id="svmessenger-root"></div>
+    
+    <!-- Pass user data to React (only if authenticated) -->
+    <script sec:authorize="isAuthenticated()" th:inline="javascript" th:with="currentUser=${@userServiceImpl.getCurrentUser()}">
+        window.SVMESSENGER_USER_DATA = {
+            id: /*[[${currentUser.id}]]*/ null,
+            username: /*[[${currentUser.username}]]*/ '',
+            email: /*[[${currentUser.email}]]*/ '',
+            imageUrl: /*[[${currentUser.imageUrl}]]*/ '',
+            isAuthenticated: true
+        };
+        
+        // CSRF Token for API requests
+        window.SVMESSENGER_CSRF = {
+            token: /*[[${_csrf.token}]]*/ '',
+            headerName: /*[[${_csrf.headerName}]]*/ 'X-XSRF-TOKEN'
+        };
+    </script>
+    
+    <!-- For non-authenticated users -->
+    <script sec:authorize="!isAuthenticated()">
+        window.SVMESSENGER_USER_DATA = {
+            isAuthenticated: false
+        };
+    </script>
+    
+    <!-- React bundle (compiled from vite) -->
+    <script type="module" th:src="@{/svmessenger/svmessenger.js}"></script>
+</div>
+
 </html>

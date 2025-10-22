@@ -6,7 +6,7 @@
 const BASE_URL = '/api/svmessenger';
 
 /**
- * Generic fetch wrapper с error handling
+ * Generic fetch wrapper с error handling и CSRF token
  */
 const fetchAPI = async (url, options = {}) => {
   const defaultOptions = {
@@ -15,6 +15,11 @@ const fetchAPI = async (url, options = {}) => {
     },
     credentials: 'include', // Include session cookies
   };
+  
+  // Add CSRF token if available
+  if (window.SVMESSENGER_CSRF && window.SVMESSENGER_CSRF.token) {
+    defaultOptions.headers[window.SVMESSENGER_CSRF.headerName] = window.SVMESSENGER_CSRF.token;
+  }
   
   try {
     const response = await fetch(url, { ...defaultOptions, ...options });
@@ -136,10 +141,8 @@ export const svMessengerAPI = {
    * Търси потребители по username/име
    */
   searchUsers: async (query) => {
-    if (!query || query.length < 2) {
-      return [];
-    }
-    return fetchAPI(`${BASE_URL}/users/search?query=${encodeURIComponent(query)}`);
+    // Always send the query to backend, let backend handle empty/short queries
+    return fetchAPI(`${BASE_URL}/users/search?query=${encodeURIComponent(query || '')}`);
   },
   
   // ========== STATISTICS ==========

@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.websocket.svmessenger;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -13,6 +14,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class SVMessengerWebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
     
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -34,9 +38,25 @@ public class SVMessengerWebSocketConfig implements WebSocketMessageBrokerConfigu
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register WebSocket endpoint
         // Client ще се connectva към: ws://localhost:2662/ws-svmessenger
-        registry.addEndpoint("/ws-svmessenger")
-                .setAllowedOriginPatterns("*")  // За development; в production: конкретни домейни
-                .withSockJS();  // Fallback на SockJS ако WebSocket не работи
+        
+        // Development: allow localhost, Production: only production domains
+        if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns(
+                            "https://smolyanvote.com", 
+                            "https://www.smolyanvote.com",
+                            "http://localhost:*",
+                            "http://127.0.0.1:*"
+                    )
+                    .withSockJS();
+        } else {
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns(
+                            "https://smolyanvote.com", 
+                            "https://www.smolyanvote.com"
+                    )
+                    .withSockJS();
+        }
     }
     
     /**
@@ -53,3 +73,4 @@ public class SVMessengerWebSocketConfig implements WebSocketMessageBrokerConfigu
      * - /topic/svmessenger-online-status     → Online/Offline updates
      */
 }
+

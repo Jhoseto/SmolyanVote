@@ -7,7 +7,7 @@
   <title>SmolyanVote - Гласът на Смолян | Вашият глас   Вашият град   Вашето мнение</title>
 
   <!-- SEO  БОМБА  -->
-  <div th:replace="~{fragments/indexSeo :: indexSeo}"></div>
+  <th:block th:replace="~{fragments/indexSeo :: indexSeo}"></th:block>
 
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-9G3Y2XM1JE"></script>
@@ -22,7 +22,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Existing Thymeleaf fragments -->
-  <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
+  <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></th:block>
 
 
   <!-- Enhanced CSS Files -->
