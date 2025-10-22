@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.componentsAndSecurity;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,9 @@ import java.util.List;
 
 @Configuration
 public class ApplicationSecurityConfiguration {
+
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
 
     private final UserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
@@ -105,7 +109,7 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat")
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat", "/api/svmessenger/**", "/ws-svmessenger/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 
@@ -142,7 +146,23 @@ public class ApplicationSecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("https://smolyanvote.com"));
+
+        //TODO След завършване на месенджър трябва да се премахне локала
+        // Development: allow localhost, Production: only production domains
+        if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
+            configuration.setAllowedOriginPatterns(List.of(
+                    "https://smolyanvote.com", 
+                    "https://www.smolyanvote.com",
+                    "http://localhost:*",
+                    "http://127.0.0.1:*"
+            ));
+        } else {
+            configuration.setAllowedOriginPatterns(List.of(
+                    "https://smolyanvote.com", 
+                    "https://www.smolyanvote.com"
+            ));
+        }
+        
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN"));
         configuration.setAllowCredentials(true);

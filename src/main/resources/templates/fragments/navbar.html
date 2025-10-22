@@ -217,9 +217,10 @@
                     <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
                         <a class="profile-toggle-glass d-flex align-items-center" id="mobileProfileToggle" href="#" role="button">
                             <div class="profile-image-glass avatar-placeholder"
-                                 th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
+                                 th:with="currentUser=${@userServiceImpl.getCurrentUser()}"
+                                 th:attr="data-user-image=${currentUser.imageUrl},data-username=${currentUser.username}">
                             </div>
-                            <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
+                            <span class="username-glass" th:with="currentUser=${@userServiceImpl.getCurrentUser()}" th:text="${currentUser.username}">Потребител</span>
                         </a>
                         <ul class="dropdown-menu-glass dropdown-menu-end">
                             <li>
@@ -256,10 +257,11 @@
                         <a class="profile-toggle-glass d-flex align-items-center" id="desktopProfileToggle" href="#" role="button">
                             <!-- ПРОМЯНА: Заменяме цялата объркана логика с един avatar-placeholder -->
                             <div class="profile-image-glass avatar-placeholder me-2"
-                                 th:attr="data-user-image=${@userServiceImpl.getCurrentUser()?.getImageUrl()},data-username=${@userServiceImpl.getCurrentUser()?.getUsername() ?: 'Потребител'}">
+                                 th:with="currentUser=${@userServiceImpl.getCurrentUser()}"
+                                 th:attr="data-user-image=${currentUser.imageUrl},data-username=${currentUser.username}">
                             </div>
 
-                            <span class="username-glass" th:text="${@userServiceImpl.getCurrentUser().getUsername()}">Потребител</span>
+                            <span class="username-glass" th:with="currentUser=${@userServiceImpl.getCurrentUser()}" th:text="${currentUser.username}">Потребител</span>
                         </a>
                         <ul class="dropdown-menu-glass dropdown-menu-end">
                             <li>

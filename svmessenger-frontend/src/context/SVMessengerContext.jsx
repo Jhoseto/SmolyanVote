@@ -396,8 +396,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }))
       }));
       
-      // Reload unread count
-      loadUnreadCount();
+      // Update total unread count locally
+      setTotalUnreadCount(prev => prev - (conversations.find(c => c.id === conversationId)?.unreadCount || 0));
       
       console.log('SVMessenger: Marked conversation as read', conversationId);
     } catch (error) {
@@ -441,8 +441,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
   }, []);
   
   const openChat = useCallback((conversationId) => {
-    // Find conversation
-    const conversation = conversations.find(c => c.id === conversationId);
+    // Find conversation in both conversations and activeChats
+    let conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+      // Try to find in activeChats (might be a new conversation)
+      conversation = activeChats.find(c => c.id === conversationId);
+    }
+    
     if (!conversation) {
       console.warn('Conversation not found:', conversationId);
       return;

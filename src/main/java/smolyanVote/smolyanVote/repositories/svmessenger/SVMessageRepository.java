@@ -5,164 +5,112 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
 
-import java.time.Instant;
+import jakarta.persistence.QueryHint;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository за SVMessage entities
- * Оптимизирано за високо performance при infinite scroll
- */
 @Repository
 public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long> {
-    
-    // ========== ОСНОВНИ QUERY МЕТОДИ ==========
-    
-    /**
-     * Вземи съобщения за conversation с pagination
-     * Сортирани по дата (най-новите първи за infinite scroll)
-     */
-    @Query("SELECT m FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "m.isDeleted = false " +
-           "ORDER BY m.sentAt DESC")
-    Page<SVMessageEntity> findByConversationId(@Param("conversationId") Long conversationId, 
-                                                 Pageable pageable);
-    
-    /**
-     * Вземи последното съобщение в разговор
-     */
-    @Query("SELECT m FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "m.isDeleted = false " +
-           "ORDER BY m.sentAt DESC")
-    List<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId, 
-                                          Pageable pageable);
-    
-    /**
-     * Списък с последното съобщение за всеки разговор
-     * Използва се за preview в conversation list
-     */
-    @Query("SELECT m FROM SVMessageEntity m WHERE m.id IN (" +
-           "SELECT MAX(m2.id) FROM SVMessageEntity m2 WHERE " +
-           "m2.conversation.id IN :conversationIds AND " +
-           "m2.isDeleted = false " +
-           "GROUP BY m2.conversation.id)")
-    List<SVMessageEntity> findLastMessagesForConversations(@Param("conversationIds") List<Long> conversationIds);
-    
-    // ========== UNREAD MESSAGES ==========
-    
-    /**
-     * Намери всички непрочетени съобщения в conversation за конкретен user
-     */
-    @Query("SELECT m FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "m.sender.id != :userId AND " +
-           "m.isRead = false AND " +
-           "m.isDeleted = false " +
-           "ORDER BY m.sentAt ASC")
+
+    // ✅ FIX: JOIN FETCH за да избегнем N+1 при sender
+    @Query(value = "SELECT DISTINCT m FROM SVMessageEntity m " +
+            "LEFT JOIN FETCH m.sender " +
+            "WHERE m.conversation.id = :conversationId AND " +
+            "m.isDeleted = false " +
+            "ORDER BY m.sentAt DESC",
+            countQuery = "SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
+                    "m.conversation.id = :conversationId AND m.isDeleted = false")
+    @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "false"))
+    Page<SVMessageEntity> findByConversationId(@Param("conversationId") Long conversationId,
+                                               Pageable pageable);
+
+    // ✅ FIX: Limit 1 за last message
+    @Query("SELECT m FROM SVMessageEntity m " +
+            "LEFT JOIN FETCH m.sender " +
+            "WHERE m.conversation.id = :conversationId AND " +
+            "m.isDeleted = false " +
+            "ORDER BY m.sentAt DESC " +
+            "LIMIT 1")
+    Optional<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId);
+
+    @Query("SELECT m FROM SVMessageEntity m " +
+            "LEFT JOIN FETCH m.sender " +
+            "WHERE m.conversation.id = :conversationId AND " +
+            "m.sender.id != :userId AND " +
+            "m.isRead = false AND " +
+            "m.isDeleted = false " +
+            "ORDER BY m.sentAt ASC")
     List<SVMessageEntity> findUnreadMessages(@Param("conversationId") Long conversationId,
-                                               @Param("userId") Long userId);
-    
-    /**
-     * Брой непрочетени в conversation за user
-     */
+                                             @Param("userId") Long userId);
+
     @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "m.sender.id != :userId AND " +
-           "m.isRead = false AND " +
-           "m.isDeleted = false")
+            "m.conversation.id = :conversationId AND " +
+            "m.sender.id != :userId AND " +
+            "m.isRead = false AND " +
+            "m.isDeleted = false")
     Long countUnreadMessages(@Param("conversationId") Long conversationId,
-                              @Param("userId") Long userId);
-    
-    // ========== UPDATE OPERATIONS ==========
-    
-    /**
-     * Маркира всички съобщения като прочетени
-     * Връща броя update-нати records
-     */
+                             @Param("userId") Long userId);
+
     @Modifying
     @Query("UPDATE SVMessageEntity m SET " +
-           "m.isRead = true, " +
-           "m.readAt = :readAt " +
-           "WHERE m.conversation.id = :conversationId AND " +
-           "m.sender.id != :userId AND " +
-           "m.isRead = false AND " +
-           "m.isDeleted = false")
+            "m.isRead = true, " +
+            "m.readAt = :readAt " +
+            "WHERE m.conversation.id = :conversationId AND " +
+            "m.sender.id != :userId AND " +
+            "m.isRead = false AND " +
+            "m.isDeleted = false")
     int markAllAsRead(@Param("conversationId") Long conversationId,
                       @Param("userId") Long userId,
-                      @Param("readAt") Instant readAt);
-    
-    /**
-     * Маркира едно съобщение като прочетено
-     */
+                      @Param("readAt") LocalDateTime readAt);
+
     @Modifying
     @Query("UPDATE SVMessageEntity m SET " +
-           "m.isRead = true, " +
-           "m.readAt = :readAt " +
-           "WHERE m.id = :messageId")
+            "m.isRead = true, " +
+            "m.readAt = :readAt " +
+            "WHERE m.id = :messageId")
     int markAsRead(@Param("messageId") Long messageId,
-                   @Param("readAt") Instant readAt);
-    
-    /**
-     * Soft delete на съобщение
-     */
+                   @Param("readAt") LocalDateTime readAt);
+
     @Modifying
     @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.id = :messageId")
     int softDelete(@Param("messageId") Long messageId);
-    
-    /**
-     * Изтрий всички съобщения в conversation (при изтриване на conversation)
-     */
+
     @Modifying
     @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.conversation.id = :conversationId")
     int softDeleteAllInConversation(@Param("conversationId") Long conversationId);
-    
-    /**
-     * Редактирай съобщение
-     */
+
     @Modifying
     @Query("UPDATE SVMessageEntity m SET " +
-           "m.messageText = :newText, " +
-           "m.isEdited = true, " +
-           "m.editedAt = :editedAt " +
-           "WHERE m.id = :messageId")
-    int editMessage(@Param("messageId") Long messageId,
+            "m.messageText = :newText, " +
+            "m.isEdited = true, " +
+            "m.editedAt = :editedAt " +
+            "WHERE m.id = :messageId")
+    void editMessage(@Param("messageId") Long messageId,
                     @Param("newText") String newText,
-                    @Param("editedAt") Instant editedAt);
-    
-    // ========== STATISTICS ==========
-    
-    /**
-     * Общ брой съобщения в conversation
-     */
+                    @Param("editedAt") LocalDateTime editedAt);
+
     @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "m.isDeleted = false")
+            "m.conversation.id = :conversationId AND " +
+            "m.isDeleted = false")
     Long countByConversation(@Param("conversationId") Long conversationId);
-    
-    /**
-     * Брой съобщения изпратени от user
-     */
+
     @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-           "m.sender.id = :userId AND " +
-           "m.isDeleted = false")
+            "m.sender.id = :userId AND " +
+            "m.isDeleted = false")
     Long countBySender(@Param("userId") Long userId);
-    
-    // ========== SEARCH ==========
-    
-    /**
-     * Търси съобщения по текст в conversation
-     */
-    @Query("SELECT m FROM SVMessageEntity m WHERE " +
-           "m.conversation.id = :conversationId AND " +
-           "LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
-           "m.isDeleted = false " +
-           "ORDER BY m.sentAt DESC")
+
+    @Query("SELECT m FROM SVMessageEntity m " +
+            "LEFT JOIN FETCH m.sender " +
+            "WHERE m.conversation.id = :conversationId AND " +
+            "LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
+            "m.isDeleted = false " +
+            "ORDER BY m.sentAt DESC")
     List<SVMessageEntity> searchInConversation(@Param("conversationId") Long conversationId,
-                                                 @Param("query") String query);
+                                               @Param("query") String query);
 }

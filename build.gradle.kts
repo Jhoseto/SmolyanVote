@@ -27,9 +27,6 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-mail")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation ("org.springframework.session:spring-session-core")
-	
-	// DevTools for automatic restart and live reload
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
 
 
 	// Advanced
@@ -105,15 +102,4 @@ tasks.named<ProcessResources>("processResources") {
 	exclude("application-dev.properties")
 }
 
-// Task for running with development profile (local only)
-tasks.register("bootRunDev") {
-	group = "application"
-	description = "Runs the application with dev profile"
-	doFirst {
-		tasks.bootRun.configure {
-			systemProperty("spring.profiles.active", "dev")
-		}
-	}
-	finalizedBy("bootRun")
-}
 

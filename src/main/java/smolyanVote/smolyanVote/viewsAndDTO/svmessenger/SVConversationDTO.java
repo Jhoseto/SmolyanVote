@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVConversationEntity;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 /**
  * DTO за един разговор
@@ -55,7 +56,7 @@ public class SVConversationDTO {
             
             // Last message info
             dto.setLastMessage(conversation.getLastMessagePreview());
-            dto.setLastMessageTime(conversation.getUpdatedAt());
+            dto.setLastMessageTime(conversation.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant());
             
             // Unread count за current user
             dto.setUnreadCount(conversation.getUnreadCountFor(currentUser));
@@ -64,7 +65,7 @@ public class SVConversationDTO {
             dto.setIsTyping(isTyping);
             
             // Created timestamp
-            dto.setCreatedAt(conversation.getCreatedAt());
+            dto.setCreatedAt(conversation.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
             
             return dto;
         }
