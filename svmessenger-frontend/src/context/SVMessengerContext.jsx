@@ -366,14 +366,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
         return exists ? prev : [conversation, ...prev];
       });
       
-      // Open chat window
-      openChat(conversation.id);
+      // Directly add to activeChats instead of calling openChat
+      setActiveChats(prev => [...prev, { ...conversation, isMinimized: false }]);
       
-      console.log('SVMessenger: Started conversation', conversation.id);
       return conversation;
     } catch (error) {
       console.error('Failed to start conversation:', error);
-      alert('Грешка при стартиране на разговор.');
+      alert('Грешка при стартиране на разговор: ' + error.message);
     }
   }, []);
   
@@ -455,7 +454,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     
     // Check if already open
     if (activeChats.some(c => c.id === conversationId)) {
-      console.log('Chat already open:', conversationId);
       return;
     }
     
@@ -474,8 +472,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     
     // Close chat list
     closeChatList();
-    
-    console.log('SVMessenger: Opened chat', conversationId);
   }, [conversations, activeChats, loadMessages, markAsRead, closeChatList]);
   
   const closeChat = useCallback((conversationId) => {

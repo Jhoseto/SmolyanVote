@@ -77,7 +77,8 @@ const SVFollowingList = ({ onClose, onSearchClick }) => {
   const handleUserSelect = async (user) => {
     try {
       await startConversation(user.id);
-      onClose();
+      // Don't close immediately - let the chat open first
+      setTimeout(() => onClose(), 100);
     } catch (error) {
       console.error('Failed to start conversation:', error);
       alert('Грешка при стартиране на разговор. Моля опитайте отново.');
