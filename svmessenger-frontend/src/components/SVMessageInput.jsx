@@ -103,7 +103,7 @@ const SVMessageInput = ({ conversationId }) => {
           <textarea
             ref={textareaRef}
             className="svmessenger-text-input"
-            placeholder="Пишетe..."
+            placeholder="Aa"
             value={messageText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}

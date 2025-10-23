@@ -36,7 +36,7 @@ const SVConversationList = ({ onClose, onSearchClick }) => {
     <div className="svmessenger-conversation-list">
       {/* Header */}
       <div className="svmessenger-conversation-header">
-        <h3>Съобщения</h3>
+        <h3>SV Messenger</h3>
         <div className="svmessenger-conversation-actions">
           <button 
             className="svmessenger-search-btn"
