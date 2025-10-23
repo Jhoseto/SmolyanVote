@@ -17,32 +17,38 @@ const SVMessageThread = ({ conversationId }) => {
     loadMessages
   } = useSVMessenger();
 
-  const messages = messagesByConversation[conversationId] || [];
+  const messages = Array.isArray(messagesByConversation[conversationId]) 
+    ? messagesByConversation[conversationId] 
+    : [];
   const isLoading = loadingMessages[conversationId] || false;
   const isTyping = typingUsers[conversationId];
   const messagesEndRef = useRef(null);
   const threadRef = useRef(null);
+  const lastMessageCountRef = useRef(0);
 
-  // Infinite scroll hook
-  const { lastMessageRef } = useSVInfiniteScroll(
-    conversationId,
-    loadMessages,
-    true, // hasMore - засега винаги true
-    isLoading
-  );
+  // Infinite scroll hook - disabled for now to prevent infinite loading
+  // const { lastMessageRef } = useSVInfiniteScroll(
+  //   conversationId,
+  //   loadMessages,
+  //   false, // hasMore - disabled
+  //   isLoading
+  // );
+  const lastMessageRef = null;
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (only when new messages arrive)
   useEffect(() => {
-    if (messagesEndRef.current && isScrolledToBottom(threadRef.current)) {
+    if (messages.length > lastMessageCountRef.current && messagesEndRef.current) {
       scrollToBottom(threadRef.current);
+      lastMessageCountRef.current = messages.length;
     }
   }, [messages.length]);
 
-  // Scroll to bottom on mount
+  // Scroll to bottom on mount and reset message count
   useEffect(() => {
     if (threadRef.current) {
       scrollToBottom(threadRef.current, false);
     }
+    lastMessageCountRef.current = 0; // Reset message count for new conversation
   }, [conversationId]);
 
   return (

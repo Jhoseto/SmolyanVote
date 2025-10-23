@@ -28,11 +28,30 @@ const SVMessageInput = ({ conversationId }) => {
     }
   }, [conversationId]);
 
-  // Auto-resize textarea
+  // Auto-resize textarea with proper line counting
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+      const textarea = textareaRef.current;
+      const lineHeight = 20; // Same as CSS line-height
+      const minHeight = 40; // 2 lines * 20px
+      const maxHeight = 120; // 6 lines * 20px
+      
+      // Reset height to calculate scrollHeight
+      textarea.style.height = 'auto';
+      
+      // Calculate number of lines
+      const lines = Math.ceil(textarea.scrollHeight / lineHeight);
+      
+      if (lines <= 2) {
+        // 1-2 lines: fixed height, no scroll
+        textarea.style.height = `${minHeight}px`;
+        textarea.classList.remove('multi-line');
+      } else {
+        // 3+ lines: dynamic height with scroll
+        const newHeight = Math.min(lines * lineHeight, maxHeight);
+        textarea.style.height = `${newHeight}px`;
+        textarea.classList.add('multi-line');
+      }
     }
   }, [messageText]);
 
@@ -47,10 +66,13 @@ const SVMessageInput = ({ conversationId }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Enter = нов ред, Shift+Enter = изпращане (засега изключено)
+    // Само бутонът изпраща съобщения
+    if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
+    // Обикновен Enter не прави нищо - позволява нов ред
   };
 
   const handleInputChange = (e) => {
@@ -81,7 +103,7 @@ const SVMessageInput = ({ conversationId }) => {
           <textarea
             ref={textareaRef}
             className="svmessenger-text-input"
-            placeholder="Напишете съобщение..."
+            placeholder="Пишетe..."
             value={messageText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
