@@ -1099,6 +1099,138 @@
   }
 }
 
+/* ========== TASKBAR (Windows-style) ========== */
+.svmessenger-taskbar {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--svm-space-2);
+    padding: var(--svm-space-3);
+    background: var(--svm-glass-bg);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--svm-glass-border);
+    border-radius: var(--svm-radius-xl);
+    box-shadow: var(--svm-glass-shadow);
+    z-index: var(--svm-z-high);
+    max-width: 90vw;
+    overflow-x: auto;
+}
+
+.svmessenger-taskbar::-webkit-scrollbar {
+    height: 4px;
+}
+
+.svmessenger-taskbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.svmessenger-taskbar::-webkit-scrollbar-thumb {
+    background: var(--svm-border-light);
+    border-radius: var(--svm-radius-pill);
+}
+
+.svmessenger-taskbar-button {
+    display: flex;
+    align-items: center;
+    gap: var(--svm-space-2);
+    padding: var(--svm-space-2) var(--svm-space-4);
+    background: var(--svm-bg-primary);
+    border: 1px solid var(--svm-border-light);
+    border-radius: var(--svm-radius-lg);
+    cursor: pointer;
+    transition: all var(--svm-transition-fast);
+    min-width: 150px;
+    max-width: 200px;
+}
+
+.svmessenger-taskbar-button:hover {
+    background: var(--svm-glass-green);
+    border-color: var(--svm-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--svm-shadow-md);
+}
+
+.svmessenger-taskbar-button:active {
+    transform: translateY(0);
+}
+
+.svmessenger-taskbar-avatar {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.svmessenger-taskbar-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--svm-white);
+}
+
+.svmessenger-taskbar-name {
+    flex: 1;
+    font-size: var(--svm-font-size-sm);
+    font-weight: var(--svm-font-weight-medium);
+    color: var(--svm-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.svmessenger-taskbar-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--svm-primary);
+    color: var(--svm-white);
+    border-radius: var(--svm-radius-pill);
+    font-size: var(--svm-font-size-xs);
+    font-weight: var(--svm-font-weight-bold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ========== CHAT WINDOW UPDATES ========== */
+.svmessenger-chat-window {
+    position: fixed;
+    width: 400px;
+    height: 600px;
+    background: var(--svm-glass-bg);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--svm-glass-border);
+    border-radius: var(--svm-radius-xl);
+    box-shadow: var(--svm-glass-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUpFade 0.3s var(--svm-transition-base);
+    user-select: none;
+}
+
+.svmessenger-chat-window.dragging {
+    cursor: move;
+    transition: none;
+    box-shadow: var(--svm-shadow-2xl);
+}
+
+/* Chat Header cursor */
+.svmessenger-chat-header {
+    cursor: move;
+    user-select: none;
+}
+
+.svmessenger-chat-header:active {
+    cursor: grabbing;
+}
+
 /* Responsive positioning handled by JavaScript */
 
 /* ========== UTILITIES ========== */

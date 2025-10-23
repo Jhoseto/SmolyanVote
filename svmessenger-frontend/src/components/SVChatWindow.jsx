@@ -5,158 +5,101 @@ import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
 
 /**
- * Chat Window компонент - НОВА ВЕРСИЯ
- * Прост и надежден chat прозорец с drag & drop
+ * Chat Window компонент
+ * Показва отворен разговор с header, messages и input
+ * Поддържа drag & drop функционалност (Windows-style)
  */
-const SVChatWindow = ({ conversation, index = 0 }) => {
-  const { closeChat, minimizeChat } = useSVMessenger();
-  const chatWindowRef = useRef(null);
-  
-  // Позиция на прозореца
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  
-  // Drag & Drop state
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+const SVChatWindow = ({ chat }) => {
+    const { closeChat, minimizeChat, bringToFront, updateChatPosition } = useSVMessenger();
+    const chatWindowRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // Инициализиране на позицията при mount
-  useEffect(() => {
-    const initPosition = () => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      // Размери на прозореца
-      const windowWidth = 400;
-      const windowHeight = 600;
-      
-      // Начална позиция - долу вдясно близо до FAB
-      const startX = viewportWidth - windowWidth - 30; // 30px от десния край
-      const startY = viewportHeight - windowHeight - 100; // 100px от долния край (над FAB)
-      
-      // Офсет за multiple windows
-      const offsetX = index * 20; // 20px между прозорците
-      const offsetY = index * 20;
-      
-      // Финаленна позиция
-      const finalX = Math.max(20, startX - offsetX);
-      const finalY = Math.max(20, startY - offsetY);
-      
-      setPosition({ x: finalX, y: finalY });
+    // Bring to front on mount
+    useEffect(() => {
+        bringToFront(chat.conversation.id);
+    }, []);
+
+    // Drag handlers
+    const handleMouseDown = useCallback((e) => {
+        // Only allow dragging from header
+        if (!e.target.closest('.svmessenger-chat-header')) return;
+        if (e.target.closest('.svmessenger-chat-controls')) return;
+
+        setIsDragging(true);
+        setDragOffset({
+            x: e.clientX - chat.position.x,
+            y: e.clientY - chat.position.y
+        });
+
+        // Bring to front when clicked
+        bringToFront(chat.conversation.id);
+    }, [chat.position, chat.conversation.id, bringToFront]);
+
+    // Global mouse move and up handlers
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e) => {
+            const newX = e.clientX - dragOffset.x;
+            const newY = e.clientY - dragOffset.y;
+
+            // Keep within viewport bounds
+            const maxX = window.innerWidth - 400; // chat width
+            const maxY = window.innerHeight - 600; // chat height
+
+            const boundedX = Math.max(0, Math.min(newX, maxX));
+            const boundedY = Math.max(0, Math.min(newY, maxY));
+
+            updateChatPosition(chat.conversation.id, { x: boundedX, y: boundedY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragOffset, chat.conversation.id, updateChatPosition]);
+
+    const handleClose = () => {
+        closeChat(chat.conversation.id);
     };
 
-    initPosition();
-  }, [index]);
-
-  // Auto-focus при отваряне
-  useEffect(() => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.focus();
-    }
-  }, [conversation.id]);
-
-  // Drag handlers
-  const handleMouseDown = useCallback((e) => {
-    // Само от header-а може да се влачи
-    if (!e.target.closest('.svmessenger-chat-header')) return;
-    
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-  }, [position]);
-
-  // Global mouse move handler
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging) return;
-      
-      const newX = e.clientX - dragStart.x;
-      const newY = e.clientY - dragStart.y;
-      
-      // Ограничи в границите на viewport
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const windowWidth = 400;
-      const windowHeight = 600;
-      
-      const clampedX = Math.max(0, Math.min(newX, viewportWidth - windowWidth));
-      const clampedY = Math.max(0, Math.min(newY, viewportHeight - windowHeight));
-      
-      setPosition({ x: clampedX, y: clampedY });
+    const handleMinimize = () => {
+        minimizeChat(chat.conversation.id);
     };
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
+    return (
+        <div
+            ref={chatWindowRef}
+            className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''}`}
+            style={{
+                left: `${chat.position.x}px`,
+                top: `${chat.position.y}px`,
+                zIndex: chat.zIndex
+            }}
+            onMouseDown={handleMouseDown}
+        >
+            {/* Header */}
+            <SVChatHeader
+                conversation={chat.conversation}
+                onClose={handleClose}
+                onMinimize={handleMinimize}
+            />
 
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
+            {/* Messages Thread */}
+            <SVMessageThread conversationId={chat.conversation.id} />
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, dragStart]);
-
-  // Window resize handler
-  useEffect(() => {
-    const handleResize = () => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const windowWidth = 400;
-      const windowHeight = 600;
-      
-      setPosition(prev => ({
-        x: Math.min(prev.x, viewportWidth - windowWidth),
-        y: Math.min(prev.y, viewportHeight - windowHeight)
-      }));
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const handleClose = () => {
-    closeChat(conversation.id);
-  };
-
-  const handleMinimize = () => {
-    minimizeChat(conversation.id);
-  };
-
-  return (
-    <div 
-      ref={chatWindowRef}
-      className={`svmessenger-chat-window ${conversation.isMinimized ? 'minimized' : ''} ${isDragging ? 'dragging' : ''}`}
-      style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`
-      }}
-      onMouseDown={handleMouseDown}
-      tabIndex={0}
-    >
-      {/* Header */}
-      <SVChatHeader
-        conversation={conversation}
-        onClose={handleClose}
-        onMinimize={handleMinimize}
-      />
-
-      {/* Messages Thread */}
-      {!conversation.isMinimized && (
-        <SVMessageThread conversationId={conversation.id} />
-      )}
-
-      {/* Message Input */}
-      {!conversation.isMinimized && (
-        <SVMessageInput conversationId={conversation.id} />
-      )}
-    </div>
-  );
+            {/* Message Input */}
+            <SVMessageInput conversationId={chat.conversation.id} />
+        </div>
+    );
 };
 
 export default SVChatWindow;
