@@ -115,12 +115,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const handleNewMessage = useCallback((message) => {
         console.log('SVMessenger: New message received', message);
 
-        // Add message to conversation
+        // Add message to conversation (at the end for newest messages to appear at bottom)
         setMessagesByConversation(prev => ({
             ...prev,
             [message.conversationId]: [
-                message,
-                ...(prev[message.conversationId] || [])
+                ...(prev[message.conversationId] || []),
+                message
             ]
         }));
 
@@ -279,10 +279,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         try {
             const message = await svMessengerAPI.sendMessage(conversationId, text.trim());
 
-            // Add message optimistically
+            // Add message optimistically (at the end for newest messages to appear at bottom)
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: [message, ...(prev[conversationId] || [])]
+                [conversationId]: [...(prev[conversationId] || []), message]
             }));
 
             // Update conversation list
