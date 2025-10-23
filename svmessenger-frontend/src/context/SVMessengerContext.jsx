@@ -251,12 +251,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         try {
             const data = await svMessengerAPI.getMessages(conversationId, page);
+            
+            // Handle pagination response - data might be an object with content array
+            const messages = Array.isArray(data) ? data : (data.content || data.messages || []);
 
             setMessagesByConversation(prev => ({
                 ...prev,
                 [conversationId]: page === 0
-                    ? data
-                    : [...(prev[conversationId] || []), ...data]
+                    ? messages
+                    : [...(prev[conversationId] || []), ...messages]
             }));
 
             console.log('SVMessenger: Loaded messages for conversation', conversationId);
@@ -439,7 +442,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         closeChatList();
 
         console.log('SVMessenger: Opened chat', conversationId);
-    }, [conversations, activeChats, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
+    }, [conversations, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
 
     const closeChat = useCallback((conversationId) => {
         setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
@@ -461,8 +464,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 ? { ...c, isMinimized: false, zIndex: nextZIndex.current++ }
                 : c
         ));
+        
+        // Mark as read when restoring chat
+        markAsRead(conversationId);
+        
         console.log('SVMessenger: Restored chat', conversationId);
-    }, []);
+    }, [markAsRead]);
 
     const bringToFront = useCallback((conversationId) => {
         setActiveChats(prev => prev.map(c =>
