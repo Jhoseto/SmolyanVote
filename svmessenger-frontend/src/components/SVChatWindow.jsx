@@ -5,57 +5,61 @@ import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
 
 /**
- * Chat Window компонент
- * Показва отворен разговор с header, messages и input
- * Поддържа drag & drop и resize функционалност
+ * Chat Window компонент - НОВА ВЕРСИЯ
+ * Прост и надежден chat прозорец с drag & drop
  */
 const SVChatWindow = ({ conversation, index = 0 }) => {
   const { closeChat, minimizeChat } = useSVMessenger();
   const chatWindowRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
+  
+  // Позиция на прозореца
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: 400, height: 600 });
+  
+  // Drag & Drop state
+  const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Initialize position on mount
+  // Инициализиране на позицията при mount
   useEffect(() => {
-    const initializePosition = () => {
-      // Position chat windows side by side, starting from right
-      const chatWidth = 400;
-      const chatSpacing = 20;
-      const newX = Math.max(0, window.innerWidth - chatWidth - (index * (chatWidth + chatSpacing)));
-      const newY = Math.max(0, window.innerHeight - 680);
+    const initPosition = () => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
       
-      console.log('Initializing chat position:', { index, newX, newY, windowWidth: window.innerWidth });
-      setPosition({ x: newX, y: newY });
+      // Размери на прозореца
+      const windowWidth = 400;
+      const windowHeight = 600;
+      
+      // Начална позиция - долу вдясно близо до FAB
+      const startX = viewportWidth - windowWidth - 30; // 30px от десния край
+      const startY = viewportHeight - windowHeight - 100; // 100px от долния край (над FAB)
+      
+      // Офсет за multiple windows
+      const offsetX = index * 20; // 20px между прозорците
+      const offsetY = index * 20;
+      
+      // Финаленна позиция
+      const finalX = Math.max(20, startX - offsetX);
+      const finalY = Math.max(20, startY - offsetY);
+      
+      setPosition({ x: finalX, y: finalY });
     };
 
-    // Initialize immediately if window is available
-    if (typeof window !== 'undefined') {
-      initializePosition();
-    }
-
-    // Also initialize on window resize
-    window.addEventListener('resize', initializePosition);
-    
-    return () => {
-      window.removeEventListener('resize', initializePosition);
-    };
+    initPosition();
   }, [index]);
 
-  // Auto-focus on mount
+  // Auto-focus при отваряне
   useEffect(() => {
     if (chatWindowRef.current) {
       chatWindowRef.current.focus();
     }
-  }, []);
+  }, [conversation.id]);
 
   // Drag handlers
   const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.svmessenger-resize-handle')) return;
+    // Само от header-а може да се влачи
+    if (!e.target.closest('.svmessenger-chat-header')) return;
     
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -63,51 +67,31 @@ const SVChatWindow = ({ conversation, index = 0 }) => {
     });
   }, [position]);
 
-  const handleResizeMouseDown = useCallback((e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: size.width,
-      height: size.height
-    });
-  }, [size]);
-
   // Global mouse move handler
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (isDragging) {
-        const newX = e.clientX - dragStart.x;
-        const newY = e.clientY - dragStart.y;
-        
-        // Keep within viewport bounds
-        const maxX = window.innerWidth - size.width;
-        const maxY = window.innerHeight - size.height;
-        
-        setPosition({
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY))
-        });
-      }
+      if (!isDragging) return;
       
-      if (isResizing) {
-        const deltaX = e.clientX - resizeStart.x;
-        const deltaY = e.clientY - resizeStart.y;
-        
-        const newWidth = Math.max(300, Math.min(800, resizeStart.width + deltaX));
-        const newHeight = Math.max(400, Math.min(window.innerHeight - 100, resizeStart.height + deltaY));
-        
-        setSize({ width: newWidth, height: newHeight });
-      }
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      
+      // Ограничи в границите на viewport
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const windowWidth = 400;
+      const windowHeight = 600;
+      
+      const clampedX = Math.max(0, Math.min(newX, viewportWidth - windowWidth));
+      const clampedY = Math.max(0, Math.min(newY, viewportHeight - windowHeight));
+      
+      setPosition({ x: clampedX, y: clampedY });
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      setIsResizing(false);
     };
 
-    if (isDragging || isResizing) {
+    if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     }
@@ -116,7 +100,25 @@ const SVChatWindow = ({ conversation, index = 0 }) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, isResizing, dragStart, resizeStart, size]);
+  }, [isDragging, dragStart]);
+
+  // Window resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const windowWidth = 400;
+      const windowHeight = 600;
+      
+      setPosition(prev => ({
+        x: Math.min(prev.x, viewportWidth - windowWidth),
+        y: Math.min(prev.y, viewportHeight - windowHeight)
+      }));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleClose = () => {
     closeChat(conversation.id);
@@ -129,12 +131,10 @@ const SVChatWindow = ({ conversation, index = 0 }) => {
   return (
     <div 
       ref={chatWindowRef}
-      className={`svmessenger-chat-window ${conversation.isMinimized ? 'minimized' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
+      className={`svmessenger-chat-window ${conversation.isMinimized ? 'minimized' : ''} ${isDragging ? 'dragging' : ''}`}
       style={{
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        height: size.height
+        left: `${position.x}px`,
+        top: `${position.y}px`
       }}
       onMouseDown={handleMouseDown}
       tabIndex={0}
@@ -154,14 +154,6 @@ const SVChatWindow = ({ conversation, index = 0 }) => {
       {/* Message Input */}
       {!conversation.isMinimized && (
         <SVMessageInput conversationId={conversation.id} />
-      )}
-
-      {/* Resize Handle */}
-      {!conversation.isMinimized && (
-        <div 
-          className="svmessenger-resize-handle"
-          onMouseDown={handleResizeMouseDown}
-        />
       )}
     </div>
   );
