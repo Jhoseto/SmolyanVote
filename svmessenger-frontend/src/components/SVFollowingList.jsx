@@ -23,9 +23,8 @@ const SVFollowingList = ({ onClose, onSearchClick }) => {
   const loadFollowingUsers = async () => {
     setIsLoading(true);
     try {
-      // Get all users (we'll filter by following in the future)
-      // For now, get all users and let the user choose
-      const users = await svMessengerAPI.searchUsers(''); // Empty string to get all users
+      // Get only following users
+      const users = await svMessengerAPI.searchFollowingUsers(''); // Empty string to get all following users
       setFollowingUsers(users);
     } catch (error) {
       console.error('Failed to load following users:', error);
@@ -37,14 +36,9 @@ const SVFollowingList = ({ onClose, onSearchClick }) => {
   // Debounced search function
   const debouncedSearch = useCallback(
     debounce(async (query) => {
-      if (query.length < 2) {
-        setFollowingUsers([]);
-        return;
-      }
-
       setIsSearching(true);
       try {
-        const users = await svMessengerAPI.searchUsers(query);
+        const users = await svMessengerAPI.searchFollowingUsers(query);
         setFollowingUsers(users);
       } catch (error) {
         console.error('Search error:', error);
@@ -63,15 +57,8 @@ const SVFollowingList = ({ onClose, onSearchClick }) => {
     debouncedSearch(query);
   };
 
-  // Filter users by search query (for local filtering if needed)
-  const filteredUsers = followingUsers.filter(user => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      user.username.toLowerCase().includes(query) ||
-      user.realName?.toLowerCase().includes(query)
-    );
-  });
+  // Use followingUsers directly since backend does the filtering
+  const filteredUsers = followingUsers;
 
   // Handle user selection
   const handleUserSelect = async (user) => {
@@ -134,7 +121,7 @@ const SVFollowingList = ({ onClose, onSearchClick }) => {
             <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
-            <p>Няма намерени потребители</p>
+            <p>Няма намерени следвани потребители</p>
           </div>
         ) : (
           <div className="svmessenger-search-list">
