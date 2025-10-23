@@ -178,7 +178,7 @@
     justify-content: center;
     box-shadow: var(--svm-shadow-lg);
     transition: all var(--svm-transition-base);
-    overflow: hidden;
+    overflow: visible;
     user-select: none;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -247,15 +247,15 @@
 /* Badge */
 .svmessenger-badge {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 22px;
-    height: 22px;
+    top: -3px;
+    right: -3px;
+    min-width: 20px;
+    height: 20px;
     padding: 0 6px;
     background: var(--svm-error);
     color: var(--svm-white);
     border-radius: var(--svm-radius-pill);
-    border: 3px solid var(--svm-white);
+    border: 2px solid var(--svm-white);
     font-size: var(--svm-font-size-xs);
     font-weight: var(--svm-font-weight-bold);
     display: flex;
@@ -263,7 +263,7 @@
     justify-content: center;
     box-shadow: var(--svm-shadow-md);
     animation: badge-pulse 2s infinite;
-    z-index: 2;
+    z-index: calc(var(--svm-z-high) + 1);
 }
 
 @keyframes badge-pulse {
@@ -433,7 +433,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--svm-space-5) var(--svm-space-6);
+    padding: var(--svm-space-4) var(--svm-space-6);
     background: var(--svm-gradient-primary);
     color: var(--svm-white);
     position: sticky;
@@ -444,10 +444,11 @@
 }
 
 .svmessenger-conversation-header h3 {
-    font-size: var(--svm-font-size-lg);
-    font-weight: var(--svm-font-weight-semibold);
+    font-size: 1.4rem;
+    font-weight: 400;
     margin: 0;
     letter-spacing: -0.3px;
+    color: white;
 }
 
 .svmessenger-conversation-actions {
@@ -649,7 +650,7 @@
 .svmessenger-conversation-name {
     font-size: 14px;
     font-weight: var(--svm-font-weight-semibold);
-    color: var(--svm-text-primary);
+    color: white;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -702,7 +703,7 @@
     min-width: 22px;
     height: 22px;
     padding: 0 6px;
-    background: var(--svm-primary);
+    background: #eb4445;
     color: var(--svm-white);
     border-radius: var(--svm-radius-pill);
     font-size: var(--svm-font-size-xs);
@@ -1003,9 +1004,7 @@
     gap: var(--svm-space-1);
     background: none !important;
     background-image: none !important;
-    background-size: none !important;
     background-repeat: no-repeat !important;
-    background-position: none !important;
 }
 
 .svmessenger-message,
@@ -1017,9 +1016,7 @@
     margin-bottom: var(--svm-space-1);
     background: none !important;
     background-image: none !important;
-    background-size: none !important;
     background-repeat: no-repeat !important;
-    background-position: none !important;
     background-attachment: fixed !important;
 }
 
@@ -1078,9 +1075,7 @@
     position: relative;
     background: none !important;
     background-image: none !important;
-    background-size: none !important;
     background-repeat: no-repeat !important;
-    background-position: none !important;
 }
 
 .svmessenger-message.sent .svmessenger-message-content,

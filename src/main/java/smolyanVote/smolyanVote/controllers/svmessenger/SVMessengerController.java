@@ -368,6 +368,32 @@ public class SVMessengerController {
         }
     }
     
+    /**
+     * GET /api/svmessenger/users/following?query=ivan
+     * Търси в следвани потребители по username/име
+     * 
+     * Response: List<SVUserMinimalDTO>
+     */
+    @GetMapping("/users/following")
+    public ResponseEntity<List<SVUserMinimalDTO>> searchFollowingUsers(
+            @RequestParam(required = false) String query,
+            Authentication auth) {
+        log.info("GET /api/svmessenger/users/following?query={}", query);
+        
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            List<SVUserMinimalDTO> users = messengerService.searchFollowingUsers(query, currentUser);
+            
+            return ResponseEntity.ok(users);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error searching following users", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     // ========== STATISTICS ==========
     
     /**

@@ -15,6 +15,7 @@ import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVConversationRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVMessageRepository;
+import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
@@ -35,6 +36,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     private final SVMessageRepository messageRepo;
     private final UserRepository userRepo;
     private final SVMessengerWebSocketHandler webSocketHandler;
+    private final FollowService followService;
 
     private final Map<Long, Map<Long, LocalDateTime>> typingStatuses = new ConcurrentHashMap<>();
 
@@ -43,11 +45,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVConversationRepository conversationRepo,
             SVMessageRepository messageRepo,
             UserRepository userRepo,
-            SVMessengerWebSocketHandler webSocketHandler) {
+            SVMessengerWebSocketHandler webSocketHandler,
+            FollowService followService) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
         this.userRepo = userRepo;
         this.webSocketHandler = webSocketHandler;
+        this.followService = followService;
     }
 
     // ✅ FIX: readOnly=true за read operations
@@ -371,8 +375,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                         .collect(Collectors.toList());
             }
 
-            // Search by username for longer queries
-            List<UserEntity> users = userRepo.findByUsernameContainingIgnoreCase(query.trim());
+            // Search by username and real name for longer queries
+            List<UserEntity> users = userRepo.findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(query.trim());
 
             return users.stream()
                     .filter(user -> !user.getId().equals(currentUser.getId()))
@@ -382,6 +386,53 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
         } catch (Exception e) {
             log.error("Error searching users: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser) {
+        try {
+            log.info("Searching following users for user {} with query: '{}'", currentUser.getId(), query);
+            
+            // Get following users using existing follow service
+            List<Object[]> followingData;
+            
+            if (query == null || query.trim().isEmpty()) {
+                // Get all following users
+                followingData = followService.getFollowing(currentUser.getId(), 0, 50);
+                log.info("Found {} following users (all)", followingData.size());
+            } else {
+                // Search in following users
+                followingData = followService.searchFollowing(currentUser.getId(), query.trim(), 0, 50);
+                log.info("Found {} following users (search: '{}')", followingData.size(), query);
+            }
+            
+            // Convert to UserEntity and then to DTO
+            List<Long> userIds = followingData.stream()
+                    .map(row -> (Long) row[0])
+                    .collect(Collectors.toList());
+            
+            log.info("User IDs from following data: {}", userIds);
+            
+            if (userIds.isEmpty()) {
+                log.info("No following users found, returning empty list");
+                return List.of();
+            }
+            
+            List<UserEntity> users = userRepo.findAllById(userIds);
+            log.info("Found {} users from database", users.size());
+            
+            List<SVUserMinimalDTO> result = users.stream()
+                    .map(SVUserMinimalDTO.Mapper::toDTO)
+                    .collect(Collectors.toList());
+            
+            log.info("Returning {} following users", result.size());
+            return result;
+                    
+        } catch (Exception e) {
+            log.error("Error searching following users: {}", e.getMessage(), e);
             return List.of();
         }
     }

@@ -175,4 +175,13 @@ public interface SVMessengerService {
      * @return List от UserMinimalDTO
      */
     List<SVUserMinimalDTO> searchUsers(String query, UserEntity currentUser);
+    
+    /**
+     * Търси в следвани потребители по username/име
+     * 
+     * @param query Търсената дума (може да е null за всички)
+     * @param currentUser Текущият user
+     * @return List от UserMinimalDTO (само следвани)
+     */
+    List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser);
 }

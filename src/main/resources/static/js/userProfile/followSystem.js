@@ -163,9 +163,55 @@ class UserFollowSystem {
         document.addEventListener('click', (e) => {
             if (e.target.matches('.user-card-overlay')) {
                 const userCard = e.target.closest('.user-card');
-                const userId = userCard?.dataset.userId;
+                const username = userCard?.querySelector('.user-card-username')?.textContent?.trim();
+                if (username) {
+                    window.open(`/user/${username}`, '_blank');
+                }
+            }
+        });
+
+        // Dropdown меню опции
+        document.addEventListener('click', (e) => {
+            // Follow/Unfollow от dropdown
+            if (e.target.matches('.user-follow-link') || e.target.closest('.user-follow-link')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const link = e.target.closest('.user-follow-link');
+                const userId = link?.dataset.userId;
                 if (userId) {
-                    window.open(`/profile/${userId}`, '_blank');
+                    this.handleFollowAction(userId, 'follow');
+                }
+            }
+
+            if (e.target.matches('.user-unfollow-link') || e.target.closest('.user-unfollow-link')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const link = e.target.closest('.user-unfollow-link');
+                const userId = link?.dataset.userId;
+                if (userId) {
+                    this.handleFollowAction(userId, 'unfollow');
+                }
+            }
+
+            // Съобщение от dropdown
+            if (e.target.matches('.user-message-link') || e.target.closest('.user-message-link')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const link = e.target.closest('.user-message-link');
+                const userId = link?.dataset.userId;
+                if (userId) {
+                    this.handleMessageAction(userId);
+                }
+            }
+
+            // Докладвай от dropdown
+            if (e.target.matches('.user-report-link') || e.target.closest('.user-report-link')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const link = e.target.closest('.user-report-link');
+                const userId = link?.dataset.userId;
+                if (userId) {
+                    this.handleReportAction(userId);
                 }
             }
         });
@@ -178,6 +224,18 @@ class UserFollowSystem {
                     this.loadPage(page);
                 }
             }
+        });
+
+        // Затваря dropdown-ите при клик извън тях
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-card-dropdown')) {
+                this.closeAllDropdowns();
+            }
+        });
+
+        // Препозиционира dropdown-ите при resize на прозореца
+        window.addEventListener('resize', () => {
+            this.closeAllDropdowns();
         });
 
         // Search input
@@ -373,11 +431,13 @@ class UserFollowSystem {
 
         grid.innerHTML = userCards;
 
-        // Инициализира avatar placeholders
+        // Инициализира avatar placeholders и dropdown-ите
         setTimeout(() => {
             if (window.initializeAvatarPlaceholders) {
                 window.initializeAvatarPlaceholders();
             }
+            // Инициализира dropdown-ите след като DOM-ът е готов
+            this.initializeDropdowns();
         }, 100);
     }
 
@@ -433,6 +493,18 @@ class UserFollowSystem {
                     <!-- Action Section -->
                     <div class="user-card-actions">
                         ${this.generateFollowButtonHTML(id, isCurrentUser, isFollowing)}
+                        
+                        <!-- Dropdown Menu -->
+                        <div class="user-card-dropdown">
+                            <button class="dropdown-toggle" 
+                                    type="button" 
+                                    title="Още опции">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                ${this.generateDropdownMenuHTML(id, username, isCurrentUser, isFollowing)}
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 
@@ -446,27 +518,167 @@ class UserFollowSystem {
      * Генерира HTML за follow бутона според статуса
      */
     generateFollowButtonHTML(userId, isCurrentUser, isFollowing) {
-        if (!this.isAuthenticated || isCurrentUser) {
-            return '<div class="user-card-self">Това сте вие</div>';
+        // Ако е собствения потребител - показваме само "Това сте вие"
+        if (isCurrentUser) {
+            return '<div class="user-card-self"><---></div>';
         }
 
-        if (isFollowing) {
+        // Ако не е логнат - не показваме нищо
+        if (!this.isAuthenticated) {
+            return '';
+        }
+
+        // За други потребители - показваме бутон САМО когато НЕ се следват
+        if (!isFollowing) {
             return `
-                <button class="btn btn-outline-secondary btn-sm user-follow-btn" 
-                        data-user-id="${userId}" data-action="unfollow">
-                    <i class="bi bi-person-dash"></i>
-                    <span>Не следвай</span>
-                </button>
-            `;
-        } else {
-            return `
-                <button class="btn btn-primary btn-sm user-follow-btn" 
+                <button class="user-follow-btn" 
                         data-user-id="${userId}" data-action="follow">
                     <i class="bi bi-person-plus"></i>
                     <span>Следвай</span>
                 </button>
             `;
+        } else {
+            // Когато се следва - не показваме бутон (опцията е в менюто)
+            return '';
         }
+    }
+
+    /**
+     * Генерира HTML за dropdown менюто според контекста
+     */
+    generateDropdownMenuHTML(userId, username, isCurrentUser, isFollowing) {
+        let menuItems = [];
+
+        // Винаги показваме опция за преглед на профила
+        menuItems.push(`
+            <li>
+                <a class="dropdown-item user-profile-link" href="/user/${username}" data-user-id="${userId}" target="_blank">
+                    <i class="bi bi-person"></i>
+                    <span>Преглед на профила</span>
+                </a>
+            </li>
+        `);
+
+        // Ако е собствения потребител - показваме само преглед на профила
+        if (isCurrentUser) {
+            return menuItems.join('');
+        }
+
+        // Ако не е логнат - показваме само преглед на профила
+        if (!this.isAuthenticated) {
+            return menuItems.join('');
+        }
+
+        // За други потребители - показваме follow/unfollow опции
+        if (isFollowing) {
+            menuItems.push(`
+                <li>
+                    <a class="dropdown-item user-unfollow-link" href="#" data-user-id="${userId}">
+                        <i class="bi bi-person-dash"></i>
+                        <span>Не следвай</span>
+                    </a>
+                </li>
+            `);
+        } else {
+            menuItems.push(`
+                <li>
+                    <a class="dropdown-item user-follow-link" href="#" data-user-id="${userId}">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Следвай</span>
+                    </a>
+                </li>
+            `);
+        }
+
+        // Съобщение опция
+        menuItems.push(`
+            <li>
+                <a class="dropdown-item user-message-link" href="#" data-user-id="${userId}">
+                    <i class="bi bi-chat-dots"></i>
+                    <span>Изпрати съобщение</span>
+                </a>
+            </li>
+        `);
+
+        // Разделител
+        menuItems.push('<li><hr class="dropdown-divider"></li>');
+
+        // Докладвай опция
+        menuItems.push(`
+            <li>
+                <a class="dropdown-item user-report-link" href="#" data-user-id="${userId}">
+                    <i class="bi bi-flag"></i>
+                    <span>Докладвай потребител</span>
+                </a>
+            </li>
+        `);
+
+        return menuItems.join('');
+    }
+
+    // ==================== DROPDOWN ИНИЦИАЛИЗАЦИЯ ====================
+
+    /**
+     * Инициализира custom dropdown-ите
+     */
+    initializeDropdowns() {
+        // Инициализира всички dropdown-и в user картите
+        const dropdownToggles = document.querySelectorAll('.user-card-dropdown .dropdown-toggle');
+        console.log('Found dropdown toggles:', dropdownToggles.length);
+        
+        dropdownToggles.forEach((toggle, index) => {
+            console.log(`Initializing dropdown ${index}:`, toggle);
+            
+            // Премахва всички съществуващи event listeners
+            const newToggle = toggle.cloneNode(true);
+            toggle.parentNode.replaceChild(newToggle, toggle);
+            
+            // Добавя нов event listener
+            newToggle.addEventListener('click', this.handleDropdownToggle.bind(this));
+            console.log(`Added event listener to dropdown ${index}`);
+        });
+    }
+
+    /**
+     * Handle на dropdown toggle
+     */
+    handleDropdownToggle(e) {
+        console.log('Dropdown toggle clicked!', e.target);
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const toggle = e.target.closest('.dropdown-toggle');
+        const dropdown = toggle.nextElementSibling;
+        
+        console.log('Toggle:', toggle);
+        console.log('Dropdown:', dropdown);
+        
+        if (!dropdown) {
+            console.log('No dropdown found!');
+            return;
+        }
+        
+        // Затваря всички други dropdown-и
+        this.closeAllDropdowns();
+        
+        // Показва/скрива текущия dropdown
+        if (dropdown.classList.contains('show')) {
+            console.log('Hiding dropdown');
+            dropdown.classList.remove('show');
+        } else {
+            console.log('Showing dropdown');
+            dropdown.classList.add('show');
+        }
+    }
+
+    /**
+     * Затваря всички dropdown-и
+     */
+    closeAllDropdowns() {
+        const openDropdowns = document.querySelectorAll('.user-card-dropdown .dropdown-menu');
+        openDropdowns.forEach(dropdown => {
+            dropdown.classList.remove('show');
+        });
     }
 
     // ==================== FOLLOW ОПЕРАЦИИ ====================
@@ -546,6 +758,116 @@ class UserFollowSystem {
         } finally {
             this.setButtonLoading(button, false);
         }
+    }
+
+    /**
+     * Handle на follow/unfollow действия от dropdown
+     */
+    async handleFollowAction(userId, action) {
+        if (!this.isAuthenticated) return;
+
+        try {
+            let response;
+            if (action === 'follow') {
+                response = await this.followUser(userId);
+            } else {
+                response = await this.unfollowUser(userId);
+            }
+
+            if (response && response.success) {
+                // Определяме дали потребителят се следва СЛЕД операцията
+                const isFollowingAfterAction = action === 'follow';
+                this.updateFollowUI(userId, isFollowingAfterAction);
+                this.showNotification(response.message, 'success');
+            } else {
+                this.showNotification(response?.message || 'Възникна грешка', 'error');
+            }
+
+        } catch (error) {
+            console.error('Follow action error:', error);
+            this.showNotification('Възникна грешка. Опитайте отново.', 'error');
+        }
+    }
+
+    /**
+     * Handle на съобщение действие
+     */
+    handleMessageAction(userId) {
+        // Тук може да се интегрира с SVMessenger
+        if (window.SVMessenger && window.SVMessenger.openChat) {
+            window.SVMessenger.openChat(userId);
+        } else {
+            // Fallback - отваряне на нов таб с профила
+            const username = document.querySelector('.user-card-username')?.textContent?.trim();
+            if (username) {
+                window.open(`/user/${username}`, '_blank');
+            }
+        }
+    }
+
+    /**
+     * Handle на докладване действие
+     */
+    handleReportAction(userId) {
+        // Тук може да се добави модал за докладване
+        const reportReason = prompt('Моля въведете причина за докладването:');
+        if (reportReason && reportReason.trim()) {
+            // Тук може да се изпрати AJAX заявка за докладване
+            console.log(`Reporting user ${userId} for: ${reportReason}`);
+            this.showNotification('Докладът е изпратен успешно', 'success');
+        }
+    }
+
+    /**
+     * Обновява UI-то след follow/unfollow операция
+     */
+    updateFollowUI(userId, isFollowing) {
+        // Обновяваме главния follow бутон
+        const mainFollowButton = document.getElementById('followButton');
+        if (mainFollowButton && mainFollowButton.dataset.userId === userId.toString()) {
+            const action = isFollowing ? 'followed' : 'not-followed';
+            this.updateMainFollowButton(mainFollowButton, action);
+        }
+
+        // Обновяваме user картите - прегенерираме цялата карта
+        const userCards = document.querySelectorAll(`[data-user-id="${userId}"]`);
+        userCards.forEach(card => {
+            if (card.classList.contains('user-card')) {
+                // Намираме родителския контейнер
+                const grid = card.closest('.users-grid');
+                if (grid) {
+                    // Прегенерираме картата с новата логика
+                    const userId = card.dataset.userId;
+                    const isCurrentUser = parseInt(userId) === this.currentUserId;
+                    
+                    // Създаваме нова карта с правилната логика
+                    const newCardHTML = this.createUserCard(
+                        [userId, card.querySelector('.user-card-username')?.textContent || '', 
+                         card.querySelector('.user-avatar')?.getAttribute('data-user-image') || '',
+                         'USER', 0, new Date(), new Date(), 0], 
+                        isFollowing ? [parseInt(userId)] : []
+                    );
+                    
+                    // Заменяме старата карта с новата
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newCardHTML;
+                    const newCard = tempDiv.firstElementChild;
+                    card.parentNode.replaceChild(newCard, card);
+                    
+                    // Инициализираме dropdown-а за новата карта
+                    setTimeout(() => {
+                        this.initializeDropdowns();
+                    }, 50);
+                }
+            }
+        });
+
+        // Обновяваме статистиките
+        this.updateFollowCounters({ 
+            followersCount: isFollowing ? 
+                (parseInt(document.querySelector('.followers-count')?.textContent || 0) + 1) : 
+                (parseInt(document.querySelector('.followers-count')?.textContent || 0) - 1)
+        });
     }
 
     /**

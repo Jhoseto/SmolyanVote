@@ -145,6 +145,16 @@ export const svMessengerAPI = {
     return fetchAPI(`${BASE_URL}/users/search?query=${encodeURIComponent(query || '')}`);
   },
   
+  /**
+   * Търси в следвани потребители по username/име
+   */
+  searchFollowingUsers: async (query) => {
+    const url = query ? 
+      `${BASE_URL}/users/following?query=${encodeURIComponent(query)}` : 
+      `${BASE_URL}/users/following`;
+    return fetchAPI(url);
+  },
+  
   // ========== STATISTICS ==========
   
   /**
