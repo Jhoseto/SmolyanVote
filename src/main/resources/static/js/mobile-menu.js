@@ -3,8 +3,10 @@
    Управлява mobile navigation menu
    ============================================ */
 
-let mobileMenuOpen = false;
-let voteMenuOpen = false;
+// Wrap in IIFE to avoid global variable conflicts
+(function() {
+    let mobileMenuOpen = false;
+    let voteMenuOpen = false;
 
 /**
  * Toggle Mobile Menu
@@ -254,3 +256,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('✅ mobile-menu.js loaded successfully');
+
+})(); // End IIFE
