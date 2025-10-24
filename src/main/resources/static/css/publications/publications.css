@@ -36,11 +36,10 @@
 .feed-layout {
     display: flex;
     max-width: none;
-    margin: 60px 10px;
     gap: 20px;
     padding: 20px 16px;
     min-height: calc(100vh - 120px);
-    margin-top: 85px;
+    margin: 85px 10px 60px;
 }
 
 /* ====== MOBILE FILTER TOGGLE ====== */
@@ -267,7 +266,7 @@
     background: rgba(255, 255, 255, 0);
     color: var(--fb-white);
 }
-F
+
 /* ====== CLEAR FILTERS BUTTON ====== */
 .clear-all-filters {
     width: 100%;
