@@ -7,7 +7,7 @@
     --sv-primary-light: #8bc97f;
     --sv-primary-soft: #a8d4a0;
     --sv-primary-subtle: #c8e4c2;
-    --sv-accent: #071c04;
+    --sv-accent: #ffffff;
 
     /* Apple-Style Neutrals */
     --white: #ffffff;
@@ -338,12 +338,16 @@ body {
     background: var(--sv-primary);
     color: var(--white);
     box-shadow: var(--shadow-sm);
+    margin-right: 6px;
+
 }
 
 .btn-primary.action-btn:hover {
     background: var(--sv-accent);
+    color: var(--sv-primary);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+    margin-right: 5px;
 }
 
 .btn-outline-secondary.action-btn {
@@ -1959,6 +1963,10 @@ html {
     right: 12px;
 }
 
+.own-profile-actions{
+    display: flex;
+    gap: inherit;
+}
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .user-card-dropdown .dropdown-menu {
@@ -1972,6 +1980,143 @@ html {
     }
     
     .user-card-dropdown .dropdown-item i {
+        width: 14px;
+        height: 14px;
+        font-size: 12px;
+    }
+}
+
+/* ===== PROFILE HEADER DROPDOWN STYLES ===== */
+
+/* Profile header dropdown container */
+.profile-header-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Three dots button - minimal style like user cards */
+.profile-header-dropdown .dropdown-toggle {
+    background: none;
+    border: none;
+    padding: 8px;
+    font-size: 16px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.profile-header-dropdown .dropdown-toggle:hover {
+    background: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.profile-header-dropdown .dropdown-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--sv-primary-soft);
+}
+
+/* Dropdown menu - positioned to appear outside and above */
+.profile-header-dropdown .dropdown-menu {
+    position: fixed;
+    z-index: 9999;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: var(--glass-backdrop);
+    min-width: 200px;
+    padding: 4px 0;
+    margin: 0;
+    right: 20px;
+    top: 50px;
+    display: none;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+}
+
+.profile-header-dropdown .dropdown-menu.show {
+    display: block !important;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Dropdown items */
+.profile-header-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.profile-header-dropdown .dropdown-item:hover {
+    background: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.profile-header-dropdown .dropdown-item i {
+    width: 16px;
+    height: 16px;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.profile-header-dropdown .dropdown-item:hover i {
+    color: var(--text-primary);
+}
+
+/* Divider */
+.profile-header-dropdown .dropdown-divider {
+    margin: 4px 0;
+    border-top: 1px solid var(--border);
+}
+
+/* FIX: Защита на navbar brand text от конфликти */
+.brand-text-glass {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-family: sans-serif !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #19861c 0%, #48a24c 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+}
+
+/* Responsive adjustments for profile header dropdown */
+@media (max-width: 768px) {
+    .profile-header-dropdown .dropdown-menu {
+        min-width: 180px;
+        font-size: 13px;
+        right: 15px;
+        top: 45px;
+    }
+    
+    .profile-header-dropdown .dropdown-item {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .profile-header-dropdown .dropdown-item i {
         width: 14px;
         height: 14px;
         font-size: 12px;

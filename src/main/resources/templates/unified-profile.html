@@ -18,6 +18,24 @@
     <link rel="stylesheet" href="/css/publicationsDetailModal.css">
     <link rel="stylesheet" href="/css/comments.css">
 
+    <!-- Fix navbar text visibility on profile page -->
+    <style>
+        .brand-text-glass {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            color: #4cb15c !important;
+            font-weight: 700 !important;
+            font-size: 1.2rem !important;
+        }
+        
+        .navbar-brand-glass {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+    </style>
+
 </head>
 <body>
 <!-- Landscape Warning - Mobile Portrait Only -->
@@ -99,24 +117,40 @@
 
                 <!-- Other Profile Actions -->
                 <div th:unless="${isOwnProfile}" class="other-profile-actions">
-                    <button class="btn btn-primary action-btn follow-btn"
-                            th:data-user-id="${user.id}"
-                            th:data-action="${isFollowing} ? 'unfollow' : 'follow'"
-                            th:classappend="${isFollowing} ? 'btn-outline-secondary' : 'btn-primary'"
-                            id="followButton">
-                        <i th:class="${isFollowing} ? 'bi bi-person-dash' : 'bi bi-person-plus'"></i>
-                        <span th:text="${isFollowing} ? 'Отследвай' : 'Следвай'">Следвай</span>
-                    </button>
-                    <button class="btn btn-outline-secondary action-btn message-btn">
-                        <i class="bi bi-chat-dots"></i>
-                        <span>Съобщение</span>
-                    </button>
-                    <div class="dropdown d-inline-block">
-                        <button class="btn btn-outline-secondary action-btn dropdown-toggle" data-bs-toggle="dropdown">
+                    <!-- Dropdown Menu with all actions -->
+                    <div class="profile-header-dropdown">
+                        <button class="dropdown-toggle" type="button" title="Още опции">
                             <i class="bi bi-three-dots"></i>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-flag"></i> Докладвай</a></li>
+                            <!-- Follow/Unfollow option -->
+                            <li th:if="${not isFollowing}">
+                                <a class="dropdown-item profile-follow-link" href="#" th:data-user-id="${user.id}">
+                                    <i class="bi bi-person-plus"></i>
+                                    <span>Следвай</span>
+                                </a>
+                            </li>
+                            <li th:if="${isFollowing}">
+                                <a class="dropdown-item profile-unfollow-link" href="#" th:data-user-id="${user.id}">
+                                    <i class="bi bi-person-dash"></i>
+                                    <span>Отследвай</span>
+                                </a>
+                            </li>
+                            <!-- Message option -->
+                            <li>
+                                <a class="dropdown-item profile-message-link" href="#" th:data-user-id="${user.id}">
+                                    <i class="bi bi-chat-dots"></i>
+                                    <span>Съобщение</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!-- Report option -->
+                            <li>
+                                <a class="dropdown-item profile-report-link" href="#" th:data-user-id="${user.id}">
+                                    <i class="bi bi-flag"></i>
+                                    <span>Докладвай потребител</span>
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
