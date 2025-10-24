@@ -21,9 +21,11 @@ import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/publications")
@@ -115,6 +117,7 @@ public class PublicationsController {
             @RequestParam(defaultValue = "date-desc") String sort,
             @RequestParam(defaultValue = "") String time,
             @RequestParam(defaultValue = "") String author,
+            @RequestParam(required = false) String userIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication auth) {
@@ -123,10 +126,24 @@ public class PublicationsController {
             page = Math.max(0, page);
             size = Math.min(Math.max(1, size), 50);
 
+            // Parse userIds parameter
+            List<Long> authorIds = null;
+            if (userIds != null && !userIds.trim().isEmpty()) {
+                try {
+                    authorIds = Arrays.stream(userIds.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+                } catch (NumberFormatException e) {
+                    // Ignore invalid userIds
+                    authorIds = null;
+                }
+            }
 
             Pageable pageable = createPageable(page, size, sort);
             Page<PublicationEntity> publicationsPage = publicationService.findWithFilters(
-                    search, category, status, time, author, pageable, auth
+                    search, category, status, time, author, authorIds, pageable, auth
             );
 
 

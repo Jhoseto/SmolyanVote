@@ -46,22 +46,29 @@ class PublicationsAPI {
 
     async getPublications(filters = {}, page = 0, size = 10) {
         const params = new URLSearchParams();
+        
         Object.keys(filters).forEach(key => {
             const value = filters[key];
+            
             if (value !== null && value !== undefined && value !== '') {
-                // Special handling for userIds array
+                // ✅ КРИТИЧНО: Специална обработка за userIds масив
                 if (key === 'userIds' && Array.isArray(value)) {
                     if (value.length > 0) {
                         params.append(key, value.join(','));
+                        console.log('🔵 API: Adding userIds to request:', value.join(','));
                     }
-                } else {
+                } else if (!Array.isArray(value)) {
                     params.append(key, value);
                 }
             }
         });
+        
         params.append('page', page);
         params.append('size', size);
+        
         const url = `${this.apiUrl}?${params.toString()}`;
+        console.log('🌐 API Request URL:', url);
+        
         return await this.request(url, {
             headers: {
                 'Accept': 'application/json'

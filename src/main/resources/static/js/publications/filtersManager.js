@@ -102,6 +102,16 @@ class FiltersManager {
      * @returns {Object} All active filters
      */
     getAll() {
+        // ✅ КРИТИЧНО: Синхронизирай с userSearchManager
+        if (window.userSearchManager && window.userSearchManager.getSelectedUserIds) {
+            const userIds = window.userSearchManager.getSelectedUserIds();
+            if (userIds && userIds.length > 0) {
+                this.activeFilters.userIds = userIds;
+            } else if (this.activeFilters.userIds && this.activeFilters.userIds.length === 0) {
+                delete this.activeFilters.userIds;
+            }
+        }
+        
         return { ...this.activeFilters };
     }
 
@@ -143,6 +153,12 @@ class FiltersManager {
                 payload[key] = value;
             }
         });
+        
+        // ✅ КРИТИЧНО: Винаги включвай userIds ако има избрани users
+        if (this.activeFilters.userIds && Array.isArray(this.activeFilters.userIds) && this.activeFilters.userIds.length > 0) {
+            payload.userIds = this.activeFilters.userIds;
+        }
+        
         return payload;
     }
 
