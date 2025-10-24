@@ -1263,10 +1263,15 @@ function initializeProfileHeaderDropdown() {
 
     // Handle dropdown item clicks
     document.addEventListener('click', (e) => {
-        if (e.target.closest('.profile-header-dropdown .dropdown-item')) {
+        if (e.target.closest('.profile-header-dropdown .dropdown-item') || 
+            e.target.closest('.profile-follow-link') || 
+            e.target.closest('.profile-unfollow-link')) {
             e.preventDefault();
             e.stopPropagation();
-            handleProfileHeaderDropdownAction(e.target.closest('.dropdown-item'));
+            const item = e.target.closest('.dropdown-item') || 
+                        e.target.closest('.profile-follow-link') || 
+                        e.target.closest('.profile-unfollow-link');
+            handleProfileHeaderDropdownAction(item);
         }
     });
 
@@ -1334,13 +1339,13 @@ async function handleProfileHeaderFollow(userId) {
     console.log('Profile header follow action for user:', userId);
     
     try {
-        const response = await fetch('/api/follow', {
+        const response = await fetch(`/api/follow/${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
-            },
-            body: JSON.stringify({ userId: parseInt(userId) })
+                [getCsrfHeader()]: getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
 
         if (response.ok) {
@@ -1366,13 +1371,13 @@ async function handleProfileHeaderUnfollow(userId) {
     console.log('Profile header unfollow action for user:', userId);
     
     try {
-        const response = await fetch('/api/unfollow', {
-            method: 'POST',
+        const response = await fetch(`/api/follow/${userId}`, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken()
-            },
-            body: JSON.stringify({ userId: parseInt(userId) })
+                [getCsrfHeader()]: getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
 
         if (response.ok) {
@@ -1508,6 +1513,11 @@ function showNotification(message, type = 'info') {
 function getCsrfToken() {
     const meta = document.querySelector('meta[name="_csrf"]');
     return meta ? meta.content : '';
+}
+
+function getCsrfHeader() {
+    const meta = document.querySelector('meta[name="_csrf_header"]');
+    return meta ? meta.content : 'X-CSRF-TOKEN';
 }
 
 // Initialize profile header dropdown when DOM is ready
