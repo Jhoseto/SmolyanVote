@@ -206,12 +206,6 @@ class FiltersManager {
 
                 // User IDs filter
                 if (this.activeFilters.userIds && this.activeFilters.userIds.length > 0) {
-                    console.log('🔍 User filter check:', {
-                        postId: post.id,
-                        postAuthorId: post.author?.id,
-                        userIds: this.activeFilters.userIds,
-                        includes: this.activeFilters.userIds.includes(post.author?.id)
-                    });
                     if (!post.author?.id || !this.activeFilters.userIds.includes(post.author.id)) {
                         return false;
                     }
@@ -731,22 +725,8 @@ class FiltersManager {
      */
     notifyPublicationsManager() {
         if (window.publicationsManager && typeof window.publicationsManager.onFiltersChanged === 'function') {
-            // Check if only userIds filter changed
-            const hasOnlyUserFilter = this.activeFilters.userIds && this.activeFilters.userIds.length > 0 && 
-                Object.keys(this.activeFilters).every(key => 
-                    key === 'userIds' || 
-                    !this.isValidValue(this.activeFilters[key]) || 
-                    this.activeFilters[key] === this.getDefaultFilters()[key]
-                );
-            
-            if (hasOnlyUserFilter) {
-                // For user filters, only apply local filtering, don't reload from server
-                console.log('🔍 User filter detected, applying local filtering only');
-                window.publicationsManager.applyLocalFilters();
-            } else {
-                // For other filters, use normal flow
-                window.publicationsManager.onFiltersChanged(this.activeFilters);
-            }
+            // Always use server-side filtering for all filters including userIds
+            window.publicationsManager.onFiltersChanged(this.activeFilters);
         }
     }
 

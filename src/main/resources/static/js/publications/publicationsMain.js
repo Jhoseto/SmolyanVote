@@ -59,6 +59,25 @@ class PublicationsManager {
     }
 
     onFiltersChanged(filters) {
+        // Check if userIds changed and clear all loaded posts
+        const oldUserIds = this.lastFilters?.userIds || [];
+        const newUserIds = filters.userIds || [];
+        
+        const userIdsChanged = JSON.stringify(oldUserIds.sort()) !== JSON.stringify(newUserIds.sort());
+        
+        if (userIdsChanged) {
+            console.log('🔄 UserIds changed, clearing all loaded posts');
+            this.allLoadedPosts = [];
+            this.loadedPosts.clear();
+            this.currentPage = 0;
+            
+            // Clear cache
+            if (window.filtersManager && window.filtersManager.cache) {
+                window.filtersManager.cache = {};
+            }
+        }
+        
+        this.lastFilters = { ...filters };
         this.applyLocalFilters();
         this.debouncedServerLoad();
     }
