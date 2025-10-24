@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,9 +17,14 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
+import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,18 +41,25 @@ public class PublicationsController {
     private final PublicationDetailService publicationDetailService;
     private final ReportsService reportsService;
     private final CommentsService commentsService;
+    private final FollowService followService;  // <-- ДОБАВИ ПОЛЕ
+    private final PublicationRepository publicationRepository;
 
-    @Autowired
     public PublicationsController(PublicationService publicationService,
                                   UserService userService,
                                   ImageCloudinaryServiceImpl imageService,
-                                  PublicationDetailService publicationDetailService, ReportsService reportsService, CommentsService commentsService) {
+                                  PublicationDetailService publicationDetailService, 
+                                  ReportsService reportsService, 
+                                  CommentsService commentsService,
+                                  FollowService followService,
+                                  PublicationRepository publicationRepository) {  // <-- ДОБАВИ ПАРАМЕТЪР
         this.publicationService = publicationService;
         this.userService = userService;
         this.imageService = imageService;
         this.publicationDetailService = publicationDetailService;
         this.reportsService = reportsService;
         this.commentsService = commentsService;
+        this.followService = followService;  // <-- ДОБАВИ ПРИСВОЯВАНЕ
+        this.publicationRepository = publicationRepository;
     }
 
     // ====== MAIN PAGE ======
@@ -465,39 +476,7 @@ public class PublicationsController {
         }
     }
 
-
-    // ====== FOLLOW/UNFOLLOW ENDPOINTS ======
-
-    @PostMapping(value = "/api/users/{authorId}/follow", produces = "application/json")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> toggleFollowAuthor(
-            @PathVariable Long authorId,
-            Authentication auth) {
-
-        if (auth == null) {
-            return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
-        }
-
-        try {
-            UserEntity currentUser = userService.getCurrentUser();
-
-            if (currentUser.getId().equals(authorId)) {
-                return ResponseEntity.status(400).body(createErrorResponse("Не можете да следвате себе си"));
-            }
-
-            // TODO За сега симулираме follow/unfollow логиката
-            // В бъдеще ще се имплементира правилно с UserFollowing entity
-            boolean isFollowing = false; // Placeholder логика
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("isFollowing", !isFollowing);
-            response.put("message", !isFollowing ? "Сега следвате този автор" : "Не следвате този автор");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при следването"));
-        }
-    }
+    
 
     // ====== USER PREFERENCES ENDPOINT ======
 
@@ -576,6 +555,147 @@ public class PublicationsController {
             return ResponseEntity.status(500).body(List.of());
         }
     }
+
+    // ===== RIGHT SIDEBAR ENDPOINTS =====
+
+    @GetMapping(value = "/api/sidebar/stats", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSidebarStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalPublications", publicationService.getTotalCount());
+        stats.put("todayPublications", publicationService.getTodayCount());
+        stats.put("weekPublications", publicationService.getWeekCount());
+        stats.put("onlineUsers", userService.getOnlineUsersCount());
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping(value = "/api/sidebar/top-authors", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSidebarTopAuthors(Authentication auth) {
+        try {
+            // Вземи топ 5 автори от днес
+            Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+            List<Map<String, Object>> authorsData = publicationService.getTopAuthorsData(startOfDay, 5);
+            
+            // Вземи списък с следвани автори (ако е логнат)
+            List<Long> followingIds = new ArrayList<>();
+            if (auth != null && auth.isAuthenticated()) {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    followingIds = authorsData.stream()
+                        .map(a -> (Long) a.get("id"))
+                        .filter(authorId -> followService.isFollowing(currentUser.getId(), authorId))
+                        .collect(Collectors.toList());
+                }
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("authors", authorsData);
+            response.put("followingIds", followingIds);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("authors", List.of(), "followingIds", List.of()));
+        }
+    }
+
+    @GetMapping(value = "/api/sidebar/trending", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, Object>>> getSidebarTrending() {
+        List<Object[]> trending = publicationService.getTrendingHashtags();
+        return ResponseEntity.ok(trending.stream().map(row -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("topic", row[0]);
+            m.put("count", row[1]);
+            return m;
+        }).collect(Collectors.toList()));
+    }
+
+    @GetMapping(value = "/api/sidebar/last-activity", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSidebarLastActivity() {
+        Map<String, Object> activity = new HashMap<>();
+        
+        PublicationEntity lastPost = publicationService.getLastPublishedPost();
+        if (lastPost != null) {
+            activity.put("lastPostTime", lastPost.getCreated());
+            activity.put("lastPostId", lastPost.getId());
+            activity.put("lastPostTitle", lastPost.getTitle());
+            activity.put("lastPostAuthor", lastPost.getAuthor().getUsername());
+            activity.put("lastPostAuthorImage", lastPost.getAuthor().getImageUrl());
+            activity.put("lastPostLikes", lastPost.getLikesCount());
+            activity.put("lastPostComments", lastPost.getCommentsCount());
+        }
+        
+        return ResponseEntity.ok(activity);
+    }
+
+    @GetMapping(value = "/api/sidebar/most-commented", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSidebarMostCommented() {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        PublicationEntity post = publicationService.getMostCommentedPostToday(startOfDay);
+        
+        if (post == null) {
+            return ResponseEntity.ok(new HashMap<>());
+        }
+        
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", post.getId());
+        m.put("title", post.getTitle());
+        m.put("commentsCount", post.getCommentsCount());
+        m.put("likesCount", post.getLikesCount());
+        m.put("authorId", post.getAuthor().getId());
+        m.put("authorName", post.getAuthor().getUsername());
+        m.put("authorImage", post.getAuthor().getImageUrl());
+        
+        return ResponseEntity.ok(m);
+    }
+
+    @GetMapping(value = "/api/sidebar/most-viewed", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getSidebarMostViewed() {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        PublicationEntity post = publicationService.getMostViewedPostToday(startOfDay);
+        
+        if (post == null) {
+            return ResponseEntity.ok(new HashMap<>());
+        }
+        
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", post.getId());
+        m.put("title", post.getTitle());
+        m.put("viewsCount", post.getViewsCount());
+        m.put("likesCount", post.getLikesCount());
+        m.put("authorId", post.getAuthor().getId());
+        m.put("authorName", post.getAuthor().getUsername());
+        m.put("authorImage", post.getAuthor().getImageUrl());
+        
+        return ResponseEntity.ok(m);
+    }
+
+    @GetMapping(value = "/api/sidebar/top-viewed", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, Object>>> getSidebarTopViewed() {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        List<PublicationEntity> posts = publicationRepository.findTopByOrderByViewsCountDesc(
+            startOfDay, org.springframework.data.domain.PageRequest.of(0, 3));
+        
+        List<Map<String, Object>> result = posts.stream().map(post -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", post.getId());
+            m.put("title", post.getTitle());
+            m.put("viewsCount", post.getViewsCount());
+            m.put("likesCount", post.getLikesCount());
+            m.put("authorId", post.getAuthor().getId());
+            m.put("authorName", post.getAuthor().getUsername());
+            m.put("authorImage", post.getAuthor().getImageUrl());
+            return m;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(result);
+    }
+
 
     // ====== HELPER METHODS ======
 

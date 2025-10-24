@@ -1,0 +1,340 @@
+/* ===== RIGHT SIDEBAR ENHANCEMENTS ===== */
+
+/* Refresh Button */
+.widget-title {
+    position: relative;
+}
+
+#refreshSidebarBtn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+#refreshSidebarBtn:hover {
+    background: var(--fb-hover);
+    transform: translateY(-50%) rotate(15deg);
+}
+
+#refreshSidebarBtn.spinning {
+    animation: spin 0.5s linear;
+}
+
+@keyframes spin {
+    from { transform: translateY(-50%) rotate(0deg); }
+    to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 12px;
+    background: var(--fb-hover);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    background: rgba(76, 177, 92, 0.1);
+    transform: translateY(-2px);
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--fb-text-secondary);
+    margin-top: 4px;
+}
+
+/* Online indicator pulse */
+.stat-online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #42b883;
+    border-radius: 50%;
+    margin-right: 4px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Empty Widget */
+.empty-widget {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--fb-text-secondary);
+    font-size: 14px;
+}
+
+/* Last Activity Widget */
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.activity-item:hover {
+    background: var(--fb-hover);
+}
+
+.activity-item > i {
+    font-size: 20px;
+    color: var(--primary-color);
+}
+
+.activity-info {
+    flex: 1;
+}
+
+.activity-label {
+    font-size: 13px;
+    color: var(--fb-text);
+    font-weight: 500;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: var(--fb-text-secondary);
+}
+
+/* Most Commented Widget */
+.featured-post {
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(76, 177, 92, 0.05), rgba(76, 177, 92, 0.1));
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(76, 177, 92, 0.2);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.featured-post:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 177, 92, 0.15);
+}
+
+.featured-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.featured-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.author-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.author-avatar-sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 10px;
+}
+
+.author-name-sm {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-text);
+}
+
+.featured-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.featured-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fb-text);
+    margin-bottom: 8px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.featured-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--fb-text-secondary);
+}
+
+.featured-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.featured-stats i {
+    color: var(--primary-color);
+}
+
+/* Compact Cards */
+.compact-card {
+    padding: 10px;
+    background: var(--fb-hover);
+    border-radius: var(--border-radius);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid rgba(76, 177, 92, 0.1);
+}
+
+.compact-card:hover {
+    background: rgba(76, 177, 92, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(76, 177, 92, 0.1);
+}
+
+.compact-card:last-child {
+    margin-bottom: 0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.card-rank {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.card-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.card-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.author-avatar-xs {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 8px;
+}
+
+.author-name-xs {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--fb-text);
+}
+
+.card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fb-text);
+    margin-bottom: 6px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--fb-text-secondary);
+}
+
+.card-stats span {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.card-stats i {
+    color: var(--primary-color);
+}
+
+/* Top Viewed Widget */
+#topViewedWidget .compact-card:nth-child(1) .card-rank {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #333;
+}
+
+#topViewedWidget .compact-card:nth-child(2) .card-rank {
+    background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+    color: #333;
+}
+
+#topViewedWidget .compact-card:nth-child(3) .card-rank {
+    background: linear-gradient(135deg, #cd7f32, #daa520);
+    color: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .right-sidebar {
+        display: none;
+    }
+}

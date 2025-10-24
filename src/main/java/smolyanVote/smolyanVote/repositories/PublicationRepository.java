@@ -73,7 +73,7 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
     }
 
     // ====== ТОП АВТОРИ ЗА ДЕНЯ ======
-    @Query("SELECT p.author FROM PublicationEntity p " +
+    @Query("SELECT DISTINCT p.author FROM PublicationEntity p " +
             "WHERE p.status = :status " +
             "AND p.created >= :startOfDay " +
             "GROUP BY p.author " +
@@ -109,6 +109,36 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
         Instant timeLimit = Instant.now().minus(minutesLimit, ChronoUnit.MINUTES);
         return countRecentPostsByAuthor(author, timeLimit) > 0;
     }
+
+    // ===== SIDEBAR QUERIES =====
+
+    @Query(value = "SELECT SUBSTRING_INDEX(SUBSTRING_INDEX(content, '#', -1), ' ', 1) as hashtag, COUNT(*) as cnt " +
+           "FROM publications " +
+           "WHERE status = 'PUBLISHED' AND content LIKE '%#%' " +
+           "AND created >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+           "GROUP BY hashtag " +
+           "ORDER BY cnt DESC LIMIT 10", nativeQuery = true)
+    List<Object[]> findTrendingHashtags();
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = :status ORDER BY p.created DESC")
+    List<PublicationEntity> findFirstByStatusOrderByCreatedDesc(@Param("status") PublicationStatus status, Pageable pageable);
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = 'PUBLISHED' " +
+           "AND p.created >= :startOfDay ORDER BY p.commentsCount DESC")
+    List<PublicationEntity> findTopByOrderByCommentsCountDesc(
+        @Param("startOfDay") Instant startOfDay, Pageable pageable);
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = 'PUBLISHED' " +
+           "AND p.created >= :startOfDay ORDER BY p.viewsCount DESC")
+    List<PublicationEntity> findTopByOrderByViewsCountDesc(
+        @Param("startOfDay") Instant startOfDay, Pageable pageable);
+
+    long countByAuthorAndCreatedAfter(UserEntity author, Instant created);
+
+    /**
+     * Брой публикации от автор след дадена дата със статус
+     */
+    long countByAuthorAndCreatedAfterAndStatus(UserEntity author, Instant created, PublicationStatus status);
 
     // ====== USER PREFERENCES QUERIES ======
 

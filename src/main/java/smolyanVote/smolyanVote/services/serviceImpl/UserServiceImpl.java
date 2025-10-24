@@ -284,5 +284,11 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    // ====== SIDEBAR METHODS =====
+
+    @Override
+    public long getOnlineUsersCount() {
+        return userRepository.countByOnlineStatus(1); // 1 = online
+    }
 
 }
