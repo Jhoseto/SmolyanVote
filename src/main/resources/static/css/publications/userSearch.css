@@ -1,0 +1,401 @@
+/* ===== USER SEARCH PANEL STYLES ===== */
+
+/* Main Panel Container */
+.user-search-panel {
+    background: var(--glass-bg, rgba(255, 255, 255, 0.8));
+    border: 1px solid var(--border, #e4e6ea);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+/* Panel Header */
+.user-search-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border, #e4e6ea);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.user-search-header:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.user-search-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #1c1e21);
+}
+
+.user-search-title i {
+    color: var(--primary-color, #4cb15c);
+    font-size: 18px;
+}
+
+/* Expand/Collapse Button */
+.expand-collapse-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted, #65676b);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.expand-collapse-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary, #1c1e21);
+}
+
+.expand-collapse-btn.collapsed i {
+    transform: rotate(-90deg);
+}
+
+/* Panel Content */
+.user-search-content {
+    padding: 20px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.user-search-content.collapsed {
+    max-height: 0;
+    padding: 0 20px;
+    opacity: 0;
+}
+
+/* Search Input Container */
+.user-search-input-container {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.user-search-input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 2px solid var(--border, #e4e6ea);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--surface, #ffffff);
+    color: var(--text-primary, #1c1e21);
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.user-search-input:focus {
+    border-color: var(--primary-color, #4cb15c);
+    box-shadow: 0 0 0 3px rgba(76, 177, 92, 0.1);
+}
+
+.user-search-input::placeholder {
+    color: var(--text-muted, #65676b);
+}
+
+/* Search Icon */
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #65676b);
+    font-size: 16px;
+    pointer-events: none;
+}
+
+/* Loading Indicator */
+.search-loading {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-color, #4cb15c);
+    font-size: 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: translateY(-50%) rotate(0deg); }
+    to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Search Dropdown */
+.user-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e4e6ea);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 4px;
+}
+
+.user-search-dropdown.show {
+    display: block;
+}
+
+/* Search Result Item */
+.user-search-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--border-light, #f0f2f5);
+}
+
+.user-search-result:last-child {
+    border-bottom: none;
+}
+
+.user-search-result:hover {
+    background: var(--hover-bg, #f0f2f5);
+}
+
+/* User Avatar in Results */
+.user-search-result .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border, #e4e6ea);
+}
+
+/* User Info in Results */
+.user-search-result .user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-search-result .user-name {
+    font-weight: 600;
+    color: var(--text-primary, #1c1e21);
+    font-size: 14px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-search-result .user-username {
+    color: var(--text-muted, #65676b);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Online Indicator */
+.online-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--success-color, #42b883);
+    border: 2px solid var(--surface, #ffffff);
+    flex-shrink: 0;
+}
+
+.online-indicator.offline {
+    background: var(--text-muted, #65676b);
+}
+
+/* Empty State */
+.user-search-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted, #65676b);
+    font-size: 14px;
+}
+
+.user-search-empty i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Selected Users List */
+.selected-users-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    min-height: 32px;
+}
+
+.selected-users-list:empty {
+    display: none;
+}
+
+/* Selected User Tag */
+.selected-user-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary-color, #4cb15c);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 150px;
+}
+
+.selected-user-tag .user-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.selected-user-tag .user-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.selected-user-tag .remove-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.selected-user-tag .remove-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Context Menu */
+.user-context-menu {
+    position: absolute;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #e4e6ea);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    min-width: 180px;
+    padding: 4px 0;
+    display: none;
+}
+
+.user-context-menu.show {
+    display: block;
+}
+
+.user-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: var(--text-primary, #1c1e21);
+}
+
+.user-context-menu-item:hover {
+    background: var(--hover-bg, #f0f2f5);
+}
+
+.user-context-menu-item i {
+    color: var(--text-muted, #65676b);
+    font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .user-search-panel {
+        margin-bottom: 16px;
+    }
+    
+    .user-search-header {
+        padding: 12px 16px;
+    }
+    
+    .user-search-content {
+        padding: 16px;
+    }
+    
+    .user-search-input {
+        padding: 10px 14px 10px 36px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .search-icon {
+        left: 10px;
+        font-size: 14px;
+    }
+    
+    .selected-users-list {
+        gap: 6px;
+    }
+    
+    .selected-user-tag {
+        font-size: 11px;
+        padding: 4px 8px;
+        max-width: 120px;
+    }
+    
+    .selected-user-tag .user-avatar {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Animation for smooth expand/collapse */
+.user-search-content {
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+/* Focus states for accessibility */
+.user-search-input:focus,
+.expand-collapse-btn:focus,
+.user-search-result:focus,
+.selected-user-tag .remove-btn:focus {
+    outline: 2px solid var(--primary-color, #4cb15c);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .user-search-panel {
+        border-width: 2px;
+    }
+    
+    .user-search-input {
+        border-width: 2px;
+    }
+    
+    .user-search-result:hover {
+        background: var(--text-primary, #1c1e21);
+        color: var(--surface, #ffffff);
+    }
+}

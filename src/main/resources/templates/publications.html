@@ -45,9 +45,10 @@
   <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></th:block>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/createPublication.css">
-  <link rel="stylesheet" href="/css/publicationsDetailModal.css">
+  <link rel="stylesheet" href="/css/publications/publicationsDetailModal.css">
   <link rel="stylesheet" href="/css/comments.css">
-  <link rel="stylesheet" href="/css/publications.css">
+  <link rel="stylesheet" href="/css/publications/publications.css">
+  <link rel="stylesheet" href="/css/publications/userSearch.css">
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
@@ -104,6 +105,35 @@
       <button class="close-sidebar" id="closeSidebar">
         <i class="bi bi-x"></i>
       </button>
+    </div>
+
+    <!-- User Search Panel -->
+    <div class="user-search-panel">
+      <div class="user-search-header">
+        <h4 class="user-search-title">
+          <i class="bi bi-people-fill"></i>
+          Търси автори
+        </h4>
+        <button class="expand-collapse-btn" id="expandUserSearch" title="Разшири/свий">
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+      
+      <div class="user-search-content" id="userSearchContent">
+        <div class="user-search-input-container">
+          <input type="text" class="user-search-input" id="userSearchInput" placeholder="Въведи име или потребителско име...">
+          <div class="search-icon">
+            <i class="bi bi-search"></i>
+          </div>
+          <div class="search-loading" id="searchLoading" style="display: none;">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+        </div>
+        
+        <div class="user-search-dropdown" id="userSearchDropdown"></div>
+        
+        <div class="selected-users-list" id="selectedUsersList"></div>
+      </div>
     </div>
 
     <div class="filters-panel">
@@ -620,5 +650,8 @@
     }
   });
 </script>
+
+<!-- User Search Scripts -->
+<script src="/js/publications/userSearch.js"></script>
 </body>
 </html>
