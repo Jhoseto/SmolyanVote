@@ -792,16 +792,60 @@ class UserFollowSystem {
     /**
      * Handle на съобщение действие
      */
-    handleMessageAction(userId) {
-        // Тук може да се интегрира с SVMessenger
-        if (window.SVMessenger && window.SVMessenger.openChat) {
-            window.SVMessenger.openChat(userId);
-        } else {
-            // Fallback - отваряне на нов таб с профила
-            const username = document.querySelector('.user-card-username')?.textContent?.trim();
-            if (username) {
-                window.open(`/user/${username}`, '_blank');
+    async handleMessageAction(userId) {
+        console.log('handleMessageAction called with userId:', userId);
+        console.log('window.SVMessenger:', window.SVMessenger);
+        console.log('window.SVMessenger type:', typeof window.SVMessenger);
+        console.log('window.SVMessenger.startConversation:', window.SVMessenger?.startConversation);
+        
+        // Проверяваме дали SVMessenger е наличен
+        if (window.SVMessenger && window.SVMessenger.startConversation) {
+            try {
+                console.log('SVMessenger: Starting conversation with user', userId);
+                // Стартираме разговор с потребителя
+                const conversation = await window.SVMessenger.startConversation(userId);
+                console.log('SVMessenger: Conversation started successfully', conversation);
+                
+                // Отваряме чат прозореца
+                if (window.SVMessenger.openChat) {
+                    console.log('SVMessenger: Opening chat window for conversation', conversation.id);
+                    window.SVMessenger.openChat(conversation.id);
+                }
+            } catch (error) {
+                console.error('SVMessenger: Failed to start conversation:', error);
+                this.showNotification('Грешка при отваряне на чат прозорец', 'error');
             }
+        } else {
+            console.log('SVMessenger not available, waiting...');
+            console.log('Checking for React root element:', document.getElementById('svmessenger-root'));
+            console.log('Checking for React component:', document.querySelector('[data-reactroot]'));
+            
+            // Ако SVMessenger не е наличен, чакаме малко и пробваме отново
+            setTimeout(async () => {
+                console.log('Retrying SVMessenger after timeout...');
+                console.log('window.SVMessenger after timeout:', window.SVMessenger);
+                if (window.SVMessenger && window.SVMessenger.startConversation) {
+                    try {
+                        console.log('SVMessenger: Starting conversation with user', userId);
+                        const conversation = await window.SVMessenger.startConversation(userId);
+                        console.log('SVMessenger: Conversation started successfully', conversation);
+                        
+                        // Отваряме чат прозореца
+                        if (window.SVMessenger.openChat) {
+                            console.log('SVMessenger: Opening chat window for conversation', conversation.id);
+                            window.SVMessenger.openChat(conversation.id);
+                        }
+                    } catch (error) {
+                        console.error('SVMessenger: Failed to start conversation:', error);
+                        this.showNotification('Грешка при отваряне на чат прозорец', 'error');
+                    }
+                } else {
+                    console.log('SVMessenger still not available');
+                    console.log('React component may not be loaded or there is an error');
+                    // Ако SVMessenger не работи, показваме съобщение
+                    this.showNotification('Чат системата не е налична в момента', 'error');
+                }
+            }, 2000);
         }
     }
 
