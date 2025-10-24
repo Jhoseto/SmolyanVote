@@ -8,6 +8,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 import smolyanVote.smolyanVote.viewsAndDTO.UserRegistrationViewModel;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,5 +41,8 @@ public interface UserService {
 
     void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException;
 
+    // ====== SIDEBAR METHODS =====
+
+    long getOnlineUsersCount();
 
 }

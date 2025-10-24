@@ -10,6 +10,7 @@ import smolyanVote.smolyanVote.models.enums.CategoryEnum;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +62,15 @@ public interface PublicationService {
 
     List<UserEntity> getActiveAuthors(int limit);
     List<Map<String, Object>> getTrendingTopics();
+
+    // ====== SIDEBAR METHODS =====
+
+    List<Object[]> getTrendingHashtags();
+    PublicationEntity getLastPublishedPost();
+    PublicationEntity getMostCommentedPostToday(Instant startOfDay);
+    PublicationEntity getMostViewedPostToday(Instant startOfDay);
+    long getCountByAuthorAndCreatedAfter(UserEntity author, Instant created);
+    List<Map<String, Object>> getTopAuthorsData(Instant startOfDay, int limit);
 
     // ====== ПРАВА НА ДОСТЪП ======
 

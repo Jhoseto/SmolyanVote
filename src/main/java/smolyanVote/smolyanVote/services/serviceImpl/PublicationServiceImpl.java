@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -568,6 +569,70 @@ public class PublicationServiceImpl implements PublicationService {
                     return topic;
                 })
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    // ===== SIDEBAR METHODS =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object[]> getTrendingHashtags() {
+        return publicationRepository.findTrendingHashtags();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicationEntity getLastPublishedPost() {
+        List<PublicationEntity> posts = publicationRepository.findFirstByStatusOrderByCreatedDesc(
+            PublicationStatus.PUBLISHED, 
+            org.springframework.data.domain.PageRequest.of(0, 1)
+        );
+        return posts.isEmpty() ? null : posts.get(0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicationEntity getMostCommentedPostToday(Instant startOfDay) {
+        List<PublicationEntity> posts = publicationRepository.findTopByOrderByCommentsCountDesc(
+            startOfDay, org.springframework.data.domain.PageRequest.of(0, 1));
+        return posts.isEmpty() ? null : posts.get(0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicationEntity getMostViewedPostToday(Instant startOfDay) {
+        List<PublicationEntity> posts = publicationRepository.findTopByOrderByViewsCountDesc(
+            startOfDay, org.springframework.data.domain.PageRequest.of(0, 1));
+        return posts.isEmpty() ? null : posts.get(0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getCountByAuthorAndCreatedAfter(UserEntity author, Instant created) {
+        return publicationRepository.countByAuthorAndCreatedAfter(author, created);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getTopAuthorsData(Instant startOfDay, int limit) {
+        List<UserEntity> authors = publicationRepository.findTodayTopAuthors(
+            PublicationStatus.PUBLISHED, 
+            startOfDay, 
+            org.springframework.data.domain.PageRequest.of(0, limit)
+        );
+        
+        return authors.stream().map(author -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", author.getId());
+            m.put("username", author.getUsername());
+            m.put("imageUrl", author.getImageUrl());
+            
+            // Брой публикации днес
+            long count = publicationRepository.countByAuthorAndCreatedAfterAndStatus(
+                author, startOfDay, PublicationStatus.PUBLISHED);
+            m.put("publicationsCount", count);
+            
+            return m;
+        }).collect(Collectors.toList());
     }
 
     private String getCategoryDisplayName(CategoryEnum category) {
