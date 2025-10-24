@@ -92,6 +92,13 @@ public class UserController {
         model.addAttribute("isOwnProfile", isOwnProfile);
         model.addAttribute("locations", Locations.values());
 
+        // Check if current user follows the profile user (only for other profiles)
+        boolean isFollowing = false;
+        if (!isOwnProfile && currentUser != null) {
+            isFollowing = followService.isFollowing(currentUser.getId(), profileUser.getId());
+        }
+        model.addAttribute("isFollowing", isFollowing);
+
         // Calculate reputation
         int reputationScore = calculateReputation(profileUser);
         model.addAttribute("reputationScore", reputationScore);

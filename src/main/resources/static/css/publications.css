@@ -35,11 +35,12 @@
 /* ====== LAYOUT ====== */
 .feed-layout {
     display: flex;
-    max-width: 1900px;
-    margin: 60px auto;
+    max-width: none;
+    margin: 60px 10px;
     gap: 20px;
     padding: 20px 16px;
     min-height: calc(100vh - 120px);
+    margin-top: 85px;
 }
 
 /* ====== MOBILE FILTER TOGGLE ====== */

@@ -64,13 +64,13 @@
 
 .modal-title {
     font-weight: 600;
-    color: #333;
+    color: #000000;
     font-size: 1.2rem;
     letter-spacing: 1.5px;
     text-align: center;
     text-transform: uppercase;
     font-family: 'Poppins', sans-serif;
-    margin-left: 5rem;
+    margin-left: 1rem;
 }
 
 /* --- Затварящ бутон --- */
