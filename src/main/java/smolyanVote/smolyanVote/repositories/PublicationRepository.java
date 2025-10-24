@@ -38,6 +38,25 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
                                             @Param("authorId") Long authorId,
                                             Pageable pageable);
 
+    @Query("SELECT DISTINCT p FROM PublicationEntity p " +
+           "LEFT JOIN FETCH p.author " +
+           "WHERE p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           "AND (:search IS NULL OR :search = '' OR " +
+           "    LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "    LOWER(p.content) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:category IS NULL OR p.category = :category) " +
+           "AND (:status IS NULL OR p.status = :status) " +
+           "AND (:timeFilter IS NULL OR p.created >= :timeFilter) " +
+           "AND (p.author.id IN :authorIds)")
+    Page<PublicationEntity> findWithFiltersAndAuthorIds(
+            @Param("search") String search,
+            @Param("category") CategoryEnum category,
+            @Param("status") PublicationStatus status,
+            @Param("timeFilter") Instant timeFilter,
+            @Param("authorIds") List<Long> authorIds,
+            Pageable pageable
+    );
+
     long countByStatus(PublicationStatus status);
     long countByCategoryAndStatus(CategoryEnum category, PublicationStatus status);
     long countByCreatedAfterAndStatus(Instant date, PublicationStatus status);

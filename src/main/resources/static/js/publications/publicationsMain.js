@@ -86,6 +86,17 @@ class PublicationsManager {
         if (!window.filtersManager) return;
 
         const filters = window.filtersManager.getCurrentFilters();
+        
+        // ✅ КРИТИЧНО: Синхронизирай userIds от userSearchManager
+        if (window.userSearchManager && window.userSearchManager.getSelectedUserIds) {
+            const userIds = window.userSearchManager.getSelectedUserIds();
+            if (userIds && userIds.length > 0) {
+                filters.userIds = userIds;
+            }
+        }
+        
+        console.log('🔵 Applying local filters:', filters);
+        
         this.filteredPosts = window.filtersManager.filterPostsLocally(this.allLoadedPosts);
         this.filteredPosts = window.filtersManager.sortPosts(this.filteredPosts);
 
@@ -149,27 +160,54 @@ class PublicationsManager {
 
         try {
             const filters = window.filtersManager ? window.filtersManager.getCurrentFilters() : {};
+            
+            // ✅ КРИТИЧНО: Винаги включвай userIds ако има
+            if (window.userSearchManager && window.userSearchManager.getSelectedUserIds) {
+                const userIds = window.userSearchManager.getSelectedUserIds();
+                if (userIds && userIds.length > 0) {
+                    filters.userIds = userIds;
+                    console.log('🔵 LoadMore: Applying userIds filter:', userIds);
+                }
+            }
+            
             const cacheKey = this.getCacheKey(filters, this.currentPage);
 
             let data = window.filtersManager ? window.filtersManager.getCachedResults(cacheKey) : null;
 
             if (!data) {
+                console.log('🔵 Calling API with filters:', filters);
                 data = await window.publicationsAPI.getPublications(filters, this.currentPage, this.postsPerPage);
 
                 if (window.filtersManager) {
                     window.filtersManager.setCachedResults(cacheKey, data);
                 }
+            } else {
+                console.log('🔵 Using cached data');
             }
 
             if (data.publications && data.publications.length > 0) {
-                data.publications.forEach(post => {
+                // ✅ КРИТИЧНО: Филтрирай локално ако има userIds
+                let publicationsToAdd = data.publications;
+                
+                if (filters.userIds && filters.userIds.length > 0) {
+                    publicationsToAdd = data.publications.filter(post => {
+                        const matches = post.author && filters.userIds.includes(post.author.id);
+                        if (!matches) {
+                            console.log('🔴 Filtering out post', post.id, 'from author', post.author?.id);
+                        }
+                        return matches;
+                    });
+                    console.log('🔵 After local filtering:', publicationsToAdd.length, 'posts remain');
+                }
+                
+                publicationsToAdd.forEach(post => {
                     if (!this.loadedPosts.has(post.id)) {
                         this.allLoadedPosts.push(post);
                         this.loadedPosts.add(post.id);
                     }
                 });
 
-                this.renderPosts(data.publications);
+                this.renderPosts(publicationsToAdd);
                 this.currentPage++;
                 this.hasMorePosts = data.publications.length === this.postsPerPage;
 

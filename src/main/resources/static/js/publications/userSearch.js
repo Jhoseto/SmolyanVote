@@ -28,15 +28,26 @@ class UserSearchManager {
      * Initialize the user search functionality
      */
     init() {
+        console.log('🚀 [UserSearch] Initializing...');
+        
         this.cacheElements();
         this.setupEventListeners();
         this.loadFromLocalStorage();
         this.syncWithURL();
         this.updateUI();
         
-        // Notify filters manager after loading from storage/URL
+        // ✅ КРИТИЧНО: Ако има избрани users, приложи ги ВЕДНАГА
         if (this.selectedUsers.length > 0) {
+            console.log('🔵 Found', this.selectedUsers.length, 'selected users on init');
             this.notifyFiltersManager();
+            
+            // ✅ Изчакай малко и форсирай зареждане с филтри
+            setTimeout(() => {
+                if (window.publicationsManager) {
+                    console.log('🔄 Forcing initial load with user filters...');
+                    window.publicationsManager.loadInitialPosts();
+                }
+            }, 500);
         }
         
         console.log('🔍 UserSearchManager initialized');
@@ -291,7 +302,6 @@ class UserSearchManager {
      * Add user to filter
      */
     addUserToFilter(user) {
-        // Check if already selected
         if (this.selectedUsers.some(u => u.id === user.id)) {
             return;
         }
@@ -299,10 +309,15 @@ class UserSearchManager {
         this.selectedUsers.push(user);
         this.updateUI();
         this.saveToLocalStorage();
-        this.notifyFiltersManager();
-        this.hideDropdown();
         
-        console.log('✅ User added to filter:', user.username);
+        // ✅ КРИТИЧНО: Винаги нотифицирай
+        console.log('🟢 Adding user to filter:', user.username, 'ID:', user.id);
+        this.notifyFiltersManager();
+        
+        // ✅ КРИТИЧНО: Форсирай презареждане
+        this.forceReload();
+        
+        this.hideDropdown();
     }
     
     /**
@@ -312,11 +327,25 @@ class UserSearchManager {
         this.selectedUsers = this.selectedUsers.filter(u => u.id !== userId);
         this.updateUI();
         this.saveToLocalStorage();
+        
+        // ✅ КРИТИЧНО: Винаги нотифицирай
+        console.log('🔴 Removing user from filter, ID:', userId);
         this.notifyFiltersManager();
         
-        console.log('✅ User removed from filter:', userId);
+        // ✅ КРИТИЧНО: Форсирай презареждане
+        this.forceReload();
     }
     
+    /**
+     * Force reload publications
+     */
+    forceReload() {
+        if (window.publicationsManager && typeof window.publicationsManager.loadInitialPosts === 'function') {
+            console.log('🔄 Forcing publications reload...');
+            window.publicationsManager.loadInitialPosts();
+        }
+    }
+
     /**
      * Open user profile
      */

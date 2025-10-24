@@ -318,18 +318,25 @@ public class PublicationServiceImpl implements PublicationService {
     @Transactional(readOnly = true)
     public Page<PublicationEntity> findWithFilters(String search, String category,
                                                    String status, String time,
-                                                   String author, Pageable pageable,
+                                                   String author, List<Long> authorIds, Pageable pageable,
                                                    Authentication auth) {
         try {
             // Конвертираме параметрите
             PublicationStatus publicationStatus = convertStatusFilter(status);
             CategoryEnum categoryEnum = convertCategoryFilter(category);
             Instant timeFilter = calculateTimeFilter(time);
-            Long authorId = calculateAuthorFilter(author, auth);
+            Long singleAuthorId = calculateAuthorFilter(author, auth);
 
-            // Използваме repository метода с филтри
+            // Ако има authorIds, използвай тях вместо singleAuthorId
+            if (authorIds != null && !authorIds.isEmpty()) {
+                return publicationRepository.findWithFiltersAndAuthorIds(
+                        search, categoryEnum, publicationStatus, timeFilter, authorIds, pageable
+                );
+            }
+
+            // Стара логика за единичен author
             return publicationRepository.findWithFilters(
-                    search, categoryEnum, publicationStatus, timeFilter, authorId, pageable
+                    search, categoryEnum, publicationStatus, timeFilter, singleAuthorId, pageable
             );
 
         } catch (Exception e) {

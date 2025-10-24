@@ -29,7 +29,7 @@ public interface PublicationService {
     // ====== ФИЛТРИРАНЕ ======
 
     Page<PublicationEntity> findWithFilters(String search, String category, String status,
-                                            String time, String author, Pageable pageable,
+                                            String time, String author, List<Long> authorIds, Pageable pageable,
                                             Authentication auth);
 
     // ====== СТАТИСТИКИ ======
