@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.controllers;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,7 +30,6 @@ public class UserFollowController {
     private final UserFollowRepository userFollowRepository;
 
 
-    @Autowired
     public UserFollowController(FollowService followService,
                                 UserService userService,
                                 UserFollowMapper userFollowMapper,
