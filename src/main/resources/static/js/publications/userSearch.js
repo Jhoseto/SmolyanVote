@@ -31,7 +31,13 @@ class UserSearchManager {
         this.cacheElements();
         this.setupEventListeners();
         this.loadFromLocalStorage();
+        this.syncWithURL();
         this.updateUI();
+        
+        // Notify filters manager after loading from storage/URL
+        if (this.selectedUsers.length > 0) {
+            this.notifyFiltersManager();
+        }
         
         console.log('🔍 UserSearchManager initialized');
     }
@@ -468,6 +474,51 @@ class UserSearchManager {
         } catch (error) {
             console.warn('⚠️ Could not load from localStorage:', error);
         }
+    }
+
+    /**
+     * Sync with URL parameters
+     */
+    syncWithURL() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userIdsParam = urlParams.get('userIds');
+            
+            if (userIdsParam) {
+                const userIds = userIdsParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                
+                // Filter selectedUsers to only include users from URL
+                this.selectedUsers = this.selectedUsers.filter(user => userIds.includes(user.id));
+                
+                // If there are userIds in URL but missing in selectedUsers, add placeholders
+                userIds.forEach(id => {
+                    if (!this.selectedUsers.some(u => u.id === id)) {
+                        const savedUser = this.findUserInLocalStorage(id);
+                        if (savedUser) {
+                            this.selectedUsers.push(savedUser);
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('⚠️ Could not sync with URL:', error);
+        }
+    }
+
+    /**
+     * Find user in localStorage by ID
+     */
+    findUserInLocalStorage(userId) {
+        try {
+            const saved = localStorage.getItem('publications_selected_users');
+            if (saved) {
+                const users = JSON.parse(saved);
+                return users.find(u => u.id === userId);
+            }
+        } catch (error) {
+            return null;
+        }
+        return null;
     }
     
     /**
