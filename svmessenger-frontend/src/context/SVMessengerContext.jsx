@@ -305,9 +305,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 return exists ? prev : [conversation, ...prev];
             });
 
-            // Open chat window
-            openChat(conversation.id);
-
             console.log('SVMessenger: Started conversation', conversation.id);
             return conversation;
         } catch (error) {
@@ -405,6 +402,20 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         if (!conversation) {
             console.warn('Conversation not found:', conversationId);
+            // Try to fetch conversation from API if not found locally
+            svMessengerAPI.getConversation(conversationId).then(conv => {
+                if (conv) {
+                    // Add to conversations list
+                    setConversations(prev => {
+                        const exists = prev.some(c => c.id === conv.id);
+                        return exists ? prev : [conv, ...prev];
+                    });
+                    // Try to open again after state update
+                    setTimeout(() => openChat(conversationId), 100);
+                }
+            }).catch(error => {
+                console.error('Failed to fetch conversation:', error);
+            });
             return;
         }
 
@@ -516,6 +527,49 @@ export const SVMessengerProvider = ({ children, userData }) => {
             }
         }
     };
+
+    // ========== GLOBAL API EXPOSURE ==========
+
+    // Изнасяме глобална функция за комуникация с vanilla JavaScript
+    useEffect(() => {
+        console.log('SVMessenger: useEffect triggered, exposing global API');
+        
+        const exposeGlobalAPI = () => {
+            try {
+                window.SVMessenger = {
+                    startConversation: startConversation,
+                    openChat: openChat,
+                    openChatList: openChatList,
+                    openSearch: openSearch,
+                    sendMessage: sendMessage,
+                    isConnected: isWebSocketConnected
+                };
+                
+                console.log('SVMessenger: Global API exposed successfully', window.SVMessenger);
+                console.log('SVMessenger: startConversation function:', typeof window.SVMessenger.startConversation);
+            } catch (error) {
+                console.error('SVMessenger: Error exposing global API:', error);
+            }
+        };
+
+        // Изнасяме веднага
+        exposeGlobalAPI();
+        
+        // Изнасяме отново при промяна на dependencies
+        const timeoutId = setTimeout(() => {
+            console.log('SVMessenger: Re-exposing global API after timeout');
+            exposeGlobalAPI();
+        }, 100);
+        
+        // Cleanup при unmount
+        return () => {
+            clearTimeout(timeoutId);
+            if (window.SVMessenger) {
+                console.log('SVMessenger: Cleaning up global API');
+                delete window.SVMessenger;
+            }
+        };
+    }, [startConversation, openChat, openChatList, openSearch, sendMessage, isWebSocketConnected]);
 
     // ========== CONTEXT VALUE ==========
 
