@@ -8,7 +8,10 @@ import { truncateText } from '../utils/svHelpers';
  * Показва един разговор в списъка
  */
 const SVConversationItem = ({ conversation }) => {
-  const { openChat, removeFromConversationList } = useSVMessenger();
+  const { openChat, removeFromConversationList, activeChats } = useSVMessenger();
+  
+  // Check if this conversation is active (open as chat)
+  const isActive = activeChats.some(chat => chat.conversation.id === conversation.id && !chat.isMinimized);
 
   const handleClick = () => {
     openChat(conversation.id);
@@ -23,7 +26,7 @@ const SVConversationItem = ({ conversation }) => {
 
   return (
     <div 
-      className="svmessenger-conversation-item"
+      className={`svmessenger-conversation-item ${isActive ? 'active' : ''}`}
       onClick={handleClick}
     >
       {/* Remove button */}
@@ -54,7 +57,7 @@ const SVConversationItem = ({ conversation }) => {
 
       {/* Content */}
       <div className="svmessenger-conversation-content">
-        <div className="svmessenger-conversation-header">
+        <div className="svmessenger-conversation-top-row">
           <h4 className="svmessenger-conversation-name">
             {conversation.otherUser.realName || conversation.otherUser.username}
           </h4>

@@ -4,6 +4,7 @@ import SVMessageItem from './SVMessageItem';
 import SVTypingIndicator from './SVTypingIndicator';
 import { useSVInfiniteScroll } from '../hooks/useSVInfiniteScroll';
 import { scrollToBottom, isScrolledToBottom } from '../utils/svHelpers';
+import { groupMessagesByDate } from '../utils/svDateFormatter';
 
 /**
  * Message Thread компонент
@@ -51,6 +52,9 @@ const SVMessageThread = ({ conversationId }) => {
     lastMessageCountRef.current = 0; // Reset message count for new conversation
   }, [conversationId]);
 
+  // Group messages by date
+  const groupedItems = groupMessagesByDate(messages);
+
   return (
     <div className="svmessenger-message-thread" ref={threadRef}>
       {/* Loading indicator at top */}
@@ -60,18 +64,25 @@ const SVMessageThread = ({ conversationId }) => {
         </div>
       )}
 
-      {/* Messages */}
+      {/* Messages with date separators */}
       <div className="svmessenger-messages">
-        {messages.map((message, index) => {
-          const isLast = index === messages.length - 1;
-          return (
-            <div
-              key={message.id}
-              ref={isLast ? lastMessageRef : null}
-            >
-              <SVMessageItem message={message} />
-            </div>
-          );
+        {groupedItems.map((item, index) => {
+          if (item.type === 'date') {
+            return (
+              <div key={`date-${item.dateKey}`} className="svmessenger-date-separator">
+                <span className="svmessenger-date-separator-text">
+                  {item.formattedDate}
+                </span>
+              </div>
+            );
+          } else {
+            const isLast = index === groupedItems.length - 1;
+            return (
+              <div key={item.message.id} ref={isLast ? lastMessageRef : null}>
+                <SVMessageItem message={item.message} />
+              </div>
+            );
+          }
         })}
       </div>
 

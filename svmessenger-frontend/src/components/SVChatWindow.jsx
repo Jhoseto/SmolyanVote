@@ -14,11 +14,31 @@ const SVChatWindow = ({ chat }) => {
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [isMinimizing, setIsMinimizing] = useState(false);
 
-    // Bring to front on mount
+    // Track if restoring
+    const [isRestoring, setIsRestoring] = useState(false);
+    const wasMinimizedRef = useRef(chat.isMinimized);
+
+    // Bring to front on mount (only if not minimized)
     useEffect(() => {
-        bringToFront(chat.conversation.id);
+        if (!chat.isMinimized) {
+            bringToFront(chat.conversation.id);
+        }
     }, []);
+
+    // Detect restore
+    useEffect(() => {
+        const isCurrentlyMinimized = chat.isMinimized;
+        
+        // If chat was minimized and now it's not, it's being restored
+        if (wasMinimizedRef.current && !isCurrentlyMinimized) {
+            setIsRestoring(true);
+            setTimeout(() => setIsRestoring(false), 850);
+        }
+        
+        wasMinimizedRef.current = isCurrentlyMinimized;
+    }, [chat.isMinimized]);
 
     // Drag handlers
     const handleMouseDown = useCallback((e) => {
@@ -72,13 +92,20 @@ const SVChatWindow = ({ chat }) => {
     };
 
     const handleMinimize = () => {
-        minimizeChat(chat.conversation.id);
+        // Start animation
+        setIsMinimizing(true);
+        
+        // Wait for animation to complete
+        setTimeout(() => {
+            minimizeChat(chat.conversation.id);
+            setIsMinimizing(false);
+        }, 850); // Match animation duration (0.85s)
     };
 
     return (
         <div
             ref={chatWindowRef}
-            className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''}`}
+            className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''} ${isMinimizing ? 'minimizing' : ''} ${isRestoring ? 'restoring' : ''}`}
             style={{
                 left: `${chat.position.x}px`,
                 top: `${chat.position.y}px`,
