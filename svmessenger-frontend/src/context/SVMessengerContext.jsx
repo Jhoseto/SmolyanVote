@@ -498,6 +498,26 @@ export const SVMessengerProvider = ({ children, userData }) => {
         ));
     }, []);
 
+    const removeFromConversationList = useCallback(async (conversationId) => {
+        try {
+            // Call backend API to hide conversation (not delete)
+            const response = await svMessengerAPI.hideConversation(conversationId);
+            
+            if (response.success) {
+                // Remove from conversations list (UI update)
+                setConversations(prev => prev.filter(c => c.id !== conversationId));
+                
+                // Also close any open chat window for this conversation
+                setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
+                
+                console.log('SVMessenger: Hidden conversation from list', conversationId);
+            }
+        } catch (error) {
+            console.error('Failed to hide conversation:', error);
+            alert('Грешка при скриване на разговора. Моля опитайте отново.');
+        }
+    }, []);
+
     // ========== HELPER METHODS ==========
 
     const requestNotificationPermission = () => {
@@ -536,8 +556,60 @@ export const SVMessengerProvider = ({ children, userData }) => {
         
         const exposeGlobalAPI = () => {
             try {
+                // Wrapper за startConversation с автоматично отваряне
+                const startConversationWithAutoOpen = async (otherUserId) => {
+                    const conversation = await startConversation(otherUserId);
+                    if (conversation) {
+                        // Автоматично отваряне на чат прозореца
+                        setTimeout(() => {
+                            openChat(conversation.id);
+                        }, 100);
+                    }
+                    return conversation;
+                };
+
+                // Wrapper за React context startConversation с автоматично отваряне
+                const startConversationReactWithAutoOpen = async (otherUserId) => {
+                    const conversation = await startConversation(otherUserId);
+                    if (conversation) {
+                        // Автоматично отваряне на чат прозореца
+                        setTimeout(() => {
+                            // Намираме conversation от state-а
+                            setConversations(prev => {
+                                const foundConversation = prev.find(c => c.id === conversation.id) || conversation;
+                                if (foundConversation) {
+                                    // Създаваме нов chat window
+                                    const newChat = {
+                                        id: conversation.id,
+                                        conversation: foundConversation,
+                                        isMinimized: false,
+                                        position: calculateInitialPosition(),
+                                        zIndex: nextZIndex.current++
+                                    };
+
+                                    setActiveChats(prev => [...prev, newChat]);
+                                    
+                                    // Load messages
+                                    loadMessages(conversation.id);
+                                    
+                                    // Mark as read
+                                    markAsRead(conversation.id);
+                                    
+                                    // Close chat list
+                                    closeChatList();
+                                    
+                                    console.log('SVMessenger: Auto-opened chat window', conversation.id);
+                                }
+                                return prev;
+                            });
+                        }, 100);
+                    }
+                    return conversation;
+                };
+
                 window.SVMessenger = {
-                    startConversation: startConversation,
+                    startConversation: startConversationWithAutoOpen,
+                    startConversationReact: startConversationReactWithAutoOpen, // За React компонентите
                     openChat: openChat,
                     openChatList: openChatList,
                     openSearch: openSearch,
@@ -603,7 +675,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
         minimizeChat,
         restoreChat,
         bringToFront,
-        updateChatPosition
+        updateChatPosition,
+        removeFromConversationList
     };
 
     return (

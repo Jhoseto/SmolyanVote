@@ -8,10 +8,17 @@ import { truncateText } from '../utils/svHelpers';
  * Показва един разговор в списъка
  */
 const SVConversationItem = ({ conversation }) => {
-  const { openChat } = useSVMessenger();
+  const { openChat, removeFromConversationList } = useSVMessenger();
 
   const handleClick = () => {
     openChat(conversation.id);
+  };
+
+  const handleRemove = (e) => {
+    e.stopPropagation(); // Prevent opening chat when clicking X
+    if (removeFromConversationList) {
+      removeFromConversationList(conversation.id);
+    }
   };
 
   return (
@@ -19,6 +26,17 @@ const SVConversationItem = ({ conversation }) => {
       className="svmessenger-conversation-item"
       onClick={handleClick}
     >
+      {/* Remove button */}
+      <button 
+        className="svmessenger-conversation-remove"
+        onClick={handleRemove}
+        title="Премахни от панела"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+
       {/* Avatar */}
       <div className="svmessenger-conversation-avatar">
         <img 

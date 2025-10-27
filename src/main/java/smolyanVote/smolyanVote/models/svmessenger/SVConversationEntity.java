@@ -50,6 +50,9 @@ public class SVConversationEntity {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Column(name = "is_hidden", nullable = false)
+    private Boolean isHidden = false;
+
     // Business methods остават същите
     public UserEntity getOtherUser(UserEntity currentUser) {
         if (currentUser.getId().equals(user1.getId())) {
@@ -96,6 +99,7 @@ public class SVConversationEntity {
         if (user1UnreadCount == null) user1UnreadCount = 0;
         if (user2UnreadCount == null) user2UnreadCount = 0;
         if (isDeleted == null) isDeleted = false;
+        if (isHidden == null) isHidden = false;
     }
 
     @PreUpdate
@@ -116,5 +120,6 @@ public class SVConversationEntity {
         this.user1UnreadCount = 0;
         this.user2UnreadCount = 0;
         this.isDeleted = false;
+        this.isHidden = false;
     }
 }

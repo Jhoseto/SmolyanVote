@@ -76,11 +76,20 @@ export const svMessengerAPI = {
   },
   
   /**
-   * Изтрий разговор
+   * Изтрий разговор (soft delete)
    */
   deleteConversation: async (conversationId) => {
     return fetchAPI(`${BASE_URL}/conversations/${conversationId}`, {
       method: 'DELETE'
+    });
+  },
+  
+  /**
+   * Скрий разговор от панела (не изтрива историята)
+   */
+  hideConversation: async (conversationId) => {
+    return fetchAPI(`${BASE_URL}/conversations/${conversationId}/hide`, {
+      method: 'PUT'
     });
   },
   

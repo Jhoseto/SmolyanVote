@@ -260,6 +260,23 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
     @Override
     @Transactional
+    public void hideConversation(Long conversationId, UserEntity currentUser) {
+        // Find conversation and validate user is participant
+        SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        
+        if (!conversation.isParticipant(currentUser)) {
+            throw new IllegalArgumentException("User is not participant in this conversation");
+        }
+        
+        // Hide conversation (set isHidden = true)
+        conversationRepo.hideConversation(conversationId);
+        
+        log.info("Conversation {} hidden by user {}", conversationId, currentUser.getId());
+    }
+
+    @Override
+    @Transactional
     public void deleteMessage(Long messageId, UserEntity currentUser) {
         // Implementation
     }

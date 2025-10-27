@@ -181,6 +181,35 @@ public class SVMessengerController {
         }
     }
     
+    /**
+     * PUT /api/svmessenger/conversations/{id}/hide
+     * Скрий разговор от панела (не изтрива историята)
+     * 
+     * Response: { "success": true }
+     */
+    @PutMapping("/conversations/{id}/hide")
+    public ResponseEntity<Map<String, Object>> hideConversation(
+            @PathVariable Long id,
+            Authentication auth) {
+        log.info("PUT /api/svmessenger/conversations/{}/hide", id);
+        
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            messengerService.hideConversation(id, currentUser);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error hiding conversation", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     // ========== MESSAGES ==========
     
     /**
