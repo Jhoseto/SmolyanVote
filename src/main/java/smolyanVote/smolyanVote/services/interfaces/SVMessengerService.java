@@ -57,6 +57,14 @@ public interface SVMessengerService {
      */
     void deleteConversation(Long conversationId, UserEntity currentUser);
     
+    /**
+     * Скрий разговор от панела (не изтрива историята)
+     * 
+     * @param conversationId ID на разговора
+     * @param currentUser Текущият user (за валидация)
+     */
+    void hideConversation(Long conversationId, UserEntity currentUser);
+    
     // ========== MESSAGE MANAGEMENT ==========
     
     /**

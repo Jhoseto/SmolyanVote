@@ -45,7 +45,13 @@ const SVUserSearch = ({ onClose }) => {
   // Handle user selection
   const handleUserSelect = async (user) => {
     try {
-      await startConversation(user.id);
+      // Използваме глобалния API с автоматично отваряне
+      if (window.SVMessenger && window.SVMessenger.startConversationReact) {
+        await window.SVMessenger.startConversationReact(user.id);
+      } else {
+        // Fallback към React context
+        await startConversation(user.id);
+      }
       onClose();
     } catch (error) {
       console.error('Failed to start conversation:', error);
