@@ -93,3 +93,74 @@ export const formatRelativeTime = (timestamp) => {
     return '';
   }
 };
+
+/**
+ * Групира съобщения по дата
+ */
+export const groupMessagesByDate = (messages) => {
+  if (!messages || messages.length === 0) return [];
+  
+  const grouped = [];
+  let currentDate = null;
+  
+  messages.forEach((message, index) => {
+    const messageDate = typeof message.sentAt === 'string' ? parseISO(message.sentAt) : new Date(message.sentAt);
+    const dateKey = format(messageDate, 'yyyy-MM-dd');
+    
+    if (dateKey !== currentDate) {
+      grouped.push({
+        type: 'date',
+        date: messageDate,
+        dateKey: dateKey,
+        formattedDate: formatDateSeparator(messageDate)
+      });
+      currentDate = dateKey;
+    }
+    
+    grouped.push({
+      type: 'message',
+      message: message
+    });
+  });
+  
+  return grouped;
+};
+
+/**
+ * Форматира дата за separator в chat
+ * Examples: "Днес", "Вчера", "27 октомври 2025"
+ */
+export const formatDateSeparator = (date) => {
+  if (!date) return '';
+  
+  try {
+    const d = typeof date === 'string' ? parseISO(date) : new Date(date);
+    
+    if (isToday(d)) {
+      return 'Днес';
+    } else if (isYesterday(d)) {
+      return 'Вчера';
+    } else {
+      return format(d, 'd MMMM yyyy', { locale: bg });
+    }
+  } catch (error) {
+    console.error('Error formatting date separator:', error);
+    return '';
+  }
+};
+
+/**
+ * Връща само часа на съобщението
+ * Example: "14:30"
+ */
+export const formatMessageTimeOnly = (timestamp) => {
+  if (!timestamp) return '';
+  
+  try {
+    const date = typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
+    return format(date, 'HH:mm');
+  } catch (error) {
+    console.error('Error formatting message time:', error);
+    return '';
+  }
+};
