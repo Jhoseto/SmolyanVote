@@ -42,7 +42,7 @@ const SVChatWindow = ({ chat }) => {
     // ========== GENIE EFFECT ANIMATIONS ==========
 
     /**
-     * Minimize animation με genie effect
+     * Minimize animation с истински genie effect
      */
     const handleMinimizeAnimation = useCallback(() => {
         if (!chatWindowRef.current) return;
@@ -63,7 +63,7 @@ const SVChatWindow = ({ chat }) => {
             const originX = buttonRect.left + buttonRect.width / 2 - windowRect.left;
             const originY = buttonRect.top + buttonRect.height / 2 - windowRect.top;
 
-            // Задай transform origin
+            // Задай transform origin - ТОВА Е КЛЮЧОВО!
             chatWindow.style.transformOrigin = `${originX}px ${originY}px`;
         } else {
             // Fallback - използвай центъра долу
@@ -75,21 +75,21 @@ const SVChatWindow = ({ chat }) => {
         chatWindow.classList.add('genie-minimize');
         chatWindow.style.willChange = 'transform, opacity';
 
-        // След 350ms (duration на анимацията)
+        // След 400ms (duration на анимацията)
         setTimeout(() => {
             // Извикай minimize от context
             minimizeChat(conversationId);
-            
+
             // Cleanup
             chatWindow.classList.remove('genie-minimize');
             chatWindow.style.willChange = 'auto';
             chatWindow.style.transformOrigin = '';
             setIsAnimating(false);
-        }, 350);
+        }, 400);
     }, [chat.conversation.id, minimizeChat]);
 
     /**
-     * Restore animation με genie effect
+     * Restore animation с истински genie effect
      */
     const handleRestoreAnimation = useCallback(() => {
         if (!chatWindowRef.current) return;
@@ -110,7 +110,7 @@ const SVChatWindow = ({ chat }) => {
             const originX = buttonRect.left + buttonRect.width / 2 - windowRect.left;
             const originY = buttonRect.top + buttonRect.height / 2 - windowRect.top;
 
-            // Задай transform origin
+            // Задай transform origin - ТОВА Е КЛЮЧОВО!
             chatWindow.style.transformOrigin = `${originX}px ${originY}px`;
         } else {
             // Fallback
@@ -122,14 +122,16 @@ const SVChatWindow = ({ chat }) => {
         chatWindow.classList.add('genie-restore');
         chatWindow.style.willChange = 'transform, opacity';
 
-        // След 380ms (duration на анимацията)
+        // След 420ms (duration на анимацията)
         setTimeout(() => {
             chatWindow.classList.remove('genie-restore');
             chatWindow.style.willChange = 'auto';
             chatWindow.style.transformOrigin = '';
             setIsAnimating(false);
-        }, 380);
+        }, 420);
     }, [chat.conversation.id]);
+
+    
 
     // ========== DRAG & DROP HANDLERS ==========
 
