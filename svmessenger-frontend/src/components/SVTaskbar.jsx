@@ -4,6 +4,7 @@ import { useSVMessenger } from '../context/SVMessengerContext';
 /**
  * Taskbar компонент (Windows-style)
  * Показва минимизирани чатове като бутони
+ * + data-chat-id за Genie Effect targeting
  */
 const SVTaskbar = () => {
     const { activeChats, restoreChat, closeChat } = useSVMessenger();
@@ -22,6 +23,7 @@ const SVTaskbar = () => {
                 <button
                     key={chat.conversation.id}
                     className="svmessenger-taskbar-button"
+                    data-chat-id={chat.conversation.id}
                     onClick={() => restoreChat(chat.conversation.id)}
                     title={`Възстанови разговор с ${chat.conversation.otherUser.realName || chat.conversation.otherUser.username}`}
                 >
@@ -41,14 +43,14 @@ const SVTaskbar = () => {
 
                     {/* Name */}
                     <span className="svmessenger-taskbar-name">
-            {chat.conversation.otherUser.realName || chat.conversation.otherUser.username}
-          </span>
+                        {chat.conversation.otherUser.realName || chat.conversation.otherUser.username}
+                    </span>
 
                     {/* Unread badge (if any) */}
                     {chat.conversation.unreadCount > 0 && (
                         <span className="svmessenger-taskbar-badge">
-              {chat.conversation.unreadCount > 99 ? '99+' : chat.conversation.unreadCount}
-            </span>
+                            {chat.conversation.unreadCount > 99 ? '99+' : chat.conversation.unreadCount}
+                        </span>
                     )}
 
                     {/* Close button */}

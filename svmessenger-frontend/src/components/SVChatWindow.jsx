@@ -8,16 +8,16 @@ import SVMessageInput from './SVMessageInput';
  * Chat Window компонент
  * Показва отворен разговор с header, messages и input
  * Поддържа drag & drop функционалност (Windows-style)
+ * + MacOS Genie Effect animations
  */
 const SVChatWindow = ({ chat }) => {
     const { closeChat, minimizeChat, bringToFront, updateChatPosition } = useSVMessenger();
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [isMinimizing, setIsMinimizing] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
 
     // Track if restoring
-    const [isRestoring, setIsRestoring] = useState(false);
     const wasMinimizedRef = useRef(chat.isMinimized);
 
     // Bring to front on mount (only if not minimized)
@@ -27,20 +27,112 @@ const SVChatWindow = ({ chat }) => {
         }
     }, []);
 
-    // Detect restore
+    // Detect restore and trigger genie effect
     useEffect(() => {
         const isCurrentlyMinimized = chat.isMinimized;
         
         // If chat was minimized and now it's not, it's being restored
         if (wasMinimizedRef.current && !isCurrentlyMinimized) {
-            setIsRestoring(true);
-            setTimeout(() => setIsRestoring(false), 850);
+            handleRestoreAnimation();
         }
         
         wasMinimizedRef.current = isCurrentlyMinimized;
     }, [chat.isMinimized]);
 
-    // Drag handlers
+    // ========== GENIE EFFECT ANIMATIONS ==========
+
+    /**
+     * Minimize animation με genie effect
+     */
+    const handleMinimizeAnimation = useCallback(() => {
+        if (!chatWindowRef.current) return;
+
+        const chatWindow = chatWindowRef.current;
+        const conversationId = chat.conversation.id;
+
+        // Намери съответния taskbar бутон
+        const taskbarButton = document.querySelector(
+            `.svmessenger-taskbar-button[data-chat-id="${conversationId}"]`
+        );
+
+        if (taskbarButton) {
+            // Изчисли transform-origin спрямо бутона
+            const buttonRect = taskbarButton.getBoundingClientRect();
+            const windowRect = chatWindow.getBoundingClientRect();
+
+            const originX = buttonRect.left + buttonRect.width / 2 - windowRect.left;
+            const originY = buttonRect.top + buttonRect.height / 2 - windowRect.top;
+
+            // Задай transform origin
+            chatWindow.style.transformOrigin = `${originX}px ${originY}px`;
+        } else {
+            // Fallback - използвай центъра долу
+            chatWindow.style.transformOrigin = 'center bottom';
+        }
+
+        // Добави animation класове
+        setIsAnimating(true);
+        chatWindow.classList.add('genie-minimize');
+        chatWindow.style.willChange = 'transform, opacity';
+
+        // След 350ms (duration на анимацията)
+        setTimeout(() => {
+            // Извикай minimize от context
+            minimizeChat(conversationId);
+            
+            // Cleanup
+            chatWindow.classList.remove('genie-minimize');
+            chatWindow.style.willChange = 'auto';
+            chatWindow.style.transformOrigin = '';
+            setIsAnimating(false);
+        }, 350);
+    }, [chat.conversation.id, minimizeChat]);
+
+    /**
+     * Restore animation με genie effect
+     */
+    const handleRestoreAnimation = useCallback(() => {
+        if (!chatWindowRef.current) return;
+
+        const chatWindow = chatWindowRef.current;
+        const conversationId = chat.conversation.id;
+
+        // Намери съответния taskbar бутон
+        const taskbarButton = document.querySelector(
+            `.svmessenger-taskbar-button[data-chat-id="${conversationId}"]`
+        );
+
+        if (taskbarButton) {
+            // Изчисли transform-origin спрямо бутона
+            const buttonRect = taskbarButton.getBoundingClientRect();
+            const windowRect = chatWindow.getBoundingClientRect();
+
+            const originX = buttonRect.left + buttonRect.width / 2 - windowRect.left;
+            const originY = buttonRect.top + buttonRect.height / 2 - windowRect.top;
+
+            // Задай transform origin
+            chatWindow.style.transformOrigin = `${originX}px ${originY}px`;
+        } else {
+            // Fallback
+            chatWindow.style.transformOrigin = 'center bottom';
+        }
+
+        // Добави animation класове
+        setIsAnimating(true);
+        chatWindow.classList.add('genie-restore');
+        chatWindow.style.willChange = 'transform, opacity';
+
+        // След 380ms (duration на анимацията)
+        setTimeout(() => {
+            chatWindow.classList.remove('genie-restore');
+            chatWindow.style.willChange = 'auto';
+            chatWindow.style.transformOrigin = '';
+            setIsAnimating(false);
+        }, 380);
+    }, [chat.conversation.id]);
+
+    // ========== DRAG & DROP HANDLERS ==========
+
     const handleMouseDown = useCallback((e) => {
         // Only allow dragging from header
         if (!e.target.closest('.svmessenger-chat-header')) return;
@@ -87,25 +179,21 @@ const SVChatWindow = ({ chat }) => {
         };
     }, [isDragging, dragOffset, chat.conversation.id, updateChatPosition]);
 
+    // ========== ACTION HANDLERS ==========
+
     const handleClose = () => {
         closeChat(chat.conversation.id);
     };
 
     const handleMinimize = () => {
-        // Start animation
-        setIsMinimizing(true);
-        
-        // Wait for animation to complete
-        setTimeout(() => {
-            minimizeChat(chat.conversation.id);
-            setIsMinimizing(false);
-        }, 850); // Match animation duration (0.85s)
+        // Trigger genie effect animation
+        handleMinimizeAnimation();
     };
 
     return (
         <div
             ref={chatWindowRef}
-            className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''} ${isMinimizing ? 'minimizing' : ''} ${isRestoring ? 'restoring' : ''}`}
+            className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''} ${isAnimating ? 'animating' : ''}`}
             style={{
                 left: `${chat.position.x}px`,
                 top: `${chat.position.y}px`,
