@@ -67,7 +67,7 @@ const SVMessengerWidget = () => {
                 <SVUserSearch onClose={closeSearch} />
             )}
 
-            {/* Active Chat Windows (only non-minimized) */}
+            {/* Active Chat Windows */}
             {activeChats
                 .filter(chat => !chat.isMinimized)
                 .map(chat => (

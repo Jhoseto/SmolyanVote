@@ -561,6 +561,7 @@
   overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
+    padding-bottom: 25px;
 }
 
 .svmessenger-conversations::-webkit-scrollbar,
@@ -953,6 +954,10 @@
     animation: slideUpFade 0.4s var(--svm-transition-bounce);
     user-select: none;
     z-index: var(--svm-z-high);
+    /* ➕ GPU OPTIMIZATION - НОВИ 3 PROPERTIES */
+    contain: layout style paint;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
 }
 
 .svmessenger-chat-window.dragging {
@@ -966,136 +971,6 @@
   transition: none;
 }
 
-/* MacBook-style minimize animation */
-.svmessenger-chat-window.minimizing {
-  animation: minimizeToTaskbar 0.85s cubic-bezier(0.32, 0.72, 0.72, 1.05) forwards;
-  pointer-events: none;
-  transform-origin: center center;
-  will-change: transform, opacity, filter;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: subpixel-antialiased;
-}
-
-@keyframes minimizeToTaskbar {
-  0% {
-    transform: scale(1) translateX(0) translateY(0) rotateZ(0deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  8% {
-    transform: scale(0.98) translateX(2%) translateY(-1%) rotateZ(-0.5deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  16% {
-    transform: scale(0.92) translateX(5%) translateY(-2%) rotateZ(-1.5deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  25% {
-    transform: scale(0.82) translateX(12%) translateY(-1%) rotateZ(-2.5deg);
-    opacity: 0.98;
-    filter: blur(0.5px);
-  }
-  35% {
-    transform: scale(0.68) translateX(25%) translateY(8%) rotateZ(-4deg);
-    opacity: 0.92;
-    filter: blur(0.8px);
-  }
-  50% {
-    transform: scale(0.45) translateX(50%) translateY(25%) rotateZ(-7deg);
-    opacity: 0.75;
-    filter: blur(1.2px);
-  }
-  65% {
-    transform: scale(0.25) translateX(70%) translateY(55%) rotateZ(-12deg);
-    opacity: 0.55;
-    filter: blur(1.8px);
-  }
-  80% {
-    transform: scale(0.12) translateX(88%) translateY(85%) rotateZ(-20deg);
-    opacity: 0.3;
-    filter: blur(2.5px);
-  }
-  92% {
-    transform: scale(0.06) translateX(96%) translateY(95%) rotateZ(-30deg);
-    opacity: 0.15;
-    filter: blur(3px);
-  }
-  100% {
-    transform: scale(0.04) translateX(100%) translateY(100%) rotateZ(-38deg);
-    opacity: 0;
-    filter: blur(3.5px);
-  }
-}
-
-/* MacBook-style restore animation */
-.svmessenger-chat-window.restoring {
-  animation: restoreFromTaskbar 0.85s cubic-bezier(0.18, 1.75, 0.64, 1.15) forwards;
-  pointer-events: none;
-  transform-origin: center center;
-  will-change: transform, opacity, filter;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: subpixel-antialiased;
-}
-
-@keyframes restoreFromTaskbar {
-  0% {
-    transform: scale(0.04) translateX(100%) translateY(100%) rotateZ(-38deg);
-    opacity: 0;
-    filter: blur(3.5px);
-  }
-  8% {
-    transform: scale(0.06) translateX(96%) translateY(95%) rotateZ(-30deg);
-    opacity: 0.15;
-    filter: blur(3px);
-  }
-  16% {
-    transform: scale(0.12) translateX(88%) translateY(85%) rotateZ(-20deg);
-    opacity: 0.3;
-    filter: blur(2.5px);
-  }
-  25% {
-    transform: scale(0.25) translateX(70%) translateY(55%) rotateZ(-12deg);
-    opacity: 0.55;
-    filter: blur(1.8px);
-  }
-  35% {
-    transform: scale(0.45) translateX(50%) translateY(25%) rotateZ(-7deg);
-    opacity: 0.75;
-    filter: blur(1.2px);
-  }
-  50% {
-    transform: scale(0.68) translateX(25%) translateY(8%) rotateZ(-4deg);
-    opacity: 0.92;
-    filter: blur(0.8px);
-  }
-  65% {
-    transform: scale(0.9) translateX(5%) translateY(-2%) rotateZ(-1deg);
-    opacity: 0.98;
-    filter: blur(0.3px);
-  }
-  75% {
-    transform: scale(1.08) translateX(-2%) translateY(-3%) rotateZ(1.5deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  85% {
-    transform: scale(1.03) translateX(-1%) translateY(-1.5%) rotateZ(0.8deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  92% {
-    transform: scale(1.01) translateX(-0.5%) translateY(-0.5%) rotateZ(0.3deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-  100% {
-    transform: scale(1) translateX(0) translateY(0) rotateZ(0deg);
-    opacity: 1;
-    filter: blur(0px);
-  }
-}
 
 .svmessenger-resize-handle {
   position: absolute;
@@ -1215,8 +1090,8 @@
 }
 
 .svmessenger-chat-back {
-  width: 36px;
-  height: 36px;
+  width: 20px;
+  height: 20px;
   border: none;
   background: transparent;
   color: var(--svm-white);
@@ -1226,7 +1101,7 @@
   align-items: center;
   justify-content: center;
   transition: all var(--svm-transition-fast);
-  margin-right: 4px;
+  margin-right: 0;
 }
 
 .svmessenger-chat-back:hover {
@@ -1878,7 +1753,7 @@
 
 .svmessenger-input-container {
   display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     width: 100%;
     padding: 8px 4px;
@@ -2134,6 +2009,94 @@
         border-radius: 0;
     }
 }
+
+/* ============================================================
+   GENIE EFFECT ANIMATIONS - GPU OPTIMIZED (MacOS Style)
+   ============================================================ */
+
+/* Minimize Animation - MacOS Genie Effect */
+.svmessenger-chat-window.genie-minimize {
+    animation: genieMinimize 350ms cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+    pointer-events: none;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    contain: layout style paint;
+}
+
+@keyframes genieMinimize {
+    0% {
+        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+    15% {
+        transform: translate3d(0, 5%, 0) scale3d(0.98, 0.95, 1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+    40% {
+        transform: translate3d(0, 25%, 0) scale3d(0.85, 0.7, 1);
+        opacity: 0.9;
+        filter: blur(0.3px);
+    }
+    70% {
+        transform: translate3d(0, 60%, 0) scale3d(0.4, 0.25, 1);
+        opacity: 0.5;
+        filter: blur(1px);
+    }
+    100% {
+        transform: translate3d(0, 100%, 0) scale3d(0.05, 0.02, 1);
+        opacity: 0;
+        filter: blur(2px);
+    }
+}
+
+/* Restore Animation - MacOS Genie Effect (reverse) */
+.svmessenger-chat-window.genie-restore {
+    animation: genieRestore 380ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    pointer-events: none;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    contain: layout style paint;
+}
+
+@keyframes genieRestore {
+    0% {
+        transform: translate3d(0, 100%, 0) scale3d(0.05, 0.02, 1);
+        opacity: 0;
+        filter: blur(2px);
+    }
+    30% {
+        transform: translate3d(0, 60%, 0) scale3d(0.4, 0.25, 1);
+        opacity: 0.5;
+        filter: blur(1px);
+    }
+    60% {
+        transform: translate3d(0, 25%, 0) scale3d(0.85, 0.7, 1);
+        opacity: 0.9;
+        filter: blur(0.3px);
+    }
+    85% {
+        transform: translate3d(0, 5%, 0) scale3d(0.98, 0.95, 1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+        opacity: 1;
+        filter: blur(0px);
+    }
+}
+
+/* Animating State Class */
+.svmessenger-chat-window.animating {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ============================================================
+   END OF GENIE EFFECT ANIMATIONS
+   ============================================================ */
 
 /* ========== PRINT STYLES ========== */
 @media print {
