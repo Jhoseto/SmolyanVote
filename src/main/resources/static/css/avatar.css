@@ -34,6 +34,82 @@
     }
 }
 
+/* ========== AVATAR STYLES ========== */
+
+/* Avatar снимки (IMG тагове) - базови стилове */
+img.user-avatar,
+img.author-avatar,
+img.profile-image-glass {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+}
+
+/* Specific размер за profile avatars в navbar */
+img.profile-image-glass {
+    width: 32px;
+    height: 32px;
+}
+
+/* Base avatar placeholder (DIV) - generates initials with background color */
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    background: linear-gradient(135deg, #4cb15c, #2e8b57);
+    /* За DIV елементи - display flex */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Ако има клас profile-image-glass на DIV */
+.profile-image-glass.avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+/* Sizes */
+.avatar-placeholder.size-xs {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+}
+
+.avatar-placeholder.size-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+}
+
+.avatar-placeholder.size-md,
+.avatar-placeholder:not(.size-xs):not(.size-sm):not(.size-lg):not(.size-xl) {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+}
+
+.avatar-placeholder.size-lg {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+}
+
+.avatar-placeholder.size-xl {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+}
+
 /* Profile Details */
 .profile-details {
     flex: 1;

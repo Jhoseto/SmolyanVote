@@ -17,9 +17,12 @@ const SVTaskbar = () => {
         return null;
     }
 
+    // Reverse to show first minimized on the right (next to the floating icon)
+    const reversedMinimizedChats = [...minimizedChats].reverse();
+
     return (
         <div className="svmessenger-taskbar">
-            {minimizedChats.map(chat => (
+            {reversedMinimizedChats.map(chat => (
                 <button
                     key={chat.conversation.id}
                     className="svmessenger-taskbar-button"

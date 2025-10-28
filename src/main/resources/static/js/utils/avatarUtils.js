@@ -54,30 +54,30 @@ class AvatarUtils {
     isValidImageUrl(imageUrl) {
         return imageUrl &&
             imageUrl !== '/images/default-avatar.png' &&
-            imageUrl.trim() !== '' &&
-            imageUrl !== null &&
-            imageUrl !== undefined &&
+            imageUrl.trim() !== '' && true && true &&
             !imageUrl.includes('default-avatar');
     }
 
     // Създава avatar HTML - снимка или инициали
+    // Размерът се определя от CSS класовете, не от inline стилове
     createAvatar(imageUrl, username, size = 40, className = 'user-avatar') {
         const hasValidImage = this.isValidImageUrl(imageUrl);
         const initials = this.getInitials(username);
         const color = this.getAvatarColor(username);
-        const fontSize = Math.round(size * 0.4);
 
         if (hasValidImage) {
-            // Връщаме IMG елемент със снимка + fallback
+            // Връщаме IMG елемент - НЕ използваме avatar-placeholder клас за снимки!
             return `<img class="${className}" 
                         src="${imageUrl}" 
-                        alt="${this.escapeHtml(username)}" 
-                        style="width: ${size}px; height: ${size}px; border-radius: 50%; object-fit: cover;"
+                        alt="${this.escapeHtml(username)}"
+                        data-username="${this.escapeHtml(username)}"
                         onerror="window.avatarUtils.handleImageError(this, '${this.escapeHtml(username)}')">`;
         } else {
-            // Връщаме DIV с инициали
-            return `<div class="${className}" 
-                        style="width: ${size}px; height: ${size}px; background: ${color}; border-radius: 50%; color: white; font-weight: 700; font-size: ${fontSize}px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0;">
+            // Връщаме DIV с инициали - размерът се контролира от CSS
+            // Само color е inline (защото е динамичен), всичко останало е CSS
+            return `<div class="${className} avatar-placeholder" 
+                        data-username="${this.escapeHtml(username)}"
+                        style="background-color: ${color};">
                         ${initials}
                     </div>`;
         }
@@ -85,14 +85,15 @@ class AvatarUtils {
 
     // Обработва грешка при зареждане на снимка
     handleImageError(imgElement, username) {
-        const size = imgElement.offsetWidth || imgElement.width || 40;
         const className = imgElement.className;
         const initials = this.getInitials(username);
         const color = this.getAvatarColor(username);
-        const fontSize = Math.round(size * 0.4);
 
+        // Заменяме IMG с DIV - размерът се контролира от CSS класовете
+        // Само color е inline (защото е динамичен), всичко останало е CSS
         const newDiv = `<div class="${className}" 
-                           style="width: ${size}px; height: ${size}px; background: ${color}; border-radius: 50%; color: white; font-weight: 700; font-size: ${fontSize}px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0;">
+                           data-username="${this.escapeHtml(username)}"
+                           style="background-color: ${color};">
                            ${initials}
                        </div>`;
 

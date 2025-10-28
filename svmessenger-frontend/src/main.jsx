@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/svmessenger.css';
+import './styles/emoji-picker.css';
 
 // Монтирай React app само ако root element съществува
 const rootElement = document.getElementById('svmessenger-root');

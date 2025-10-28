@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 import { useSVTypingStatus } from '../hooks/useSVTypingStatus';
+import SVEmojiPicker from './SVEmojiPicker';
 
 /**
  * Message Input компонент
@@ -10,7 +11,9 @@ const SVMessageInput = ({ conversationId }) => {
   const { sendMessage } = useSVMessenger();
   const [messageText, setMessageText] = useState('');
   const [isComposing, setIsComposing] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef(null);
+  const emojiButtonRef = useRef(null);
 
   // Typing status hook
   const { handleTyping, stopTyping } = useSVTypingStatus(
@@ -91,8 +94,19 @@ const SVMessageInput = ({ conversationId }) => {
 
   const handleEmojiClick = (e) => {
     e.preventDefault();
-    // TODO: Emoji picker
-    console.log('Emoji picker');
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setMessageText(prev => prev + emoji.native);
+    setShowEmojiPicker(false);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  const handleCloseEmojiPicker = () => {
+    setShowEmojiPicker(false);
   };
 
   return (
@@ -127,19 +141,18 @@ const SVMessageInput = ({ conversationId }) => {
             />
           </div>
 
-          {/* Emoji Button */}
-          {!messageText.trim() && (
-            <button 
-              type="button"
-              className="svmessenger-emoji-btn"
-              onClick={handleEmojiClick}
-              title="Емотикони"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9c.83 0 1.5-.67 1.5-1.5S9.33 8.5 8.5 8.5 7 9.17 7 10s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-              </svg>
-            </button>
-          )}
+          {/* Emoji Button - always visible like Facebook */}
+          <button 
+            ref={emojiButtonRef}
+            type="button"
+            className={`svmessenger-emoji-btn ${showEmojiPicker ? 'active' : ''}`}
+            onClick={handleEmojiClick}
+            title="Емотикони"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9c.83 0 1.5-.67 1.5-1.5S9.33 8.5 8.5 8.5 7 9.17 7 10s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+            </svg>
+          </button>
 
           {/* Send/Mic Button */}
           {messageText.trim() ? (
@@ -166,11 +179,18 @@ const SVMessageInput = ({ conversationId }) => {
           )}
         </div>
 
-        {/* Helper text */}
+          {/* Helper text */}
         <div className="svmessenger-input-helper">
           Натисни Enter за изпращане • Shift+Enter за нов ред
         </div>
       </form>
+
+      {/* Emoji Picker */}
+      <SVEmojiPicker
+        show={showEmojiPicker}
+        onEmojiSelect={handleEmojiSelect}
+        onClose={handleCloseEmojiPicker}
+      />
     </div>
   );
 };

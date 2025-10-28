@@ -1,0 +1,49 @@
+/* ========== EMOJI PICKER STYLES ========== */
+
+.svmessenger-emoji-picker-wrapper {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: var(--svm-z-tooltip);
+  max-width: 320px;
+}
+
+.svmessenger-emoji-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--svm-z-tooltip) - 1);
+}
+
+.svmessenger-emoji-picker-container {
+  position: relative;
+  z-index: var(--svm-z-tooltip);
+  animation: slideUpFade 0.2s ease-out;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: var(--svm-radius-lg);
+  overflow: hidden;
+  width: 100%;
+  max-height: 280px;
+}
+
+.svmessenger-emoji-picker-container em-emoji-picker {
+  --border-radius: 12px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  font-size: 11px !important;
+}
+
+/* Намаляваме размера на emoji picker всички елементи */
+.svmessenger-emoji-picker-container em-emoji-picker * {
+  font-size: inherit;
+}
+
+/* Animation for emoji picker */
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

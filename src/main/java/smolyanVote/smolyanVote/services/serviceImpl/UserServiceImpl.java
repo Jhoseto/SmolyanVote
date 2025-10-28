@@ -221,7 +221,7 @@ public class UserServiceImpl implements UserService {
         UserRole userRole = UserRole.USER;
         UserEntity newUser = new UserEntity();
         String confirmationCode = generateConfirmationCode();
-        String defaultUserImage = "https://res.cloudinary.com/dgescxzjk/image/upload/v1747385586/default_user_vtabqo.jpg";
+        String defaultUserImage = "";
 
         newUser.setUsername(userRegistrationViewModel.getUsername())
                 .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
