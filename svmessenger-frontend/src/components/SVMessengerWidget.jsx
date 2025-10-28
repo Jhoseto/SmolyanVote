@@ -36,8 +36,8 @@ const SVMessengerWidget = () => {
                 {/* Unread count badge */}
                 {totalUnreadCount > 0 && (
                     <span className="svmessenger-badge">
-            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-          </span>
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                    </span>
                 )}
             </div>
 
@@ -67,16 +67,13 @@ const SVMessengerWidget = () => {
                 <SVUserSearch onClose={closeSearch} />
             )}
 
-            {/* Active Chat Windows */}
-            {activeChats
-                .filter(chat => !chat.isMinimized)
-                .map(chat => (
-                    <SVChatWindow
-                        key={chat.conversation.id}
-                        chat={chat}
-                    />
-                ))
-            }
+            {/* Active Chat Windows - РЕНДЕРИРАМЕ ВСИЧКИ (БЕЗ FILTER!) */}
+            {activeChats.map(chat => (
+                <SVChatWindow
+                    key={chat.conversation.id}
+                    chat={chat}
+                />
+            ))}
 
             {/* Taskbar (minimized chats) */}
             <SVTaskbar />

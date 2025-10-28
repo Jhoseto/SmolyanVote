@@ -957,7 +957,7 @@
     /* ➕ GPU OPTIMIZATION - НОВИ 3 PROPERTIES */
     contain: layout style paint;
     backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
+    transform: scale(0.01) scaleY(0.01);
 }
 
 .svmessenger-chat-window.dragging {
@@ -2021,7 +2021,6 @@
     will-change: transform, opacity;
     backface-visibility: hidden;
     contain: layout style paint;
-    perspective: 1000px;
 }
 
 @keyframes genieMinimize {
@@ -2059,7 +2058,6 @@
     will-change: transform, opacity;
     backface-visibility: hidden;
     contain: layout style paint;
-    perspective: 1000px;
 }
 
 @keyframes genieRestore {
@@ -2095,9 +2093,12 @@
     pointer-events: none;
     user-select: none;
 }
+
 /* ============================================================
    END OF GENIE EFFECT ANIMATIONS
    ============================================================ */
+
+
 
 /* ========== PRINT STYLES ========== */
 @media print {
