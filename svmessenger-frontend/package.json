@@ -11,6 +11,8 @@
     "rebuild": "npm run clean && npm run build"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@stomp/stompjs": "^7.0.0",
     "date-fns": "^3.0.0",
     "react": "^18.3.1",

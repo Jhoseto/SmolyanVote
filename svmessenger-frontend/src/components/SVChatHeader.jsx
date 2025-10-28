@@ -73,17 +73,13 @@ const SVChatHeader = ({ conversation, onClose, onMinimize }) => {
               e.target.src = '/images/default-avatar.png';
             }}
           />
-          {/* Online indicator */}
-          {otherUser.isOnline && (
-            <div className="svmessenger-online-indicator"></div>
-          )}
         </div>
         
         <div className="svmessenger-chat-user-details">
           <h4 className="svmessenger-chat-username">
             {otherUser.realName || otherUser.username}
           </h4>
-          <span className="svmessenger-chat-status">
+          <span className={`svmessenger-chat-status ${!otherUser.isOnline ? 'offline' : ''}`}>
             {otherUser.isOnline ? 'Online' : 'Offline'}
           </span>
         </div>
