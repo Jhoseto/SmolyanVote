@@ -17,6 +17,9 @@ const SVChatWindow = ({ chat }) => {
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [isAnimating, setIsAnimating] = useState(false);
 
+    // Контролираме видимостта локално (за да работи анимацията)
+    const [isVisible, setIsVisible] = useState(!chat.isMinimized);
+
     // Track if restoring
     const wasMinimizedRef = useRef(chat.isMinimized);
 
@@ -30,12 +33,19 @@ const SVChatWindow = ({ chat }) => {
     // Detect restore and trigger genie effect
     useEffect(() => {
         const isCurrentlyMinimized = chat.isMinimized;
-        
+
         // If chat was minimized and now it's not, it's being restored
         if (wasMinimizedRef.current && !isCurrentlyMinimized) {
-            handleRestoreAnimation();
+            // Показваме елемента ПРЕДИ анимацията
+            setIsVisible(true);
+            // Даваме време на React да го рендерира
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    handleRestoreAnimation();
+                });
+            });
         }
-        
+
         wasMinimizedRef.current = isCurrentlyMinimized;
     }, [chat.isMinimized]);
 
@@ -85,6 +95,9 @@ const SVChatWindow = ({ chat }) => {
             chatWindow.style.willChange = 'auto';
             chatWindow.style.transformOrigin = '';
             setIsAnimating(false);
+
+            // Скриваме елемента СЛЕД анимацията
+            setIsVisible(false);
         }, 400);
     }, [chat.conversation.id, minimizeChat]);
 
@@ -130,8 +143,6 @@ const SVChatWindow = ({ chat }) => {
             setIsAnimating(false);
         }, 420);
     }, [chat.conversation.id]);
-
-    
 
     // ========== DRAG & DROP HANDLERS ==========
 
@@ -191,6 +202,11 @@ const SVChatWindow = ({ chat }) => {
         // Trigger genie effect animation
         handleMinimizeAnimation();
     };
+
+    // Ако не е visible, не рендерираме нищо
+    if (!isVisible) {
+        return null;
+    }
 
     return (
         <div
