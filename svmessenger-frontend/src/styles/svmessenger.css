@@ -954,10 +954,11 @@
     animation: slideUpFade 0.4s var(--svm-transition-bounce);
     user-select: none;
     z-index: var(--svm-z-high);
-    /* ➕ GPU OPTIMIZATION - НОВИ 3 PROPERTIES */
+    /* ➕ GPU OPTIMIZATION */
     contain: layout style paint;
     backface-visibility: hidden;
-    transform: scale(0.01) scaleY(0.01);
+    transform: translate3d(0, 0, 0);
+    /* ✅ НЕ scale(0.01) тук - иначе всички са скрити! */
 }
 
 .svmessenger-chat-window.dragging {
@@ -2009,96 +2010,6 @@
         border-radius: 0;
     }
 }
-
-/* ============================================================
-   GENIE EFFECT ANIMATIONS - ИСТИНСКИ MAC STYLE
-   ============================================================ */
-
-/* Minimize Animation - Истински MacOS Genie Effect */
-.svmessenger-chat-window.genie-minimize {
-    animation: genieMinimize 400ms cubic-bezier(0.4, 0.0, 0.6, 1) forwards;
-    pointer-events: none;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    contain: layout style paint;
-}
-
-@keyframes genieMinimize {
-    0% {
-        transform: scale(1) scaleY(1);
-        opacity: 1;
-        filter: blur(0px);
-    }
-    20% {
-        transform: scale(0.95) scaleY(0.92);
-        opacity: 0.98;
-        filter: blur(0px);
-    }
-    50% {
-        transform: scale(0.6) scaleY(0.5);
-        opacity: 0.7;
-        filter: blur(0.5px);
-    }
-    80% {
-        transform: scale(0.2) scaleY(0.15);
-        opacity: 0.3;
-        filter: blur(1px);
-    }
-    100% {
-        transform: scale(0.01) scaleY(0.01);
-        opacity: 0;
-        filter: blur(2px);
-    }
-}
-
-/* Restore Animation - Истински MacOS Genie Effect (reverse) */
-.svmessenger-chat-window.genie-restore {
-    animation: genieRestore 420ms cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
-    pointer-events: none;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    contain: layout style paint;
-}
-
-@keyframes genieRestore {
-    0% {
-        transform: scale(0.01) scaleY(0.01);
-        opacity: 0;
-        filter: blur(2px);
-    }
-    20% {
-        transform: scale(0.2) scaleY(0.15);
-        opacity: 0.3;
-        filter: blur(1px);
-    }
-    50% {
-        transform: scale(0.6) scaleY(0.5);
-        opacity: 0.7;
-        filter: blur(0.5px);
-    }
-    80% {
-        transform: scale(0.95) scaleY(0.92);
-        opacity: 0.98;
-        filter: blur(0px);
-    }
-    100% {
-        transform: scale(1) scaleY(1);
-        opacity: 1;
-        filter: blur(0px);
-    }
-}
-
-/* Animating State Class */
-.svmessenger-chat-window.animating {
-    pointer-events: none;
-    user-select: none;
-}
-
-/* ============================================================
-   END OF GENIE EFFECT ANIMATIONS
-   ============================================================ */
-
-
 
 /* ========== PRINT STYLES ========== */
 @media print {

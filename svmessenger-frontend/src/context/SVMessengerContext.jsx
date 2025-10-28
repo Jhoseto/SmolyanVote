@@ -624,24 +624,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
             }
         };
 
-        // Изнасяме веднага
         exposeGlobalAPI();
         
-        // Изнасяме отново при промяна на dependencies
-        const timeoutId = setTimeout(() => {
-            console.log('SVMessenger: Re-exposing global API after timeout');
-            exposeGlobalAPI();
-        }, 100);
-        
-        // Cleanup при unmount
         return () => {
-            clearTimeout(timeoutId);
             if (window.SVMessenger) {
                 console.log('SVMessenger: Cleaning up global API');
                 delete window.SVMessenger;
             }
         };
-    }, [startConversation, openChat, openChatList, openSearch, sendMessage, isWebSocketConnected]);
+    }, [isWebSocketConnected]);
 
     // ========== CONTEXT VALUE ==========
 
