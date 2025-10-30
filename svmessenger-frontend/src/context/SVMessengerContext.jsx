@@ -55,7 +55,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     useEffect(() => {
         if (!messageSound.current) {
-            const audio = new window.Audio('/sounds/s1.mp3');
+            // Use built asset path under /svmessenger
+            const audio = new window.Audio('/svmessenger/sounds/s1.mp3');
             audio.preload = 'auto';
             messageSound.current = audio;
         }
@@ -74,6 +75,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             onNewMessage: handleNewMessage,
             onTypingStatus: handleTypingStatus,
             onReadReceipt: handleReadReceipt,
+            onDeliveryReceipt: handleDeliveryReceipt,
             onOnlineStatus: handleOnlineStatus
         });
 
@@ -207,6 +209,37 @@ export const SVMessengerProvider = ({ children, userData }) => {
         ));
     }, []);
 
+    const handleDeliveryReceipt = useCallback((data) => {
+        console.log('SVMessenger: Delivery receipt', data);
+
+        if (data.type === 'BULK_DELIVERY') {
+            // Bulk delivery receipt - маркирай всички съобщения в засегнатите conversations като delivered
+            const { conversationIds, deliveredAt } = data;
+            setMessagesByConversation(prev => {
+                const updated = { ...prev };
+                conversationIds.forEach(conversationId => {
+                    if (updated[conversationId]) {
+                        updated[conversationId] = updated[conversationId].map(m => ({
+                            ...m,
+                            isDelivered: true,
+                            deliveredAt: m.senderId !== currentUser.id ? deliveredAt : m.deliveredAt
+                        }));
+                    }
+                });
+                return updated;
+            });
+        } else {
+            // Single delivery receipt - маркирай конкретното съобщение като delivered
+            const { conversationId, messageId, deliveredAt } = data;
+            setMessagesByConversation(prev => ({
+                ...prev,
+                [conversationId]: (prev[conversationId] || []).map(m =>
+                    m.id === messageId ? { ...m, isDelivered: true, deliveredAt } : m
+                )
+            }));
+        }
+    }, [currentUser]);
+
 
 
     const handleOnlineStatus = useCallback((status) => {
@@ -254,6 +287,14 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const data = await svMessengerAPI.getConversations();
             setConversations(data);
             console.log('SVMessenger: Loaded conversations', data.length);
+
+            // Mark all undelivered messages as delivered when user loads messenger
+            try {
+                await svMessengerAPI.markAllUndeliveredAsDelivered();
+                console.log('SVMessenger: Marked undelivered messages as delivered');
+            } catch (error) {
+                console.warn('Failed to mark messages as delivered:', error);
+            }
         } catch (error) {
             console.error('Failed to load conversations:', error);
         } finally {
@@ -268,13 +309,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const data = await svMessengerAPI.getMessages(conversationId, page);
             
             // Handle pagination response - data might be an object with content array
-            const messages = Array.isArray(data) ? data : (data.content || data.messages || []);
+            let messages = Array.isArray(data) ? data : (data.content || data.messages || []);
+
+            // Ensure chronological ASC order (oldest -> newest) so newest appear at bottom
+            messages = [...messages].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
 
             setMessagesByConversation(prev => ({
                 ...prev,
                 [conversationId]: page === 0
                     ? messages
-                    : [...(prev[conversationId] || []), ...messages]
+                    // Older pages should prepend (older first) before existing newer ones
+                    : [...messages, ...(prev[conversationId] || [])]
             }));
 
             console.log('SVMessenger: Loaded messages for conversation', conversationId);

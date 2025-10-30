@@ -27,6 +27,7 @@ class SVWebSocketService {
       onNewMessage = () => {},
       onTypingStatus = () => {},
       onReadReceipt = () => {},
+      onDeliveryReceipt = () => {},
       onOnlineStatus = () => {}
     } = callbacks;
     
@@ -60,6 +61,7 @@ class SVWebSocketService {
           onNewMessage,
           onTypingStatus,
           onReadReceipt,
+          onDeliveryReceipt,
           onOnlineStatus
         });
         
@@ -95,7 +97,7 @@ class SVWebSocketService {
    * Subscribe to WebSocket channels
    */
   subscribeToChannels(callbacks) {
-    const { onNewMessage, onTypingStatus, onReadReceipt, onOnlineStatus } = callbacks;
+    const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus } = callbacks;
     
     // 1. Private messages channel
     const messagesSub = this.client.subscribe(
@@ -124,8 +126,22 @@ class SVWebSocketService {
       }
     );
     this.subscriptions.set('receipts', receiptsSub);
-    
-    // 3. Online status channel
+
+    // 3. Delivery receipts channel
+    const deliverySub = this.client.subscribe(
+      '/user/queue/svmessenger-delivery-receipts',
+      (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          onDeliveryReceipt(data);
+        } catch (error) {
+          console.error('Error parsing delivery receipt:', error);
+        }
+      }
+    );
+    this.subscriptions.set('delivery', deliverySub);
+
+    // 4. Online status channel
     const statusSub = this.client.subscribe(
       '/topic/svmessenger-online-status',
       (message) => {

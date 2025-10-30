@@ -74,6 +74,12 @@ export const svMessengerAPI = {
       method: 'PUT'
     });
   },
+
+  markAllUndeliveredAsDelivered: async () => {
+    return fetchAPI(`${BASE_URL}/messages/delivered`, {
+      method: 'PUT'
+    });
+  },
   
   /**
    * Изтрий разговор (soft delete)
@@ -99,7 +105,7 @@ export const svMessengerAPI = {
    * Вземи съобщения с pagination
    */
   getMessages: async (conversationId, page = 0, size = 50) => {
-    return fetchAPI(`${BASE_URL}/messages/${conversationId}?page=${page}&size=${size}`);
+    return fetchAPI(`${BASE_URL}/messages/conversation/${conversationId}?page=${page}&size=${size}`);
   },
   
   /**

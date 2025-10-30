@@ -165,17 +165,28 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Convert to DTO
             SVMessageDTO messageDTO = SVMessageDTO.Mapper.toDTO(message);
 
-            // Send via WebSocket
+            // Send via WebSocket (route by principal name: email -> username fallback)
             try {
-                webSocketHandler.sendPrivateMessage(otherUser.getId(), messageDTO);
+                String recipientPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
+                        ? otherUser.getEmail()
+                        : otherUser.getUsername();
+                webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
 
-                // Ако WebSocket успешно изпрати съобщението и получателят е онлайн,
-                // автоматично маркираме като delivered
-                if (otherUser.getOnlineStatus() == 1) {
-                    message.markAsDelivered();
-                    messageRepo.save(message);
-                    messageDTO.setIsDelivered(true);
-                    messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                // Маркираме съобщението като delivered ВИНАГИ когато е успешно изпратено
+                // (независимо дали получателят е онлайн или не)
+                message.markAsDelivered();
+                messageRepo.save(message);
+                messageDTO.setIsDelivered(true);
+                messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+
+                // Изпрати delivery receipt към sender-а ВИНАГИ (по principal name)
+                try {
+                    String senderPrincipal = sender.getEmail() != null && !sender.getEmail().isBlank()
+                            ? sender.getEmail()
+                            : sender.getUsername();
+                    webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(), message.getConversation().getId());
+                } catch (Exception e) {
+                    log.error("Failed to send delivery receipt for message {}: {}", message.getId(), e.getMessage());
                 }
 
             } catch (Exception e) {
@@ -238,10 +249,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             log.info("Marked {} messages as read in conversation {}", updated, conversationId);
 
-            // Send bulk read receipt
+            // Send bulk read receipt (по principal name)
             UserEntity otherUser = conversation.getOtherUser(reader);
             try {
-                webSocketHandler.sendBulkReadReceipt(otherUser.getId(), conversationId);
+                String otherPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
+                        ? otherUser.getEmail()
+                        : otherUser.getUsername();
+                webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
             } catch (Exception e) {
                 log.warn("Failed to send read receipt: {}", e.getMessage());
             }
@@ -254,6 +268,30 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
     // Continue implementation...
     // (Останалите методи с подобни fixes)
+
+
+    @Override
+    @Transactional
+    public void markAllUndeliveredAsDeliveredForUser(UserEntity user) {
+        try {
+            // Намери всички conversations които имат не-delivered съобщения за този user
+            List<Long> affectedConversations = messageRepo.findConversationsWithUndeliveredMessagesForUser(user.getId());
+
+            // Маркирай всички не-delivered съобщения като delivered
+            int updated = messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
+            log.info("Marked {} undelivered messages as delivered for user {}", updated, user.getId());
+
+            // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name)
+            if (!affectedConversations.isEmpty()) {
+                String userPrincipal = user.getEmail() != null && !user.getEmail().isBlank()
+                        ? user.getEmail()
+                        : user.getUsername();
+                webSocketHandler.sendBulkDeliveryReceipt(userPrincipal, affectedConversations);
+            }
+        } catch (Exception e) {
+            log.error("Error marking undelivered messages as delivered for user {}: {}", user.getId(), e.getMessage(), e);
+        }
+    }
 
     @Override
     @Transactional
