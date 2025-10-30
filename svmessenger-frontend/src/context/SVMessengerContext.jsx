@@ -53,6 +53,14 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const messageSound = useRef(null);
     const nextZIndex = useRef(1000);
 
+    useEffect(() => {
+        if (!messageSound.current) {
+            const audio = new window.Audio('/sounds/s1.mp3');
+            audio.preload = 'auto';
+            messageSound.current = audio;
+        }
+    }, []);
+
     // ========== EFFECTS ==========
 
     // Initialize WebSocket connection
@@ -537,7 +545,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
     };
 
     const playNotificationSound = () => {
-        // TODO: Add notification sound file
+        if (messageSound.current) {
+            messageSound.current.currentTime = 0;
+            messageSound.current.play().catch(() => {});
+        }
     };
 
     const showBrowserNotification = (message) => {
