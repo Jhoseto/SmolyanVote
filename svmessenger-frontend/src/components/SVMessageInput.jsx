@@ -89,7 +89,6 @@ const SVMessageInput = ({ conversationId }) => {
   const handleAttachClick = (e) => {
     e.preventDefault();
     // TODO: File attachment
-    console.log('Attach file');
   };
 
   const handleEmojiClick = (e) => {

@@ -66,7 +66,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // Initialize WebSocket connection
     useEffect(() => {
-        console.log('SVMessenger: Initializing WebSocket connection');
 
         svWebSocketService.connect({
             onConnect: handleWebSocketConnect,
@@ -109,12 +108,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
     // ========== WEBSOCKET HANDLERS ==========
 
     const handleWebSocketConnect = useCallback(() => {
-        console.log('SVMessenger: WebSocket connected');
         setIsWebSocketConnected(true);
     }, []);
 
     const handleWebSocketDisconnect = useCallback(() => {
-        console.log('SVMessenger: WebSocket disconnected');
         setIsWebSocketConnected(false);
     }, []);
 
@@ -123,7 +120,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleNewMessage = useCallback((message) => {
-        console.log('SVMessenger: New message received', message);
 
         // Add message to conversation (at the end for newest messages to appear at bottom)
         setMessagesByConversation(prev => ({
@@ -153,10 +149,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
         if (chatIsVisible) {
             // Chat е видим (отворен и не minimized) - НЕ маркирай автоматично като прочетено
             // Маркирането става само при потребителска активност (клик в прозореца)
-            console.log('Chat is visible, waiting for user interaction:', message.conversationId);
         } else if (chatIsMinimized) {
             // Chat е minimized - увеличи badge за tab, но не маркирай като прочетено
-            console.log('Chat is minimized, not auto-marking as read:', message.conversationId);
 
             // Update conversations
             setConversations(prev => {
@@ -192,7 +186,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [activeChats]);
 
     const handleTypingStatus = useCallback((status) => {
-        console.log('SVMessenger: Typing status', status);
 
         const { conversationId, userId, isTyping } = status;
 
@@ -227,7 +220,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleReadReceipt = useCallback((data) => {
-        console.log('SVMessenger: Read receipt received', data);
 
         if (!data) return;
 
@@ -235,7 +227,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         if (type === 'BULK_READ') {
             // BULK READ: Mark ALL messages in conversation as read (only OUR sent messages)
-            console.log('SVMessenger: Processing BULK read receipt for conversation', conversationId);
 
             setMessagesByConversation(prev => ({
                 ...prev,
@@ -257,7 +248,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         } else if (messageId) {
             // SINGLE READ: Mark specific message as read (only if it's OUR message)
-            console.log('SVMessenger: Processing SINGLE read receipt for message', messageId);
 
             setMessagesByConversation(prev => ({
                 ...prev,
@@ -282,7 +272,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [conversations, currentUser]);
 
     const handleDeliveryReceipt = useCallback((data) => {
-        console.log('SVMessenger: Delivery receipt', data);
 
         if (data.type === 'BULK_DELIVERY') {
             // Bulk delivery receipt - маркирай всички съобщения в засегнатите conversations като delivered
@@ -315,7 +304,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
 
     const handleOnlineStatus = useCallback((status) => {
-        console.log('SVMessenger: Online status', status);
 
         const { userId, isOnline } = status;
 
@@ -358,12 +346,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         try {
             const data = await svMessengerAPI.getConversations();
             setConversations(data);
-            console.log('SVMessenger: Loaded conversations', data.length);
 
             // Mark all undelivered messages as delivered when user loads messenger
             try {
                 await svMessengerAPI.markAllUndeliveredAsDelivered();
-                console.log('SVMessenger: Marked undelivered messages as delivered');
             } catch (error) {
                 console.warn('Failed to mark messages as delivered:', error);
             }
@@ -394,7 +380,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     : [...messages, ...(prev[conversationId] || [])]
             }));
 
-            console.log('SVMessenger: Loaded messages for conversation', conversationId);
         } catch (error) {
             console.error('Failed to load messages:', error);
         } finally {
@@ -420,7 +405,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // Update conversation list
             loadConversations();
 
-            console.log('SVMessenger: Message sent', message.id);
         } catch (error) {
             console.error('Failed to send message:', error);
             alert('Грешка при изпращане на съобщение. Моля опитайте отново.');
@@ -437,7 +421,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 return exists ? prev : [conversation, ...prev];
             });
 
-            console.log('SVMessenger: Started conversation', conversation.id);
             return conversation;
         } catch (error) {
             console.error('Failed to start conversation:', error);
@@ -471,7 +454,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 }))
             }));
 
-            console.log('SVMessenger: Marked conversation as read', conversationId);
         } catch (error) {
             console.error('Failed to mark as read:', error);
         }
@@ -589,7 +571,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
         const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
         if (hasUnreadMessages) {
-            console.log('Opening chat with unread messages, marking as read:', conversationId);
             svWebSocketService.sendRead(conversationId);
 
             // Immediately mark as read locally
@@ -615,12 +596,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         // Close chat list
         closeChatList();
 
-        console.log('SVMessenger: Opened chat', conversationId);
     }, [conversations, messagesByConversation, currentUser, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
 
     const closeChat = useCallback((conversationId) => {
         setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
-        console.log('SVMessenger: Closed chat', conversationId);
     }, []);
 
     const minimizeChat = useCallback((conversationId) => {
@@ -629,7 +608,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 ? { ...c, isMinimized: true }
                 : c
         ));
-        console.log('SVMessenger: Minimized chat', conversationId);
     }, []);
 
     const restoreChat = useCallback((conversationId) => {
@@ -645,7 +623,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
         const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
         if (hasUnreadMessages) {
-            console.log('Restoring chat with unread messages, marking as read:', conversationId);
             svWebSocketService.sendRead(conversationId);
 
             // Immediately mark as read locally
@@ -670,7 +647,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // SVTaskbar will read live conversation data from conversations state
         }
 
-        console.log('SVMessenger: Restored chat', conversationId);
     }, [conversations, messagesByConversation, currentUser]);
 
     const bringToFront = useCallback((conversationId) => {
@@ -701,7 +677,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 // Also close any open chat window for this conversation
                 setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
                 
-                console.log('SVMessenger: Hidden conversation from list', conversationId);
             }
         } catch (error) {
             console.error('Failed to hide conversation:', error);
@@ -714,7 +689,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const requestNotificationPermission = () => {
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
-                console.log('Notification permission:', permission);
             });
         }
     };
@@ -746,7 +720,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // Изнасяме глобална функция за комуникация с vanilla JavaScript
     useEffect(() => {
-        console.log('SVMessenger: useEffect triggered, exposing global API');
         
         const exposeGlobalAPI = () => {
             try {
@@ -792,7 +765,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                                     // Close chat list
                                     closeChatList();
                                     
-                                    console.log('SVMessenger: Auto-opened chat window', conversation.id);
                                 }
                                 return prev;
                             });
@@ -811,8 +783,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     isConnected: isWebSocketConnected
                 };
                 
-                console.log('SVMessenger: Global API exposed successfully', window.SVMessenger);
-                console.log('SVMessenger: startConversation function:', typeof window.SVMessenger.startConversation);
             } catch (error) {
                 console.error('SVMessenger: Error exposing global API:', error);
             }
@@ -822,7 +792,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
         
         return () => {
             if (window.SVMessenger) {
-                console.log('SVMessenger: Cleaning up global API');
                 delete window.SVMessenger;
             }
         };

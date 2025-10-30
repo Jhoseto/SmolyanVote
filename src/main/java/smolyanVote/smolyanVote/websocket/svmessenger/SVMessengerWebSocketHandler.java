@@ -34,8 +34,6 @@ public class SVMessengerWebSocketHandler {
      * @param message MessageDTO
      */
     public void sendPrivateMessageToUsername(String recipientUsername, SVMessageDTO message) {
-        log.info("Sending private message to username {} in conversation {}, messageId: {}",
-                recipientUsername, message.getConversationId(), message.getId());
 
         if (recipientUsername == null || recipientUsername.isBlank()) {
             log.error("Invalid recipient username for websocket message");
@@ -53,7 +51,6 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-messages",
                     message
             );
-            log.info("Message sent successfully via WebSocket to username {}", recipientUsername);
         } catch (Exception e) {
             log.error("Failed to send WebSocket message to username {}: {}", recipientUsername, e.getMessage(), e);
         }
@@ -70,8 +67,6 @@ public class SVMessengerWebSocketHandler {
      * @param isTyping Дали пише (true) или спря (false)
      */
     public void broadcastTypingStatus(Long conversationId, Long userId, String username, boolean isTyping) {
-        log.debug("Broadcasting typing status: conv={}, user={}, typing={}", 
-                conversationId, userId, isTyping);
         
         try {
             SVTypingStatusDTO status = new SVTypingStatusDTO(
@@ -102,7 +97,6 @@ public class SVMessengerWebSocketHandler {
      * @param conversationId ID на разговора
      */
     public void sendReadReceipt(String senderPrincipalName, Long messageId, Long conversationId) {
-        log.info("Sending read receipt for message {} to principal {}", messageId, senderPrincipalName);
 
         try {
             Map<String, Object> receipt = new HashMap<>();
@@ -115,7 +109,6 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-read-receipts",
                     receipt
             );
-            log.info("Read receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
             log.error("Failed to send read receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
@@ -128,8 +121,6 @@ public class SVMessengerWebSocketHandler {
      * @param conversationId ID на разговора
      */
     public void sendBulkReadReceipt(String senderPrincipalName, Long conversationId) {
-        log.info("Sending bulk read receipt for conversation {} to principal {}",
-                conversationId, senderPrincipalName);
 
         try {
             Map<String, Object> receipt = new HashMap<>();
@@ -142,7 +133,6 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-read-receipts",
                     receipt
             );
-            log.info("Bulk read receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
             log.error("Failed to send bulk read receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
@@ -159,7 +149,6 @@ public class SVMessengerWebSocketHandler {
      * @param conversationId ID на разговора
      */
     public void sendDeliveryReceipt(String senderPrincipalName, Long messageId, Long conversationId) {
-        log.info("Sending delivery receipt for message {} to principal {}", messageId, senderPrincipalName);
 
         if (senderPrincipalName == null || senderPrincipalName.isBlank() || messageId == null || conversationId == null) {
             log.error("Invalid parameters for delivery receipt: senderPrincipalName={}, messageId={}, conversationId={}",
@@ -178,7 +167,6 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-delivery-receipts",
                     receipt
             );
-            log.info("Delivery receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
             log.error("Failed to send delivery receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
@@ -192,8 +180,6 @@ public class SVMessengerWebSocketHandler {
      * @param conversationIds списък с conversation IDs
      */
     public void sendBulkDeliveryReceipt(String senderPrincipalName, List<Long> conversationIds) {
-        log.info("Sending bulk delivery receipt for conversations {} to principal {}",
-                conversationIds, senderPrincipalName);
 
         try {
             Map<String, Object> receipt = new HashMap<>();
@@ -206,7 +192,6 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-delivery-receipts",
                     receipt
             );
-            log.info("Bulk delivery receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
             log.error("Failed to send bulk delivery receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
@@ -221,7 +206,6 @@ public class SVMessengerWebSocketHandler {
      * @param isOnline Дали е online
      */
     public void broadcastOnlineStatus(Long userId, boolean isOnline) {
-        log.debug("Broadcasting online status: user={}, online={}", userId, isOnline);
         
         try {
             Map<String, Object> status = new HashMap<>();

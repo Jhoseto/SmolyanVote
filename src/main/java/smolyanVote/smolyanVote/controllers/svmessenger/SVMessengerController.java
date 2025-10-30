@@ -45,7 +45,6 @@ public class SVMessengerController {
      */
     @GetMapping("/conversations")
     public ResponseEntity<List<SVConversationDTO>> getAllConversations(Authentication auth) {
-        log.info("GET /api/svmessenger/conversations");
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -68,7 +67,6 @@ public class SVMessengerController {
     public ResponseEntity<SVConversationDTO> getConversation(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("GET /api/svmessenger/conversations/{}", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -95,7 +93,6 @@ public class SVMessengerController {
     public ResponseEntity<SVConversationDTO> startConversation(
             @RequestBody @Valid SVStartConversationRequest request,
             Authentication auth) {
-        log.info("POST /api/svmessenger/conversations/start with user {}", request.getOtherUserId());
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -133,7 +130,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> markConversationAsRead(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("PUT /api/svmessenger/conversations/{}/read", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -162,7 +158,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> deleteConversation(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("DELETE /api/svmessenger/conversations/{}", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -191,7 +186,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> hideConversation(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("PUT /api/svmessenger/conversations/{}/hide", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -224,7 +218,6 @@ public class SVMessengerController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             Authentication auth) {
-        log.info("GET /api/svmessenger/messages/conversation/{}?page={}&size={}", conversationId, page, size);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -256,7 +249,6 @@ public class SVMessengerController {
     public ResponseEntity<SVMessageDTO> sendMessage(
             @RequestBody @Valid SVSendMessageRequest request,
             Authentication auth) {
-        log.info("POST /api/svmessenger/messages/send");
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -286,7 +278,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> markMessageAsRead(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("PUT /api/svmessenger/messages/{}/read", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -315,7 +306,6 @@ public class SVMessengerController {
      */
     @PutMapping("/messages/delivered")
     public ResponseEntity<Map<String, Object>> markAllUndeliveredAsDelivered(Authentication auth) {
-        log.info("PUT /api/svmessenger/messages/delivered");
 
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -342,7 +332,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> deleteMessage(
             @PathVariable Long id,
             Authentication auth) {
-        log.info("DELETE /api/svmessenger/messages/{}", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -373,7 +362,6 @@ public class SVMessengerController {
             @PathVariable Long id,
             @RequestBody Map<String, String> request,
             Authentication auth) {
-        log.info("PUT /api/svmessenger/messages/{}/edit", id);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -407,7 +395,6 @@ public class SVMessengerController {
     public ResponseEntity<List<SVUserMinimalDTO>> searchUsers(
             @RequestParam String query,
             Authentication auth) {
-        log.info("GET /api/svmessenger/users/search?query={}", query);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -433,7 +420,6 @@ public class SVMessengerController {
     public ResponseEntity<List<SVUserMinimalDTO>> searchFollowingUsers(
             @RequestParam(required = false) String query,
             Authentication auth) {
-        log.info("GET /api/svmessenger/users/following?query={}", query);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -459,7 +445,6 @@ public class SVMessengerController {
      */
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Long>> getUnreadCount(Authentication auth) {
-        log.info("GET /api/svmessenger/unread-count");
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -488,7 +473,6 @@ public class SVMessengerController {
     public ResponseEntity<Map<String, Object>> updateTypingStatus(
             @RequestBody SVTypingStatusDTO request,
             Authentication auth) {
-        log.info("POST /api/svmessenger/typing");
         
         try {
             UserEntity currentUser = getCurrentUser(auth);

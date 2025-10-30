@@ -41,7 +41,6 @@ class SVWebSocketService {
       // Disable debug logging в production
       debug: (str) => {
         if (process.env.NODE_ENV === 'development') {
-          console.log('STOMP:', str);
         }
       },
       
@@ -52,11 +51,9 @@ class SVWebSocketService {
       
       // Connection success callback
       onConnect: () => {
-        console.log('SVMessenger WebSocket connected successfully');
         this.connected = true;
         this.reconnectAttempts = 0;
 
-        console.log('Subscribing to WebSocket channels...');
 
         // Subscribe to channels
         this.subscribeToChannels({
@@ -67,7 +64,6 @@ class SVWebSocketService {
           onOnlineStatus
         });
 
-        console.log('WebSocket subscription completed');
         onConnect();
       },
       
@@ -83,7 +79,6 @@ class SVWebSocketService {
       
       // WebSocket close callback
       onWebSocketClose: () => {
-        console.log('WebSocket closed');
         this.connected = false;
         onDisconnect();
         
@@ -107,9 +102,7 @@ class SVWebSocketService {
       '/user/queue/svmessenger-messages',
       (message) => {
         try {
-          console.log('Received WebSocket message:', message.body);
           const data = JSON.parse(message.body);
-          console.log('Parsed message data:', data);
           onNewMessage(data);
         } catch (error) {
           console.error('Error parsing message:', error);
@@ -123,9 +116,7 @@ class SVWebSocketService {
       '/user/queue/svmessenger-read-receipts',
       (message) => {
         try {
-          console.log('Received read receipt:', message.body);
           const data = JSON.parse(message.body);
-          console.log('Parsed read receipt data:', data);
           onReadReceipt(data);
         } catch (error) {
           console.error('Error parsing receipt:', error);
@@ -139,9 +130,7 @@ class SVWebSocketService {
       '/user/queue/svmessenger-delivery-receipts',
       (message) => {
         try {
-          console.log('Received delivery receipt:', message.body);
           const data = JSON.parse(message.body);
-          console.log('Parsed delivery receipt data:', data);
           onDeliveryReceipt(data);
         } catch (error) {
           console.error('Error parsing delivery receipt:', error);
@@ -214,7 +203,6 @@ class SVWebSocketService {
       return false;
     }
 
-    console.log('Sending WebSocket message:', { conversationId, text });
 
     try {
       this.client.publish({
@@ -225,7 +213,6 @@ class SVWebSocketService {
           messageType: 'TEXT'
         })
       });
-      console.log('WebSocket message sent successfully');
       return true;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -265,14 +252,12 @@ class SVWebSocketService {
       return false;
     }
 
-    console.log('Sending WebSocket mark-read:', { conversationId });
 
     try {
       this.client.publish({
         destination: '/app/svmessenger/mark-read',
         body: JSON.stringify({ conversationId })
       });
-      console.log('WebSocket mark-read sent successfully');
       return true;
     } catch (error) {
       console.error('Error sending mark-read via WS:', error);
@@ -290,7 +275,6 @@ class SVWebSocketService {
     }
     
     this.reconnectAttempts++;
-    console.log(`Reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
     
     // Client auto-reconnects, но можем да добавим custom logic
   }
@@ -307,7 +291,6 @@ class SVWebSocketService {
       // Deactivate client
       this.client.deactivate();
       this.connected = false;
-      console.log('SVMessenger WebSocket disconnected');
     }
   }
   
