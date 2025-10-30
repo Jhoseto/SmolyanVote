@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 
 /**
@@ -7,10 +7,17 @@ import { useSVMessenger } from '../context/SVMessengerContext';
  * + data-chat-id за Genie Effect targeting
  */
 const SVTaskbar = () => {
-    const { activeChats, restoreChat, closeChat } = useSVMessenger();
+    const { activeChats, conversations, restoreChat, closeChat } = useSVMessenger();
 
-    // Get only minimized chats
-    const minimizedChats = activeChats.filter(chat => chat.isMinimized);
+    // Get only minimized chats with live conversation data
+    const minimizedChats = useMemo(() => {
+        return activeChats
+            .filter(chat => chat.isMinimized)
+            .map(chat => ({
+                ...chat,
+                conversation: conversations.find(c => c.id === chat.conversation.id) || chat.conversation
+            }));
+    }, [activeChats, conversations]);
 
     // Don't render if no minimized chats
     if (minimizedChats.length === 0) {
