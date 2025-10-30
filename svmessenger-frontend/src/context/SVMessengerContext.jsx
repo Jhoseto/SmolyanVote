@@ -125,7 +125,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const handleNewMessage = useCallback((message) => {
         console.log('SVMessenger: New message received', message);
 
-        // Add message to conversation immediately
+        // Add message to conversation (at the end for newest messages to appear at bottom)
         setMessagesByConversation(prev => ({
             ...prev,
             [message.conversationId]: [
@@ -134,7 +134,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             ]
         }));
 
-        // Update conversation list locally (no HTTP call needed)
+        // Update conversation list locally (no HTTP call needed for performance)
         setConversations(prev => prev.map(c =>
             c.id === message.conversationId
                 ? {
@@ -146,29 +146,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
         ));
 
         // Check chat states
-        const chatExists = activeChats.some(c => c.conversation.id === message.conversationId);
-        const chatIsMinimized = activeChats.some(c => c.conversation.id === message.conversationId && c.isMinimized);
-        const chatIsVisible = activeChats.some(c => c.conversation.id === message.conversationId && !c.isMinimized);
+        const chat = activeChats.find(c => c.conversation.id === message.conversationId);
+        const chatIsVisible = chat && !chat.isMinimized;
+        const chatIsMinimized = chat && chat.isMinimized;
 
         if (chatIsVisible) {
-            // Chat is fully visible (open and not minimized) - mark as read immediately
-            console.log('Chat is visible, marking as read:', message.conversationId);
-            svWebSocketService.sendRead(message.conversationId);
+            // Chat е видим (отворен и не minimized) - НЕ маркирай автоматично като прочетено
+            // Маркирането става само при потребителска активност (клик в прозореца)
+            console.log('Chat is visible, waiting for user interaction:', message.conversationId);
         } else if (chatIsMinimized) {
-            // Chat is minimized - show badge in tab only
-            setConversations(prev => {
-                const updated = prev.map(c =>
-                    c.id === message.conversationId
-                        ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
-                        : c
-                );
-                // Recalculate total unread count (includes minimized chats)
-                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-                setTotalUnreadCount(totalUnread);
-                return updated;
-            });
-        } else {
-            // Chat is completely closed - show badges everywhere
+            // Chat е minimized - увеличи badge за tab, но не маркирай като прочетено
+            console.log('Chat is minimized, not auto-marking as read:', message.conversationId);
             setConversations(prev => {
                 const updated = prev.map(c =>
                     c.id === message.conversationId
@@ -180,8 +168,21 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 setTotalUnreadCount(totalUnread);
                 return updated;
             });
+        } else {
+            // Chat е напълно затворен - покажи notifications
+            setTotalUnreadCount(prev => prev + 1);
 
+            // Update conversation unread count
+            setConversations(prev => prev.map(c =>
+                c.id === message.conversationId
+                    ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+                    : c
+            ));
+
+            // Play notification sound
             playNotificationSound();
+
+            // Show browser notification
             showBrowserNotification(message);
         }
     }, [activeChats]);
@@ -222,53 +223,59 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleReadReceipt = useCallback((data) => {
-        console.log('SVMessenger: Read receipt', data);
+        console.log('SVMessenger: Read receipt received', data);
+
+        if (!data) return;
 
         const { type, conversationId, messageId, readAt } = data;
 
         if (type === 'BULK_READ') {
-            // BULK READ: Маркирай ВСИЧКИ съобщения в conversation-а като прочетени
+            // BULK READ: Mark ALL messages in conversation as read (only OUR sent messages)
             console.log('SVMessenger: Processing BULK read receipt for conversation', conversationId);
 
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: (prev[conversationId] || []).map(m => ({
-                    ...m,
-                    isRead: true,
-                    readAt: m.isRead ? m.readAt : readAt
-                }))
+                [conversationId]: (prev[conversationId] || []).map(m =>
+                    m.senderId === currentUser.id ? { ...m, isRead: true, readAt: m.readAt || readAt } : m
+                )
             }));
 
-            // Нулирай unread count за този conversation
-            setConversations(prev => prev.map(c =>
-                c.id === conversationId ? { ...c, unreadCount: 0 } : c
-            ));
+            // Reset unread count for this conversation
+            setConversations(prev => {
+                const updated = prev.map(c =>
+                    c.id === conversationId ? { ...c, unreadCount: 0 } : c
+                );
+                // Recalculate total unread count
+                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                setTotalUnreadCount(totalUnread);
+                return updated;
+            });
 
-            // Update total unread count
-            const conversation = conversations.find(c => c.id === conversationId);
-            if (conversation && conversation.unreadCount > 0) {
-                setTotalUnreadCount(prev => Math.max(0, prev - conversation.unreadCount));
-            }
-
-        } else {
-            // SINGLE READ: Маркирай САМО конкретното съобщение
+        } else if (messageId) {
+            // SINGLE READ: Mark specific message as read (only if it's OUR message)
             console.log('SVMessenger: Processing SINGLE read receipt for message', messageId);
 
             setMessagesByConversation(prev => ({
                 ...prev,
                 [conversationId]: (prev[conversationId] || []).map(m =>
-                    m.id === messageId ? { ...m, isRead: true, readAt } : m
+                    m.id === messageId && m.senderId === currentUser.id ? { ...m, isRead: true, readAt } : m
                 )
             }));
 
-            // Намали unread count с 1
-            setConversations(prev => prev.map(c =>
-                c.id === conversationId
-                    ? { ...c, unreadCount: Math.max(0, (c.unreadCount || 0) - 1) }
-                    : c
-            ));
+            // Decrease unread count by 1 (if this was the last unread message)
+            setConversations(prev => {
+                const updated = prev.map(c =>
+                    c.id === conversationId
+                        ? { ...c, unreadCount: Math.max(0, (c.unreadCount || 0) - 1) }
+                        : c
+                );
+                // Recalculate total unread count
+                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                setTotalUnreadCount(totalUnread);
+                return updated;
+            });
         }
-    }, [conversations]);
+    }, [conversations, currentUser]);
 
     const handleDeliveryReceipt = useCallback((data) => {
         console.log('SVMessenger: Delivery receipt', data);
@@ -571,25 +578,40 @@ export const SVMessengerProvider = ({ children, userData }) => {
         // Load messages
         loadMessages(conversationId);
 
-        // Mark as read using WebSocket for realtime and locally
-        svWebSocketService.sendRead(conversationId);
+        // Ако има непрочетени съобщения при отваряне - маркирай като прочетено
+        // (това се случва само ако прозорецът е бил затворен при получаване)
+        const messages = messagesByConversation[conversationId] || [];
+        const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
-        // Immediately mark as read locally
-        setConversations(prev => {
-            const updated = prev.map(c =>
-                c.id === conversationId ? { ...c, unreadCount: 0 } : c
-            );
-            // Recalculate total unread count
-            const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-            setTotalUnreadCount(totalUnread);
-            return updated;
-        });
+        if (hasUnreadMessages) {
+            console.log('Opening chat with unread messages, marking as read:', conversationId);
+            svWebSocketService.sendRead(conversationId);
+
+            // Immediately mark as read locally
+            setMessagesByConversation(prev => ({
+                ...prev,
+                [conversationId]: (prev[conversationId] || []).map(m =>
+                    m.senderId !== currentUser.id ? { ...m, isRead: true, readAt: new Date().toISOString() } : m
+                )
+            }));
+
+            // Update conversation unread count
+            setConversations(prev => {
+                const updated = prev.map(c =>
+                    c.id === conversationId ? { ...c, unreadCount: 0 } : c
+                );
+                // Recalculate total unread count
+                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                setTotalUnreadCount(totalUnread);
+                return updated;
+            });
+        }
 
         // Close chat list
         closeChatList();
 
         console.log('SVMessenger: Opened chat', conversationId);
-    }, [conversations, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
+    }, [conversations, messagesByConversation, currentUser, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
 
     const closeChat = useCallback((conversationId) => {
         setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
@@ -612,22 +634,37 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 : c
         ));
 
-        // Mark as read when restoring chat - use WebSocket for realtime and update locally
-        svWebSocketService.sendRead(conversationId);
+        // Ако има непрочетени съобщения при restore - маркирай като прочетено
+        // (това се случва само ако прозорецът е бил minimized при получаване)
+        const messages = messagesByConversation[conversationId] || [];
+        const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
-        // Immediately mark as read locally
-        setConversations(prev => {
-            const updated = prev.map(c =>
-                c.id === conversationId ? { ...c, unreadCount: 0 } : c
-            );
-            // Recalculate total unread count
-            const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-            setTotalUnreadCount(totalUnread);
-            return updated;
-        });
+        if (hasUnreadMessages) {
+            console.log('Restoring chat with unread messages, marking as read:', conversationId);
+            svWebSocketService.sendRead(conversationId);
+
+            // Immediately mark as read locally
+            setMessagesByConversation(prev => ({
+                ...prev,
+                [conversationId]: (prev[conversationId] || []).map(m =>
+                    m.senderId !== currentUser.id ? { ...m, isRead: true, readAt: new Date().toISOString() } : m
+                )
+            }));
+
+            // Update conversation unread count
+            setConversations(prev => {
+                const updated = prev.map(c =>
+                    c.id === conversationId ? { ...c, unreadCount: 0 } : c
+                );
+                // Recalculate total unread count
+                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                setTotalUnreadCount(totalUnread);
+                return updated;
+            });
+        }
 
         console.log('SVMessenger: Restored chat', conversationId);
-    }, []);
+    }, [conversations, messagesByConversation, currentUser]);
 
     const bringToFront = useCallback((conversationId) => {
         setActiveChats(prev => prev.map(c =>

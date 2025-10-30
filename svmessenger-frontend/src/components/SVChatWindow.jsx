@@ -5,7 +5,7 @@ import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
 
 const SVChatWindow = ({ chat }) => {
-    const { closeChat, minimizeChat, bringToFront, updateChatPosition,markAsRead } = useSVMessenger();
+    const { closeChat, minimizeChat, bringToFront, updateChatPosition, markAsRead, messagesByConversation, currentUser } = useSVMessenger();
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -13,18 +13,24 @@ const SVChatWindow = ({ chat }) => {
     useEffect(() => {
         if (!chat.isMinimized) {
             bringToFront(chat.conversation.id);
-            // Маркирай като прочетено при отваряне
-            markAsRead(chat.conversation.id);
         }
     }, []);
 
-    // При click в chat window - маркирай като прочетено
+    // При click в chat window - маркирай като прочетено ако има непрочетени съобщения
     const handleWindowClick = useCallback(() => {
         if (!chat.isMinimized) {
             bringToFront(chat.conversation.id);
-            markAsRead(chat.conversation.id);
+
+            // Провери дали има непрочетени съобщения и ги маркирай като прочетено
+            const messages = messagesByConversation[chat.conversation.id] || [];
+            const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
+
+            if (hasUnreadMessages) {
+                console.log('Chat window clicked with unread messages, marking as read:', chat.conversation.id);
+                markAsRead(chat.conversation.id);
+            }
         }
-    }, [chat.conversation.id, chat.isMinimized, bringToFront, markAsRead]);
+    }, [chat.conversation.id, chat.isMinimized, bringToFront, markAsRead, messagesByConversation, currentUser]);
 
     const handleMouseDown = useCallback((e) => {
         if (!e.target.closest('.svmessenger-chat-header')) return;

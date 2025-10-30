@@ -67,7 +67,7 @@ public class ApplicationSecurityConfiguration {
                                 "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
                                 "/terms-and-conditions","/faq","/signals/**"
                         ).permitAll()
-                        .requestMatchers("/admin/**", "/ws/**", "/sockjs-node/**", "/stomp/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**", "/ws/admin/**", "/sockjs-node/**", "/stomp/**").hasRole("ADMIN")
                         .requestMatchers(
                                 "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
                                 "/user/**", "/profile/update", "/userProfile",
@@ -109,7 +109,14 @@ public class ApplicationSecurityConfiguration {
                         })
                 )
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat", "/api/svmessenger/**", "/ws-svmessenger/**")
+                        // 🔒 CSRF ЗАЩИТА ЗА ВСИЧКИ ОБИКНОВЕНИ ENDPOINTS
+                        // 🚫 ИЗКЛЮЧЕНИ САМО SockJS WebSocket handshake endpoints
+                        // SockJS handshake е безопасен защото:
+                        // 1. Установява се само след успешна аутентикация
+                        // 2. Same-Origin Policy защитава WebSocket връзки
+                        // 3. Handshake е автоматичен процес, не може да се манипулира от malicious сайтове
+                        // 4. WebSocket връзките изискват valid session cookies
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat", "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

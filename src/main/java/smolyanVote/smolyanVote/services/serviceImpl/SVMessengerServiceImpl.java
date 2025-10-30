@@ -172,25 +172,29 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                         : otherUser.getUsername();
                 webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
 
-                // Маркираме съобщението като delivered ВИНАГИ когато е успешно изпратено
-                // (независимо дали получателят е онлайн или не)
+                // ✅ SUCCESS: WebSocket message sent successfully (recipient is online)
+                // Mark as delivered and send delivery receipt to sender
                 message.markAsDelivered();
                 messageRepo.save(message);
                 messageDTO.setIsDelivered(true);
                 messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
 
-                // Изпрати delivery receipt към sender-а ВИНАГИ (по principal name)
+                // Send delivery receipt to sender (only if message was successfully delivered)
                 try {
                     String senderPrincipal = sender.getEmail() != null && !sender.getEmail().isBlank()
                             ? sender.getEmail()
                             : sender.getUsername();
                     webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(), message.getConversation().getId());
+                    log.debug("Delivery receipt sent for message {}", message.getId());
                 } catch (Exception e) {
                     log.error("Failed to send delivery receipt for message {}: {}", message.getId(), e.getMessage());
                 }
 
             } catch (Exception e) {
-                log.warn("Failed to send WebSocket message: {}", e.getMessage());
+                // ❌ FAILED: WebSocket message failed (recipient is offline)
+                // Keep message as "sent" only (1 gray checkmark) - no delivery receipt
+                log.warn("WebSocket message failed for message {}: {}", message.getId(), e.getMessage());
+                messageDTO.setIsDelivered(false);
             }
 
             log.info("Message sent: {}", message.getId());
@@ -251,13 +255,21 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             // Send bulk read receipt (по principal name)
             UserEntity otherUser = conversation.getOtherUser(reader);
-            try {
-                String otherPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
-                        ? otherUser.getEmail()
-                        : otherUser.getUsername();
-                webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
-            } catch (Exception e) {
-                log.warn("Failed to send read receipt: {}", e.getMessage());
+            if (otherUser != null) {
+                try {
+                    String otherPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
+                            ? otherUser.getEmail()
+                            : otherUser.getUsername();
+                    if (otherPrincipal != null && !otherPrincipal.isBlank()) {
+                        webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
+                    } else {
+                        log.warn("Cannot send read receipt: other user has no valid principal name");
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to send read receipt: {}", e.getMessage());
+                }
+            } else {
+                log.warn("Cannot send read receipt: other user is null");
             }
 
         } catch (Exception e) {

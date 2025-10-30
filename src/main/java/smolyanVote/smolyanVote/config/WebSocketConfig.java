@@ -1,25 +1,37 @@
 package smolyanVote.smolyanVote.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 
 /**
- * WebSocket конфигурация за real-time комуникация
- * Управлява всички WebSocket endpoints в системата
+ * Unified WebSocket конфигурация за real-time комуникация
+ * Управлява всички WebSocket endpoints в системата:
+ * - SVMessenger (STOMP)
+ * - Notifications (SockJS)
+ * - Activity monitoring (SockJS)
  */
 @Configuration
 @EnableWebSocket
-public class WebSocketConfig implements WebSocketConfigurer {
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBrokerConfigurer {
 
     private final ActivityWebSocketHandler activityWebSocketHandler;
     private final Environment environment;
     private final NotificationWebSocketHandler notificationWebSocketHandler;
+
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
 
     @Autowired
     public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
@@ -30,6 +42,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         this.notificationWebSocketHandler = notificationWebSocketHandler;
     }
 
+    // ========== SOCKJS HANDLERS (WebSocketConfigurer) ==========
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String[] allowedOrigins = getAllowedOrigins();
@@ -42,6 +55,48 @@ public class WebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(notificationWebSocketHandler, "/ws/notifications")
                 .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS();
+    }
+
+    // ========== STOMP MESSAGE BROKER (WebSocketMessageBrokerConfigurer) ==========
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        // Enable простък in-memory broker за broadcast съобщения
+        // /topic - за broadcast към всички subscribed users
+        // /queue - за private съобщения към конкретен user
+        registry.enableSimpleBroker("/topic", "/queue");
+
+        // Application destination prefix
+        // Client ще изпраща към /app/svmessenger/...
+        registry.setApplicationDestinationPrefixes("/app");
+
+        // User destination prefix
+        // За private съобщения: /user/{userId}/queue/...
+        registry.setUserDestinationPrefix("/user");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Register WebSocket endpoint за SVMessenger
+        // Client ще се connectva към: ws://localhost:2662/ws-svmessenger
+
+        // Development: allow localhost, Production: only production domains
+        if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns(
+                            "https://smolyanvote.com",
+                            "https://www.smolyanvote.com",
+                            "http://localhost:*",
+                            "http://127.0.0.1:*"
+                    )
+                    .withSockJS();
+        } else {
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns(
+                            "https://smolyanvote.com",
+                            "https://www.smolyanvote.com"
+                    )
+                    .withSockJS();
+        }
     }
 
     /**
