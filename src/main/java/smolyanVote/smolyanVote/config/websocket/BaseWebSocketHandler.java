@@ -8,15 +8,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.socket.*;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.WebSocketMessageDto;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -38,6 +41,7 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
     @Autowired
     public BaseWebSocketHandler(UserService userService) {
         this.userService = userService;
+
     }
 
 
@@ -136,9 +140,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         return activeSessions.size();
     }
 
-    public List<WebSocketSession> getActiveSessions() {
-        return new CopyOnWriteArrayList<>(activeSessions);
-    }
 
     /**
      * Почиства неактивни сесии
@@ -241,40 +242,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         error.setTimestamp(LocalDateTime.now());
 
         sendMessage(session, error);
-    }
-
-    protected String getCurrentUsername() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                return userService.getCurrentUser().getUsername();
-            }
-        } catch (Exception e) {
-            // Игнорираме грешки при извличане на username
-        }
-        return "Anonymous";
-    }
-
-    protected UserEntity getCurrentUser() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                return userService.getCurrentUser();
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting current user: " + e.getMessage());
-        }
-        return null;
-    }
-
-    protected boolean isAdminUser() {
-        try {
-            UserEntity currentUser = getCurrentUser();
-            return currentUser != null && UserRole.ADMIN.equals(currentUser.getRole());
-        } catch (Exception e) {
-            System.err.println("Error checking admin role: " + e.getMessage());
-            return false;
-        }
     }
 
 }

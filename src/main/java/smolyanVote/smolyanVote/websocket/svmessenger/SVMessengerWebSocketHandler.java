@@ -34,7 +34,7 @@ public class SVMessengerWebSocketHandler {
      * @param message MessageDTO
      */
     public void sendPrivateMessageToUsername(String recipientUsername, SVMessageDTO message) {
-        log.debug("Sending private message to username {} in conversation {}, messageId: {}",
+        log.info("Sending private message to username {} in conversation {}, messageId: {}",
                 recipientUsername, message.getConversationId(), message.getId());
 
         if (recipientUsername == null || recipientUsername.isBlank()) {
@@ -53,7 +53,7 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-messages",
                     message
             );
-            log.debug("Message sent successfully via WebSocket to username {}", recipientUsername);
+            log.info("Message sent successfully via WebSocket to username {}", recipientUsername);
         } catch (Exception e) {
             log.error("Failed to send WebSocket message to username {}: {}", recipientUsername, e.getMessage(), e);
         }
@@ -97,52 +97,54 @@ public class SVMessengerWebSocketHandler {
     /**
      * Изпрати read receipt към sender-а на съобщението
      * 
-     * @param senderId ID на изпращача
+     * @param senderPrincipalName ID на изпращача
      * @param messageId ID на прочетеното съобщение
      * @param conversationId ID на разговора
      */
     public void sendReadReceipt(String senderPrincipalName, Long messageId, Long conversationId) {
-        log.debug("Sending read receipt for message {} to principal {}", messageId, senderPrincipalName);
-        
+        log.info("Sending read receipt for message {} to principal {}", messageId, senderPrincipalName);
+
         try {
             Map<String, Object> receipt = new HashMap<>();
             receipt.put("messageId", messageId);
             receipt.put("conversationId", conversationId);
             receipt.put("readAt", Instant.now());
-            
+
             messagingTemplate.convertAndSendToUser(
                     senderPrincipalName,
                     "/queue/svmessenger-read-receipts",
                     receipt
             );
+            log.info("Read receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
-            log.error("Failed to send read receipt", e);
+            log.error("Failed to send read receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
     }
     
     /**
      * Изпрати bulk read receipt (всички съобщения прочетени)
      * 
-     * @param senderId ID на изпращача
+     * @param senderPrincipalName ID на изпращача
      * @param conversationId ID на разговора
      */
     public void sendBulkReadReceipt(String senderPrincipalName, Long conversationId) {
-        log.debug("Sending bulk read receipt for conversation {} to principal {}", 
+        log.info("Sending bulk read receipt for conversation {} to principal {}",
                 conversationId, senderPrincipalName);
-        
+
         try {
             Map<String, Object> receipt = new HashMap<>();
             receipt.put("type", "BULK_READ");
             receipt.put("conversationId", conversationId);
             receipt.put("readAt", Instant.now());
-            
+
             messagingTemplate.convertAndSendToUser(
                     senderPrincipalName,
                     "/queue/svmessenger-read-receipts",
                     receipt
             );
+            log.info("Bulk read receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
-            log.error("Failed to send bulk read receipt", e);
+            log.error("Failed to send bulk read receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
     }
 
@@ -152,15 +154,15 @@ public class SVMessengerWebSocketHandler {
      * Изпрати delivery receipt към sender-а на съобщението
      * Извиква се когато съобщение е доставено до получателя
      *
-     * @param senderId ID на изпращача
+     * @param senderPrincipalName ID на изпращача
      * @param messageId ID на доставеното съобщение
      * @param conversationId ID на разговора
      */
     public void sendDeliveryReceipt(String senderPrincipalName, Long messageId, Long conversationId) {
-        log.debug("Sending delivery receipt for message {} to principal {}", messageId, senderPrincipalName);
+        log.info("Sending delivery receipt for message {} to principal {}", messageId, senderPrincipalName);
 
         if (senderPrincipalName == null || senderPrincipalName.isBlank() || messageId == null || conversationId == null) {
-            log.error("Invalid parameters for delivery receipt: senderId={}, messageId={}, conversationId={}",
+            log.error("Invalid parameters for delivery receipt: senderPrincipalName={}, messageId={}, conversationId={}",
                      senderPrincipalName, messageId, conversationId);
             return;
         }
@@ -176,9 +178,9 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-delivery-receipts",
                     receipt
             );
-            log.debug("Delivery receipt sent successfully");
+            log.info("Delivery receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
-            log.error("Failed to send delivery receipt: {}", e.getMessage(), e);
+            log.error("Failed to send delivery receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
     }
 
@@ -186,11 +188,11 @@ public class SVMessengerWebSocketHandler {
      * Изпрати bulk delivery receipt (всички не-delivered съобщения са доставени)
      * Извиква се когато потребителят зареди messenger-а
      *
-     * @param senderId ID на изпращача
+     * @param senderPrincipalName ID на изпращача
      * @param conversationIds списък с conversation IDs
      */
     public void sendBulkDeliveryReceipt(String senderPrincipalName, List<Long> conversationIds) {
-        log.debug("Sending bulk delivery receipt for conversations {} to principal {}",
+        log.info("Sending bulk delivery receipt for conversations {} to principal {}",
                 conversationIds, senderPrincipalName);
 
         try {
@@ -204,8 +206,9 @@ public class SVMessengerWebSocketHandler {
                     "/queue/svmessenger-delivery-receipts",
                     receipt
             );
+            log.info("Bulk delivery receipt sent successfully to principal {}", senderPrincipalName);
         } catch (Exception e) {
-            log.error("Failed to send bulk delivery receipt", e);
+            log.error("Failed to send bulk delivery receipt to principal {}: {}", senderPrincipalName, e.getMessage(), e);
         }
     }
 
