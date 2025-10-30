@@ -157,6 +157,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
         } else if (chatIsMinimized) {
             // Chat е minimized - увеличи badge за tab, но не маркирай като прочетено
             console.log('Chat is minimized, not auto-marking as read:', message.conversationId);
+
+            // Update conversations
             setConversations(prev => {
                 const updated = prev.map(c =>
                     c.id === message.conversationId
@@ -168,6 +170,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 setTotalUnreadCount(totalUnread);
                 return updated;
             });
+
+            // SVTaskbar will read live conversation data from conversations state
         } else {
             // Chat е напълно затворен - покажи notifications
             setTotalUnreadCount(prev => prev + 1);
@@ -564,10 +568,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
             return;
         }
 
-        // Create new chat window
+        // Create new chat window - use conversation from conversations state for live updates
+        const liveConversation = conversations.find(c => c.id === conversationId);
         const newChat = {
             id: conversationId,
-            conversation,
+            conversation: liveConversation || conversation, // Use live reference if available
             isMinimized: false,
             position: calculateInitialPosition(),
             zIndex: nextZIndex.current++
@@ -661,6 +666,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 setTotalUnreadCount(totalUnread);
                 return updated;
             });
+
+            // SVTaskbar will read live conversation data from conversations state
         }
 
         console.log('SVMessenger: Restored chat', conversationId);
