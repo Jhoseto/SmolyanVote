@@ -17,6 +17,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
 import java.security.Principal;
+import java.time.Instant;
 
 /**
  * WebSocket Controller за SVMessenger
@@ -96,6 +97,23 @@ public class SVMessengerWebSocketController {
             log.error("Error updating typing status via WebSocket", e);
         }
     }
+
+    /**
+     * Client маркира разговор като прочетен през WebSocket (по-бърз от REST)
+     * Endpoint: /app/svmessenger/mark-read
+     * Client изпраща: { "conversationId": 1 }
+     */
+    @MessageMapping("/svmessenger/mark-read")
+    public void markConversationAsReadWS(@Payload SVTypingStatusDTO readReq, Principal principal) {
+        // Използваме SVTypingStatusDTO само за да пренесем conversationId (isTyping не се използва)
+        try {
+            UserEntity currentUser = getUserFromPrincipal(principal);
+            Long conversationId = readReq.getConversationId();
+            messengerService.markAllAsRead(conversationId, currentUser);
+        } catch (Exception e) {
+            log.error("Error marking conversation as read via WebSocket", e);
+        }
+    }
     
     // ========== CONNECTION EVENTS ==========
     
@@ -105,19 +123,24 @@ public class SVMessengerWebSocketController {
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        
+
         log.info("WebSocket connection established: sessionId={}", headerAccessor.getSessionId());
-        
+
         try {
             // Извади user info от session
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
                 UserEntity user = getUserFromPrincipal(principal);
-                
-                // Broadcast че е онлайн
+
+                // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
+                user.setOnlineStatus(1);
+                user.setLastOnline(Instant.now());
+                userRepository.save(user);
+
+                // ✅ СЛЕД ТОВА: Broadcast че е онлайн
                 wsHandler.broadcastOnlineStatus(user.getId(), true);
-                
-                log.info("User {} connected to SVMessenger WebSocket", user.getId());
+
+                log.info("User {} connected to SVMessenger WebSocket and set ONLINE in DB", user.getId());
             }
         } catch (Exception e) {
             log.error("Error handling WebSocket connect", e);
@@ -130,19 +153,24 @@ public class SVMessengerWebSocketController {
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        
+
         log.info("WebSocket connection closed: sessionId={}", headerAccessor.getSessionId());
-        
+
         try {
             // Извади user info от session
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
                 UserEntity user = getUserFromPrincipal(principal);
-                
-                // Broadcast че е офлайн
+
+                // ✅ ПЪРВО: Обнови офлайн статуса в базата данни
+                user.setOnlineStatus(0);
+                user.setLastOnline(Instant.now());
+                userRepository.save(user);
+
+                // ✅ СЛЕД ТОВА: Broadcast че е офлайн
                 wsHandler.broadcastOnlineStatus(user.getId(), false);
-                
-                log.info("User {} disconnected from SVMessenger WebSocket", user.getId());
+
+                log.info("User {} disconnected from SVMessenger WebSocket and set OFFLINE in DB", user.getId());
             }
         } catch (Exception e) {
             log.error("Error handling WebSocket disconnect", e);

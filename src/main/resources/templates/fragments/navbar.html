@@ -333,6 +333,8 @@
     </div>
 
     <div class="vote-overlay-glass" id="voteOverlay" onclick="closeVoteMenu()"></div>
+    <!-- Hidden authentication marker for JavaScript -->
+    <div sec:authorize="isAuthenticated()" style="display:none;" id="auth-marker"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

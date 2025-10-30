@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Изпращаме heartbeat само ако потребителят е логнат
-    if (document.querySelector('[sec\\:authorize="isAuthenticated()"]')) {
+    if (document.getElementById('auth-marker')) {
         sendHeartbeat();
         setInterval(sendHeartbeat, 60000);
     }

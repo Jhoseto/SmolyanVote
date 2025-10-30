@@ -7,15 +7,19 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
 
+import java.security.Principal;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Минимален WebSocket handler за real-time нотификации
- * Една връзка per потребител
+ * WebSocket handler за real-time нотификации
+ * И за tracking на online статус на всички logged users
  */
 @Component
 public class NotificationWebSocketHandler extends TextWebSocketHandler {
@@ -23,10 +27,12 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @Autowired
-    public NotificationWebSocketHandler(UserService userService) {
+    public NotificationWebSocketHandler(UserService userService, UserRepository userRepository) {
         this.userService = userService;
+        this.userRepository = userRepository;
         mapper.findAndRegisterModules();
     }
 
@@ -36,6 +42,9 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         if (username != null) {
             sessions.put(username, session);
             System.out.println("✅ Notification WS connected: " + username);
+
+            // ✅ ОБНОВИ ОНЛАЙН СТАТУС В DB
+            updateUserOnlineStatus(username, true);
         }
     }
 
@@ -45,6 +54,9 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         if (username != null) {
             sessions.remove(username);
             System.out.println("❌ Notification WS disconnected: " + username);
+
+            // ✅ ОБНОВИ OFFLINE СТАТУС В DB
+            updateUserOnlineStatus(username, false);
         }
     }
 
@@ -63,11 +75,36 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Обновява онлайн статуса на user в базата данни
+     */
+    private void updateUserOnlineStatus(String username, boolean isOnline) {
+        try {
+            UserEntity user = userRepository.findByUsername(username)
+                    .orElseGet(() -> userRepository.findByEmail(username).orElse(null));
+
+            if (user != null) {
+                user.setOnlineStatus(isOnline ? 1 : 0);
+                user.setLastOnline(Instant.now());
+                userRepository.save(user);
+
+                System.out.println("✅ User " + username + " set to " +
+                        (isOnline ? "ONLINE" : "OFFLINE") + " in DB");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Failed to update online status for " + username + ": " + e.getMessage());
+        }
+    }
+
     private String getUsername(WebSocketSession session) {
         try {
-            return userService.getCurrentUser().getUsername();
+            Principal principal = session.getPrincipal();
+            if (principal != null) {
+                return principal.getName();
+            }
         } catch (Exception e) {
-            return null;
+            System.err.println("Error getting username from session: " + e.getMessage());
         }
+        return null;
     }
 }
