@@ -107,9 +107,16 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 throw new IllegalArgumentException("Cannot start conversation with yourself");
             }
 
-            // Try to find existing
-            return conversationRepo.findByTwoUsers(currentUser.getId(), otherUserId)
-                    .map(conv -> SVConversationDTO.Mapper.toDTO(conv, currentUser))
+            // Try to find existing conversation (including hidden ones)
+            return conversationRepo.findByTwoUsersIncludingHidden(currentUser.getId(), otherUserId)
+                    .map(conv -> {
+                        // If conversation was hidden, un-hide it for current user
+                        if (conv.isHiddenForUser(currentUser)) {
+                            conv.unhideForUser(currentUser);
+                            conv = conversationRepo.save(conv);
+                        }
+                        return SVConversationDTO.Mapper.toDTO(conv, currentUser);
+                    })
                     .orElseGet(() -> {
                         UserEntity otherUser = userRepo.findById(otherUserId)
                                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -156,6 +163,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             conversation.setUpdatedAt(LocalDateTime.now());
 
             UserEntity otherUser = conversation.getOtherUser(sender);
+
+            // ✅ Ако разговорът е бил hidden за получателя, го un-hide-ваме автоматично
+            // Защото когато някой ти пише, разговорът трябва да се покаже в твоя списък
+            if (conversation.isHiddenForUser(otherUser)) {
+                conversation.unhideForUser(otherUser);
+            }
+
             conversation.incrementUnreadFor(otherUser);
 
             conversationRepo.save(conversation);
@@ -317,14 +331,15 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         // Find conversation and validate user is participant
         SVConversationEntity conversation = conversationRepo.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-        
+
         if (!conversation.isParticipant(currentUser)) {
             throw new IllegalArgumentException("User is not participant in this conversation");
         }
-        
-        // Hide conversation (set isHidden = true)
-        conversationRepo.hideConversation(conversationId);
-        
+
+        // ✅ FIX: Едностранно hiding - само за текущия потребител
+        conversation.hideForUser(currentUser);
+        conversationRepo.save(conversation);
+
     }
 
     @Override

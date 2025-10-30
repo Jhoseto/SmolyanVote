@@ -170,12 +170,33 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // Chat е напълно затворен - покажи notifications
             setTotalUnreadCount(prev => prev + 1);
 
-            // Update conversation unread count
-            setConversations(prev => prev.map(c =>
-                c.id === message.conversationId
-                    ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
-                    : c
-            ));
+            // Check if conversation exists in conversations list
+            const conversationExists = conversations.some(c => c.id === message.conversationId);
+
+            if (conversationExists) {
+                // Update existing conversation unread count
+                setConversations(prev => prev.map(c =>
+                    c.id === message.conversationId
+                        ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+                        : c
+                ));
+            } else {
+                // Conversation not in list (was hidden, now un-hidden by backend)
+                // Fetch it and add to conversations list
+                svMessengerAPI.getConversation(message.conversationId).then(conv => {
+                    if (conv) {
+                        setConversations(prev => {
+                            const exists = prev.some(c => c.id === conv.id);
+                            if (!exists) {
+                                return [conv, ...prev];
+                            }
+                            return prev;
+                        });
+                    }
+                }).catch(error => {
+                    console.error('Failed to fetch conversation:', error);
+                });
+            }
 
             // Play notification sound
             playNotificationSound();
@@ -183,7 +204,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // Show browser notification
             showBrowserNotification(message);
         }
-    }, [activeChats]);
+    }, [activeChats, conversations]);
 
     const handleTypingStatus = useCallback((status) => {
 
@@ -360,11 +381,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
     }, []);
 
-    const loadMessages = useCallback(async (conversationId, page = 0) => {
+    const loadMessages = useCallback(async (conversationId, page = 0, size = 50) => {
         setLoadingMessages(prev => ({ ...prev, [conversationId]: true }));
 
         try {
-            const data = await svMessengerAPI.getMessages(conversationId, page);
+            const data = await svMessengerAPI.getMessages(conversationId, page, size);
             
             // Handle pagination response - data might be an object with content array
             let messages = Array.isArray(data) ? data : (data.content || data.messages || []);
@@ -372,13 +393,27 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // Ensure chronological ASC order (oldest -> newest) so newest appear at bottom
             messages = [...messages].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
 
-            setMessagesByConversation(prev => ({
-                ...prev,
-                [conversationId]: page === 0
-                    ? messages
+            setMessagesByConversation(prev => {
+                const existingMessages = prev[conversationId] || [];
+                if (page === 0) {
+                    // For page 0, merge with existing messages to preserve real-time messages
+                    const allMessages = [...messages, ...existingMessages];
+                    // Remove duplicates by ID and sort chronologically
+                    const uniqueMessages = allMessages.filter((msg, index, self) =>
+                        index === self.findIndex(m => m.id === msg.id)
+                    );
+                    return {
+                        ...prev,
+                        [conversationId]: uniqueMessages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
+                    };
+                } else {
                     // Older pages should prepend (older first) before existing newer ones
-                    : [...messages, ...(prev[conversationId] || [])]
-            }));
+                    return {
+                        ...prev,
+                        [conversationId]: [...messages, ...existingMessages]
+                    };
+                }
+            });
 
         } catch (error) {
             console.error('Failed to load messages:', error);
@@ -562,8 +597,9 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         setActiveChats(prev => [...prev, newChat]);
 
-        // Load messages
-        loadMessages(conversationId);
+        // Load messages - ако има непрочетени, зареди повече съобщения (възстановен разговор)
+        const shouldLoadMore = conversation.unreadCount > 0;
+        loadMessages(conversationId, 0, shouldLoadMore ? 200 : 50);
 
         // Ако има непрочетени съобщения при отваряне - маркирай като прочетено
         // (това се случва само ако прозорецът е бил затворен при получаване)
