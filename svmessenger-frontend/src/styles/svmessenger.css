@@ -1555,9 +1555,19 @@
     opacity: 1;
 }
 
-.svmessenger-message-status.seen .svmessenger-checkmark,
-.svmessenger-message-item.own .svmessenger-message-read-status svg {
-    color: #22c55e;
+/* По default всички лястовици са СИВИ */
+.svmessenger-message-read-status svg {
+    color: #6b7280; /* СИВО за всички */
+}
+
+/* САМО с клас .double-check стават ЗЕЛЕНИ */
+.svmessenger-message-item.own .svmessenger-message-read-status svg.double-check {
+    color: #22c55e; /* ЗЕЛЕНО само за .double-check */
+}
+
+/* Анимация за seen статус */
+.svmessenger-message-status.seen {
+    animation: checkmarkPop 0.3s var(--svm-transition-bounce);
 }
 
 .svmessenger-message-status.seen {

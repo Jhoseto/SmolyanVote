@@ -15,7 +15,7 @@ import java.time.ZoneId;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SVMessageDTO {
-    
+
     private Long id;
     private Long conversationId;
     private Long senderId;
@@ -23,19 +23,21 @@ public class SVMessageDTO {
     private String senderImageUrl;
     private String text;
     private Instant sentAt;
+    private Boolean isDelivered;
+    private Instant deliveredAt;
     private Boolean isRead;
     private Instant readAt;
     private String messageType;
     private Boolean isEdited;
     private Instant editedAt;
-    
+
     // ========== INNER MAPPER CLASS ==========
-    
+
     /**
      * Mapper за конвертиране SVMessageEntity -> SVMessageDTO
      */
     public static class Mapper {
-        
+
         /**
          * Map entity to DTO
          */
@@ -43,7 +45,7 @@ public class SVMessageDTO {
             if (message == null) {
                 return null;
             }
-            
+
             SVMessageDTO dto = new SVMessageDTO();
             dto.setId(message.getId());
             dto.setConversationId(message.getConversation().getId());
@@ -52,14 +54,17 @@ public class SVMessageDTO {
             dto.setSenderImageUrl(message.getSender().getImageUrl());
             dto.setText(message.getMessageText());
             dto.setSentAt(message.getSentAt().atZone(ZoneId.systemDefault()).toInstant());
+            dto.setIsDelivered(message.getIsDelivered());
+            dto.setDeliveredAt(message.getDeliveredAt() != null ?
+                    message.getDeliveredAt().atZone(ZoneId.systemDefault()).toInstant() : null);
             dto.setIsRead(message.getIsRead());
-            dto.setReadAt(message.getReadAt() != null ? 
-                message.getReadAt().atZone(ZoneId.systemDefault()).toInstant() : null);
+            dto.setReadAt(message.getReadAt() != null ?
+                    message.getReadAt().atZone(ZoneId.systemDefault()).toInstant() : null);
             dto.setMessageType(message.getMessageType().name());
             dto.setIsEdited(message.getIsEdited());
-            dto.setEditedAt(message.getEditedAt() != null ? 
-                message.getEditedAt().atZone(ZoneId.systemDefault()).toInstant() : null);
-            
+            dto.setEditedAt(message.getEditedAt() != null ?
+                    message.getEditedAt().atZone(ZoneId.systemDefault()).toInstant() : null);
+
             return dto;
         }
     }

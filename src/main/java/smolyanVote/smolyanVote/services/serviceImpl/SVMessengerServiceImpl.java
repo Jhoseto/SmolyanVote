@@ -141,7 +141,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 throw new IllegalArgumentException("Message too long (max 5000 characters)");
             }
 
-            // Get conversation with lock
+            // Get conversation
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
@@ -165,12 +165,21 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Convert to DTO
             SVMessageDTO messageDTO = SVMessageDTO.Mapper.toDTO(message);
 
-            // Send via WebSocket (async - outside transaction)
+            // Send via WebSocket
             try {
                 webSocketHandler.sendPrivateMessage(otherUser.getId(), messageDTO);
+
+                // Ако WebSocket успешно изпрати съобщението и получателят е онлайн,
+                // автоматично маркираме като delivered
+                if (otherUser.getOnlineStatus() == 1) {
+                    message.markAsDelivered();
+                    messageRepo.save(message);
+                    messageDTO.setIsDelivered(true);
+                    messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                }
+
             } catch (Exception e) {
                 log.warn("Failed to send WebSocket message: {}", e.getMessage());
-                // Don't fail the transaction if WebSocket fails
             }
 
             log.info("Message sent: {}", message.getId());
@@ -473,4 +482,26 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength) + "...";
     }
+
+    /**
+     * Маркирай съобщение като доставено
+     * Извиква се автоматично когато WebSocket успешно достави съобщението
+     */
+    @Transactional
+    @Override
+    public void markMessageAsDelivered(Long messageId) {
+        try {
+            SVMessageEntity message = messageRepo.findById(messageId)
+                    .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+
+            message.markAsDelivered();
+            messageRepo.save(message);
+
+            log.debug("Message {} marked as delivered", messageId);
+
+        } catch (Exception e) {
+            log.error("Error marking message as delivered: {}", e.getMessage(), e);
+        }
+    }
+
 }

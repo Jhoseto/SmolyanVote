@@ -180,19 +180,26 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
     }, []);
 
-    const handleReadReceipt = useCallback(({ conversationId, readAt }) => {
-        console.log('SVMessenger: Read receipt', conversationId);
+    const handleReadReceipt = useCallback(({ conversationId, messageId, readAt }) => {
+        console.log('SVMessenger: Read receipt', { conversationId, messageId });
 
-        // Update messages read status
-        if (messagesByConversation[conversationId]) {
-            setMessagesByConversation(prev => ({
-                ...prev,
-                [conversationId]: prev[conversationId].map(m =>
-                    !m.isRead ? { ...m, isRead: true, readAt } : m
-                )
-            }));
-        }
+        // Update само конкретното съобщение, не всички
+        setMessagesByConversation(prev => ({
+            ...prev,
+            [conversationId]: (prev[conversationId] || []).map(m =>
+                m.id === messageId ? { ...m, isRead: true, readAt } : m
+            )
+        }));
+
+        // Update conversation unread count
+        setConversations(prev => prev.map(c =>
+            c.id === conversationId
+                ? { ...c, unreadCount: Math.max(0, (c.unreadCount || 0) - 1) }
+                : c
+        ));
     }, []);
+
+
 
     const handleOnlineStatus = useCallback((status) => {
         console.log('SVMessenger: Online status', status);
@@ -322,13 +329,14 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 c.id === conversationId ? { ...c, unreadCount: 0 } : c
             ));
 
-            // Update messages
+            // Update messages - САМО тези които НЕ СА от currentUser!
             setMessagesByConversation(prev => ({
                 ...prev,
                 [conversationId]: (prev[conversationId] || []).map(m => ({
                     ...m,
-                    isRead: true,
-                    readAt: new Date().toISOString()
+                    // Маркирай като read САМО ако не е от текущия user
+                    isRead: m.senderId !== currentUser.id ? true : m.isRead,
+                    readAt: m.senderId !== currentUser.id && !m.isRead ? new Date().toISOString() : m.readAt
                 }))
             }));
 
@@ -339,7 +347,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         } catch (error) {
             console.error('Failed to mark as read:', error);
         }
-    }, [conversations]);
+    }, [conversations, currentUser]);
 
     const loadUnreadCount = useCallback(async () => {
         try {
