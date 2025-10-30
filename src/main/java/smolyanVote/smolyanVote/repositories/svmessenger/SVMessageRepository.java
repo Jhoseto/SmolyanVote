@@ -113,4 +113,26 @@ public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long
             "ORDER BY m.sentAt DESC")
     List<SVMessageEntity> searchInConversation(@Param("conversationId") Long conversationId,
                                                @Param("query") String query);
+
+    @Modifying
+    @Query("UPDATE SVMessageEntity m SET " +
+            "m.isDelivered = true, " +
+            "m.deliveredAt = :deliveredAt " +
+            "WHERE m.conversation IN (" +
+            "   SELECT c FROM SVConversationEntity c WHERE " +
+            "   (c.user1.id = :userId OR c.user2.id = :userId)" +
+            ") AND m.sender.id != :userId AND " +
+            "m.isDelivered = false AND " +
+            "m.isDeleted = false")
+    int markAllUndeliveredAsDeliveredForUser(@Param("userId") Long userId,
+                                              @Param("deliveredAt") LocalDateTime deliveredAt);
+
+    @Query("SELECT DISTINCT m.conversation.id FROM SVMessageEntity m WHERE " +
+            "m.conversation IN (" +
+            "   SELECT c FROM SVConversationEntity c WHERE " +
+            "   (c.user1.id = :userId OR c.user2.id = :userId)" +
+            ") AND m.sender.id != :userId AND " +
+            "m.isDelivered = false AND " +
+            "m.isDeleted = false")
+    List<Long> findConversationsWithUndeliveredMessagesForUser(@Param("userId") Long userId);
 }

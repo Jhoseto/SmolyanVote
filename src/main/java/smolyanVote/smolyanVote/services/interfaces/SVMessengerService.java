@@ -196,4 +196,7 @@ public interface SVMessengerService {
 
     @Transactional
     void markMessageAsDelivered(Long messageId);
+
+    @Transactional
+    void markAllUndeliveredAsDeliveredForUser(UserEntity user);
 }

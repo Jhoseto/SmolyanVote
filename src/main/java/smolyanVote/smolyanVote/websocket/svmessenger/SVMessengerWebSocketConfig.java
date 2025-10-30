@@ -66,11 +66,12 @@ public class SVMessengerWebSocketConfig implements WebSocketMessageBrokerConfigu
      * - /app/svmessenger/send           → Изпращане на съобщение
      * - /app/svmessenger/typing         → Update на typing status
      * 
-     * SERVER -> CLIENT:
-     * - /user/queue/svmessenger-messages     → Private съобщения
-     * - /user/queue/svmessenger-read-receipts → Read receipts
-     * - /topic/svmessenger-typing/{convId}   → Typing indicators
-     * - /topic/svmessenger-online-status     → Online/Offline updates
+ * SERVER -> CLIENT:
+ * - /user/queue/svmessenger-messages     → Private съобщения
+ * - /user/queue/svmessenger-read-receipts → Read receipts
+ * - /user/queue/svmessenger-delivery-receipts → Delivery receipts
+ * - /topic/svmessenger-typing/{convId}   → Typing indicators
+ * - /topic/svmessenger-online-status     → Online/Offline updates
      */
 }
 

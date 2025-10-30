@@ -1560,9 +1560,9 @@
     color: #6b7280; /* СИВО за всички */
 }
 
-/* САМО с клас .double-check стават ЗЕЛЕНИ */
-.svmessenger-message-item.own .svmessenger-message-read-status svg.double-check {
-    color: #22c55e; /* ЗЕЛЕНО само за .double-check */
+/* Зелен цвят само за прочетени съобщения */
+.svmessenger-message-item.own .svmessenger-message-read-status svg.double-check-green {
+    color: #22c55e; /* ЗЕЛЕНО само за прочетени */
 }
 
 /* Анимация за seen статус */

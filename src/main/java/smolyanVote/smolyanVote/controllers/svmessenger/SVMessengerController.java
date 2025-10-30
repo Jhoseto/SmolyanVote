@@ -213,18 +213,18 @@ public class SVMessengerController {
     // ========== MESSAGES ==========
     
     /**
-     * GET /api/svmessenger/messages/{conversationId}?page=0&size=50
+     * GET /api/svmessenger/messages/conversation/{conversationId}?page=0&size=50
      * Вземи история на съобщения с pagination
      * 
      * Response: Page<SVMessageDTO>
      */
-    @GetMapping("/messages/{conversationId}")
+    @GetMapping("/messages/conversation/{conversationId}")
     public ResponseEntity<Page<SVMessageDTO>> getMessages(
             @PathVariable Long conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             Authentication auth) {
-        log.info("GET /api/svmessenger/messages/{}?page={}&size={}", conversationId, page, size);
+        log.info("GET /api/svmessenger/messages/conversation/{}?page={}&size={}", conversationId, page, size);
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
@@ -305,11 +305,37 @@ public class SVMessengerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
+    /**
+     * PUT /api/svmessenger/messages/delivered
+     * Маркирай всички не-delivered съобщения като delivered за текущия user
+     * (извиква се когато user дойде online)
+     *
+     * Response: { "success": true, "marked": 5 }
+     */
+    @PutMapping("/messages/delivered")
+    public ResponseEntity<Map<String, Object>> markAllUndeliveredAsDelivered(Authentication auth) {
+        log.info("PUT /api/svmessenger/messages/delivered");
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            messengerService.markAllUndeliveredAsDeliveredForUser(currentUser);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Messages marked as delivered");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error marking messages as delivered", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     /**
      * DELETE /api/svmessenger/messages/{id}
      * Изтрий съобщение (soft delete)
-     * 
+     *
      * Response: { "success": true }
      */
     @DeleteMapping("/messages/{id}")
