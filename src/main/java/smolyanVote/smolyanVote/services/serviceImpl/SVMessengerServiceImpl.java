@@ -59,7 +59,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Transactional(readOnly = true)
     public List<SVConversationDTO> getAllConversations(UserEntity currentUser) {
         try {
-            log.debug("Getting conversations for user: {}", currentUser.getId());
 
             List<SVConversationEntity> conversations = conversationRepo.findAllActiveByUser(currentUser.getId());
 
@@ -118,7 +117,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                         SVConversationEntity newConv = new SVConversationEntity(currentUser, otherUser);
                         newConv = conversationRepo.save(newConv);
 
-                        log.info("Created conversation: {}", newConv.getId());
                         return SVConversationDTO.Mapper.toDTO(newConv, currentUser);
                     });
         } catch (Exception e) {
@@ -185,7 +183,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                             ? sender.getEmail()
                             : sender.getUsername();
                     webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(), message.getConversation().getId());
-                    log.debug("Delivery receipt sent for message {}", message.getId());
                 } catch (Exception e) {
                     log.error("Failed to send delivery receipt for message {}: {}", message.getId(), e.getMessage());
                 }
@@ -197,7 +194,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 messageDTO.setIsDelivered(false);
             }
 
-            log.info("Message sent: {}", message.getId());
             return messageDTO;
 
         } catch (Exception e) {
@@ -251,7 +247,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             int updated = messageRepo.markAllAsRead(conversationId, reader.getId(), LocalDateTime.now());
             conversationRepo.resetUnreadCount(conversationId, reader.getId());
 
-            log.info("Marked {} messages as read in conversation {}", updated, conversationId);
 
             // Send bulk read receipt (по principal name)
             UserEntity otherUser = conversation.getOtherUser(reader);
@@ -291,7 +286,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             // Маркирай всички не-delivered съобщения като delivered
             int updated = messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
-            log.info("Marked {} undelivered messages as delivered for user {}", updated, user.getId());
 
             // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name)
             if (!affectedConversations.isEmpty()) {
@@ -331,7 +325,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         // Hide conversation (set isHidden = true)
         conversationRepo.hideConversation(conversationId);
         
-        log.info("Conversation {} hidden by user {}", conversationId, currentUser.getId());
     }
 
     @Override
@@ -470,7 +463,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Transactional(readOnly = true)
     public List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser) {
         try {
-            log.info("Searching following users for user {} with query: '{}'", currentUser.getId(), query);
             
             // Get following users using existing follow service
             List<Object[]> followingData;
@@ -478,11 +470,9 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             if (query == null || query.trim().isEmpty()) {
                 // Get all following users
                 followingData = followService.getFollowing(currentUser.getId(), 0, 50);
-                log.info("Found {} following users (all)", followingData.size());
             } else {
                 // Search in following users
                 followingData = followService.searchFollowing(currentUser.getId(), query.trim(), 0, 50);
-                log.info("Found {} following users (search: '{}')", followingData.size(), query);
             }
             
             // Convert to UserEntity and then to DTO
@@ -490,21 +480,17 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     .map(row -> (Long) row[0])
                     .collect(Collectors.toList());
             
-            log.info("User IDs from following data: {}", userIds);
             
             if (userIds.isEmpty()) {
-                log.info("No following users found, returning empty list");
                 return List.of();
             }
             
             List<UserEntity> users = userRepo.findAllById(userIds);
-            log.info("Found {} users from database", users.size());
             
             List<SVUserMinimalDTO> result = users.stream()
                     .map(SVUserMinimalDTO.Mapper::toDTO)
                     .collect(Collectors.toList());
             
-            log.info("Returning {} following users", result.size());
             return result;
                     
         } catch (Exception e) {
@@ -547,7 +533,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             message.markAsDelivered();
             messageRepo.save(message);
 
-            log.debug("Message {} marked as delivered", messageId);
 
         } catch (Exception e) {
             log.error("Error marking message as delivered: {}", e.getMessage(), e);

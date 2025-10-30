@@ -26,7 +26,6 @@ const SVChatWindow = ({ chat }) => {
             const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
             if (hasUnreadMessages) {
-                console.log('Chat window clicked with unread messages, marking as read:', chat.conversation.id);
                 markAsRead(chat.conversation.id);
             }
         }

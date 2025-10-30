@@ -50,7 +50,6 @@ public class SVMessengerWebSocketController {
      */
     @MessageMapping("/svmessenger/send")
     public void sendMessage(@Payload SVSendMessageRequest request, Principal principal) {
-        log.debug("WebSocket: sendMessage from user {}", principal.getName());
         
         try {
             // Вземи current user
@@ -63,7 +62,6 @@ public class SVMessengerWebSocketController {
                     sender
             );
             
-            log.info("Message {} sent via WebSocket", message.getId());
             
         } catch (Exception e) {
             log.error("Error sending message via WebSocket", e);
@@ -80,7 +78,6 @@ public class SVMessengerWebSocketController {
      */
     @MessageMapping("/svmessenger/typing")
     public void updateTypingStatus(@Payload SVTypingStatusDTO status, Principal principal) {
-        log.debug("WebSocket: typing status from user {}", principal.getName());
         
         try {
             // Вземи current user
@@ -124,7 +121,6 @@ public class SVMessengerWebSocketController {
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        log.info("WebSocket connection established: sessionId={}", headerAccessor.getSessionId());
 
         try {
             // Извади user info от session
@@ -140,7 +136,6 @@ public class SVMessengerWebSocketController {
                 // ✅ СЛЕД ТОВА: Broadcast че е онлайн
                 wsHandler.broadcastOnlineStatus(user.getId(), true);
 
-                log.info("User {} connected to SVMessenger WebSocket and set ONLINE in DB", user.getId());
             }
         } catch (Exception e) {
             log.error("Error handling WebSocket connect", e);
@@ -154,7 +149,6 @@ public class SVMessengerWebSocketController {
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        log.info("WebSocket connection closed: sessionId={}", headerAccessor.getSessionId());
 
         try {
             // Извади user info от session
@@ -170,7 +164,6 @@ public class SVMessengerWebSocketController {
                 // ✅ СЛЕД ТОВА: Broadcast че е офлайн
                 wsHandler.broadcastOnlineStatus(user.getId(), false);
 
-                log.info("User {} disconnected from SVMessenger WebSocket and set OFFLINE in DB", user.getId());
             }
         } catch (Exception e) {
             log.error("Error handling WebSocket disconnect", e);

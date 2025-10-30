@@ -12,12 +12,10 @@ function App() {
   
   // Debug log
   if (process.env.NODE_ENV === 'development') {
-    console.log('SVMessenger User Data:', userData);
   }
   
   // Ако user не е authenticated, не показвай нищо
   if (!userData.isAuthenticated) {
-    console.log('SVMessenger: User not authenticated, hiding widget');
     return null;
   }
   
