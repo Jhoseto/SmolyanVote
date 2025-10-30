@@ -57,10 +57,23 @@ public class SVMessageEntity {
     @Column(name = "edited_at")
     private LocalDateTime editedAt;
 
+    @Column(name = "is_delivered", nullable = false)
+    private Boolean isDelivered = false;
+
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
     public void markAsRead() {
         if (!this.isRead) {
             this.isRead = true;
             this.readAt = LocalDateTime.now();
+        }
+    }
+
+    public void markAsDelivered() {
+        if (!this.isDelivered) {
+            this.isDelivered = true;
+            this.deliveredAt = LocalDateTime.now();
         }
     }
 

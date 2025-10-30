@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
+import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
@@ -192,4 +193,7 @@ public interface SVMessengerService {
      * @return List от UserMinimalDTO (само следвани)
      */
     List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser);
+
+    @Transactional
+    void markMessageAsDelivered(Long messageId);
 }
