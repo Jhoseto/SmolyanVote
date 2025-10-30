@@ -5,7 +5,7 @@ import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
 
 const SVChatWindow = ({ chat }) => {
-    const { closeChat, minimizeChat, bringToFront, updateChatPosition } = useSVMessenger();
+    const { closeChat, minimizeChat, bringToFront, updateChatPosition,markAsRead } = useSVMessenger();
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -13,8 +13,18 @@ const SVChatWindow = ({ chat }) => {
     useEffect(() => {
         if (!chat.isMinimized) {
             bringToFront(chat.conversation.id);
+            // Маркирай като прочетено при отваряне
+            markAsRead(chat.conversation.id);
         }
     }, []);
+
+    // При click в chat window - маркирай като прочетено
+    const handleWindowClick = useCallback(() => {
+        if (!chat.isMinimized) {
+            bringToFront(chat.conversation.id);
+            markAsRead(chat.conversation.id);
+        }
+    }, [chat.conversation.id, chat.isMinimized, bringToFront, markAsRead]);
 
     const handleMouseDown = useCallback((e) => {
         if (!e.target.closest('.svmessenger-chat-header')) return;
@@ -80,6 +90,7 @@ const SVChatWindow = ({ chat }) => {
                 zIndex: chat.zIndex
             }}
             onMouseDown={handleMouseDown}
+            onClick={handleWindowClick}
         >
             <SVChatHeader
                 conversation={chat.conversation}

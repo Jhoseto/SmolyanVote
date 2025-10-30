@@ -222,40 +222,53 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleReadReceipt = useCallback((data) => {
-        console.log('SVMessenger: Read receipt received', data);
+        console.log('SVMessenger: Read receipt', data);
 
-        // Handle BULK_READ (when entire conversation is marked as read)
-        if (data?.type === 'BULK_READ') {
-            const { conversationId, readAt } = data;
-            console.log(`BULK_READ for conversation ${conversationId}`);
+        const { type, conversationId, messageId, readAt } = data;
 
-            // Mark ALL our sent messages in this conversation as read
+        if (type === 'BULK_READ') {
+            // BULK READ: Маркирай ВСИЧКИ съобщения в conversation-а като прочетени
+            console.log('SVMessenger: Processing BULK read receipt for conversation', conversationId);
+
+            setMessagesByConversation(prev => ({
+                ...prev,
+                [conversationId]: (prev[conversationId] || []).map(m => ({
+                    ...m,
+                    isRead: true,
+                    readAt: m.isRead ? m.readAt : readAt
+                }))
+            }));
+
+            // Нулирай unread count за този conversation
+            setConversations(prev => prev.map(c =>
+                c.id === conversationId ? { ...c, unreadCount: 0 } : c
+            ));
+
+            // Update total unread count
+            const conversation = conversations.find(c => c.id === conversationId);
+            if (conversation && conversation.unreadCount > 0) {
+                setTotalUnreadCount(prev => Math.max(0, prev - conversation.unreadCount));
+            }
+
+        } else {
+            // SINGLE READ: Маркирай САМО конкретното съобщение
+            console.log('SVMessenger: Processing SINGLE read receipt for message', messageId);
+
             setMessagesByConversation(prev => ({
                 ...prev,
                 [conversationId]: (prev[conversationId] || []).map(m =>
-                    m.senderId === currentUser.id ? { ...m, isRead: true, readAt: m.readAt || readAt } : m
+                    m.id === messageId ? { ...m, isRead: true, readAt } : m
                 )
             }));
 
-            // Read receipts are only for checkmarks, don't change unread counts
-
-            return;
+            // Намали unread count с 1
+            setConversations(prev => prev.map(c =>
+                c.id === conversationId
+                    ? { ...c, unreadCount: Math.max(0, (c.unreadCount || 0) - 1) }
+                    : c
+            ));
         }
-
-        // Handle single read receipt for specific message
-        const { conversationId, messageId, readAt } = data || {};
-        if (!conversationId || !messageId) return;
-
-        console.log(`Single READ for message ${messageId} in conversation ${conversationId}`);
-
-        // Mark specific message as read (if it's our message)
-        setMessagesByConversation(prev => ({
-            ...prev,
-            [conversationId]: (prev[conversationId] || []).map(m =>
-                m.id === messageId && m.senderId === currentUser.id ? { ...m, isRead: true, readAt } : m
-            )
-        }));
-    }, [currentUser]);
+    }, [conversations]);
 
     const handleDeliveryReceipt = useCallback((data) => {
         console.log('SVMessenger: Delivery receipt', data);
