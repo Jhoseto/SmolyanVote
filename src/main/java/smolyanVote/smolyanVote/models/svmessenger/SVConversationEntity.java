@@ -50,6 +50,14 @@ public class SVConversationEntity {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    // ✅ FIX: Едностранно hiding - отделно за всеки потребител
+    @Column(name = "user1_hidden", nullable = false)
+    private Boolean user1Hidden = false;
+
+    @Column(name = "user2_hidden", nullable = false)
+    private Boolean user2Hidden = false;
+
+    // Legacy field - оставяме за backward compatibility, но не го използваме
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
@@ -90,6 +98,32 @@ public class SVConversationEntity {
 
     public boolean isParticipant(UserEntity user) {
         return user.getId().equals(user1.getId()) || user.getId().equals(user2.getId());
+    }
+
+    // ✅ NEW: Едностранно hiding методи
+    public boolean isHiddenForUser(UserEntity user) {
+        if (user.getId().equals(user1.getId())) {
+            return user1Hidden;
+        } else if (user.getId().equals(user2.getId())) {
+            return user2Hidden;
+        }
+        return false;
+    }
+
+    public void hideForUser(UserEntity user) {
+        if (user.getId().equals(user1.getId())) {
+            user1Hidden = true;
+        } else if (user.getId().equals(user2.getId())) {
+            user2Hidden = true;
+        }
+    }
+
+    public void unhideForUser(UserEntity user) {
+        if (user.getId().equals(user1.getId())) {
+            user1Hidden = false;
+        } else if (user.getId().equals(user2.getId())) {
+            user2Hidden = false;
+        }
     }
 
     @PrePersist

@@ -13,24 +13,32 @@ import java.util.Optional;
 @Repository
 public interface SVConversationRepository extends JpaRepository<SVConversationEntity, Long> {
 
-    // ✅ FIX: JOIN FETCH за да избегнем N+1 problem
+    // ✅ FIX: JOIN FETCH за да избегнем N+1 problem - едностранно hiding
     @Query("SELECT DISTINCT c FROM SVConversationEntity c " +
             "LEFT JOIN FETCH c.user1 " +
             "LEFT JOIN FETCH c.user2 " +
             "WHERE (c.user1.id = :userId OR c.user2.id = :userId) AND " +
-            "c.isDeleted = false AND c.isHidden = false " +
+            "c.isDeleted = false AND " +
+            "CASE WHEN c.user1.id = :userId THEN c.user1Hidden = false " +
+            "     WHEN c.user2.id = :userId THEN c.user2Hidden = false " +
+            "     ELSE true END " +
             "ORDER BY c.updatedAt DESC")
     List<SVConversationEntity> findAllActiveByUser(@Param("userId") Long userId);
 
-    // ✅ FIX: JOIN FETCH за findByTwoUsers
+    // ✅ REMOVED: Заменено с findByTwoUsersIncludingHidden
+
+    // ✅ NEW: Намира разговор включително hidden - за startOrGetConversation
+    // Взема само най-новия разговор
     @Query("SELECT c FROM SVConversationEntity c " +
             "LEFT JOIN FETCH c.user1 " +
             "LEFT JOIN FETCH c.user2 " +
             "WHERE ((c.user1.id = :userId1 AND c.user2.id = :userId2) OR " +
             "(c.user1.id = :userId2 AND c.user2.id = :userId1)) AND " +
-            "c.isDeleted = false AND c.isHidden = false")
-    Optional<SVConversationEntity> findByTwoUsers(@Param("userId1") Long userId1,
-                                                  @Param("userId2") Long userId2);
+            "c.isDeleted = false " +
+            "ORDER BY c.updatedAt DESC " +
+            "LIMIT 1")
+    Optional<SVConversationEntity> findByTwoUsersIncludingHidden(@Param("userId1") Long userId1,
+                                                                 @Param("userId2") Long userId2);
 
     // EXISTS queries остават същите (не fetch-ват entities)
     @Query("SELECT COUNT(c) > 0 FROM SVConversationEntity c WHERE " +
