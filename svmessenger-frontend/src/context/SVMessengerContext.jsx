@@ -476,11 +476,9 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // Add to conversations list if not exists
             setConversations(prev => {
                 const exists = prev.some(c => c.id === conversation.id);
-                console.log('startConversation: Conversation exists in list?', exists);
                 return exists ? prev : [conversation, ...prev];
             });
 
-            console.log('startConversation: Returning conversation', conversation.id);
             return conversation;
         } catch (error) {
             console.error('startConversation: Failed to start conversation:', error);
@@ -548,7 +546,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const openSearch = useCallback(() => {
-        console.log('openSearch: Called, setting isSearchOpen to true');
         setIsSearchOpen(true);
     }, []);
 
@@ -574,13 +571,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [activeChats]);
 
     const openChat = useCallback((conversationId, conversationObj = null) => {
-        console.log('openChat: Called with conversationId', conversationId);
-        console.log('openChat: Current activeChats length', activeChats.length);
-        console.log('openChat: conversationObj provided?', !!conversationObj);
-
         // Използваме подадения conversation обект ако има, иначе търсим в state
         let conversation = conversationObj || conversationsRef.current.find(c => c.id === conversationId);
-        console.log('openChat: Found in conversations?', !!conversation);
         if (!conversation) {
             conversation = activeChatsRef.current.find(c => c.conversation.id === conversationId)?.conversation;
         }
@@ -628,7 +620,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
         };
 
         setActiveChats(prev => [...prev, newChat]);
-        console.log('openChat: Successfully opened chat for conversation', conversationId);
 
         // Load messages - ако има непрочетени, зареди повече съобщения (възстановен разговор)
         const shouldLoadMore = conversation.unreadCount > 0;
@@ -792,16 +783,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         const exposeGlobalAPI = () => {
             try {
-                console.log('SVMessenger: Exposing global API');
-
                 // Wrapper за startConversation с автоматично отваряне
                 const startConversationWithAutoOpen = async (otherUserId) => {
-                    console.log('startConversationWithAutoOpen: Starting with user', otherUserId);
                     const conversation = await startConversation(otherUserId);
-                    console.log('startConversationWithAutoOpen: Got conversation, scheduling openChat', conversation.id);
                     // Автоматично отваряне след кратко забавяне
                     setTimeout(() => {
-                        console.log('startConversationWithAutoOpen: Calling openChat', conversation.id);
                         openChat(conversation.id);
                     }, 150);
                     return conversation;
@@ -810,19 +796,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 // Wrapper за React context startConversation с автоматично отваряне
                 const startConversationReactWithAutoOpen = async (otherUserId) => {
                     try {
-                        console.log('startConversationReactWithAutoOpen: Starting with user', otherUserId);
                         const conversation = await startConversation(otherUserId);
-                        console.log('startConversationReactWithAutoOpen: Got conversation', conversation?.id);
 
                         if (!conversation || !conversation.id) {
                             console.error('startConversationReactWithAutoOpen: Invalid conversation returned', conversation);
                             return;
                         }
 
-                        console.log('startConversationReactWithAutoOpen: Scheduling openChat', conversation.id);
                         // Автоматично отваряне след кратко забавяне
                         setTimeout(() => {
-                            console.log('startConversationReactWithAutoOpen: Calling openChat', conversation.id);
                             try {
                                 openChat(conversation.id);
                             } catch (error) {
@@ -836,7 +818,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     }
                 };
 
-                console.log('SVMessenger: Setting window.SVMessenger');
                 window.SVMessenger = {
                     startConversation: startConversationWithAutoOpen,
                     startConversationReact: startConversationReactWithAutoOpen, // За React компонентите
@@ -846,8 +827,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     sendMessage: sendMessage,
                     isConnected: isWebSocketConnected
                 };
-
-                console.log('SVMessenger: Global API exposed successfully', window.SVMessenger);
 
             } catch (error) {
                 console.error('SVMessenger: Error exposing global API:', error);

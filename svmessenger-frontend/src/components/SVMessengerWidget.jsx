@@ -21,7 +21,6 @@ const SVMessengerWidget = () => {
         closeSearch
     } = useSVMessenger();
 
-    console.log('SVMessengerWidget: isSearchOpen =', isSearchOpen);
 
     return (
         <div className="svmessenger-widget">
