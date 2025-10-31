@@ -3,7 +3,7 @@
  * Използва React Context API
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { svMessengerAPI } from '../services/svMessengerAPI';
 import svWebSocketService from '../services/svWebSocketService';
 
@@ -53,6 +53,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const messageSound = useRef(null);
     const nextZIndex = useRef(1000);
 
+    // ✅ ДОБАВИ ТЕЗИ НОВИ REFS:
+    const conversationsRef = useRef(conversations);
+    const activeChatsRef = useRef(activeChats);
+    const messagesByConversationRef = useRef(messagesByConversation);
+
     useEffect(() => {
         if (!messageSound.current) {
             // Use built asset path under /svmessenger
@@ -61,6 +66,19 @@ export const SVMessengerProvider = ({ children, userData }) => {
             messageSound.current = audio;
         }
     }, []);
+
+    // Синхронизирай refs със state
+    useEffect(() => {
+        conversationsRef.current = conversations;
+    }, [conversations]);
+
+    useEffect(() => {
+        activeChatsRef.current = activeChats;
+    }, [activeChats]);
+
+    useEffect(() => {
+        messagesByConversationRef.current = messagesByConversation;
+    }, [messagesByConversation]);
 
     // ========== EFFECTS ==========
 
@@ -448,9 +466,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const startConversation = useCallback(async (otherUserId) => {
         try {
-            console.log('startConversation: Starting with user', otherUserId);
             const conversation = await svMessengerAPI.startConversation(otherUserId);
-            console.log('startConversation: Got conversation', conversation?.id);
 
             if (!conversation || !conversation.id) {
                 console.error('startConversation: Invalid conversation from API', conversation);
@@ -563,10 +579,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         console.log('openChat: conversationObj provided?', !!conversationObj);
 
         // Използваме подадения conversation обект ако има, иначе търсим в state
-        let conversation = conversationObj || conversations.find(c => c.id === conversationId);
+        let conversation = conversationObj || conversationsRef.current.find(c => c.id === conversationId);
         console.log('openChat: Found in conversations?', !!conversation);
         if (!conversation) {
-            conversation = activeChats.find(c => c.conversation.id === conversationId)?.conversation;
+            conversation = activeChatsRef.current.find(c => c.conversation.id === conversationId)?.conversation;
         }
 
         if (!conversation) {
@@ -589,7 +605,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
 
         // Check if already exists (minimized or open)
-        const existingChat = activeChats.find(c => c.conversation.id === conversationId);
+        const existingChat = activeChatsRef.current.find(c => c.conversation.id === conversationId);
         if (existingChat) {
             if (existingChat.isMinimized) {
                 // Restore from taskbar
@@ -602,7 +618,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
 
         // Create new chat window - use conversation from conversations state for live updates
-        const liveConversation = conversations.find(c => c.id === conversationId);
+        const liveConversation = conversationsRef.current.find(c => c.id === conversationId);
         const newChat = {
             id: conversationId,
             conversation: liveConversation || conversation, // Use live reference if available
@@ -620,7 +636,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
         // Ако има непрочетени съобщения при отваряне - маркирай като прочетено
         // (това се случва само ако прозорецът е бил затворен при получаване)
-        const messages = messagesByConversation[conversationId] || [];
+        const messages = messagesByConversationRef.current[conversationId] || [];
         const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
         if (hasUnreadMessages) {
@@ -649,7 +665,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         // Close chat list
         closeChatList();
 
-    }, [conversations, messagesByConversation, currentUser, loadMessages, markAsRead, closeChatList, calculateInitialPosition]);
+    }, [currentUser]); // ← САМО currentUser!
 
     const closeChat = useCallback((conversationId) => {
         setActiveChats(prev => prev.filter(c => c.conversation.id !== conversationId));
@@ -849,7 +865,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // ========== CONTEXT VALUE ==========
 
-    const value = {
+    const value = useMemo(() => ({
         // State
         currentUser,
         conversations,
@@ -881,7 +897,36 @@ export const SVMessengerProvider = ({ children, userData }) => {
         bringToFront,
         updateChatPosition,
         removeFromConversationList
-    };
+    }), [
+        currentUser,
+        conversations,
+        activeChats,
+        messagesByConversation,
+        isChatListOpen,
+        isSearchOpen,
+        isLoadingConversations,
+        loadingMessages,
+        typingUsers,
+        totalUnreadCount,
+        isWebSocketConnected,
+        loadConversations,
+        loadMessages,
+        sendMessage,
+        startConversation,
+        markAsRead,
+        sendTypingStatus,
+        openChatList,
+        closeChatList,
+        openSearch,
+        closeSearch,
+        openChat,
+        closeChat,
+        minimizeChat,
+        restoreChat,
+        bringToFront,
+        updateChatPosition,
+        removeFromConversationList
+    ]);
 
     return (
         <SVMessengerContext.Provider value={value}>
