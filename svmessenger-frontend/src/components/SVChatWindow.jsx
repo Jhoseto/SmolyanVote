@@ -4,11 +4,38 @@ import SVChatHeader from './SVChatHeader';
 import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
 
+// Search component that appears below header
+const SVChatSearch = ({ searchQuery, onSearchChange, onClose }) => {
+    return (
+        <div className="svmessenger-chat-search">
+            <input
+                type="text"
+                className="svmessenger-chat-search-input"
+                placeholder="Търси в разговора..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                autoFocus
+            />
+            <button
+                className="svmessenger-chat-search-close"
+                onClick={onClose}
+                title="Затвори търсенето"
+            >
+                ✕
+            </button>
+        </div>
+    );
+};
+
 const SVChatWindow = ({ chat }) => {
     const { closeChat, minimizeChat, bringToFront, updateChatPosition, markAsRead, messagesByConversation, currentUser } = useSVMessenger();
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+    // Search state
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (!chat.isMinimized) {
@@ -81,6 +108,19 @@ const SVChatWindow = ({ chat }) => {
         minimizeChat(chat.conversation.id);
     };
 
+    const handleOpenSearch = () => {
+        setIsSearchOpen(true);
+    };
+
+    const handleCloseSearch = () => {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+    };
+
+    const handleSearchChange = (query) => {
+        setSearchQuery(query);
+    };
+
     if (chat.isMinimized) {
         return null;
     }
@@ -101,9 +141,22 @@ const SVChatWindow = ({ chat }) => {
                 conversation={chat.conversation}
                 onClose={handleClose}
                 onMinimize={handleMinimize}
+                onOpenSearch={handleOpenSearch}
             />
 
-            <SVMessageThread conversationId={chat.conversation.id} />
+            {/* Search field appears below header */}
+            {isSearchOpen && (
+                <SVChatSearch
+                    searchQuery={searchQuery}
+                    onSearchChange={handleSearchChange}
+                    onClose={handleCloseSearch}
+                />
+            )}
+
+            <SVMessageThread
+                conversationId={chat.conversation.id}
+                searchQuery={searchQuery}
+            />
 
             <SVMessageInput conversationId={chat.conversation.id} />
         </div>

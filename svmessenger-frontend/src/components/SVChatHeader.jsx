@@ -5,11 +5,9 @@ import { useSVMessenger } from '../context/SVMessengerContext';
  * Chat Header компонент
  * Показва информация за потребителя и контроли
  */
-const SVChatHeader = ({ conversation, onClose, onMinimize }) => {
+const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch }) => {
   const { otherUser } = conversation;
   const [showMenu, setShowMenu] = useState(false);
-  const [showSearchInChat, setShowSearchInChat] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const menuRef = useRef(null);
 
   // Close menu when clicking outside
@@ -31,13 +29,13 @@ const SVChatHeader = ({ conversation, onClose, onMinimize }) => {
 
   const handleProfileView = () => {
     setShowMenu(false);
-    // TODO: Implement profile view
-    alert('Преглед на профила');
+    // Отваря профила на потребителя в нов таб
+    window.open(`/user/${otherUser.username}`, '_blank');
   };
 
   const handleSearchInChat = () => {
     setShowMenu(false);
-    setShowSearchInChat(true);
+    onOpenSearch();
   };
 
   const handleDeleteChat = () => {
@@ -135,23 +133,6 @@ const SVChatHeader = ({ conversation, onClose, onMinimize }) => {
         </button>
       </div>
 
-      {/* Search in Chat (appears when clicked) */}
-      {showSearchInChat && (
-        <div className="svmessenger-search-in-chat">
-          <input
-            type="text"
-            placeholder="Търси в разговора..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-          />
-          <button onClick={() => setShowSearchInChat(false)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 };

@@ -10,7 +10,7 @@ import { groupMessagesByDate } from '../utils/svDateFormatter';
  * Message Thread компонент
  * Показва списък с съобщения и поддържа infinite scroll
  */
-const SVMessageThread = ({ conversationId }) => {
+const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   const {
     messagesByConversation,
     loadingMessages,
@@ -18,9 +18,16 @@ const SVMessageThread = ({ conversationId }) => {
     loadMessages
   } = useSVMessenger();
 
-  const messages = Array.isArray(messagesByConversation[conversationId]) 
-    ? messagesByConversation[conversationId] 
+  const allMessages = Array.isArray(messagesByConversation[conversationId])
+    ? messagesByConversation[conversationId]
     : [];
+
+  // Filter messages based on search query
+  const messages = searchQuery.trim()
+    ? allMessages.filter(message =>
+        message.text && message.text.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : allMessages;
   const isLoading = loadingMessages[conversationId] || false;
   const isTyping = typingUsers[conversationId];
   const messagesEndRef = useRef(null);
@@ -79,7 +86,7 @@ const SVMessageThread = ({ conversationId }) => {
             const isLast = index === groupedItems.length - 1;
             return (
               <div key={item.message.id} ref={isLast ? lastMessageRef : null}>
-                <SVMessageItem message={item.message} />
+                <SVMessageItem message={item.message} searchQuery={searchQuery} />
               </div>
             );
           }

@@ -2,6 +2,37 @@ import React, { useEffect, useRef } from 'react';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
+// Български преводи за emoji категории
+const bgMessages = {
+  search: 'Търсене',
+  clear: 'Изчисти',
+  notfound: 'Емоджита не са намерени',
+  choose: 'Избери цвят на кожа',
+  categories: {
+    search: 'Резултати от търсене',
+    recent: 'Наскоро използвани',
+    smileys: 'Усмивки и хора',
+    people: 'Хора и тяло',
+    nature: 'Природа',
+    foods: 'Храна и напитки',
+    activity: 'Дейности',
+    places: 'Пътуване и места',
+    objects: 'Обекти',
+    symbols: 'Символи',
+    flags: 'Знамена',
+    custom: 'Персонализирани',
+  },
+  categorieslabel: 'Категории',
+  skintones: {
+    1: 'По подразбиране',
+    2: 'Светъл',
+    3: 'Средно светъл',
+    4: 'Среден',
+    5: 'Средно тъмен',
+    6: 'Тъмен',
+  },
+};
+
 /**
  * Emoji Picker компонент с emoji-mart
  * Опаковка около @emoji-mart/react с кастомизация
@@ -37,7 +68,7 @@ const SVEmojiPicker = ({ onEmojiSelect, onClose, show }) => {
           previewPosition="none"
           searchPosition="bottom"
           theme="light"
-          locale="bg"
+          i18n={bgMessages}
           perLine={7}
           emojiSize={20}
           emojiButtonSize={28}

@@ -7,11 +7,20 @@ import { linkifyText, isOnlyEmoji } from '../utils/svHelpers';
  * Single Message Item компонент
  * Показва едно съобщение в thread-а
  */
-const SVMessageItem = ({ message }) => {
+const SVMessageItem = ({ message, searchQuery = '' }) => {
     const { currentUser } = useSVMessenger();
 
     const isOwnMessage = message.senderId === currentUser.id;
     const isEmojiOnly = isOnlyEmoji(message.text);
+
+    // Highlight search query in message text
+    const highlightSearchText = (text, query) => {
+        if (!query.trim()) return linkifyText(text);
+
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const highlightedText = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+        return linkifyText(highlightedText);
+    };
 
     // Функция за рендериране на правилните лястовици
     const renderCheckmarks = () => {
@@ -71,7 +80,7 @@ const SVMessageItem = ({ message }) => {
                     <div
                         className="svmessenger-message-text"
                         dangerouslySetInnerHTML={{
-                            __html: linkifyText(message.text)
+                            __html: highlightSearchText(message.text, searchQuery)
                         }}
                     />
                 </div>
