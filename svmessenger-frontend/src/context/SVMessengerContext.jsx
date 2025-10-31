@@ -448,18 +448,28 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const startConversation = useCallback(async (otherUserId) => {
         try {
+            console.log('startConversation: Starting with user', otherUserId);
             const conversation = await svMessengerAPI.startConversation(otherUserId);
+            console.log('startConversation: Got conversation', conversation?.id);
+
+            if (!conversation || !conversation.id) {
+                console.error('startConversation: Invalid conversation from API', conversation);
+                throw new Error('Invalid conversation returned from API');
+            }
 
             // Add to conversations list if not exists
             setConversations(prev => {
                 const exists = prev.some(c => c.id === conversation.id);
+                console.log('startConversation: Conversation exists in list?', exists);
                 return exists ? prev : [conversation, ...prev];
             });
 
+            console.log('startConversation: Returning conversation', conversation.id);
             return conversation;
         } catch (error) {
-            console.error('Failed to start conversation:', error);
+            console.error('startConversation: Failed to start conversation:', error);
             alert('Грешка при стартиране на разговор.');
+            throw error; // Препращаме грешката нагоре
         }
     }, []);
 
@@ -522,6 +532,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const openSearch = useCallback(() => {
+        console.log('openSearch: Called, setting isSearchOpen to true');
         setIsSearchOpen(true);
     }, []);
 
@@ -547,8 +558,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [activeChats]);
 
     const openChat = useCallback((conversationId) => {
+        console.log('openChat: Called with conversationId', conversationId);
+        console.log('openChat: Current activeChats length', activeChats.length);
         // Find conversation
         let conversation = conversations.find(c => c.id === conversationId);
+        console.log('openChat: Found in conversations?', !!conversation);
         if (!conversation) {
             conversation = activeChats.find(c => c.conversation.id === conversationId)?.conversation;
         }
@@ -596,6 +610,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         };
 
         setActiveChats(prev => [...prev, newChat]);
+        console.log('openChat: Successfully opened chat for conversation', conversationId);
 
         // Load messages - ако има непрочетени, зареди повече съобщения (възстановен разговор)
         const shouldLoadMore = conversation.unreadCount > 0;
@@ -756,59 +771,54 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // Изнасяме глобална функция за комуникация с vanilla JavaScript
     useEffect(() => {
-        
+
         const exposeGlobalAPI = () => {
             try {
+                console.log('SVMessenger: Exposing global API');
+
                 // Wrapper за startConversation с автоматично отваряне
                 const startConversationWithAutoOpen = async (otherUserId) => {
+                    console.log('startConversationWithAutoOpen: Starting with user', otherUserId);
                     const conversation = await startConversation(otherUserId);
-                    if (conversation) {
-                        // Автоматично отваряне на чат прозореца
-                        setTimeout(() => {
-                            openChat(conversation.id);
-                        }, 100);
-                    }
+                    console.log('startConversationWithAutoOpen: Got conversation, scheduling openChat', conversation.id);
+                    // Автоматично отваряне след кратко забавяне
+                    setTimeout(() => {
+                        console.log('startConversationWithAutoOpen: Calling openChat', conversation.id);
+                        openChat(conversation.id);
+                    }, 150);
                     return conversation;
                 };
 
                 // Wrapper за React context startConversation с автоматично отваряне
                 const startConversationReactWithAutoOpen = async (otherUserId) => {
-                    const conversation = await startConversation(otherUserId);
-                    if (conversation) {
-                        // Автоматично отваряне на чат прозореца
-                        setTimeout(() => {
-                            // Намираме conversation от state-а
-                            setConversations(prev => {
-                                const foundConversation = prev.find(c => c.id === conversation.id) || conversation;
-                                if (foundConversation) {
-                                    // Създаваме нов chat window
-                                    const newChat = {
-                                        id: conversation.id,
-                                        conversation: foundConversation,
-                                        isMinimized: false,
-                                        position: calculateInitialPosition(),
-                                        zIndex: nextZIndex.current++
-                                    };
+                    try {
+                        console.log('startConversationReactWithAutoOpen: Starting with user', otherUserId);
+                        const conversation = await startConversation(otherUserId);
+                        console.log('startConversationReactWithAutoOpen: Got conversation', conversation?.id);
 
-                                    setActiveChats(prev => [...prev, newChat]);
-                                    
-                                    // Load messages
-                                    loadMessages(conversation.id);
-                                    
-                                    // Mark as read
-                                    markAsRead(conversation.id);
-                                    
-                                    // Close chat list
-                                    closeChatList();
-                                    
-                                }
-                                return prev;
-                            });
-                        }, 100);
+                        if (!conversation || !conversation.id) {
+                            console.error('startConversationReactWithAutoOpen: Invalid conversation returned', conversation);
+                            return;
+                        }
+
+                        console.log('startConversationReactWithAutoOpen: Scheduling openChat', conversation.id);
+                        // Автоматично отваряне след кратко забавяне
+                        setTimeout(() => {
+                            console.log('startConversationReactWithAutoOpen: Calling openChat', conversation.id);
+                            try {
+                                openChat(conversation.id);
+                            } catch (error) {
+                                console.error('startConversationReactWithAutoOpen: Error in openChat', error);
+                            }
+                        }, 150);
+                        return conversation;
+                    } catch (error) {
+                        console.error('startConversationReactWithAutoOpen: Error', error);
+                        throw error;
                     }
-                    return conversation;
                 };
 
+                console.log('SVMessenger: Setting window.SVMessenger');
                 window.SVMessenger = {
                     startConversation: startConversationWithAutoOpen,
                     startConversationReact: startConversationReactWithAutoOpen, // За React компонентите
@@ -818,20 +828,22 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     sendMessage: sendMessage,
                     isConnected: isWebSocketConnected
                 };
-                
+
+                console.log('SVMessenger: Global API exposed successfully', window.SVMessenger);
+
             } catch (error) {
                 console.error('SVMessenger: Error exposing global API:', error);
             }
         };
 
         exposeGlobalAPI();
-        
+
         return () => {
             if (window.SVMessenger) {
                 delete window.SVMessenger;
             }
         };
-    }, [isWebSocketConnected]);
+    }, []); // Празен dependency array - изпълнява се само при mount
 
     // ========== CONTEXT VALUE ==========
 

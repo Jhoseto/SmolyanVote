@@ -22,6 +22,8 @@ const SVMessengerWidget = () => {
         closeSearch
     } = useSVMessenger();
 
+    console.log('SVMessengerWidget: isSearchOpen =', isSearchOpen);
+
     // State for showing following list vs conversation list
     const [showFollowingList, setShowFollowingList] = useState(false);
 
