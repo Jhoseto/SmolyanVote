@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 import { svMessengerAPI } from '../services/svMessengerAPI';
 import { debounce } from '../utils/svHelpers';
@@ -8,7 +8,7 @@ import { debounce } from '../utils/svHelpers';
  * Показва търсене на потребители за нови разговори
  */
 const SVUserSearch = ({ onClose }) => {
-  const { startConversation } = useSVMessenger();
+  const { startConversation, openChat } = useSVMessenger();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,21 +42,28 @@ const SVUserSearch = ({ onClose }) => {
     debouncedSearch(query);
   };
 
-  // Handle user selection
-  const handleUserSelect = async (user) => {
+  // Handle user selection - по същия начин като SVConversationItem
+  const handleUserSelect = useCallback(async (user) => {
     try {
-      // Използваме глобалния API с автоматично отваряне
-      if (window.SVMessenger && window.SVMessenger.startConversationReact) {
-        await window.SVMessenger.startConversationReact(user.id);
+      console.log('SVUserSearch: Starting conversation with user', user.id);
+      // Създаваме разговора
+      const conversation = await startConversation(user.id);
+      console.log('SVUserSearch: Got conversation', conversation);
+
+      if (conversation && conversation.id) {
+        console.log('SVUserSearch: Opening chat with conversation ID', conversation.id);
+        // Отваряме чата по същия начин като от conversation list
+        openChat(conversation.id);
+        console.log('SVUserSearch: Closing modal');
+        // Затваряме search модала
+        onClose();
       } else {
-        // Fallback към React context
-        await startConversation(user.id);
+        console.error('SVUserSearch: No conversation returned from startConversation');
       }
-      onClose();
     } catch (error) {
-      console.error('Failed to start conversation:', error);
+      console.error('SVUserSearch: Failed to start conversation:', error);
     }
-  };
+  }, [startConversation, openChat, onClose]);
 
   return (
     <div className="svmessenger-user-search">
@@ -122,7 +129,10 @@ const SVUserSearch = ({ onClose }) => {
               <div
                 key={user.id}
                 className="svmessenger-search-user-item"
-                onClick={() => handleUserSelect(user)}
+                onClick={() => {
+                  console.log('SVUserSearch: onClick fired for user', user.id);
+                  handleUserSelect(user);
+                }}
               >
                 <div className="svmessenger-search-user-avatar">
                   <img 
