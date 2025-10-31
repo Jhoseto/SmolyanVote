@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 import SVConversationList from './SVConversationList';
-import SVFollowingList from './SVFollowingList';
 import SVChatWindow from './SVChatWindow';
 import SVUserSearch from './SVUserSearch';
 import SVTaskbar from './SVTaskbar';
@@ -24,9 +23,6 @@ const SVMessengerWidget = () => {
 
     console.log('SVMessengerWidget: isSearchOpen =', isSearchOpen);
 
-    // State for showing following list vs conversation list
-    const [showFollowingList, setShowFollowingList] = useState(false);
-
     return (
         <div className="svmessenger-widget">
             {/* Floating Action Button */}
@@ -43,25 +39,15 @@ const SVMessengerWidget = () => {
                 )}
             </div>
 
-            {/* Following List or Conversation List Popup */}
+            {/* Conversation List Popup */}
             {isChatListOpen && (
-                showFollowingList ? (
-                    <SVFollowingList
-                        onClose={() => {
-                            setShowFollowingList(false);
-                            closeChatList();
-                        }}
-                        onSearchClick={() => {
-                            setShowFollowingList(false);
-                            openSearch();
-                        }}
-                    />
-                ) : (
-                    <SVConversationList
-                        onClose={closeChatList}
-                        onSearchClick={() => setShowFollowingList(true)}
-                    />
-                )
+                <SVConversationList
+                    onClose={closeChatList}
+                    onSearchClick={() => {
+                        closeChatList();
+                        openSearch();
+                    }}
+                />
             )}
 
             {/* User Search Popup */}
