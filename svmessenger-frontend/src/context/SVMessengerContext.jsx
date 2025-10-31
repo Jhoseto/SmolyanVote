@@ -557,11 +557,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
         };
     }, [activeChats]);
 
-    const openChat = useCallback((conversationId) => {
+    const openChat = useCallback((conversationId, conversationObj = null) => {
         console.log('openChat: Called with conversationId', conversationId);
         console.log('openChat: Current activeChats length', activeChats.length);
-        // Find conversation
-        let conversation = conversations.find(c => c.id === conversationId);
+        console.log('openChat: conversationObj provided?', !!conversationObj);
+
+        // Използваме подадения conversation обект ако има, иначе търсим в state
+        let conversation = conversationObj || conversations.find(c => c.id === conversationId);
         console.log('openChat: Found in conversations?', !!conversation);
         if (!conversation) {
             conversation = activeChats.find(c => c.conversation.id === conversationId)?.conversation;

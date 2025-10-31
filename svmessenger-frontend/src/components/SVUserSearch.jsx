@@ -43,35 +43,41 @@ const SVUserSearch = ({ onClose }) => {
   };
 
   // Handle user selection - по същия начин като SVConversationItem
-  const handleUserSelect = useCallback(async (user) => {
-    try {
-      console.log('SVUserSearch: Starting conversation with user', user.id);
-      // Създаваме разговора
-      const conversation = await startConversation(user.id);
-      console.log('SVUserSearch: Got conversation', conversation);
+    const handleUserSelect = useCallback(async (user) => {
+        try {
+            console.log('SVUserSearch: Starting conversation with user', user.id);
 
-      if (conversation && conversation.id) {
-        console.log('SVUserSearch: Opening chat with conversation ID', conversation.id);
-        // Отваряме чата по същия начин като от conversation list
-        openChat(conversation.id);
-        console.log('SVUserSearch: Closing modal');
-        // Затваряме search модала
-        onClose();
-      } else {
-        console.error('SVUserSearch: No conversation returned from startConversation');
-      }
-    } catch (error) {
-      console.error('SVUserSearch: Failed to start conversation:', error);
-    }
-  }, [startConversation, openChat, onClose]);
+            // Създаваме разговора
+            const conversation = await startConversation(user.id);
+            console.log('SVUserSearch: Got conversation', conversation);
+
+            if (conversation && conversation.id) {
+                console.log('SVUserSearch: Opening chat with conversation ID', conversation.id);
+
+                // Отваряме чата с conversation обекта за да избегнем race condition
+                openChat(conversation.id, conversation);
+
+                // ✅ ВАЖНО: Затваряме панела след кратко забавяне
+                // Това дава време на openChat да създаде прозореца преди панелът да изчезне
+                setTimeout(() => {
+                    console.log('SVUserSearch: Closing modal after chat opened');
+                    onClose();
+                }, 100);
+            } else {
+                console.error('SVUserSearch: No conversation returned from startConversation');
+            }
+        } catch (error) {
+            console.error('SVUserSearch: Failed to start conversation:', error);
+        }
+    }, [startConversation, openChat, onClose]);
 
   return (
     <div className="svmessenger-user-search">
       {/* Header */}
-      <div className="svmessenger-search-header">
+      <div className="svmessenger-conversation-header">
         <h3>Нов разговор</h3>
-        <button 
-          className="svmessenger-search-close"
+        <button
+          className="svmessenger-close-btn"
           onClick={onClose}
           title="Затвори"
         >
@@ -83,23 +89,13 @@ const SVUserSearch = ({ onClose }) => {
 
       {/* Search Input */}
       <div className="svmessenger-search-input">
-        <div className="svmessenger-search-input-container">
-          <svg className="svmessenger-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          </svg>
-          <input
-            type="text"
-            placeholder="Търси потребители..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            autoFocus
-          />
-          {isSearching && (
-            <div className="svmessenger-search-spinner">
-              <div className="svmessenger-spinner"></div>
-            </div>
-          )}
-        </div>
+        <input
+          type="text"
+          placeholder="Търси потребители..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          autoFocus
+        />
       </div>
 
       {/* Search Results */}
