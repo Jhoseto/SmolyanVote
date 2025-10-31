@@ -45,14 +45,11 @@ const SVUserSearch = ({ onClose }) => {
   // Handle user selection - по същия начин като SVConversationItem
     const handleUserSelect = useCallback(async (user) => {
         try {
-            console.log('SVUserSearch: Starting conversation with user', user.id);
 
             // Създаваме разговора
             const conversation = await startConversation(user.id);
-            console.log('SVUserSearch: Got conversation', conversation);
 
             if (conversation && conversation.id) {
-                console.log('SVUserSearch: Opening chat with conversation ID', conversation.id);
 
                 // Отваряме чата с conversation обекта за да избегнем race condition
                 openChat(conversation.id, conversation);
@@ -60,7 +57,6 @@ const SVUserSearch = ({ onClose }) => {
                 // ✅ ВАЖНО: Затваряме панела след кратко забавяне
                 // Това дава време на openChat да създаде прозореца преди панелът да изчезне
                 setTimeout(() => {
-                    console.log('SVUserSearch: Closing modal after chat opened');
                     onClose();
                 }, 100);
             } else {
@@ -125,10 +121,7 @@ const SVUserSearch = ({ onClose }) => {
               <div
                 key={user.id}
                 className="svmessenger-search-user-item"
-                onClick={() => {
-                  console.log('SVUserSearch: onClick fired for user', user.id);
-                  handleUserSelect(user);
-                }}
+                onClick={() => handleUserSelect(user)}
               >
                 <div className="svmessenger-search-user-avatar">
                   <img 
