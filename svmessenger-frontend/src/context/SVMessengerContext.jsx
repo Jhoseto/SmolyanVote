@@ -186,29 +186,39 @@ export const SVMessengerProvider = ({ children, userData }) => {
             // SVTaskbar will read live conversation data from conversations state
         } else {
             // Chat е напълно затворен - покажи notifications
-            setTotalUnreadCount(prev => prev + 1);
 
             // Check if conversation exists in conversations list
             const conversationExists = conversations.some(c => c.id === message.conversationId);
 
             if (conversationExists) {
                 // Update existing conversation unread count
-                setConversations(prev => prev.map(c =>
-                    c.id === message.conversationId
-                        ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
-                        : c
-                ));
+                setConversations(prev => {
+                    const updated = prev.map(c =>
+                        c.id === message.conversationId
+                            ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+                            : c
+                    );
+                    // Always recalculate total unread count from conversations
+                    const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                    setTotalUnreadCount(totalUnread);
+                    return updated;
+                });
             } else {
                 // Conversation not in list (was hidden, now un-hidden by backend)
                 // Fetch it and add to conversations list
                 svMessengerAPI.getConversation(message.conversationId).then(conv => {
                     if (conv) {
                         setConversations(prev => {
-                            const exists = prev.some(c => c.id === conv.id);
-                            if (!exists) {
-                                return [conv, ...prev];
-                            }
-                            return prev;
+                            const updated = prev.some(c => c.id === conv.id)
+                                ? prev.map(c => c.id === conv.id
+                                    ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
+                                    : c
+                                )
+                                : [{ ...conv, unreadCount: (conv.unreadCount || 0) + 1 }, ...prev];
+                            // Always recalculate total unread count from conversations
+                            const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                            setTotalUnreadCount(totalUnread);
+                            return updated;
                         });
                     }
                 }).catch(error => {
@@ -385,6 +395,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         try {
             const data = await svMessengerAPI.getConversations();
             setConversations(data);
+
+            // Recalculate total unread count after loading conversations
+            const totalUnread = data.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+            setTotalUnreadCount(totalUnread);
 
             // Mark all undelivered messages as delivered when user loads messenger
             try {
@@ -677,8 +691,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 : c
         ));
 
-        // Ако има непрочетени съобщения при restore - маркирай като прочетено
-        // (това се случва само ако прозорецът е бил minimized при получаване)
+        // Винаги нулирай unread count при restore - отварянето на чата се счита за преглед
         const messages = messagesByConversation[conversationId] || [];
         const hasUnreadMessages = messages.some(m => m.senderId !== currentUser.id && !m.isRead);
 
@@ -692,20 +705,20 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     m.senderId !== currentUser.id ? { ...m, isRead: true, readAt: new Date().toISOString() } : m
                 )
             }));
-
-            // Update conversation unread count
-            setConversations(prev => {
-                const updated = prev.map(c =>
-                    c.id === conversationId ? { ...c, unreadCount: 0 } : c
-                );
-                // Recalculate total unread count
-                const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-                setTotalUnreadCount(totalUnread);
-                return updated;
-            });
-
-            // SVTaskbar will read live conversation data from conversations state
         }
+
+        // Винаги нулирай unread count при restore - независимо дали има непрочетени съобщения
+        setConversations(prev => {
+            const updated = prev.map(c =>
+                c.id === conversationId ? { ...c, unreadCount: 0 } : c
+            );
+            // Recalculate total unread count
+            const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+            setTotalUnreadCount(totalUnread);
+            return updated;
+        });
+
+        // SVTaskbar will read live conversation data from conversations state
 
     }, [conversations, messagesByConversation, currentUser]);
 

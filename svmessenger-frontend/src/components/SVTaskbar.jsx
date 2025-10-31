@@ -11,13 +11,14 @@ const SVTaskbar = () => {
 
     // Get only minimized chats with live conversation data
     const minimizedChats = useMemo(() => {
-        return activeChats
+        const result = activeChats
             .filter(chat => chat.isMinimized)
             .map(chat => ({
                 ...chat,
                 conversation: conversations.find(c => c.id === chat.conversation.id) || chat.conversation
             }));
-    }, [activeChats, conversations]);
+        return result;
+    }, [conversations]);
 
     // Don't render if no minimized chats
     if (minimizedChats.length === 0) {
