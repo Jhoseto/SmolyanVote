@@ -199,6 +199,60 @@
                                 <span>Контакти</span>
                             </a>
                         </li>
+                        <!-- Language Switcher -->
+                        <li class="nav-item-glass language-switcher-item">
+                            <a class="nav-link-glass language-toggle" href="#" onclick="toggleLanguageMenu(event)">
+                                <i class="bi bi-globe2"></i>
+                                <span>Езици</span>
+                                <i class="bi bi-chevron-down arrow-icon"></i>
+                            </a>
+                            <!-- Language Dropdown -->
+                            <div class="language-dropdown" id="languageDropdown">
+                                <a href="#" onclick="translateTo('bg'); return false;" class="language-option">
+                                    <span class="fi fi-bg"></span>
+                                    <span>Български</span>
+                                </a>
+                                <a href="#" onclick="translateTo('en'); return false;" class="language-option">
+                                    <span class="fi fi-gb"></span>
+                                    <span>Английски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('el'); return false;" class="language-option">
+                                    <span class="fi fi-gr"></span>
+                                    <span>Гръцки</span>
+                                </a>
+                                <a href="#" onclick="translateTo('tr'); return false;" class="language-option">
+                                    <span class="fi fi-tr"></span>
+                                    <span>Турски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('ru'); return false;" class="language-option">
+                                    <span class="fi fi-ru"></span>
+                                    <span>Руски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('de'); return false;" class="language-option">
+                                    <span class="fi fi-de"></span>
+                                    <span>Германски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('fr'); return false;" class="language-option">
+                                    <span class="fi fi-fr"></span>
+                                    <span>Френски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('es'); return false;" class="language-option">
+                                    <span class="fi fi-es"></span>
+                                    <span>Испански</span>
+                                </a>
+                                <a href="#" onclick="translateTo('iw'); return false;" class="language-option">
+                                    <span class="fi fi-il"></span>
+                                    <span>Еврейски</span>
+                                </a>
+                                <a href="#" onclick="translateTo('zh-CN'); return false;" class="language-option">
+                                    <span class="fi fi-cn"></span>
+                                    <span>Китайски</span>
+                                </a>
+                            </div>
+                        </li>
+
+                        <!-- Google Translate Widget (hidd) -->
+                        <div id="google_translate_element" style="display: none;"></div>
                     </ul>
                     
                     <!-- Auth Buttons for Mobile (shown only when NOT authenticated) -->

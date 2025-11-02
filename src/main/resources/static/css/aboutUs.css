@@ -62,31 +62,15 @@ body {
     font-family: var(--font-primary);
     line-height: 1.6;
     color: var(--text-primary);
-    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+    background: url('/images/web/aboutBack.png') repeat;
+    background-size: 1910px;
     min-height: 100vh;
     overflow-x: hidden;
 }
 
-/* Dynamic Background */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background:
-            radial-gradient(circle at 25% 25%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(15, 123, 89, 0.08) 0%, transparent 50%),
-            linear-gradient(135deg, rgba(25, 134, 28, 0.05) 0%, rgba(76, 175, 80, 0.03) 100%);
-    animation: backgroundShift 20s ease-in-out infinite alternate;
-    z-index: -2;
-}
+/* Background image is now used instead of dynamic gradients */
 
-@keyframes backgroundShift {
-    0% { transform: translateX(0) translateY(0) scale(1); }
-    100% { transform: translateX(-20px) translateY(-20px) scale(1.02); }
-}
+/* Animation removed as background image is now used */
 
 /* Hero Section */
 .hero {
@@ -98,10 +82,6 @@ body::before {
     text-align: center;
     overflow: hidden;
     padding: 4rem 1rem;
-    background:
-            linear-gradient(135deg, rgba(15, 32, 39, 0.9) 0%, rgba(32, 58, 67, 0.8) 100%),
-            url('/images/web/indexBackground1.jpg') center/cover;
-    background-attachment: fixed;
 }
 
 .hero::before {
@@ -122,7 +102,7 @@ body::before {
     position: relative;
     z-index: 2;
     backdrop-filter: blur(20px);
-    background: var(--gradient-glass);
+    background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.3) 100%);
     border-radius: 25px;
     padding: 3rem 2.5rem;
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -212,6 +192,15 @@ body::before {
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+mux-player {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    --controls: none;
+}
+
 .intro-text {
     animation: fadeInUp 1.6s var(--ease-out-expo) 0.8s forwards;
     opacity: 0;
@@ -253,25 +242,15 @@ body::before {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 2rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-    align-items: center;
+    display: flex;
+    justify-content: center;
     min-height: 500px;
-}
-
-.section.reverse .section-container {
-    direction: rtl;
-}
-
-.section.reverse .section-container > * {
-    direction: ltr;
 }
 
 /* Content Box */
 .content-box {
     backdrop-filter: blur(20px);
-    background: var(--gradient-glass);
+    background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 100%);
     border-radius: 20px;
     padding: 3rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -279,6 +258,76 @@ body::before {
     position: relative;
     overflow: hidden;
     transition: all 0.4s var(--ease-out-quart);
+}
+
+/* Unified Box - 3 section layout: Header + Text + Video */
+.unified-box {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    grid-template-rows: auto 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* Header spans full width at top */
+.unified-box .text-content:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+}
+
+/* Text content on left */
+.unified-box .text-content:last-child {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+/* Video content on right */
+.unified-box .video-content {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+/* Reverse sections - swap text and video positions */
+.section.reverse .unified-box .text-content:last-child {
+    grid-column: 2;
+}
+
+.section.reverse .unified-box .video-content {
+    grid-column: 1;
+}
+
+/* Text Content */
+.text-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header text content (h2) */
+.text-content:first-child {
+    text-align: center;
+    justify-content: center;
+}
+
+/* Content text (p elements) */
+.text-content:last-child {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+/* Video Content */
+.video-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-content mux-player {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    aspect-ratio: 16/9;
+    border-radius: 15px;
 }
 
 .content-box::before {
@@ -341,12 +390,86 @@ body::before {
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-/* Image Box */
+
+/* Mux Player Styles */
+.image-box mux-player {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    --controls: none;
+}
+
+/* Video Positioning and Zoom Controls - Customize per section */
+/* Section 1 - Video content scaling (applied to video content, not container) */
+.video-section-1 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.2;
+}
+
+/* Section 2 */
+.video-section-2 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.77;
+}
+
+/* Section 3 */
+.video-section-3 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.02;
+}
+
+/* Section 4 */
+.video-section-4 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.77;
+}
+
+/* Section 5 */
+.video-section-5 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.34;
+}
+
+/* Section 6 */
+.video-section-6 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1;
+}
+
+/* Section 7 */
+.video-section-7 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.56;
+}
+
+/* Section 8 */
+.video-section-8 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 2.63;
+}
+
+/* Section 9 */
+.video-section-9 .video-content mux-player {
+    --media-object-fit: cover;
+    --media-object-position: center;
+    --video-zoom: 1.2;
+}
+
+/* Ensure all mux players have consistent 16:9 aspect ratio */
 .image-box {
     position: relative;
-    border-radius: 20px;
+    border-radius: 0;
     overflow: hidden;
-    aspect-ratio: 1.2;
+    aspect-ratio: 16/9;
     box-shadow: var(--shadow-lg);
     transition: all 0.4s var(--ease-out-quart);
 }
@@ -359,26 +482,12 @@ body::before {
     right: -2px;
     bottom: -2px;
     background: var(--gradient-secondary);
-    border-radius: 22px;
+    border-radius: 0;
     z-index: -1;
     opacity: 0.6;
 }
 
-.image-box:hover {
-    transform: scale(1.02);
-    box-shadow: var(--shadow-xl);
-}
-
-.image-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s var(--ease-out-quart);
-}
-
-.image-box:hover img {
-    transform: scale(1.05);
-}
+/* Hover effect removed as requested */
 
 /* Special Section Backgrounds */
 .section:nth-child(odd) {
@@ -414,116 +523,6 @@ body::before {
     }
     100% {
         filter: drop-shadow(0 0 8px rgba(15, 123, 88, 0.5));
-    }
-}
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .section-container {
-        max-width: 1200px;
-        gap: 3rem;
-    }
-
-    .content-box {
-        padding: 2.5rem;
-    }
-}
-
-@media (max-width: 1024px) {
-    .section-container {
-        grid-template-columns: 1fr;
-        gap: 3rem;
-        text-align: center;
-    }
-
-    .section.reverse .section-container {
-        direction: ltr;
-    }
-
-    .content-box {
-        padding: 2.5rem;
-    }
-
-    .image-box {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero {
-        min-height: 80vh;
-        padding: 2rem 1rem;
-        background-attachment: scroll;
-    }
-
-    .hero-content {
-        padding: 2rem 1.5rem;
-    }
-
-    .section {
-        padding: 3rem 0;
-    }
-
-    .section-container {
-        padding: 0 1rem;
-        gap: 2rem;
-        min-height: auto;
-    }
-
-    .content-box {
-        padding: 2rem;
-    }
-
-    .content-box h2 {
-        font-size: clamp(1.5rem, 5vw, 2.2rem);
-        margin-bottom: 1rem;
-    }
-
-    .content-box p {
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-
-    .image-box {
-        aspect-ratio: 1.4;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-content {
-        padding: 1.5rem 1rem;
-    }
-
-    .hero h1 {
-        font-size: clamp(2rem, 8vw, 3rem);
-    }
-
-    .hero-content > p {
-        font-size: clamp(1rem, 4vw, 1.4rem);
-        margin-bottom: 1.5rem;
-    }
-
-    .intro-text p {
-        font-size: clamp(0.9rem, 3.5vw, 1.1rem);
-        line-height: 1.6;
-    }
-
-    .content-box {
-        padding: 1.5rem;
-    }
-
-    .section-container {
-        padding: 0 0.5rem;
-        gap: 1.5rem;
-    }
-
-    .content-box h2 {
-        font-size: clamp(1.3rem, 6vw, 1.8rem);
-    }
-
-    .content-box p {
-        font-size: 0.95rem;
     }
 }
 

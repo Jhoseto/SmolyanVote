@@ -790,3 +790,120 @@
     opacity: 1;
     visibility: visible;
 }
+
+/* ========================================
+   LANGUAGE SWITCHER STYLING
+   ======================================== */
+
+/* Language Switcher Item */
+.language-switcher-item {
+    position: relative;
+}
+
+.language-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.language-toggle .arrow-icon {
+    font-size: 0.7rem;
+    transition: transform 0.3s ease;
+}
+
+.language-toggle.active .arrow-icon {
+    transform: rotate(180deg);
+}
+
+/* Flag Icons Styling */
+.language-option .fi {
+    font-size: 1.3rem;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Language Dropdown */
+.language-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem 0;
+    min-width: 200px;
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.language-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Language Options */
+.language-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.language-option:hover {
+    background: rgba(76, 177, 92, 0.1);
+    color: var(--primary-color);
+}
+
+.language-option .flag {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+/* Скриване на оригиналния Google Translate widget */
+#google_translate_element,
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+div#goog-gt-,
+.goog-te-gadget {
+    display: none !important;
+}
+
+body {
+    top: 0 !important;
+}
+
+/* Премахване на Google Translate toolbar */
+.skiptranslate {
+    display: none !important;
+}
+
+/* Оптимизация на Google Translate */
+body.translated {
+    will-change: auto;
+}
+
+/* Prevent layout shifts */
+.goog-te-banner-frame {
+    display: none !important;
+}
+
+/* Изключи хардуерно ускорение за преведени елементи */
+.translated * {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+

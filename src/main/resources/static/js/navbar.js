@@ -250,6 +250,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+
+// ========================================
+// GOOGLE TRANSLATE LANGUAGE SWITCHER
+// ========================================
+
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({pageLanguage: 'bg'}, 'google_translate_element');
+}
+
+function toggleLanguageMenu(event) {
+    event.preventDefault();
+    document.getElementById('languageDropdown').classList.toggle('show');
+}
+
+function translateTo(lang) {
+    document.cookie = `googtrans=/bg/${lang}; path=/; max-age=31536000`;
+    location.reload();
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('languageDropdown');
+    if (dropdown && !e.target.closest('.language-switcher-item')) {
+        dropdown.classList.remove('show');
+    }
+});
+
+(function() {
+    const s = document.createElement('script');
+    s.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    document.head.appendChild(s);
+})();
+
+
 // ===== EXPORT FUNCTIONS FOR GLOBAL ACCESS =====
 
 // Изнасяме функциите глобално за достъп от HTML
@@ -257,3 +290,6 @@ window.toggleVoteMenu = toggleVoteMenu;
 window.closeVoteMenu = closeVoteMenu;
 window.toggleMobileMenu = toggleMobileMenu;
 window.toggleProfileDropdown = toggleProfileDropdown;
+window.toggleLanguageMenu = toggleLanguageMenu;
+window.translateTo = translateTo;
+window.googleTranslateElementInit = googleTranslateElementInit;
