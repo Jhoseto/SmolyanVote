@@ -189,25 +189,4 @@
     border-bottom: none;
 }
 
-/* Dark mode compatibility */
-@media (prefers-color-scheme: dark) {
-    .search-input-glass {
-        background: rgba(0, 0, 0, 0.3);
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .search-input-glass:focus {
-        background: rgba(0, 0, 0, 0.4);
-        border-color: rgba(255, 255, 255, 0.4);
-    }
-
-    .search-results-glass {
-        background: rgba(0, 0, 0, 0.9);
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .search-result-item-glass {
-        color: rgba(255, 255, 255, 0.9);
-        border-bottom-color: rgba(255, 255, 255, 0.1);
-    }
-}
+/* Dark mode rules removed - using global light theme override */

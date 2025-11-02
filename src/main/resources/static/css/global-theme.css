@@ -1,53 +1,10 @@
 /* ========================================
    GLOBAL THEME - Universal styles for SmolyanVote
-   Applied to entire application, loaded first
+   FORCE LIGHT MODE - Override ALL dark mode preferences
    ======================================== */
 
-/* Force light mode - ignore system dark mode preferences */
+/* FORCE LIGHT MODE - Primary override */
 :root {
-    color-scheme: light;
+    color-scheme: light !important;
 }
 
-/* Global typography reset for consistency */
-* {
-    box-sizing: border-box;
-}
-
-/* Ensure all text uses system fonts if needed */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
-}
-
-/* Prevent dark mode inheritance on all elements */
-html, body, div, span, h1, h2, h3, h4, h5, h6, p, a, img, input, button, textarea, select {
-    color-scheme: light;
-}
-
-/* Override any potential dark mode media queries */
-@media (prefers-color-scheme: dark) {
-    :root {
-        color-scheme: light !important;
-    }
-
-    body {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    * {
-        color-scheme: light !important;
-    }
-}
-
-/* Print styles - maintain light theme in print */
-@media print {
-    :root {
-        color-scheme: light;
-    }
-
-    * {
-        color: black !important;
-        background: white !important;
-    }
-}

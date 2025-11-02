@@ -525,44 +525,4 @@ html {
     }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .faq-item {
-        background: #2d3748;
-        border-color: #4a5568;
-    }
-
-    .faq-question:hover {
-        background-color: #4a5568;
-    }
-
-    .faq-item.active .faq-question {
-        background-color: #2d4a3e;
-    }
-
-    .quick-link {
-        background: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-    }
-
-    .quick-link:hover {
-        background-color: #2d4a3e;
-        color: #e2e8f0;
-    }
-
-    .search-box input {
-        background-color: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-    }
-
-    .search-box input:focus {
-        background-color: #4a5568;
-    }
-
-    .contact-btn {
-        background: #2d3748;
-        color: #4b9f3e;
-    }
-}
+/* Dark mode rules removed - using global light theme override */

@@ -2444,13 +2444,4 @@ body {
     }
 }
 
-@media (prefers-color-scheme: dark) {
-    .modal-overlay {
-        background: rgba(0, 0, 0, 0.95);
-    }
-
-    .modal-container {
-        background: rgba(20, 20, 30, 0.95);
-        border-color: rgba(255, 255, 255, 0.1);
-    }
-}
+/* Dark mode rules removed - using global light theme override */

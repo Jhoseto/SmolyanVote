@@ -335,14 +335,7 @@ h6, .h6 {
     }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --text-primary: #f7fafc;
-        --text-secondary: #e2e8f0;
-        --text-muted: #a0aec0;
-    }
-}
+/* Dark mode rules removed - using global light theme override */
 
 /* ====== PRINT STYLES ====== */
 @media print {

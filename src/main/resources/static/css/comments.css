@@ -1168,20 +1168,4 @@
     outline-offset: 2px;
 }
 
-/* ====== DARK MODE SUPPORT ====== */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --comment-bg: #242526;
-        --comment-bubble-bg: #3a3b3c;
-        --comment-bubble-own: rgb(226, 238, 228);
-        --comment-border: #3a3b3c;
-        --comment-text: #e4e6ea;
-        --comment-text-secondary: #b0b3b8;
-        --comment-hover: #3a3b3c;
-        --comment-active: #4a4b4c;
-    }
-
-    .comments-list {
-        background: #18191a;
-    }
-}
+/* Dark mode rules removed - using global light theme override */

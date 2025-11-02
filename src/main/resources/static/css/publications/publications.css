@@ -267,6 +267,7 @@
     color: var(--fb-white);
 }
 
+
 /* ====== CLEAR FILTERS BUTTON ====== */
 .clear-all-filters {
     width: 100%;
@@ -2250,25 +2251,7 @@
     }
 }
 
-/* ====== (FUTURE) ====== */
-@media (prefers-color-scheme: dark) {
-    .post-actions {
-        border-top-color: #3a3b3c;
-    }
-
-    .post-action {
-        color: #b0b3b8;
-    }
-
-    .post-action:hover {
-        background-color: #3a3b3c;
-        color: #e4e6ea;
-    }
-
-    .post-stats {
-        color: #b0b3b8;
-    }
-}
+/* Dark mode rules removed - using global light theme override */
 
 /* ====== UTILITY CLASSES - САМО ЗА PUBLICATIONS ====== */
 .publications-page .text-center {
