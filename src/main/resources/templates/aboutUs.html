@@ -15,8 +15,6 @@
     <link rel="stylesheet" href="/css/footer.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- AOS Stylesheet -->
-    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
     <!-- Mux Player -->
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player"></script>
 </head>
@@ -280,96 +278,41 @@
 
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 
-<!-- AOS Script -->
-<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script>
-    AOS.init({
-        duration: 1200,
-        once: false,
-        offset: 100,
-        easing: 'ease-out-cubic'
-    });
-
-    // Mux player autoplay and scaling
+    // Автоплей и scaling за видео съдържанието
     document.addEventListener('DOMContentLoaded', function() {
-        const videoContents = document.querySelectorAll('.video-content');
-        const playerObserverOptions = {
-            root: null,
-            rootMargin: '50px 0px', // Start playing 50px before video comes into view
-            threshold: 0.1 // Trigger when 10% of the video is visible
-        };
-
-        // Apply scaling to video content based on section class
-        function applyVideoScaling(player, sectionClass) {
-            const scaleValues = {
-                'video-section-1': 1.2,
-                'video-section-2': 1.77,
-                'video-section-3': 1.02,
-                'video-section-4': 1.77,
-                'video-section-5': 1.34,
-                'video-section-6': 1,
-                'video-section-7': 1.56,
-                'video-section-8': 2.63,
-                'video-section-9': 1.2
-            };
-
-            const scale = scaleValues[sectionClass] || 1;
-            if (player && scale !== 1) {
-                // Apply scaling to the video content inside the player
-                player.style.setProperty('--media-object-fit', 'cover');
-                player.style.setProperty('--media-object-position', 'center');
-
-                // Use transform to scale the content
-                const videoElement = player.shadowRoot?.querySelector('video');
-                if (videoElement) {
-                    videoElement.style.transform = `scale(${scale})`;
-                    videoElement.style.transformOrigin = 'center';
-                }
-
-                // Alternative: set CSS custom property for scaling
-                player.style.setProperty('--video-scale', scale);
-            }
-        }
-
-        // Find section class for each video content
-        videoContents.forEach(content => {
-            const unifiedBox = content.closest('.unified-box');
-            const sectionClass = Array.from(unifiedBox.classList).find(cls => cls.startsWith('video-section-'));
-
-            if (sectionClass) {
-                const player = content.querySelector('mux-player');
-                if (player) {
-                    applyVideoScaling(player, sectionClass);
-                }
-            }
-        });
-
-        const playerObserver = new IntersectionObserver((entries) => {
+        // Автоплей observer
+        const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                const videoContent = entry.target;
-                const player = videoContent.querySelector('mux-player');
-
-                if (player && entry.isIntersecting) {
-                    // Player is coming into view - try to play
-                    try {
-                        player.play();
-                    } catch (error) {
-                        console.log('Autoplay failed:', error);
-                    }
-                } else if (player && !entry.isIntersecting) {
-                    // Player is going out of view - pause
-                    try {
-                        player.pause();
-                    } catch (error) {
-                        console.log('Pause failed:', error);
-                    }
+                const player = entry.target.querySelector('mux-player');
+                if (player) {
+                    entry.isIntersecting ? player.play().catch(()=>{}) : player.pause();
                 }
             });
-        }, playerObserverOptions);
+        }, { threshold: 0.5 });
 
-        // Observe all video content containers
-        videoContents.forEach(content => {
-            playerObserver.observe(content);
+        // Прилагане на scaling за всяко видео
+        document.querySelectorAll('.video-content').forEach(content => {
+            observer.observe(content);
+
+            const player = content.querySelector('mux-player');
+            if (player) {
+                // Изчакваме видеото да се зареди и прилагаме scaling
+                player.addEventListener('loadeddata', function() {
+                    setTimeout(() => {
+                        const scale = player.style.getPropertyValue('--video-scale') || '1';
+                        const video = player.shadowRoot?.querySelector('video');
+
+                        if (video && scale !== '1') {
+                            video.style.transform = `scale(${scale})`;
+                            video.style.transformOrigin = 'center center';
+                            video.style.objectFit = 'cover';
+                            video.style.width = '100%';
+                            video.style.height = '100%';
+                        }
+                    }, 200);
+                });
+            }
         });
     });
 </script>
