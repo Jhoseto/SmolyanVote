@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMotivationPanels();
     initializeAccessibility();
     initializePerformanceOptimizations();
-
-    console.log('SmolyanVote Enhanced Index initialized successfully');
 });
 
 /**
@@ -296,11 +294,8 @@ function initializePerformanceOptimizations() {
     const muxPlayers = document.querySelectorAll('mux-player');
     muxPlayers.forEach(player => {
         player.addEventListener('loadstart', () => {
-            console.log('Video loading started');
         });
-
         player.addEventListener('canplay', () => {
-            console.log('Video ready to play');
         });
     });
 }
@@ -368,18 +363,3 @@ window.SmolyanVote = {
     initializeDynamicText,
     initializeMotivationPanels
 };
-
-// /**
-//  * Service Worker Registration (if available)
-//  */
-// if ('serviceWorker' in navigator) {
-//     window.addEventListener('load', () => {
-//         navigator.serviceWorker.register('/sw.js')
-//             .then(registration => {
-//                 console.log('SW registered: ', registration);
-//             })
-//             .catch(registrationError => {
-//                 console.log('SW registration failed: ', registrationError);
-//             });
-//     });
-// }
