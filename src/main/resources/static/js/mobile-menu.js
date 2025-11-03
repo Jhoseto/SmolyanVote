@@ -12,8 +12,6 @@
  * Toggle Mobile Menu
  */
 function toggleMobileMenu() {
-    console.log('toggleMobileMenu called, current state:', mobileMenuOpen);
-    
     const navSection = document.getElementById('navbarNavSection');
     const body = document.body;
     
@@ -27,13 +25,11 @@ function toggleMobileMenu() {
         navSection.classList.remove('show');
         body.classList.remove('mobile-menu-open');
         mobileMenuOpen = false;
-        console.log('Mobile menu CLOSED');
     } else {
         // Open menu
         navSection.classList.add('show');
         body.classList.add('mobile-menu-open');
         mobileMenuOpen = true;
-        console.log('Mobile menu OPENED');
     }
 }
 
@@ -42,7 +38,6 @@ function toggleMobileMenu() {
  */
 function toggleVoteMenu(event) {
     event.preventDefault();
-    console.log('toggleVoteMenu called');
     
     const container = document.getElementById('voteMenuContainer');
     const arrow = document.querySelector('.vote-arrow-glass');
@@ -55,7 +50,6 @@ function toggleVoteMenu(event) {
     
     // Check if we're on mobile
     const isMobile = window.innerWidth <= 768;
-    console.log('Is mobile:', isMobile, 'Window width:', window.innerWidth);
     
     if (isMobile) {
         // Mobile: Accordion behavior INSIDE the mobile menu
@@ -64,13 +58,11 @@ function toggleVoteMenu(event) {
             if (arrow) arrow.classList.remove('rotated');
             if (voteToggle) voteToggle.classList.remove('active');
             voteMenuOpen = false;
-            console.log('Vote menu CLOSED (mobile accordion)');
         } else {
             container.classList.add('show');
             if (arrow) arrow.classList.add('rotated');
             if (voteToggle) voteToggle.classList.add('active');
             voteMenuOpen = true;
-            console.log('Vote menu OPENED (mobile accordion)');
         }
     } else {
         // Desktop: Original dropdown behavior
@@ -81,13 +73,11 @@ function toggleVoteMenu(event) {
             if (arrow) arrow.classList.remove('rotated');
             if (overlay) overlay.classList.remove('show');
             voteMenuOpen = false;
-            console.log('Vote menu CLOSED (desktop)');
         } else {
             container.classList.add('show');
             if (arrow) arrow.classList.add('rotated');
             if (overlay) overlay.classList.add('show');
             voteMenuOpen = true;
-            console.log('Vote menu OPENED (desktop)');
         }
     }
 }
@@ -106,7 +96,6 @@ function closeVoteMenu() {
     if (overlay) overlay.classList.remove('show');
     if (voteToggle) voteToggle.classList.remove('active');
     voteMenuOpen = false;
-    console.log('Vote menu force CLOSED');
 }
 
 /**
@@ -120,7 +109,6 @@ function closeMobileMenu() {
         navSection.classList.remove('show');
         body.classList.remove('mobile-menu-open');
         mobileMenuOpen = false;
-        console.log('Mobile menu force CLOSED');
     }
 }
 
@@ -144,7 +132,6 @@ document.addEventListener('click', function(e) {
         navSection &&
         navSection.contains(e.target)) {
         closeVoteMenu();
-        console.log('Vote menu closed - clicked outside vote area');
     }
     
     // Close mobile menu if clicking outside
@@ -165,12 +152,10 @@ document.addEventListener('keydown', function(e) {
         // Close vote menu first if open
         if (voteMenuOpen) {
             closeVoteMenu();
-            console.log('Vote menu closed - Escape key');
         }
         // Then close mobile menu
         else if (mobileMenuOpen) {
             closeMobileMenu();
-            console.log('Mobile menu closed - Escape key');
         }
     }
 });
@@ -202,28 +187,20 @@ window.addEventListener('resize', function() {
  * Initialize mobile menu
  */
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Mobile menu JavaScript initialized');
-    
     // Check if mobile menu elements exist
     const toggler = document.querySelector('.mobile-toggler-glass');
     const navSection = document.getElementById('navbarNavSection');
     const voteContainer = document.getElementById('voteMenuContainer');
     
-    if (toggler) {
-        console.log('✅ Mobile toggler found');
-    } else {
+    if (!toggler) {
         console.warn('⚠️ Mobile toggler NOT found');
     }
     
-    if (navSection) {
-        console.log('✅ Nav section found');
-    } else {
+    if (!navSection) {
         console.warn('⚠️ Nav section NOT found');
     }
     
-    if (voteContainer) {
-        console.log('✅ Vote container found');
-    } else {
+    if (!voteContainer) {
         console.warn('⚠️ Vote container NOT found');
     }
     
@@ -232,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navLinks.forEach(link => {
         link.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
-                console.log('Nav link clicked, closing menu');
                 setTimeout(() => closeMobileMenu(), 100);
             }
         });
@@ -243,7 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
     voteItems.forEach(item => {
         item.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
-                console.log('Vote item clicked, closing menu');
                 setTimeout(() => {
                     closeVoteMenu();
                     closeMobileMenu();
@@ -251,10 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
-    console.log('✅ Mobile menu event listeners attached');
 });
-
-console.log('✅ mobile-menu.js loaded successfully');
 
 })(); // End IIFE

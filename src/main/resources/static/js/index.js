@@ -292,26 +292,6 @@ function initializePerformanceOptimizations() {
 
     window.addEventListener('scroll', requestTick, { passive: true });
 
-    // Preload critical resources
-    const criticalResources = [
-        '/css/features.css',
-        '/js/futuresCarossel.js'
-    ];
-
-    criticalResources.forEach(resource => {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-
-        if (resource.endsWith('.css')) {
-            link.as = 'style';
-        } else if (resource.endsWith('.js')) {
-            link.as = 'script';
-        }
-
-        link.href = resource;
-        document.head.appendChild(link);
-    });
-
     // Optimize video loading
     const muxPlayers = document.querySelectorAll('mux-player');
     muxPlayers.forEach(player => {
