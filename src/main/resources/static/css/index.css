@@ -596,7 +596,7 @@ mux-player {
 .motivation-subtitle {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
   color: var(--text-secondary);
-  max-width: 600px;
+  max-width: 888px;
   margin: 0 auto;
   line-height: 1.5;
 }
