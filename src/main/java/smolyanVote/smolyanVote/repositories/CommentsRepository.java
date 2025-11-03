@@ -27,7 +27,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
             c.created,
             c.modified,
             c.author,
-            c.author_image,
+            COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
             c.like_count,
             c.unlike_count,
             c.is_edited,
@@ -37,6 +37,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
             'publication' as entity_type,
             :publicationId as entity_id
         FROM comments_entity c
+        LEFT JOIN users u ON c.author = u.username
         LEFT JOIN (
             SELECT parent_id, COUNT(*) as reply_count 
             FROM comments_entity 
@@ -74,7 +75,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
             c.created,
             c.modified,
             c.author,
-            c.author_image,
+            COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
             c.like_count,
             c.unlike_count,
             c.is_edited,
@@ -86,6 +87,7 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
             parent_c.referendum_id,
             parent_c.multi_poll_id
         FROM comments_entity c
+        LEFT JOIN users u ON c.author = u.username
         LEFT JOIN comments_entity parent_c ON c.parent_id = parent_c.id
         LEFT JOIN comment_votes user_votes ON c.id = user_votes.comment_id 
             AND user_votes.username = COALESCE(:currentUsername, '__guest__')
@@ -133,12 +135,13 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
      */
     @Query(value = """
         SELECT 
-            c.id, c.text, c.created, c.modified, c.author, c.author_image,
+            c.id, c.text, c.created, c.modified, c.author, COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
             c.like_count, c.unlike_count, c.is_edited, c.parent_id,
             COALESCE(reply_counts.reply_count, 0) as replies_count,
             COALESCE(user_votes.reaction, 'NONE') as user_reaction,
             'simpleEvent' as entity_type, :eventId as entity_id
         FROM comments_entity c
+        LEFT JOIN users u ON c.author = u.username
         LEFT JOIN (
             SELECT parent_id, COUNT(*) as reply_count 
             FROM comments_entity WHERE parent_id IS NOT NULL GROUP BY parent_id
@@ -165,12 +168,13 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
      */
     @Query(value = """
         SELECT 
-            c.id, c.text, c.created, c.modified, c.author, c.author_image,
+            c.id, c.text, c.created, c.modified, c.author, COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
             c.like_count, c.unlike_count, c.is_edited, c.parent_id,
             COALESCE(reply_counts.reply_count, 0) as replies_count,
             COALESCE(user_votes.reaction, 'NONE') as user_reaction,
             'referendum' as entity_type, :referendumId as entity_id
         FROM comments_entity c
+        LEFT JOIN users u ON c.author = u.username
         LEFT JOIN (
             SELECT parent_id, COUNT(*) as reply_count 
             FROM comments_entity WHERE parent_id IS NOT NULL GROUP BY parent_id
@@ -197,12 +201,13 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
      */
     @Query(value = """
         SELECT 
-            c.id, c.text, c.created, c.modified, c.author, c.author_image,
+            c.id, c.text, c.created, c.modified, c.author, COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
             c.like_count, c.unlike_count, c.is_edited, c.parent_id,
             COALESCE(reply_counts.reply_count, 0) as replies_count,
             COALESCE(user_votes.reaction, 'NONE') as user_reaction,
             'multiPoll' as entity_type, :multiPollId as entity_id
         FROM comments_entity c
+        LEFT JOIN users u ON c.author = u.username
         LEFT JOIN (
             SELECT parent_id, COUNT(*) as reply_count 
             FROM comments_entity WHERE parent_id IS NOT NULL GROUP BY parent_id
@@ -230,12 +235,13 @@ public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> 
      */
     @Query(value = """
     SELECT 
-        c.id, c.text, c.created, c.modified, c.author, c.author_image,
+        c.id, c.text, c.created, c.modified, c.author, COALESCE(u.image_url, '/default-avatar.jpg') as author_image,
         c.like_count, c.unlike_count, c.is_edited, c.parent_id,
         COALESCE(reply_counts.reply_count, 0) as replies_count,
         COALESCE(user_votes.reaction, 'NONE') as user_reaction,
         'signal' as entity_type, :signalId as entity_id
     FROM comments_entity c
+    LEFT JOIN users u ON c.author = u.username
     LEFT JOIN (
         SELECT parent_id, COUNT(*) as reply_count 
         FROM comments_entity WHERE parent_id IS NOT NULL GROUP BY parent_id

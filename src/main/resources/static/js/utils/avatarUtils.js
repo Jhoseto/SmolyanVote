@@ -52,10 +52,36 @@ class AvatarUtils {
 
     // Проверява дали е валидна снимка
     isValidImageUrl(imageUrl) {
-        return imageUrl &&
-            imageUrl !== '/images/default-avatar.png' &&
-            imageUrl.trim() !== '' && true && true &&
-            !imageUrl.includes('default-avatar');
+        // Ако няма URL, не е валидна
+        if (!imageUrl || typeof imageUrl !== 'string') {
+            return false;
+        }
+        
+        const trimmedUrl = imageUrl.trim();
+        
+        // Ако е празен стринг, не е валидна
+        if (trimmedUrl === '') {
+            return false;
+        }
+        
+        // Проверява дали не е default avatar (различни варианти)
+        const defaultAvatars = [
+            '/default-avatar.jpg',
+            '/default-avatar.png',
+            '/images/default-avatar.png',
+            '/images/default-avatar.jpg',
+            'default-avatar'
+        ];
+        
+        // Ако съдържа някой от default стринговете, не е валидна
+        for (const defaultAvatar of defaultAvatars) {
+            if (trimmedUrl.includes(defaultAvatar)) {
+                return false;
+            }
+        }
+        
+        // Ако минава всички проверки, е валидна
+        return true;
     }
 
     // Създава avatar HTML - снимка или инициали

@@ -211,7 +211,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setPublication(publication);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -248,7 +247,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setEvent(simpleEvent);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -280,7 +278,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setReferendum(referendum);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -312,7 +309,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setMultiPoll(multiPoll);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -344,7 +340,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity comment = new CommentsEntity();
         comment.setText(text);
         comment.setAuthor(author.getUsername());
-        comment.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         comment.setSignal(signal);
         comment.setLikeCount(0);
         comment.setUnlikeCount(0);
@@ -382,7 +377,6 @@ public class CommentsServiceImpl implements CommentsService {
         CommentsEntity reply = new CommentsEntity();
         reply.setText(text);
         reply.setAuthor(author.getUsername());
-        reply.setAuthorImage(author.getImageUrl() != null ? author.getImageUrl() : "/default-avatar.jpg");
         reply.setParent(parentComment);
         reply.setLikeCount(0);
         reply.setUnlikeCount(0);
@@ -645,13 +639,19 @@ public class CommentsServiceImpl implements CommentsService {
         boolean canEdit = currentUsername != null && (currentUsername.equals(comment.getAuthor()) ||
                 userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
 
+        // Вземаме снимката от UserEntity вместо от authorImage полето в коментара
+        String authorImageUrl = userRepository.findByUsername(comment.getAuthor())
+                .map(user -> user.getImageUrl())
+                .filter(url -> url != null && !url.trim().isEmpty())
+                .orElse("/default-avatar.jpg");
+
         return new CommentOutputDto(
                 comment.getId(),
                 comment.getText(),
                 comment.getCreated() != null ? LocalDateTime.ofInstant(comment.getCreated(), ZoneId.systemDefault()) : null,
                 comment.getModified() != null ? LocalDateTime.ofInstant(comment.getModified(), ZoneId.systemDefault()) : null,
                 comment.getAuthor(),
-                comment.getAuthorImage() != null ? comment.getAuthorImage() : "/default-avatar.jpg",
+                authorImageUrl,
                 false, // isOnline временно е false
                 comment.getLikeCount(),
                 comment.getUnlikeCount(),

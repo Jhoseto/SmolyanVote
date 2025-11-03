@@ -11,8 +11,7 @@ public class CommentsEntity extends BaseEntity{
 
 
     private String author;
-    @Column(length = 1000)
-    private String authorImage;
+
 
     @Column(length = 2000)
     @NotBlank
@@ -56,22 +55,13 @@ public class CommentsEntity extends BaseEntity{
     private int likeCount;
 
     private int unlikeCount;
-
-
+    
     public String getAuthor() {
         return author;
     }
 
     public void setAuthor(String author) {
         this.author = author;
-    }
-
-    public String getAuthorImage() {
-        return authorImage;
-    }
-
-    public void setAuthorImage(String authorImage) {
-        this.authorImage = authorImage;
     }
 
     public String getText() {
