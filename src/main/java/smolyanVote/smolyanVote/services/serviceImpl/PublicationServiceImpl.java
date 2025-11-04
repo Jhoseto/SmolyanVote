@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -13,6 +12,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.PublicationMapper;
@@ -41,8 +41,8 @@ public class PublicationServiceImpl implements PublicationService {
     private final CommentsRepository commentsRepository;
     private final CommentVoteRepository commentVoteRepository;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
 
-    @Autowired
     public PublicationServiceImpl(PublicationRepository publicationRepository,
                                   UserService userService,
                                   UserRepository userRepository,
@@ -51,7 +51,8 @@ public class PublicationServiceImpl implements PublicationService {
                                   ImageCloudinaryServiceImpl imageCloudinaryService,
                                   CommentsRepository commentsRepository,
                                   CommentVoteRepository commentVoteRepository,
-                                  ActivityLogService activityLogService) {
+                                  ActivityLogService activityLogService,
+                                  NotificationService notificationService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
@@ -61,6 +62,7 @@ public class PublicationServiceImpl implements PublicationService {
         this.commentsRepository = commentsRepository;
         this.commentVoteRepository = commentVoteRepository;
         this.activityLogService = activityLogService;
+        this.notificationService = notificationService;
     }
 
 
@@ -458,6 +460,14 @@ public class PublicationServiceImpl implements PublicationService {
             if (publication.isDislikedBy(user.getUsername())) {
                 publication.removeDislike(user.getUsername());
             }
+            
+            // Notify publication author за нов like
+            try {
+                UserEntity author = publication.getAuthor();
+                if (author != null && !author.getUsername().equals(user.getUsername())) {
+                    notificationService.notifyLike(author, user, "PUBLICATION", publicationId);
+                }
+            } catch (Exception ignored) {}
         }
 
         publicationRepository.save(publication);
@@ -484,6 +494,14 @@ public class PublicationServiceImpl implements PublicationService {
             if (publication.isLikedBy(user.getUsername())) {
                 publication.removeLike(user.getUsername());
             }
+            
+            // Notify publication author за нов dislike
+            try {
+                UserEntity author = publication.getAuthor();
+                if (author != null && !author.getUsername().equals(user.getUsername())) {
+                    notificationService.notifyDislike(author, user, "PUBLICATION", publicationId);
+                }
+            } catch (Exception ignored) {}
         }
 
         publicationRepository.save(publication);

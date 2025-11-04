@@ -520,6 +520,8 @@ class NotificationSystem {
                 return 'коментираха вашето съдържание';
             case 'LIKE':
                 return 'харесаха вашето съдържание';
+            case 'DISLIKE':
+                return 'не харесаха вашето съдържание';
             case 'NEW_FOLLOWER':
                 return 'започнаха да ви следват';
             case 'UNFOLLOW':

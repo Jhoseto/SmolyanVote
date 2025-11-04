@@ -68,6 +68,7 @@ public class NotificationDTO {
         return switch (type) {
             case "COMMENT", "REPLY" -> "bi-chat-left-text";
             case "LIKE" -> "bi-heart-fill";
+            case "DISLIKE" -> "bi-heartbreak-fill";
             case "MENTION" -> "bi-at";
             case "EVENT_ENDED", "VOTE_COUNTED" -> "bi-check-circle";
             case "PUBLICATION_APPROVED" -> "bi-check-circle-fill";
@@ -85,6 +86,7 @@ public class NotificationDTO {
             case "COMMENT" -> "Коментар";
             case "REPLY" -> "Отговор";
             case "LIKE" -> "Харесване";
+            case "DISLIKE" -> "Нехаресване";
             case "MENTION" -> "Споменаване";
             case "EVENT_ENDED" -> "Събитие приключило";
             case "VOTE_COUNTED" -> "Гласуване отчетено";

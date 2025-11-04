@@ -21,6 +21,7 @@ public interface NotificationService {
     void notifyComment(UserEntity author, UserEntity commenter, String entityType, Long entityId);
     void notifyReply(UserEntity commentAuthor, UserEntity replier, Long commentId);
     void notifyLike(UserEntity contentAuthor, UserEntity liker, String entityType, Long entityId);
+    void notifyDislike(UserEntity contentAuthor, UserEntity disliker, String entityType, Long entityId);
     void notifyMention(UserEntity mentioned, UserEntity mentioner, String entityType, Long entityId, String context);
 
     // ====== SYSTEM SHORTCUTS ======

@@ -536,6 +536,20 @@ public class CommentsServiceImpl implements CommentsService {
                 vote.setReaction(reactionType);
                 commentVoteRepository.save(vote);
                 userReaction = reactionType.name();
+                
+                // Notify comment author ако се променя реакцията
+                try {
+                    String commentAuthorUsername = comment.getAuthor();
+                    if (commentAuthorUsername != null && !commentAuthorUsername.equals(user.getUsername())) {
+                        userRepository.findByUsername(commentAuthorUsername).ifPresent(commentAuthor -> {
+                            if (reactionType == CommentReactionType.LIKE) {
+                                notificationService.notifyLike(commentAuthor, user, "COMMENT", commentId);
+                            } else if (reactionType == CommentReactionType.DISLIKE) {
+                                notificationService.notifyDislike(commentAuthor, user, "COMMENT", commentId);
+                            }
+                        });
+                    }
+                } catch (Exception ignored) {}
             }
         } else {
             CommentVoteEntity newVote = new CommentVoteEntity();
@@ -545,6 +559,20 @@ public class CommentsServiceImpl implements CommentsService {
             comment.getVotes().add(newVote);
             commentVoteRepository.save(newVote);
             userReaction = reactionType.name();
+            
+            // Notify comment author ако се добавя LIKE или DISLIKE
+            try {
+                String commentAuthorUsername = comment.getAuthor();
+                if (commentAuthorUsername != null && !commentAuthorUsername.equals(user.getUsername())) {
+                    userRepository.findByUsername(commentAuthorUsername).ifPresent(commentAuthor -> {
+                        if (reactionType == CommentReactionType.LIKE) {
+                            notificationService.notifyLike(commentAuthor, user, "COMMENT", commentId);
+                        } else if (reactionType == CommentReactionType.DISLIKE) {
+                            notificationService.notifyDislike(commentAuthor, user, "COMMENT", commentId);
+                        }
+                    });
+                }
+            } catch (Exception ignored) {}
         }
 
         updateCommentCounters(comment);

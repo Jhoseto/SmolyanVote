@@ -115,10 +115,33 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyLike(UserEntity contentAuthor, UserEntity liker, String entityType, Long entityId) {
         if (isSelf(contentAuthor, liker)) return;
 
-        String actionUrl;
-        // Ако е like на коментар, трябва да намерим към какво съдържание принадлежи
+        String actionUrl = buildActionUrl(entityType, entityId);
+
+        create(contentAuthor, "LIKE",
+                liker.getUsername() + " хареса вашето съдържание",
+                liker.getUsername(), liker.getImageUrl(),
+                entityType, entityId, actionUrl);
+    }
+
+    @Override
+    public void notifyDislike(UserEntity contentAuthor, UserEntity disliker, String entityType, Long entityId) {
+        if (isSelf(contentAuthor, disliker)) return;
+
+        String actionUrl = buildActionUrl(entityType, entityId);
+
+        create(contentAuthor, "DISLIKE",
+                disliker.getUsername() + " не хареса вашето съдържание",
+                disliker.getUsername(), disliker.getImageUrl(),
+                entityType, entityId, actionUrl);
+    }
+
+    /**
+     * Helper метод за построяване на action URL за коментари и други entity типове
+     */
+    private String buildActionUrl(String entityType, Long entityId) {
+        // Ако е like/dislike на коментар, трябва да намерим към какво съдържание принадлежи
         if ("COMMENT".equalsIgnoreCase(entityType)) {
-            actionUrl = commentsRepository.findById(entityId)
+            return commentsRepository.findById(entityId)
                     .map(comment -> {
                         String parentEntityType = null;
                         Long parentEntityId = null;
@@ -147,13 +170,8 @@ public class NotificationServiceImpl implements NotificationService {
                     })
                     .orElse("#comment-" + entityId);
         } else {
-            actionUrl = buildUrl(entityType, entityId);
+            return buildUrl(entityType, entityId);
         }
-
-        create(contentAuthor, "LIKE",
-                liker.getUsername() + " хареса вашето съдържание",
-                liker.getUsername(), liker.getImageUrl(),
-                entityType, entityId, actionUrl);
     }
 
     @Override
