@@ -45,7 +45,8 @@ public class NotificationDTO {
         dto.title = entity.getTitle();
         dto.message = entity.getMessage();
         dto.actorUsername = entity.getActorUsername();
-        dto.actorImageUrl = entity.getActorImageUrl();
+        // actorImageUrl се допълва от NotificationServiceImpl от UserEntity
+        dto.actorImageUrl = null;
         dto.entityType = entity.getEntityType();
         dto.entityId = entity.getEntityId();
         dto.actionUrl = entity.getActionUrl();
@@ -110,7 +111,7 @@ public class NotificationDTO {
         return (seconds / 604800) + " седм";
     }
 
-    // ====== GETTERS ONLY (immutable після mapping) ======
+    // ====== GETTERS ======
 
     public Long getId() { return id; }
     public String getType() { return type; }
@@ -127,4 +128,10 @@ public class NotificationDTO {
     public String getIcon() { return icon; }
     public String getTimeAgo() { return timeAgo; }
     public String getDisplayName() { return displayName; }
+    
+    // ====== SETTER (само за actorImageUrl - допълва се от service) ======
+    
+    public void setActorImageUrl(String actorImageUrl) {
+        this.actorImageUrl = actorImageUrl;
+    }
 }

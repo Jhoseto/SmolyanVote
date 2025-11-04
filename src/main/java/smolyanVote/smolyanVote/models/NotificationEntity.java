@@ -40,9 +40,6 @@ public class NotificationEntity {
     @Column(name = "actor_username", length = 100)
     private String actorUsername;
 
-    @Column(name = "actor_image_url", length = 500)
-    private String actorImageUrl;
-
     // ENTITY REFERENCE (универсално за всички типове съдържание)
     @Column(name = "entity_type", length = 30)
     private String entityType; // PUBLICATION, COMMENT, EVENT, SIGNAL, etc.
@@ -55,7 +52,7 @@ public class NotificationEntity {
     private String actionUrl;
 
     // СТАТУС
-    @Column(name = "is_read", nullable = false)
+    @Column(name = "is_read", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private boolean isRead = false;
 
     @Column(name = "created_at", nullable = false)
@@ -135,14 +132,6 @@ public class NotificationEntity {
 
     public void setActorUsername(String actorUsername) {
         this.actorUsername = actorUsername;
-    }
-
-    public String getActorImageUrl() {
-        return actorImageUrl;
-    }
-
-    public void setActorImageUrl(String actorImageUrl) {
-        this.actorImageUrl = actorImageUrl;
     }
 
     public String getEntityType() {

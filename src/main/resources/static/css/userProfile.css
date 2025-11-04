@@ -6,7 +6,7 @@
     --sv-primary: #6bb85f;
     --sv-primary-light: #8bc97f;
     --sv-primary-soft: #a8d4a0;
-    --sv-primary-subtle: #c8e4c2;
+    --sv-primary-subtle: #6bb75f;
     --sv-accent: #ffffff;
 
     /* Apple-Style Neutrals */
@@ -388,12 +388,6 @@ body {
     transition: var(--transition);
 }
 
-.stat-card:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--sv-primary);
-}
-
 .stat-icon {
     width: 28px;
     height: 28px;
@@ -751,7 +745,7 @@ body {
 .achievement-badge.earned {
     opacity: 1;
     border-color: var(--sv-primary);
-    background: var(--sv-primary-subtle);
+    background: #f1f8f0;
 }
 
 .achievement-badge.earned:hover {

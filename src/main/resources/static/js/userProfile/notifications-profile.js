@@ -20,7 +20,7 @@
         <div class="icon">${item.actorImageUrl ? `<img src="${item.actorImageUrl}"/>` : `<i class="${item.icon || 'bi-bell'}"></i>`}</div>
         <div class="content">
           <div class="title">${item.displayName || ''}</div>
-          <div class="message">${item.message || ''}</div>
+          <div class="message">${item.message || ''}${item._count > 1 ? ` <span class="notification-count">(${item._count})</span>` : ''}</div>
           <div class="time">${item.timeAgo || ''}</div>
         </div>
         ${!item.read ? '<div class="dot"></div>' : ''}
@@ -42,7 +42,14 @@
 
   function init() {
     const container = document.querySelector('#profile-notifications');
-    if (!container) return;
+    if (!container) return; // Контейнерът не съществува - не е собствен профил
+    
+    // Проверка дали е собствен профил - ако контейнерът е скрит или не съществува, не зареждаме нотификации
+    const notificationsCard = container.closest('.content-card');
+    if (!notificationsCard || notificationsCard.offsetParent === null) {
+      return; // Картата е скрита (не е собствен профил)
+    }
+    
     fetchAll(0, 100).then(render).catch(() => render([]));
   }
 

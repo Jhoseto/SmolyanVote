@@ -9,6 +9,12 @@ class NotificationSystem {
         this.unreadCount = 0;
         this.notifications = [];
         this.isDropdownOpen = false;
+        this.isLoading = false;
+        
+        // CSRF настройки (като в commentsManager.js и publicationsApi.js)
+        this.csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+        this.csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+        
         this.init();
     }
 
@@ -79,6 +85,10 @@ class NotificationSystem {
 
         if (this.isDropdownOpen) {
             dropdown.classList.add('active');
+            // Зареждаме нотификациите при отваряне на dropdown
+            if (this.notifications.length === 0) {
+                this.loadRecent();
+            }
             this.renderDropdown();
         } else {
             dropdown.classList.remove('active');
@@ -126,16 +136,24 @@ class NotificationSystem {
     }
 
     handleNewNotification(notification) {
+        // Новите нотификации от WebSocket винаги са непрочетени
+        const normalized = {
+            ...notification,
+            read: false,
+            isRead: false
+        };
+        
+        // Увеличаваме брояча
         this.unreadCount++;
         this.updateBadge();
 
-        this.notifications.unshift(notification);
+        this.notifications.unshift(normalized);
 
         if (this.isDropdownOpen) {
             this.renderDropdown();
         }
 
-        this.showToast(notification);
+        this.showToast(normalized);
     }
 
     // ====== API CALLS ======
@@ -145,7 +163,7 @@ class NotificationSystem {
             const response = await fetch('/api/notifications/unread-count');
             if (response.ok) {
                 const data = await response.json();
-                this.unreadCount = data.count;
+                this.unreadCount = data.count || 0;
                 this.updateBadge();
             }
         } catch (error) {
@@ -155,34 +173,74 @@ class NotificationSystem {
 
     async loadRecent() {
         try {
+            this.isLoading = true;
             const response = await fetch('/api/notifications/recent?limit=10');
             if (response.ok) {
-                this.notifications = await response.json();
+                const data = await response.json();
+                // Фикс: нормализиране на read/isRead полето
+                this.notifications = data.map(n => ({
+                    ...n,
+                    read: n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false),
+                    isRead: n.isRead !== undefined ? n.isRead : (n.read !== undefined ? n.read : false)
+                }));
+                // Преизчисляваме unreadCount от заредените нотификации
+                this.unreadCount = this.notifications.filter(n => !n.read).length;
+                this.updateBadge();
                 if (this.isDropdownOpen) this.renderDropdown();
             }
         } catch (error) {
             console.error('Failed to load notifications:', error);
+        } finally {
+            this.isLoading = false;
         }
     }
 
     async markAsRead(id) {
         try {
+            const csrfTokenMeta = document.querySelector('meta[name="_csrf"]');
+            const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+            
+            if (!csrfTokenMeta || !csrfHeaderMeta) {
+                console.error('CSRF meta tags not found');
+                throw new Error('CSRF protection not available');
+            }
+            
+            const csrfToken = csrfTokenMeta.getAttribute("content");
+            const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
             const response = await fetch(`/api/notifications/${id}/read`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfHeader]: csrfToken
+                },
+                credentials: 'include'
             });
 
-            if (!response.ok) throw new Error('Failed to mark as read');
-
-            const notification = this.notifications.find(n => n.id === id);
-            if (notification && !notification.read) {
-                notification.read = true;
-                this.unreadCount = Math.max(0, this.unreadCount - 1);
-                this.updateBadge();
-                this.renderDropdown();
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server response:', response.status, errorText);
+                throw new Error(`Failed to mark as read: ${response.status}`);
             }
+
+            // Обновяваме всички нотификации с това ID
+            this.notifications.forEach(n => {
+                if (n.id === id) {
+                    n.read = true;
+                    n.isRead = true;
+                }
+            });
+            
+            // Преизчисляваме unreadCount
+            this.unreadCount = this.notifications.filter(n => {
+                const isRead = n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false);
+                return !isRead;
+            }).length;
+            
+            // Обновяваме визуализацията
+            this.updateBadge();
+            this.renderDropdown();
         } catch (error) {
             console.error('Failed to mark as read:', error);
         }
@@ -190,16 +248,38 @@ class NotificationSystem {
 
     async markAllAsRead() {
         try {
+            const csrfTokenMeta = document.querySelector('meta[name="_csrf"]');
+            const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+            
+            if (!csrfTokenMeta || !csrfHeaderMeta) {
+                console.error('CSRF meta tags not found');
+                throw new Error('CSRF protection not available');
+            }
+            
+            const csrfToken = csrfTokenMeta.getAttribute("content");
+            const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
             const response = await fetch('/api/notifications/read-all', {
-                method: 'PUT',
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfHeader]: csrfToken
+                },
+                credentials: 'include'
             });
 
-            if (!response.ok) throw new Error('Failed to mark all as read');
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server response:', response.status, errorText);
+                throw new Error(`Failed to mark all as read: ${response.status}`);
+            }
 
-            this.notifications.forEach(n => n.read = true);
+            // Фикс: синхронизация на read/isRead за всички
+            this.notifications.forEach(n => {
+                n.read = true;
+                n.isRead = true;
+            });
             this.unreadCount = 0;
             this.updateBadge();
             this.renderDropdown();
@@ -240,6 +320,17 @@ class NotificationSystem {
         const container = document.querySelector('.notification-list');
         if (!container) return;
 
+        // Показваме loading state докато зареждаме
+        if (this.notifications.length === 0 && this.isLoading) {
+            container.innerHTML = `
+                <div class="notification-loading">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <p>Зареждане...</p>
+                </div>
+            `;
+            return;
+        }
+
         if (this.notifications.length === 0) {
             container.innerHTML = `
                 <div class="notification-empty">
@@ -253,14 +344,63 @@ class NotificationSystem {
         // Group by type + entityType + entityId (frontend-only grouping)
         const grouped = this.groupNotifications(this.notifications);
         container.innerHTML = grouped.map(n => this.createNotificationHTML(n)).join('');
+        
+        // Setup event listeners СЛЕД като се рендерира HTML-а
+        this.setupNotificationListeners();
+    }
+    
+    setupNotificationListeners() {
+        const container = document.querySelector('.notification-list');
+        if (!container) return;
+        
+        // Event listeners за notification items
+        container.querySelectorAll('.notification-item').forEach(item => {
+            const id = item.getAttribute('data-notification-id');
+            const url = item.getAttribute('data-action-url');
+            
+            item.addEventListener('click', (e) => {
+                // Ако кликнеш на mark-read бутона, не изпълнява handleClick
+                if (e.target.closest('.notification-mark-read')) {
+                    return;
+                }
+                this.handleClick(parseInt(id), url || '');
+            });
+        });
+        
+        // Event listeners за mark-read бутоните
+        container.querySelectorAll('.notification-mark-read').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const idsStr = btn.getAttribute('data-notification-ids');
+                if (idsStr) {
+                    // Ако има множество ID-та (групирана нотификация), маркираме всички
+                    const ids = idsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                    if (ids.length > 0) {
+                        // Маркираме всички нотификации от групата
+                        Promise.all(ids.map(id => this.markAsRead(id))).then(() => {
+                            // Обновяваме визуализацията след маркиране
+                            this.renderDropdown();
+                        });
+                    }
+                }
+            });
+        });
     }
 
     createNotificationHTML(n) {
         const isSystem = !n.actorUsername;
+        // Фикс: поддръжка на read и isRead
+        const isRead = n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false);
 
+        // За групирани нотификации запазваме всички ID-та
+        const notificationIds = n._ids && n._ids.length > 0 ? n._ids.join(',') : n.id;
+        
         return `
-            <div class="notification-item ${n.read ? 'read' : 'unread'}" 
-                 onclick="window.notificationSystem.handleClick(${n.id}, '${n.actionUrl || ''}')">
+            <div class="notification-item ${isRead ? 'read' : 'unread'}" 
+                 data-notification-id="${n.id}"
+                 data-notification-ids="${notificationIds}"
+                 data-action-url="${n.actionUrl || ''}">
                 
                 <div class="notification-icon">
                     ${n.actorImageUrl
@@ -270,15 +410,16 @@ class NotificationSystem {
                 </div>
 
                 <div class="notification-content">
-                    <p class="notification-message">${n.message}</p>
+                    <p class="notification-message">${n.message}${n._count > 1 ? ` <span class="notification-count">(${n._count})</span>` : ''}</p>
                     <span class="notification-time">${n.timeAgo || 'Сега'}</span>
                 </div>
 
-                ${!n.read ? '<div class="notification-unread-dot"></div>' : ''}
+                ${!isRead ? '<div class="notification-unread-dot"></div>' : ''}
 
-                <button class="notification-delete" 
-                        onclick="event.stopPropagation(); window.notificationSystem.deleteNotification(${n.id})">
-                    <i class="bi bi-x"></i>
+                <button class="notification-mark-read" 
+                        data-notification-ids="${notificationIds}"
+                        title="Маркирай като прочетена">
+                    <i class="bi bi-eye"></i>
                 </button>
             </div>
         `;
@@ -326,16 +467,22 @@ class NotificationSystem {
     groupNotifications(items) {
         const map = new Map();
         for (const n of items) {
+            // Фикс: нормализиране на read/isRead преди групиране
+            const isRead = n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false);
             const key = `${n.type}|${n.entityType || ''}|${n.entityId || ''}`;
             if (!map.has(key)) {
                 map.set(key, {
                     ...n,
+                    read: isRead,
+                    isRead: isRead,
                     _actors: n.actorUsername ? [n.actorUsername] : [],
                     _count: 1,
+                    _ids: [n.id], // Запазваме всички ID-та за групираните нотификации
                 });
             } else {
                 const g = map.get(key);
                 g._count += 1;
+                g._ids.push(n.id); // Добавяме ID на текущата нотификация
                 if (n.createdAt && (!g.createdAt || n.createdAt > g.createdAt)) {
                     g.createdAt = n.createdAt;
                     g.timeAgo = n.timeAgo;
@@ -345,7 +492,10 @@ class NotificationSystem {
                     g._actors.push(n.actorUsername);
                 }
                 // keep unread dot if any item unread
-                if (!n.read) g.read = false;
+                if (!isRead) {
+                    g.read = false;
+                    g.isRead = false;
+                }
             }
         }
 

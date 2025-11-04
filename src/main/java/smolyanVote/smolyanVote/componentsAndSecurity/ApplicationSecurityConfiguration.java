@@ -116,7 +116,9 @@ public class ApplicationSecurityConfiguration {
                         // 2. Same-Origin Policy защитава WebSocket връзки
                         // 3. Handshake е автоматичен процес, не може да се манипулира от malicious сайтове
                         // 4. WebSocket връзките изискват valid session cookies
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat", "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat",
+                                "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**",
+                                "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

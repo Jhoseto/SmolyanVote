@@ -53,6 +53,18 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
                                     @NotNull FilterChain filterChain)
             throws ServletException, IOException {
 
+        String requestURI = request.getRequestURI();
+        
+        // Изключваме конкретни API endpoints от rate limiting
+        if (requestURI != null && (
+                requestURI.startsWith("/api/notifications") ||
+                requestURI.startsWith("/ws/") ||
+                requestURI.startsWith("/heartbeat")
+        )) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String ip = request.getRemoteAddr();
 
         if ("POST".equalsIgnoreCase(request.getMethod())) {
@@ -68,7 +80,7 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
             }
 
             // Ако е POST към /user/registration, проверяваме и специалния лимит
-            if ("/user/registration".equals(request.getRequestURI())) {
+            if ("/user/registration".equals(requestURI)) {
                 Bucket regBucket = resolveRegistrationBucket(ip);
                 if (!regBucket.tryConsume(1)) {
                     if (!response.isCommitted()) {

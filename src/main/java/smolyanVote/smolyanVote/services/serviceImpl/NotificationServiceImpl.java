@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,12 +9,16 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.models.NotificationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.NotificationRepository;
+import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -23,12 +26,17 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository repository;
     private final NotificationWebSocketHandler webSocket;
+    private final UserRepository userRepository;
+    private final CommentsRepository commentsRepository;
 
-    @Autowired
     public NotificationServiceImpl(NotificationRepository repository,
-                                   NotificationWebSocketHandler webSocket) {
+                                   NotificationWebSocketHandler webSocket,
+                                   UserRepository userRepository,
+                                   CommentsRepository commentsRepository) {
         this.repository = repository;
         this.webSocket = webSocket;
+        this.userRepository = userRepository;
+        this.commentsRepository = commentsRepository;
     }
 
     @Override
@@ -43,13 +51,13 @@ public class NotificationServiceImpl implements NotificationService {
 
         NotificationEntity entity = new NotificationEntity(recipient, type, message);
         entity.setActorUsername(actorUsername);
-        entity.setActorImageUrl(actorImageUrl);
+        // actorImageUrl вече не се записва в базата - се взима от UserEntity при mapping
         entity.setEntityType(entityType);
         entity.setEntityId(entityId);
         entity.setActionUrl(actionUrl);
 
         NotificationEntity saved = repository.save(entity);
-        webSocket.sendToUser(recipient.getUsername(), NotificationDTO.fromEntity(saved));
+        webSocket.sendToUser(recipient.getUsername(), fromEntityWithActorImage(saved));
     }
 
     @Override
@@ -66,20 +74,86 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyReply(UserEntity commentAuthor, UserEntity replier, Long commentId) {
         if (isSelf(commentAuthor, replier)) return;
 
+        // Намираме родителския коментар за да построим правилния URL
+        String actionUrl = commentsRepository.findById(commentId)
+                .map(parentComment -> {
+                    // Намираме към какво съдържание принадлежи коментарът
+                    String entityType = null;
+                    Long entityId = null;
+                    
+                    if (parentComment.getPublication() != null) {
+                        entityType = "PUBLICATION";
+                        entityId = parentComment.getPublication().getId();
+                    } else if (parentComment.getEvent() != null) {
+                        entityType = "SIMPLEEVENT";
+                        entityId = parentComment.getEvent().getId();
+                    } else if (parentComment.getReferendum() != null) {
+                        entityType = "REFERENDUM";
+                        entityId = parentComment.getReferendum().getId();
+                    } else if (parentComment.getMultiPoll() != null) {
+                        entityType = "MULTI_POLL";
+                        entityId = parentComment.getMultiPoll().getId();
+                    } else if (parentComment.getSignal() != null) {
+                        entityType = "SIGNAL";
+                        entityId = parentComment.getSignal().getId();
+                    }
+                    
+                    if (entityType != null && entityId != null) {
+                        return buildUrl(entityType, entityId) + "#comment-" + commentId;
+                    }
+                    return "#comment-" + commentId; // Fallback
+                })
+                .orElse("#comment-" + commentId);
+
         create(commentAuthor, "REPLY",
                 replier.getUsername() + " отговори на вашия коментар",
                 replier.getUsername(), replier.getImageUrl(),
-                "COMMENT", commentId, "#comment-" + commentId);
+                "COMMENT", commentId, actionUrl);
     }
 
     @Override
     public void notifyLike(UserEntity contentAuthor, UserEntity liker, String entityType, Long entityId) {
         if (isSelf(contentAuthor, liker)) return;
 
+        String actionUrl;
+        // Ако е like на коментар, трябва да намерим към какво съдържание принадлежи
+        if ("COMMENT".equalsIgnoreCase(entityType)) {
+            actionUrl = commentsRepository.findById(entityId)
+                    .map(comment -> {
+                        String parentEntityType = null;
+                        Long parentEntityId = null;
+                        
+                        if (comment.getPublication() != null) {
+                            parentEntityType = "PUBLICATION";
+                            parentEntityId = comment.getPublication().getId();
+                        } else if (comment.getEvent() != null) {
+                            parentEntityType = "SIMPLEEVENT";
+                            parentEntityId = comment.getEvent().getId();
+                        } else if (comment.getReferendum() != null) {
+                            parentEntityType = "REFERENDUM";
+                            parentEntityId = comment.getReferendum().getId();
+                        } else if (comment.getMultiPoll() != null) {
+                            parentEntityType = "MULTI_POLL";
+                            parentEntityId = comment.getMultiPoll().getId();
+                        } else if (comment.getSignal() != null) {
+                            parentEntityType = "SIGNAL";
+                            parentEntityId = comment.getSignal().getId();
+                        }
+                        
+                        if (parentEntityType != null && parentEntityId != null) {
+                            return buildUrl(parentEntityType, parentEntityId) + "#comment-" + entityId;
+                        }
+                        return "#comment-" + entityId; // Fallback
+                    })
+                    .orElse("#comment-" + entityId);
+        } else {
+            actionUrl = buildUrl(entityType, entityId);
+        }
+
         create(contentAuthor, "LIKE",
                 liker.getUsername() + " хареса вашето съдържание",
                 liker.getUsername(), liker.getImageUrl(),
-                entityType, entityId, buildUrl(entityType, entityId));
+                entityType, entityId, actionUrl);
     }
 
     @Override
@@ -104,14 +178,14 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyPublicationApproved(UserEntity author, Long publicationId, String title) {
         create(author, "PUBLICATION_APPROVED",
                 "Публикацията \"" + title + "\" беше одобрена",
-                null, null, "PUBLICATION", publicationId, "/publications/" + publicationId);
+                null, null, "PUBLICATION", publicationId, "/publications?openModal=" + publicationId);
     }
 
     @Override
     public void notifySignalReviewed(UserEntity author, Long signalId, String status) {
         create(author, "SIGNAL_REVIEWED",
                 "Вашият сигнал беше разгледан: " + status,
-                null, null, "SIGNAL", signalId, "/signals/" + signalId);
+                null, null, "SIGNAL", signalId, "/signals/mainView?openSignal=" + signalId);
     }
 
     @Override
@@ -121,23 +195,78 @@ public class NotificationServiceImpl implements NotificationService {
         entity.setPriority("HIGH");
 
         NotificationEntity saved = repository.save(entity);
-        webSocket.sendToUser(user.getUsername(), NotificationDTO.fromEntity(saved));
+        webSocket.sendToUser(user.getUsername(), fromEntityWithActorImage(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationDTO> getNotifications(UserEntity user, Pageable pageable) {
-        return repository.findByRecipient(user, pageable)
-                .map(NotificationDTO::fromEntity);
+        Page<NotificationEntity> entityPage = repository.findByRecipient(user, pageable);
+        
+        // Оптимизация: вземаме всички actor usernames наведнъж
+        Map<String, String> actorImageMap = entityPage.getContent().stream()
+                .filter(n -> n.getActorUsername() != null)
+                .map(NotificationEntity::getActorUsername)
+                .distinct()
+                .collect(Collectors.toMap(
+                        username -> username,
+                        username -> userRepository.findByUsername(username)
+                                .map(UserEntity::getImageUrl)
+                                .orElse(null)
+                ));
+        
+        // Map-ваме с допълнени actorImageUrl
+        return entityPage.map(entity -> {
+            NotificationDTO dto = NotificationDTO.fromEntity(entity);
+            if (entity.getActorUsername() != null) {
+                dto.setActorImageUrl(actorImageMap.get(entity.getActorUsername()));
+            }
+            return dto;
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<NotificationDTO> getRecent(UserEntity user, int limit) {
-        return repository.findTopByRecipient(user, PageRequest.of(0, limit))
-                .stream()
-                .map(NotificationDTO::fromEntity)
+        List<NotificationEntity> entities = repository.findTopByRecipient(user, PageRequest.of(0, limit));
+        
+        // Оптимизация: вземаме всички actor usernames наведнъж
+        Map<String, String> actorImageMap = entities.stream()
+                .filter(n -> n.getActorUsername() != null)
+                .map(NotificationEntity::getActorUsername)
+                .distinct()
+                .collect(Collectors.toMap(
+                        username -> username,
+                        username -> userRepository.findByUsername(username)
+                                .map(UserEntity::getImageUrl)
+                                .orElse(null)
+                ));
+        
+        return entities.stream()
+                .map(entity -> {
+                    NotificationDTO dto = NotificationDTO.fromEntity(entity);
+                    // Допълваме actorImageUrl от UserEntity
+                    if (entity.getActorUsername() != null) {
+                        dto.setActorImageUrl(actorImageMap.get(entity.getActorUsername()));
+                    }
+                    return dto;
+                })
                 .toList();
+    }
+    
+    /**
+     * Mapping с автоматично допълване на actorImageUrl от UserEntity
+     */
+    private NotificationDTO fromEntityWithActorImage(NotificationEntity entity) {
+        NotificationDTO dto = NotificationDTO.fromEntity(entity);
+        
+        // Ако има actorUsername, вземаме актуалната снимка от UserEntity
+        if (entity.getActorUsername() != null) {
+            userRepository.findByUsername(entity.getActorUsername())
+                    .ifPresent(user -> dto.setActorImageUrl(user.getImageUrl()));
+        }
+        
+        return dto;
     }
 
     @Override
@@ -199,7 +328,18 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private String buildUrl(String entityType, Long entityId) {
-        return "/" + entityType.toLowerCase() + "s/" + entityId;
+        if (entityType == null || entityId == null) {
+            return "";
+        }
+        
+        return switch (entityType.toUpperCase()) {
+            case "PUBLICATION" -> "/publications?openModal=" + entityId;
+            case "SIMPLEEVENT", "SIMPLE_EVENT" -> "/event/" + entityId;
+            case "REFERENDUM" -> "/referendum/" + entityId;
+            case "MULTI_POLL", "MULTIPOLL" -> "/multipoll/" + entityId;
+            case "SIGNAL" -> "/signals/mainView?openSignal=" + entityId;
+            default -> "/" + entityType.toLowerCase() + "s/" + entityId;
+        };
     }
 
     // ====== NEW FOLLOW/VOTE NOTIFICATIONS ======
@@ -211,7 +351,7 @@ public class NotificationServiceImpl implements NotificationService {
         create(followed, "NEW_FOLLOWER",
                 follower.getUsername() + " започна да ви следва",
                 follower.getUsername(), follower.getImageUrl(),
-                "USER", follower.getId(), "/profile/" + follower.getUsername());
+                "USER", follower.getId(), "/user/" + follower.getUsername());
     }
 
     @Override
@@ -221,7 +361,7 @@ public class NotificationServiceImpl implements NotificationService {
         create(unfollowed, "UNFOLLOW",
                 unfollower.getUsername() + " спря да ви следва",
                 unfollower.getUsername(), unfollower.getImageUrl(),
-                "USER", unfollower.getId(), "/profile/" + unfollower.getUsername());
+                "USER", unfollower.getId(), "/user/" + unfollower.getUsername());
     }
 
     @Override
@@ -251,7 +391,7 @@ public class NotificationServiceImpl implements NotificationService {
         return switch (eventType.toUpperCase()) {
             case "SIMPLEEVENT", "SIMPLE_EVENT" -> "/event/" + eventId;
             case "REFERENDUM" -> "/referendum/" + eventId;
-            case "MULTI_POLL", "MULTIPOLL" -> "/multiPoll/" + eventId;
+            case "MULTI_POLL", "MULTIPOLL" -> "/multipoll/" + eventId;
             default -> "/event/" + eventId;
         };
     }

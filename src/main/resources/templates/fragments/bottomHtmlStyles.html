@@ -37,7 +37,10 @@
     <!-- ⭐  SockJS за WebSocket -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.2/dist/sockjs.min.js"></script>
 
-    <!-- Notifications СЛЕД SockJS -->
+    <!-- CSRF Protection (преди notifications) -->
+    <script src="/js/utils/csrf.js"></script>
+
+    <!-- Notifications СЛЕД SockJS и CSRF -->
     <script src="/js/notifications.js"></script>
 
     <!-- Mobile Menu -->
