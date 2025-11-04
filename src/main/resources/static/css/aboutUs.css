@@ -280,6 +280,11 @@ body {
     justify-content: center;
 }
 
+/* REVERSE секции - ОБРЪЩАМЕ САМИТЕ КОЛОНИ */
+.section.reverse .unified-box {
+    grid-template-columns: 460px 1fr;
+}
+
 /* REVERSE секции - разменени позиции */
 .section.reverse .unified-box .text-content:nth-child(3) {
     grid-column: 2;
@@ -338,6 +343,7 @@ body {
 /* Section 8 */
 .video-section-8 .video-content mux-player {
     --video-scale: 2.63;
+    margin-top: 60px;
 }
 
 /* Section 9 */
@@ -359,6 +365,12 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     position: relative;
+}
+
+/* Иконите наследяват градиентния ефект като текста */
+.content-box h2 i {
+    display: inline-block;
+    margin-right: 0.5rem;
 }
 
 .content-box h2::after {
@@ -428,6 +440,7 @@ body {
     pointer-events: none;
     opacity: 0.3;
 }
+
 
 @keyframes sectionShimmer {
     0%, 100% { transform: translateX(-100%) translateY(-100%); }
