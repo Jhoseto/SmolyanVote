@@ -150,6 +150,11 @@ class PublicationsManager {
         }
 
         await this.loadMorePosts();
+        
+        // Update category counts after initial load
+        if (window.filtersManager && typeof window.filtersManager.updateCategoryCounts === 'function') {
+            window.filtersManager.updateCategoryCounts();
+        }
     }
 
     async loadMorePosts() {
@@ -210,6 +215,11 @@ class PublicationsManager {
                 this.renderPosts(publicationsToAdd);
                 this.currentPage++;
                 this.hasMorePosts = data.publications.length === this.postsPerPage;
+                
+                // Update category counts after loading posts
+                if (window.filtersManager && typeof window.filtersManager.updateCategoryCounts === 'function') {
+                    window.filtersManager.updateCategoryCounts();
+                }
 
                 if (this.hasMorePosts && this.allLoadedPosts.length < this.preloadThreshold * this.postsPerPage) {
                     this.preloadNextPage(filters);

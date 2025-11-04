@@ -10,6 +10,7 @@ class FiltersManager {
         this.lastAppliedFilters = null;
         this.observers = new Set();
         this.debounceTimers = new Map();
+        this.initialCategoryCounts = null;
         
         // Initialize
         this.init();
@@ -33,10 +34,52 @@ class FiltersManager {
         this.loadFromStorage();
         this.syncWithURL();
         this.setupEventListeners();
+        this.saveInitialCategoryCounts();
         this.applyFilters();
         
         // Auto-load publications if publicationsManager is available
         this.autoLoadPublications();
+    }
+
+    /**
+     * Save initial category counts from HTML
+     */
+    saveInitialCategoryCounts() {
+        if (this.initialCategoryCounts) return;
+        
+        const categoryMap = {
+            '': 'total',
+            'news': 'news',
+            'infrastructure': 'infrastructure',
+            'municipal': 'municipal',
+            'initiatives': 'initiatives',
+            'culture': 'culture',
+            'other': 'other'
+        };
+
+        this.initialCategoryCounts = {};
+        Object.keys(categoryMap).forEach(categoryValue => {
+            const countKey = categoryMap[categoryValue];
+            const countElement = document.querySelector(
+                `[data-filter="category"][data-value="${categoryValue}"] .count`
+            );
+            if (countElement) {
+                this.initialCategoryCounts[countKey] = parseInt(countElement.textContent) || 0;
+            }
+        });
+    }
+
+    /**
+     * Restore initial category counts
+     */
+    restoreInitialCategoryCounts() {
+        if (!this.initialCategoryCounts) {
+            this.saveInitialCategoryCounts();
+        }
+        
+        if (this.initialCategoryCounts) {
+            this.updateCategoryCountsUI(this.initialCategoryCounts);
+        }
     }
 
     /**
@@ -744,6 +787,70 @@ class FiltersManager {
             // Always use server-side filtering for all filters including userIds
             window.publicationsManager.onFiltersChanged(this.activeFilters);
         }
+        // Update category counts after filter change
+        this.updateCategoryCounts();
+    }
+
+    /**
+     * Update category counts based on loaded publications
+     */
+    updateCategoryCounts() {
+        // If no user filter is active, restore initial counts
+        if (!this.activeFilters.userIds || this.activeFilters.userIds.length === 0) {
+            this.restoreInitialCategoryCounts();
+            return;
+        }
+
+        if (!window.publicationsManager || !window.publicationsManager.allLoadedPosts) {
+            return;
+        }
+
+        const posts = window.publicationsManager.allLoadedPosts || [];
+        const counts = {
+            total: posts.length,
+            news: 0,
+            infrastructure: 0,
+            municipal: 0,
+            initiatives: 0,
+            culture: 0,
+            other: 0
+        };
+
+        posts.forEach(post => {
+            const category = this.normalizeCategory(post.category || 'other');
+            if (counts.hasOwnProperty(category)) {
+                counts[category]++;
+            } else {
+                counts.other++;
+            }
+        });
+
+        this.updateCategoryCountsUI(counts);
+    }
+
+    /**
+     * Update category counts in UI
+     */
+    updateCategoryCountsUI(counts) {
+        const categoryMap = {
+            '': 'total',
+            'news': 'news',
+            'infrastructure': 'infrastructure',
+            'municipal': 'municipal',
+            'initiatives': 'initiatives',
+            'culture': 'culture',
+            'other': 'other'
+        };
+
+        Object.keys(categoryMap).forEach(categoryValue => {
+            const countKey = categoryMap[categoryValue];
+            const countElement = document.querySelector(
+                `[data-filter="category"][data-value="${categoryValue}"] .count`
+            );
+            if (countElement && counts.hasOwnProperty(countKey)) {
+                countElement.textContent = counts[countKey];
+            }
+        });
     }
 
     // ===== UTILITY METHODS =====
