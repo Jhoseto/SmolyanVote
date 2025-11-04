@@ -142,7 +142,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     max-height: 300px;
-    overflow-y: auto;
+    overflow: visible;
     display: none;
     margin-top: 4px;
 }
@@ -160,6 +160,7 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-bottom: 1px solid var(--border-light, #f0f2f5);
+    position: relative;
 }
 
 .user-search-result:last-child {
@@ -172,8 +173,8 @@
 
 /* User Avatar in Results */
 .user-search-result .user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 25px;
+    height: 25px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border, #e4e6ea);
@@ -215,6 +216,27 @@
 
 .online-indicator.offline {
     background: var(--text-muted, #65676b);
+}
+
+/* Menu Button */
+.user-result-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted, #65676b);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-result-menu-btn:hover {
+    background: var(--hover-bg, #f0f2f5);
+    color: var(--text-primary, #1c1e21);
 }
 
 /* Empty State */
@@ -295,7 +317,7 @@
 
 /* Context Menu */
 .user-context-menu {
-    position: absolute;
+    position: fixed;
     background: var(--surface, #ffffff);
     border: 1px solid var(--border, #e4e6ea);
     border-radius: 8px;

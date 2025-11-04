@@ -335,11 +335,11 @@ class PublicationsManager {
 
         <div class="post-stats">
             <div class="stats-left">
-                <div class="stats-item">
+                <div class="stats-item like-stats-clickable" data-post-id="${post.id}" data-reaction-type="like" style="cursor: pointer;">
                     <i class="bi bi-hand-thumbs-up-fill stats-icon"></i>
                     <span class="stats-count like-stats-count">${post.likesCount || 0}</span>
                 </div>
-                <div class="stats-item">
+                <div class="stats-item dislike-stats-clickable" data-post-id="${post.id}" data-reaction-type="dislike" style="cursor: pointer;">
                     <i class="bi bi-hand-thumbs-down-fill stats-icon"></i>
                     <span class="stats-count dislike-stats-count">${post.dislikesCount || 0}</span>
                 </div>

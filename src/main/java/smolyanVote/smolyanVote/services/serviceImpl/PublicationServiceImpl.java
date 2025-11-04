@@ -755,6 +755,70 @@ public class PublicationServiceImpl implements PublicationService {
         }
     }
 
+    // ====== REACTION USERS ======
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> getLikedUsers(Long publicationId) {
+        PublicationEntity publication = findById(publicationId);
+        if (publication == null || publication.getLikedByUsers() == null || publication.getLikedByUsers().trim().isEmpty()) {
+            return List.of();
+        }
+        return extractUsersFromJson(publication.getLikedByUsers());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> getDislikedUsers(Long publicationId) {
+        PublicationEntity publication = findById(publicationId);
+        if (publication == null || publication.getDislikedByUsers() == null || publication.getDislikedByUsers().trim().isEmpty()) {
+            return List.of();
+        }
+        return extractUsersFromJson(publication.getDislikedByUsers());
+    }
+
+    /**
+     * Парсва JSON масив от usernames и връща списък с SVUserMinimalDTO обекти
+     * Формат: ["username1","username2","username3"]
+     */
+    private List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> extractUsersFromJson(String jsonArray) {
+        if (jsonArray == null || jsonArray.trim().isEmpty() || jsonArray.equals("[]")) {
+            return List.of();
+        }
+
+        try {
+            // Парсваме JSON масива: премахваме [ и ], разделяме по ", и извличаме usernames
+            String cleaned = jsonArray.trim();
+            if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
+                cleaned = cleaned.substring(1, cleaned.length() - 1);
+            }
+
+            if (cleaned.isEmpty()) {
+                return List.of();
+            }
+
+            // Разделяме по запетая и премахваме кавичките
+            String[] usernames = cleaned.split(",");
+            List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> users = new java.util.ArrayList<>();
+
+            for (String usernameWithQuotes : usernames) {
+                String username = usernameWithQuotes.trim();
+                // Премахваме кавичките
+                if (username.startsWith("\"") && username.endsWith("\"")) {
+                    username = username.substring(1, username.length() - 1);
+                }
+                
+                if (!username.isEmpty()) {
+                    userRepository.findByUsername(username).ifPresent(user -> {
+                        users.add(smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO.Mapper.toDTO(user));
+                    });
+                }
+            }
+
+            return users;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
 
 }

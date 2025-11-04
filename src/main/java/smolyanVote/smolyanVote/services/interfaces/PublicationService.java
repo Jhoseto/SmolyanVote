@@ -87,4 +87,12 @@ public interface PublicationService {
 
     @Transactional(readOnly = true)
     List<Long> getBookmarkedPublicationIdsByUsername(String username);
+
+    // ====== REACTION USERS ======
+
+    @Transactional(readOnly = true)
+    List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> getLikedUsers(Long publicationId);
+
+    @Transactional(readOnly = true)
+    List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> getDislikedUsers(Long publicationId);
 }

@@ -436,6 +436,34 @@ public class PublicationsController {
         }
     }
 
+    // ====== REACTION USERS ======
+
+    @GetMapping(value = "/api/{id}/liked-users", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getLikedUsers(@PathVariable Long id) {
+        try {
+            List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> users = publicationService.getLikedUsers(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("users", users);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на потребителите"));
+        }
+    }
+
+    @GetMapping(value = "/api/{id}/disliked-users", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getDislikedUsers(@PathVariable Long id) {
+        try {
+            List<smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO> users = publicationService.getDislikedUsers(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("users", users);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при зареждането на потребителите"));
+        }
+    }
+
     @PostMapping(value = "/api/{id}/followPublication", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleBookmark(

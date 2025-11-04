@@ -209,9 +209,11 @@ class UserSearchManager {
                      onerror="this.src='/images/default-avatar.png'">
                 <div class="user-info">
                     <div class="user-name">${fullName}</div>
-                    <div class="user-username">@${username}</div>
                 </div>
                 <div class="online-indicator ${isOnline}"></div>
+                <button class="user-result-menu-btn" type="button">
+                    <i class="bi bi-three-dots"></i>
+                </button>
             </div>
         `;
     }
@@ -222,7 +224,8 @@ class UserSearchManager {
     setupResultEventListeners() {
         const results = this.elements.dropdown?.querySelectorAll('.user-search-result');
         results?.forEach(result => {
-            result.addEventListener('click', (e) => {
+            const menuBtn = result.querySelector('.user-result-menu-btn');
+            menuBtn?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const userId = parseInt(result.dataset.userId);
                 const user = this.getUserFromResult(result);
@@ -258,6 +261,10 @@ class UserSearchManager {
         const existingMenu = document.querySelector('.user-context-menu');
         existingMenu?.remove();
         
+        // Find the result element
+        const resultElement = event.target.closest('.user-search-result');
+        if (!resultElement) return;
+        
         // Create new menu
         const menu = document.createElement('div');
         menu.className = 'user-context-menu show';
@@ -272,16 +279,26 @@ class UserSearchManager {
             </div>
         `;
         
-        // Position menu
-        const rect = event.target.getBoundingClientRect();
-        menu.style.left = `${rect.left}px`;
-        menu.style.top = `${rect.bottom + 4}px`;
-        
         document.body.appendChild(menu);
+        
+        // Position menu to the right of the result element
+        const updateMenuPosition = () => {
+            const rect = resultElement.getBoundingClientRect();
+            menu.style.left = `${rect.right + 8}px`;
+            menu.style.top = `${rect.top}px`;
+        };
+        
+        updateMenuPosition();
+        
+        // Update position on scroll
+        const scrollHandler = () => updateMenuPosition();
+        window.addEventListener('scroll', scrollHandler, true);
         
         // Setup menu event listeners
         menu.addEventListener('click', (e) => {
+            e.stopPropagation();
             const action = e.target.closest('.user-context-menu-item')?.dataset.action;
+            window.removeEventListener('scroll', scrollHandler, true);
             if (action === 'filter') {
                 this.addUserToFilter(user);
             } else if (action === 'profile') {
@@ -292,8 +309,11 @@ class UserSearchManager {
         
         // Close menu on outside click
         setTimeout(() => {
-            document.addEventListener('click', () => {
-                menu.remove();
+            document.addEventListener('click', (e) => {
+                if (!menu.contains(e.target) && !resultElement.contains(e.target)) {
+                    window.removeEventListener('scroll', scrollHandler, true);
+                    menu.remove();
+                }
             }, { once: true });
         }, 100);
     }
@@ -449,7 +469,7 @@ class UserSearchManager {
         this.elements.dropdown.innerHTML = `
             <div class="user-search-empty">
                 <i class="bi bi-exclamation-triangle"></i>
-                <div>Грешка при търсене</div>
+                <div>Влезте в профила си за да използвате опцията за търсене</div>
             </div>
         `;
         this.elements.dropdown.classList.add('show');

@@ -678,5 +678,22 @@
 <!-- Right Sidebar -->
 <link rel="stylesheet" href="/css/publications/rightSideBar.css">
 <script src="/js/publications/rightSideBar.js"></script>
+<script src="/js/publications/reactionUsersModal.js"></script>
+
+  <!-- ====== REACTION USERS MODAL ====== -->
+  <div id="reactionUsersModal" class="reaction-users-modal" style="display: none;">
+    <div class="reaction-users-modal-overlay" onclick="closeReactionUsersModal()"></div>
+    <div class="reaction-users-modal-content">
+      <div class="reaction-users-modal-header">
+        <h3 id="reactionUsersModalTitle">Харесали</h3>
+        <button class="reaction-users-modal-close" onclick="closeReactionUsersModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="reaction-users-modal-body" id="reactionUsersModalBody">
+        <!-- Users will be loaded here -->
+      </div>
+    </div>
+  </div>
 </body>
 </html>
