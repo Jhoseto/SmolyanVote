@@ -434,6 +434,24 @@ body {
     50% { transform: translateX(100%) translateY(100%); }
 }
 
+/* ========== ВИДЕО WRAPPER - С OVERFLOW HIDDEN ========== */
+.video-content {
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px;
+}
+
+/* ========== ВИДЕО - ФИКСИРАН РАЗМЕР + SCALING ========== */
+.video-content mux-player {
+    width: 460px !important;
+    height: 259px !important;
+    border-radius: 15px;
+    display: block;
+    --controls: none;
+    transform: scale(var(--video-scale, 1));
+    transform-origin: center center;
+}
+
 /* ========== ACCESSIBILITY ========== */
 @media (prefers-reduced-motion: reduce) {
     *,

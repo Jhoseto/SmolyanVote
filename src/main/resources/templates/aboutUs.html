@@ -278,44 +278,5 @@
 
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 
-<script>
-    // Автоплей и scaling за видео съдържанието
-    document.addEventListener('DOMContentLoaded', function() {
-        // Автоплей observer
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                const player = entry.target.querySelector('mux-player');
-                if (player) {
-                    entry.isIntersecting ? player.play().catch(()=>{}) : player.pause();
-                }
-            });
-        }, { threshold: 0.5 });
-
-        // Прилагане на scaling за всяко видео
-        document.querySelectorAll('.video-content').forEach(content => {
-            observer.observe(content);
-
-            const player = content.querySelector('mux-player');
-            if (player) {
-                // Изчакваме видеото да се зареди и прилагаме scaling
-                player.addEventListener('loadeddata', function() {
-                    setTimeout(() => {
-                        const scale = player.style.getPropertyValue('--video-scale') || '1';
-                        const video = player.shadowRoot?.querySelector('video');
-
-                        if (video && scale !== '1') {
-                            video.style.transform = `scale(${scale})`;
-                            video.style.transformOrigin = 'center center';
-                            video.style.objectFit = 'cover';
-                            video.style.width = '100%';
-                            video.style.height = '100%';
-                        }
-                    }, 200);
-                });
-            }
-        });
-    });
-</script>
-
 </body>
 </html>
