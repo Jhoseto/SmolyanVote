@@ -55,7 +55,7 @@ public class CommentsEntity extends BaseEntity{
     private int likeCount;
 
     private int unlikeCount;
-    
+
     public String getAuthor() {
         return author;
     }
