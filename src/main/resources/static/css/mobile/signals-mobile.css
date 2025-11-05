@@ -17,31 +17,67 @@
 
 @media (max-width: 768px) {
 
-    /* ===== DEBUG: Force apply mobile marker styles ===== */
-    /* Force apply signal marker styles for debugging */
+    /* ===== FORCE MOBILE SIGNAL MARKERS TO BE PERFECT CIRCLES ===== */
     .signal-marker-content,
     div.signal-marker-content,
+    .leaflet-marker-icon .signal-marker-content,
     .leaflet-marker-icon div.signal-marker-content {
         width: 32px !important;
         height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        max-width: 32px !important;
+        max-height: 32px !important;
         border-radius: 50% !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         color: white !important;
-        font-size: 16px !important;
         border: 3px solid !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-        background-color: inherit !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        overflow: visible !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    .signal-marker-content i,
-    div.signal-marker-content i,
-    .leaflet-marker-icon div.signal-marker-content i {
-        font-size: 14px !important;
+    /* Override any Leaflet transformations and sizing issues */
+    .leaflet-marker-icon .signal-marker-content {
+        transform: scale(1) !important;
+        -webkit-transform: scale(1) !important;
+        -moz-transform: scale(1) !important;
+        -ms-transform: scale(1) !important;
+        -o-transform: scale(1) !important;
+        transform-origin: center center !important;
+        -webkit-transform-origin: center center !important;
+        -moz-transform-origin: center center !important;
+        -ms-transform-origin: center center !important;
+        -o-transform-origin: center center !important;
+    }
+
+    /* Force the marker icon container to not interfere */
+    .leaflet-marker-icon {
+        border: none !important;
+        background: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .signal-marker-content i {
+        font-size: 12px !important;
         color: white !important;
         display: block !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-weight: normal !important;
+        text-align: center !important;
+        flex-shrink: 0 !important;
     }
+
 
     /* ===== CRITICAL FIXES ===== */
 

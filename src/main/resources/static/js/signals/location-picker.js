@@ -118,7 +118,7 @@
                 maxClusterRadius: 50
             });
 
-            // Зареди сигналите
+            // Зареди сигналите (ще създаде маркери с mobile клас)
             this.loadSignalsForPicker();
 
             // Event listener за движение на картата
@@ -140,7 +140,18 @@
 
                 // Добави markers за сигналите
                 signals.forEach(signal => {
-                    const marker = L.marker([signal.latitude, signal.longitude]);
+                    // Създай marker с mobile клас за mobile picker картата
+                    const category = this.getCategoryInfo(signal.category);
+                    const icon = L.divIcon({
+                        className: 'signal-marker',
+                        html: `<div class="signal-marker-content" style="background-color: ${category.color}; border-color: ${category.color}; border-width: 3px;">
+                                <i class="${category.icon}"></i>
+                               </div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    });
+
+                    const marker = L.marker([signal.latitude, signal.longitude], { icon });
 
                     // Popup content
                     const popupContent = `
@@ -479,6 +490,31 @@
                 'OTHER': 'Други'
             };
             return categoryNames[category] || 'Други';
+        },
+
+        // Helper функция за информация за категория (цвят и икона)
+        getCategoryInfo: function(category) {
+            const categoryData = {
+                'ROAD_DAMAGE': { name: 'Дупки в пътищата', icon: 'bi-cone-striped', color: '#dc3545' },
+                'SIDEWALK_DAMAGE': { name: 'Счупени тротоари', icon: 'bi-bricks', color: '#fd7e14' },
+                'LIGHTING': { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#ffc107' },
+                'TRAFFIC_SIGNS': { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#20c997' },
+                'WATER_SEWER': { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#17a2b8' },
+                'WASTE_MANAGEMENT': { name: 'Замърсяване', icon: 'bi-trash', color: '#6f42c1' },
+                'ILLEGAL_DUMPING': { name: 'Незаконно изхвърляне', icon: 'bi-exclamation-triangle', color: '#e83e8c' },
+                'TREE_ISSUES': { name: 'Проблеми с дървета', icon: 'bi-tree', color: '#28a745' },
+                'AIR_POLLUTION': { name: 'Замърсяване на въздуха', icon: 'bi-cloud-fog', color: '#6c757d' },
+                'NOISE_POLLUTION': { name: 'Шумово замърсяване', icon: 'bi-volume-up', color: '#007bff' },
+                'HEALTHCARE': { name: 'Здравеопазване', icon: 'bi-heart-pulse', color: '#fd7e14' },
+                'EDUCATION': { name: 'Образование', icon: 'bi-book', color: '#20c997' },
+                'TRANSPORT': { name: 'Обществен транспорт', icon: 'bi-bus-front', color: '#17a2b8' },
+                'PARKING': { name: 'Паркиране', icon: 'bi-p-square', color: '#6f42c1' },
+                'SECURITY': { name: 'Обществена безопасност', icon: 'bi-shield-check', color: '#dc3545' },
+                'VANDALISM': { name: 'Вандализъм', icon: 'bi-hammer', color: '#e83e8c' },
+                'ACCESSIBILITY': { name: 'Достъпност', icon: 'bi-universal-access', color: '#ffc107' },
+                'OTHER': { name: 'Други', icon: 'bi-three-dots', color: '#6c757d' }
+            };
+            return categoryData[category] || { name: 'Други', icon: 'bi-three-dots', color: '#6c757d' };
         }
     };
 
