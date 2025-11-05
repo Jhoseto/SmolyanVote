@@ -572,12 +572,34 @@
           </button>
           <button type="submit" class="btn-primary">
             <i class="bi bi-send"></i>
-            Изпрати сигнал
+            Публикувай
           </button>
         </div>
       </form>
     </div>
   </div>
+</div>
+
+<!-- Mobile Signals Panel -->
+<div class="mobile-signals-panel" id="mobileSignalsPanel">
+    <div class="mobile-signals-header">
+        <div class="mobile-signals-title">
+            <i class="bi bi-list-ul"></i>
+            <span>Сигнали</span>
+        </div>
+        <button class="mobile-signals-close" onclick="closeMobileSignalsPanel()">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+    <div class="mobile-signals-content">
+        <div class="mobile-signals-list" id="mobileSignalsList">
+            <!-- Mobile signals will be loaded here -->
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Зареждане на сигнали...</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Signal Details Modal -->
@@ -622,7 +644,99 @@
     </div>
 </div>
 
-<!-- FAB Buttons - Mobile Only -->
+<!-- Mobile Action Buttons - Bottom Left -->
+<div class="mobile-action-buttons" id="mobileActionButtons" style="display: none;">
+    <!-- Filters Button -->
+    <button class="mobile-action-btn mobile-filters-btn" id="mobileFiltersBtn" title="Филтри" aria-label="Отвори филтрите">
+        <i class="bi bi-funnel"></i>
+    </button>
+
+    <!-- Signals Button -->
+    <button class="mobile-action-btn mobile-signals-btn" id="mobileSignalsBtn" title="Сигнали" aria-label="Отвори списъка със сигнали">
+        <i class="bi bi-list-ul"></i>
+    </button>
+</div>
+
+<!-- Mobile Filters Panel -->
+<div class="mobile-filters-panel" id="mobileFiltersPanel">
+    <div class="mobile-filters-header">
+        <div class="mobile-filters-title">
+            <i class="bi bi-funnel"></i>
+            <span>Филтри</span>
+        </div>
+        <button class="mobile-filters-close" onclick="closeMobileFiltersPanel()">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+    <div class="mobile-filters-content">
+        <div class="mobile-filters-list">
+            <!-- Category Filter -->
+            <div class="mobile-filter-group">
+                <label class="mobile-filter-label">Категория</label>
+                <div class="mobile-filter-options">
+                    <button class="mobile-filter-option" data-value="all" onclick="setMobileFilter('category', 'all')">
+                        <span>Всички</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="ROAD_DAMAGE" onclick="setMobileFilter('category', 'ROAD_DAMAGE')">
+                        <span>Дупки в пътищата</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="SIDEWALK_DAMAGE" onclick="setMobileFilter('category', 'SIDEWALK_DAMAGE')">
+                        <span>Счупени тротоари</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="LIGHTING" onclick="setMobileFilter('category', 'LIGHTING')">
+                        <span>Неработещо осветление</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="WATER_SEWER" onclick="setMobileFilter('category', 'WATER_SEWER')">
+                        <span>Водопровод/канализация</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="WASTE_MANAGEMENT" onclick="setMobileFilter('category', 'WASTE_MANAGEMENT')">
+                        <span>Замърсяване</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="OTHER" onclick="setMobileFilter('category', 'OTHER')">
+                        <span>Други</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="mobile-filter-group">
+                <label class="mobile-filter-label">Статус</label>
+                <div class="mobile-filter-options">
+                    <button class="mobile-filter-option" data-value="active" onclick="setMobileFilter('showExpired', false)">
+                        <span>Само активни</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="all" onclick="setMobileFilter('showExpired', true)">
+                        <span>Включително изтекли</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sort Filter -->
+            <div class="mobile-filter-group">
+                <label class="mobile-filter-label">Сортиране</label>
+                <div class="mobile-filter-options">
+                    <button class="mobile-filter-option" data-value="newest" onclick="setMobileFilter('sort', 'newest')">
+                        <span>Най-нови</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="oldest" onclick="setMobileFilter('sort', 'oldest')">
+                        <span>Най-стари</span>
+                    </button>
+                    <button class="mobile-filter-option" data-value="popular" onclick="setMobileFilter('sort', 'popular')">
+                        <span>Най-харесвани</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clear Filters Button -->
+        <button class="mobile-clear-filters-btn" onclick="clearMobileFilters()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Изчисти филтрите
+        </button>
+    </div>
+</div>
+
+<!-- FAB Button - Bottom Left -->
 <button class="create-signal-fab" id="createSignalFabBtn" style="display: none;">
     <i class="bi bi-plus-lg"></i>
 </button>

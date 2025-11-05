@@ -130,7 +130,9 @@ function closeSignalModal() {
 
 // ===== MODAL CONTENT UPDATE =====
 function updateModalContent(signal) {
+    console.log('updateModalContent called with signal:', signal);
     if (!signal) {
+        console.error('No signal data provided to updateModalContent');
         return;
     }
     
@@ -203,16 +205,33 @@ function updateModalContent(signal) {
     const authorAvatar = document.getElementById('modalAuthorAvatar');
     const authorName = document.getElementById('modalAuthorName');
 
-    if (authorAvatar && window.avatarUtils) {
-        authorAvatar.outerHTML = window.avatarUtils.createAvatar(
-            signal.author?.imageUrl,
-            signal.author?.username || 'Анонимен',
-            28,
-            'author-avatar'
-        );
-    }
+    // Always update author name
+    console.log('Author data:', signal.author);
     if (authorName) {
         authorName.textContent = signal.author?.username || 'Анонимен';
+        console.log('Updated author name to:', signal.author?.username || 'Анонимен');
+    }
+
+    // Update author avatar - try avatarUtils first, then fallback
+    if (authorAvatar) {
+        if (window.avatarUtils && window.avatarUtils.createAvatar) {
+            try {
+                authorAvatar.outerHTML = window.avatarUtils.createAvatar(
+                    signal.author?.imageUrl,
+                    signal.author?.username || 'Анонимен',
+                    28,
+                    'author-avatar'
+                );
+            } catch (error) {
+                console.warn('avatarUtils failed, using fallback:', error);
+                // Fallback: simple img element
+                authorAvatar.outerHTML = `<img class="author-avatar" src="${signal.author?.imageUrl || '/images/default-avatar.png'}" alt="${signal.author?.username || 'Анонимен'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">`;
+            }
+        } else {
+            console.warn('avatarUtils not available, using simple img fallback');
+            // Fallback: simple img element
+            authorAvatar.outerHTML = `<img class="author-avatar" src="${signal.author?.imageUrl || '/images/default-avatar.png'}" alt="${signal.author?.username || 'Анонимен'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">`;
+        }
     }
 
     const relativeTime = document.getElementById('modalRelativeTime');
@@ -246,8 +265,28 @@ function updateModalContent(signal) {
                 window.signalCommentsManager = null;
             }
 
-            window.signalCommentsManager = new window.CommentsManager('signal', signal.id);
-            await window.signalCommentsManager.loadComments(signal.id);
+            // Always try to load comments, even if they fail
+            try {
+                console.log('Loading comments for signal:', signal.id);
+                if (window.CommentsManager) {
+                    window.signalCommentsManager = new window.CommentsManager('signal', signal.id);
+                    await window.signalCommentsManager.loadComments(signal.id);
+                    console.log('Comments loaded successfully');
+                } else {
+                    console.warn('CommentsManager not available');
+                    const commentsSection = document.getElementById('commentsSection');
+                    if (commentsSection) {
+                        commentsSection.innerHTML = '<div class="comments-error">Системата за коментари не е заредена.</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load comments for signal:', error);
+                // Continue without comments - don't break the modal
+                const commentsSection = document.getElementById('commentsSection');
+                if (commentsSection) {
+                    commentsSection.innerHTML = '<div class="comments-error">Коментарите не могат да бъдат заредени в момента.</div>';
+                }
+            }
 
             if (window.isAuthenticated && window.currentUser) {
                 const userAvatar = document.getElementById('currentUserAvatar');

@@ -75,17 +75,9 @@
             overlay.classList.add('active');
             this.isActive = true;
 
-            // Инициализирай картата в picker
+            // Инициализирай отделна карта в picker overlay
             setTimeout(() => {
-                if (window.mapCore && window.mapCore.map) {
-                    window.mapCore.map.invalidateSize();
-
-                    // Event listener за движение на картата
-                    window.mapCore.map.on('moveend', () => this.updateCoordinates());
-
-                    // Първоначално update на координатите
-                    this.updateCoordinates();
-                }
+                this.initMobilePickerMap();
             }, 300);
 
             // Notification
@@ -94,11 +86,86 @@
             }
         },
 
+        // Инициализиране на отделна карта за mobile picker
+        initMobilePickerMap: function() {
+            const mapContainer = document.getElementById('locationPickerMap');
+            if (!mapContainer) {
+                console.error('❌ Location picker map container not found!');
+                return;
+            }
+
+            // Премахни старата карта ако съществува
+            if (this.mobilePickerMap) {
+                this.mobilePickerMap.remove();
+            }
+
+            // Създай нова карта
+            this.mobilePickerMap = L.map('locationPickerMap', {
+                center: [41.576, 24.701], // Smolyan coordinates
+                zoom: 14,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            // Добави tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(this.mobilePickerMap);
+
+            // Добави marker cluster group
+            this.mobilePickerMarkerCluster = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50
+            });
+
+            // Зареди сигналите
+            this.loadSignalsForPicker();
+
+            // Event listener за движение на картата
+            this.mobilePickerMap.on('moveend', () => this.updateCoordinates());
+
+            // Първоначално update на координатите
+            this.updateCoordinates();
+
+            console.log('✅ Mobile picker map initialized');
+        },
+
+        // Зарежда сигналите за picker картата
+        loadSignalsForPicker: async function() {
+            try {
+                const response = await fetch('/api/signals/map-data');
+                if (!response.ok) throw new Error('Failed to load signals');
+
+                const signals = await response.json();
+
+                // Добави markers за сигналите
+                signals.forEach(signal => {
+                    const marker = L.marker([signal.latitude, signal.longitude]);
+
+                    // Popup content
+                    const popupContent = `
+                        <div class="signal-popup">
+                            <h4>${signal.title}</h4>
+                            <p>${signal.description.substring(0, 100)}${signal.description.length > 100 ? '...' : ''}</p>
+                            <small>Категория: ${this.getCategoryDisplayName(signal.category)}</small>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                    this.mobilePickerMarkerCluster.addLayer(marker);
+                });
+
+                this.mobilePickerMap.addLayer(this.mobilePickerMarkerCluster);
+            } catch (error) {
+                console.error('Error loading signals for picker:', error);
+            }
+        },
+
         // Update координати (mobile)
         updateCoordinates: function() {
-            if (!window.mapCore || !window.mapCore.map) return;
+            if (!this.mobilePickerMap) return;
 
-            const center = window.mapCore.map.getCenter();
+            const center = this.mobilePickerMap.getCenter();
             const lat = center.lat.toFixed(6);
             const lng = center.lng.toFixed(6);
 
@@ -243,9 +310,16 @@
             this.isActive = false;
             this.tempLocation = null;
 
-            // Премахни event listener
-            if (window.mapCore && window.mapCore.map) {
-                window.mapCore.map.off('moveend');
+            // Премахни картата и event listeners
+            if (this.mobilePickerMap) {
+                this.mobilePickerMap.off('moveend');
+                this.mobilePickerMap.remove();
+                this.mobilePickerMap = null;
+            }
+
+            if (this.mobilePickerMarkerCluster) {
+                this.mobilePickerMarkerCluster.clearLayers();
+                this.mobilePickerMarkerCluster = null;
             }
 
             // Reset confirm button
@@ -380,6 +454,31 @@
                 selectBtn.classList.add('selected');
                 selectBtn.classList.remove('selecting');
             }
+        },
+
+        // Helper функция за показване на имена на категории
+        getCategoryDisplayName: function(category) {
+            const categoryNames = {
+                'ROAD_DAMAGE': 'Дупки в пътищата',
+                'SIDEWALK_DAMAGE': 'Счупени тротоари',
+                'LIGHTING': 'Неработещо осветление',
+                'TRAFFIC_SIGNS': 'Повредени пътни знаци',
+                'WATER_SEWER': 'Водопровод/канализация',
+                'WASTE_MANAGEMENT': 'Замърсяване',
+                'ILLEGAL_DUMPING': 'Незаконно изхвърляне',
+                'TREE_ISSUES': 'Проблеми с дървета',
+                'AIR_POLLUTION': 'Замърсяване на въздуха',
+                'NOISE_POLLUTION': 'Шумово замърсяване',
+                'HEALTHCARE': 'Здравеопазване',
+                'EDUCATION': 'Образование',
+                'TRANSPORT': 'Обществен транспорт',
+                'PARKING': 'Паркиране',
+                'SECURITY': 'Обществена безопасност',
+                'VANDALISM': 'Вандализъм',
+                'ACCESSIBILITY': 'Достъпност',
+                'OTHER': 'Други'
+            };
+            return categoryNames[category] || 'Други';
         }
     };
 

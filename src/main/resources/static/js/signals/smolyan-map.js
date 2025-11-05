@@ -136,20 +136,31 @@ function initializePanels() {
     }
 
     // FAB Button за mobile
+    // Mobile Action Buttons
+    const mobileActionButtons = document.getElementById('mobileActionButtons');
+    const mobileSignalsBtn = document.getElementById('mobileSignalsBtn');
+    const mobileFiltersBtn = document.getElementById('mobileFiltersBtn');
     const createSignalFab = document.getElementById('createSignalFabBtn');
-    if (createSignalFab) {
-        // Покажи FAB само на mobile
+
+    if (mobileActionButtons && mobileSignalsBtn && mobileFiltersBtn && createSignalFab) {
+        // Покажи бутоните само на mobile
         if (window.innerWidth <= 768) {
+            mobileActionButtons.style.display = 'flex';
             createSignalFab.style.display = 'flex';
         }
 
+        // Event listeners
+        mobileSignalsBtn.onclick = () => toggleMobileSignalsPanel();
+        mobileFiltersBtn.onclick = () => toggleMobileFiltersPanel();
         createSignalFab.onclick = () => togglePanel('newSignal');
 
         // Скрий/покажи при resize
         window.addEventListener('resize', () => {
             if (window.innerWidth <= 768) {
+                mobileActionButtons.style.display = 'flex';
                 createSignalFab.style.display = 'flex';
             } else {
+                mobileActionButtons.style.display = 'none';
                 createSignalFab.style.display = 'none';
             }
         });
@@ -393,7 +404,15 @@ function togglePanel(panelName) {
 function closePanel(panelId) {
     const panel = document.getElementById(panelId + 'Panel');
     if (panel) {
-        panel.style.display = 'none';
+        // За floating панели - премахваме active класа
+        if (panel.classList.contains('floating-panel')) {
+            panel.classList.remove('active');
+            panel.setAttribute('aria-hidden', 'true');
+        } else {
+            // За стари панели - директно скриваме
+            panel.style.display = 'none';
+        }
+
         if (panelId === 'newSignal') {
             resetSignalForm();
         }
@@ -667,10 +686,317 @@ function getDropdownValue(dropdownName) {
 
 window.showLoginWarning = showLoginWarning;
 
+// ===== ГЛОБАЛНИ ПРОМЕНЛИВИ =====
+let mobileActiveFilters = {
+    category: 'all',
+    showExpired: false,
+    search: '',
+    sort: 'newest'
+};
+
 // ===== ГЛОБАЛНИ ФУНКЦИИ =====
+// ===== MOBILE SIGNALS PANEL =====
+function toggleMobileSignalsPanel() {
+    const panel = document.getElementById('mobileSignalsPanel');
+    if (!panel) return;
+
+    const isActive = panel.classList.contains('active');
+
+    if (isActive) {
+        closeMobileSignalsPanel();
+    } else {
+        openMobileSignalsPanel();
+    }
+}
+
+function openMobileSignalsPanel() {
+    const panel = document.getElementById('mobileSignalsPanel');
+    if (!panel) return;
+
+    panel.classList.add('active');
+
+    // Load signals if not already loaded
+    loadMobileSignals();
+}
+
+function closeMobileSignalsPanel() {
+    const panel = document.getElementById('mobileSignalsPanel');
+    if (panel) {
+        panel.classList.remove('active');
+    }
+}
+
+// ===== MOBILE FILTERS PANEL =====
+function toggleMobileFiltersPanel() {
+    const panel = document.getElementById('mobileFiltersPanel');
+    if (!panel) return;
+
+    const isActive = panel.classList.contains('active');
+
+    if (isActive) {
+        closeMobileFiltersPanel();
+    } else {
+        openMobileFiltersPanel();
+    }
+}
+
+function openMobileFiltersPanel() {
+    const panel = document.getElementById('mobileFiltersPanel');
+    if (!panel) return;
+
+    panel.classList.add('active');
+    updateMobileFilterUI();
+}
+
+function closeMobileFiltersPanel() {
+    const panel = document.getElementById('mobileFiltersPanel');
+    if (panel) {
+        panel.classList.remove('active');
+    }
+}
+
+function setMobileFilter(filterType, value) {
+    mobileActiveFilters[filterType] = value;
+    updateMobileFilterUI();
+
+    // If we're in the signals panel, reload the signals
+    const signalsPanel = document.getElementById('mobileSignalsPanel');
+    if (signalsPanel && signalsPanel.classList.contains('active')) {
+        loadMobileSignals();
+    }
+}
+
+function clearMobileFilters() {
+    mobileActiveFilters = {
+        category: 'all',
+        showExpired: false,
+        search: '',
+        sort: 'newest'
+    };
+    updateMobileFilterUI();
+
+    // If we're in the signals panel, reload the signals
+    const signalsPanel = document.getElementById('mobileSignalsPanel');
+    if (signalsPanel && signalsPanel.classList.contains('active')) {
+        loadMobileSignals();
+    }
+}
+
+function updateMobileFilterUI() {
+    // Update category filter buttons
+    const categoryButtons = document.querySelectorAll('.mobile-filter-option[data-value]');
+    categoryButtons.forEach(btn => {
+        const value = btn.getAttribute('data-value');
+        const filterType = btn.closest('.mobile-filter-group').querySelector('.mobile-filter-label').textContent.toLowerCase();
+
+        let isActive = false;
+
+        if (filterType.includes('категория')) {
+            isActive = mobileActiveFilters.category === value;
+        } else if (filterType.includes('статус')) {
+            if (value === 'active') {
+                isActive = !mobileActiveFilters.showExpired;
+            } else if (value === 'all') {
+                isActive = mobileActiveFilters.showExpired;
+            }
+        } else if (filterType.includes('сортиране')) {
+            isActive = mobileActiveFilters.sort === value;
+        }
+
+        if (isActive) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+async function loadMobileSignals() {
+    const container = document.getElementById('mobileSignalsList');
+    if (!container) return;
+
+    try {
+        // Show loading state
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Зареждане на сигнали...</p>
+            </div>
+        `;
+
+        // Use EXACTLY the same API logic as desktop version from signal-management.js
+        const params = new URLSearchParams();
+        if (mobileActiveFilters.category && mobileActiveFilters.category !== 'all') {
+            params.append('category', mobileActiveFilters.category);
+        }
+        if (mobileActiveFilters.showExpired) {
+            params.append('showExpired', 'true');
+        }
+        if (mobileActiveFilters.search && mobileActiveFilters.search.trim() !== '') {
+            params.append('search', mobileActiveFilters.search.trim());
+        }
+        if (mobileActiveFilters.sort && mobileActiveFilters.sort !== 'newest') {
+            params.append('sort', mobileActiveFilters.sort);
+        }
+
+        const url = `/signals${params.toString() ? '?' + params.toString() : ''}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        // Same response handling as desktop version
+        const signalsArray = await response.json();
+
+        if (!Array.isArray(signalsArray) || signalsArray.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                    <i class="bi bi-info-circle" style="font-size: 48px; margin-bottom: 16px;"></i>
+                    <p>Няма намерени сигнали</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render mobile signal cards
+        const signalsHtml = signalsArray.map(signal => createMobileSignalCard(signal)).join('');
+        container.innerHTML = signalsHtml;
+
+    } catch (error) {
+        console.error('Error loading mobile signals:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #dc3545;">
+                <i class="bi bi-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px;"></i>
+                <p>Грешка при зареждане на сигналите</p>
+            </div>
+        `;
+    }
+}
+
+function createMobileSignalCard(signal) {
+    // Use the same categories and logic as desktop version
+    const SIGNAL_CATEGORIES = {
+        'ROAD_DAMAGE': { name: 'Дупки в пътищата', icon: 'bi-cone-striped', color: '#dc3545' },
+        'SIDEWALK_DAMAGE': { name: 'Счупени тротоари', icon: 'bi-bricks', color: '#fd7e14' },
+        'LIGHTING': { name: 'Неработещо осветление', icon: 'bi-lightbulb', color: '#ffc107' },
+        'TRAFFIC_SIGNS': { name: 'Повредени пътни знаци', icon: 'bi-sign-stop', color: '#20c997' },
+        'WATER_SEWER': { name: 'Водопровод/канализация', icon: 'bi-droplet', color: '#17a2b8' },
+        'WASTE_MANAGEMENT': { name: 'Замърсяване', icon: 'bi-trash', color: '#6f42c1' },
+        'ILLEGAL_DUMPING': { name: 'Незаконно изхвърляне', icon: 'bi-exclamation-triangle', color: '#e83e8c' },
+        'TREE_ISSUES': { name: 'Проблеми с дървета', icon: 'bi-tree', color: '#28a745' },
+        'AIR_POLLUTION': { name: 'Замърсяване на въздуха', icon: 'bi-cloud-fog', color: '#6c757d' },
+        'NOISE_POLLUTION': { name: 'Шумово замърсяване', icon: 'bi-volume-up', color: '#007bff' },
+        'HEALTHCARE': { name: 'Здравеопазване', icon: 'bi-heart-pulse', color: '#fd7e14' },
+        'EDUCATION': { name: 'Образование', icon: 'bi-book', color: '#20c997' },
+        'TRANSPORT': { name: 'Обществен транспорт', icon: 'bi-bus-front', color: '#17a2b8' },
+        'PARKING': { name: 'Паркиране', icon: 'bi-p-square', color: '#6f42c1' },
+        'SECURITY': { name: 'Обществена безопасност', icon: 'bi-shield-check', color: '#dc3545' },
+        'VANDALISM': { name: 'Вандализъм', icon: 'bi-hammer', color: '#e83e8c' },
+        'ACCESSIBILITY': { name: 'Достъпност', icon: 'bi-universal-access', color: '#ffc107' },
+        'OTHER': { name: 'Други', icon: 'bi-three-dots', color: '#6c757d' }
+    };
+
+    const category = SIGNAL_CATEGORIES[signal.category] || {
+        name: signal.category || 'Неизвестна',
+        icon: 'bi-circle',
+        color: '#6b7280'
+    };
+
+    // Same expiration logic as desktop
+    const expirationColors = {
+        1: '#dc3545',
+        3: '#ffc107',
+        7: '#198754'
+    };
+    const expirationColor = expirationColors[signal.expirationDays] || '#6c757d';
+
+    // Same expiration display logic
+    const expirationDisplay = signal.expirationDays === 1 ? '1 ден' :
+                             signal.expirationDays === 3 ? '3 дни' :
+                             signal.expirationDays === 7 ? '7 дни' :
+                             `${signal.expirationDays} дни`;
+
+    // Same avatar logic as desktop
+    let avatarHtml = '';
+    if (window.avatarUtils && window.avatarUtils.createAvatar) {
+        avatarHtml = window.avatarUtils.createAvatar(signal.author?.imageUrl, signal.author?.username, 24, 'user-avatar');
+    } else {
+        avatarHtml = `<div class="user-avatar" style="width:24px;height:24px;background:#4cb15c;border-radius:50%;display:inline-block;margin-right:6px;"></div>`;
+    }
+
+    // Same date formatting as desktop
+    const timeAgo = window.signalModalUtils && window.signalModalUtils.getRelativeTime ?
+                    window.signalModalUtils.getRelativeTime(signal.createdAt) :
+                    formatDate(signal.createdAt);
+
+    return `
+        <div class="mobile-signal-card" onclick="openSignalModal(${JSON.stringify(signal).replace(/"/g, '&quot;')})">
+            <div class="mobile-signal-header">
+                <div class="mobile-signal-category">
+                    <i class="${category.icon}"></i>
+                    ${category.name}
+                </div>
+                <div class="mobile-signal-expiration" data-days="${signal.expirationDays}" style="color: ${expirationColor};">
+                    <i class="bi bi-clock"></i>
+                    ${expirationDisplay}
+                </div>
+            </div>
+            <h4 class="mobile-signal-title">${escapeHtml(signal.title)}</h4>
+            <p class="mobile-signal-description">${escapeHtml(signal.description?.substring(0, 100))}${signal.description?.length > 100 ? '...' : ''}</p>
+            <div class="mobile-signal-meta">
+                <span>${avatarHtml} ${escapeHtml(signal.author?.username || 'Анонимен')}</span>
+                <span><i class="bi bi-calendar"></i> ${timeAgo}</span>
+            </div>
+        </div>
+    `;
+}
+
+// Category names are now handled in createMobileSignalCard with full names
+
+function formatDate(dateString) {
+    if (!dateString) return 'Неизвестно';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('bg-BG', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return 'Неизвестно';
+    }
+}
+
+function formatTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'току-що';
+    if (diffMins < 60) return `преди ${diffMins} мин`;
+    if (diffHours < 24) return `преди ${diffHours} ч`;
+    if (diffDays < 7) return `преди ${diffDays} д`;
+    return date.toLocaleDateString('bg-BG');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 window.togglePanel = togglePanel;
 window.closePanel = closePanel;
 window.toggleSignalsPanel = toggleSignalsPanel;
+window.toggleMobileSignalsPanel = toggleMobileSignalsPanel;
+window.closeMobileSignalsPanel = closeMobileSignalsPanel;
+window.toggleMobileFiltersPanel = toggleMobileFiltersPanel;
+window.closeMobileFiltersPanel = closeMobileFiltersPanel;
+window.setMobileFilter = setMobileFilter;
+window.clearMobileFilters = clearMobileFilters;
 window.toggleFilters = toggleFilters;
 window.initializeAllDropdowns = initializeAllDropdowns;
 window.refreshDropdowns = refreshDropdowns;
