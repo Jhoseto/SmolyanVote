@@ -11,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 
@@ -39,7 +38,7 @@ public class SignalsController {
     public ResponseEntity<List<Map<String, Object>>> getAllSignals(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "") String urgency,
+            @RequestParam(defaultValue = "false") boolean showExpired,
             @RequestParam(defaultValue = "") String sort,
             @RequestParam(defaultValue = "") String time,
             @RequestParam(defaultValue = "0") int page,
@@ -52,7 +51,7 @@ public class SignalsController {
 
             Pageable pageable = PageRequest.of(page, size);
             Page<SignalsEntity> signalsPage = signalsService.findWithFilters(
-                    search, category, urgency, time, sort, pageable);
+                    search, category, showExpired, time, sort, pageable);
 
             // Конвертиране към JSON формат за frontend-а
             List<Map<String, Object>> signalsJson = signalsPage.getContent().stream()
@@ -135,7 +134,7 @@ public class SignalsController {
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam String category,
-            @RequestParam String urgency,
+            @RequestParam Integer expirationDays,
             @RequestParam String latitude,
             @RequestParam String longitude,
             @RequestParam(required = false) MultipartFile image,
@@ -147,7 +146,7 @@ public class SignalsController {
 
         try {
             // Валидация на входните данни
-            String validationError = validateSignalInput(title, description, category, urgency, latitude, longitude);
+            String validationError = validateSignalInput(title, description, category, expirationDays, latitude, longitude);
             if (validationError != null) {
                 return ResponseEntity.status(400).body(createErrorResponse(validationError));
             }
@@ -160,13 +159,12 @@ public class SignalsController {
 
             // Парсиране на параметрите
             SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
-            SignalsUrgencyLevel urgencyEnum = SignalsUrgencyLevel.valueOf(urgency.toUpperCase());
             BigDecimal lat = new BigDecimal(latitude);
             BigDecimal lon = new BigDecimal(longitude);
 
             // Създаване на сигнала
             SignalsEntity newSignal = signalsService.create(title, description, categoryEnum,
-                    urgencyEnum, lat, lon, image, currentUser);
+                    expirationDays, lat, lon, image, currentUser);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -192,7 +190,7 @@ public class SignalsController {
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam String category,
-            @RequestParam String urgency,
+            @RequestParam Integer expirationDays,
             @RequestParam(required = false) MultipartFile image,
             Authentication auth) {
 
@@ -212,18 +210,17 @@ public class SignalsController {
             }
 
             // Валидация
-            String validationError = validateSignalUpdateInput(title, description, category, urgency);
+            String validationError = validateSignalUpdateInput(title, description, category, expirationDays);
             if (validationError != null) {
                 return ResponseEntity.status(400).body(createErrorResponse(validationError));
             }
 
             // Парсиране на параметрите
             SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
-            SignalsUrgencyLevel urgencyEnum = SignalsUrgencyLevel.valueOf(urgency.toUpperCase());
 
             // Обновяване на сигнала
             SignalsEntity updatedSignal = signalsService.update(signal, title, description,
-                    categoryEnum, urgencyEnum, image);
+                    categoryEnum, expirationDays, image);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -312,7 +309,9 @@ public class SignalsController {
         signalMap.put("title", signal.getTitle());
         signalMap.put("description", signal.getDescription());
         signalMap.put("category", signal.getCategory().name());
-        signalMap.put("urgency", signal.getUrgency().name());
+        signalMap.put("expirationDays", signal.getExpirationDays());
+        signalMap.put("activeUntil", signal.getActiveUntil());
+        signalMap.put("isActive", signal.isActive());
 
         // Координати като array [lat, lng]
         if (signal.getLatitude() != null && signal.getLongitude() != null) {
@@ -355,7 +354,7 @@ public class SignalsController {
 
 
     private String validateSignalInput(String title, String description, String category,
-                                       String urgency, String latitude, String longitude) {
+                                       Integer expirationDays, String latitude, String longitude) {
         if (title == null || title.trim().length() < 5) {
             return "Заглавието трябва да е поне 5 символа";
         }
@@ -375,10 +374,11 @@ public class SignalsController {
             return "Невалидна категория";
         }
 
-        try {
-            SignalsUrgencyLevel.valueOf(urgency.toUpperCase());
-        } catch (Exception e) {
-            return "Невалидна спешност";
+        if (expirationDays == null || expirationDays < 1 || expirationDays > 7) {
+            return "Периодът на активност трябва да е между 1 и 7 дни";
+        }
+        if (expirationDays != 1 && expirationDays != 3 && expirationDays != 7) {
+            return "Периодът на активност трябва да е 1, 3 или 7 дни";
         }
 
         try {
@@ -397,7 +397,7 @@ public class SignalsController {
         return null;
     }
 
-    private String validateSignalUpdateInput(String title, String description, String category, String urgency) {
-        return validateSignalInput(title, description, category, urgency, "0", "0");
+    private String validateSignalUpdateInput(String title, String description, String category, Integer expirationDays) {
+        return validateSignalInput(title, description, category, expirationDays, "0", "0");
     }
 }

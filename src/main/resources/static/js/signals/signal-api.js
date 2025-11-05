@@ -203,8 +203,8 @@ class SignalAPI {
     // ===== UPDATE SIGNAL =====
     static async updateSignal(id, signalData) {
         try {
-            this.validateSignalData(signalData);
-            const payload = this.prepareSignalPayload(signalData);
+            this.validateSignalUpdateData(signalData);
+            const payload = this.prepareSignalUpdatePayload(signalData);
 
             const url = `${API_CONFIG.baseURL}/${id}`;
             const response = await HTTPClient.retryRequest(url, {
@@ -254,12 +254,41 @@ class SignalAPI {
         if (!data.category) {
             errors.push('Категорията е задължителна');
         }
-        if (!data.urgency) {
-            errors.push('Спешността е задължителна');
+        if (!data.expirationDays || (data.expirationDays !== 1 && data.expirationDays !== 3 && data.expirationDays !== 7)) {
+            errors.push('Периодът на активност трябва да е 1, 3 или 7 дни');
         }
         if (!data.latitude || !data.longitude) {
             errors.push('Местоположението е задължително');
         }
+        if (errors.length > 0) {
+            throw new APIError('Валидационни грешки: ' + errors.join(', '), 400);
+        }
+    }
+
+    static validateSignalUpdateData(data) {
+        const errors = [];
+
+        if (!data.title || data.title.trim().length < 5) {
+            errors.push('Заглавието трябва да е поне 5 символа');
+        }
+        if (!data.description || data.description.trim().length < 10) {
+            errors.push('Описанието трябва да е поне 10 символа');
+        }
+        if (!data.category) {
+            errors.push('Категорията е задължителна');
+        }
+        
+        // Конвертираме expirationDays в число за правилна валидация
+        let expirationDays = data.expirationDays;
+        if (typeof expirationDays !== 'number') {
+            expirationDays = expirationDays ? parseInt(expirationDays, 10) : null;
+        }
+        
+        if (!expirationDays || isNaN(expirationDays) || (expirationDays !== 1 && expirationDays !== 3 && expirationDays !== 7)) {
+            errors.push('Периодът на активност трябва да е 1, 3 или 7 дни');
+        }
+        
+        // При update не проверяваме за latitude/longitude - те остават същите
         if (errors.length > 0) {
             throw new APIError('Валидационни грешки: ' + errors.join(', '), 400);
         }
@@ -271,9 +300,41 @@ class SignalAPI {
         formData.append('title', data.title.trim());
         formData.append('description', data.description.trim());
         formData.append('category', data.category);
-        formData.append('urgency', data.urgency);
+        formData.append('expirationDays', data.expirationDays.toString());
         formData.append('latitude', data.latitude.toString());
         formData.append('longitude', data.longitude.toString());
+
+        if (data.image && data.image instanceof File) {
+            formData.append('image', data.image);
+        }
+        return formData;
+    }
+
+    static prepareSignalUpdatePayload(data) {
+        const formData = new FormData();
+
+        formData.append('title', data.title.trim());
+        formData.append('description', data.description.trim());
+        
+        // Уверяваме се че category е String (от backend идва като String от .name())
+        const categoryValue = typeof data.category === 'string' ? data.category : (data.category?.name || data.category);
+        if (!categoryValue) {
+            throw new APIError('Категорията е задължителна', 400);
+        }
+        formData.append('category', categoryValue);
+        
+        // Конвертираме expirationDays в число и после в String
+        let expirationDays = data.expirationDays;
+        if (typeof expirationDays !== 'number') {
+            expirationDays = expirationDays ? parseInt(expirationDays, 10) : null;
+        }
+        if (!expirationDays || isNaN(expirationDays) || (expirationDays !== 1 && expirationDays !== 3 && expirationDays !== 7)) {
+            throw new APIError('Периодът на активност трябва да е 1, 3 или 7 дни', 400);
+        }
+        formData.append('expirationDays', expirationDays.toString());
+
+        // При update НЕ изпращаме latitude/longitude - те остават същите
+        // При update НЕ изпращаме image, ако не е променено
 
         if (data.image && data.image instanceof File) {
             formData.append('image', data.image);

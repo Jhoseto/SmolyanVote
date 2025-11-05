@@ -189,21 +189,20 @@
   font-size: 16px !important;
 }
 
-.signal-marker.urgency-low {
-  background: #28a745 !important;
+/* Цветове за маркерите базирани на период на активност */
+.signal-marker[data-days="1"] {
+  border-color: #dc3545 !important;
+  border-width: 3px !important;
 }
 
-.signal-marker.urgency-medium {
-  background: #ffc107 !important;
+.signal-marker[data-days="3"] {
+  border-color: #ffc107 !important;
+  border-width: 3px !important;
 }
 
-.signal-marker.urgency-high {
-  background: #fd7e14 !important;
-}
-
-.signal-marker.urgency-critical {
-  background: #dc3545 !important;
-  animation: marker-pulse 2s infinite !important;
+.signal-marker[data-days="7"] {
+  border-color: #198754 !important;
+  border-width: 3px !important;
 }
 
 @keyframes marker-pulse {
@@ -380,33 +379,27 @@
   margin-right: 12px !important;
 }
 
-.signal-list-urgency {
+.signal-list-expiration {
   padding: 4px 8px !important;
   border-radius: 6px !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  text-transform: uppercase !important;
   white-space: nowrap !important;
 }
 
-.urgency-low {
-  background: rgba(40, 167, 69, 0.1) !important;
-  color: #28a745 !important;
-}
-
-.urgency-medium {
-  background: rgba(255, 193, 7, 0.1) !important;
-  color: #d39e00 !important;
-}
-
-.urgency-high {
-  background: rgba(253, 126, 20, 0.1) !important;
-  color: #fd7e14 !important;
-}
-
-.urgency-critical {
+.expiration-days-1 {
   background: rgba(220, 53, 69, 0.1) !important;
   color: #dc3545 !important;
+}
+
+.expiration-days-3 {
+  background: rgba(255, 193, 7, 0.1) !important;
+  color: #ffc107 !important;
+}
+
+.expiration-days-7 {
+  background: rgba(25, 135, 84, 0.1) !important;
+  color: #198754 !important;
 }
 
 .signal-list-description {

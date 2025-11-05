@@ -1099,13 +1099,12 @@ body {
     color: var(--sv-primary);
 }
 
-.urgency-badge {
+.expiration-badge {
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
     color: white;
     font-size: 0.6rem;
     font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 

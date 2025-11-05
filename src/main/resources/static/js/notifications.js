@@ -103,18 +103,15 @@ class NotificationSystem {
             const host = window.location.host;
             const wsUrl = `${protocol}//${host}/ws/notifications`;
 
-            console.log('Connecting to WebSocket:', wsUrl);
-
             this.ws = new SockJS(wsUrl);
 
             this.ws.onopen = () => {
-                console.log('✅ WebSocket connected');
+                // WebSocket connected
             };
 
             this.ws.onmessage = (event) => {
                 try {
                     const notification = JSON.parse(event.data);
-                    console.log('📨 New notification:', notification);
                     this.handleNewNotification(notification);
                 } catch (error) {
                     console.error('Failed to parse notification:', error);
@@ -122,7 +119,6 @@ class NotificationSystem {
             };
 
             this.ws.onclose = () => {
-                console.log('❌ WebSocket disconnected, reconnecting in 5s...');
                 setTimeout(() => this.connectWebSocket(), 5000);
             };
 

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 /**
  * Entity модел за сигналите от граждани
@@ -14,10 +14,10 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "signals", indexes = {
         @Index(name = "idx_signals_category", columnList = "category"),
-        @Index(name = "idx_signals_urgency", columnList = "urgency"),
         @Index(name = "idx_signals_author", columnList = "author_id"),
         @Index(name = "idx_signals_created", columnList = "created"),
-        @Index(name = "idx_signals_coordinates", columnList = "latitude, longitude")
+        @Index(name = "idx_signals_coordinates", columnList = "latitude, longitude"),
+        @Index(name = "idx_signals_active_until", columnList = "active_until")
 })
 public class SignalsEntity extends BaseEntity {
 
@@ -36,10 +36,13 @@ public class SignalsEntity extends BaseEntity {
     @Column(name = "category", nullable = false)
     private SignalsCategory category;
 
-    @NotNull(message = "Спешността е задължителна")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "urgency", nullable = false)
-    private SignalsUrgencyLevel urgency;
+    @Min(value = 1, message = "Периодът на активност трябва да е поне 1 ден")
+    @Max(value = 7, message = "Периодът на активност не може да е повече от 7 дни")
+    @Column(name = "expiration_days", nullable = true)
+    private Integer expirationDays;
+
+    @Column(name = "active_until", nullable = true)
+    private Instant activeUntil;
 
     @NotNull(message = "Географската ширина е задължителна")
     @DecimalMin(value = "-90.0", message = "Географската ширина трябва да е между -90 и 90")
@@ -99,16 +102,20 @@ public class SignalsEntity extends BaseEntity {
     }
 
     public SignalsEntity(String title, String description, SignalsCategory category,
-                         SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
+                         Integer expirationDays, BigDecimal latitude, BigDecimal longitude,
                          UserEntity author) {
         this();
         this.title = title;
         this.description = description;
         this.category = category;
-        this.urgency = urgency;
+        this.expirationDays = expirationDays;
         this.latitude = latitude;
         this.longitude = longitude;
         this.author = author;
+        // Изчисляване на activeUntil базирано на expirationDays
+        if (expirationDays != null) {
+            this.activeUntil = Instant.now().plus(expirationDays, java.time.temporal.ChronoUnit.DAYS);
+        }
     }
 
     // ====== GETTERS AND SETTERS ======
@@ -122,8 +129,28 @@ public class SignalsEntity extends BaseEntity {
     public SignalsCategory getCategory() { return category; }
     public void setCategory(SignalsCategory category) { this.category = category; }
 
-    public SignalsUrgencyLevel getUrgency() { return urgency; }
-    public void setUrgency(SignalsUrgencyLevel urgency) { this.urgency = urgency; }
+    public Integer getExpirationDays() { return expirationDays; }
+    public void setExpirationDays(Integer expirationDays) {
+        this.expirationDays = expirationDays;
+        // Автоматично изчисляване на activeUntil при промяна на expirationDays
+        if (expirationDays != null && this.getCreated() != null) {
+            this.activeUntil = this.getCreated().plus(expirationDays, java.time.temporal.ChronoUnit.DAYS);
+        } else if (expirationDays != null) {
+            this.activeUntil = Instant.now().plus(expirationDays, java.time.temporal.ChronoUnit.DAYS);
+        }
+    }
+
+    public Instant getActiveUntil() { return activeUntil; }
+    public void setActiveUntil(Instant activeUntil) { this.activeUntil = activeUntil; }
+
+    // Helper метод за проверка дали сигналът е активен
+    public boolean isActive() {
+        if (activeUntil == null) {
+            // Fallback: Ако activeUntil не е зададен, считаме сигнала за активен
+            return true;
+        }
+        return activeUntil.isAfter(Instant.now());
+    }
 
     public BigDecimal getLatitude() { return latitude; }
     public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }

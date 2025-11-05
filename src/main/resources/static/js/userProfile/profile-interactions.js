@@ -285,15 +285,29 @@ class ProfileManager {
             'OTHER': 'flag'
         };
 
-        const urgencyColors = {
-            'LOW': '#28a745',
-            'MEDIUM': '#ffc107',
-            'HIGH': '#dc3545'
+        const expirationColors = {
+            1: { name: '1 ден', color: '#dc3545' },
+            3: { name: '3 дни', color: '#ffc107' },
+            7: { name: '7 дни', color: '#198754' }
+        };
+        const expirationInfo = expirationColors[signal.expirationDays] || {
+            name: `${signal.expirationDays} дни`,
+            color: '#6c757d'
         };
 
         // ИЗПОЛЗВАМЕ БЪЛГАРСКИТЕ ИМЕНА ОТ BACKEND-А
         const categoryName = signal.categoryBG || signal.category;
-        const urgencyName = signal.urgencyBG || signal.urgency;
+        
+        // Изчисляване на оставащи дни
+        let expirationDisplay = expirationInfo.name;
+        if (signal.activeUntil && signal.isActive !== false) {
+            const daysLeft = Math.ceil((new Date(signal.activeUntil) - new Date()) / (1000 * 60 * 60 * 24));
+            if (daysLeft > 0) {
+                expirationDisplay = `Остава ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
+            } else {
+                expirationDisplay = 'Изтекъл';
+            }
+        }
 
         card.innerHTML = `
         <div class="signal-header">
@@ -301,8 +315,8 @@ class ProfileManager {
                 <i class="bi bi-${categoryIcons[signal.category] || 'flag'}"></i>
                 <span>${categoryName}</span>
             </div>
-            <span class="urgency-badge" style="background-color: ${urgencyColors[signal.urgency]}">
-                ${urgencyName}
+            <span class="expiration-badge" style="background-color: ${expirationInfo.color}; color: white;">
+                ${expirationDisplay}
             </span>
         </div>
         <h4 class="signal-title">${signal.title}</h4>

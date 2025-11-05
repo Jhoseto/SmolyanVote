@@ -1,7 +1,6 @@
 package smolyanVote.smolyanVote.viewsAndDTO;
 
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -11,11 +10,14 @@ public class SignalsDto {
     private String title;
     private String description;
     private SignalsCategory category;
-    private SignalsUrgencyLevel urgency;
+    private Integer expirationDays;
+    private Instant activeUntil;
 
     // НОВИ ПОЛЕТА ЗА БЪЛГАРСКИ ИМЕНА
     private String categoryBG;
-    private String urgencyBG;
+    
+    // Helper поле за показване на активност
+    private Boolean isActive;
 
     private BigDecimal latitude;
     private BigDecimal longitude;
@@ -47,15 +49,18 @@ public class SignalsDto {
     public SignalsCategory getCategory() { return category; }
     public void setCategory(SignalsCategory category) { this.category = category; }
 
-    public SignalsUrgencyLevel getUrgency() { return urgency; }
-    public void setUrgency(SignalsUrgencyLevel urgency) { this.urgency = urgency; }
+    public Integer getExpirationDays() { return expirationDays; }
+    public void setExpirationDays(Integer expirationDays) { this.expirationDays = expirationDays; }
+
+    public Instant getActiveUntil() { return activeUntil; }
+    public void setActiveUntil(Instant activeUntil) { this.activeUntil = activeUntil; }
 
     // НОВИ GETTERS/SETTERS
     public String getCategoryBG() { return categoryBG; }
     public void setCategoryBG(String categoryBG) { this.categoryBG = categoryBG; }
 
-    public String getUrgencyBG() { return urgencyBG; }
-    public void setUrgencyBG(String urgencyBG) { this.urgencyBG = urgencyBG; }
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 
     public BigDecimal getLatitude() { return latitude; }
     public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }

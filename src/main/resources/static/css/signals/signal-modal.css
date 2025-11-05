@@ -85,33 +85,38 @@
     border: 1px solid var(--smolyan-border);
 }
 
-.urgency-badge {
+.expiration-badge {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
-.urgency-badge.urgency-HIGH {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+.expiration-badge i {
+    font-size: 14px;
 }
 
-.urgency-badge.urgency-MEDIUM {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+/* Цветове за трите периода */
+.expiration-badge[data-days="1"] {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
-.urgency-badge.urgency-LOW {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+.expiration-badge[data-days="3"] {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.expiration-badge[data-days="7"] {
+    background: rgba(25, 135, 84, 0.1);
+    color: #198754;
+    border: 1px solid rgba(25, 135, 84, 0.3);
 }
 
 .header-actions {
@@ -656,7 +661,7 @@
     }
 
     .category-badge,
-    .urgency-badge {
+    .expiration-badge {
         font-size: 12px;
         padding: 5px 10px;
     }

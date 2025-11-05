@@ -136,9 +136,16 @@ function updateModalContent(signal) {
         color: '#6b7280'
     };
 
-    const urgency = URGENCY_LEVELS[signal.urgency] || {
-        name: signal.urgency,
-        color: '#6b7280'
+    // Период на активност
+    const expirationColors = {
+        1: { name: '1 ден', color: '#dc3545', icon: 'bi-clock' },
+        3: { name: '3 дни', color: '#ffc107', icon: 'bi-clock-history' },
+        7: { name: '7 дни', color: '#198754', icon: 'bi-calendar-check' }
+    };
+    const expirationInfo = expirationColors[signal.expirationDays] || {
+        name: `${signal.expirationDays} дни`,
+        color: '#6c757d',
+        icon: 'bi-clock'
     };
 
     const titleEl = document.getElementById('modalSignalTitle');
@@ -156,12 +163,28 @@ function updateModalContent(signal) {
         categoryBadge.style.borderColor = `${category.color}30`;
     }
 
-    const urgencyName = document.getElementById('modalUrgencyName');
-    const urgencyBadge = document.getElementById('modalUrgencyBadge');
+    const expirationName = document.getElementById('modalExpirationName');
+    const expirationIcon = document.getElementById('modalExpirationIcon');
+    const expirationBadge = document.getElementById('modalExpirationBadge');
 
-    if (urgencyName) urgencyName.textContent = urgency.name;
-    if (urgencyBadge) {
-        urgencyBadge.className = `urgency-badge urgency-${signal.urgency}`;
+    if (expirationName) {
+        const daysLeft = signal.activeUntil ? Math.ceil((new Date(signal.activeUntil) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+        if (daysLeft > 0) {
+            expirationName.textContent = `Активен ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
+        } else if (signal.isActive === false) {
+            expirationName.textContent = 'Изтекъл';
+        } else {
+            expirationName.textContent = expirationInfo.name;
+        }
+    }
+    if (expirationIcon) {
+        expirationIcon.className = expirationInfo.icon;
+        expirationIcon.style.color = expirationInfo.color;
+    }
+    if (expirationBadge) {
+        expirationBadge.style.background = `${expirationInfo.color}15`;
+        expirationBadge.style.color = expirationInfo.color;
+        expirationBadge.style.borderColor = `${expirationInfo.color}30`;
     }
 
     const authorAvatar = document.getElementById('modalAuthorAvatar');
@@ -490,13 +513,23 @@ async function saveInlineEdit() {
     saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Запазване...';
 
     try {
+        // При update не изпращаме latitude/longitude - те остават същите
+        // Конвертираме expirationDays в число - задължително трябва да е 1, 3 или 7
+        let expirationDays = currentModalSignal.expirationDays;
+        if (typeof expirationDays !== 'number') {
+            expirationDays = expirationDays ? parseInt(expirationDays, 10) : null;
+        }
+        
+        // Ако expirationDays е null или невалидно, използваме 7 дни по подразбиране
+        if (!expirationDays || isNaN(expirationDays) || (expirationDays !== 1 && expirationDays !== 3 && expirationDays !== 7)) {
+            expirationDays = 7; // Default стойност
+        }
+        
         const updateData = {
             title: newTitle,
             description: newDescription,
             category: currentModalSignal.category,
-            urgency: currentModalSignal.urgency,
-            latitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[0] : null,
-            longitude: currentModalSignal.coordinates ? currentModalSignal.coordinates[1] : null
+            expirationDays: expirationDays
         };
 
         const result = await window.SignalAPI.updateSignal(currentModalSignal.id, updateData);

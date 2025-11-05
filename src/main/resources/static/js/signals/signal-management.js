@@ -21,10 +21,10 @@ const SIGNAL_CATEGORIES = {
     OTHER: { name: 'Други', icon: 'bi-three-dots', color: '#6c757d' }
 };
 
-const URGENCY_LEVELS = {
-    LOW: { name: 'Ниска', color: '#198754' },
-    MEDIUM: { name: 'Средна', color: '#fd7e14' },
-    HIGH: { name: 'Висока', color: '#dc3545' }
+const EXPIRATION_DAYS_COLORS = {
+    1: { name: '1 ден', color: '#dc3545' },  // Червен
+    3: { name: '3 дни', color: '#ffc107' },  // Жълт
+    7: { name: '7 дни', color: '#198754' }   // Зелен
 };
 
 let searchTimeout;
@@ -36,7 +36,7 @@ const FILTER_DELAY = 300;
 let currentSignals = [];
 let activeFilters = {
     category: 'all',
-    urgency: 'all',
+    showExpired: false,
     search: '',
     sort: 'newest'
 };
@@ -48,19 +48,19 @@ async function loadSignalsData(showNotifications = true) {
         if (showNotifications) {
         }
 
-        const filters = {
-            category: activeFilters.category,
-            urgency: activeFilters.urgency,
-            search: activeFilters.search,
-            sort: activeFilters.sort
-        };
-
         const params = new URLSearchParams();
-        Object.keys(filters).forEach(key => {
-            if (filters[key] && filters[key] !== 'all' && filters[key] !== '') {
-                params.append(key, filters[key]);
-            }
-        });
+        if (activeFilters.category && activeFilters.category !== 'all') {
+            params.append('category', activeFilters.category);
+        }
+        if (activeFilters.showExpired) {
+            params.append('showExpired', 'true');
+        }
+        if (activeFilters.search && activeFilters.search.trim() !== '') {
+            params.append('search', activeFilters.search.trim());
+        }
+        if (activeFilters.sort && activeFilters.sort !== 'newest') {
+            params.append('sort', activeFilters.sort);
+        }
 
         const url = `/signals${params.toString() ? '?' + params.toString() : ''}`;
         const response = await fetch(url);
@@ -114,16 +114,19 @@ function createSignalMarker(signal) {
     }
 
     const category = SIGNAL_CATEGORIES[signal.category];
-    const urgency = URGENCY_LEVELS[signal.urgency];
+    const expirationInfo = EXPIRATION_DAYS_COLORS[signal.expirationDays];
 
-    if (!category || !urgency) {
-        console.warn('Неизвестна категория/спешност:', signal.category, signal.urgency);
+    if (!category) {
+        console.warn('Неизвестна категория:', signal.category);
         return null;
     }
 
+    // Ако няма expirationDays, използваме цвят по подразбиране
+    const borderColor = expirationInfo ? expirationInfo.color : '#6c757d';
+
     const icon = L.divIcon({
         className: 'signal-marker',
-        html: `<div class="signal-marker-content" style="background-color: ${category.color}; border-color: ${urgency.color};">
+        html: `<div class="signal-marker-content" style="background-color: ${category.color}; border-color: ${borderColor}; border-width: 3px;">
                 <i class="${category.icon}"></i>
                </div>`,
         iconSize: [28, 28],
@@ -178,16 +181,16 @@ async function applyFilters() {
 
     filterTimeout = setTimeout(async () => {
         const categoryDropdown = document.querySelector('[data-name="categoryFilter"]');
-        const urgencyDropdown = document.querySelector('[data-name="urgencyFilter"]');
+        const expiredDropdown = document.querySelector('[data-name="expiredFilter"]');
         const sortDropdown = document.querySelector('[data-name="sortFilter"]');
 
         if (categoryDropdown) {
             const selectedCategory = categoryDropdown.querySelector('.dropdown-option.selected');
             activeFilters.category = selectedCategory ? selectedCategory.dataset.value : 'all';
         }
-        if (urgencyDropdown) {
-            const selectedUrgency = urgencyDropdown.querySelector('.dropdown-option.selected');
-            activeFilters.urgency = selectedUrgency ? selectedUrgency.dataset.value : 'all';
+        if (expiredDropdown) {
+            const selectedExpired = expiredDropdown.querySelector('.dropdown-option.selected');
+            activeFilters.showExpired = selectedExpired ? selectedExpired.dataset.value === 'true' : false;
         }
         if (sortDropdown) {
             const selectedSort = sortDropdown.querySelector('.dropdown-option.selected');
@@ -203,7 +206,7 @@ async function clearFilters() {
 
     activeFilters = {
         category: 'all',
-        urgency: 'all',
+        showExpired: false,
         search: '',
         sort: 'newest'
     };
@@ -241,7 +244,20 @@ function updateSignalsList(signals) {
 
     signalsList.innerHTML = signals.map(signal => {
         const category = SIGNAL_CATEGORIES[signal.category];
-        const urgency = URGENCY_LEVELS[signal.urgency];
+        const expirationInfo = EXPIRATION_DAYS_COLORS[signal.expirationDays];
+        const expirationText = expirationInfo ? expirationInfo.name : `${signal.expirationDays} дни`;
+        const expirationColor = expirationInfo ? expirationInfo.color : '#6c757d';
+        
+        // Изчисляване на оставащи дни
+        let expirationDisplay = expirationText;
+        if (signal.activeUntil && signal.isActive !== false) {
+            const daysLeft = Math.ceil((new Date(signal.activeUntil) - new Date()) / (1000 * 60 * 60 * 24));
+            if (daysLeft > 0) {
+                expirationDisplay = `Остава ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
+            } else {
+                expirationDisplay = 'Изтекъл';
+            }
+        }
 
         return `
             <div class="signal-card" onclick="openSignalModal(${JSON.stringify(signal).replace(/"/g, '&quot;')})">
@@ -250,8 +266,9 @@ function updateSignalsList(signals) {
                         <i class="${category?.icon || 'bi-circle'}"></i>
                         ${category?.name || signal.category}
                     </div>
-                    <div class="signal-urgency urgency-${signal.urgency}">
-                        ${urgency?.name || signal.urgency}
+                    <div class="signal-expiration" data-days="${signal.expirationDays}" style="color: ${expirationColor};">
+                        <i class="bi bi-clock"></i>
+                        ${expirationDisplay}
                     </div>
                 </div>
                 <h4 class="signal-title">${signal.title}</h4>
@@ -346,7 +363,7 @@ function startLocationSelection() {
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {
     const categoryFilter = document.getElementById('categoryFilter');
-    const urgencyFilter = document.getElementById('urgencyFilter');
+    const expiredFilter = document.getElementById('expiredFilter');
     const sortFilter = document.getElementById('sortFilter');
     const searchInput = document.getElementById('signalSearch');
     const clearSearchBtn = document.getElementById('clearSearch');

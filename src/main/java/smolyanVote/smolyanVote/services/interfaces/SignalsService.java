@@ -8,7 +8,6 @@ import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 
 import java.math.BigDecimal;
@@ -25,17 +24,17 @@ public interface SignalsService {
     List<SignalsDto> findAllByAuthorId(Long authorId);
 
     SignalsEntity create(String title, String description, SignalsCategory category,
-                         SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
+                         Integer expirationDays, BigDecimal latitude, BigDecimal longitude,
                          MultipartFile image, UserEntity author);
 
     SignalsEntity update(SignalsEntity signal, String title, String description,
-                         SignalsCategory category, SignalsUrgencyLevel urgency, MultipartFile image);
+                         SignalsCategory category, Integer expirationDays, MultipartFile image);
 
     void delete(Long id);
 
     // ====== ФИЛТРИРАНЕ И ТЪРСЕНЕ ======
 
-    Page<SignalsEntity> findWithFilters(String search, String category, String urgency,
+    Page<SignalsEntity> findWithFilters(String search, String category, boolean showExpired,
                                         String timeFilter, String sort, Pageable pageable);
 
     List<SignalsEntity> findByLocationBounds(Double minLat, Double maxLat,
@@ -45,7 +44,6 @@ public interface SignalsService {
 
     long getTotalCount();
     long getCountByCategory(SignalsCategory category);
-    long getCountByUrgency(SignalsUrgencyLevel urgency);
     long getTodayCount();
     long getWeekCount();
 

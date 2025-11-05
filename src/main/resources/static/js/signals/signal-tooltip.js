@@ -36,19 +36,27 @@ function showTooltip(signal, mouseEvent) {
     if (!tooltip || !signal) return;
 
     const category = SIGNAL_CATEGORIES[signal.category] || { name: signal.category, icon: 'bi-circle' };
-    const urgency = URGENCY_LEVELS[signal.urgency] || { name: signal.urgency };
+    const expirationColors = {
+        1: { name: '1 ден', color: '#dc3545' },
+        3: { name: '3 дни', color: '#ffc107' },
+        7: { name: '7 дни', color: '#198754' }
+    };
+    const expirationInfo = expirationColors[signal.expirationDays] || { 
+        name: `${signal.expirationDays} дни`, 
+        color: '#6c757d' 
+    };
 
     tooltip.innerHTML = `
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <i class="${category.icon}" style="color: ${category.color || '#666'};"></i>
             <strong>${category.name}</strong>
-            <span class="urgency-${signal.urgency}" style="
-                background: ${urgency.color || '#666'};
+            <span style="
+                background: ${expirationInfo.color};
                 color: white;
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-size: 12px;
-            ">${urgency.name}</span>
+            ">${expirationInfo.name}</span>
         </div>
         <div style="font-weight: bold; margin-bottom: 4px;">${signal.title}</div>
         <div style="color: #666; font-size: 12px; display: flex; align-items: center; gap: 6px;">

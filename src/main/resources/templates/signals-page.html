@@ -233,30 +233,22 @@
           </div>
         </div>
 
-        <!-- Спешност филтър - Custom Dropdown -->
+        <!-- Филтър за изтекли сигнали -->
         <div class="filter-group">
-          <label>Спешност</label>
-          <div class="custom-dropdown compact" data-name="urgencyFilter">
+          <label>Статус</label>
+          <div class="custom-dropdown compact" data-name="expiredFilter">
             <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-              <span class="dropdown-text">Всички</span>
+              <span class="dropdown-text">Само активни</span>
               <i class="bi bi-chevron-down dropdown-arrow"></i>
             </div>
             <div class="dropdown-menu" role="listbox">
-              <div class="dropdown-option" data-value="all" role="option">
-                <i class="bi bi-grid"></i>
-                <span>Всички</span>
+              <div class="dropdown-option selected" data-value="false" role="option">
+                <i class="bi bi-check-circle" style="color: #198754;"></i>
+                <span>Само активни</span>
               </div>
-              <div class="dropdown-option" data-value="LOW" role="option">
-                <i class="bi bi-info-circle" style="color: #198754;"></i>
-                <span>Ниска</span>
-              </div>
-              <div class="dropdown-option" data-value="MEDIUM" role="option">
-                <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
-                <span>Средна</span>
-              </div>
-              <div class="dropdown-option" data-value="HIGH" role="option">
-                <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
-                <span>Висока</span>
+              <div class="dropdown-option" data-value="true" role="option">
+                <i class="bi bi-clock-history" style="color: #6c757d;"></i>
+                <span>Включително изтекли</span>
               </div>
             </div>
           </div>
@@ -477,32 +469,35 @@
           </div>
         </div>
 
-        <!-- Спешност - Custom Dropdown -->
+        <!-- Период на активност - Custom Dropdown -->
         <div class="form-row">
           <div class="form-group">
-            <label for="signalUrgency">Спешност <span class="required">*</span></label>
-            <div class="custom-dropdown" data-name="urgency" data-required="true">
+            <label for="signalExpirationDays">Период на активност <span class="required">*</span></label>
+            <div class="custom-dropdown" data-name="expirationDays" data-required="true">
               <div class="dropdown-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox">
-                <span class="dropdown-text">Изберете спешност</span>
+                <span class="dropdown-text">Изберете период</span>
                 <i class="bi bi-chevron-down dropdown-arrow"></i>
               </div>
               <div class="dropdown-menu" role="listbox">
-                <div class="dropdown-option" data-value="LOW" role="option">
-                  <i class="bi bi-info-circle" style="color: #198754;"></i>
-                  <span>Ниска - не е спешно</span>
+                <div class="dropdown-option" data-value="1" role="option" data-color="#dc3545">
+                  <i class="bi bi-clock" style="color: #dc3545;"></i>
+                  <span>1 ден</span>
                 </div>
-                <div class="dropdown-option" data-value="MEDIUM" role="option">
-                  <i class="bi bi-exclamation-circle" style="color: #ffc107;"></i>
-                  <span>Средна - трябва внимание</span>
+                <div class="dropdown-option" data-value="3" role="option" data-color="#ffc107">
+                  <i class="bi bi-clock-history" style="color: #ffc107;"></i>
+                  <span>3 дни</span>
                 </div>
-                <div class="dropdown-option" data-value="HIGH" role="option">
-                  <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i>
-                  <span>Висока - спешен проблем</span>
+                <div class="dropdown-option" data-value="7" role="option" data-color="#198754">
+                  <i class="bi bi-calendar-check" style="color: #198754;"></i>
+                  <span>7 дни</span>
                 </div>
               </div>
             </div>
-            <input type="hidden" id="signalUrgency" name="urgency" required>
-            <div class="form-feedback" id="urgencyFeedback"></div>
+            <input type="hidden" id="signalExpirationDays" name="expirationDays" required>
+            <div class="form-help">
+              Сигналът ще бъде активен за избрания период от време
+            </div>
+            <div class="form-feedback" id="expirationDaysFeedback"></div>
           </div>
         </div>
 
@@ -625,4 +620,5 @@
 <script src="/js/signals/smolyan-map.js"></script>
 
 </body>
+</html>
 </html>

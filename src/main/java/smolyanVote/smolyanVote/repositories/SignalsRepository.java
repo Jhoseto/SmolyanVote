@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
-import smolyanVote.smolyanVote.models.enums.SignalsUrgencyLevel;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,27 +27,26 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
             " LOWER(s.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
             "(:category IS NULL OR s.category = :category) AND " +
-            "(:urgency IS NULL OR s.urgency = :urgency) AND " +
+            "(:showExpired = true OR s.activeUntil IS NULL OR s.activeUntil > :now) AND " +
             "(:timeFilter IS NULL OR s.created >= :timeFilter) " +
             "ORDER BY " +
             "CASE WHEN :sort = 'newest' THEN s.created END DESC, " +
             "CASE WHEN :sort = 'oldest' THEN s.created END ASC, " +
             "CASE WHEN :sort = 'popular' THEN s.likesCount END DESC, " +
             "CASE WHEN :sort = 'viewed' THEN s.viewsCount END DESC, " +
-            "CASE WHEN :sort = 'urgency' THEN s.urgency END DESC, " +
             "CASE WHEN :sort = 'category' THEN s.category END ASC")
     Page<SignalsEntity> findWithFilters(
             @Param("search") String search,
             @Param("category") SignalsCategory category,
-            @Param("urgency") SignalsUrgencyLevel urgency,
+            @Param("showExpired") boolean showExpired,
             @Param("timeFilter") Instant timeFilter,
             @Param("sort") String sort,
+            @Param("now") Instant now,
             Pageable pageable);
 
     // ===== СТАТИСТИКИ =====
 
     long countByCategory(SignalsCategory category);
-    long countByUrgency(SignalsUrgencyLevel urgency);
     long countByCreatedAfter(Instant date);
 
     @Query("SELECT COUNT(s) FROM SignalsEntity s WHERE s.created >= :startOfDay AND s.created < :endOfDay")

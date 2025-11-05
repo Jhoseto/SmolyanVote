@@ -298,7 +298,7 @@
                     </div>
                 </div>
 
-                <!-- Auth/Profile Section - вдясно -->
+                <!-- Auth/Profile Section  -->
                 <div class="auth-profile-section-glass">
                     <!-- Нелогнати потребители -->
                     <div class="auth-buttons-glass" sec:authorize="!isAuthenticated()">
@@ -306,10 +306,10 @@
                         <a class="auth-link-glass" href="/register">Регистрация</a>
                     </div>
 
-                    <!-- Логнати потребители -->
+                    <!-- Login users -->
                     <div class="profile-dropdown-glass" sec:authorize="isAuthenticated()">
                         <a class="profile-toggle-glass d-flex align-items-center" id="desktopProfileToggle" href="#" role="button">
-                            <!-- ПРОМЯНА: Заменяме цялата объркана логика с един avatar-placeholder -->
+                            <!-- avatar-placeholder -->
                             <div class="profile-image-glass avatar-placeholder me-2"
                                  th:with="currentUser=${@userServiceImpl.getCurrentUser()}"
                                  th:attr="data-user-image=${currentUser.imageUrl},data-username=${currentUser.username}">
@@ -346,7 +346,7 @@
 
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg"> <!-- по-широк модал -->
+        <div class="modal-dialog modal-lg">
             <div class="modal-content login-modal-content">
                 <div class="modal-left">
                     <img src="/images/web/platformComunitiSection.jpg" alt="Login Image">
@@ -387,7 +387,7 @@
     </div>
 
     <div class="vote-overlay-glass" id="voteOverlay" onclick="closeVoteMenu()"></div>
-    <!-- Hidden authentication marker for JavaScript -->
+
     <div sec:authorize="isAuthenticated()" style="display:none;" id="auth-marker"></div>
 
     <script>

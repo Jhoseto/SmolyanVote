@@ -12,7 +12,9 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
+import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
@@ -90,13 +92,13 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = ActivityTypeEnum.SIGNAL,
-            details = "Title: {title}, Category: {category}, Urgency: {urgency}", includeTitle = true, includeText = true)
+            details = "Title: {title}, Category: {category}, ExpirationDays: {expirationDays}", includeTitle = true, includeText = true)
 
     public SignalsEntity create(String title, String description, SignalsCategory category,
-                                SignalsUrgencyLevel urgency, BigDecimal latitude, BigDecimal longitude,
+                                Integer expirationDays, BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {
 
-        SignalsEntity signal = new SignalsEntity(title, description, category, urgency,
+        SignalsEntity signal = new SignalsEntity(title, description, category, expirationDays,
                 latitude, longitude, author);
 
         signalsRepository.save(signal);
@@ -124,18 +126,19 @@ public class SignalsServiceImpl implements SignalsService {
     //@LogActivity - manual Log try/catch logic
 
     public SignalsEntity update(SignalsEntity signal, String title, String description,
-                                SignalsCategory category, SignalsUrgencyLevel urgency, MultipartFile image) {
-
-        signal.setTitle(title);
-        signal.setDescription(description);
-        signal.setCategory(category);
-        signal.setUrgency(urgency);
-        signal.setModified(Instant.now());
+                                SignalsCategory category, Integer expirationDays, MultipartFile image) {
 
         // Запазваме старите данни ПРЕДИ промяната
         String oldTitle = signal.getTitle();
         SignalsCategory oldCategory = signal.getCategory();
-        SignalsUrgencyLevel oldUrgency = signal.getUrgency();
+        Integer oldExpirationDays = signal.getExpirationDays();
+
+        // Задаваме новите данни
+        signal.setTitle(title);
+        signal.setDescription(description);
+        signal.setCategory(category);
+        signal.setExpirationDays(expirationDays);
+        signal.setModified(Instant.now());
 
         signalsRepository.save(signal);
         Long signalId = signal.getId();
@@ -152,11 +155,11 @@ public class SignalsServiceImpl implements SignalsService {
 
         // Activity logging for admin log panel СЛЕД успешната промяна
         try {
-            String details = String.format("Old: \"%s\" (%s, %s) → New: \"%s\" (%s, %s)",
+            String details = String.format("Old: \"%s\" (%s, %d дни) → New: \"%s\" (%s, %d дни)",
                     oldTitle.length() > 50 ? oldTitle.substring(0, 50) + "..." : oldTitle,
-                    oldCategory.name(), oldUrgency.name(),
+                    oldCategory.name(), oldExpirationDays,
                     title.length() > 50 ? title.substring(0, 50) + "..." : title,
-                    category.name(), urgency.name());
+                    category.name(), expirationDays);
 
             activityLogService.logActivity(ActivityActionEnum.EDIT_SIGNAL, userService.getCurrentUser(),
                     "SIGNAL", signal.getId(), details, null, null);
@@ -229,27 +232,47 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SignalsEntity> findWithFilters(String search, String category, String urgency,
+    public Page<SignalsEntity> findWithFilters(String search, String category, boolean showExpired,
                                                String timeFilter, String sort, Pageable pageable) {
 
         SignalsCategory categoryEnum = parseCategory(category);
-        SignalsUrgencyLevel urgencyEnum = parseUrgency(urgency);
         Instant timeFilterDate = parseTimeFilter(timeFilter);
 
         String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         String cleanSort = (sort != null && !sort.trim().isEmpty()) ? sort : "newest";
 
-        Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, urgencyEnum,
-                timeFilterDate, cleanSort, pageable);
+        Instant now = Instant.now();
+        
+        try {
+            Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, showExpired,
+                    timeFilterDate, cleanSort, now, pageable);
 
-        // Принудително зареждане на author за всички сигнали
-        results.getContent().forEach(signal -> {
-            if (signal.getAuthor() != null) {
-                signal.getAuthor().getUsername();
-            }
-        });
+            // Принудително зареждане на author за всички сигнали
+            results.getContent().forEach(signal -> {
+                if (signal.getAuthor() != null) {
+                    signal.getAuthor().getUsername();
+                }
+            });
 
-        return results;
+            return results;
+        } catch (Exception e) {
+            // Fallback: Ако query-то не работи (напр. колоната active_until не съществува още),
+            // използваме по-просто query без филтър за activeUntil
+            System.err.println("Warning: Error in findWithFilters, using fallback query: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Fallback query без activeUntil филтър
+            Page<SignalsEntity> results = signalsRepository.findAllWithAuthorOrderByCreatedDesc(pageable);
+            
+            // Принудително зареждане на author
+            results.getContent().forEach(signal -> {
+                if (signal.getAuthor() != null) {
+                    signal.getAuthor().getUsername();
+                }
+            });
+            
+            return results;
+        }
     }
 
     @Override
@@ -280,12 +303,6 @@ public class SignalsServiceImpl implements SignalsService {
     @Transactional(readOnly = true)
     public long getCountByCategory(SignalsCategory category) {
         return signalsRepository.countByCategory(category);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public long getCountByUrgency(SignalsUrgencyLevel urgency) {
-        return signalsRepository.countByUrgency(urgency);
     }
 
     @Override
@@ -467,17 +484,6 @@ public class SignalsServiceImpl implements SignalsService {
         }
         try {
             return SignalsCategory.valueOf(category.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private SignalsUrgencyLevel parseUrgency(String urgency) {
-        if (urgency == null || urgency.trim().isEmpty() || "all".equals(urgency)) {
-            return null;
-        }
-        try {
-            return SignalsUrgencyLevel.valueOf(urgency.toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }

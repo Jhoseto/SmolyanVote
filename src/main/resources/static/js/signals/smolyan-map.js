@@ -228,7 +228,7 @@ function triggerFilterChange(dropdown, value) {
     clearTimeout(triggerTimeout);
 
     triggerTimeout = setTimeout(() => {
-        if (dropdownName === 'categoryFilter' || dropdownName === 'urgencyFilter' || dropdownName === 'sortFilter') {
+        if (dropdownName === 'categoryFilter' || dropdownName === 'expiredFilter' || dropdownName === 'sortFilter') {
             if (window.signalManagement && typeof window.signalManagement.applyFilters === 'function') {
                 window.signalManagement.applyFilters();
             }
@@ -456,14 +456,14 @@ async function handleSignalSubmit(e) {
         }
 
         const category = document.getElementById('signalCategory').value;
-        const urgency = document.getElementById('signalUrgency').value;
+        const expirationDays = document.getElementById('signalExpirationDays').value;
 
         if (!category) {
             throw new Error('Моля изберете категория за сигнала');
         }
 
-        if (!urgency) {
-            throw new Error('Моля изберете спешност на сигнала');
+        if (!expirationDays || (expirationDays !== '1' && expirationDays !== '3' && expirationDays !== '7')) {
+            throw new Error('Моля изберете период на активност (1, 3 или 7 дни)');
         }
         window.mapCore?.showNotification('Обработване на сигнала...', 'info', 2000);
 
@@ -471,7 +471,7 @@ async function handleSignalSubmit(e) {
             title: formData.get('title'),
             description: formData.get('description'),
             category: category,
-            urgency: urgency,
+            expirationDays: parseInt(expirationDays),
             latitude: latitude,  // като string
             longitude: longitude // като string
         };
@@ -553,8 +553,8 @@ function resetSignalForm() {
         if (trigger) {
             if (dropdown.dataset.name === 'category') {
                 trigger.textContent = 'Изберете категория';
-            } else if (dropdown.dataset.name === 'urgency') {
-                trigger.textContent = 'Изберете спешност';
+            } else if (dropdown.dataset.name === 'expirationDays') {
+                trigger.textContent = 'Изберете период';
             }
         }
         options.forEach(opt => opt.classList.remove('selected'));

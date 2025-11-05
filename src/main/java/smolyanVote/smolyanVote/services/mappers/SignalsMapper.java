@@ -11,11 +11,12 @@ public class SignalsMapper {
         dto.setTitle(s.getTitle());
         dto.setDescription(s.getDescription());
         dto.setCategory(s.getCategory());
-        dto.setUrgency(s.getUrgency());
+        dto.setExpirationDays(s.getExpirationDays());
+        dto.setActiveUntil(s.getActiveUntil());
+        dto.setIsActive(s.isActive());
 
         // НОВИ РЕДОВЕ - ПОПЪЛВАМЕ БЪЛГАРСКИ ИМЕНА
         dto.setCategoryBG(s.getCategory().getDisplayName());
-        dto.setUrgencyBG(s.getUrgency().getDisplayName());
 
         dto.setLatitude(s.getLatitude());
         dto.setLongitude(s.getLongitude());
