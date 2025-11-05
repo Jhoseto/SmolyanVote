@@ -637,36 +637,3 @@
     cursor: not-allowed;
     opacity: 0.6;
 }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 640px) {
-    .modal-container {
-        max-width: 95vw;
-        max-height: 95vh;
-        margin: 10px;
-        border-radius: 12px;
-    }
-
-    .modal-header,
-    .modal-body {
-        padding: 16px;
-    }
-
-    .signal-title {
-        font-size: 18px;
-    }
-
-    .header-badges {
-        gap: 6px;
-    }
-
-    .category-badge,
-    .expiration-badge {
-        font-size: 12px;
-        padding: 5px 10px;
-    }
-
-    .reactions-section {
-        gap: 16px;
-    }
-}

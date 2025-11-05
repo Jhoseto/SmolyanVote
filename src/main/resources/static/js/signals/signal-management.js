@@ -370,8 +370,55 @@ function startLocationSelection() {
         btn.classList.add('selecting');
         btn.classList.remove('selected');
     }
+    
+    // Показваме cancel бутона на мобилен
+    if (window.innerWidth <= 768) {
+        const cancelBtn = document.querySelector('.cancel-location-btn');
+        if (cancelBtn) {
+            cancelBtn.style.display = 'flex';
+        }
+    }
+    
+    // На мобилен: минимизираме панела за да може да се вижда картата
+    if (window.innerWidth <= 768) {
+        const panel = document.getElementById('newSignalPanel');
+        if (panel && panel.classList.contains('active')) {
+            panel.classList.add('minimized');
+        }
+    }
+    
     window.mapCore?.showNotification('Кликнете на картата за избор на местоположение', 'info');
 }
+
+function cancelLocationSelection() {
+    if (window.signalManagement) {
+        window.signalManagement.locationSelectionMode = false;
+    }
+
+    document.getElementById('map').classList.remove('location-selecting');
+
+    const btn = document.getElementById('selectLocationBtn');
+    if (btn) {
+        btn.innerHTML = '<i class="bi bi-geo-alt"></i> <span>Изберете местоположение</span>';
+        btn.classList.remove('selecting', 'selected');
+    }
+    
+    // Скриваме cancel бутона
+    const cancelBtn = document.querySelector('.cancel-location-btn');
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
+    }
+    
+    // На мобилен: връщаме панела
+    if (window.innerWidth <= 768) {
+        const panel = document.getElementById('newSignalPanel');
+        if (panel && panel.classList.contains('minimized')) {
+            panel.classList.remove('minimized');
+        }
+    }
+}
+
+window.cancelLocationSelection = cancelLocationSelection;
 
 // ===== EVENT LISTENERS =====
 function initializeEventListeners() {

@@ -127,10 +127,32 @@ function initializePanels() {
     if (locationBtn) {
         locationBtn.onclick = function(e) {
             e.preventDefault();
-            if (window.startLocationSelection) {
-                window.startLocationSelection();
+            if (window.locationPicker && window.locationPicker.start) {
+                window.locationPicker.start();
+            } else {
+                console.error('Location picker not initialized');
             }
         };
+    }
+
+    // FAB Button за mobile
+    const createSignalFab = document.getElementById('createSignalFabBtn');
+    if (createSignalFab) {
+        // Покажи FAB само на mobile
+        if (window.innerWidth <= 768) {
+            createSignalFab.style.display = 'flex';
+        }
+
+        createSignalFab.onclick = () => togglePanel('newSignal');
+
+        // Скрий/покажи при resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                createSignalFab.style.display = 'flex';
+            } else {
+                createSignalFab.style.display = 'none';
+            }
+        });
     }
 }
 

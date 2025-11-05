@@ -164,6 +164,26 @@ function updateFormCoordinates(coordinates) {
     if (window.signalManagement) {
         window.signalManagement.locationSelectionMode = false;
     }
+    
+    // На мобилен: връщаме панела след като е избрано местоположение
+    if (window.innerWidth <= 768) {
+        const panel = document.getElementById('newSignalPanel');
+        if (panel && panel.classList.contains('minimized')) {
+            panel.classList.remove('minimized');
+            // Скриваме cancel бутона
+            const cancelBtn = document.querySelector('.cancel-location-btn');
+            if (cancelBtn) {
+                cancelBtn.style.display = 'none';
+            }
+            // Малко забавяне за плавна анимация
+            setTimeout(() => {
+                const locationRow = panel.querySelector('.form-row.location-row');
+                if (locationRow) {
+                    locationRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 300);
+        }
+    }
 }
 
 function showNotification(message, type = 'info', duration = 5000) {

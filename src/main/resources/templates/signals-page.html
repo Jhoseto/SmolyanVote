@@ -543,12 +543,15 @@
         </div>
 
         <!-- Местоположение -->
-        <div class="form-row">
+        <div class="form-row location-row">
           <div class="form-group">
             <label>Местоположение <span class="required">*</span></label>
             <button type="button" id="selectLocationBtn" class="btn-location">
               <i class="bi bi-geo-alt"></i>
               <span>Изберете местоположение</span>
+            </button>
+            <button type="button" class="cancel-location-btn" onclick="cancelLocationSelection()" style="display: none;" aria-label="Отмяна на избор на местоположение">
+              <i class="bi bi-x"></i>
             </button>
             <div class="location-help">
               Кликнете бутона и след това кликнете на картата за да изберете точното местоположение
@@ -579,6 +582,51 @@
 
 <!-- Signal Details Modal -->
 <div th:replace="~{fragments/signal-modal :: signal-modal}"></div>
+
+<!-- Location Picker Overlay - Mobile Only -->
+<div id="locationPickerOverlay" class="location-picker-overlay">
+    <div class="location-picker-header">
+        <button class="location-picker-cancel" id="locationPickerCancelBtn" type="button">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <div class="location-picker-title">
+            <i class="bi bi-geo-alt"></i>
+            Изберете местоположение
+        </div>
+        <button class="location-picker-my-location" id="locationPickerMyLocationBtn" type="button">
+            <i class="bi bi-crosshair"></i>
+        </button>
+    </div>
+
+    <div class="location-picker-map" id="locationPickerMap">
+        <!-- Картата ще се покаже тук -->
+        <div class="location-picker-crosshair">+</div>
+    </div>
+
+    <div class="location-picker-info">
+        <div class="selected-coords">
+            <i class="bi bi-pin-map-fill"></i>
+            <span id="selectedCoordsText">Преместете картата за избор</span>
+        </div>
+    </div>
+
+    <div class="location-picker-footer">
+        <button class="btn-secondary" id="cancelLocationBtn" type="button">
+            <i class="bi bi-x"></i>
+            Отказ
+        </button>
+        <button class="btn-primary" id="confirmLocationBtn" type="button" disabled>
+            <i class="bi bi-check-lg"></i>
+            Потвърди
+        </button>
+    </div>
+</div>
+
+<!-- FAB Buttons - Mobile Only -->
+<button class="create-signal-fab" id="createSignalFabBtn" style="display: none;">
+    <i class="bi bi-plus-lg"></i>
+</button>
+
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
@@ -615,10 +663,10 @@
 <script src="/js/signals/signal-tooltip.js"></script>
 <script src="/js/signals/signal-modal.js"></script>
 <script src="/js/commentsManager.js"></script>
+<script src="/js/signals/location-picker.js"></script>
 
 <!-- Main Coordinator (Load last) -->
 <script src="/js/signals/smolyan-map.js"></script>
 
 </body>
-</html>
 </html>
