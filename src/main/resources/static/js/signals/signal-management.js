@@ -114,14 +114,13 @@ function createSignalMarker(signal) {
     }
 
     const category = SIGNAL_CATEGORIES[signal.category];
-    const expirationInfo = EXPIRATION_DAYS_COLORS[signal.expirationDays];
-
     if (!category) {
-        console.warn('Неизвестна категория:', signal.category);
         return null;
     }
 
-    // Ако няма expirationDays, използваме цвят по подразбиране
+    // Безопасна обработка на expirationDays
+    const expirationDays = signal.expirationDays || 7;
+    const expirationInfo = EXPIRATION_DAYS_COLORS[expirationDays];
     const borderColor = expirationInfo ? expirationInfo.color : '#6c757d';
 
     const icon = L.divIcon({
@@ -243,19 +242,33 @@ function updateSignalsList(signals) {
     }
 
     signalsList.innerHTML = signals.map(signal => {
-        const category = SIGNAL_CATEGORIES[signal.category];
-        const expirationInfo = EXPIRATION_DAYS_COLORS[signal.expirationDays];
-        const expirationText = expirationInfo ? expirationInfo.name : `${signal.expirationDays} дни`;
-        const expirationColor = expirationInfo ? expirationInfo.color : '#6c757d';
+        const category = SIGNAL_CATEGORIES[signal.category] || {
+            name: signal.category || 'Неизвестна',
+            icon: 'bi-circle',
+            color: '#6c757d'
+        };
         
-        // Изчисляване на оставащи дни
+        // Безопасна обработка на expirationDays
+        const expirationDays = signal.expirationDays || 7;
+        const expirationInfo = EXPIRATION_DAYS_COLORS[expirationDays] || {
+            name: `${expirationDays} дни`,
+            color: '#6c757d'
+        };
+        const expirationText = expirationInfo.name;
+        const expirationColor = expirationInfo.color;
+        
+        // Изчисляване на оставащи дни (динамично при всяко показване)
         let expirationDisplay = expirationText;
-        if (signal.activeUntil && signal.isActive !== false) {
-            const daysLeft = Math.ceil((new Date(signal.activeUntil) - new Date()) / (1000 * 60 * 60 * 24));
-            if (daysLeft > 0) {
-                expirationDisplay = `Остава ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
-            } else {
-                expirationDisplay = 'Изтекъл';
+        if (signal.activeUntil) {
+            const now = new Date();
+            const activeUntilDate = new Date(signal.activeUntil);
+            if (!isNaN(activeUntilDate.getTime())) {
+                const daysLeft = Math.ceil((activeUntilDate - now) / (1000 * 60 * 60 * 24));
+                if (daysLeft > 0) {
+                    expirationDisplay = `Остава ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
+                } else {
+                    expirationDisplay = 'Изтекъл';
+                }
             }
         }
 

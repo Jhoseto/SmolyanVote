@@ -170,15 +170,6 @@ class SignalAPI {
             this.validateSignalData(signalData);
             const payload = this.prepareSignalPayload(signalData);
 
-            for (let [key, value] of payload.entries()) {
-                if (value instanceof File) {
-                    console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-                } else {
-                    console.log(`  ${key}: ${value}`);
-                }
-            }
-
-            const startTime = Date.now();
             const response = await HTTPClient.retryRequest(API_CONFIG.baseURL, {
                 method: 'POST',
                 body: payload,

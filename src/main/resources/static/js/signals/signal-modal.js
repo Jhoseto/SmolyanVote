@@ -130,8 +130,12 @@ function closeSignalModal() {
 
 // ===== MODAL CONTENT UPDATE =====
 function updateModalContent(signal) {
+    if (!signal) {
+        return;
+    }
+    
     const category = SIGNAL_CATEGORIES[signal.category] || {
-        name: signal.category,
+        name: signal.category || 'Неизвестна',
         icon: 'bi-circle',
         color: '#6b7280'
     };
@@ -142,8 +146,9 @@ function updateModalContent(signal) {
         3: { name: '3 дни', color: '#ffc107', icon: 'bi-clock-history' },
         7: { name: '7 дни', color: '#198754', icon: 'bi-calendar-check' }
     };
-    const expirationInfo = expirationColors[signal.expirationDays] || {
-        name: `${signal.expirationDays} дни`,
+    const expirationDays = signal.expirationDays || 7;
+    const expirationInfo = expirationColors[expirationDays] || {
+        name: `${expirationDays} дни`,
         color: '#6c757d',
         icon: 'bi-clock'
     };
@@ -168,11 +173,19 @@ function updateModalContent(signal) {
     const expirationBadge = document.getElementById('modalExpirationBadge');
 
     if (expirationName) {
-        const daysLeft = signal.activeUntil ? Math.ceil((new Date(signal.activeUntil) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
-        if (daysLeft > 0) {
-            expirationName.textContent = `Активен ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
-        } else if (signal.isActive === false) {
-            expirationName.textContent = 'Изтекъл';
+        if (signal.activeUntil) {
+            const now = new Date();
+            const activeUntilDate = new Date(signal.activeUntil);
+            if (!isNaN(activeUntilDate.getTime())) {
+                const daysLeft = Math.ceil((activeUntilDate - now) / (1000 * 60 * 60 * 24));
+                if (daysLeft > 0) {
+                    expirationName.textContent = `Активен ${daysLeft} ${daysLeft === 1 ? 'ден' : 'дни'}`;
+                } else {
+                    expirationName.textContent = 'Изтекъл';
+                }
+            } else {
+                expirationName.textContent = expirationInfo.name;
+            }
         } else {
             expirationName.textContent = expirationInfo.name;
         }
