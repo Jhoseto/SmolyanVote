@@ -141,6 +141,7 @@ function initializeEventListeners() {
     setupListener('select-all-users', 'change', handleSelectAll);
     setupListener('bulk-promote-btn', 'click', handleBulkPromote);
     setupListener('bulk-demote-btn', 'click', handleBulkDemote);
+    setupListener('bulk-activate-btn', 'click', handleBulkActivate);
     setupListener('bulk-ban-btn', 'click', handleBulkBan);
     setupListener('bulk-unban-btn', 'click', handleBulkUnban);
 
@@ -394,10 +395,15 @@ function createUserRow(user) {
                         <button type="button" class="btn btn-outline-info" onclick="showUserDetails(${user.id})" title="Детайли">
                             <i class="bi bi-eye"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-${user.status?.includes('BANNED') ? 'success' : 'warning'}" 
+                        <button type="button" class="btn btn-outline-${user.status?.includes('BANNED') ? 'success' : 'warning'}"
                                 onclick="showBanModal(${user.id})" title="${user.status?.includes('BANNED') ? 'Отблокирай' : 'Блокирай'}">
                             <i class="bi bi-${user.status?.includes('BANNED') ? 'check-circle' : 'ban'}"></i>
                         </button>
+                        ${user.status === 'PENDING_ACTIVATION' ? `
+                        <button type="button" class="btn btn-outline-success" onclick="activateUser(${user.id})" title="Активирай">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </button>
+                        ` : ''}
                         <button type="button" class="btn btn-outline-primary" onclick="showRoleChangeModal(${user.id})" title="Промени роля">
                             <i class="bi bi-arrow-up-circle"></i>
                         </button>
@@ -1370,6 +1376,32 @@ async function unbanUser(userId) {
     }
 }
 
+async function activateUser(userId) {
+    if (!userId) return;
+
+    if (!confirm('Сигурни ли сте че искате да активирате този потребител?')) return;
+
+    try {
+        const response = await fetch(`/admin/users/${userId}/activate`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        showNotification(result.message || 'Потребителят е активиран успешно', 'success');
+
+        await loadAllUsers();
+        await loadUserStatistics();
+    } catch (error) {
+        console.error('Activate user error:', error);
+        showNotification('Грешка при активация: ' + error.message, 'error');
+    }
+}
+
 async function deleteUser(userId) {
     if (!confirm('ВНИМАНИЕ: Това действие е необратимо! Сигурни ли сте че искате да изтриете този потребител?')) return;
 
@@ -1410,6 +1442,15 @@ async function handleBulkDemote() {
     await bulkAction('/admin/users/bulk-role-change', {
         userIds: Array.from(UserManagement.selectedUsers),
         role: 'USER'
+    });
+}
+
+async function handleBulkActivate() {
+    if (UserManagement.selectedUsers.size === 0) return;
+    if (!confirm(`Активиране на ${UserManagement.selectedUsers.size} потребители?`)) return;
+
+    await bulkAction('/admin/users/bulk-activate', {
+        userIds: Array.from(UserManagement.selectedUsers)
     });
 }
 
@@ -1829,5 +1870,6 @@ window.showBanModal = showBanModal;
 window.confirmBanUser = confirmBanUser;
 window.showRoleChangeModal = showRoleChangeModal;
 window.confirmRoleChange = confirmRoleChange;
+window.activateUser = activateUser;
 window.loadAllUsers = loadAllUsers;
 window.loadUserStatistics = loadUserStatistics;

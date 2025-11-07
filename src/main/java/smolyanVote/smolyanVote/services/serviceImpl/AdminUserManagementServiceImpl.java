@@ -295,6 +295,64 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         recordBanAction(user, currentAdmin, "TEMPORARY", reason, durationDays, oldStatus, UserStatusEnum.TEMPORARILY_BANNED);
     }
 
+    // ===== USER ACTIVATION =====
+
+    @Override
+    public Map<String, String> activateUser(Long userId) {
+        try {
+            UserEntity user = getUserById(userId);
+            UserEntity currentAdmin = userService.getCurrentUser();
+
+            // Check if user is already active
+            if (UserStatusEnum.ACTIVE.equals(user.getStatus())) {
+                return Map.of("error", "Потребителят вече е активен");
+            }
+
+            // Check if user is pending activation
+            if (!UserStatusEnum.PENDING_ACTIVATION.equals(user.getStatus())) {
+                return Map.of("error", "Потребителят не чака активация");
+            }
+
+            UserStatusEnum oldStatus = user.getStatus();
+            user.setStatus(UserStatusEnum.ACTIVE);
+
+            userRepository.save(user);
+            recordActivationAction(user, currentAdmin, oldStatus);
+
+            return Map.of("message", "Потребителят е активиран успешно");
+        } catch (Exception e) {
+            return Map.of("error", "Грешка при активация: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, Object> bulkActivateUsers(List<Long> userIds) {
+        Map<String, Object> result = new HashMap<>();
+        List<String> successMessages = new ArrayList<>();
+        List<String> errorMessages = new ArrayList<>();
+        int successCount = 0;
+        int errorCount = 0;
+
+        for (Long userId : userIds) {
+            Map<String, String> singleResult = activateUser(userId);
+            if (singleResult.containsKey("message")) {
+                successMessages.add("User ID " + userId + ": " + singleResult.get("message"));
+                successCount++;
+            } else {
+                errorMessages.add("User ID " + userId + ": " + singleResult.get("error"));
+                errorCount++;
+            }
+        }
+
+        result.put("successCount", successCount);
+        result.put("errorCount", errorCount);
+        result.put("successMessages", successMessages);
+        result.put("errorMessages", errorMessages);
+        result.put("totalProcessed", userIds.size());
+
+        return result;
+    }
+
     // ===== USER DELETION =====
 
     @Override
@@ -351,6 +409,20 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         history.setActionType("UNBAN");
         history.setActionTimestamp(Instant.now());
         history.setReason(reason);
+        history.setOldStatus(oldStatus);
+        history.setNewStatus(UserStatusEnum.ACTIVE);
+
+        historyRepository.save(history);
+    }
+
+    @Override
+    public void recordActivationAction(UserEntity targetUser, UserEntity adminUser, UserStatusEnum oldStatus) {
+        UserRoleAndBansHistoryEntity history = new UserRoleAndBansHistoryEntity();
+        history.setTargetUsername(targetUser.getUsername());
+        history.setAdminUsername(adminUser.getUsername());
+        history.setActionType("ACTIVATION");
+        history.setActionTimestamp(Instant.now());
+        history.setReason("Активиране на потребителски акаунт");
         history.setOldStatus(oldStatus);
         history.setNewStatus(UserStatusEnum.ACTIVE);
 

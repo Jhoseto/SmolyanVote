@@ -27,6 +27,10 @@ public interface AdminUserManagementService {
     Map<String, String> unbanUser(Long userId);
     Map<String, Object> bulkBanUsers(List<Long> userIds, String banType, String reason, Integer durationDays);
 
+    // ===== USER ACTIVATION =====
+    Map<String, String> activateUser(Long userId);
+    Map<String, Object> bulkActivateUsers(List<Long> userIds);
+
     // ===== USER DELETION =====
     Map<String, String> deleteUser(Long userId);
 
@@ -34,6 +38,7 @@ public interface AdminUserManagementService {
     void recordRoleChange(UserEntity targetUser, UserEntity adminUser, UserRole oldRole, UserRole newRole, String reason);
     void recordBanAction(UserEntity targetUser, UserEntity adminUser, String banType, String reason, Integer durationDays, UserStatusEnum oldStatus, UserStatusEnum newStatus);
     void recordUnbanAction(UserEntity targetUser, UserEntity adminUser, String reason, UserStatusEnum oldStatus);
+    void recordActivationAction(UserEntity targetUser, UserEntity adminUser, UserStatusEnum oldStatus);
 
     @Transactional(readOnly = true)
     List<UserBanAndRolesHistoryDto> getAllHistory();

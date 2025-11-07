@@ -87,6 +87,16 @@ public class AdminUserManagementController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/{userId}/activate")
+    public ResponseEntity<Map<String, String>> activateUser(@PathVariable Long userId) {
+        Map<String, String> result = adminUserManagementService.activateUser(userId);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @DeleteMapping("/{userId}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long userId) {
         Map<String, String> result = adminUserManagementService.deleteUser(userId);
@@ -119,6 +129,16 @@ public class AdminUserManagementController {
         String reason = (String) request.get("reason");
         Integer durationDays = (Integer) request.get("durationDays");
         return ResponseEntity.ok(adminUserManagementService.bulkBanUsers(userIds, banType, reason, durationDays));
+    }
+
+    @PostMapping("/bulk-activate")
+    public ResponseEntity<Map<String, Object>> bulkActivateUsers(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<Object> userIdObjects = (List<Object>) request.get("userIds");
+        List<Long> userIds = userIdObjects.stream()
+                .map(obj -> Long.valueOf(obj.toString()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(adminUserManagementService.bulkActivateUsers(userIds));
     }
 
     @GetMapping("/history")
