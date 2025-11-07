@@ -22,6 +22,8 @@ import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 @Controller
 public class MainEventsController {
 
+    private static final Logger logger = LoggerFactory.getLogger(MainEventsController.class);
+
     private final MainEventsService mainEventsService;
     private final UserService userService;
 
@@ -114,9 +116,15 @@ public class MainEventsController {
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
         try {
+            logger.debug("Searching for events with params: search={}, location={}, type={}, status={}, page={}, size={}",
+                    search, location, type, status, page, size);
+
             // Извличане на събития
             Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
                     search, location, eventTypeEnum, eventStatusEnum, pageable);
+
+            logger.debug("Found {} events", events.getTotalElements());
+
             UserEntity currentUser = userService.getCurrentUser();
 
             // Основни атрибути за události
@@ -159,6 +167,7 @@ public class MainEventsController {
 
 
         } catch (Exception e) {
+            logger.error("Error retrieving events", e);
             model.addAttribute("error", "Възникна грешка при зареждането на събитията. Моля, опитайте отново.");
             // Добавяме празна страница при грешка
             model.addAttribute("events", Page.empty());

@@ -35,7 +35,7 @@ public class AllEventsSimplePreviewMapper {
 
     public EventSimpleViewDTO mapSimpleEventToSimpleView(SimpleEventEntity event) {
         UserEntity user = userRepository.findByUsername(event.getCreatorName())
-                .orElseThrow(() -> new IllegalStateException("User not found: " + event.getCreatorName()));
+                .orElse(null); // Handle missing user gracefully
 
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(event.getId());
@@ -46,9 +46,9 @@ public class AllEventsSimplePreviewMapper {
         view.setLocation(event.getLocation());
         view.setViewCounter(event.getViewCounter());
         view.setCreatedAt(event.getCreatedAt());
-        view.setCreatorName(user.getUsername());
-        view.setCreatorImage(user.getImageUrl());
-        view.setCreatorOnlineStatus(user.getOnlineStatus());
+        view.setCreatorName(user != null ? user.getUsername() : event.getCreatorName());
+        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(event.getTotalVotes());
 
         List<SimpleEventImageEntity> images = simpleEventImageRepository.findByEventId(event.getId());
@@ -67,7 +67,7 @@ public class AllEventsSimplePreviewMapper {
 
     public EventSimpleViewDTO mapReferendumToSimpleView(ReferendumEntity referendum) {
         UserEntity user = userRepository.findByUsername(referendum.getCreatorName())
-                .orElseThrow(() -> new IllegalStateException("User not found: " + referendum.getCreatorName()));
+                .orElse(null); // Handle missing user gracefully
 
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(referendum.getId());
@@ -78,9 +78,9 @@ public class AllEventsSimplePreviewMapper {
         view.setLocation(referendum.getLocation());
         view.setViewCounter(referendum.getViewCounter());
         view.setCreatedAt(referendum.getCreatedAt());
-        view.setCreatorName(user.getUsername());
-        view.setCreatorImage(user.getImageUrl());
-        view.setCreatorOnlineStatus(user.getOnlineStatus());
+        view.setCreatorName(user != null ? user.getUsername() : referendum.getCreatorName());
+        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(referendum.getTotalVotes());
 
         List<ReferendumImageEntity> images = referendumImageRepository.findByReferendumId(referendum.getId());
@@ -99,7 +99,7 @@ public class AllEventsSimplePreviewMapper {
 
     public EventSimpleViewDTO mapMultiPollToSimpleView(MultiPollEntity multiPoll) {
         UserEntity user = userRepository.findByUsername(multiPoll.getCreatorName())
-                .orElseThrow(() -> new IllegalStateException("User not found: " + multiPoll.getCreatorName()));
+                .orElse(null); // Handle missing user gracefully
 
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(multiPoll.getId());
@@ -110,9 +110,9 @@ public class AllEventsSimplePreviewMapper {
         view.setLocation(multiPoll.getLocation());
         view.setViewCounter(multiPoll.getViewCounter());
         view.setCreatedAt(multiPoll.getCreatedAt());
-        view.setCreatorName(user.getUsername());
-        view.setCreatorImage(user.getImageUrl());
-        view.setCreatorOnlineStatus(user.getOnlineStatus());
+        view.setCreatorName(user != null ? user.getUsername() : multiPoll.getCreatorName());
+        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(multiPoll.getTotalVotes());
 
         List<MultiPollImageEntity> images = multiPollImageRepository.findByMultiPoll_Id(multiPoll.getId());

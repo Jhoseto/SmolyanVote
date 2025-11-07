@@ -178,7 +178,6 @@ function cleanup() {
 // Инициализация при DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     initializeMainEventsPage();
-    initializeKeyboardShortcuts();
 });
 
 // Cleanup при напускане на страницата
