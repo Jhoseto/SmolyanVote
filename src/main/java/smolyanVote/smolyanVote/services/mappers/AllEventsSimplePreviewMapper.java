@@ -37,6 +37,13 @@ public class AllEventsSimplePreviewMapper {
         UserEntity user = userRepository.findByUsername(event.getCreatorName())
                 .orElse(null); // Handle missing user gracefully
 
+        // Debug logging
+        if (user == null) {
+            System.out.println("WARNING: User not found for creatorName: " + event.getCreatorName() + " in event ID: " + event.getId());
+        } else {
+            System.out.println("DEBUG: Found user " + user.getUsername() + " with imageUrl: " + user.getImageUrl() + " for event ID: " + event.getId());
+        }
+
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(event.getId());
         view.setEventType(event.getEventType());
@@ -69,6 +76,13 @@ public class AllEventsSimplePreviewMapper {
         UserEntity user = userRepository.findByUsername(referendum.getCreatorName())
                 .orElse(null); // Handle missing user gracefully
 
+        // Debug logging
+        if (user == null) {
+            System.out.println("WARNING: User not found for referendum creatorName: " + referendum.getCreatorName() + " in referendum ID: " + referendum.getId());
+        } else {
+            System.out.println("DEBUG: Found user " + user.getUsername() + " with imageUrl: " + user.getImageUrl() + " for referendum ID: " + referendum.getId());
+        }
+
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(referendum.getId());
         view.setEventType(referendum.getEventType());
@@ -100,6 +114,13 @@ public class AllEventsSimplePreviewMapper {
     public EventSimpleViewDTO mapMultiPollToSimpleView(MultiPollEntity multiPoll) {
         UserEntity user = userRepository.findByUsername(multiPoll.getCreatorName())
                 .orElse(null); // Handle missing user gracefully
+
+        // Debug logging
+        if (user == null) {
+            System.out.println("WARNING: User not found for multiPoll creatorName: " + multiPoll.getCreatorName() + " in multiPoll ID: " + multiPoll.getId());
+        } else {
+            System.out.println("DEBUG: Found user " + user.getUsername() + " with imageUrl: " + user.getImageUrl() + " for multiPoll ID: " + multiPoll.getId());
+        }
 
         EventSimpleViewDTO view = new EventSimpleViewDTO();
         view.setId(multiPoll.getId());

@@ -577,7 +577,7 @@
 }
 
 .custom-dropdown-option {
-    font-size: 10px !important;
+    font-size: 12px !important;
     padding: 6px 1rem !important;
     cursor: pointer !important;
     transition: background-color 0.2s ease !important;

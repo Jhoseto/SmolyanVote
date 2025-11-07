@@ -29,7 +29,6 @@ public class SimpleEventEntity extends BaseEventEntity {
     private int viewCounter;
     private Instant createdAt;
     private String creatorName;
-    private String creatorImage;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SimpleEventImageEntity> images = new ArrayList<>();
@@ -94,14 +93,6 @@ public class SimpleEventEntity extends BaseEventEntity {
 
     public void setCreatorName(String creatorName) {
         this.creatorName = creatorName;
-    }
-
-    public String getCreatorImage() {
-        return creatorImage;
-    }
-
-    public void setCreatorImage(String creatorImage) {
-        this.creatorImage = creatorImage;
     }
 
     public int getYesVotes() {

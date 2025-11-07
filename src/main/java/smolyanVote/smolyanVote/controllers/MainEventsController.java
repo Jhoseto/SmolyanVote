@@ -123,7 +123,6 @@ public class MainEventsController {
             Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
                     search, location, eventTypeEnum, eventStatusEnum, pageable);
 
-            logger.debug("Found {} events", events.getTotalElements());
 
             UserEntity currentUser = userService.getCurrentUser();
 

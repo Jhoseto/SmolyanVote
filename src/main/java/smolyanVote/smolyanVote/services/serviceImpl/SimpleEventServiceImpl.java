@@ -1,7 +1,5 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,15 +7,10 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
-import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
-import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.services.interfaces.CommentsService;
 import smolyanVote.smolyanVote.services.interfaces.SimpleEventService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
-import smolyanVote.smolyanVote.services.mappers.AllEventsSimplePreviewMapper;
 import smolyanVote.smolyanVote.services.mappers.SimpleEventMapper;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
@@ -41,7 +34,6 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     private final VoteService voteService;
 
 
-    @Autowired
     public SimpleEventServiceImpl(
             SimpleEventRepository simpleEventRepository, UserRepository userRepository,
             SimpleEventMapper simpleEventMapper,
@@ -124,7 +116,6 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         simpleEventEntity.setTitle(dto.getTitle());
         simpleEventEntity.setDescription(dto.getDescription());
         simpleEventEntity.setCreatorName(user.getUsername());
-        simpleEventEntity.setCreatorImage(user.getImageUrl());
         simpleEventEntity.setCreatedAt(Instant.now());
         simpleEventEntity.setLocation(dto.getLocation());
         simpleEventEntity.setPositiveLabel(positiveLabel);
