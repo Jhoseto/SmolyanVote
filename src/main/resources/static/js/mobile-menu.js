@@ -117,15 +117,17 @@ function closeMobileMenu() {
  */
 document.addEventListener('click', function(e) {
     if (window.innerWidth > 768) return; // Desktop only
-    
+
     const navSection = document.getElementById('navbarNavSection');
     const toggler = document.querySelector('.mobile-toggler-glass');
     const voteContainer = document.getElementById('voteMenuContainer');
     const voteToggle = document.querySelector('.vote-toggle-glass');
-    
+    const languageDropdown = document.getElementById('languageDropdown');
+    const languageToggle = document.querySelector('.language-toggle');
+
     // Close vote menu if clicking outside of it (but inside mobile menu)
-    if (voteMenuOpen && 
-        voteContainer && 
+    if (voteMenuOpen &&
+        voteContainer &&
         !voteContainer.contains(e.target) &&
         voteToggle &&
         !voteToggle.contains(e.target) &&
@@ -133,13 +135,20 @@ document.addEventListener('click', function(e) {
         navSection.contains(e.target)) {
         closeVoteMenu();
     }
-    
-    // Close mobile menu if clicking outside
-    if (mobileMenuOpen && 
-        navSection && 
-        !navSection.contains(e.target) && 
-        toggler && 
-        !toggler.contains(e.target)) {
+
+    // Don't close mobile menu if clicking on language elements
+    const isLanguageElement = e.target.closest('.language-switcher-item') ||
+                             e.target.closest('.language-dropdown') ||
+                             e.target.classList.contains('language-option') ||
+                             e.target.classList.contains('language-toggle');
+
+    // Close mobile menu if clicking outside (but not on language elements)
+    if (mobileMenuOpen &&
+        navSection &&
+        !navSection.contains(e.target) &&
+        toggler &&
+        !toggler.contains(e.target) &&
+        !isLanguageElement) {
         closeMobileMenu();
     }
 });
@@ -204,8 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('⚠️ Vote container NOT found');
     }
     
-    // Add click listener to all nav links to close menu on mobile
-    const navLinks = document.querySelectorAll('.nav-link-glass:not(.vote-toggle-glass)');
+    // Add click listener to all nav links to close menu on mobile (except language toggle)
+    const navLinks = document.querySelectorAll('.nav-link-glass:not(.vote-toggle-glass):not(.language-toggle)');
     navLinks.forEach(link => {
         link.addEventListener('click', function() {
             if (window.innerWidth <= 768) {
@@ -224,6 +233,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     closeMobileMenu();
                 }, 100);
             }
+        });
+    });
+
+    // Add click listener to language options to prevent mobile menu from closing
+    const languageOptions = document.querySelectorAll('.language-option');
+    languageOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling that might close mobile menu
+            // The onclick attribute will still execute translateTo()
         });
     });
 });
