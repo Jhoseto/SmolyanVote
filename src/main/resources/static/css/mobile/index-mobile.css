@@ -186,150 +186,442 @@
 }
 
 /* ============================================
-   4. MOTIVATION SECTION - ACCORDION PANELS
+   4. MOTIVATION SECTION - MOBILE ACCORDION
    ============================================ */
+
+/* FORCE OVERRIDE: Section Container */
+section.motivation-section,
 .motivation-section {
-  padding: 40px 0 !important;
+  padding: 40px 0 50px 0 !important;
   background: #f8f9fa !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
 }
 
+/* FORCE OVERRIDE: Header */
+.motivation-section .motivation-header,
 .motivation-header {
   text-align: center !important;
-  padding: 0 20px 32px 20px !important;
+  padding: 0 20px 30px 20px !important;
+  margin-bottom: 0 !important;
+  max-width: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
+.motivation-section .motivation-title,
 .motivation-title {
-  font-size: 26px !important;
+  font-size: 24px !important;
   font-weight: 700 !important;
   margin-bottom: 12px !important;
-  line-height: 1.3 !important;
+  line-height: 1.2 !important;
+  color: #212529 !important;
+  letter-spacing: -0.3px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
+.motivation-section .motivation-subtitle,
 .motivation-subtitle {
-  font-size: 15px !important;
+  font-size: 14px !important;
   color: #6c757d !important;
   line-height: 1.5 !important;
+  margin: 0 !important;
+  max-width: none !important;
 }
 
-/* Panels Grid - Vertical Stack */
+/* FORCE OVERRIDE: Panels Container */
+.motivation-section .panels-grid,
 .panels-grid {
   display: flex !important;
   flex-direction: column !important;
   gap: 16px !important;
   padding: 0 16px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-columns: none !important; /* OVERRIDE DESKTOP GRID */
 }
 
-/* Individual Panel */
+/* FORCE OVERRIDE: Individual Panel Card - Premium Animation */
+.motivation-section .motivation-panel,
 .motivation-panel {
   background: white !important;
   border-radius: 12px !important;
   overflow: hidden !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-  border: 1px solid #e9ecef !important;
-  transition: all 0.3s ease !important;
-}
-
-.motivation-panel:active {
-  transform: scale(0.98) !important;
-}
-
-/* Panel Header */
-.panel-header {
-  padding: 20px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  transition:
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   cursor: pointer !important;
-  position: relative !important;
+  position: static !important; /* OVERRIDE DESKTOP POSITION */
+  min-height: auto !important; /* OVERRIDE DESKTOP MIN-HEIGHT */
+  z-index: auto !important; /* OVERRIDE DESKTOP Z-INDEX */
+  transform: translateZ(0) !important; /* Hardware acceleration */
 }
 
+.motivation-section .motivation-panel:hover,
+.motivation-panel:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px) scale(1.01) !important;
+}
+
+.motivation-section .motivation-panel:active,
+.motivation-panel:active {
+  transform: translateY(-1px) scale(0.99) !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12) !important;
+  transition-duration: 0.1s !important;
+}
+
+/* FORCE OVERRIDE: Remove desktop expanded styles */
+.motivation-section .motivation-panel.expanded,
+.motivation-panel.expanded {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important; /* RESET DESKTOP SHADOW */
+  transform: none !important; /* RESET DESKTOP TRANSFORM */
+  z-index: auto !important; /* RESET DESKTOP Z-INDEX */
+}
+
+/* FORCE OVERRIDE: Panel Header - Compact Layout */
+.motivation-section .panel-header,
+.panel-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  position: relative !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* FORCE OVERRIDE: Icon */
+.motivation-section .panel-icon,
 .panel-icon {
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 50% !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 10px !important;
   background: linear-gradient(135deg, #19861C 0%, #5cb85c 100%) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  margin: 0 auto 16px auto !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(25, 134, 28, 0.25) !important;
+  margin-bottom: 0 !important; /* OVERRIDE DESKTOP MARGIN */
+  transition: none !important; /* OVERRIDE DESKTOP TRANSITION */
 }
 
+.motivation-section .panel-icon i,
 .panel-icon i {
-  font-size: 28px !important;
+  font-size: 22px !important;
   color: white !important;
 }
 
-.panel-title {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  text-align: center !important;
-  margin-bottom: 12px !important;
-  color: #212529 !important;
+/* FORCE OVERRIDE: Header Content */
+.panel-header-content {
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
+/* FORCE OVERRIDE: Title */
+.motivation-section .panel-title,
+.panel-title {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  line-height: 1.3 !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.2px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* FORCE OVERRIDE: Preview Text - Fully Visible */
+.motivation-section .panel-preview,
 .panel-preview {
   font-size: 14px !important;
-  color: #6c757d !important;
-  text-align: center !important;
+  color: #dfdfdf !important;
   line-height: 1.5 !important;
-  margin-bottom: 8px !important;
+  margin: 0 !important;
+  font-weight: 400 !important;
+  display: block !important; /* OVERRIDE ANY TRUNCATION */
+  -webkit-line-clamp: none !important;
+  -webkit-box-orient: horizontal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
+/* FORCE OVERRIDE: Expand Indicator - Premium Animation */
+.motivation-section .panel-expand-indicator,
 .panel-expand-indicator {
-  text-align: center !important;
-  margin-top: 12px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: rgba(25, 134, 28, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition:
+    all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+  position: static !important; /* OVERRIDE DESKTOP POSITION */
+  top: auto !important; /* OVERRIDE DESKTOP TOP */
+  right: auto !important; /* OVERRIDE DESKTOP RIGHT */
+  border: none !important; /* OVERRIDE DESKTOP BORDER */
+  transform: translateZ(0) !important; /* Hardware acceleration */
 }
 
+.motivation-section .panel-expand-indicator:hover,
+.panel-expand-indicator:hover {
+  background: rgba(25, 134, 28, 0.2) !important;
+  transform: scale(1.05) !important;
+}
+
+.motivation-section .panel-expand-indicator i,
 .panel-expand-indicator i {
-  font-size: 20px !important;
+  font-size: 16px !important;
   color: #19861C !important;
-  transition: transform 0.3s ease !important;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
 }
 
-.motivation-panel.expanded .panel-expand-indicator i {
+/* FORCE OVERRIDE: Expanded State */
+.motivation-section .motivation-panel.expanded .panel-expand-indicator,
+.motivation-panel.expanded .panel-expand-indicator {
+  background: #19861C !important;
   transform: rotate(180deg) !important;
 }
 
-/* Panel Content - Collapsed by default */
-.panel-content {
-  max-height: 0 !important;
-  overflow: hidden !important;
-  transition: max-height 0.4s ease !important;
+.motivation-section .motivation-panel.expanded .panel-expand-indicator i,
+.motivation-panel.expanded .panel-expand-indicator i {
+  color: white !important;
+  transform: rotate(180deg) !important;
 }
 
-.motivation-panel.expanded .panel-content {
-  max-height: 1000px !important;
+/* MOBILE ACCORDION: PANELS START COLLAPSED */
+@media (max-width: 768px) {
+  /* FORCE REMOVE EXPANDED CLASS FROM ALL PANELS */
+  .motivation-section .motivation-panel.expanded,
+  .motivation-panel.expanded {
+    /* Reset desktop expanded styles for mobile */
+    transform: none !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+    z-index: auto !important;
+  }
+
+  /* ENSURE ALL PANELS START COLLAPSED - NO EXPANDED CLASS */
+  .motivation-section .motivation-panel,
+  .motivation-panel {
+    /* Panels start collapsed - no expanded class by default */
+  }
+
+  /* PANEL CONTENT: SMOOTH ANIMATION - COLLAPSED STATE */
+  .motivation-section .panel-content-motivationCard,
+  .panel-content-motivationCard {
+    max-height: 0px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: translateY(-8px) scale(0.98) !important;
+    transition:
+      max-height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  }
+
+  /* PANEL CONTENT: SMOOTH ANIMATION - EXPANDED STATE */
+  .motivation-section .motivation-panel.expanded .panel-content-motivationCard,
+  .motivation-panel.expanded .panel-content-motivationCard {
+    max-height: 380px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    transition-delay: 0.1s !important; /* Subtle stagger effect */
+  }
 }
 
+/* FORCE OVERRIDE: Panel Details */
+.motivation-section .panel-details,
 .panel-details {
-  padding: 0 20px 20px 20px !important;
+  padding: 20px 16px 24px 16px !important;
+  background: linear-gradient(135deg, rgba(25, 134, 28, 0.03) 0%, rgba(25, 134, 28, 0.06) 100%) !important;
+  border-top: 1px solid rgba(25, 134, 28, 0.08) !important;
 }
 
+.motivation-section .panel-details p,
 .panel-details p {
   font-size: 14px !important;
   line-height: 1.6 !important;
   color: #495057 !important;
   margin-bottom: 16px !important;
+  text-align: left !important;
 }
 
+/* FORCE OVERRIDE: Features List */
+.motivation-section .panel-features,
 .panel-features {
   list-style: none !important;
   padding: 0 !important;
   margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
 }
 
+.motivation-section .panel-features li,
 .panel-features li {
   display: flex !important;
   align-items: flex-start !important;
   gap: 10px !important;
-  padding: 8px 0 !important;
-  font-size: 14px !important;
+  padding: 10px 12px !important;
+  font-size: 13px !important;
   color: #495057 !important;
   line-height: 1.5 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(25, 134, 28, 0.06) !important;
+  transition: all 0.2s ease !important;
 }
 
+.motivation-section .panel-features li:hover,
+.panel-features li:hover {
+  background: white !important;
+  transform: translateX(2px) !important;
+}
+
+.motivation-section .panel-features li i,
 .panel-features li i {
-  font-size: 18px !important;
+  font-size: 16px !important;
   color: #19861C !important;
   flex-shrink: 0 !important;
-  margin-top: 2px !important;
+  margin-top: 1px !important;
+}
+
+/* ============================================
+   MOBILE SPECIFIC IMPROVEMENTS
+   ============================================ */
+
+/* Better touch targets for mobile */
+.panel-header {
+  min-height: 44px !important; /* iOS Human Interface Guidelines */
+  -webkit-touch-callout: none !important;
+}
+
+.panel-expand-indicator {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+
+/* ============================================
+   SMALL SCREENS ADJUSTMENTS - FORCE OVERRIDE
+   ============================================ */
+@media (max-width: 480px) {
+  .motivation-section,
+  section.motivation-section {
+    padding: 35px 0 45px 0 !important;
+  }
+
+  .motivation-section .motivation-header,
+  .motivation-header {
+    padding: 0 16px 25px 16px !important;
+  }
+
+  .motivation-section .motivation-title,
+  .motivation-title {
+    font-size: 22px !important;
+  }
+
+  .motivation-section .motivation-subtitle,
+  .motivation-subtitle {
+    font-size: 13px !important;
+  }
+
+  .motivation-section .panels-grid,
+  .panels-grid {
+    gap: 14px !important;
+    padding: 0 14px !important;
+  }
+
+  .motivation-section .panel-header,
+  .panel-header {
+    padding: 14px !important;
+    gap: 10px !important;
+  }
+
+  .motivation-section .panel-icon,
+  .panel-icon {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .motivation-section .panel-icon i,
+  .panel-icon i {
+    font-size: 20px !important;
+  }
+
+  .motivation-section .panel-title,
+  .panel-title {
+    font-size: 16px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .motivation-section .panel-preview,
+  .panel-preview {
+    font-size: 13px !important;
+  }
+
+  .motivation-section .panel-expand-indicator,
+  .panel-expand-indicator {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .motivation-section .panel-expand-indicator i,
+  .panel-expand-indicator i {
+    font-size: 14px !important;
+  }
+
+  .motivation-section .panel-details,
+  .panel-details {
+    padding: 18px 14px 20px 14px !important;
+  }
+
+  .motivation-section .panel-details p,
+  .panel-details p {
+    font-size: 13px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .motivation-section .panel-features li,
+  .panel-features li {
+    padding: 9px 10px !important;
+    font-size: 12px !important;
+    gap: 8px !important;
+  }
+
+  .motivation-section .panel-features li i,
+  .panel-features li i {
+    font-size: 15px !important;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .motivation-panel,
+  .panel-icon,
+  .panel-expand-indicator,
+  .panel-content,
+  .panel-features li {
+    transition: none !important;
+  }
+
+  .motivation-panel:active,
+  .motivation-panel:hover {
+    transform: none !important;
+  }
 }
 
 /* ============================================
@@ -431,46 +723,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* ============================================
-   7. CAROUSEL (ako ima)
-   ============================================ */
-.carousel-section {
-  padding: 40px 0 !important;
-}
-
-.carousel-item {
-  padding: 0 16px !important;
-}
-
-.carousel-control-prev,
-.carousel-control-next {
-  width: 44px !important;
-  height: 44px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  background: rgba(25, 134, 28, 0.9) !important;
-  border-radius: 50% !important;
-  opacity: 0.9 !important;
-}
-
-.carousel-control-prev {
-  left: 8px !important;
-}
-
-.carousel-control-next {
-  right: 8px !important;
-}
-
-.carousel-indicators {
-  margin-bottom: -20px !important;
-}
-
-.carousel-indicators button {
-  width: 8px !important;
-  height: 8px !important;
-  border-radius: 50% !important;
-  margin: 0 4px !important;
-}
+/* CAROUSEL STYLES MOVED TO carousel-mobile.css */
 
 /* ============================================
    8. GENERAL MOBILE IMPROVEMENTS

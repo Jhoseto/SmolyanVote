@@ -697,14 +697,14 @@ mux-player {
   transform: rotate(180deg);
 }
 
-.panel-content {
+.panel-content-motivationCard {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.4s ease, opacity 0.4s ease;
   opacity: 0;
 }
 
-.motivation-panel.expanded .panel-content {
+.motivation-panel.expanded .panel-content-motivationCard {
   max-height: 400px;
   opacity: 1;
 }

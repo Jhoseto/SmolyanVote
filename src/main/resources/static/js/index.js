@@ -125,6 +125,15 @@ function initializeMotivationPanels() {
         return;
     }
 
+    // ENSURE ALL PANELS START COLLAPSED
+    panels.forEach(panel => {
+        panel.classList.remove('expanded');
+        const header = panel.querySelector('.panel-header');
+        if (header) {
+            header.setAttribute('aria-expanded', 'false');
+        }
+    });
+
     panels.forEach(panel => {
         const header = panel.querySelector('.panel-header');
 

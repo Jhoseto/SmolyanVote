@@ -188,71 +188,6 @@
         overflow-x: hidden;
     }
 
-    .carousel-container {
-        padding: 0;
-        overflow: visible;
-    }
-
-    .carousel {
-        height: 360px;
-    }
-
-    .carousel-item {
-        width: 200px;
-        height: 280px;
-        margin-left: -100px;
-        margin-top: -140px;
-    }
-
-    .card {
-        padding: 10px;
-        border-radius: 14px;
-    }
-
-    .card img {
-        height: 110px;
-        border-radius: 10px;
-    }
-
-    .card-content h3 {
-        font-size: clamp(0.45rem, 2vw, 0.55rem);
-    }
-
-    .card-content p {
-        font-size: clamp(0.5rem, 2.5vw, 0.65rem);
-        padding: 0 6px 10px 6px;
-    }
-
-    .nav {
-        font-size: 1rem;
-        padding: 6px 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .carousel {
-        height: 320px;
-    }
-
-    .carousel-item {
-        width: 180px;
-        height: 260px;
-        margin-left: -90px;
-        margin-top: -130px;
-    }
-
-    .card img {
-        height: 100px;
-    }
-
-    .card-content h3 {
-        font-size: clamp(0.42rem, 2vw, 0.5rem);
-    }
-
-    .card-content p {
-        font-size: clamp(0.45rem, 2.2vw, 0.6rem);
-    }
-}
 
 /* Sponsors Section Wrapper */
 .sponsors-section-wrapper {
@@ -278,15 +213,4 @@
     color: #2C3E50;
     margin-bottom: 1rem;
     line-height: 1.2;
-}
-
-@media (max-width: 768px) {
-    .sponsors-header {
-        margin-bottom: 2rem;
-        padding: 0 1rem;
-    }
-
-    .sponsors-title {
-        font-size: clamp(1.75rem, 4vw, 2.5rem);
-    }
 }

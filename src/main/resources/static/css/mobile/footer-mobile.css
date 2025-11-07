@@ -498,7 +498,7 @@
 /* Back to Top Button */
 .back-to-top {
   position: fixed !important;
-  bottom: 24px !important;
+  bottom: 100px !important;
   right: 16px !important;
   width: 35px !important;
   height: 35px !important;
