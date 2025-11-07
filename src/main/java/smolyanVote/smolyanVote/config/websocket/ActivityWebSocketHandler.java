@@ -67,7 +67,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error parsing Activity Wall message: " + e.getMessage());
             sendErrorMessage(session, "Invalid message format");
         }
     }
@@ -117,7 +116,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
             sendMessage(session, response);
 
         } catch (Exception e) {
-            System.err.println("❌ Error getting recent activities: " + e.getMessage());
             sendErrorMessage(session, "Failed to load recent activities");
         }
     }
@@ -151,7 +149,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
             sendMessage(session, response);
 
         } catch (Exception e) {
-            System.err.println("❌ Error getting activities since ID: " + e.getMessage());
             sendErrorMessage(session, "Failed to load new activities");
         }
     }
@@ -168,7 +165,6 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
             sendMessage(session, response);
 
         } catch (Exception e) {
-            System.err.println("❌ Error getting activity statistics: " + e.getMessage());
             sendErrorMessage(session, "Failed to load statistics");
         }
     }
@@ -196,7 +192,7 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
 
         } catch (Exception e) {
-            System.err.println("❌ Error broadcasting new activity: " + e.getMessage());
+            // Error already handled in broadcastMessage
         }
     }
 
@@ -219,7 +215,7 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
             broadcastMessage(message);
 
         } catch (Exception e) {
-            System.err.println("❌ Error broadcasting stats update: " + e.getMessage());
+            // Error already handled in broadcastMessage
         }
     }
 

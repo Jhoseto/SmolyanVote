@@ -78,7 +78,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
             // Проверяваме правата на потребителя
             if (!hasPermission(session)) {
                 session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Access denied"));
-                System.out.println("❌ " + getHandlerName() + ": Access denied for session " + session.getId());
                 return;
             }
 
@@ -90,8 +89,11 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
             sendWelcomeMessage(session);
 
         } catch (Exception e) {
-            System.err.println("❌ Error in " + getHandlerName() + " connection: " + e.getMessage());
-            session.close(CloseStatus.SERVER_ERROR);
+            try {
+                session.close(CloseStatus.SERVER_ERROR);
+            } catch (Exception closeException) {
+                // Ignore close exception
+            }
         }
     }
 
@@ -102,19 +104,15 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
                 String payload = ((TextMessage) message).getPayload();
                 handleTextMessage(session, payload);
             } else {
-                System.out.println("⚠️ " + getHandlerName() + ": Received non-text message from " + session.getId());
+                // Ignore non-text messages
             }
         } catch (Exception e) {
-            System.err.println("❌ Error handling message in " + getHandlerName() + ": " + e.getMessage());
             sendErrorMessage(session, "Message processing failed");
         }
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.err.println("❌ " + getHandlerName() + " transport error for session " +
-                session.getId() + ": " + exception.getMessage());
-
         // Премахваме сесията при грешка
         removeSession(session);
     }
@@ -163,7 +161,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
             String jsonMessage = objectMapper.writeValueAsString(message);
             session.sendMessage(new TextMessage(jsonMessage));
         } catch (IOException e) {
-            System.err.println("❌ Failed to send message to session " + session.getId() + ": " + e.getMessage());
             removeSession(session);
         }
     }
@@ -180,7 +177,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
         try {
             jsonMessage = objectMapper.writeValueAsString(message);
         } catch (Exception e) {
-            System.err.println("❌ Failed to serialize broadcast message: " + e.getMessage());
             return;
         }
 
@@ -195,7 +191,6 @@ public abstract class BaseWebSocketHandler implements WebSocketHandler {
                     removeSession(session);
                 }
             } catch (IOException e) {
-                System.err.println("❌ Failed to broadcast to session " + session.getId() + ": " + e.getMessage());
                 removeSession(session);
             }
         });
