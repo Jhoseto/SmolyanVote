@@ -205,10 +205,11 @@ class UserSearchManager {
         
         return `
             <div class="user-search-result" data-user-id="${user.id}">
-                <img src="${avatarUrl}" alt="${fullName}" class="user-avatar" 
+                <img src="${avatarUrl}" alt="${fullName}" class="user-avatar"
                      onerror="this.src='/images/default-avatar.png'">
                 <div class="user-info">
                     <div class="user-name">${fullName}</div>
+                    <div class="user-username">@${username}</div>
                 </div>
                 <div class="online-indicator ${isOnline}"></div>
                 <button class="user-result-menu-btn" type="button">
@@ -281,11 +282,32 @@ class UserSearchManager {
         
         document.body.appendChild(menu);
         
-        // Position menu to the right of the result element
+        // Position menu based on screen size and element position
         const updateMenuPosition = () => {
             const rect = resultElement.getBoundingClientRect();
-            menu.style.left = `${rect.right + 8}px`;
-            menu.style.top = `${rect.top}px`;
+            const menuRect = menu.getBoundingClientRect();
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                // On mobile, center the menu horizontally and position below the element
+                const centerX = window.innerWidth / 2 - menuRect.width / 2;
+                menu.style.left = `${Math.max(10, centerX)}px`;
+                menu.style.top = `${rect.bottom + 8}px`;
+
+                // Make sure it doesn't go off screen
+                if (menuRect.right > window.innerWidth - 10) {
+                    menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+                }
+            } else {
+                // On desktop, position to the right of the element
+                menu.style.left = `${rect.right + 8}px`;
+                menu.style.top = `${rect.top}px`;
+
+                // If it goes off screen to the right, position to the left
+                if (rect.right + 8 + menuRect.width > window.innerWidth) {
+                    menu.style.left = `${rect.left - menuRect.width - 8}px`;
+                }
+            }
         };
         
         updateMenuPosition();

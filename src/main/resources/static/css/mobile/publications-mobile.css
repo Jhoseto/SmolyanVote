@@ -5,6 +5,68 @@
 
 @media (max-width: 768px) {
 
+/* FIX: Override signals-mobile.css hiding of filters-panel - more specific selector */
+body.publications-page .filters-panel,
+.publications-page .filters-panel {
+    display: block !important;
+}
+
+/* Mobile Filter Toggle Button */
+.mobile-filter-toggle {
+  position: fixed !important;
+  bottom: 20px !important;
+  left: 20px !important;
+  z-index: 1000 !important;
+  display: block !important;
+}
+
+.filter-toggle-btn {
+  background: #19861C !important;
+  border: none !important;
+  border-radius: 25px !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 16px rgba(25, 134, 28, 0.4) !important;
+  transition: transform 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.filter-toggle-btn:hover {
+  background: #5cb85c !important;
+  transform: translateY(-2px) !important;
+}
+
+.filter-toggle-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.filter-toggle-btn i {
+  font-size: 16px !important;
+}
+
+/* Mobile Overlay */
+.mobile-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  z-index: 998 !important;
+  display: none !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+}
+
+.mobile-overlay.active {
+  display: block !important;
+}
+
 /* Publications Page Layout */
 .publications-container {
   padding: 16px 0 !important;
@@ -50,13 +112,24 @@
   transform: scale(0.92) !important;
 }
 
-/* Filters Section - Drawer Style */
-.filters-section {
+/* Filters Panel - Main Container */
+.filters-panel {
   background: white !important;
   border-radius: 12px !important;
   padding: 16px !important;
   margin: 0 16px 16px 16px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  min-height: 200px !important; /* Ensure minimum height */
+  overflow: visible !important;
+}
+
+/* Filters Section - Drawer Style */
+.filters-section {
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
 }
 
 .filters-toggle {
@@ -90,19 +163,23 @@
 }
 
 .filters-content {
-  max-height: 0 !important;
-  overflow: hidden !important;
-  transition: max-height 0.3s ease !important;
+  max-height: none !important;
+  overflow: visible !important;
+  transition: none !important;
 }
 
 .filters-section.expanded .filters-content {
-  max-height: 500px !important;
+  max-height: none !important;
   margin-top: 16px !important;
 }
 
 /* Filter Sections */
 .filter-section {
   margin-bottom: 20px !important;
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  border: 1px solid #e9ecef !important;
 }
 
 .filter-section:last-child {
@@ -121,6 +198,7 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
+  margin-top: 8px !important;
 }
 
 .filter-option {
@@ -193,6 +271,170 @@
   font-size: 16px !important;
 }
 
+/* User Search Panel - Mobile */
+.user-search-panel {
+  background: white !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 12px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+.user-search-content {
+  max-height: none !important;
+  opacity: 1 !important;
+  padding: 16px !important;
+  overflow: visible !important;
+  transition: none !important;
+}
+
+.user-search-content.collapsed {
+  max-height: none !important;
+  opacity: 1 !important;
+  padding: 16px !important;
+}
+
+/* User Search Results - Mobile */
+.user-search-result {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  background: #f8f9fa !important;
+  margin-bottom: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  min-height: 60px !important; /* Touch target */
+}
+
+.user-search-result:hover {
+  background: #e9ecef !important;
+}
+
+.user-search-result:active {
+  background: #dee2e6 !important;
+  transform: scale(0.98) !important;
+}
+
+.user-search-result .user-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid white !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  flex-shrink: 0 !important;
+}
+
+.user-search-result .user-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.user-search-result .user-name {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #212529 !important;
+  margin-bottom: 2px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.user-search-result .user-username {
+  font-size: 13px !important;
+  color: #6c757d !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.user-search-result .online-indicator {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background: #42b883 !important;
+  border: 2px solid white !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+}
+
+.user-search-result .online-indicator.offline {
+  background: #6c757d !important;
+}
+
+.user-search-result .user-result-menu-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: none !important;
+  color: #6c757d !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.user-search-result .user-result-menu-btn:hover {
+  background: rgba(108, 117, 125, 0.1) !important;
+  color: #495057 !important;
+}
+
+.user-search-result .user-result-menu-btn:active {
+  background: rgba(108, 117, 125, 0.2) !important;
+  transform: scale(0.95) !important;
+}
+
+/* User Context Menu - Mobile */
+.user-context-menu {
+  position: fixed !important;
+  background: white !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+  z-index: 10000 !important;
+  min-width: 200px !important;
+  padding: 8px 0 !important;
+  display: none !important;
+  max-width: 90vw !important;
+}
+
+.user-context-menu.show {
+  display: block !important;
+}
+
+.user-context-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+  font-size: 15px !important;
+  color: #212529 !important;
+  min-height: 48px !important; /* Touch target */
+}
+
+.user-context-menu-item:hover {
+  background: #f8f9fa !important;
+}
+
+.user-context-menu-item:active {
+  background: #e9ecef !important;
+}
+
+.user-context-menu-item i {
+  color: #6c757d !important;
+  font-size: 18px !important;
+  width: 20px !important;
+  text-align: center !important;
+}
+
 /* Active Filters Summary */
 .active-filters-summary {
   margin-top: 16px !important;
@@ -225,13 +467,20 @@
   width: 100% !important;
 }
 
+.search-input-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  margin-top: 8px !important;
+}
+
 .search-input {
   width: 100% !important;
   padding: 14px 16px 14px 44px !important;
   font-size: 16px !important;
   border: 2px solid #e9ecef !important;
   border-radius: 12px !important;
-  background: #f8f9fa !important;
+  background: white !important;
+  color: #495057 !important;
 }
 
 .search-icon {
@@ -242,6 +491,7 @@
   font-size: 18px !important;
   color: #6c757d !important;
   pointer-events: none !important;
+  z-index: 1 !important;
 }
 
 .clear-search {

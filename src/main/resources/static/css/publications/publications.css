@@ -13,8 +13,8 @@
     /* Размери и shadow */
     --border-radius: 8px;
     --border-radius-lg: 12px;
-    --sidebar-width: 280px;
-    --main-feed-width: 680px;
+    --publications-sidebar-width: 280px;
+    --publications-main-feed-width: 680px;
     --transition: all 0.2s ease;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -78,7 +78,7 @@
 
 /* ====== LEFT SIDEBAR - FILTERS ====== */
 .left-sidebar {
-    width: var(--sidebar-width);
+    width: var(--publications-sidebar-width);
     position: sticky;
     top: 80px;
     height: fit-content;
@@ -339,7 +339,7 @@
 /* ====== MAIN FEED ====== */
 .main-feed {
     flex: 1;
-    max-width: var(--main-feed-width);
+    max-width: var(--publications-main-feed-width);
     margin: 0 auto;
 }
 
@@ -1053,7 +1053,7 @@
 
 /* ====== RIGHT SIDEBAR ====== */
 .right-sidebar {
-    width: var(--sidebar-width);
+    width: var(--publications-sidebar-width);
     position: sticky;
     top: 80px;
     height: fit-content;
