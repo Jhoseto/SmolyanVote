@@ -32,7 +32,6 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   const isTyping = typingUsers[conversationId];
   const messagesEndRef = useRef(null);
   const threadRef = useRef(null);
-  const lastMessageCountRef = useRef(0);
 
   // Infinite scroll hook - disabled for now to prevent infinite loading
   // const { lastMessageRef } = useSVInfiniteScroll(
@@ -43,39 +42,13 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   // );
   const lastMessageRef = null;
 
-  // FIX 3A: Auto-scroll to bottom on new messages с delay за animations
+  // ВИНАГИ скролвай до долу при всяка промяна на съобщенията
   useEffect(() => {
-    if (messages.length > lastMessageCountRef.current && messagesEndRef.current) {
-      const wasAtBottom = isScrolledToBottom(threadRef.current);
-      if (wasAtBottom) {
-        // Изчакай animations да завършат
-        setTimeout(() => {
-          scrollToBottom(threadRef.current);
-        }, 300); // 300ms = stagger animations time
-      }
-      lastMessageCountRef.current = messages.length;
+    if (messages.length > 0 && threadRef.current) {
+      // Моментално скролване до най-долу при всяка промяна
+      threadRef.current.scrollTop = threadRef.current.scrollHeight;
     }
   }, [messages.length]);
-
-  // Scroll to bottom on mount and reset message count
-  useEffect(() => {
-    if (threadRef.current) {
-      scrollToBottom(threadRef.current, false);
-    }
-    lastMessageCountRef.current = 0; // Reset message count for new conversation
-  }, [conversationId]);
-
-  // FIX 3B: Директен scroll при първо отваряне (след load)
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Immediate scroll при първо зареждане
-      setTimeout(() => {
-        if (threadRef.current) {
-          threadRef.current.scrollTop = threadRef.current.scrollHeight;
-        }
-      }, 400); // Малко повече за да catch stagger
-    }
-  }, [conversationId]); // Само при смяна на conversation
 
   // Group messages by date
   const groupedItems = groupMessagesByDate(messages);
