@@ -406,7 +406,7 @@
   flex-direction: column;
   overflow: hidden;
     animation: slideUpFade 0.4s var(--svm-transition-bounce);
-    z-index: var(--svm-z-high);
+    z-index: calc(var(--svm-z-high) + 10); /* По-висок от taskbar */
 }
 
 @keyframes slideUpFade {
@@ -2094,6 +2094,12 @@
         right: 0;
         border-radius: 0;
     }
+}
+
+/* ========== SMOOTH SCROLL ========== */
+
+.svmessenger-message-thread {
+  scroll-behavior: smooth;
 }
 
 /* ========== PRINT STYLES ========== */

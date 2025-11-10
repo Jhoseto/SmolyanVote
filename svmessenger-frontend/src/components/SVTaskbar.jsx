@@ -18,7 +18,7 @@ const SVTaskbar = () => {
                 conversation: conversations.find(c => c.id === chat.conversation.id) || chat.conversation
             }));
         return result;
-    }, [conversations]);
+    }, [activeChats, conversations]);
 
     // Don't render if no minimized chats
     if (minimizedChats.length === 0) {

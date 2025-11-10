@@ -121,19 +121,20 @@ const SVChatWindow = ({ chat }) => {
         setSearchQuery(query);
     };
 
-    if (chat.isMinimized) {
-        return null;
-    }
+    // FIX 2: Style с display control вместо return null
+    const windowStyle = {
+        left: `${chat.position.x}px`,
+        top: `${chat.position.y}px`,
+        zIndex: chat.zIndex,
+        display: chat.isMinimized ? 'none' : 'flex'
+    };
 
+    // FIX 1 & 2: Винаги render, само скрий с CSS
     return (
         <div
             ref={chatWindowRef}
             className={`svmessenger-chat-window ${isDragging ? 'dragging' : ''}`}
-            style={{
-                left: `${chat.position.x}px`,
-                top: `${chat.position.y}px`,
-                zIndex: chat.zIndex
-            }}
+            style={windowStyle}
             onMouseDown={handleMouseDown}
             onClick={handleWindowClick}
         >

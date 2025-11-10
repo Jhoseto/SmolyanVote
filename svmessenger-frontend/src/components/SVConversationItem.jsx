@@ -25,7 +25,7 @@ const SVConversationItem = ({ conversation }) => {
   };
 
   return (
-    <div 
+    <div
       className={`svmessenger-conversation-item ${isActive ? 'active' : ''}`}
       onClick={handleClick}
     >

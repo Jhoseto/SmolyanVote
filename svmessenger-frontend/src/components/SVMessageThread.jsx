@@ -43,10 +43,16 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   // );
   const lastMessageRef = null;
 
-  // Auto-scroll to bottom on new messages (only when new messages arrive)
+  // FIX 3A: Auto-scroll to bottom on new messages с delay за animations
   useEffect(() => {
     if (messages.length > lastMessageCountRef.current && messagesEndRef.current) {
-      scrollToBottom(threadRef.current);
+      const wasAtBottom = isScrolledToBottom(threadRef.current);
+      if (wasAtBottom) {
+        // Изчакай animations да завършат
+        setTimeout(() => {
+          scrollToBottom(threadRef.current);
+        }, 300); // 300ms = stagger animations time
+      }
       lastMessageCountRef.current = messages.length;
     }
   }, [messages.length]);
@@ -58,6 +64,18 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
     }
     lastMessageCountRef.current = 0; // Reset message count for new conversation
   }, [conversationId]);
+
+  // FIX 3B: Директен scroll при първо отваряне (след load)
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Immediate scroll при първо зареждане
+      setTimeout(() => {
+        if (threadRef.current) {
+          threadRef.current.scrollTop = threadRef.current.scrollHeight;
+        }
+      }, 400); // Малко повече за да catch stagger
+    }
+  }, [conversationId]); // Само при смяна на conversation
 
   // Group messages by date
   const groupedItems = groupMessagesByDate(messages);
@@ -73,7 +91,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
 
       {/* Messages with date separators */}
       <div className="svmessenger-messages">
-        {groupedItems.map((item, index) => {
+          {groupedItems.map((item, index) => {
           if (item.type === 'date') {
             return (
               <div key={`date-${item.dateKey}`} className="svmessenger-date-separator">
