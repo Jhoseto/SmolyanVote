@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useLayoutEffect } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 import SVMessageItem from './SVMessageItem';
 import SVTypingIndicator from './SVTypingIndicator';
@@ -42,13 +42,25 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   // );
   const lastMessageRef = null;
 
-  // ВИНАГИ скролвай до долу при всяка промяна на съобщенията
-  useEffect(() => {
-    if (messages.length > 0 && threadRef.current) {
-      // Моментално скролване до най-долу при всяка промяна
-      threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  // СКРОЛВАЙ ДО ДОЛУ КОГАТО ИМА СЪОБЩЕНИЯ ИЛИ ПРОМЯНА
+  useLayoutEffect(() => {
+    if (threadRef.current && (messages.length > 0 || isLoading)) {
+      // Скролвай до долу при всяка възможност
+      const scrollToBottom = () => {
+        if (threadRef.current) {
+          threadRef.current.scrollTop = threadRef.current.scrollHeight;
+        }
+      };
+
+      // Скролвай веднага
+      scrollToBottom();
+
+      // И след малко пак (за всеки случай)
+      setTimeout(scrollToBottom, 10);
+      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 100);
     }
-  }, [messages.length]);
+  }, [messages.length, isLoading]);
 
   // Group messages by date
   const groupedItems = groupMessagesByDate(messages);

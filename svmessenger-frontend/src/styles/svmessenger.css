@@ -1353,7 +1353,7 @@
     padding: var(--svm-space-5) var(--svm-space-4);
     background: #FFFFFF !important;
     background-image: none !important;
-  scroll-behavior: smooth;
+  /* scroll-behavior: smooth; - ПРЕМАХНАТО ЗА МИГНОВЕНО СКРОЛВАНЕ */
   display: flex;
   flex-direction: column;
     gap: var(--svm-space-2);
@@ -1712,9 +1712,9 @@
 
 /* Scroll to Bottom Button */
 .svmessenger-scroll-to-bottom {
-    position: absolute;
-    bottom: var(--svm-space-4);
-    right: var(--svm-space-4);
+    position: fixed;
+    bottom: 100px;
+    right: 190px;
     width: 40px;
     height: 40px;
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
@@ -2098,9 +2098,10 @@
 
 /* ========== SMOOTH SCROLL ========== */
 
-.svmessenger-message-thread {
+/* ПРЕМАХНАТО: scroll-behavior: smooth - причинява плавно скролване */
+/* .svmessenger-message-thread {
   scroll-behavior: smooth;
-}
+} */
 
 /* ========== PRINT STYLES ========== */
 @media print {
