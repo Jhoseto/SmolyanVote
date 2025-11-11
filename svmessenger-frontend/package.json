@@ -13,6 +13,7 @@
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
+    "@livekit/components-react": "^2.5.0",
     "@stomp/stompjs": "^7.0.0",
     "date-fns": "^3.0.0",
     "emoji-picker-react": "^4.15.0",

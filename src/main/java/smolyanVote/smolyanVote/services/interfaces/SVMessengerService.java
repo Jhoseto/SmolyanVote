@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.services.interfaces;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
@@ -199,4 +200,15 @@ public interface SVMessengerService {
 
     @Transactional
     void markAllUndeliveredAsDeliveredForUser(UserEntity user);
+
+    // ========== VOICE CALLS ==========
+
+    /**
+     * Генерира LiveKit token за voice call
+     *
+     * @param conversationId ID на разговора
+     * @param currentUser Текущият user (caller)
+     * @return SVCallTokenResponse с token, room name, etc.
+     */
+    SVCallTokenResponse generateCallToken(Long conversationId, UserEntity currentUser);
 }

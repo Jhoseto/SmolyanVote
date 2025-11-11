@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
+import SVCallButton from './SVCallButton';
 
 /**
  * Chat Header компонент
  * Показва информация за потребителя и контроли
  */
-const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch }) => {
+const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch, onCall }) => {
   const { otherUser } = conversation;
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -85,6 +86,9 @@ const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch }) => {
 
       {/* Controls */}
       <div className="svmessenger-chat-controls">
+        {/* Call button */}
+        <SVCallButton onClick={onCall} />
+
         {/* Three-dot menu */}
         <div className="svmessenger-chat-menu-container" ref={menuRef}>
           <button 

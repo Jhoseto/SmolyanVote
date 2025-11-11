@@ -28,7 +28,8 @@ class SVWebSocketService {
       onTypingStatus = () => {},
       onReadReceipt = () => {},
       onDeliveryReceipt = () => {},
-      onOnlineStatus = () => {}
+      onOnlineStatus = () => {},
+      onCallSignal = () => {}
     } = callbacks;
     
     // Create SockJS instance
@@ -95,7 +96,7 @@ class SVWebSocketService {
    * Subscribe to WebSocket channels
    */
   subscribeToChannels(callbacks) {
-    const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus } = callbacks;
+    const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
     
     // 1. Private messages channel
     const messagesSub = this.client.subscribe(
@@ -152,6 +153,20 @@ class SVWebSocketService {
       }
     );
     this.subscriptions.set('status', statusSub);
+
+    // 5. Call signals channel
+    const callSignalsSub = this.client.subscribe(
+      '/user/queue/svmessenger-call-signals',
+      (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          onCallSignal(data);
+        } catch (error) {
+          console.error('Error parsing call signal:', error);
+        }
+      }
+    );
+    this.subscriptions.set('callSignals', callSignalsSub);
   }
   
   /**
@@ -299,6 +314,27 @@ class SVWebSocketService {
    */
   isConnected() {
     return this.connected;
+  }
+
+  /**
+   * Изпрати call signal през WebSocket
+   */
+  sendCallSignal(signal) {
+    if (!this.connected || !this.client) {
+      console.warn('Cannot send call signal - not connected');
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: '/app/svmessenger/call-signal',
+        body: JSON.stringify(signal)
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending call signal:', error);
+      return false;
+    }
   }
 }
 

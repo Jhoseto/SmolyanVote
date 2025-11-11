@@ -4,6 +4,8 @@ import SVConversationList from './SVConversationList';
 import SVChatWindow from './SVChatWindow';
 import SVUserSearch from './SVUserSearch';
 import SVTaskbar from './SVTaskbar';
+import SVCallModal from './SVCallModal';
+import '../styles/svMessengerCalls.css';
 
 /**
  * Главен SVMessenger Widget компонент
@@ -18,7 +20,12 @@ const SVMessengerWidget = () => {
         openChatList,
         closeChatList,
         openSearch,
-        closeSearch
+        closeSearch,
+        currentCall,
+        callState,
+        acceptCall,
+        rejectCall,
+        endCall
     } = useSVMessenger();
 
 
@@ -61,6 +68,17 @@ const SVMessengerWidget = () => {
                     chat={chat}
                 />
             ))}
+
+            {/* Call Modal */}
+            {callState !== 'idle' && currentCall && currentCall.conversation && (
+                <SVCallModal
+                    callState={callState}
+                    conversation={currentCall.conversation}
+                    onAccept={acceptCall}
+                    onReject={rejectCall}
+                    onEnd={endCall}
+                />
+            )}
 
             {/* Taskbar (minimized chats) */}
             <SVTaskbar />

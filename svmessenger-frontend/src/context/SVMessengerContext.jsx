@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { svMessengerAPI } from '../services/svMessengerAPI';
 import svWebSocketService from '../services/svWebSocketService';
+import svLiveKitService from '../services/svLiveKitService';
 
 const SVMessengerContext = createContext(null);
 
@@ -47,6 +48,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // WebSocket connection status
     const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+
+    // Call state
+    const [currentCall, setCurrentCall] = useState(null);
+    const [callState, setCallState] = useState('idle'); // 'idle', 'outgoing', 'incoming', 'connected'
+    const [liveKitToken, setLiveKitToken] = useState(null);
+    const [liveKitRoom, setLiveKitRoom] = useState(null);
 
     // Refs
     const typingTimeouts = useRef({});
@@ -93,7 +100,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
             onTypingStatus: handleTypingStatus,
             onReadReceipt: handleReadReceipt,
             onDeliveryReceipt: handleDeliveryReceipt,
-            onOnlineStatus: handleOnlineStatus
+            onOnlineStatus: handleOnlineStatus,
+            onCallSignal: handleCallSignal
         });
 
         // Load initial data
@@ -122,6 +130,187 @@ export const SVMessengerProvider = ({ children, userData }) => {
             });
         };
     }, [activeChats.map(c => c.id).join(',')]);
+
+    // ========== CALL METHODS ==========
+
+    const startCall = useCallback(async (conversationId, otherUserId) => {
+        try {
+            // Find the conversation object
+            const conversation = conversations.find(conv => conv.id === conversationId);
+            if (!conversation) {
+                throw new Error('Conversation not found');
+            }
+
+            // Generate token from backend
+            const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
+
+            setLiveKitToken(tokenResponse.token);
+            setCurrentCall({
+                conversationId,
+                otherUserId,
+                roomName: tokenResponse.roomName,
+                conversation: conversation
+            });
+            setCallState('outgoing');
+
+            // Send CALL_REQUEST signal
+            const signal = {
+                eventType: 'CALL_REQUEST',
+                conversationId,
+                callerId: currentUser.id,
+                receiverId: otherUserId,
+                roomName: tokenResponse.roomName,
+                timestamp: new Date().toISOString(),
+                callerName: currentUser.realName || currentUser.username,
+                callerAvatar: currentUser.imageUrl
+            };
+            svWebSocketService.sendCallSignal(signal);
+
+        } catch (error) {
+            console.error('Failed to start call:', error);
+            setCallState('idle');
+        }
+    }, [currentUser]);
+
+    const acceptCall = useCallback(async () => {
+        try {
+            // Generate token for accepting the call
+            const tokenResponse = await svMessengerAPI.getCallToken(currentCall.conversationId, currentCall.otherUserId);
+
+            setLiveKitToken(tokenResponse.token);
+            setCallState('connected');
+
+            // Connect to LiveKit room
+            await connectToLiveKit(tokenResponse);
+
+            // Send CALL_ACCEPT signal
+            const signal = {
+                eventType: 'CALL_ACCEPT',
+                conversationId: currentCall.conversationId,
+                callerId: currentCall.otherUserId,
+                receiverId: currentUser.id,
+                roomName: currentCall.roomName,
+                timestamp: new Date().toISOString()
+            };
+            svWebSocketService.sendCallSignal(signal);
+
+        } catch (error) {
+            console.error('Failed to accept call:', error);
+            endCall();
+        }
+    }, [currentCall, currentUser]);
+
+    const rejectCall = useCallback(() => {
+        // Send CALL_REJECT signal
+        const signal = {
+            eventType: 'CALL_REJECT',
+            conversationId: currentCall.conversationId,
+            callerId: currentCall.otherUserId,
+            receiverId: currentUser.id,
+            roomName: currentCall.roomName,
+            timestamp: new Date().toISOString()
+        };
+        svWebSocketService.sendCallSignal(signal);
+
+        // Reset call state
+        setCurrentCall(null);
+        setCallState('idle');
+        setLiveKitToken(null);
+        setLiveKitRoom(null);
+    }, [currentCall, currentUser]);
+
+    const endCall = useCallback(() => {
+        // Send CALL_END signal
+        if (currentCall) {
+            const signal = {
+                eventType: 'CALL_END',
+                conversationId: currentCall.conversationId,
+                callerId: currentUser.id,
+                receiverId: currentCall.otherUserId,
+                roomName: currentCall.roomName,
+                timestamp: new Date().toISOString()
+            };
+            svWebSocketService.sendCallSignal(signal);
+        }
+
+        // Disconnect from LiveKit
+        svLiveKitService.disconnect();
+
+        // Reset call state
+        setCurrentCall(null);
+        setCallState('idle');
+        setLiveKitToken(null);
+        setLiveKitRoom(null);
+    }, [currentCall, currentUser]);
+
+    const connectToLiveKit = useCallback(async (tokenResponse) => {
+        try {
+            await svLiveKitService.connect(tokenResponse.token, tokenResponse.roomName);
+            setLiveKitRoom(tokenResponse.roomName);
+        } catch (error) {
+            console.error('Failed to connect to LiveKit:', error);
+            throw error;
+        }
+    }, []);
+
+    const handleCallSignal = useCallback((signal) => {
+        console.log('Received call signal:', signal);
+
+        switch (signal.eventType) {
+            case 'CALL_REQUEST':
+                if (signal.receiverId === currentUser.id) {
+                    // Find the conversation object
+                    const conversation = conversations.find(conv => conv.id === signal.conversationId);
+                    if (conversation) {
+                        setCurrentCall({
+                            conversationId: signal.conversationId,
+                            otherUserId: signal.callerId,
+                            roomName: signal.roomName,
+                            conversation: conversation
+                        });
+                        setCallState('incoming');
+                    }
+                }
+                break;
+
+            case 'CALL_ACCEPT':
+                if (callState === 'outgoing' && signal.callerId === currentUser.id) {
+                    setCallState('connected');
+                    // Connect to LiveKit room
+                    connectToLiveKit({
+                        token: liveKitToken,
+                        roomName: signal.roomName
+                    });
+                }
+                break;
+
+            case 'CALL_REJECT':
+                if (callState === 'outgoing' || callState === 'incoming') {
+                    setCurrentCall(null);
+                    setCallState('idle');
+                    setLiveKitToken(null);
+                    setLiveKitRoom(null);
+                }
+                break;
+
+            case 'CALL_END':
+                if (callState !== 'idle') {
+                    svLiveKitService.disconnect();
+                    setCurrentCall(null);
+                    setCallState('idle');
+                    setLiveKitToken(null);
+                    setLiveKitRoom(null);
+                }
+                break;
+
+            case 'CALL_BUSY':
+                // Handle busy signal
+                break;
+
+            default:
+                console.warn('Unknown call signal type:', signal.eventType);
+        }
+    }, [callState, currentUser, liveKitToken, connectToLiveKit]);
 
     // ========== WEBSOCKET HANDLERS ==========
 
@@ -871,6 +1060,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         totalUnreadCount,
         isWebSocketConnected,
 
+        // Call state
+        currentCall,
+        callState,
+
         // Methods
         loadConversations,
         loadMessages,
@@ -888,7 +1081,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
         restoreChat,
         bringToFront,
         updateChatPosition,
-        removeFromConversationList
+        removeFromConversationList,
+
+        // Call methods
+        startCall,
+        acceptCall,
+        rejectCall,
+        endCall
     }), [
         currentUser,
         conversations,
@@ -901,6 +1100,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
         typingUsers,
         totalUnreadCount,
         isWebSocketConnected,
+        currentCall,
+        callState,
         loadConversations,
         loadMessages,
         sendMessage,
@@ -917,7 +1118,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
         restoreChat,
         bringToFront,
         updateChatPosition,
-        removeFromConversationList
+        removeFromConversationList,
+        startCall,
+        acceptCall,
+        rejectCall,
+        endCall
     ]);
 
     return (

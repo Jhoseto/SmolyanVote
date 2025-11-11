@@ -178,6 +178,18 @@ export const svMessengerAPI = {
   getUnreadCount: async () => {
     return fetchAPI(`${BASE_URL}/unread-count`);
   },
+
+  // ========== VOICE CALLS ==========
+
+  /**
+   * Генерира LiveKit token за voice call
+   */
+  getCallToken: async (conversationId, otherUserId) => {
+    return fetchAPI(`${BASE_URL}/call/token`, {
+      method: 'POST',
+      body: JSON.stringify({ conversationId, otherUserId })
+    });
+  },
   
   // ========== TYPING STATUS ==========
   

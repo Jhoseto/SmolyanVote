@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashMap;
 import java.util.List;
@@ -488,6 +489,37 @@ public class SVMessengerController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error updating typing status", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // ========== VOICE CALLS ==========
+
+    /**
+     * POST /api/svmessenger/call/token
+     * Генерира LiveKit token за voice call
+     *
+     * Request body: { "conversationId": 1, "otherUserId": 5 }
+     * Response: SVCallTokenResponse
+     */
+    @PostMapping("/call/token")
+    public ResponseEntity<SVCallTokenResponse> generateCallToken(
+            @RequestBody @Valid SVCallTokenRequest request,
+            Authentication auth) {
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            SVCallTokenResponse response = messengerService.generateCallToken(
+                    request.getConversationId(),
+                    currentUser
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid call token request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error generating call token", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

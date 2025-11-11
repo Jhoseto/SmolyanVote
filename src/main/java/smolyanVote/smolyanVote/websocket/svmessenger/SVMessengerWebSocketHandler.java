@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -220,6 +221,33 @@ public class SVMessengerWebSocketHandler {
             );
         } catch (Exception e) {
             log.error("Failed to broadcast online status", e);
+        }
+    }
+
+    // ========== VOICE CALLS ==========
+
+    /**
+     * Изпрати call signal към конкретен user
+     *
+     * @param recipientUserId ID на получателя
+     * @param signal SVCallSignalDTO със signal data
+     */
+    public void sendCallSignal(Long recipientUserId, SVCallSignalDTO signal) {
+
+        if (recipientUserId == null || signal == null) {
+            log.error("Invalid call signal parameters: recipientUserId={}, signal={}", recipientUserId, signal);
+            return;
+        }
+
+        try {
+            // Изпрати към /queue/svmessenger-call-signals
+            messagingTemplate.convertAndSendToUser(
+                    recipientUserId.toString(),
+                    "/queue/svmessenger-call-signals",
+                    signal
+            );
+        } catch (Exception e) {
+            log.error("Failed to send call signal to user {}: {}", recipientUserId, e.getMessage(), e);
         }
     }
 }

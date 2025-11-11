@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import io.livekit.server.RoomName;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
 import java.time.LocalDateTime;
@@ -27,6 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+// LiveKit imports
+import org.springframework.beans.factory.annotation.Value;
+import io.livekit.server.AccessToken;
+import io.livekit.server.RoomJoin;
+import io.livekit.server.VideoGrant;
 
 @Service
 @Slf4j
@@ -39,6 +47,16 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     private final FollowService followService;
 
     private final Map<Long, Map<Long, LocalDateTime>> typingStatuses = new ConcurrentHashMap<>();
+
+    // LiveKit configuration
+    @Value("${livekit.api-key}")
+    private String liveKitApiKey;
+
+    @Value("${livekit.api-secret}")
+    private String liveKitApiSecret;
+
+    @Value("${livekit.websocket-url}")
+    private String liveKitWebSocketUrl;
 
     @Autowired
     public SVMessengerServiceImpl(
@@ -551,6 +569,46 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
         } catch (Exception e) {
             log.error("Error marking message as delivered: {}", e.getMessage(), e);
+        }
+    }
+
+    // ========== VOICE CALLS ==========
+
+    @Override
+    public SVCallTokenResponse generateCallToken(Long conversationId, UserEntity currentUser) {
+        try {
+            // Валидирай че conversation съществува и user е participant
+            SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                    .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+            if (!conversation.isParticipant(currentUser)) {
+                throw new IllegalArgumentException("User is not a participant in this conversation");
+            }
+
+            // Създай уникално room name базирано на conversation ID
+            String roomName = "svm-conversation-" + conversationId;
+
+            // ✅ ПРАВИЛЕН КОД - С GRANTS!
+            AccessToken token = new AccessToken(liveKitApiKey, liveKitApiSecret);
+            token.setIdentity(String.valueOf(currentUser.getId()));
+            token.setName(currentUser.getUsername());
+
+            // ⭐ ТОВА Е КЛЮЧОВОТО - ДОБАВИ GRANTS!
+            token.addGrants(new RoomJoin(true), new RoomName(roomName));
+
+            String jwtToken = token.toJwt();
+
+            // Върни response
+            return new SVCallTokenResponse(
+                    jwtToken,
+                    roomName,
+                    liveKitWebSocketUrl,
+                    conversationId
+            );
+
+        } catch (Exception e) {
+            log.error("Error generating LiveKit call token for conversation {}: {}", conversationId, e.getMessage(), e);
+            throw new RuntimeException("Failed to generate call token", e);
         }
     }
 

@@ -14,6 +14,7 @@ import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVSendMessageRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
 import java.security.Principal;
@@ -109,6 +110,38 @@ public class SVMessengerWebSocketController {
             messengerService.markAllAsRead(conversationId, currentUser);
         } catch (Exception e) {
             log.error("Error marking conversation as read via WebSocket", e);
+        }
+    }
+
+    // ========== VOICE CALLS ==========
+
+    /**
+     * Client изпраща call signal
+     * Endpoint: /app/svmessenger/call-signal
+     *
+     * Client изпраща: { "eventType": "CALL_REQUEST", "conversationId": 1, "callerId": 5, "receiverId": 10 }
+     */
+    @MessageMapping("/svmessenger/call-signal")
+    public void handleCallSignal(@Payload SVCallSignalDTO signal, Principal principal) {
+
+        try {
+            // Вземи current user за валидация
+            UserEntity sender = getUserFromPrincipal(principal);
+
+            // Валидирай че sender е caller или receiver
+            if (!sender.getId().equals(signal.getCallerId()) && !sender.getId().equals(signal.getReceiverId())) {
+                log.warn("Unauthorized call signal attempt by user {}", sender.getId());
+                return;
+            }
+
+            // Forward signal към другия user
+            Long recipientUserId = sender.getId().equals(signal.getCallerId()) ?
+                    signal.getReceiverId() : signal.getCallerId();
+
+            wsHandler.sendCallSignal(recipientUserId, signal);
+
+        } catch (Exception e) {
+            log.error("Error handling call signal via WebSocket", e);
         }
     }
     

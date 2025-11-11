@@ -14,6 +14,7 @@ java {
 
 repositories {
 	mavenCentral()
+	maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
@@ -64,6 +65,9 @@ dependencies {
 
 	//rate limiting for registration Form
 	implementation ("com.github.vladimir-bukhtoyarov:bucket4j-core:8.0.1")
+
+	 //LiveKit for voice calls - temporarily disabled due to dependency issues
+    implementation("io.livekit:livekit-server:0.10.1")
 
 
 

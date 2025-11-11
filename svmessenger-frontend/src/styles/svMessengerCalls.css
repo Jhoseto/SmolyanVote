@@ -1,0 +1,224 @@
+/* SVMessenger Voice Calls Styles */
+
+/* Call Button in Header */
+.svmessenger-call-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--svm-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.svmessenger-call-btn:hover {
+  background-color: var(--svm-bg-hover);
+  color: var(--svm-text-primary);
+}
+
+.svmessenger-call-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Call Modal Overlay */
+.svmessenger-call-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--svm-z-modal);
+  backdrop-filter: blur(4px);
+}
+
+/* Call Modal Container */
+.svmessenger-call-modal {
+  background: var(--svm-bg-primary);
+  border-radius: 20px;
+  padding: 32px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  position: relative;
+}
+
+/* Call Avatar */
+.svmessenger-call-avatar {
+  margin-bottom: 24px;
+}
+
+.svmessenger-call-avatar img,
+.svmessenger-call-avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.svmessenger-call-avatar-placeholder {
+  background: var(--svm-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 600;
+  color: var(--svm-text-secondary);
+}
+
+/* Call Status */
+.svmessenger-call-status {
+  margin-bottom: 32px;
+}
+
+.svmessenger-call-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--svm-text-primary);
+  margin-bottom: 8px;
+}
+
+.svmessenger-call-subtitle {
+  font-size: 16px;
+  color: var(--svm-text-secondary);
+  margin-bottom: 16px;
+}
+
+/* Pulse Animation for Incoming/Outgoing */
+.svmessenger-call-icon {
+  animation: callPulse 2s infinite;
+}
+
+@keyframes callPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+/* Call Actions */
+.svmessenger-call-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.svmessenger-call-btn-accept,
+.svmessenger-call-btn-reject,
+.svmessenger-call-btn-end,
+.svmessenger-call-btn-mute {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  gap: 4px;
+}
+
+.svmessenger-call-btn-accept {
+  background: #4CAF50;
+  color: white;
+}
+
+.svmessenger-call-btn-accept:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.svmessenger-call-btn-reject,
+.svmessenger-call-btn-end {
+  background: #f44336;
+  color: white;
+}
+
+.svmessenger-call-btn-reject:hover,
+.svmessenger-call-btn-end:hover {
+  background: #d32f2f;
+  transform: scale(1.05);
+}
+
+.svmessenger-call-btn-mute {
+  background: var(--svm-bg-secondary);
+  color: var(--svm-text-primary);
+  border: 2px solid var(--svm-border);
+}
+
+.svmessenger-call-btn-mute:hover {
+  background: var(--svm-bg-hover);
+}
+
+.svmessenger-call-btn-mute.muted {
+  background: #ff9800;
+  color: white;
+  border-color: #ff9800;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .svmessenger-call-modal {
+    margin: 16px;
+    padding: 24px;
+    min-width: 280px;
+  }
+
+  .svmessenger-call-avatar img,
+  .svmessenger-call-avatar-placeholder {
+    width: 100px;
+    height: 100px;
+  }
+
+  .svmessenger-call-actions {
+    gap: 12px;
+  }
+
+  .svmessenger-call-btn-accept,
+  .svmessenger-call-btn-reject,
+  .svmessenger-call-btn-end,
+  .svmessenger-call-btn-mute {
+    width: 50px;
+    height: 50px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .svmessenger-call-modal {
+    padding: 20px;
+  }
+
+  .svmessenger-call-avatar img,
+  .svmessenger-call-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+
+  .svmessenger-call-title {
+    font-size: 18px;
+  }
+
+  .svmessenger-call-subtitle {
+    font-size: 14px;
+  }
+}
