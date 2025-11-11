@@ -2,29 +2,29 @@ import React, { useEffect, useRef } from 'react';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
-// Български преводи за emoji категории
+// Български преводи за emoji-mart - ПРАВИЛНА СТРУКТУРА
 const bgMessages = {
   search: 'Търсене',
-  clear: 'Изчисти',
-  notfound: 'Емоджита не са намерени',
-  choose: 'Избери цвят на кожа',
+  search_no_results_1: 'О, не!',
+  search_no_results_2: 'Няма намерени емоджита',
+  pick: 'Избери емоджи',
   categories: {
-    search: 'Резултати от търсене',
-    recent: 'Наскоро използвани',
-    smileys: 'Усмивки и хора',
-    people: 'Хора и тяло',
-    nature: 'Природа',
-    foods: 'Храна и напитки',
-    activity: 'Дейности',
-    places: 'Пътуване и места',
-    objects: 'Обекти',
-    symbols: 'Символи',
-    flags: 'Знамена',
+    activity: 'Активности',
     custom: 'Персонализирани',
+    flags: 'Знамена',
+    foods: 'Храна и напитки',
+    frequent: 'Често използвани',
+    nature: 'Природа',
+    objects: 'Обекти',
+    people: 'Хора',
+    places: 'Места',
+    search: 'Търсене',
+    smileys: 'Усмивки',
+    symbols: 'Символи',
   },
-  categorieslabel: 'Категории',
-  skintones: {
-    1: 'По подразбиране',
+  skins: {  // ← skins вместо skintones
+    choose: 'Избери тон',  // ← choose е тук вместо в root
+    1: 'Стандартен',
     2: 'Светъл',
     3: 'Средно светъл',
     4: 'Среден',

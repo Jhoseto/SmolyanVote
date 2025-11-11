@@ -951,7 +951,8 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* overflow: hidden; - ПРЕМАХНАТО ЗА ДА СЕ ВИЖДА EMOJI PICKER */
+  overflow: visible; /* Позволява emoji picker да се вижда извън границите */
     animation: slideUpFade 0.4s var(--svm-transition-bounce);
     user-select: none;
     z-index: var(--svm-z-high);
