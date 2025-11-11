@@ -125,20 +125,29 @@ public class SVMessengerWebSocketController {
     public void handleCallSignal(@Payload SVCallSignalDTO signal, Principal principal) {
 
         try {
-            // Вземи current user за валидация
             UserEntity sender = getUserFromPrincipal(principal);
 
-            // Валидирай че sender е caller или receiver
             if (!sender.getId().equals(signal.getCallerId()) && !sender.getId().equals(signal.getReceiverId())) {
                 log.warn("Unauthorized call signal attempt by user {}", sender.getId());
                 return;
             }
 
             // Forward signal към другия user
-            Long recipientUserId = sender.getId().equals(signal.getCallerId()) ?
-                    signal.getReceiverId() : signal.getCallerId();
+            Long recipientUserId = sender.getId().equals(signal.getCallerId())
+                    ? signal.getReceiverId()
+                    : signal.getCallerId();
 
-            wsHandler.sendCallSignal(recipientUserId, signal);
+            // Вземи recipient user за да извлечем principal name
+            UserEntity recipient = userRepository.findById(recipientUserId)
+                    .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
+
+            String recipientPrincipal = recipient.getEmail() != null && !recipient.getEmail().isBlank()
+                    ? recipient.getEmail()
+                    : recipient.getUsername();
+
+            log.info("Forwarding call signal from {} to {} (principal: {})", sender.getId(), recipientUserId, recipientPrincipal);
+
+            wsHandler.sendCallSignal(recipientPrincipal, signal);
 
         } catch (Exception e) {
             log.error("Error handling call signal via WebSocket", e);

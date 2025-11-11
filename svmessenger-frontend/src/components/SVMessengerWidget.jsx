@@ -5,6 +5,7 @@ import SVChatWindow from './SVChatWindow';
 import SVUserSearch from './SVUserSearch';
 import SVTaskbar from './SVTaskbar';
 import SVCallModal from './SVCallModal';
+import SVAudioDeviceSelector from './SVAudioDeviceSelector';
 import '../styles/svMessengerCalls.css';
 
 /**
@@ -25,7 +26,10 @@ const SVMessengerWidget = () => {
         callState,
         acceptCall,
         rejectCall,
-        endCall
+        endCall,
+        showDeviceSelector,
+        handleDeviceSelectorComplete,
+        handleDeviceSelectorCancel
     } = useSVMessenger();
 
 
@@ -68,6 +72,13 @@ const SVMessengerWidget = () => {
                     chat={chat}
                 />
             ))}
+
+            {/* Audio Device Selector */}
+            <SVAudioDeviceSelector
+                isOpen={showDeviceSelector}
+                onComplete={handleDeviceSelectorComplete}
+                onCancel={handleDeviceSelectorCancel}
+            />
 
             {/* Call Modal */}
             {callState !== 'idle' && currentCall && currentCall.conversation && (

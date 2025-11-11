@@ -232,22 +232,23 @@ public class SVMessengerWebSocketHandler {
      * @param recipientUserId ID на получателя
      * @param signal SVCallSignalDTO със signal data
      */
-    public void sendCallSignal(Long recipientUserId, SVCallSignalDTO signal) {
+    public void sendCallSignal(String recipientPrincipalName, SVCallSignalDTO signal) {
 
-        if (recipientUserId == null || signal == null) {
-            log.error("Invalid call signal parameters: recipientUserId={}, signal={}", recipientUserId, signal);
+        if (recipientPrincipalName == null || recipientPrincipalName.isBlank() || signal == null) {
+            log.error("Invalid call signal parameters: recipientPrincipalName={}, signal={}", recipientPrincipalName, signal);
             return;
         }
 
         try {
-            // Изпрати към /queue/svmessenger-call-signals
+            log.info("Sending call signal to principal: {} - eventType: {}", recipientPrincipalName, signal.getEventType());
+
             messagingTemplate.convertAndSendToUser(
-                    recipientUserId.toString(),
+                    recipientPrincipalName,
                     "/queue/svmessenger-call-signals",
                     signal
             );
         } catch (Exception e) {
-            log.error("Failed to send call signal to user {}: {}", recipientUserId, e.getMessage(), e);
+            log.error("Failed to send call signal to principal {}: {}", recipientPrincipalName, e.getMessage(), e);
         }
     }
 }

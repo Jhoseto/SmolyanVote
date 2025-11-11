@@ -55,6 +55,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const [liveKitToken, setLiveKitToken] = useState(null);
     const [liveKitRoom, setLiveKitRoom] = useState(null);
 
+    // Audio device setup state
+    const [showDeviceSelector, setShowDeviceSelector] = useState(false);
+    const [pendingCallAction, setPendingCallAction] = useState(null); // { type: 'start'|'accept', data: {...} }
+
     // Refs
     const typingTimeouts = useRef({});
     const messageSound = useRef(null);
@@ -133,15 +137,42 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // ========== CALL METHODS ==========
 
-    const startCall = useCallback(async (conversationId, otherUserId) => {
+    const startCall = useCallback(async (conversationId, otherUserId, conversationObj = null) => {
         try {
-            // Find the conversation object
-            const conversation = conversations.find(conv => conv.id === conversationId);
+            let conversation = conversationObj;
+
+            if (!conversation) {
+                const activeChat = activeChatsRef.current.find(c => c.conversation.id === conversationId);
+                if (activeChat) {
+                    conversation = activeChat.conversation;
+                }
+            }
+
+            if (!conversation) {
+                conversation = conversationsRef.current.find(conv => conv.id === conversationId);
+            }
+
             if (!conversation) {
                 throw new Error('Conversation not found');
             }
 
-            // Generate token from backend
+            // Always show device selector to let user choose specific devices
+            console.log('🎤 Showing device selector for call setup...');
+            setPendingCallAction({
+                type: 'start',
+                data: { conversationId, otherUserId, conversation }
+            });
+            setShowDeviceSelector(true);
+
+        } catch (error) {
+            console.error('Failed to start call:', error);
+            setCallState('idle');
+        }
+    }, [currentUser]);
+
+    // Helper function to proceed with call after permissions are granted
+    const proceedWithCallStart = useCallback(async (conversationId, otherUserId, conversation) => {
+        try {
             const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
 
             setLiveKitToken(tokenResponse.token);
@@ -153,7 +184,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
             });
             setCallState('outgoing');
 
-            // Send CALL_REQUEST signal
             const signal = {
                 eventType: 'CALL_REQUEST',
                 conversationId,
@@ -167,12 +197,29 @@ export const SVMessengerProvider = ({ children, userData }) => {
             svWebSocketService.sendCallSignal(signal);
 
         } catch (error) {
-            console.error('Failed to start call:', error);
+            console.error('Failed to proceed with call start:', error);
             setCallState('idle');
         }
     }, [currentUser]);
 
     const acceptCall = useCallback(async () => {
+        try {
+            // Always show device selector to let user choose specific devices
+            console.log('🎤 Showing device selector for call accept...');
+            setPendingCallAction({
+                type: 'accept',
+                data: {}
+            });
+            setShowDeviceSelector(true);
+
+        } catch (error) {
+            console.error('Failed to accept call:', error);
+            endCall();
+        }
+    }, [currentCall, currentUser]);
+
+    // Helper function to proceed with call accept after permissions are granted
+    const proceedWithCallAccept = useCallback(async () => {
         try {
             // Generate token for accepting the call
             const tokenResponse = await svMessengerAPI.getCallToken(currentCall.conversationId, currentCall.otherUserId);
@@ -195,10 +242,35 @@ export const SVMessengerProvider = ({ children, userData }) => {
             svWebSocketService.sendCallSignal(signal);
 
         } catch (error) {
-            console.error('Failed to accept call:', error);
+            console.error('Failed to proceed with call accept:', error);
             endCall();
         }
     }, [currentCall, currentUser]);
+
+    // Audio device selector handlers
+    const handleDeviceSelectorComplete = useCallback(async (devices) => {
+        console.log('🎤 Device selector completed:', devices);
+        setShowDeviceSelector(false);
+
+        if (pendingCallAction) {
+            const { type, data } = pendingCallAction;
+            setPendingCallAction(null);
+
+            if (type === 'start') {
+                await proceedWithCallStart(data.conversationId, data.otherUserId, data.conversation);
+            } else if (type === 'accept') {
+                await proceedWithCallAccept();
+            }
+        }
+    }, [pendingCallAction]);
+
+    const handleDeviceSelectorCancel = useCallback(() => {
+        console.log('🎤 Device selector cancelled');
+        setShowDeviceSelector(false);
+        setPendingCallAction(null);
+        setCallState('idle');
+        setCurrentCall(null);
+    }, []);
 
     const rejectCall = useCallback(() => {
         // Send CALL_REJECT signal
@@ -253,15 +325,50 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
     }, []);
 
-    const handleCallSignal = useCallback((signal) => {
-        console.log('Received call signal:', signal);
+    const handleCallSignal = useCallback(async (signal) => {
+        console.log('📞 Received call signal:', signal);
 
         switch (signal.eventType) {
             case 'CALL_REQUEST':
                 if (signal.receiverId === currentUser.id) {
-                    // Find the conversation object
-                    const conversation = conversations.find(conv => conv.id === signal.conversationId);
+                    console.log('📞 Incoming call from user:', signal.callerId);
+
+                    // Try to find conversation in current loaded conversations
+                    let conversation = conversations.find(conv => conv.id === signal.conversationId);
+
+                    // If not found, try to load it from backend
+                    if (!conversation) {
+                        console.log('📞 Conversation not found locally, trying to load from backend...');
+                        try {
+                            // Try to start a new conversation or get existing one
+                            const newConversation = await svMessengerAPI.startConversation(signal.callerId);
+                            if (newConversation) {
+                                conversation = newConversation;
+                                // Add to conversations list
+                                setConversations(prev => {
+                                    const exists = prev.find(c => c.id === newConversation.id);
+                                    if (!exists) {
+                                        return [newConversation, ...prev];
+                                    }
+                                    return prev;
+                                });
+                                console.log('📞 Conversation loaded/created successfully');
+                            }
+                        } catch (error) {
+                            console.error('📞 Failed to load/create conversation:', error);
+                            // Try to reload all conversations as fallback
+                            try {
+                                console.log('📞 Reloading all conversations as fallback...');
+                                await loadConversations();
+                                conversation = conversations.find(conv => conv.id === signal.conversationId);
+                            } catch (reloadError) {
+                                console.error('📞 Failed to reload conversations:', reloadError);
+                            }
+                        }
+                    }
+
                     if (conversation) {
+                        console.log('📞 Showing incoming call modal');
                         setCurrentCall({
                             conversationId: signal.conversationId,
                             otherUserId: signal.callerId,
@@ -269,6 +376,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
                             conversation: conversation
                         });
                         setCallState('incoming');
+
+                        // Optional: Show browser notification if page is not focused
+                        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Incoming Call', {
+                                body: `${conversation.otherUser.realName || conversation.otherUser.username} is calling you`,
+                                icon: conversation.otherUser.imageUrl || '/images/default-avatar.png'
+                            });
+                        }
+                    } else {
+                        console.error('📞 Could not find or create conversation for call');
+                        // Could show a toast notification here
                     }
                 }
                 break;
@@ -310,7 +428,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             default:
                 console.warn('Unknown call signal type:', signal.eventType);
         }
-    }, [callState, currentUser, liveKitToken, connectToLiveKit]);
+    }, [callState, currentUser, liveKitToken, connectToLiveKit, conversations]);
 
     // ========== WEBSOCKET HANDLERS ==========
 
@@ -1063,6 +1181,9 @@ export const SVMessengerProvider = ({ children, userData }) => {
         // Call state
         currentCall,
         callState,
+        showDeviceSelector,
+        handleDeviceSelectorComplete,
+        handleDeviceSelectorCancel,
 
         // Methods
         loadConversations,
@@ -1102,6 +1223,9 @@ export const SVMessengerProvider = ({ children, userData }) => {
         isWebSocketConnected,
         currentCall,
         callState,
+        showDeviceSelector,
+        handleDeviceSelectorComplete,
+        handleDeviceSelectorCancel,
         loadConversations,
         loadMessages,
         sendMessage,

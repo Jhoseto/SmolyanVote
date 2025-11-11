@@ -28,7 +28,7 @@ const SVChatSearch = ({ searchQuery, onSearchChange, onClose }) => {
 };
 
 const SVChatWindow = ({ chat }) => {
-    const { closeChat, minimizeChat, bringToFront, updateChatPosition, markAsRead, messagesByConversation, currentUser, startCall } = useSVMessenger();
+    const { closeChat, minimizeChat, bringToFront, updateChatPosition, markAsRead, messagesByConversation, currentUser, startCall, handleDeviceSelectorComplete } = useSVMessenger();
     const chatWindowRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -59,8 +59,14 @@ const SVChatWindow = ({ chat }) => {
     }, [chat.conversation.id, chat.isMinimized, bringToFront, markAsRead, messagesByConversation, currentUser]);
 
     const handleCall = () => {
-        const otherUserId = chat.conversation.otherUser.id;
-        startCall(chat.conversation.id, otherUserId);
+        startCall(chat.conversation.id, chat.conversation.otherUser.id, chat.conversation);
+    };
+
+    const handleOpenAudioSettings = () => {
+        // For now, just open device selector without pending call action
+        // This allows users to configure audio settings anytime
+        console.log('🎵 Opening audio settings from chat menu');
+        // We could set a temporary state here to indicate this is just settings
     };
 
     const handleMouseDown = useCallback((e) => {
@@ -149,6 +155,7 @@ const SVChatWindow = ({ chat }) => {
                 onMinimize={handleMinimize}
                 onOpenSearch={handleOpenSearch}
                 onCall={handleCall}
+                onOpenAudioSettings={handleOpenAudioSettings}
             />
 
             {/* Search field appears below header */}

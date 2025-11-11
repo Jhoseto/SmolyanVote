@@ -58,11 +58,12 @@ class SVWebSocketService {
 
         // Subscribe to channels
         this.subscribeToChannels({
-          onNewMessage,
-          onTypingStatus,
-          onReadReceipt,
-          onDeliveryReceipt,
-          onOnlineStatus
+            onNewMessage,
+            onTypingStatus,
+            onReadReceipt,
+            onDeliveryReceipt,
+            onOnlineStatus,
+            onCallSignal
         });
 
         onConnect();
@@ -155,18 +156,24 @@ class SVWebSocketService {
     this.subscriptions.set('status', statusSub);
 
     // 5. Call signals channel
-    const callSignalsSub = this.client.subscribe(
-      '/user/queue/svmessenger-call-signals',
-      (message) => {
-        try {
-          const data = JSON.parse(message.body);
-          onCallSignal(data);
-        } catch (error) {
-          console.error('Error parsing call signal:', error);
-        }
-      }
-    );
-    this.subscriptions.set('callSignals', callSignalsSub);
+      const callSignalsSub = this.client.subscribe(
+          '/user/queue/svmessenger-call-signals',
+          (message) => {
+              try {
+                  const data = JSON.parse(message.body);
+                  console.log('Received call signal via WS:', data);
+
+                  if (onCallSignal && typeof onCallSignal === 'function') {
+                      onCallSignal(data);
+                  } else {
+                      console.error('onCallSignal is not a function:', typeof onCallSignal);
+                  }
+              } catch (error) {
+                  console.error('Error parsing call signal:', error);
+              }
+          }
+      );
+      this.subscriptions.set('callSignals', callSignalsSub);
   }
   
   /**
