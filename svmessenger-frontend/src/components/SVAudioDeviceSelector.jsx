@@ -200,9 +200,19 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             analyserRef.current = audioContextRef.current.createAnalyser();
             analyserRef.current.fftSize = 256;
 
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: { deviceId: { exact: deviceId } }
-            });
+            // Use 'ideal' instead of 'exact' to allow fallback if device is not available
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { deviceId: deviceId ? { ideal: deviceId } : true }
+                });
+            } catch (exactError) {
+                // Fallback to default device if ideal fails
+                console.warn('⚠️ Failed to get stream with ideal device for visualization, trying default:', exactError);
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+            }
 
             microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
             microphoneRef.current.connect(analyserRef.current);
@@ -256,9 +266,19 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             setIsTesting(true);
             setTestResults(null);
 
-            const micStream = await navigator.mediaDevices.getUserMedia({
-                audio: { deviceId: { exact: selectedMic } }
-            });
+            // Use 'ideal' instead of 'exact' to allow fallback if device is not available
+            let micStream;
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { deviceId: selectedMic ? { ideal: selectedMic } : true }
+                });
+            } catch (exactError) {
+                // Fallback to default device if ideal fails
+                console.warn('⚠️ Failed to get stream with ideal device, trying default:', exactError);
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+            }
 
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();

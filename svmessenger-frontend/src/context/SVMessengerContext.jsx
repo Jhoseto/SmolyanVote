@@ -208,16 +208,28 @@ export const SVMessengerProvider = ({ children, userData }) => {
         try {
             const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
 
+            console.log('📞 Call start - generated token for room:', tokenResponse.roomName);
+
             setLiveKitToken(tokenResponse.token);
             // Expose token on window as a fallback for race conditions between setting React state and incoming WS signals
-            try { window.__sv_livekit_token = tokenResponse.token; } catch (e) { /* ignore */ }
-            setCurrentCall({
+            try {
+                window.__sv_livekit_token = tokenResponse.token;
+                window.liveKitToken = tokenResponse.token; // Additional fallback
+                console.log('📞 Token exposed on window for race condition protection');
+            } catch (e) {
+                console.warn('Failed to expose token on window:', e);
+            }
+
+            const callData = {
                 conversationId,
                 otherUserId,
                 roomName: tokenResponse.roomName,
                 conversation: conversation
-            });
+            };
+            console.log('📞 Setting currentCall for outgoing call:', callData);
+            setCurrentCall(callData);
             setCallState('outgoing');
+            console.log('📞 Call state set to outgoing for conversation:', conversationId);
 
             const signal = {
                 eventType: 'CALL_REQUEST',
@@ -229,6 +241,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 callerName: currentUser.realName || currentUser.username,
                 callerAvatar: currentUser.imageUrl
             };
+
+            console.log('📤 Sending CALL_REQUEST signal - room:', tokenResponse.roomName);
             svWebSocketService.sendCallSignal(signal);
 
         } catch (error) {
@@ -239,6 +253,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const acceptCall = useCallback(async () => {
         try {
+            console.log('📞 acceptCall called - currentCall:', currentCall, 'callState:', callState);
+
             // Check if we have saved audio settings
             const savedSettings = localStorage.getItem('svmessenger-audio-settings');
             const hasSavedSettings = savedSettings && (() => {
@@ -280,25 +296,49 @@ export const SVMessengerProvider = ({ children, userData }) => {
     // Helper function to proceed with call accept after permissions are granted
     const proceedWithCallAccept = useCallback(async () => {
         try {
-            // Generate token for accepting the call
+            console.log('📞 proceedWithCallAccept called - currentCall:', currentCall, 'callState:', callState);
+
+            // CRITICAL: Use the SAME room name that was sent in CALL_REQUEST signal
+            // DO NOT generate a new token - use the room name from currentCall
+            const roomName = currentCall.roomName;
+            if (!roomName) {
+                throw new Error('Missing room name for call accept');
+            }
+
+            console.log('📞 Proceeding with call accept - room:', roomName);
+
+            // Generate token for accepting the call (using same conversation and room name)
             const tokenResponse = await svMessengerAPI.getCallToken(currentCall.conversationId, currentCall.otherUserId);
 
+            // Ensure the room name matches what caller expects
+            if (tokenResponse.roomName !== roomName) {
+                console.warn('⚠️ Room name mismatch:', { expected: roomName, got: tokenResponse.roomName });
+                // Override with the correct room name for this call
+                tokenResponse.roomName = roomName;
+            }
+
             setLiveKitToken(tokenResponse.token);
-            setCallState('connected');
 
-            // Connect to LiveKit room
-            await connectToLiveKit(tokenResponse);
-
-            // Send CALL_ACCEPT signal
+            // Send CALL_ACCEPT signal FIRST, before changing state and connecting
+            // This ensures the caller receives the signal while still in 'outgoing' state
             const signal = {
                 eventType: 'CALL_ACCEPT',
                 conversationId: currentCall.conversationId,
                 callerId: currentCall.otherUserId,
                 receiverId: currentUser.id,
-                roomName: currentCall.roomName,
+                roomName: roomName, // Use the same room name as in CALL_REQUEST
                 timestamp: new Date().toISOString()
             };
             svWebSocketService.sendCallSignal(signal);
+            console.log('📤 CALL_ACCEPT signal sent to caller - room:', roomName);
+
+            // Now update state and connect to LiveKit
+            console.log('📞 Setting callState to connected for receiver');
+            setCallState('connected');
+
+            // Connect to LiveKit room
+            console.log('📞 Connecting receiver to LiveKit room:', tokenResponse.roomName);
+            await connectToLiveKit(tokenResponse);
 
         } catch (error) {
             console.error('Failed to proceed with call accept:', error);
@@ -370,34 +410,77 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const endCall = useCallback(() => {
         console.log('📞 endCall called, currentCall:', currentCall);
 
-        // Send CALL_END signal
-        if (currentCall) {
-            const signal = {
-                eventType: 'CALL_END',
-                conversationId: currentCall.conversationId,
-                callerId: currentUser.id,
-                receiverId: currentCall.otherUserId,
-                roomName: currentCall.roomName,
-                timestamp: new Date().toISOString()
-            };
-            console.log('📞 Sending CALL_END signal:', signal);
-            svWebSocketService.sendCallSignal(signal);
-        }
+        // Use functional setState to get latest currentCall value
+        setCurrentCall(currentCallValue => {
+            // Send CALL_END signal
+            if (currentCallValue) {
+                // Determine who is the caller and receiver
+                // If callState is 'outgoing', we are the caller
+                // Otherwise, we are the receiver (we received CALL_REQUEST)
+                setCallState(currentState => {
+                    const isCaller = currentState === 'outgoing';
+                    
+                    const signal = {
+                        eventType: 'CALL_END',
+                        conversationId: currentCallValue.conversationId,
+                        callerId: isCaller ? currentUser.id : currentCallValue.otherUserId,
+                        receiverId: isCaller ? currentCallValue.otherUserId : currentUser.id,
+                        roomName: currentCallValue.roomName,
+                        timestamp: new Date().toISOString()
+                    };
+                    console.log('📞 Sending CALL_END signal:', signal);
+                    svWebSocketService.sendCallSignal(signal);
+                    
+                    return 'idle'; // Reset call state
+                });
+            }
 
-        // Disconnect from LiveKit
-        svLiveKitService.disconnect();
+            // Disconnect from LiveKit
+            svLiveKitService.disconnect();
 
-        // Reset call state
-        setCurrentCall(null);
-        setCallState('idle');
-        setLiveKitToken(null);
-        setLiveKitRoom(null);
+            // Reset tokens
+            setLiveKitToken(null);
+            setLiveKitRoom(null);
+
+            return null; // Clear currentCall
+        });
     }, [currentCall, currentUser]);
 
     const connectToLiveKit = useCallback(async (tokenResponse) => {
         try {
             await svLiveKitService.connect(tokenResponse.token, tokenResponse.roomName);
             setLiveKitRoom(tokenResponse.roomName);
+
+            // Wait a bit for room to be fully ready before applying settings
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Apply saved audio settings after connecting to LiveKit
+            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    console.log('📞 Applying saved audio settings after LiveKit connection:', settings);
+
+                    // Apply microphone first
+                    if (settings.microphone) {
+                        console.log('📞 Setting microphone to saved device:', settings.microphone);
+                        await svLiveKitService.setMicrophone(settings.microphone);
+                    }
+
+                    // Apply speaker
+                    if (settings.speaker) {
+                        console.log('📞 Setting speaker to saved device:', settings.speaker);
+                        await svLiveKitService.setSpeaker(settings.speaker);
+                    }
+
+                    // Note: Volume settings are applied through the audio stream constraints
+                    // and are handled automatically by LiveKit
+                } catch (settingsError) {
+                    console.warn('Failed to apply saved audio settings after LiveKit connection:', settingsError);
+                }
+            } else {
+                console.log('📞 No saved audio settings found - using default devices');
+            }
         } catch (error) {
             console.error('Failed to connect to LiveKit:', error);
             throw error;
@@ -444,8 +527,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
                             // Try to reload all conversations as fallback
                             try {
                                 console.log('📞 Reloading all conversations as fallback...');
-                                await loadConversations();
-                                conversation = conversations.find(conv => conv.id === signal.conversationId);
+                                const conversationsData = await svMessengerAPI.getConversations();
+                                setConversations(conversationsData);
+                                conversation = conversationsData.find(conv => conv.id === signal.conversationId);
+                                console.log('📞 Conversation found in reloaded data:', !!conversation);
                             } catch (reloadError) {
                                 console.error('📞 Failed to reload conversations:', reloadError);
                             }
@@ -454,22 +539,25 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
                     if (conversation) {
                         console.log('📞 Showing incoming call modal');
-                        setCurrentCall({
+                        const callData = {
                             conversationId: signal.conversationId,
                             otherUserId: signal.callerId,
                             roomName: signal.roomName,
                             conversation: conversation
-                        });
+                        };
+                        console.log('📞 Setting currentCall for incoming call:', callData);
+                        setCurrentCall(callData);
                         setCallState('incoming');
+                        console.log('📞 Call state set to incoming for conversation:', signal.conversationId);
 
-                            // Ensure chat window/modal is opened and focused so user sees incoming call UI
-                            try {
-                                if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
-                                    window.SVMessenger.openChat(conversation.id);
-                                }
-                            } catch (e) {
-                                console.warn('Failed to auto-open chat for incoming call:', e);
+                        // Ensure chat window/modal is opened and focused so user sees incoming call UI
+                        try {
+                            if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
+                                window.SVMessenger.openChat(conversation.id);
                             }
+                        } catch (e) {
+                            console.warn('Failed to auto-open chat for incoming call:', e);
+                        }
 
                         // Optional: Show browser notification if page is not focused
                         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
@@ -491,40 +579,160 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 console.log('📞 Signal callerId:', signal.callerId, 'currentUser.id:', currentUser.id);
                 console.log('📞 Signal receiverId:', signal.receiverId);
                 console.log('📞 Current call:', currentCall);
-                
-                // When we (caller) receive CALL_ACCEPT, the signal.callerId should be our ID
-                // and we should be in 'outgoing' state
-                if (callState === 'outgoing' && signal.callerId === currentUser.id) {
-                    console.log('✅ CALL_ACCEPT validated - updating to connected state');
-                    setCallState('connected');
-                    
-                    // Connect to LiveKit room if we have a token
-                    // Use React state token if available, otherwise fallback to globally exposed tokens
-                    const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
-                    if (tokenToUse && signal.roomName) {
-                        console.log('📞 Connecting to LiveKit room (using token fallback):', signal.roomName);
-                        connectToLiveKit({
-                            token: tokenToUse,
-                            roomName: signal.roomName
-                        }).catch(error => {
-                            console.error('❌ Failed to connect to LiveKit:', error);
+
+                // CALL_ACCEPT can be received by both caller and receiver
+                // Use functional setState to get latest currentCall value
+                setCurrentCall(currentCallValue => {
+                    setCallState(currentState => {
+                        console.log('📞 CALL_ACCEPT - checking state:', currentState);
+                        console.log('📞 CALL_ACCEPT - currentCall from functional setState:', currentCallValue);
+
+                        // Check if we are the intended recipient of this signal
+                        // Use currentCallValue from functional setState instead of closure value
+                        const isForThisConversation = currentCallValue && currentCallValue.conversationId === signal.conversationId;
+                        const isCaller = signal.callerId === currentUser.id;
+                        const isReceiver = signal.receiverId === currentUser.id;
+
+                        console.log('📞 CALL_ACCEPT analysis:', {
+                            isForThisConversation,
+                            isCaller,
+                            isReceiver,
+                            currentState,
+                            hasCurrentCall: !!currentCallValue,
+                            currentCallConversationId: currentCallValue?.conversationId,
+                            signalConversationId: signal.conversationId
                         });
-                        
-                        // Ensure the chat window is open and focused so the connected UI is visible
-                        try {
-                            const convId = signal.conversationId;
-                            if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
-                                window.SVMessenger.openChat(convId);
+
+                        // Case 1: We are the caller receiving CALL_ACCEPT from receiver
+                        // Allow processing even if currentCallValue is null but we have signal data
+                        if (isCaller && currentState === 'outgoing' && (isForThisConversation || signal.roomName)) {
+                            console.log('✅ CALL_ACCEPT validated - caller updating to connected state');
+                            
+                            // If currentCallValue is null but we have signal data, restore it
+                            if (!currentCallValue && signal.roomName) {
+                                console.log('⚠️ currentCallValue is null but signal has data - restoring from signal');
+                                const restoredCall = {
+                                    conversationId: signal.conversationId,
+                                    otherUserId: signal.receiverId,
+                                    roomName: signal.roomName,
+                                    conversation: null
+                                };
+                                // Update currentCall for future use
+                                setTimeout(() => {
+                                    setCurrentCall(restoredCall);
+                                }, 0);
                             }
-                        } catch (e) {
-                            console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
+
+                            // Connect to LiveKit room if we have a token
+                            const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
+                            const roomNameToUse = signal.roomName || currentCallValue?.roomName;
+
+                        console.log('📞 CALL_ACCEPT caller connection attempt:', {
+                            hasToken: !!tokenToUse,
+                            hasRoomName: !!roomNameToUse,
+                            tokenSource: liveKitToken ? 'reactState' : (window.__sv_livekit_token ? 'window.__sv_livekit_token' : (window.liveKitToken ? 'window.liveKitToken' : 'none')),
+                            roomName: roomNameToUse
+                        });
+
+                        if (tokenToUse && roomNameToUse) {
+                            console.log('📞 Connecting caller to LiveKit room:', roomNameToUse);
+                            connectToLiveKit({
+                                token: tokenToUse,
+                                roomName: roomNameToUse
+                            }).catch(error => {
+                                console.error('❌ Failed to connect caller to LiveKit:', error);
+                            });
+
+                            // Ensure the chat window is open and focused so the connected UI is visible
+                            try {
+                                const convId = signal.conversationId;
+                                if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
+                                    window.SVMessenger.openChat(convId);
+                                }
+                            } catch (e) {
+                                console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
+                            }
+                        } else {
+                            console.error('🚨 CRITICAL: Missing token or room name for caller LiveKit connection!', {
+                                liveKitToken,
+                                windowTokens: {
+                                    __sv_livekit_token: window.__sv_livekit_token,
+                                    liveKitToken: window.liveKitToken
+                                },
+                                roomNames: {
+                                    signal: signal.roomName,
+                                    currentCall: currentCallValue?.roomName
+                                }
+                            });
                         }
-                    } else {
-                        console.warn('⚠️ Missing liveKitToken or roomName for CALL_ACCEPT (even after fallback)', { liveKitToken, tokenToUse, roomName: signal.roomName });
+
+                        return 'connected';
                     }
-                } else {
-                    console.warn('⚠️ CALL_ACCEPT ignored - callState:', callState, 'callerId match:', signal.callerId === currentUser.id);
-                }
+
+                    // Case 2: We are the receiver receiving our own CALL_ACCEPT echoed back
+                    else if (isReceiver && currentState === 'connected' && isForThisConversation) {
+                        console.log('✅ CALL_ACCEPT acknowledged - receiver already connected');
+                        // We already connected when we sent CALL_ACCEPT, just acknowledge
+                        return currentState;
+                    }
+
+                    // Case 4: We are the receiver but currentCall is null (should not happen but handle gracefully)
+                    else if (isReceiver && !currentCallValue) {
+                        console.log('⚠️ CALL_ACCEPT received but currentCall is null - attempting to restore from signal data');
+
+                        // Try to restore currentCall from signal data
+                        const restoredCall = {
+                            conversationId: signal.conversationId,
+                            otherUserId: signal.callerId,
+                            roomName: signal.roomName,
+                            conversation: null // We don't have conversation object
+                        };
+
+                        console.log('📞 Restoring currentCall from signal:', restoredCall);
+                        // Note: We can't call setCurrentCall here because it's async state update
+                        // This is an edge case that should be handled by ensuring currentCall is set properly during CALL_REQUEST
+
+                        return currentState; // Stay in current state
+                    }
+
+                    // Case 3: We are the receiver but in 'incoming' state (edge case - should not happen but handle it)
+                    else if (isReceiver && currentState === 'incoming' && isForThisConversation) {
+                        console.log('✅ CALL_ACCEPT received - receiver connecting to LiveKit');
+
+                        // Connect to LiveKit room as receiver
+                        const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
+                        const roomNameToUse = signal.roomName || currentCallValue?.roomName;
+
+                        if (tokenToUse && roomNameToUse) {
+                            console.log('📞 Connecting receiver to LiveKit room:', roomNameToUse);
+                            connectToLiveKit({
+                                token: tokenToUse,
+                                roomName: roomNameToUse
+                            }).catch(error => {
+                                console.error('❌ Failed to connect receiver to LiveKit:', error);
+                            });
+                        }
+
+                        return 'connected';
+                    }
+
+                    else {
+                        console.warn('⚠️ CALL_ACCEPT ignored - analysis:', {
+                            isCaller,
+                            isReceiver,
+                            isForThisConversation,
+                            currentState,
+                            hasCurrentCall: !!currentCallValue,
+                            signalConversationId: signal.conversationId,
+                            currentCallConversationId: currentCallValue?.conversationId
+                        });
+                        return currentState; // Keep current state
+                    }
+                    });
+
+                    // Return currentCallValue unchanged (we only use setCurrentCall to get latest value)
+                    return currentCallValue;
+                });
                 break;
 
             case 'CALL_REJECT':
@@ -541,17 +749,42 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 console.log('📞 Current call state:', callState);
                 console.log('📞 Current call:', currentCall);
 
-                if (callState !== 'idle') {
-                    console.log('📞 Ending call due to CALL_END signal');
-                    svLiveKitService.disconnect();
-                    setCurrentCall(null);
-                    setCallState('idle');
-                    setLiveKitToken(null);
-                    setLiveKitRoom(null);
-                    console.log('📞 Call ended successfully');
-                } else {
-                    console.log('📞 Ignoring CALL_END - call already idle');
-                }
+                // Use functional setState to get latest values
+                setCurrentCall(currentCallValue => {
+                    setCallState(currentState => {
+                        // Check if this CALL_END is for our active call
+                        const isForThisCall = currentCallValue && 
+                                            currentCallValue.conversationId === signal.conversationId;
+
+                        console.log('📞 CALL_END analysis:', {
+                            isForThisCall,
+                            currentState,
+                            hasCurrentCall: !!currentCallValue,
+                            signalConversationId: signal.conversationId,
+                            currentCallConversationId: currentCallValue?.conversationId
+                        });
+
+                        if (currentState !== 'idle' && isForThisCall) {
+                            console.log('📞 Ending call due to CALL_END signal');
+                            // Disconnect from LiveKit and reset tokens
+                            svLiveKitService.disconnect();
+                            // Note: setLiveKitToken and setLiveKitRoom will be called outside setCallState
+                            console.log('📞 Call ended successfully');
+                            return 'idle';
+                        } else {
+                            console.log('📞 Ignoring CALL_END - call already idle or not for this conversation');
+                            return currentState;
+                        }
+                    });
+
+                    // Clear currentCall if it matches the signal and reset tokens
+                    if (currentCallValue && currentCallValue.conversationId === signal.conversationId) {
+                        setLiveKitToken(null);
+                        setLiveKitRoom(null);
+                        return null;
+                    }
+                    return currentCallValue;
+                });
                 break;
 
             case 'CALL_BUSY':

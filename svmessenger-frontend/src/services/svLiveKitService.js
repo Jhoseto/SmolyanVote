@@ -3,7 +3,7 @@
  * Управлява Room connection, audio tracks и event handling
  */
 
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, LocalAudioTrack } from 'livekit-client';
 import svWebSocketService from './svWebSocketService.js';
 
 class SVLiveKitService {
@@ -382,30 +382,89 @@ class SVLiveKitService {
       this.selectedMicrophone = deviceId;
       console.log('🎤 Microphone changed to:', deviceId);
 
-      // If we have an active stream, restart it with new device
+      // Stop existing stream if any
       if (this.audioStream) {
         this.audioStream.getTracks().forEach(track => track.stop());
+        this.audioStream = null;
+      }
 
-        const newStream = await navigator.mediaDevices.getUserMedia({
+      // Try to get audio stream with selected device
+      // Use 'ideal' instead of 'exact' to allow fallback if device is not available
+      let newStream;
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            deviceId: { exact: deviceId },
+            deviceId: deviceId ? { ideal: deviceId } : true,
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true
           }
         });
+      } catch (exactError) {
+        // If ideal fails, try with default device
+        console.warn('⚠️ Failed to get stream with ideal device, trying default:', exactError);
+        newStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        console.log('✅ Using default microphone device');
+      }
 
-        this.audioStream = newStream;
+      this.audioStream = newStream;
 
-        // Update LiveKit if connected
-        if (this.room && this.isConnected) {
+      // If LiveKit room is connected, update microphone
+      if (this.room && this.isConnected) {
+        try {
+          // First disable microphone
           await this.room.localParticipant.setMicrophoneEnabled(false);
-          await this.room.localParticipant.setMicrophoneEnabled(true);
+          
+          // Create LocalAudioTrack with the selected device (use ideal, not exact)
+          const localAudioTrack = await LocalAudioTrack.createAudioTrack({
+            deviceId: deviceId ? { ideal: deviceId } : true,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          });
+          
+          // Publish the track
+          await this.room.localParticipant.publishTrack(localAudioTrack, {
+            source: 'microphone'
+          });
+          
+          console.log('🎤 Audio track published to LiveKit room with device:', deviceId);
+        } catch (trackError) {
+          console.warn('⚠️ Failed to publish custom audio track, using default:', trackError);
+          // Fallback: use LiveKit's built-in microphone
+          try {
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+            console.log('✅ Using LiveKit default microphone');
+          } catch (fallbackError) {
+            console.error('❌ Failed to enable default microphone:', fallbackError);
+          }
         }
       }
     } catch (error) {
       console.error('❌ Error setting microphone:', error);
-      throw error;
+      // Don't throw - allow fallback to default device
+      console.warn('⚠️ Falling back to default microphone');
+      try {
+        // Try with default device
+        const defaultStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        this.audioStream = defaultStream;
+        console.log('✅ Using default microphone as fallback');
+      } catch (fallbackError) {
+        console.error('❌ Failed to get any microphone:', fallbackError);
+        throw fallbackError;
+      }
     }
   }
 
@@ -472,6 +531,47 @@ window.svWebSocketService = svWebSocketService;
 
 // Debug/Test functions for voice calling
 window.SVMessengerVoiceTest = {
+  // Full diagnostic function
+  runFullDiagnostic: () => {
+    console.log('🚀 Starting Full Voice Calling Diagnostic...');
+
+    // Check WebSocket connection
+    console.log('📡 WebSocket Status:', window.svmessenger_ws_connected ? 'CONNECTED' : 'DISCONNECTED');
+
+    // Check call state
+    const callState = window.svmessenger_call_state || 'unknown';
+    console.log('📞 Call State:', callState);
+
+    // Check active call
+    const activeCall = window.svmessenger_active_call;
+    console.log('📞 Active Call:', activeCall);
+
+    // Check tokens
+    const tokens = {
+      reactToken: window.SVMessengerContext?.liveKitToken,
+      windowToken1: window.__sv_livekit_token,
+      windowToken2: window.liveKitToken
+    };
+    console.log('🔑 Available Tokens:', tokens);
+
+    // Check LiveKit connection
+    if (window.SVMessengerVoiceTest.checkLiveKitStatus) {
+      window.SVMessengerVoiceTest.checkLiveKitStatus();
+    }
+
+    // Check WebSocket messages
+    if (window.svmessenger_ws_messages) {
+      console.log('📨 Recent WS Messages:', window.svmessenger_ws_messages.slice(-5));
+    }
+
+    return {
+      wsConnected: window.svmessenger_ws_connected,
+      callState,
+      activeCall,
+      tokens,
+      wsMessages: window.svmessenger_ws_messages?.slice(-5) || []
+    };
+  },
     // Test 1: Check current LiveKit status
     checkLiveKitStatus: () => {
         console.log('🔍 LiveKit Status Check:');
