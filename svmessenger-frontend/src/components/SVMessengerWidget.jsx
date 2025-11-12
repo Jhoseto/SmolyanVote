@@ -13,6 +13,8 @@ import '../styles/svMessengerCalls.css';
  * Floating button + chat windows + conversation list + taskbar
  */
 const SVMessengerWidget = () => {
+    console.log('🎯 SVMessengerWidget rendering');
+
     const {
         isChatListOpen,
         isSearchOpen,
@@ -32,11 +34,17 @@ const SVMessengerWidget = () => {
         handleDeviceSelectorCancel
     } = useSVMessenger();
 
+    console.log('🎯 useSVMessenger returned:', { isChatListOpen, totalUnreadCount, openChatList: !!openChatList });
 
     return (
         <div className="svmessenger-widget">
             {/* Floating Action Button - ВИНАГИ видима */}
-            <div className="svmessenger-fab" onClick={openChatList}>
+            <div className="svmessenger-fab" onClick={(e) => {
+                console.log('🎯 FAB clicked, event:', e);
+                console.log('🎯 Calling openChatList, isChatListOpen:', isChatListOpen);
+                openChatList();
+                console.log('🎯 openChatList called');
+            }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
                 </svg>
