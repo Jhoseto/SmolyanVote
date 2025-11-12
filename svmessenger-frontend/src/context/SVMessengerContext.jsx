@@ -52,11 +52,20 @@ export const SVMessengerProvider = ({ children, userData }) => {
     // Call state
     const [currentCall, setCurrentCall] = useState(null);
     const [callState, setCallState] = useState('idle'); // 'idle', 'outgoing', 'incoming', 'connected'
+
+    // Store call state and debug functions for testing
+    useEffect(() => {
+        window.svmessenger_call_state = callState;
+        window.svmessenger_active_call = currentCall !== null;
+        window.svmessenger_runFullTest = svLiveKitService.runFullTest.bind(svLiveKitService);
+        window.svmessenger_runCallFlowTest = svLiveKitService.runCallFlowTest.bind(svLiveKitService);
+    }, [callState, currentCall]);
     const [liveKitToken, setLiveKitToken] = useState(null);
     const [liveKitRoom, setLiveKitRoom] = useState(null);
 
     // Audio device setup state
     const [showDeviceSelector, setShowDeviceSelector] = useState(false);
+    const [deviceSelectorMode, setDeviceSelectorMode] = useState('call'); // 'call' or 'settings'
     const [pendingCallAction, setPendingCallAction] = useState(null); // { type: 'start'|'accept', data: {...} }
 
     // Refs
@@ -156,13 +165,37 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 throw new Error('Conversation not found');
             }
 
-            // Always show device selector to let user choose specific devices
-            console.log('🎤 Showing device selector for call setup...');
-            setPendingCallAction({
-                type: 'start',
-                data: { conversationId, otherUserId, conversation }
-            });
-            setShowDeviceSelector(true);
+            // Check if we have saved audio settings
+            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
+            const hasSavedSettings = savedSettings && (() => {
+                try {
+                    const parsed = JSON.parse(savedSettings);
+                    return parsed.microphone && parsed.speaker;
+                } catch {
+                    return false;
+                }
+            })();
+
+            if (hasSavedSettings) {
+                console.log('✅ Using saved audio settings, proceeding with call...');
+                // Apply saved settings to LiveKit service
+                const settings = JSON.parse(savedSettings);
+                if (settings.microphone) {
+                    await svLiveKitService.setMicrophone(settings.microphone);
+                }
+                if (settings.speaker) {
+                    await svLiveKitService.setSpeaker(settings.speaker);
+                }
+                await proceedWithCallStart(conversationId, otherUserId, conversation);
+            } else {
+                console.log('🎤 No saved settings, showing device selector...');
+                // Show device selector and store pending action
+                setPendingCallAction({
+                    type: 'start',
+                    data: { conversationId, otherUserId, conversation }
+                });
+                setShowDeviceSelector(true);
+            }
 
         } catch (error) {
             console.error('Failed to start call:', error);
@@ -204,13 +237,37 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const acceptCall = useCallback(async () => {
         try {
-            // Always show device selector to let user choose specific devices
-            console.log('🎤 Showing device selector for call accept...');
-            setPendingCallAction({
-                type: 'accept',
-                data: {}
-            });
-            setShowDeviceSelector(true);
+            // Check if we have saved audio settings
+            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
+            const hasSavedSettings = savedSettings && (() => {
+                try {
+                    const parsed = JSON.parse(savedSettings);
+                    return parsed.microphone && parsed.speaker;
+                } catch {
+                    return false;
+                }
+            })();
+
+            if (hasSavedSettings) {
+                console.log('✅ Using saved audio settings for call accept...');
+                // Apply saved settings to LiveKit service
+                const settings = JSON.parse(savedSettings);
+                if (settings.microphone) {
+                    await svLiveKitService.setMicrophone(settings.microphone);
+                }
+                if (settings.speaker) {
+                    await svLiveKitService.setSpeaker(settings.speaker);
+                }
+                await proceedWithCallAccept();
+            } else {
+                console.log('🎤 No saved settings, showing device selector for call accept...');
+                // Show device selector and store pending action
+                setPendingCallAction({
+                    type: 'accept',
+                    data: {}
+                });
+                setShowDeviceSelector(true);
+            }
 
         } catch (error) {
             console.error('Failed to accept call:', error);
@@ -247,12 +304,24 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
     }, [currentCall, currentUser]);
 
+    // Open device selector for settings
+    const openAudioSettings = useCallback(() => {
+        console.log('🎵 Opening audio settings modal');
+        setDeviceSelectorMode('settings');
+        setShowDeviceSelector(true);
+    }, []);
+
     // Audio device selector handlers
     const handleDeviceSelectorComplete = useCallback(async (devices) => {
-        console.log('🎤 Device selector completed:', devices);
+        console.log('🎤 Device selector completed:', devices, 'mode:', deviceSelectorMode);
         setShowDeviceSelector(false);
 
-        if (pendingCallAction) {
+        if (deviceSelectorMode === 'settings') {
+            // Just save settings, no call action
+            setDeviceSelectorMode('call');
+            console.log('✅ Audio settings saved');
+        } else if (pendingCallAction) {
+            // Handle call actions
             const { type, data } = pendingCallAction;
             setPendingCallAction(null);
 
@@ -262,15 +331,20 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 await proceedWithCallAccept();
             }
         }
-    }, [pendingCallAction]);
+    }, [deviceSelectorMode, pendingCallAction]);
 
     const handleDeviceSelectorCancel = useCallback(() => {
         console.log('🎤 Device selector cancelled');
         setShowDeviceSelector(false);
+        setDeviceSelectorMode('call');
         setPendingCallAction(null);
-        setCallState('idle');
-        setCurrentCall(null);
-    }, []);
+
+        // Only reset call state if it was a call action, not settings
+        if (deviceSelectorMode !== 'settings') {
+            setCallState('idle');
+            setCurrentCall(null);
+        }
+    }, [deviceSelectorMode]);
 
     const rejectCall = useCallback(() => {
         // Send CALL_REJECT signal
@@ -292,6 +366,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [currentCall, currentUser]);
 
     const endCall = useCallback(() => {
+        console.log('📞 endCall called, currentCall:', currentCall);
+
         // Send CALL_END signal
         if (currentCall) {
             const signal = {
@@ -302,6 +378,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 roomName: currentCall.roomName,
                 timestamp: new Date().toISOString()
             };
+            console.log('📞 Sending CALL_END signal:', signal);
             svWebSocketService.sendCallSignal(signal);
         }
 
@@ -326,9 +403,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleCallSignal = useCallback(async (signal) => {
-        console.log('📞 Received call signal:', signal);
+        console.log('📞 RECEIVED call signal:', signal);
+        console.log('📞 Signal details - eventType:', signal.eventType, 'callerId:', signal.callerId, 'receiverId:', signal.receiverId);
 
         switch (signal.eventType) {
+            case 'TEST_SIGNAL':
+                console.log('🧪 RECEIVED TEST SIGNAL:', signal);
+                console.log('🧪 Test message:', signal.message, 'Test ID:', signal.testId);
+                break;
+
             case 'CALL_REQUEST':
                 if (signal.receiverId === currentUser.id) {
                     console.log('📞 Incoming call from user:', signal.callerId);
@@ -412,12 +495,20 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 break;
 
             case 'CALL_END':
+                console.log('📞 Received CALL_END signal:', signal);
+                console.log('📞 Current call state:', callState);
+                console.log('📞 Current call:', currentCall);
+
                 if (callState !== 'idle') {
+                    console.log('📞 Ending call due to CALL_END signal');
                     svLiveKitService.disconnect();
                     setCurrentCall(null);
                     setCallState('idle');
                     setLiveKitToken(null);
                     setLiveKitRoom(null);
+                    console.log('📞 Call ended successfully');
+                } else {
+                    console.log('📞 Ignoring CALL_END - call already idle');
                 }
                 break;
 
@@ -434,10 +525,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const handleWebSocketConnect = useCallback(() => {
         setIsWebSocketConnected(true);
+        window.svmessenger_ws_connected = true;
     }, []);
 
     const handleWebSocketDisconnect = useCallback(() => {
         setIsWebSocketConnected(false);
+        window.svmessenger_ws_connected = false;
     }, []);
 
     const handleWebSocketError = useCallback((error) => {
@@ -1182,8 +1275,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         currentCall,
         callState,
         showDeviceSelector,
+        deviceSelectorMode,
         handleDeviceSelectorComplete,
         handleDeviceSelectorCancel,
+        openAudioSettings,
 
         // Methods
         loadConversations,
@@ -1224,8 +1319,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         currentCall,
         callState,
         showDeviceSelector,
+        deviceSelectorMode,
         handleDeviceSelectorComplete,
         handleDeviceSelectorCancel,
+        openAudioSettings,
         loadConversations,
         loadMessages,
         sendMessage,
@@ -1247,7 +1344,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
         acceptCall,
         rejectCall,
         endCall
-    ]);
+    ], [/* dependencies */]);
 
     return (
         <SVMessengerContext.Provider value={value}>

@@ -37,7 +37,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--svm-z-modal);
+  z-index: 9999;
   backdrop-filter: blur(4px);
 }
 
@@ -45,7 +45,7 @@
 .svmessenger-call-modal {
   background: var(--svm-bg-primary);
   border-radius: 20px;
-  padding: 32px;
+  padding: 32px !important;
   min-width: 320px;
   max-width: 400px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -227,38 +227,6 @@
    SVMESSENGER AUDIO DEVICE SELECTOR
    Consistent with SVMessenger Design
    =========================================== */
-
-.svmessenger-device-selector-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: calc(var(--svm-z-modal) + 10); /* Higher than call modals */
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.svmessenger-device-selector-modal {
-  background: #FFFFFF; /* Solid white background like chat windows */
-  border: 1px solid var(--svm-border-light);
-  border-radius: var(--svm-radius-xl);
-  padding: 0;
-  min-width: 420px;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); /* Same as chat windows */
-  animation: slideUpFade 0.4s var(--svm-transition-bounce);
-}
 
 /* Header Section */
 .device-selector-header {
