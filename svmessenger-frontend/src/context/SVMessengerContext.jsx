@@ -209,6 +209,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
 
             setLiveKitToken(tokenResponse.token);
+            // Expose token on window as a fallback for race conditions between setting React state and incoming WS signals
+            try { window.__sv_livekit_token = tokenResponse.token; } catch (e) { /* ignore */ }
             setCurrentCall({
                 conversationId,
                 otherUserId,
@@ -460,6 +462,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         });
                         setCallState('incoming');
 
+                            // Ensure chat window/modal is opened and focused so user sees incoming call UI
+                            try {
+                                if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
+                                    window.SVMessenger.openChat(conversation.id);
+                                }
+                            } catch (e) {
+                                console.warn('Failed to auto-open chat for incoming call:', e);
+                            }
+
                         // Optional: Show browser notification if page is not focused
                         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                             new Notification('Incoming Call', {
@@ -475,13 +486,44 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 break;
 
             case 'CALL_ACCEPT':
+                console.log('📞 Processing CALL_ACCEPT signal...');
+                console.log('📞 Current callState:', callState);
+                console.log('📞 Signal callerId:', signal.callerId, 'currentUser.id:', currentUser.id);
+                console.log('📞 Signal receiverId:', signal.receiverId);
+                console.log('📞 Current call:', currentCall);
+                
+                // When we (caller) receive CALL_ACCEPT, the signal.callerId should be our ID
+                // and we should be in 'outgoing' state
                 if (callState === 'outgoing' && signal.callerId === currentUser.id) {
+                    console.log('✅ CALL_ACCEPT validated - updating to connected state');
                     setCallState('connected');
-                    // Connect to LiveKit room
-                    connectToLiveKit({
-                        token: liveKitToken,
-                        roomName: signal.roomName
-                    });
+                    
+                    // Connect to LiveKit room if we have a token
+                    // Use React state token if available, otherwise fallback to globally exposed tokens
+                    const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
+                    if (tokenToUse && signal.roomName) {
+                        console.log('📞 Connecting to LiveKit room (using token fallback):', signal.roomName);
+                        connectToLiveKit({
+                            token: tokenToUse,
+                            roomName: signal.roomName
+                        }).catch(error => {
+                            console.error('❌ Failed to connect to LiveKit:', error);
+                        });
+                        
+                        // Ensure the chat window is open and focused so the connected UI is visible
+                        try {
+                            const convId = signal.conversationId;
+                            if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
+                                window.SVMessenger.openChat(convId);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
+                        }
+                    } else {
+                        console.warn('⚠️ Missing liveKitToken or roomName for CALL_ACCEPT (even after fallback)', { liveKitToken, tokenToUse, roomName: signal.roomName });
+                    }
+                } else {
+                    console.warn('⚠️ CALL_ACCEPT ignored - callState:', callState, 'callerId match:', signal.callerId === currentUser.id);
                 }
                 break;
 

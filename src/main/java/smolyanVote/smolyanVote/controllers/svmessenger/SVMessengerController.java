@@ -523,6 +523,32 @@ public class SVMessengerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    /**
+     * GET /api/svmessenger/call/token
+     * Temporary fallback for testing: allow GET request with query params to obtain token.
+     * Query params: ?conversationId=1&otherUserId=5
+     *
+     * NOTE: This is a temporary convenience endpoint to avoid CORS/CSRF/preflight issues during testing.
+     * It should be removed or secured properly before production.
+     */
+    @GetMapping("/call/token")
+    public ResponseEntity<SVCallTokenResponse> generateCallTokenGet(
+            @RequestParam Long conversationId,
+            @RequestParam(required = false) Long otherUserId,
+            Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            SVCallTokenResponse response = messengerService.generateCallToken(conversationId, currentUser);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid call token request (GET): {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error generating call token (GET)", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
     // ========== HELPER METHODS ==========
     

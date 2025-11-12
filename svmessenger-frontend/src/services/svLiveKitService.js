@@ -464,6 +464,12 @@ class SVLiveKitService {
 // Export WebSocket service globally for console debugging
 window.svWebSocketService = svWebSocketService;
 
+// Export LiveKit service globally for console debugging and runtime forcing
+// This allows runtime code (tests/console) to access the singleton and trigger connect/disconnect.
+// NOTE: This does not change exported default - it only exposes the instance on window for runtime use.
+// We add this to help diagnostics and to support a safe runtime fallback without changing React state.
+// ... existing code ...
+
 // Debug/Test functions for voice calling
 window.SVMessengerVoiceTest = {
     // Test 1: Check current LiveKit status
@@ -730,4 +736,8 @@ window.SVMessengerVoiceTest = {
 
 // Export singleton instance
 const svLiveKitService = new SVLiveKitService();
+// Expose LiveKit service globally for runtime diagnostics and forced connects from the browser console/tests.
+// This does not change module exports but allows runtime code to call svLiveKitService.connect(token, room).
+window.svLiveKitService = svLiveKitService;
+window.svWebSocketService = svWebSocketService;
 export default svLiveKitService;

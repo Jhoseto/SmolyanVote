@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -57,6 +58,8 @@ public class ApplicationSecurityConfiguration {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(authz -> authz
+                        // Allow CORS preflight OPTIONS for messenger API so browser can POST without 405
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**").permitAll()
                         .requestMatchers(
                                 "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**","/static/**",
                                 "/svmessenger/**",
@@ -110,14 +113,16 @@ public class ApplicationSecurityConfiguration {
                 )
                 .csrf(csrf -> csrf
                         // 🔒 CSRF ЗАЩИТА ЗА ВСИЧКИ ОБИКНОВЕНИ ENDPOINTS
-                        // 🚫 ИЗКЛЮЧЕНИ САМО SockJS WebSocket handshake endpoints
+                        // 🚫 ВРЕМЕННО ИЗКЛЮЧВАМЕ CSRF ЗА /api/svmessenger/call/** ДО ВРЕМЕНОТО ТЕСТВАНЕ
+                        // TODO(SEC): Върни CSRF обратно и добави правилното front-end изпращане на X-XSRF-TOKEN
+                        // Причина: по време на development имаме проблеми с CSRF token при AJAX POST за call token.
                         // SockJS handshake е безопасен защото:
                         // 1. Установява се само след успешна аутентикация
                         // 2. Same-Origin Policy защитава WebSocket връзки
                         // 3. Handshake е автоматичен процес, не може да се манипулира от malicious сайтове
                         // 4. WebSocket връзките изискват valid session cookies
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat",
-                                "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**",
+                                "/api/svmessenger/call/**", "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**",
                                 "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
