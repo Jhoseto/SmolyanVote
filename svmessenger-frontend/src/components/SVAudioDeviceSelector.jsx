@@ -7,6 +7,8 @@ import svLiveKitService from '../services/svLiveKitService';
  * - Bootstrap Icons САМО
  * - Конкретни CSS стойности БЕЗ variables
  * - Перфектен дизайн
+ * - Drag and Drop функционалност
+ * - Фиксиран хедър
  */
 const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
   const { deviceSelectorMode } = useSVMessenger();
@@ -22,11 +24,84 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const [micLevel, setMicLevel] = useState(0);
     const [testResults, setTestResults] = useState(null);
 
+    // Drag and drop state
+    const [isDragging, setIsDragging] = useState(false);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const modalRef = useRef(null);
+
     const audioContextRef = useRef(null);
     const analyserRef = useRef(null);
     const microphoneRef = useRef(null);
     const animationFrameRef = useRef(null);
     const streamRef = useRef(null);
+
+    // Initialize position to center on mount
+    useEffect(() => {
+        if (isOpen) {
+            // Use setTimeout to ensure modal is rendered
+            setTimeout(() => {
+                if (modalRef.current) {
+                    const modal = modalRef.current;
+                    const x = (window.innerWidth - 400) / 2;
+                    const y = (window.innerHeight - 500) / 2;
+                    setPosition({ x: Math.max(0, x), y: Math.max(0, y) });
+                }
+            }, 0);
+        }
+    }, [isOpen]);
+
+    // Drag handlers
+    const handleMouseDown = (e) => {
+        // Only allow dragging from header, but not from close button
+        const header = e.target.closest('.audio-device-header');
+        const closeBtn = e.target.closest('.audio-device-close');
+        
+        if (!header || closeBtn) return;
+        
+        setIsDragging(true);
+        if (modalRef.current) {
+            const rect = modalRef.current.getBoundingClientRect();
+            setDragOffset({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e) => {
+            if (!modalRef.current) return;
+            
+            const modalWidth = modalRef.current.offsetWidth;
+            const modalHeight = modalRef.current.offsetHeight;
+            
+            const newX = e.clientX - dragOffset.x;
+            const newY = e.clientY - dragOffset.y;
+
+            const maxX = window.innerWidth - modalWidth;
+            const maxY = window.innerHeight - modalHeight;
+
+            const boundedX = Math.max(0, Math.min(newX, maxX));
+            const boundedY = Math.max(0, Math.min(newY, maxY));
+
+            setPosition({ x: boundedX, y: boundedY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragOffset]);
 
     // Load saved settings
     useEffect(() => {
@@ -439,50 +514,98 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             zIndex: 10000,
-            backdropFilter: 'blur(4px)'
+            pointerEvents: 'none'
         }}>
-            <div style={{
-                background: '#ffffff',
-                borderRadius: '12px',
-                width: '90%',
-                maxWidth: '400px',
-                maxHeight: '70vh',
-                overflow: 'auto',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}>
-                {/* Header */}
-                <div style={{
-                    padding: '16px 20px',
-                    borderBottom: '1px solid #e5e7eb',
-                    textAlign: 'center'
-                }}>
+            <div 
+                ref={modalRef}
+                style={{
+                    position: 'absolute',
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                    background: '#ffffff',
+                    borderRadius: '12px',
+                    width: '400px',
+                    maxHeight: '500px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    pointerEvents: 'auto'
+                }}
+            >
+                {/* Header - Fixed */}
+                <div 
+                    className="audio-device-header"
+                    style={{
+                        padding: '14px 20px',
+                        borderBottom: '1px solid #e5e7eb',
+                        textAlign: 'center',
+                        position: 'sticky',
+                        top: 0,
+                        background: '#ffffff',
+                        zIndex: 10,
+                        borderRadius: '12px 12px 0 0',
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        userSelect: 'none'
+                    }}
+                    onMouseDown={handleMouseDown}
+                >
+                    <button
+                        className="audio-device-close"
+                        onClick={onCancel}
+                        style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#6b7280',
+                            fontSize: '18px',
+                            lineHeight: '1',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#f3f4f6';
+                            e.currentTarget.style.color = '#111827';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'none';
+                            e.currentTarget.style.color = '#6b7280';
+                        }}
+                        title="Затвори"
+                    >
+                        <i className="bi bi-x" style={{ fontSize: '20px', fontWeight: '300' }}></i>
+                    </button>
                     <div style={{
-                        width: '40px',
-                        height: '40px',
+                        width: '36px',
+                        height: '36px',
                         background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 12px',
+                        margin: '0 auto 10px',
                         boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
                     }}>
-                        <i className="bi bi-gear-fill" style={{ fontSize: '20px', color: '#ffffff' }}></i>
+                        <i className="bi bi-gear-fill" style={{ fontSize: '18px', color: '#ffffff' }}></i>
                     </div>
                     <h2 style={{
-                        margin: '0 0 6px 0',
-                        fontSize: '18px',
+                        margin: '0 0 4px 0',
+                        fontSize: '16px',
                         fontWeight: '700',
                         color: '#111827'
                     }}>Аудио настройки</h2>
                     <p style={{
                         margin: 0,
-                        fontSize: '11px',
+                        fontSize: '10px',
                         color: '#6b7280'
                     }}>Конфигурирайте устройствата си за качествен разговор</p>
                 </div>
@@ -564,9 +687,14 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                     </div>
                 )}
 
-                {/* Main Content */}
+                {/* Main Content - Scrollable */}
                 {!isLoading && !error && (
-                    <div style={{ padding: '16px 20px' }}>
+                    <div style={{ 
+                        padding: '16px 20px',
+                        overflowY: 'auto',
+                        flex: 1,
+                        maxHeight: 'calc(500px - 120px)'
+                    }}>
                         {/* Microphone Section */}
                         <div style={{
                             background: '#f9fafb',
@@ -791,7 +919,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
                         {/* Speaker Test Section */}
                         <div style={{
-                            background: '#fef3c7',
+                            background: '#eaffe9',
                             border: '1px solid #fbbf24',
                             borderRadius: '10px',
                             padding: '12px',
@@ -803,17 +931,17 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                 gap: '10px',
                                 marginBottom: '10px'
                             }}>
-                                <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', color: '#f59e0b' }}></i>
+                                <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', color: '#22c45e' }}></i>
                                 <span style={{
                                     fontSize: '12px',
                                     fontWeight: '600',
-                                    color: '#92400e'
+                                    color: '#124100'
                                 }}>Тест на слушалки</span>
                             </div>
                             <p style={{
                                 margin: '0 0 10px 0',
                                 fontSize: '11px',
-                                color: '#78350f'
+                                color: '#004217'
                             }}>
                                 Натиснете бутона по-долу, за да чуете тестов сигнал и да проверите дали слушалките работят правилно.
                             </p>
@@ -823,7 +951,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                 style={{
                                     width: '100%',
                                     padding: '10px',
-                                    background: isTesting ? '#fbbf24' : '#f59e0b',
+                                    background: isTesting ? '#6bb75f' : '#2c9002',
                                     color: '#ffffff',
                                     border: 'none',
                                     borderRadius: '6px',
