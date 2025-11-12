@@ -1,0 +1,192 @@
+/**
+ * Стилове за call-window popup прозорец
+ * Отделен CSS файл за по-лесно управление
+ */
+
+/* Container */
+.call-window-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9fafb;
+    padding: 20px;
+}
+
+/* Modal */
+.call-window-modal {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 32px 28px;
+    min-width: 300px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Avatar */
+.call-window-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.call-window-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.call-window-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+/* Status */
+.call-window-status {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.call-window-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.call-window-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.call-window-icon {
+    margin-top: 6px;
+    color: #22c55e;
+    font-size: 20px;
+    animation: call-window-pulse 2s infinite;
+}
+
+@keyframes call-window-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.call-window-connecting {
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 8px;
+}
+
+/* Actions */
+.call-window-actions {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-window-btn-mute,
+.call-window-btn-end {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.call-window-btn-mute {
+    background: #ffffff;
+    border: 2px solid #6b7280;
+    color: #6b7280;
+}
+
+.call-window-btn-mute:hover {
+    background: #f3f4f6;
+    transform: scale(1.05);
+}
+
+.call-window-btn-mute.muted {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+}
+
+.call-window-btn-mute.muted:hover {
+    background: #dc2626;
+}
+
+.call-window-btn-end {
+    background: #ffffff;
+    border: 2px solid #ef4444;
+    color: #ef4444;
+}
+
+.call-window-btn-end:hover {
+    background: #ef4444;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.call-window-btn-mute i,
+.call-window-btn-end i {
+    font-size: 20px;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .call-window-modal {
+        padding: 32px 24px;
+        min-width: auto;
+    }
+
+    .call-window-avatar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .call-window-title {
+        font-size: 18px;
+    }
+
+    .call-window-subtitle {
+        font-size: 14px;
+    }
+
+    .call-window-btn-mute,
+    .call-window-btn-end {
+        width: 56px;
+        height: 56px;
+    }
+}

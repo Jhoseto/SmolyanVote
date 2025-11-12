@@ -236,6 +236,141 @@
 }
 
 /* ===========================================
+   CALL INDICATOR (когато има активен popup)
+   =========================================== */
+
+.svmessenger-call-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  min-width: 280px;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 2px solid #22c55e;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.svmessenger-call-indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.svmessenger-call-indicator-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  animation: callIndicatorPulse 2s infinite;
+}
+
+@keyframes callIndicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.svmessenger-call-indicator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.svmessenger-call-indicator-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svmessenger-call-indicator-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svmessenger-call-indicator-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.svmessenger-call-indicator-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+  transform: scale(1.1);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .svmessenger-call-indicator {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+    min-width: auto;
+  }
+
+  .svmessenger-call-indicator-content {
+    padding: 10px 14px;
+  }
+
+  .svmessenger-call-indicator-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .svmessenger-call-indicator-title {
+    font-size: 13px;
+  }
+
+  .svmessenger-call-indicator-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* ===========================================
    SVMESSENGER AUDIO DEVICE SELECTOR
    Consistent with SVMessenger Design
    =========================================== */

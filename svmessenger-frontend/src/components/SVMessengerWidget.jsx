@@ -29,7 +29,8 @@ const SVMessengerWidget = () => {
         endCall,
         showDeviceSelector,
         handleDeviceSelectorComplete,
-        handleDeviceSelectorCancel
+        handleDeviceSelectorCancel,
+        callWindowRef
     } = useSVMessenger();
 
 
@@ -80,8 +81,8 @@ const SVMessengerWidget = () => {
                 onCancel={handleDeviceSelectorCancel}
             />
 
-            {/* Call Modal */}
-            {callState !== 'idle' && currentCall && currentCall.conversation && (
+            {/* Call Modal - показва се само ако няма popup прозорец */}
+            {callState !== 'idle' && currentCall && currentCall.conversation && !callWindowRef && (
                 <SVCallModal
                     callState={callState}
                     conversation={currentCall.conversation}
@@ -89,6 +90,34 @@ const SVMessengerWidget = () => {
                     onReject={rejectCall}
                     onEnd={endCall}
                 />
+            )}
+
+            {/* Call Indicator - показва се когато има активен popup прозорец */}
+            {callState !== 'idle' && currentCall && callWindowRef && (
+                <div className="svmessenger-call-indicator">
+                    <div className="svmessenger-call-indicator-content">
+                        <div className="svmessenger-call-indicator-icon">
+                            <i className="bi bi-headphones"></i>
+                        </div>
+                        <div className="svmessenger-call-indicator-text">
+                            <div className="svmessenger-call-indicator-title">
+                                {callState === 'outgoing' && 'Обаждане...'}
+                                {callState === 'incoming' && 'Входящо обаждане'}
+                                {callState === 'connected' && 'В разговор'}
+                            </div>
+                            <div className="svmessenger-call-indicator-subtitle">
+                                {currentCall.conversation?.otherUser?.realName || currentCall.conversation?.otherUser?.username || 'Потребител'}
+                            </div>
+                        </div>
+                        <button
+                            className="svmessenger-call-indicator-close"
+                            onClick={endCall}
+                            title="Затвори обаждането"
+                        >
+                            <i className="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* Taskbar (minimized chats) */}

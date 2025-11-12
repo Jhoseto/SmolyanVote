@@ -52,6 +52,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
     // Call state
     const [currentCall, setCurrentCall] = useState(null);
     const [callState, setCallState] = useState('idle'); // 'idle', 'outgoing', 'incoming', 'connected'
+    const [callWindowRef, setCallWindowRef] = useState(null); // Reference to popup window
+    const callChannelRef = useRef(null); // BroadcastChannel for synchronization
 
     const [liveKitToken, setLiveKitToken] = useState(null);
     const [liveKitRoom, setLiveKitRoom] = useState(null);
@@ -212,6 +214,75 @@ export const SVMessengerProvider = ({ children, userData }) => {
         }
     }, [currentUser]);
 
+    // Helper function to build call window URL
+    const buildCallWindowUrl = useCallback((params) => {
+        const baseUrl = window.location.origin;
+        const queryParams = new URLSearchParams({
+            token: params.token,
+            roomName: params.roomName,
+            conversationId: params.conversationId.toString(),
+            otherUserId: params.otherUserId.toString(),
+            otherUserName: encodeURIComponent(params.otherUserName || ''),
+            otherUserAvatar: encodeURIComponent(params.otherUserAvatar || ''),
+            currentUserId: params.currentUserId.toString(),
+            currentUserName: encodeURIComponent(params.currentUserName || ''),
+            currentUserAvatar: encodeURIComponent(params.currentUserAvatar || ''),
+            callType: params.callType || 'voice',
+            callState: params.callState || 'outgoing'
+        });
+        return `${baseUrl}/svmessenger/call-window.html?${queryParams.toString()}`;
+    }, []);
+
+    const endCall = useCallback(() => {
+        // Close popup window if open
+        setCallWindowRef(currentRef => {
+            if (currentRef && !currentRef.closed) {
+                currentRef.close();
+            }
+            return null;
+        });
+
+        // Notify popup to end call (if still open)
+        if (callChannelRef.current) {
+            callChannelRef.current.postMessage({
+                type: 'CALL_ENDED',
+                data: {}
+            });
+        }
+
+        // Use functional setState to get latest currentCall value
+        setCurrentCall(currentCallValue => {
+            // Send CALL_END signal
+            if (currentCallValue) {
+                // Determine who is the caller and receiver
+                // If callState is 'outgoing', we are the caller
+                // Otherwise, we are the receiver (we received CALL_REQUEST)
+                setCallState(currentState => {
+                    const isCaller = currentState === 'outgoing';
+                    
+                    const signal = {
+                        eventType: 'CALL_END',
+                        conversationId: currentCallValue.conversationId,
+                        callerId: isCaller ? currentUser.id : currentCallValue.otherUserId,
+                        receiverId: isCaller ? currentCallValue.otherUserId : currentUser.id,
+                        roomName: currentCallValue.roomName,
+                        timestamp: new Date().toISOString()
+                    };
+                    svWebSocketService.sendCallSignal(signal);
+                    
+                    return 'idle';
+                });
+            }
+
+            return null;
+        });
+
+        // Reset call state
+        setCallState('idle');
+        setLiveKitToken(null);
+        setLiveKitRoom(null);
+    }, [currentUser]);
+
     // Helper function to proceed with call after permissions are granted
     const proceedWithCallStart = useCallback(async (conversationId, otherUserId, conversation) => {
         try {
@@ -235,6 +306,44 @@ export const SVMessengerProvider = ({ children, userData }) => {
             setCurrentCall(callData);
             setCallState('outgoing');
 
+            // Open popup window for call
+            const popupUrl = buildCallWindowUrl({
+                token: tokenResponse.token,
+                roomName: tokenResponse.roomName,
+                conversationId,
+                otherUserId,
+                otherUserName: conversation.otherUser?.realName || conversation.otherUser?.username || 'Потребител',
+                otherUserAvatar: conversation.otherUser?.imageUrl || '',
+                currentUserId: currentUser.id,
+                currentUserName: currentUser.realName || currentUser.username,
+                currentUserAvatar: currentUser.imageUrl || '',
+                callType: 'voice',
+                callState: 'outgoing'
+            });
+
+            const popup = window.open(
+                popupUrl,
+                'svmessenger-call',
+                'width=400,height=600,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no'
+            );
+
+            if (popup) {
+                setCallWindowRef(popup);
+                
+                // Monitor if popup is closed
+                const checkClosed = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(checkClosed);
+                        setCallWindowRef(null);
+                        // If popup is closed, end the call
+                        endCall();
+                    }
+                }, 500);
+            } else {
+                // Popup blocked - fallback to modal
+                console.warn('Popup blocked, using modal fallback');
+            }
+
             const signal = {
                 eventType: 'CALL_REQUEST',
                 conversationId,
@@ -252,7 +361,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             console.error('Failed to proceed with call start:', error);
             setCallState('idle');
         }
-    }, [currentUser]);
+    }, [currentUser, buildCallWindowUrl, endCall]);
 
     const acceptCall = useCallback(async () => {
         try {
@@ -342,17 +451,53 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 timestamp: new Date().toISOString()
             };
             svWebSocketService.sendCallSignal(signal);
-            // Now update state and connect to LiveKit
-            setCallState('connected');
+            
+            // Open popup window for call
+            const popupUrl = buildCallWindowUrl({
+                token: tokenResponse.token,
+                roomName: roomName,
+                conversationId: currentCall.conversationId,
+                otherUserId: currentCall.otherUserId,
+                otherUserName: currentCall.conversation?.otherUser?.realName || currentCall.conversation?.otherUser?.username || 'Потребител',
+                otherUserAvatar: currentCall.conversation?.otherUser?.imageUrl || '',
+                currentUserId: currentUser.id,
+                currentUserName: currentUser.realName || currentUser.username,
+                currentUserAvatar: currentUser.imageUrl || '',
+                callType: 'voice',
+                callState: 'connected'
+            });
 
-            // Connect to LiveKit room
-            await connectToLiveKit(tokenResponse);
+            const popup = window.open(
+                popupUrl,
+                'svmessenger-call',
+                'width=400,height=600,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no'
+            );
+
+            if (popup) {
+                setCallWindowRef(popup);
+                
+                // Monitor if popup is closed
+                const checkClosed = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(checkClosed);
+                        setCallWindowRef(null);
+                        // If popup is closed, end the call
+                        endCall();
+                    }
+                }, 500);
+            } else {
+                // Popup blocked - fallback to modal
+                console.warn('Popup blocked, using modal fallback');
+            }
+
+            // Now update state
+            setCallState('connected');
 
         } catch (error) {
             console.error('Failed to proceed with call accept:', error);
             endCall();
         }
-    }, [currentCall, currentUser]);
+    }, [currentCall, currentUser, buildCallWindowUrl, endCall]);
 
     // Open device selector for settings
     const openAudioSettings = useCallback(() => {
@@ -411,42 +556,39 @@ export const SVMessengerProvider = ({ children, userData }) => {
         setLiveKitRoom(null);
     }, [currentCall, currentUser]);
 
-    const endCall = useCallback(() => {
-
-        // Use functional setState to get latest currentCall value
-        setCurrentCall(currentCallValue => {
-            // Send CALL_END signal
-            if (currentCallValue) {
-                // Determine who is the caller and receiver
-                // If callState is 'outgoing', we are the caller
-                // Otherwise, we are the receiver (we received CALL_REQUEST)
-                setCallState(currentState => {
-                    const isCaller = currentState === 'outgoing';
-                    
-                    const signal = {
-                        eventType: 'CALL_END',
-                        conversationId: currentCallValue.conversationId,
-                        callerId: isCaller ? currentUser.id : currentCallValue.otherUserId,
-                        receiverId: isCaller ? currentCallValue.otherUserId : currentUser.id,
-                        roomName: currentCallValue.roomName,
-                        timestamp: new Date().toISOString()
-                    };
-                    svWebSocketService.sendCallSignal(signal);
-                    
-                    return 'idle'; // Reset call state
-                });
+    // Initialize BroadcastChannel for synchronization
+    useEffect(() => {
+        callChannelRef.current = new BroadcastChannel('svmessenger-call');
+        
+        callChannelRef.current.onmessage = (event) => {
+            const { type, data, message } = event.data;
+            
+            switch (type) {
+                case 'POPUP_LOG':
+                    // Log message from popup window
+                    console.log(message, data || '');
+                    break;
+                case 'CALL_ENDED_FROM_POPUP':
+                    // Call ended from popup, clean up
+                    setCallState('idle');
+                    setCurrentCall(null);
+                    setCallWindowRef(null);
+                    break;
+                case 'MUTE_TOGGLED':
+                    // Mute state changed in popup
+                    // Could sync with main app if needed
+                    break;
+                default:
+                    break;
             }
+        };
 
-            // Disconnect from LiveKit
-            svLiveKitService.disconnect();
-
-            // Reset tokens
-            setLiveKitToken(null);
-            setLiveKitRoom(null);
-
-            return null; // Clear currentCall
-        });
-    }, [currentCall, currentUser]);
+        return () => {
+            if (callChannelRef.current) {
+                callChannelRef.current.close();
+            }
+        };
+    }, []);
 
     const connectToLiveKit = useCallback(async (tokenResponse) => {
         try {
@@ -611,12 +753,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
                         // Case 1: We are the caller receiving CALL_ACCEPT from receiver
                         // Allow processing even if currentCallValue is null but we have signal data
-                        if (isCaller && currentState === 'outgoing' && (isForThisConversation || signal.roomName)) {
-                            console.log('✅ CALL_ACCEPT validated - caller updating to connected state');
-                            
+                        // Also allow if currentState is 'idle' but we have a popup window open (callWindowRef)
+                        const hasPopupOpen = callWindowRef !== null;
+                        if (isCaller && (currentState === 'outgoing' || (currentState === 'idle' && hasPopupOpen)) && (isForThisConversation || signal.roomName)) {
                             // If currentCallValue is null but we have signal data, restore it
                             if (!currentCallValue && signal.roomName) {
-                                console.log('⚠️ currentCallValue is null but signal has data - restoring from signal');
                                 const restoredCall = {
                                     conversationId: signal.conversationId,
                                     otherUserId: signal.receiverId,
@@ -629,48 +770,19 @@ export const SVMessengerProvider = ({ children, userData }) => {
                                 }, 0);
                             }
 
-                            // Connect to LiveKit room if we have a token
-                            const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
-                            const roomNameToUse = signal.roomName || currentCallValue?.roomName;
-
-                        console.log('📞 CALL_ACCEPT caller connection attempt:', {
-                            hasToken: !!tokenToUse,
-                            hasRoomName: !!roomNameToUse,
-                            tokenSource: liveKitToken ? 'reactState' : (window.__sv_livekit_token ? 'window.__sv_livekit_token' : (window.liveKitToken ? 'window.liveKitToken' : 'none')),
-                            roomName: roomNameToUse
-                        });
-
-                        if (tokenToUse && roomNameToUse) {
-                            console.log('📞 Connecting caller to LiveKit room:', roomNameToUse);
-                            connectToLiveKit({
-                                token: tokenToUse,
-                                roomName: roomNameToUse
-                            }).catch(error => {
-                                console.error('❌ Failed to connect caller to LiveKit:', error);
-                            });
-
-                            // Ensure the chat window is open and focused so the connected UI is visible
-                            try {
-                                const convId = signal.conversationId;
-                                if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
-                                    window.SVMessenger.openChat(convId);
-                                }
-                            } catch (e) {
-                                console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
+                            // Notify popup window that call is accepted (if open)
+                            if (callChannelRef.current) {
+                                console.log('📤 Sending CALL_ACCEPTED message to popup window');
+                                callChannelRef.current.postMessage({
+                                    type: 'CALL_ACCEPTED',
+                                    data: {
+                                        conversationId: signal.conversationId,
+                                        roomName: signal.roomName
+                                    }
+                                });
+                            } else {
+                                console.warn('⚠️ callChannelRef.current is null, cannot notify popup');
                             }
-                        } else {
-                            console.error('🚨 CRITICAL: Missing token or room name for caller LiveKit connection!', {
-                                liveKitToken,
-                                windowTokens: {
-                                    __sv_livekit_token: window.__sv_livekit_token,
-                                    liveKitToken: window.liveKitToken
-                                },
-                                roomNames: {
-                                    signal: signal.roomName,
-                                    currentCall: currentCallValue?.roomName
-                                }
-                            });
-                        }
 
                         return 'connected';
                     }
@@ -771,14 +883,21 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         });
 
                         if (currentState !== 'idle' && isForThisCall) {
-                            console.log('📞 Ending call due to CALL_END signal');
+                            // Notify popup window that call ended (if open)
+                            if (callChannelRef.current) {
+                                callChannelRef.current.postMessage({
+                                    type: 'CALL_ENDED',
+                                    data: {
+                                        conversationId: signal.conversationId
+                                    }
+                                });
+                            }
+                            
                             // Disconnect from LiveKit and reset tokens
                             svLiveKitService.disconnect();
                             // Note: setLiveKitToken and setLiveKitRoom will be called outside setCallState
-                            console.log('📞 Call ended successfully');
                             return 'idle';
                         } else {
-                            console.log('📞 Ignoring CALL_END - call already idle or not for this conversation');
                             return currentState;
                         }
                     });
@@ -1582,7 +1701,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
         startCall,
         acceptCall,
         rejectCall,
-        endCall
+        endCall,
+        
+        // Call window reference
+        callWindowRef
     }), [
         currentUser,
         conversations,
