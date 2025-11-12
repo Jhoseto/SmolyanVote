@@ -451,7 +451,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 borderRadius: '12px',
                 width: '90%',
                 maxWidth: '400px',
-                maxHeight: '90vh',
+                maxHeight: '70vh',
                 overflow: 'auto',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
             }}>
