@@ -26,6 +26,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const analyserRef = useRef(null);
     const microphoneRef = useRef(null);
     const animationFrameRef = useRef(null);
+    const streamRef = useRef(null);
 
     // Load saved settings
     useEffect(() => {
@@ -77,7 +78,10 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
         try {
             await svLiveKitService.setMicrophone(deviceId);
             setSelectedMic(deviceId);
+            
+            // Stop old visualization and start new one with selected device
             stopAudioVisualization();
+            await startAudioVisualization(deviceId);
 
             // Save device selection to localStorage
             const currentSettings = JSON.parse(localStorage.getItem('svmessenger-audio-settings') || '{}');
@@ -179,8 +183,17 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 }
             }
 
-            setSelectedMic(savedMic || (devices.microphones.length > 0 ? devices.microphones[0].deviceId : ''));
+            const initialMic = savedMic || (devices.microphones.length > 0 ? devices.microphones[0].deviceId : '');
+            setSelectedMic(initialMic);
             setSelectedSpeaker(savedSpeaker || (devices.speakers.length > 0 ? devices.speakers[0].deviceId : ''));
+
+            // Start audio visualization automatically for the selected microphone
+            if (initialMic) {
+                // Small delay to ensure state is set
+                setTimeout(() => {
+                    startAudioVisualization(initialMic);
+                }, 100);
+            }
 
         } catch (err) {
             setError(err.message || 'Failed to access audio devices');
@@ -192,52 +205,86 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
     const startAudioVisualization = async (deviceId) => {
         try {
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
-            }
+            // Clean up existing visualization
+            stopAudioVisualization();
 
             audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
             analyserRef.current = audioContextRef.current.createAnalyser();
-            analyserRef.current.fftSize = 256;
+            
+            // Use higher fftSize for better accuracy
+            analyserRef.current.fftSize = 2048;
+            analyserRef.current.smoothingTimeConstant = 0.8;
 
             // Use 'ideal' instead of 'exact' to allow fallback if device is not available
             let stream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { deviceId: deviceId ? { ideal: deviceId } : true }
+                    audio: { 
+                        deviceId: deviceId ? { ideal: deviceId } : true,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
             } catch (exactError) {
                 // Fallback to default device if ideal fails
                 console.warn('⚠️ Failed to get stream with ideal device for visualization, trying default:', exactError);
                 stream = await navigator.mediaDevices.getUserMedia({
-                    audio: true
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
             }
 
+            // Store stream reference for cleanup
+            streamRef.current = stream;
+            
             microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
             microphoneRef.current.connect(analyserRef.current);
 
-            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            // Use Float32Array for better precision
+            const dataArray = new Float32Array(analyserRef.current.fftSize);
 
             const updateLevel = () => {
                 if (!analyserRef.current) return;
 
-                analyserRef.current.getByteFrequencyData(dataArray);
+                // Get time domain data (actual audio waveform)
+                analyserRef.current.getFloatTimeDomainData(dataArray);
 
+                // Calculate RMS (Root Mean Square) for accurate level measurement
                 let sum = 0;
                 for (let i = 0; i < dataArray.length; i++) {
-                    sum += dataArray[i];
+                    sum += dataArray[i] * dataArray[i];
                 }
-                const average = sum / dataArray.length;
-                const level = Math.min(100, (average / 255) * 100);
+                const rms = Math.sqrt(sum / dataArray.length);
+                
+                // Convert RMS to percentage (0-100)
+                // RMS values are typically between 0 and 1
+                // Use a more accurate conversion that matches Windows sound levels
+                // Normal RMS for speech is around 0.1-0.3, so we scale appropriately
+                let level = 0;
+                if (rms > 0) {
+                    // Use a logarithmic-like scale for better visualization
+                    // Map RMS (0-1) to percentage (0-100) with better sensitivity
+                    level = Math.min(100, Math.max(0, (rms * 300)));
+                    
+                    // Apply additional amplification for quiet microphones
+                    // This helps show activity even when input is low
+                    if (level < 50) {
+                        level = level * 1.5; // Amplify lower levels more
+                    }
+                }
 
-                setMicLevel(level);
+                setMicLevel(Math.min(100, level));
                 animationFrameRef.current = requestAnimationFrame(updateLevel);
             };
 
             updateLevel();
         } catch (error) {
             console.error('Error starting audio visualization:', error);
+            setMicLevel(0);
         }
     };
 
@@ -250,6 +297,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
         if (microphoneRef.current) {
             microphoneRef.current.disconnect();
             microphoneRef.current = null;
+        }
+
+        // Stop all tracks from the stream
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
         }
 
         if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -266,54 +319,59 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             setIsTesting(true);
             setTestResults(null);
 
-            // Use 'ideal' instead of 'exact' to allow fallback if device is not available
-            let micStream;
-            try {
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { deviceId: selectedMic ? { ideal: selectedMic } : true }
-                });
-            } catch (exactError) {
-                // Fallback to default device if ideal fails
-                console.warn('⚠️ Failed to get stream with ideal device, trying default:', exactError);
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true
-                });
-            }
-
+            // Create audio context and elements for speaker test
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
+            
+            // Create an HTMLAudioElement to use setSinkId for device selection
+            const audioElement = document.createElement('audio');
+            
+            // Set the sink (output device) if supported and device is selected
+            if (selectedSpeaker && 'setSinkId' in HTMLAudioElement.prototype) {
+                try {
+                    await audioElement.setSinkId(selectedSpeaker);
+                    console.log('🔊 Using selected speaker device:', selectedSpeaker);
+                } catch (sinkError) {
+                    console.warn('⚠️ Failed to set sink ID, using default device:', sinkError);
+                }
+            }
 
+            // Create a MediaStreamDestination to connect to the audio element
+            const destination = audioContext.createMediaStreamDestination();
             oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            gainNode.connect(destination);
 
+            // Connect the MediaStream to the audio element
+            audioElement.srcObject = destination.stream;
+            audioElement.volume = speakerVolume / 100;
+
+            // Play a pleasant test tone (440Hz = A note)
             oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(speakerVolume / 100, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(1.0, audioContext.currentTime);
 
+            // Start playback
             oscillator.start();
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            oscillator.stop(audioContext.currentTime + 0.5);
+            await audioElement.play();
 
-            await startAudioVisualization(selectedMic);
+            // Fade out over 1 second
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            oscillator.stop(audioContext.currentTime + 1);
 
+            // Wait for the tone to finish
             setTimeout(() => {
-                micStream.getTracks().forEach(track => track.stop());
+                audioElement.pause();
+                audioElement.srcObject = null;
                 audioContext.close();
-                stopAudioVisualization();
-
                 setTestResults({
-                    micWorking: true,
-                    speakerWorking: true,
-                    micLevel: Math.random() * 30 + 20,
-                    latency: Math.random() * 50 + 10
+                    speakerWorking: true
                 });
                 setIsTesting(false);
-            }, 4000);
+            }, 1200);
 
         } catch (error) {
-            console.error('Audio test failed:', error);
+            console.error('Speaker test failed:', error);
             setTestResults({
-                micWorking: false,
                 speakerWorking: false,
                 error: error.message
             });
@@ -324,29 +382,29 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const cleanupAudioTest = () => {
         setIsTesting(false);
         setTestResults(null);
-        stopAudioVisualization();
+        // Don't stop visualization on test cleanup - keep it running for microphone
     };
 
     // Audio Level Bar Component
     const AudioLevelBar = ({ level, label }) => (
         <div style={{
-            padding: '12px',
+            padding: '8px',
             background: '#f3f4f6',
-            borderRadius: '8px',
-            marginTop: '8px'
+            borderRadius: '6px',
+            marginTop: '6px'
         }}>
-            <div style={{
+            {label && <div style={{
                 display: 'block',
-                marginBottom: '8px',
-                fontSize: '12px',
+                marginBottom: '6px',
+                fontSize: '10px',
                 fontWeight: '600',
                 color: '#374151',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
-            }}>{label}</div>
+            }}>{label}</div>}
             <div style={{
                 position: 'relative',
-                height: '6px',
+                height: '5px',
                 background: '#d1d5db',
                 borderRadius: '3px',
                 overflow: 'hidden'
@@ -363,8 +421,8 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 }} />
             </div>
             <div style={{
-                marginTop: '4px',
-                fontSize: '12px',
+                marginTop: '3px',
+                fontSize: '10px',
                 fontWeight: '600',
                 color: '#6b7280',
                 textAlign: 'right'
@@ -390,41 +448,41 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
         }}>
             <div style={{
                 background: '#ffffff',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 width: '90%',
-                maxWidth: '540px',
+                maxWidth: '400px',
                 maxHeight: '90vh',
                 overflow: 'auto',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
             }}>
                 {/* Header */}
                 <div style={{
-                    padding: '24px 32px',
+                    padding: '16px 20px',
                     borderBottom: '1px solid #e5e7eb',
                     textAlign: 'center'
                 }}>
                     <div style={{
-                        width: '56px',
-                        height: '56px',
+                        width: '40px',
+                        height: '40px',
                         background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 16px',
+                        margin: '0 auto 12px',
                         boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
                     }}>
-                        <i className="bi bi-gear-fill" style={{ fontSize: '28px', color: '#ffffff' }}></i>
+                        <i className="bi bi-gear-fill" style={{ fontSize: '20px', color: '#ffffff' }}></i>
                     </div>
                     <h2 style={{
-                        margin: '0 0 8px 0',
-                        fontSize: '24px',
+                        margin: '0 0 6px 0',
+                        fontSize: '18px',
                         fontWeight: '700',
                         color: '#111827'
                     }}>Аудио настройки</h2>
                     <p style={{
                         margin: 0,
-                        fontSize: '14px',
+                        fontSize: '11px',
                         color: '#6b7280'
                     }}>Конфигурирайте устройствата си за качествен разговор</p>
                 </div>
@@ -432,27 +490,27 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 {/* Loading */}
                 {isLoading && (
                     <div style={{
-                        padding: '48px 32px',
+                        padding: '32px 20px',
                         textAlign: 'center'
                     }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
-                            border: '4px solid #e5e7eb',
-                            borderTop: '4px solid #22c55e',
+                            width: '36px',
+                            height: '36px',
+                            border: '3px solid #e5e7eb',
+                            borderTop: '3px solid #22c55e',
                             borderRadius: '50%',
                             animation: 'spin 1s linear infinite',
-                            margin: '0 auto 16px'
+                            margin: '0 auto 12px'
                         }} />
                         <h4 style={{
-                            margin: '0 0 8px 0',
-                            fontSize: '16px',
+                            margin: '0 0 6px 0',
+                            fontSize: '13px',
                             fontWeight: '600',
                             color: '#111827'
                         }}>Искане на достъп до микрофон</h4>
                         <p style={{
                             margin: 0,
-                            fontSize: '14px',
+                            fontSize: '11px',
                             color: '#6b7280'
                         }}>Моля, позволете достъпа в browser прозореца</p>
                     </div>
@@ -461,30 +519,30 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 {/* Error */}
                 {error && (
                     <div style={{
-                        padding: '32px',
+                        padding: '24px 20px',
                         textAlign: 'center'
                     }}>
                         <div style={{
-                            width: '56px',
-                            height: '56px',
+                            width: '40px',
+                            height: '40px',
                             background: '#fee2e2',
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            margin: '0 auto 16px'
+                            margin: '0 auto 12px'
                         }}>
-                            <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '28px', color: '#ef4444' }}></i>
+                            <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '20px', color: '#ef4444' }}></i>
                         </div>
                         <h4 style={{
-                            margin: '0 0 8px 0',
-                            fontSize: '16px',
+                            margin: '0 0 6px 0',
+                            fontSize: '13px',
                             fontWeight: '600',
                             color: '#ef4444'
                         }}>Грешка при достъп до устройства</h4>
                         <p style={{
-                            margin: '0 0 16px 0',
-                            fontSize: '14px',
+                            margin: '0 0 12px 0',
+                            fontSize: '11px',
                             color: '#6b7280'
                         }}>{error}</p>
                         <button
@@ -493,9 +551,9 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                 background: '#ef4444',
                                 color: '#ffffff',
                                 border: 'none',
-                                padding: '10px 24px',
-                                borderRadius: '8px',
-                                fontSize: '14px',
+                                padding: '8px 18px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
                                 fontWeight: '600',
                                 cursor: 'pointer',
                                 boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
@@ -508,45 +566,45 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
                 {/* Main Content */}
                 {!isLoading && !error && (
-                    <div style={{ padding: '24px 32px' }}>
+                    <div style={{ padding: '16px 20px' }}>
                         {/* Microphone Section */}
                         <div style={{
                             background: '#f9fafb',
                             border: '1px solid #e5e7eb',
-                            borderRadius: '12px',
-                            padding: '20px',
-                            marginBottom: '16px'
+                            borderRadius: '10px',
+                            padding: '14px',
+                            marginBottom: '12px'
                         }}>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '12px',
-                                marginBottom: '16px'
+                                gap: '10px',
+                                marginBottom: '12px'
                             }}>
                                 <div style={{
-                                    width: '40px',
-                                    height: '40px',
+                                    width: '32px',
+                                    height: '32px',
                                     background: '#22c55e',
-                                    borderRadius: '8px',
+                                    borderRadius: '6px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <i className="bi bi-mic-fill" style={{ fontSize: '20px', color: '#ffffff' }}></i>
+                                    <i className="bi bi-mic-fill" style={{ fontSize: '16px', color: '#ffffff' }}></i>
                                 </div>
                                 <h3 style={{
                                     margin: 0,
-                                    fontSize: '16px',
+                                    fontSize: '13px',
                                     fontWeight: '600',
                                     color: '#111827'
                                 }}>Микрофон</h3>
                             </div>
 
-                            <div style={{ marginBottom: '16px' }}>
+                            <div style={{ marginBottom: '12px' }}>
                                 <label style={{
                                     display: 'block',
-                                    marginBottom: '8px',
-                                    fontSize: '12px',
+                                    marginBottom: '6px',
+                                    fontSize: '10px',
                                     fontWeight: '600',
                                     color: '#374151',
                                     textTransform: 'uppercase',
@@ -557,12 +615,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                     onChange={(e) => handleMicChange(e.target.value)}
                                     style={{
                                         width: '100%',
-                                        padding: '10px 14px',
+                                        padding: '8px 10px',
                                         border: '1px solid #d1d5db',
-                                        borderRadius: '8px',
+                                        borderRadius: '6px',
                                         background: '#ffffff',
                                         color: '#111827',
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         cursor: 'pointer'
                                     }}
                                 >
@@ -577,8 +635,8 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                             <div>
                                 <label style={{
                                     display: 'block',
-                                    marginBottom: '8px',
-                                    fontSize: '12px',
+                                    marginBottom: '6px',
+                                    fontSize: '10px',
                                     fontWeight: '600',
                                     color: '#374151',
                                     textTransform: 'uppercase',
@@ -587,12 +645,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                 <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px',
+                                    gap: '10px',
+                                    padding: '10px',
                                     background: '#f3f4f6',
-                                    borderRadius: '8px'
+                                    borderRadius: '6px'
                                 }}>
-                                    <i className="bi bi-volume-down-fill" style={{ fontSize: '18px', color: '#22c55e' }}></i>
+                                    <i className="bi bi-volume-down-fill" style={{ fontSize: '14px', color: '#22c55e' }}></i>
                                     <input
                                         type="range"
                                         min="0"
@@ -609,56 +667,56 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                         }}
                                     />
                                     <span style={{
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         fontWeight: '600',
                                         color: '#111827',
-                                        minWidth: '40px',
+                                        minWidth: '35px',
                                         textAlign: 'right'
                                     }}>{micVolume}%</span>
                                 </div>
                             </div>
 
-                            <AudioLevelBar level={micLevel} label="Ниво на вход" />
+                            <AudioLevelBar level={micLevel} />
                         </div>
 
                         {/* Speaker Section */}
                         <div style={{
                             background: '#f9fafb',
                             border: '1px solid #e5e7eb',
-                            borderRadius: '12px',
-                            padding: '20px',
-                            marginBottom: '16px'
+                            borderRadius: '10px',
+                            padding: '14px',
+                            marginBottom: '12px'
                         }}>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '12px',
-                                marginBottom: '16px'
+                                gap: '10px',
+                                marginBottom: '12px'
                             }}>
                                 <div style={{
-                                    width: '40px',
-                                    height: '40px',
+                                    width: '32px',
+                                    height: '32px',
                                     background: '#22c55e',
-                                    borderRadius: '8px',
+                                    borderRadius: '6px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <i className="bi bi-headphones" style={{ fontSize: '20px', color: '#ffffff' }}></i>
+                                    <i className="bi bi-headphones" style={{ fontSize: '16px', color: '#ffffff' }}></i>
                                 </div>
                                 <h3 style={{
                                     margin: 0,
-                                    fontSize: '16px',
+                                    fontSize: '13px',
                                     fontWeight: '600',
                                     color: '#111827'
                                 }}>Слушалки</h3>
                             </div>
 
-                            <div style={{ marginBottom: '16px' }}>
+                            <div style={{ marginBottom: '12px' }}>
                                 <label style={{
                                     display: 'block',
-                                    marginBottom: '8px',
-                                    fontSize: '12px',
+                                    marginBottom: '6px',
+                                    fontSize: '10px',
                                     fontWeight: '600',
                                     color: '#374151',
                                     textTransform: 'uppercase',
@@ -669,12 +727,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                     onChange={(e) => handleSpeakerChange(e.target.value)}
                                     style={{
                                         width: '100%',
-                                        padding: '10px 14px',
+                                        padding: '8px 10px',
                                         border: '1px solid #d1d5db',
-                                        borderRadius: '8px',
+                                        borderRadius: '6px',
                                         background: '#ffffff',
                                         color: '#111827',
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         cursor: 'pointer'
                                     }}
                                 >
@@ -689,8 +747,8 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                             <div>
                                 <label style={{
                                     display: 'block',
-                                    marginBottom: '8px',
-                                    fontSize: '12px',
+                                    marginBottom: '6px',
+                                    fontSize: '10px',
                                     fontWeight: '600',
                                     color: '#374151',
                                     textTransform: 'uppercase',
@@ -699,12 +757,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                 <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '12px',
+                                    gap: '10px',
+                                    padding: '10px',
                                     background: '#f3f4f6',
-                                    borderRadius: '8px'
+                                    borderRadius: '6px'
                                 }}>
-                                    <i className="bi bi-volume-up-fill" style={{ fontSize: '18px', color: '#22c55e' }}></i>
+                                    <i className="bi bi-volume-up-fill" style={{ fontSize: '14px', color: '#22c55e' }}></i>
                                     <input
                                         type="range"
                                         min="0"
@@ -721,49 +779,69 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                         }}
                                     />
                                     <span style={{
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         fontWeight: '600',
                                         color: '#111827',
-                                        minWidth: '40px',
+                                        minWidth: '35px',
                                         textAlign: 'right'
                                     }}>{speakerVolume}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Test Section */}
+                        {/* Speaker Test Section */}
                         <div style={{
                             background: '#fef3c7',
                             border: '1px solid #fbbf24',
-                            borderRadius: '12px',
-                            padding: '16px',
-                            marginBottom: '16px'
+                            borderRadius: '10px',
+                            padding: '12px',
+                            marginBottom: '12px'
                         }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginBottom: '10px'
+                            }}>
+                                <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', color: '#f59e0b' }}></i>
+                                <span style={{
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    color: '#92400e'
+                                }}>Тест на слушалки</span>
+                            </div>
+                            <p style={{
+                                margin: '0 0 10px 0',
+                                fontSize: '11px',
+                                color: '#78350f'
+                            }}>
+                                Натиснете бутона по-долу, за да чуете тестов сигнал и да проверите дали слушалките работят правилно.
+                            </p>
                             <button
                                 onClick={handleTestAudio}
-                                disabled={microphones.length === 0 || speakers.length === 0}
+                                disabled={speakers.length === 0 || isTesting}
                                 style={{
                                     width: '100%',
-                                    padding: '12px',
+                                    padding: '10px',
                                     background: isTesting ? '#fbbf24' : '#f59e0b',
                                     color: '#ffffff',
                                     border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
                                     fontWeight: '600',
-                                    cursor: microphones.length === 0 || speakers.length === 0 ? 'not-allowed' : 'pointer',
-                                    opacity: microphones.length === 0 || speakers.length === 0 ? 0.5 : 1,
+                                    cursor: speakers.length === 0 || isTesting ? 'not-allowed' : 'pointer',
+                                    opacity: speakers.length === 0 || isTesting ? 0.5 : 1,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '8px'
+                                    gap: '6px'
                                 }}
                             >
                                 {isTesting ? (
                                     <>
                                         <div style={{
-                                            width: '16px',
-                                            height: '16px',
+                                            width: '14px',
+                                            height: '14px',
                                             border: '2px solid #ffffff',
                                             borderTop: '2px solid transparent',
                                             borderRadius: '50%',
@@ -773,48 +851,30 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                     </>
                                 ) : (
                                     <>
-                                        <i className="bi bi-play-circle-fill" style={{ fontSize: '18px' }}></i>
-                                        Тествай устройства
+                                        <i className="bi bi-play-circle-fill" style={{ fontSize: '14px' }}></i>
+                                        Тествай слушалки
                                     </>
                                 )}
                             </button>
 
                             {testResults && (
                                 <div style={{
-                                    marginTop: '12px',
-                                    padding: '12px',
+                                    marginTop: '10px',
+                                    padding: '10px',
                                     background: '#ffffff',
-                                    borderRadius: '8px'
+                                    borderRadius: '6px'
                                 }}>
                                     <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '8px',
-                                        marginBottom: '8px'
-                                    }}>
-                                        <i className={`bi bi-${testResults.micWorking ? 'check-circle-fill' : 'x-circle-fill'}`}
-                                           style={{ fontSize: '18px', color: testResults.micWorking ? '#22c55e' : '#ef4444' }}></i>
-                                        <span style={{ fontSize: '14px', color: '#374151' }}>Микрофон</span>
-                                    </div>
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
+                                        gap: '6px'
                                     }}>
                                         <i className={`bi bi-${testResults.speakerWorking ? 'check-circle-fill' : 'x-circle-fill'}`}
-                                           style={{ fontSize: '18px', color: testResults.speakerWorking ? '#22c55e' : '#ef4444' }}></i>
-                                        <span style={{ fontSize: '14px', color: '#374151' }}>Слушалки</span>
+                                           style={{ fontSize: '14px', color: testResults.speakerWorking ? '#22c55e' : '#ef4444' }}></i>
+                                        <span style={{ fontSize: '12px', color: '#374151' }}>
+                                            {testResults.speakerWorking ? 'Слушалките работят правилно' : 'Проблем със слушалките'}
+                                        </span>
                                     </div>
-                                    {testResults.latency && (
-                                        <div style={{
-                                            marginTop: '8px',
-                                            fontSize: '12px',
-                                            color: '#6b7280',
-                                            textAlign: 'center'
-                                        }}>
-                                            Latency: {Math.round(testResults.latency)}ms
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -823,22 +883,22 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
                 {/* Footer Actions */}
                 <div style={{
-                    padding: '20px 32px',
+                    padding: '14px 20px',
                     borderTop: '1px solid #e5e7eb',
                     display: 'flex',
-                    gap: '12px',
+                    gap: '10px',
                     justifyContent: 'flex-end'
                 }}>
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
                         style={{
-                            padding: '10px 24px',
+                            padding: '8px 18px',
                             background: '#ffffff',
                             color: '#6b7280',
                             border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '14px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
                             fontWeight: '600',
                             cursor: isLoading ? 'not-allowed' : 'pointer',
                             opacity: isLoading ? 0.5 : 1
@@ -850,12 +910,12 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                         onClick={handleContinue}
                         disabled={isLoading || error || microphones.length === 0}
                         style={{
-                            padding: '10px 24px',
+                            padding: '8px 18px',
                             background: (isLoading || error || microphones.length === 0) ? '#d1d5db' : '#22c55e',
                             color: '#ffffff',
                             border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '14px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
                             fontWeight: '600',
                             cursor: (isLoading || error || microphones.length === 0) ? 'not-allowed' : 'pointer',
                             boxShadow: (isLoading || error || microphones.length === 0) ? 'none' : '0 2px 6px rgba(34, 197, 94, 0.3)'

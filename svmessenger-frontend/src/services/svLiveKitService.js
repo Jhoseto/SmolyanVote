@@ -418,16 +418,26 @@ class SVLiveKitService {
       // If LiveKit room is connected, update microphone
       if (this.room && this.isConnected) {
         try {
-          // First disable microphone
+          // First disable and unpublish existing microphone tracks
           await this.room.localParticipant.setMicrophoneEnabled(false);
           
-          // Create LocalAudioTrack with the selected device (use ideal, not exact)
-          const localAudioTrack = await LocalAudioTrack.createAudioTrack({
-            deviceId: deviceId ? { ideal: deviceId } : true,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          });
+          // Unpublish any existing microphone tracks
+          const existingTracks = Array.from(this.room.localParticipant.audioTrackPublications.values());
+          for (const publication of existingTracks) {
+            if (publication.track) {
+              await this.room.localParticipant.unpublishTrack(publication.track);
+            }
+          }
+          
+          // Get the audio track from the MediaStream we already created
+          const audioTracks = newStream.getAudioTracks();
+          if (audioTracks.length === 0) {
+            throw new Error('No audio track found in stream');
+          }
+          
+          // Create LocalAudioTrack from the MediaStreamTrack
+          const mediaStreamTrack = audioTracks[0];
+          const localAudioTrack = new LocalAudioTrack(mediaStreamTrack);
           
           // Publish the track
           await this.room.localParticipant.publishTrack(localAudioTrack, {
