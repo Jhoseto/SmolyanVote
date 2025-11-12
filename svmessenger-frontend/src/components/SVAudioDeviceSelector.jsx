@@ -122,7 +122,6 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                     svLiveKitService.selectedSpeaker = settings.speaker;
                 }
 
-                console.log('✅ Loaded saved audio settings:', settings);
             } catch (error) {
                 console.warn('Failed to load saved audio settings:', error);
             }
@@ -131,22 +130,16 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
     const saveSettings = (settings) => {
         try {
-            console.log('💾 Saving audio settings:', settings);
             
             // Try to save to localStorage
             try {
                 localStorage.setItem('svmessenger-audio-settings', JSON.stringify(settings));
-                console.log('✅ Audio settings saved to localStorage successfully');
                 
                 // Verify it was saved
                 const verify = localStorage.getItem('svmessenger-audio-settings');
                 if (verify) {
-                    console.log('✅ Verified: Settings are in localStorage');
-                } else {
-                    console.warn('⚠️ Warning: Settings not found in localStorage after save (might be incognito mode)');
                 }
             } catch (storageError) {
-                console.warn('⚠️ Failed to save to localStorage (might be incognito or storage disabled):', storageError);
                 // In incognito, localStorage might fail - we'll still use the settings in memory
             }
             
@@ -326,7 +319,6 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                 });
             } catch (exactError) {
                 // Fallback to default device if ideal fails
-                console.warn('⚠️ Failed to get stream with ideal device for visualization, trying default:', exactError);
                 stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: true,
@@ -429,9 +421,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             if (selectedSpeaker && 'setSinkId' in HTMLAudioElement.prototype) {
                 try {
                     await audioElement.setSinkId(selectedSpeaker);
-                    console.log('🔊 Using selected speaker device:', selectedSpeaker);
                 } catch (sinkError) {
-                    console.warn('⚠️ Failed to set sink ID, using default device:', sinkError);
                 }
             }
 

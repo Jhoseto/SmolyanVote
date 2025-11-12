@@ -53,13 +53,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const [currentCall, setCurrentCall] = useState(null);
     const [callState, setCallState] = useState('idle'); // 'idle', 'outgoing', 'incoming', 'connected'
 
-    // Store call state and debug functions for testing
-    useEffect(() => {
-        window.svmessenger_call_state = callState;
-        window.svmessenger_active_call = currentCall !== null;
-        window.svmessenger_runFullTest = svLiveKitService.runFullTest.bind(svLiveKitService);
-        window.svmessenger_runCallFlowTest = svLiveKitService.runCallFlowTest.bind(svLiveKitService);
-    }, [callState, currentCall]);
     const [liveKitToken, setLiveKitToken] = useState(null);
     const [liveKitRoom, setLiveKitRoom] = useState(null);
 
@@ -175,25 +168,14 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     try {
                         const parsed = JSON.parse(savedSettings);
                         hasSavedSettings = !!(parsed.microphone && parsed.speaker);
-                        console.log('📞 Checking saved settings:', {
-                            hasSettings: hasSavedSettings,
-                            microphone: parsed.microphone ? 'set' : 'missing',
-                            speaker: parsed.speaker ? 'set' : 'missing',
-                            fullSettings: parsed
-                        });
                     } catch (parseError) {
-                        console.warn('⚠️ Failed to parse saved settings:', parseError);
                         hasSavedSettings = false;
                     }
-                } else {
-                    console.log('📞 No saved settings in localStorage');
                 }
             } catch (storageError) {
-                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
                 // Check if we have settings in service memory as fallback
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
-                    console.log('📞 Using settings from service memory:', serviceDevices);
                     hasSavedSettings = true;
                     savedSettings = JSON.stringify({
                         microphone: serviceDevices.microphone,
@@ -205,25 +187,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
             }
 
             if (hasSavedSettings) {
-                console.log('✅ Using saved audio settings, proceeding with call...');
                 // Apply saved settings to LiveKit service
                 const settings = JSON.parse(savedSettings);
-                console.log('📞 Applying settings:', {
-                    microphone: settings.microphone,
-                    speaker: settings.speaker
-                });
                 
                 if (settings.microphone) {
-                    console.log('📞 Setting microphone to:', settings.microphone);
                     await svLiveKitService.setMicrophone(settings.microphone);
                 }
                 if (settings.speaker) {
-                    console.log('📞 Setting speaker to:', settings.speaker);
                     await svLiveKitService.setSpeaker(settings.speaker);
                 }
                 await proceedWithCallStart(conversationId, otherUserId, conversation);
             } else {
-                console.log('🎤 No saved settings, showing device selector...');
                 // Show device selector and store pending action
                 setPendingCallAction({
                     type: 'start',
@@ -243,16 +217,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
         try {
             const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
 
-            console.log('📞 Call start - generated token for room:', tokenResponse.roomName);
-
             setLiveKitToken(tokenResponse.token);
             // Expose token on window as a fallback for race conditions between setting React state and incoming WS signals
             try {
                 window.__sv_livekit_token = tokenResponse.token;
                 window.liveKitToken = tokenResponse.token; // Additional fallback
-                console.log('📞 Token exposed on window for race condition protection');
             } catch (e) {
-                console.warn('Failed to expose token on window:', e);
+                // Silently fail
             }
 
             const callData = {
@@ -261,10 +232,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 roomName: tokenResponse.roomName,
                 conversation: conversation
             };
-            console.log('📞 Setting currentCall for outgoing call:', callData);
             setCurrentCall(callData);
             setCallState('outgoing');
-            console.log('📞 Call state set to outgoing for conversation:', conversationId);
 
             const signal = {
                 eventType: 'CALL_REQUEST',
@@ -277,7 +246,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 callerAvatar: currentUser.imageUrl
             };
 
-            console.log('📤 Sending CALL_REQUEST signal - room:', tokenResponse.roomName);
             svWebSocketService.sendCallSignal(signal);
 
         } catch (error) {
@@ -288,8 +256,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const acceptCall = useCallback(async () => {
         try {
-            console.log('📞 acceptCall called - currentCall:', currentCall, 'callState:', callState);
-
             // Check if we have saved audio settings
             let savedSettings = null;
             let hasSavedSettings = false;
@@ -300,25 +266,14 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     try {
                         const parsed = JSON.parse(savedSettings);
                         hasSavedSettings = !!(parsed.microphone && parsed.speaker);
-                        console.log('📞 Checking saved settings for accept:', {
-                            hasSettings: hasSavedSettings,
-                            microphone: parsed.microphone ? 'set' : 'missing',
-                            speaker: parsed.speaker ? 'set' : 'missing',
-                            fullSettings: parsed
-                        });
                     } catch (parseError) {
-                        console.warn('⚠️ Failed to parse saved settings:', parseError);
                         hasSavedSettings = false;
                     }
-                } else {
-                    console.log('📞 No saved settings in localStorage for accept');
                 }
             } catch (storageError) {
-                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
                 // Check if we have settings in service memory as fallback
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
-                    console.log('📞 Using settings from service memory for accept:', serviceDevices);
                     hasSavedSettings = true;
                     savedSettings = JSON.stringify({
                         microphone: serviceDevices.microphone,
@@ -330,25 +285,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
             }
 
             if (hasSavedSettings) {
-                console.log('✅ Using saved audio settings for call accept...');
                 // Apply saved settings to LiveKit service
                 const settings = JSON.parse(savedSettings);
-                console.log('📞 Applying settings for accept:', {
-                    microphone: settings.microphone,
-                    speaker: settings.speaker
-                });
                 
                 if (settings.microphone) {
-                    console.log('📞 Setting microphone to:', settings.microphone);
                     await svLiveKitService.setMicrophone(settings.microphone);
                 }
                 if (settings.speaker) {
-                    console.log('📞 Setting speaker to:', settings.speaker);
                     await svLiveKitService.setSpeaker(settings.speaker);
                 }
                 await proceedWithCallAccept();
             } else {
-                console.log('🎤 No saved settings, showing device selector for call accept...');
                 // Show device selector and store pending action
                 setPendingCallAction({
                     type: 'accept',
@@ -366,8 +313,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     // Helper function to proceed with call accept after permissions are granted
     const proceedWithCallAccept = useCallback(async () => {
         try {
-            console.log('📞 proceedWithCallAccept called - currentCall:', currentCall, 'callState:', callState);
-
             // CRITICAL: Use the SAME room name that was sent in CALL_REQUEST signal
             // DO NOT generate a new token - use the room name from currentCall
             const roomName = currentCall.roomName;
@@ -375,14 +320,11 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 throw new Error('Missing room name for call accept');
             }
 
-            console.log('📞 Proceeding with call accept - room:', roomName);
-
             // Generate token for accepting the call (using same conversation and room name)
             const tokenResponse = await svMessengerAPI.getCallToken(currentCall.conversationId, currentCall.otherUserId);
 
             // Ensure the room name matches what caller expects
             if (tokenResponse.roomName !== roomName) {
-                console.warn('⚠️ Room name mismatch:', { expected: roomName, got: tokenResponse.roomName });
                 // Override with the correct room name for this call
                 tokenResponse.roomName = roomName;
             }
@@ -400,14 +342,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 timestamp: new Date().toISOString()
             };
             svWebSocketService.sendCallSignal(signal);
-            console.log('📤 CALL_ACCEPT signal sent to caller - room:', roomName);
-
             // Now update state and connect to LiveKit
-            console.log('📞 Setting callState to connected for receiver');
             setCallState('connected');
 
             // Connect to LiveKit room
-            console.log('📞 Connecting receiver to LiveKit room:', tokenResponse.roomName);
             await connectToLiveKit(tokenResponse);
 
         } catch (error) {
@@ -418,20 +356,17 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // Open device selector for settings
     const openAudioSettings = useCallback(() => {
-        console.log('🎵 Opening audio settings modal');
         setDeviceSelectorMode('settings');
         setShowDeviceSelector(true);
     }, []);
 
     // Audio device selector handlers
     const handleDeviceSelectorComplete = useCallback(async (devices) => {
-        console.log('🎤 Device selector completed:', devices, 'mode:', deviceSelectorMode);
         setShowDeviceSelector(false);
 
         if (deviceSelectorMode === 'settings') {
             // Just save settings, no call action
             setDeviceSelectorMode('call');
-            console.log('✅ Audio settings saved');
         } else if (pendingCallAction) {
             // Handle call actions
             const { type, data } = pendingCallAction;
@@ -446,7 +381,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [deviceSelectorMode, pendingCallAction]);
 
     const handleDeviceSelectorCancel = useCallback(() => {
-        console.log('🎤 Device selector cancelled');
         setShowDeviceSelector(false);
         setDeviceSelectorMode('call');
         setPendingCallAction(null);
@@ -478,7 +412,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [currentCall, currentUser]);
 
     const endCall = useCallback(() => {
-        console.log('📞 endCall called, currentCall:', currentCall);
 
         // Use functional setState to get latest currentCall value
         setCurrentCall(currentCallValue => {
@@ -498,7 +431,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         roomName: currentCallValue.roomName,
                         timestamp: new Date().toISOString()
                     };
-                    console.log('📞 Sending CALL_END signal:', signal);
                     svWebSocketService.sendCallSignal(signal);
                     
                     return 'idle'; // Reset call state
@@ -529,7 +461,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
             try {
                 savedSettings = localStorage.getItem('svmessenger-audio-settings');
             } catch (storageError) {
-                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
                 // Check service memory as fallback
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
@@ -539,46 +470,33 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         micVolume: 75,
                         speakerVolume: 80
                     });
-                    console.log('📞 Using settings from service memory after connection');
                 }
             }
             
             if (savedSettings) {
                 try {
                     const settings = JSON.parse(savedSettings);
-                    console.log('📞 Applying saved audio settings after LiveKit connection:', settings);
 
                     // Apply microphone first
                     if (settings.microphone) {
-                        console.log('📞 Setting microphone to saved device:', settings.microphone);
                         await svLiveKitService.setMicrophone(settings.microphone);
-                    } else {
-                        console.warn('⚠️ No microphone in saved settings');
                     }
 
                     // Apply speaker
                     if (settings.speaker) {
-                        console.log('📞 Setting speaker to saved device:', settings.speaker);
                         await svLiveKitService.setSpeaker(settings.speaker);
-                    } else {
-                        console.warn('⚠️ No speaker in saved settings');
                     }
-
-                    // Note: Volume settings are applied through the audio stream constraints
-                    // and are handled automatically by LiveKit
                 } catch (settingsError) {
-                    console.warn('Failed to apply saved audio settings after LiveKit connection:', settingsError);
+                    // Silently fail
                 }
             } else {
-                console.log('📞 No saved audio settings found - using default devices');
                 // Try to enable default microphone
                 try {
                     if (svLiveKitService.room && svLiveKitService.isConnected) {
                         await svLiveKitService.room.localParticipant.setMicrophoneEnabled(true);
-                        console.log('✅ Default microphone enabled');
                     }
                 } catch (error) {
-                    console.warn('⚠️ Failed to enable default microphone:', error);
+                    // Silently fail
                 }
             }
         } catch (error) {
@@ -588,25 +506,19 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const handleCallSignal = useCallback(async (signal) => {
-        console.log('📞 RECEIVED call signal:', signal);
-        console.log('📞 Signal details - eventType:', signal.eventType, 'callerId:', signal.callerId, 'receiverId:', signal.receiverId);
-
         switch (signal.eventType) {
             case 'TEST_SIGNAL':
-                console.log('🧪 RECEIVED TEST SIGNAL:', signal);
-                console.log('🧪 Test message:', signal.message, 'Test ID:', signal.testId);
+                // Test signal - ignore
                 break;
 
             case 'CALL_REQUEST':
                 if (signal.receiverId === currentUser.id) {
-                    console.log('📞 Incoming call from user:', signal.callerId);
 
                     // Try to find conversation in current loaded conversations
                     let conversation = conversations.find(conv => conv.id === signal.conversationId);
 
                     // If not found, try to load it from backend
                     if (!conversation) {
-                        console.log('📞 Conversation not found locally, trying to load from backend...');
                         try {
                             // Try to start a new conversation or get existing one
                             const newConversation = await svMessengerAPI.startConversation(signal.callerId);
@@ -620,35 +532,29 @@ export const SVMessengerProvider = ({ children, userData }) => {
                                     }
                                     return prev;
                                 });
-                                console.log('📞 Conversation loaded/created successfully');
                             }
                         } catch (error) {
-                            console.error('📞 Failed to load/create conversation:', error);
+                            console.error('Failed to load/create conversation:', error);
                             // Try to reload all conversations as fallback
                             try {
-                                console.log('📞 Reloading all conversations as fallback...');
                                 const conversationsData = await svMessengerAPI.getConversations();
                                 setConversations(conversationsData);
                                 conversation = conversationsData.find(conv => conv.id === signal.conversationId);
-                                console.log('📞 Conversation found in reloaded data:', !!conversation);
                             } catch (reloadError) {
-                                console.error('📞 Failed to reload conversations:', reloadError);
+                                console.error('Failed to reload conversations:', reloadError);
                             }
                         }
                     }
 
                     if (conversation) {
-                        console.log('📞 Showing incoming call modal');
                         const callData = {
                             conversationId: signal.conversationId,
                             otherUserId: signal.callerId,
                             roomName: signal.roomName,
                             conversation: conversation
                         };
-                        console.log('📞 Setting currentCall for incoming call:', callData);
                         setCurrentCall(callData);
                         setCallState('incoming');
-                        console.log('📞 Call state set to incoming for conversation:', signal.conversationId);
 
                         // Ensure chat window/modal is opened and focused so user sees incoming call UI
                         try {
@@ -900,12 +806,10 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     const handleWebSocketConnect = useCallback(() => {
         setIsWebSocketConnected(true);
-        window.svmessenger_ws_connected = true;
     }, []);
 
     const handleWebSocketDisconnect = useCallback(() => {
         setIsWebSocketConnected(false);
-        window.svmessenger_ws_connected = false;
     }, []);
 
     const handleWebSocketError = useCallback((error) => {

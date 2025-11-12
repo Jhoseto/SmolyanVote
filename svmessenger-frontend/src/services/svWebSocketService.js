@@ -161,21 +161,7 @@ class SVWebSocketService {
           (message) => {
               try {
                   const data = JSON.parse(message.body);
-                  console.log('Received call signal via WS:', data);
 
-                  // Store for debugging
-                  if (!window.svmessenger_ws_messages) {
-                      window.svmessenger_ws_messages = [];
-                  }
-                  window.svmessenger_ws_messages.push({
-                      type: 'call_signal',
-                      data: data,
-                      timestamp: new Date().toISOString()
-                  });
-                  // Keep only last 50 messages
-                  if (window.svmessenger_ws_messages.length > 50) {
-                      window.svmessenger_ws_messages = window.svmessenger_ws_messages.slice(-50);
-                  }
 
                   if (onCallSignal && typeof onCallSignal === 'function') {
                       onCallSignal(data);
@@ -341,24 +327,20 @@ class SVWebSocketService {
    * Изпрати call signal през WebSocket
    */
   sendCallSignal(signal) {
-    console.log('📤 SEND CALL SIGNAL - EventType:', signal.eventType, 'Connected:', this.connected, 'Client:', !!this.client);
 
     if (!this.connected || !this.client) {
-      console.warn('❌ Cannot send call signal - not connected');
-      console.log('❌ Connection status:', { connected: this.connected, client: !!this.client, clientConnected: this.client?.connected });
+      console.warn('Cannot send call signal - not connected');
       return false;
     }
 
     try {
-      console.log('📤 Publishing to /app/svmessenger/call-signal:', signal);
       this.client.publish({
         destination: '/app/svmessenger/call-signal',
         body: JSON.stringify(signal)
       });
-      console.log('✅ Call signal published successfully');
       return true;
     } catch (error) {
-      console.error('❌ Error sending call signal:', error);
+      console.error('Error sending call signal:', error);
       return false;
     }
   }
