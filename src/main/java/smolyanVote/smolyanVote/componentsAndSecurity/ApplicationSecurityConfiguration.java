@@ -122,7 +122,8 @@ public class ApplicationSecurityConfiguration {
                         // 3. Handshake е автоматичен процес, не може да се манипулира от malicious сайтове
                         // 4. WebSocket връзките изискват valid session cookies
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat",
-                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
+                                "/api/svmessenger/call/**", "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**",
+                                "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository)
                 );
 

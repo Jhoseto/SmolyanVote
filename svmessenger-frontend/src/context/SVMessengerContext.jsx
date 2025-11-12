@@ -186,7 +186,6 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 if (settings.speaker) {
                     await svLiveKitService.setSpeaker(settings.speaker);
                 }
-                console.log('🎯 About to call proceedWithCallStart...');
                 await proceedWithCallStart(conversationId, otherUserId, conversation);
             } else {
                 console.log('🎤 No saved settings, showing device selector...');
@@ -206,22 +205,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
 
     // Helper function to proceed with call after permissions are granted
     const proceedWithCallStart = useCallback(async (conversationId, otherUserId, conversation) => {
-        console.log('🚀 proceedWithCallStart called:', { conversationId, otherUserId });
         try {
-            console.log('📡 Getting call token...');
             const tokenResponse = await svMessengerAPI.getCallToken(conversationId, otherUserId);
-            console.log('✅ Token received:', tokenResponse);
 
             setLiveKitToken(tokenResponse.token);
             // Expose token on window as a fallback for race conditions between setting React state and incoming WS signals
             try { window.__sv_livekit_token = tokenResponse.token; } catch (e) { /* ignore */ }
-
-            console.log('🔗 Connecting to LiveKit...');
-            // Connect to LiveKit room BEFORE sending CALL_REQUEST
-            await connectToLiveKit(tokenResponse);
-            console.log('✅ LiveKit connected');
-
-            console.log('📞 Setting current call state...');
             setCurrentCall({
                 conversationId,
                 otherUserId,
@@ -229,9 +218,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 conversation: conversation
             });
             setCallState('outgoing');
-            console.log('✅ Call state set to outgoing');
 
-            console.log('📤 Sending CALL_REQUEST signal...');
             const signal = {
                 eventType: 'CALL_REQUEST',
                 conversationId,
@@ -243,14 +230,12 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 callerAvatar: currentUser.imageUrl
             };
             svWebSocketService.sendCallSignal(signal);
-            console.log('✅ CALL_REQUEST sent');
 
         } catch (error) {
-            console.error('❌ Failed to proceed with call start:', error);
-            console.error('❌ Error details:', error.stack);
+            console.error('Failed to proceed with call start:', error);
             setCallState('idle');
         }
-    }, [currentUser, connectToLiveKit]);
+    }, [currentUser]);
 
     const acceptCall = useCallback(async () => {
         try {
@@ -308,8 +293,8 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const signal = {
                 eventType: 'CALL_ACCEPT',
                 conversationId: currentCall.conversationId,
-                callerId: currentCall.otherUserId,  // Оригиналният caller (този който е звънял)
-                receiverId: currentUser.id,  // Аз съм receiver-а
+                callerId: currentCall.otherUserId,
+                receiverId: currentUser.id,
                 roomName: currentCall.roomName,
                 timestamp: new Date().toISOString()
             };
@@ -512,15 +497,30 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 if (callState === 'outgoing' && signal.callerId === currentUser.id) {
                     console.log('✅ CALL_ACCEPT validated - updating to connected state');
                     setCallState('connected');
-
-                    // Ensure the chat window is open and focused so the connected UI is visible
-                    try {
-                        const convId = signal.conversationId;
-                        if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
-                            window.SVMessenger.openChat(convId);
+                    
+                    // Connect to LiveKit room if we have a token
+                    // Use React state token if available, otherwise fallback to globally exposed tokens
+                    const tokenToUse = liveKitToken || window.__sv_livekit_token || window.liveKitToken || null;
+                    if (tokenToUse && signal.roomName) {
+                        console.log('📞 Connecting to LiveKit room (using token fallback):', signal.roomName);
+                        connectToLiveKit({
+                            token: tokenToUse,
+                            roomName: signal.roomName
+                        }).catch(error => {
+                            console.error('❌ Failed to connect to LiveKit:', error);
+                        });
+                        
+                        // Ensure the chat window is open and focused so the connected UI is visible
+                        try {
+                            const convId = signal.conversationId;
+                            if (window.SVMessenger && typeof window.SVMessenger.openChat === 'function') {
+                                window.SVMessenger.openChat(convId);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
                         }
-                    } catch (e) {
-                        console.warn('Failed to auto-open chat on CALL_ACCEPT:', e);
+                    } else {
+                        console.warn('⚠️ Missing liveKitToken or roomName for CALL_ACCEPT (even after fallback)', { liveKitToken, tokenToUse, roomName: signal.roomName });
                     }
                 } else {
                     console.warn('⚠️ CALL_ACCEPT ignored - callState:', callState, 'callerId match:', signal.callerId === currentUser.id);
