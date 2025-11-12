@@ -58,14 +58,45 @@ export const linkifyText = (text) => {
 
 /**
  * Get initials от name (за fallback avatar)
+ * Правилно обработва emoji и специални символи
  */
 export const getInitials = (name) => {
   if (!name) return '?';
-  const parts = name.trim().split(' ');
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+  
+  // Премахни emoji и специални символи за по-добро показване
+  const cleanName = name.trim();
+  
+  // Ако е само emoji, върни първия символ
+  if (/^[\p{Emoji}\s]+$/u.test(cleanName)) {
+    return cleanName.charAt(0).toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  
+  // Раздели по интервали
+  const parts = cleanName.split(/\s+/).filter(part => part.length > 0);
+  
+  if (parts.length >= 2) {
+    // Вземи първата буква от първите 2 думи (без emoji)
+    const first = parts[0].replace(/[\p{Emoji}]/gu, '').charAt(0);
+    const second = parts[1].replace(/[\p{Emoji}]/gu, '').charAt(0);
+    if (first && second) {
+      return (first + second).toUpperCase();
+    }
+    if (first) return first.toUpperCase();
+    if (second) return second.toUpperCase();
+  }
+  
+  // Ако има само една дума, вземи първите 2 букви (без emoji)
+  const singleWord = parts[0] || cleanName;
+  const letters = singleWord.replace(/[\p{Emoji}]/gu, '').substring(0, 2);
+  if (letters.length >= 2) {
+    return letters.toUpperCase();
+  }
+  if (letters.length === 1) {
+    return letters.toUpperCase();
+  }
+  
+  // Fallback: първия символ (дори и emoji)
+  return cleanName.charAt(0).toUpperCase();
 };
 
 /**

@@ -79,6 +79,10 @@
 /* Call Status */
 .svmessenger-call-status {
   margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .svmessenger-call-title {
@@ -94,20 +98,191 @@
   margin-bottom: 12px;
 }
 
-/* Pulse Animation for Incoming/Outgoing */
-.svmessenger-call-icon {
-  animation: callPulse 2s infinite;
-  color: #22c55e;
+/* Modern calling animation - ripple effects with gradient glow (same as popup) */
+.svmessenger-call-calling-animation {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 8px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes callPulse {
+.svmessenger-call-ripple-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svmessenger-call-ripple {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid #22c55e;
+  opacity: 0;
+  animation: svmessengerRippleExpand 2.5s infinite ease-out;
+}
+
+.svmessenger-call-ripple.ripple-1 {
+  animation-delay: 0s;
+  border-color: rgba(34, 197, 94, 0.8);
+}
+
+.svmessenger-call-ripple.ripple-2 {
+  animation-delay: 0.5s;
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+.svmessenger-call-ripple.ripple-3 {
+  animation-delay: 1s;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.svmessenger-call-ripple.ripple-4 {
+  animation-delay: 1.5s;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+@keyframes svmessengerRippleExpand {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Gradient glow core */
+.svmessenger-call-glow-core {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.1) 50%, transparent 100%);
+  animation: svmessengerGlowPulse 2s infinite ease-in-out;
+  z-index: 1;
+}
+
+.svmessenger-call-glow-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.6) 0%, transparent 70%);
+  animation: svmessengerInnerPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes svmessengerGlowPulse {
   0%, 100% {
     transform: scale(1);
-    opacity: 1;
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.9;
+  }
+}
+
+@keyframes svmessengerInnerPulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
   }
   50% {
     transform: scale(1.1);
-    opacity: 0.7;
+    opacity: 1;
+  }
+}
+
+/* Floating particles */
+.svmessenger-call-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.svmessenger-call-particles .particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #22c55e;
+  border-radius: 50%;
+  opacity: 0;
+  animation: svmessengerParticleFloat 3s infinite ease-out;
+}
+
+.svmessenger-call-particles .particle-1 {
+  top: 20%;
+  left: 50%;
+  animation-delay: 0s;
+  --tx: 15px;
+  --ty: -35px;
+}
+
+.svmessenger-call-particles .particle-2 {
+  top: 30%;
+  right: 20%;
+  animation-delay: 0.5s;
+  --tx: -20px;
+  --ty: -25px;
+}
+
+.svmessenger-call-particles .particle-3 {
+  bottom: 30%;
+  right: 25%;
+  animation-delay: 1s;
+  --tx: -15px;
+  --ty: 30px;
+}
+
+.svmessenger-call-particles .particle-4 {
+  bottom: 20%;
+  left: 50%;
+  animation-delay: 1.5s;
+  --tx: 20px;
+  --ty: 35px;
+}
+
+.svmessenger-call-particles .particle-5 {
+  top: 50%;
+  left: 20%;
+  animation-delay: 0.3s;
+  --tx: 25px;
+  --ty: -20px;
+}
+
+.svmessenger-call-particles .particle-6 {
+  top: 50%;
+  right: 20%;
+  animation-delay: 0.8s;
+  --tx: -25px;
+  --ty: -20px;
+}
+
+@keyframes svmessengerParticleFloat {
+  0% {
+    transform: translate(0, 0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(var(--tx, 0), var(--ty, -40px)) scale(1);
+    opacity: 0;
   }
 }
 
@@ -140,7 +315,7 @@
 .svmessenger-call-btn-accept {
   background: #ffffff;
   color: #22c55e;
-  border: 3px solid #22c55e;
+  border: 1px solid #22c55e;
 }
 
 .svmessenger-call-btn-accept:hover {
@@ -150,11 +325,17 @@
   box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
 }
 
+.svmessenger-call-btn-accept:hover i.accept-icon {
+  color: #ffffff;
+  -webkit-text-stroke: 1px #ffffff;
+  -webkit-text-fill-color: transparent;
+}
+
 .svmessenger-call-btn-reject,
 .svmessenger-call-btn-end {
   background: #ffffff;
   color: #ef4444;
-  border: 3px solid #ef4444;
+  border: 1px solid #ef4444;
 }
 
 .svmessenger-call-btn-reject:hover,
@@ -165,10 +346,17 @@
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
+.svmessenger-call-btn-reject:hover i.reject-icon,
+.svmessenger-call-btn-end:hover i.end-icon {
+  color: #ffffff;
+  -webkit-text-stroke: 1px #ffffff;
+  -webkit-text-fill-color: transparent;
+}
+
 .svmessenger-call-btn-mute {
   background: #ffffff;
   color: #6b7280;
-  border: 2px solid #d1d5db;
+  border: 1px solid #d1d5db;
 }
 
 .svmessenger-call-btn-mute:hover {
@@ -176,15 +364,71 @@
   border-color: #9ca3af;
 }
 
+.svmessenger-call-btn-mute:hover i.active-icon {
+  color: #ffffff;
+  -webkit-text-stroke: 1px #ffffff;
+  -webkit-text-fill-color: transparent;
+}
+
 .svmessenger-call-btn-mute.muted {
-  background: #ffffff;
-  color: #f59e0b;
-  border-color: #f59e0b;
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  color: #ffffff;
 }
 
 .svmessenger-call-btn-mute.muted:hover {
-  background: #f59e0b;
+  background: #dc2626;
+  border-color: #dc2626;
   color: #ffffff;
+}
+
+.svmessenger-call-btn-mute.muted:hover i.muted-icon {
+  color: #ffffff;
+  -webkit-text-stroke: 1px #ffffff;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Icons with outline style (контури) - максимално тънки 1px */
+.svmessenger-call-btn-mute i,
+.svmessenger-call-btn-accept i,
+.svmessenger-call-btn-reject i,
+.svmessenger-call-btn-end i {
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.svmessenger-call-btn-mute i.active-icon {
+  color: #22c55e;
+  font-weight: 400;
+  -webkit-text-stroke: 1px #22c55e;
+  -webkit-text-fill-color: transparent;
+  paint-order: stroke fill;
+}
+
+.svmessenger-call-btn-mute i.muted-icon {
+  color: #ef4444;
+  font-weight: 400;
+  -webkit-text-stroke: 1px #ef4444;
+  -webkit-text-fill-color: transparent;
+  paint-order: stroke fill;
+}
+
+.svmessenger-call-btn-accept i.accept-icon {
+  color: #22c55e;
+  font-weight: 400;
+  -webkit-text-stroke: 1px #22c55e;
+  -webkit-text-fill-color: transparent;
+  paint-order: stroke fill;
+}
+
+.svmessenger-call-btn-reject i.reject-icon,
+.svmessenger-call-btn-end i.end-icon {
+  color: #ef4444;
+  font-weight: 400;
+  -webkit-text-stroke: 1px #ef4444;
+  -webkit-text-fill-color: transparent;
+  paint-order: stroke fill;
 }
 
 /* Mobile Responsiveness */

@@ -14,7 +14,7 @@ const CallWindowApp = ({ callData }) => {
         console.log('🎬 CallWindowApp component mounted with callState:', callData.callState);
     }, []); // Empty dependency array - only run once
     
-    const [callState, setCallState] = useState(callData.callState); // 'outgoing', 'incoming', 'connected'
+    const [callState, setCallState] = useState(callData.callState); // 'outgoing', 'incoming', 'connected', 'rejected', 'ended'
     const [callDuration, setCallDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
@@ -26,6 +26,7 @@ const CallWindowApp = ({ callData }) => {
     const selectedSpeakerRef = useRef(null);
     const callChannelRef = useRef(null);
     const durationIntervalRef = useRef(null);
+    const callSoundRef = useRef(null);
 
     // Зареди настройките на аудиото от localStorage
     useEffect(() => {
@@ -579,6 +580,13 @@ const CallWindowApp = ({ callData }) => {
         console.log('  - Current isConnected:', isConnected);
         console.log('  - Conversation ID:', callData.conversationId);
         
+        // Stop call sound
+        if (callSoundRef.current) {
+            callSoundRef.current.pause();
+            callSoundRef.current.currentTime = 0;
+            callSoundRef.current = null;
+        }
+        
         // Send CALL_END signal via WebSocket (if we have connection info)
         // We need to send this before closing to notify the other party
         try {
@@ -613,15 +621,38 @@ const CallWindowApp = ({ callData }) => {
     }, [callData, disconnectFromLiveKit, callState, isConnected]);
 
     // Handle mute toggle
-    const handleMuteToggle = useCallback(() => {
+    const handleMuteToggle = useCallback(async () => {
         const newMutedState = !isMuted;
         setIsMuted(newMutedState);
 
         if (roomRef.current && roomRef.current.isConnected) {
-            if (newMutedState) {
-                roomRef.current.localParticipant.setMicrophoneEnabled(false);
-            } else {
-                roomRef.current.localParticipant.setMicrophoneEnabled(true);
+            try {
+                // Get all audio track publications
+                const audioPublications = Array.from(roomRef.current.localParticipant.audioTrackPublications.values());
+                
+                if (newMutedState) {
+                    // Mute: disable all audio tracks
+                    for (const publication of audioPublications) {
+                        if (publication.track) {
+                            publication.track.setEnabled(false);
+                        }
+                    }
+                    // Also use LiveKit's method as fallback
+                    await roomRef.current.localParticipant.setMicrophoneEnabled(false);
+                    console.log('🔇 Microphone muted');
+                } else {
+                    // Unmute: enable all audio tracks
+                    for (const publication of audioPublications) {
+                        if (publication.track) {
+                            publication.track.setEnabled(true);
+                        }
+                    }
+                    // Also use LiveKit's method as fallback
+                    await roomRef.current.localParticipant.setMicrophoneEnabled(true);
+                    console.log('🔊 Microphone unmuted');
+                }
+            } catch (error) {
+                console.error('❌ Error toggling microphone:', error);
             }
         }
 
@@ -633,6 +664,93 @@ const CallWindowApp = ({ callData }) => {
             });
         }
     }, [isMuted]);
+
+    // Play call sound based on call state
+    useEffect(() => {
+        const playSound = async (soundPath) => {
+            try {
+                const audio = new Audio(soundPath);
+                audio.loop = true;
+                audio.volume = 0.7;
+                
+                // Preload audio
+                audio.preload = 'auto';
+                
+                // Try to play immediately
+                let playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    await playPromise;
+                    callSoundRef.current = audio;
+                    console.log('✅ Call sound started:', soundPath);
+                }
+            } catch (err) {
+                console.warn('⚠️ Failed to play call sound (autoplay blocked?):', err);
+                
+                // For incoming calls, try to play after user interaction
+                if (callState === 'incoming') {
+                    // Create a one-time click handler to start the sound
+                    const startSoundOnInteraction = async () => {
+                        try {
+                            const audio = new Audio(soundPath);
+                            audio.loop = true;
+                            audio.volume = 0.7;
+                            await audio.play();
+                            callSoundRef.current = audio;
+                            console.log('✅ Call sound started after user interaction');
+                            
+                            // Remove listeners after first interaction
+                            document.removeEventListener('click', startSoundOnInteraction);
+                            document.removeEventListener('touchstart', startSoundOnInteraction);
+                            window.removeEventListener('focus', startSoundOnInteraction);
+                        } catch (e) {
+                            console.error('❌ Failed to play sound even after interaction:', e);
+                        }
+                    };
+                    
+                    // Try multiple interaction types
+                    document.addEventListener('click', startSoundOnInteraction, { once: true });
+                    document.addEventListener('touchstart', startSoundOnInteraction, { once: true });
+                    window.addEventListener('focus', startSoundOnInteraction, { once: true });
+                    
+                    // Also try when window gets focus
+                    if (document.hasFocus()) {
+                        setTimeout(() => startSoundOnInteraction(), 100);
+                    }
+                }
+            }
+        };
+
+        if (callState === 'outgoing') {
+            // Play outgoing call sound
+            playSound('/svmessenger/sounds/OutCall.mp3');
+        } else if (callState === 'incoming') {
+            // Play incoming call sound
+            // For incoming, also try to focus the window first
+            if (window.focus) {
+                window.focus();
+            }
+            playSound('/svmessenger/sounds/IncomingCall.mp3');
+        } else if (callState === 'connected' && callSoundRef.current) {
+            // Stop sound when connected
+            callSoundRef.current.pause();
+            callSoundRef.current.currentTime = 0;
+            callSoundRef.current = null;
+        } else if (callState === 'rejected' && callSoundRef.current) {
+            // Stop sound when rejected
+            callSoundRef.current.pause();
+            callSoundRef.current.currentTime = 0;
+            callSoundRef.current = null;
+        }
+
+        return () => {
+            if (callSoundRef.current) {
+                callSoundRef.current.pause();
+                callSoundRef.current.currentTime = 0;
+                callSoundRef.current = null;
+            }
+        };
+    }, [callState]);
 
     // Connect when component mounts (only for connected calls, not outgoing)
     useEffect(() => {
@@ -683,8 +801,37 @@ const CallWindowApp = ({ callData }) => {
                 console.log('📞 CALL_END received in popup:', signal);
                 // Check if this CALL_END is for our call
                 if (signal.conversationId === callData.conversationId) {
-                    console.log('📞 CALL_END matches our call, ending...');
-                    handleEndCall();
+                    console.log('📞 CALL_END matches our call, showing rejection animation...');
+                    // Show rejection animation and close after 3 seconds
+                    setCallState('rejected');
+                    // Stop call sound
+                    if (callSoundRef.current) {
+                        callSoundRef.current.pause();
+                        callSoundRef.current.currentTime = 0;
+                        callSoundRef.current = null;
+                    }
+                    // Close after 3 seconds
+                    setTimeout(() => {
+                        handleEndCall();
+                    }, 3000);
+                }
+            } else if (signal.eventType === 'CALL_REJECT') {
+                console.log('📞 CALL_REJECT received in popup:', signal);
+                // Check if this CALL_REJECT is for our call
+                if (signal.conversationId === callData.conversationId) {
+                    console.log('📞 CALL_REJECT matches our call, showing rejection animation...');
+                    // Show rejection animation and close after 3 seconds
+                    setCallState('rejected');
+                    // Stop call sound
+                    if (callSoundRef.current) {
+                        callSoundRef.current.pause();
+                        callSoundRef.current.currentTime = 0;
+                        callSoundRef.current = null;
+                    }
+                    // Close after 3 seconds
+                    setTimeout(() => {
+                        handleEndCall();
+                    }, 3000);
                 }
             }
         };
@@ -720,7 +867,33 @@ const CallWindowApp = ({ callData }) => {
             switch (type) {
                 case 'CALL_ENDED':
                     console.log('📞 CALL_ENDED received via BroadcastChannel');
-                    handleEndCall();
+                    // Show rejection animation and close after 3 seconds
+                    setCallState('rejected');
+                    // Stop call sound
+                    if (callSoundRef.current) {
+                        callSoundRef.current.pause();
+                        callSoundRef.current.currentTime = 0;
+                        callSoundRef.current = null;
+                    }
+                    // Close after 3 seconds
+                    setTimeout(() => {
+                        handleEndCall();
+                    }, 3000);
+                    break;
+                case 'CALL_REJECTED':
+                    console.log('📞 CALL_REJECTED received via BroadcastChannel');
+                    // Show rejection animation and close after 3 seconds
+                    setCallState('rejected');
+                    // Stop call sound
+                    if (callSoundRef.current) {
+                        callSoundRef.current.pause();
+                        callSoundRef.current.currentTime = 0;
+                        callSoundRef.current = null;
+                    }
+                    // Close after 3 seconds
+                    setTimeout(() => {
+                        handleEndCall();
+                    }, 3000);
                     break;
                 case 'CALL_ACCEPTED':
                     // Call was accepted, update state to connected and connect to LiveKit

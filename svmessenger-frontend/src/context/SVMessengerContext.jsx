@@ -67,6 +67,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
     const typingTimeouts = useRef({});
     const messageSound = useRef(null);
     const nextZIndex = useRef(1000);
+    const incomingCallSoundRef = useRef(null);
 
     // ✅ ДОБАВИ ТЕЗИ НОВИ REFS:
     const conversationsRef = useRef(conversations);
@@ -234,6 +235,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, []);
 
     const endCall = useCallback(() => {
+        // Stop incoming call sound if playing
+        if (incomingCallSoundRef.current) {
+            incomingCallSoundRef.current.pause();
+            incomingCallSoundRef.current.currentTime = 0;
+            incomingCallSoundRef.current = null;
+        }
+        
         // Close popup window if open
         setCallWindowRef(currentRef => {
             if (currentRef && !currentRef.closed) {
@@ -324,7 +332,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const popup = window.open(
                 popupUrl,
                 'svmessenger-call',
-                'width=400,height=600,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no'
+                'width=420,height=650,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no,titlebar=no'
             );
 
             if (popup) {
@@ -470,7 +478,7 @@ export const SVMessengerProvider = ({ children, userData }) => {
             const popup = window.open(
                 popupUrl,
                 'svmessenger-call',
-                'width=400,height=600,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no'
+                'width=420,height=650,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no,titlebar=no'
             );
 
             if (popup) {
@@ -490,6 +498,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 console.warn('Popup blocked, using modal fallback');
             }
 
+            // Stop incoming call sound when accepting
+            if (incomingCallSoundRef.current) {
+                incomingCallSoundRef.current.pause();
+                incomingCallSoundRef.current.currentTime = 0;
+                incomingCallSoundRef.current = null;
+            }
+            
             // Now update state
             setCallState('connected');
 
@@ -538,6 +553,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
     }, [deviceSelectorMode]);
 
     const rejectCall = useCallback(() => {
+        // Stop incoming call sound if playing
+        if (incomingCallSoundRef.current) {
+            incomingCallSoundRef.current.pause();
+            incomingCallSoundRef.current.currentTime = 0;
+            incomingCallSoundRef.current = null;
+        }
+
         // Send CALL_REJECT signal
         const signal = {
             eventType: 'CALL_REJECT',
@@ -548,6 +570,16 @@ export const SVMessengerProvider = ({ children, userData }) => {
             timestamp: new Date().toISOString()
         };
         svWebSocketService.sendCallSignal(signal);
+
+        // Notify popup window if open
+        if (callChannelRef.current) {
+            callChannelRef.current.postMessage({
+                type: 'CALL_REJECTED',
+                data: {
+                    conversationId: currentCall.conversationId
+                }
+            });
+        }
 
         // Reset call state
         setCurrentCall(null);
@@ -697,6 +729,54 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         };
                         setCurrentCall(callData);
                         setCallState('incoming');
+
+                        // Play incoming call sound in main window
+                        try {
+                            // Stop any existing sound
+                            if (incomingCallSoundRef.current) {
+                                incomingCallSoundRef.current.pause();
+                                incomingCallSoundRef.current.currentTime = 0;
+                                incomingCallSoundRef.current = null;
+                            }
+                            
+                            const audio = new Audio('/svmessenger/sounds/IncomingCall.mp3');
+                            audio.loop = true;
+                            audio.volume = 0.7;
+                            audio.preload = 'auto';
+                            
+                            incomingCallSoundRef.current = audio;
+                            
+                            // Try to play immediately
+                            const playPromise = audio.play();
+                            if (playPromise !== undefined) {
+                                playPromise.catch(err => {
+                                    console.warn('⚠️ Failed to play incoming call sound (autoplay blocked):', err);
+                                    // Try multiple fallback strategies
+                                    // Strategy 1: Try after a small delay (sometimes helps)
+                                    setTimeout(() => {
+                                        audio.play().catch(() => {
+                                            // Strategy 2: Try on any user interaction
+                                            const startSoundOnInteraction = () => {
+                                                audio.play().catch(e => console.error('Failed to play sound:', e));
+                                                document.removeEventListener('click', startSoundOnInteraction);
+                                                document.removeEventListener('touchstart', startSoundOnInteraction);
+                                                document.removeEventListener('mousedown', startSoundOnInteraction);
+                                                document.removeEventListener('keydown', startSoundOnInteraction);
+                                                window.removeEventListener('focus', startSoundOnInteraction);
+                                            };
+                                            document.addEventListener('click', startSoundOnInteraction, { once: true });
+                                            document.addEventListener('touchstart', startSoundOnInteraction, { once: true });
+                                            document.addEventListener('mousedown', startSoundOnInteraction, { once: true });
+                                            document.addEventListener('keydown', startSoundOnInteraction, { once: true });
+                                            window.addEventListener('focus', startSoundOnInteraction, { once: true });
+                                        });
+                                    }, 200);
+                                });
+                            }
+                            console.log('🔔 Incoming call sound started');
+                        } catch (error) {
+                            console.error('❌ Failed to play incoming call sound:', error);
+                        }
 
                         // Ensure chat window/modal is opened and focused so user sees incoming call UI
                         try {
@@ -854,6 +934,23 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 break;
 
             case 'CALL_REJECT':
+                // Stop incoming call sound if playing
+                if (incomingCallSoundRef.current) {
+                    incomingCallSoundRef.current.pause();
+                    incomingCallSoundRef.current.currentTime = 0;
+                    incomingCallSoundRef.current = null;
+                }
+                
+                // Notify popup window if open
+                if (callChannelRef.current) {
+                    callChannelRef.current.postMessage({
+                        type: 'CALL_REJECTED',
+                        data: {
+                            conversationId: signal.conversationId
+                        }
+                    });
+                }
+                
                 if (callState === 'outgoing' || callState === 'incoming') {
                     setCurrentCall(null);
                     setCallState('idle');
@@ -883,6 +980,13 @@ export const SVMessengerProvider = ({ children, userData }) => {
                         });
 
                         if (currentState !== 'idle' && isForThisCall) {
+                            // Stop incoming call sound if playing
+                            if (incomingCallSoundRef.current) {
+                                incomingCallSoundRef.current.pause();
+                                incomingCallSoundRef.current.currentTime = 0;
+                                incomingCallSoundRef.current = null;
+                            }
+                            
                             // Notify popup window that call ended (if open)
                             if (callChannelRef.current) {
                                 callChannelRef.current.postMessage({

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync, existsSync } from 'fs';
+import { copyFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
 
 export default defineConfig({
     plugins: [
@@ -23,6 +23,29 @@ export default defineConfig({
                 
                 if (existsSync(srcPath)) {
                     copyFileSync(srcPath, destPath);
+                }
+            }
+        },
+        // ✅ Custom plugin за копиране на sounds папката
+        {
+            name: 'copy-sounds',
+            writeBundle() {
+                const soundsSrc = resolve(__dirname, 'public/sounds');
+                const soundsDest = resolve(__dirname, '../src/main/resources/static/svmessenger/sounds');
+                
+                if (existsSync(soundsSrc)) {
+                    // Създай destination папка ако не съществува
+                    if (!existsSync(soundsDest)) {
+                        mkdirSync(soundsDest, { recursive: true });
+                    }
+                    
+                    // Копирай всички файлове от sounds папката
+                    const files = readdirSync(soundsSrc);
+                    files.forEach(file => {
+                        const srcFile = resolve(soundsSrc, file);
+                        const destFile = resolve(soundsDest, file);
+                        copyFileSync(srcFile, destFile);
+                    });
                 }
             }
         }
