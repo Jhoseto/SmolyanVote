@@ -14,6 +14,7 @@ class SVLiveKitService {
     this.selectedMicrophone = null;
     this.selectedSpeaker = null;
     this.audioStream = null;
+    this.remoteAudioElements = new Map(); // Store audio elements for remote tracks
 
     // Event callbacks
     this.onConnected = null;
@@ -51,6 +52,18 @@ class SVLiveKitService {
 
       this.room.on(RoomEvent.ParticipantConnected, (participant) => {
         console.log('Participant connected:', participant.identity);
+        
+        // Subscribe to existing audio tracks from this participant
+        participant.audioTrackPublications.forEach((publication) => {
+          if (publication.track) {
+            console.log('📞 Subscribing to existing audio track from:', participant.identity);
+            this.attachRemoteAudioTrack(publication.track, participant.identity);
+          } else if (publication.isSubscribed) {
+            // Track is subscribed but not yet available, wait for TrackSubscribed event
+            console.log('📞 Audio track subscription pending for:', participant.identity);
+          }
+        });
+        
         if (this.onParticipantConnected) this.onParticipantConnected(participant);
       });
 
@@ -60,17 +73,138 @@ class SVLiveKitService {
       });
 
       this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-        console.log('Track subscribed:', track.kind, 'from', participant.identity);
+        console.log('📞 Track subscribed:', track.kind, 'from', participant.identity, 'trackId:', track.sid);
+        console.log('📞 Track details:', {
+          kind: track.kind,
+          source: track.source,
+          isMuted: track.isMuted,
+          isSubscribed: track.isSubscribed,
+          participant: participant.identity
+        });
+        
+        // Attach audio track to HTMLAudioElement for playback
+        if (track.kind === 'audio') {
+          console.log('📞 Attaching remote audio track for playback...');
+          this.attachRemoteAudioTrack(track, participant.identity);
+        }
+        
         if (this.onTrackSubscribed) this.onTrackSubscribed(track, publication, participant);
       });
 
       this.room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
         console.log('Track unsubscribed:', track.kind, 'from', participant.identity);
+        
+        // Clean up audio element when track is unsubscribed
+        if (track.kind === 'audio') {
+          this.detachRemoteAudioTrack(participant.identity);
+        }
+        
         if (this.onTrackUnsubscribed) this.onTrackUnsubscribed(track, publication, participant);
       });
 
       // Connect to room
       await this.room.connect('wss://smolyanvote-nq17fbx3.livekit.cloud', token);
+      
+      // After connection, ensure microphone is published
+      console.log('📞 Room connected, checking microphone state...');
+      console.log('📞 Selected microphone:', this.selectedMicrophone);
+      console.log('📞 Audio stream exists:', !!this.audioStream);
+      console.log('📞 Local participant:', this.room.localParticipant?.identity);
+      
+      // Wait a bit more for room to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      if (this.selectedMicrophone && this.audioStream) {
+        console.log('📞 Publishing microphone after room connection...');
+        try {
+          // Unpublish any existing tracks first
+          const existingTracks = Array.from(this.room.localParticipant.audioTrackPublications.values());
+          console.log('📞 Existing audio tracks:', existingTracks.length);
+          for (const publication of existingTracks) {
+            if (publication.track) {
+              await this.room.localParticipant.unpublishTrack(publication.track);
+            }
+          }
+          
+          // Get the audio track from the stream
+          const audioTracks = this.audioStream.getAudioTracks();
+          console.log('📞 Available audio tracks in stream:', audioTracks.length);
+          if (audioTracks.length > 0) {
+            const mediaStreamTrack = audioTracks[0];
+            console.log('📞 MediaStreamTrack state:', mediaStreamTrack.readyState, 'enabled:', mediaStreamTrack.enabled);
+            const localAudioTrack = new LocalAudioTrack(mediaStreamTrack);
+            
+            // Publish the track
+            await this.room.localParticipant.publishTrack(localAudioTrack, {
+              source: 'microphone'
+            });
+            console.log('✅ Microphone published after room connection');
+            
+            // Verify publication
+            const publishedTracks = Array.from(this.room.localParticipant.audioTrackPublications.values());
+            console.log('📞 Published tracks after publish:', publishedTracks.length);
+            publishedTracks.forEach(pub => {
+              console.log('📞 Published track:', {
+                sid: pub.trackSid,
+                source: pub.source,
+                isMuted: pub.isMuted,
+                isSubscribed: pub.isSubscribed
+              });
+            });
+          } else {
+            console.warn('⚠️ No audio tracks in stream');
+          }
+        } catch (publishError) {
+          console.warn('⚠️ Failed to publish microphone after connection, will use default:', publishError);
+          // Fallback to default microphone
+          try {
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+            console.log('✅ Using LiveKit default microphone');
+          } catch (fallbackError) {
+            console.error('❌ Failed to enable default microphone:', fallbackError);
+          }
+        }
+      } else if (!this.selectedMicrophone) {
+        // If no microphone selected, enable default
+        console.log('📞 No microphone selected, enabling default...');
+        try {
+          await this.room.localParticipant.setMicrophoneEnabled(true);
+          console.log('✅ Default microphone enabled');
+        } catch (error) {
+          console.warn('⚠️ Failed to enable default microphone:', error);
+        }
+      } else {
+        console.warn('⚠️ Microphone selected but no audio stream available');
+        // Try to enable default as fallback
+        try {
+          await this.room.localParticipant.setMicrophoneEnabled(true);
+          console.log('✅ Enabled default microphone as fallback');
+        } catch (error) {
+          console.error('❌ Failed to enable default microphone:', error);
+        }
+      }
+      
+      // Log all participants in room
+      if (this.room.participants && typeof this.room.participants.size !== 'undefined') {
+        console.log('📞 Participants in room:', this.room.participants.size);
+        this.room.participants.forEach((participant, identity) => {
+          console.log('📞 Participant:', identity, 'tracks:', participant.audioTrackPublications?.size || 0);
+          if (participant.audioTrackPublications) {
+            participant.audioTrackPublications.forEach((pub, trackSid) => {
+              console.log('📞 Participant track:', {
+                identity,
+                trackSid,
+                source: pub.source,
+                isMuted: pub.isMuted,
+                isSubscribed: pub.isSubscribed,
+                hasTrack: !!pub.track
+              });
+            });
+          }
+        });
+      } else {
+        console.log('📞 Participants not yet available');
+      }
 
       return true;
     } catch (error) {
@@ -85,6 +219,12 @@ class SVLiveKitService {
    */
   async disconnect() {
     try {
+      // Clean up all remote audio elements
+      this.remoteAudioElements.forEach((audioElement, participantIdentity) => {
+        this.detachRemoteAudioTrack(participantIdentity);
+      });
+      this.remoteAudioElements.clear();
+      
       if (this.room) {
         await this.room.disconnect();
         this.room = null;
@@ -177,7 +317,7 @@ class SVLiveKitService {
 
     if (this.room) {
       console.log('👥 Local Participant:', this.room.localParticipant ? 'exists' : 'null');
-      console.log('👥 Participants Count:', this.room.participants.size);
+      console.log('👥 Participants Count:', this.room.participants?.size ?? 'N/A');
       console.log('🎤 Local Mic Enabled:', this.room.localParticipant?.isMicrophoneEnabled);
     }
 
@@ -303,14 +443,6 @@ class SVLiveKitService {
 
     console.log('\n🎯 === CALL FLOW TEST COMPLETE ===\n');
     console.log('💡 This test shows the complete voice calling pipeline');
-  }
-
-  /**
-   * Get local participant
-   */
-  getLocalParticipant() {
-    if (!this.room) return null;
-    return this.room.localParticipant;
   }
 
   /**
@@ -479,6 +611,89 @@ class SVLiveKitService {
   }
 
   /**
+   * Attach remote audio track to HTMLAudioElement for playback
+   */
+  attachRemoteAudioTrack(track, participantIdentity) {
+    try {
+      // Remove existing audio element for this participant if any
+      this.detachRemoteAudioTrack(participantIdentity);
+      
+      // Create new audio element
+      const audioElement = document.createElement('audio');
+      audioElement.autoplay = true;
+      audioElement.playsInline = true;
+      audioElement.volume = 1.0; // Full volume
+      
+      // Set sink ID if speaker is selected
+      if (this.selectedSpeaker && 'setSinkId' in HTMLAudioElement.prototype) {
+        audioElement.setSinkId(this.selectedSpeaker).then(() => {
+          console.log('✅ Sink ID set to:', this.selectedSpeaker);
+        }).catch(err => {
+          console.warn('⚠️ Failed to set sink ID for remote audio:', err);
+        });
+      }
+      
+      // Attach track to audio element
+      track.attach(audioElement);
+      
+      // Store audio element
+      this.remoteAudioElements.set(participantIdentity, audioElement);
+      
+      // Add event listeners for debugging
+      audioElement.addEventListener('loadedmetadata', () => {
+        console.log('📞 Remote audio metadata loaded for:', participantIdentity);
+      });
+      
+      audioElement.addEventListener('play', () => {
+        console.log('✅ Remote audio started playing for:', participantIdentity);
+      });
+      
+      audioElement.addEventListener('error', (e) => {
+        console.error('❌ Remote audio error for:', participantIdentity, e);
+      });
+      
+      // Try to play
+      const playPromise = audioElement.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('✅ Remote audio play() succeeded for:', participantIdentity);
+        }).catch(err => {
+          console.warn('⚠️ Failed to autoplay remote audio:', err);
+          // Try again after user interaction
+          document.addEventListener('click', () => {
+            audioElement.play().catch(e => console.warn('Still failed to play:', e));
+          }, { once: true });
+        });
+      }
+      
+      console.log('✅ Remote audio track attached for participant:', participantIdentity);
+      console.log('📞 Audio element:', {
+        src: audioElement.src,
+        srcObject: audioElement.srcObject,
+        autoplay: audioElement.autoplay,
+        volume: audioElement.volume,
+        sinkId: audioElement.sinkId || 'default'
+      });
+    } catch (error) {
+      console.error('❌ Error attaching remote audio track:', error);
+    }
+  }
+
+  /**
+   * Detach and cleanup remote audio track
+   */
+  detachRemoteAudioTrack(participantIdentity) {
+    const audioElement = this.remoteAudioElements.get(participantIdentity);
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.srcObject = null;
+      audioElement.remove();
+      this.remoteAudioElements.delete(participantIdentity);
+      console.log('✅ Remote audio track detached for participant:', participantIdentity);
+    }
+  }
+
+  /**
    * Set speaker device
    */
   async setSpeaker(deviceId) {
@@ -486,10 +701,13 @@ class SVLiveKitService {
       this.selectedSpeaker = deviceId;
       console.log('🔊 Speaker changed to:', deviceId);
 
-      // Update audio output if supported
+      // Update audio output for all existing remote audio elements
       if ('setSinkId' in HTMLAudioElement.prototype) {
-        // This would apply to all audio elements in the room
-        // LiveKit handles this internally, but we can store preference
+        this.remoteAudioElements.forEach((audioElement, participantIdentity) => {
+          audioElement.setSinkId(deviceId).catch(err => {
+            console.warn(`⚠️ Failed to set sink ID for participant ${participantIdentity}:`, err);
+          });
+        });
       }
     } catch (error) {
       console.error('❌ Error setting speaker:', error);
@@ -507,342 +725,7 @@ class SVLiveKitService {
     };
   }
 
-  /**
-   * Cleanup audio resources
-   */
-  cleanupAudio() {
-    if (this.audioStream) {
-      this.audioStream.getTracks().forEach(track => track.stop());
-      this.audioStream = null;
-    }
-  }
-
-  /**
-   * Setup event callbacks
-   */
-  setEventCallbacks(callbacks) {
-    this.onConnected = callbacks.onConnected;
-    this.onDisconnected = callbacks.onDisconnected;
-    this.onParticipantConnected = callbacks.onParticipantConnected;
-    this.onParticipantDisconnected = callbacks.onParticipantDisconnected;
-    this.onTrackSubscribed = callbacks.onTrackSubscribed;
-    this.onTrackUnsubscribed = callbacks.onTrackUnsubscribed;
-  }
 }
-
-// Export WebSocket service globally for console debugging
-window.svWebSocketService = svWebSocketService;
-
-// Export LiveKit service globally for console debugging and runtime forcing
-// This allows runtime code (tests/console) to access the singleton and trigger connect/disconnect.
-// NOTE: This does not change exported default - it only exposes the instance on window for runtime use.
-// We add this to help diagnostics and to support a safe runtime fallback without changing React state.
-// ... existing code ...
-
-// Debug/Test functions for voice calling
-window.SVMessengerVoiceTest = {
-  // Full diagnostic function
-  runFullDiagnostic: () => {
-    console.log('🚀 Starting Full Voice Calling Diagnostic...');
-
-    // Check WebSocket connection
-    console.log('📡 WebSocket Status:', window.svmessenger_ws_connected ? 'CONNECTED' : 'DISCONNECTED');
-
-    // Check call state
-    const callState = window.svmessenger_call_state || 'unknown';
-    console.log('📞 Call State:', callState);
-
-    // Check active call
-    const activeCall = window.svmessenger_active_call;
-    console.log('📞 Active Call:', activeCall);
-
-    // Check tokens
-    const tokens = {
-      reactToken: window.SVMessengerContext?.liveKitToken,
-      windowToken1: window.__sv_livekit_token,
-      windowToken2: window.liveKitToken
-    };
-    console.log('🔑 Available Tokens:', tokens);
-
-    // Check LiveKit connection
-    if (window.SVMessengerVoiceTest.checkLiveKitStatus) {
-      window.SVMessengerVoiceTest.checkLiveKitStatus();
-    }
-
-    // Check WebSocket messages
-    if (window.svmessenger_ws_messages) {
-      console.log('📨 Recent WS Messages:', window.svmessenger_ws_messages.slice(-5));
-    }
-
-    return {
-      wsConnected: window.svmessenger_ws_connected,
-      callState,
-      activeCall,
-      tokens,
-      wsMessages: window.svmessenger_ws_messages?.slice(-5) || []
-    };
-  },
-    // Test 1: Check current LiveKit status
-    checkLiveKitStatus: () => {
-        console.log('🔍 LiveKit Status Check:');
-        console.log('- Is Connected:', svLiveKitService.isConnected);
-        console.log('- Current Room:', svLiveKitService.currentRoomName);
-        console.log('- Local Participant:', svLiveKitService.getLocalParticipant());
-        console.log('- Participants:', svLiveKitService.getParticipants());
-        console.log('- Selected Microphone:', svLiveKitService.selectedMicrophone);
-        console.log('- Selected Speaker:', svLiveKitService.selectedSpeaker);
-        console.log('- Audio Stream:', svLiveKitService.audioStream ? 'Active' : 'None');
-        return {
-            connected: svLiveKitService.isConnected,
-            room: svLiveKitService.currentRoomName,
-            participants: svLiveKitService.getParticipants().length,
-            localParticipant: svLiveKitService.getLocalParticipant(),
-            selectedMic: svLiveKitService.selectedMicrophone,
-            selectedSpeaker: svLiveKitService.selectedSpeaker,
-            hasAudioStream: !!svLiveKitService.audioStream
-        };
-    },
-
-    // Test 2: Check saved audio settings
-    checkSavedSettings: () => {
-        console.log('🔍 Saved Audio Settings Check:');
-        const saved = localStorage.getItem('svmessenger-audio-settings');
-        if (saved) {
-            try {
-                const settings = JSON.parse(saved);
-                console.log('- Microphone:', settings.microphone);
-                console.log('- Speaker:', settings.speaker);
-                console.log('- Mic Volume:', settings.micVolume || 'Not set');
-                console.log('- Speaker Volume:', settings.speakerVolume || 'Not set');
-                return settings;
-            } catch (e) {
-                console.error('- Error parsing settings:', e);
-                return null;
-            }
-        } else {
-            console.log('- No saved settings found');
-            return null;
-        }
-    },
-
-    // Test 3: Enumerate available devices
-    enumerateDevices: async () => {
-        console.log('🔍 Device Enumeration Test:');
-        try {
-            await svLiveKitService.requestAudioPermissions();
-            const devices = await svLiveKitService.enumerateAudioDevices();
-            console.log('Available microphones:', devices.microphones.length);
-            console.log('Available speakers:', devices.speakers.length);
-            console.table(devices.microphones.map(m => ({ label: m.label, id: m.deviceId })));
-            console.table(devices.speakers.map(s => ({ label: s.label, id: s.deviceId })));
-            return devices;
-        } catch (error) {
-            console.error('Device enumeration failed:', error);
-            return null;
-        }
-    },
-
-    // Test 4: Test audio playback (play test tone)
-    testAudioPlayback: async () => {
-        console.log('🔍 Audio Playback Test:');
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Higher pitch test tone
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-
-            oscillator.start();
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-
-            setTimeout(() => {
-                oscillator.stop();
-                audioContext.close();
-                console.log('✅ Audio playback test completed');
-            }, 1000);
-
-            console.log('🔊 Playing test tone for 1 second...');
-            return true;
-        } catch (error) {
-            console.error('❌ Audio playback test failed:', error);
-            return false;
-        }
-    },
-
-    // Test 5: Test microphone input
-    testMicrophoneInput: async () => {
-        console.log('🔍 Microphone Input Test:');
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            console.log('✅ Microphone access granted');
-
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioContext.createAnalyser();
-            const microphone = audioContext.createMediaStreamSource(stream);
-            microphone.connect(analyser);
-
-            analyser.fftSize = 256;
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-            let maxLevel = 0;
-            const checkLevels = () => {
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    sum += dataArray[i];
-                }
-                const average = sum / dataArray.length;
-                maxLevel = Math.max(maxLevel, average);
-
-                console.log('🎤 Current audio level:', Math.round(average));
-            };
-
-            // Check for 3 seconds
-            const interval = setInterval(checkLevels, 500);
-            setTimeout(() => {
-                clearInterval(interval);
-                stream.getTracks().forEach(track => track.stop());
-                audioContext.close();
-                console.log('✅ Microphone test completed. Max level detected:', Math.round(maxLevel));
-                console.log(maxLevel > 10 ? '🎤 Microphone is working!' : '⚠️ Low microphone input detected');
-            }, 3000);
-
-            return true;
-        } catch (error) {
-            console.error('❌ Microphone test failed:', error);
-            return false;
-        }
-    },
-
-    // Test 6: Clear all saved settings
-    clearSavedSettings: () => {
-        console.log('🗑️ Clearing saved audio settings...');
-        localStorage.removeItem('svmessenger-audio-settings');
-        console.log('✅ Saved settings cleared');
-    },
-
-    // Test 7: Full voice calling diagnostic
-    runFullDiagnostic: async () => {
-        console.log('🚀 Starting Full Voice Calling Diagnostic...');
-        console.log('=====================================');
-
-        // 1. Check saved settings
-        console.log('\n1️⃣ SAVED SETTINGS:');
-        const savedSettings = window.SVMessengerVoiceTest.checkSavedSettings();
-
-        // 2. Check LiveKit status
-        console.log('\n2️⃣ LIVEKIT STATUS:');
-        const liveKitStatus = window.SVMessengerVoiceTest.checkLiveKitStatus();
-
-        // 3. Check WebSocket status
-        console.log('\n3️⃣ WEBSOCKET STATUS:');
-        const wsStatus = window.SVMessengerVoiceTest.checkWebSocketStatus();
-
-        // 4. Enumerate devices
-        console.log('\n4️⃣ AVAILABLE DEVICES:');
-        const devices = await window.SVMessengerVoiceTest.enumerateDevices();
-
-        // 5. Test microphone
-        console.log('\n5️⃣ MICROPHONE TEST:');
-        await window.SVMessengerVoiceTest.testMicrophoneInput();
-
-        // 6. Test speaker
-        console.log('\n6️⃣ SPEAKER TEST:');
-        await window.SVMessengerVoiceTest.testAudioPlayback();
-
-        console.log('\n=====================================');
-        console.log('🎯 DIAGNOSTIC SUMMARY:');
-        console.log('- Saved Settings:', savedSettings ? '✅ Available' : '❌ None');
-        console.log('- LiveKit Connected:', liveKitStatus.connected ? '✅ Yes' : '❌ No');
-        console.log('- WebSocket Connected:', wsStatus ? '✅ Yes' : '❌ No');
-        console.log('- Microphone Available:', (devices?.microphones.length || 0) > 0 ? '✅ Yes' : '❌ No');
-        console.log('- Speaker Available:', (devices?.speakers.length || 0) > 0 ? '✅ Yes' : '❌ No');
-        console.log('- Participants:', liveKitStatus.participants);
-
-        return {
-            savedSettings: !!savedSettings,
-            liveKitConnected: liveKitStatus.connected,
-            webSocketConnected: wsStatus,
-            hasMicrophone: (devices?.microphones.length || 0) > 0,
-            hasSpeaker: (devices?.speakers.length || 0) > 0,
-            participants: liveKitStatus.participants
-        };
-    },
-
-    // Test 8: Check WebSocket connection status
-    checkWebSocketStatus: () => {
-        console.log('🔍 WebSocket Status Check:');
-
-        // Check if WebSocket service exists and is connected
-        if (typeof window.svWebSocketService !== 'undefined') {
-            const isConnected = window.svWebSocketService.isConnected ? window.svWebSocketService.isConnected() : false;
-            console.log('- WebSocket Service:', isConnected ? '✅ Connected' : '❌ Disconnected');
-
-            // Check if STOMP client exists
-            if (window.svWebSocketService.client) {
-                const stompConnected = window.svWebSocketService.client.connected;
-                console.log('- STOMP Client:', stompConnected ? '✅ Connected' : '❌ Disconnected');
-                return stompConnected;
-            } else {
-                console.log('- STOMP Client:', '❌ Not found');
-                return false;
-            }
-        } else {
-            console.log('- WebSocket Service:', '❌ Not found');
-            return false;
-        }
-    },
-
-    // Test 9: Send test WebSocket signal
-    sendTestSignal: () => {
-        console.log('🔍 Sending Test WebSocket Signal:');
-
-        const testSignal = {
-            eventType: 'TEST_SIGNAL',
-            message: 'This is a test signal from console',
-            timestamp: new Date().toISOString(),
-            testId: Math.random().toString(36).substr(2, 9)
-        };
-
-        console.log('Sending signal:', testSignal);
-
-        if (window.svWebSocketService && window.svWebSocketService.sendCallSignal) {
-            window.svWebSocketService.sendCallSignal(testSignal);
-            console.log('✅ Test signal sent');
-        } else {
-            console.log('❌ WebSocket service not available');
-        }
-    },
-
-    // Test 10: Simple WebSocket ping
-    pingWebSocket: () => {
-        console.log('🏓 Testing WebSocket connection...');
-
-        if (window.svWebSocketService) {
-            const isConnected = window.svWebSocketService.isConnected();
-            console.log('🏓 WebSocket ping result:', isConnected ? '✅ PONG - Connected' : '❌ PONG - Disconnected');
-            return isConnected;
-        } else {
-            console.log('🏓 WebSocket ping result: ❌ No service');
-            return false;
-        }
-    },
-
-    // Test 11: Check current call state
-    checkCallState: () => {
-        console.log('📞 Checking current call state...');
-
-        if (window.SVMessengerContext) {
-            console.log('📞 Call state available');
-        } else {
-            console.log('📞 Call state not available');
-        }
-    }
-};
 
 // Export singleton instance
 const svLiveKitService = new SVLiveKitService();

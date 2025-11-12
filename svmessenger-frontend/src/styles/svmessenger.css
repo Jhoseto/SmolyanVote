@@ -1177,7 +1177,7 @@
   border: none;
   background: transparent;
   color: #212529;
-  font-size: 14px;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
   transition: all var(--svm-transition-fast);

@@ -132,8 +132,31 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const saveSettings = (settings) => {
         try {
             console.log('💾 Saving audio settings:', settings);
-            localStorage.setItem('svmessenger-audio-settings', JSON.stringify(settings));
-            console.log('✅ Audio settings saved successfully');
+            
+            // Try to save to localStorage
+            try {
+                localStorage.setItem('svmessenger-audio-settings', JSON.stringify(settings));
+                console.log('✅ Audio settings saved to localStorage successfully');
+                
+                // Verify it was saved
+                const verify = localStorage.getItem('svmessenger-audio-settings');
+                if (verify) {
+                    console.log('✅ Verified: Settings are in localStorage');
+                } else {
+                    console.warn('⚠️ Warning: Settings not found in localStorage after save (might be incognito mode)');
+                }
+            } catch (storageError) {
+                console.warn('⚠️ Failed to save to localStorage (might be incognito or storage disabled):', storageError);
+                // In incognito, localStorage might fail - we'll still use the settings in memory
+            }
+            
+            // Also save to service immediately so they're available even if localStorage fails
+            if (settings.microphone) {
+                svLiveKitService.selectedMicrophone = settings.microphone;
+            }
+            if (settings.speaker) {
+                svLiveKitService.selectedSpeaker = settings.speaker;
+            }
         } catch (error) {
             console.warn('Failed to save audio settings:', error);
         }

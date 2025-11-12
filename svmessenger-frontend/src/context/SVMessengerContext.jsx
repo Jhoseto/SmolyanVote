@@ -166,24 +166,59 @@ export const SVMessengerProvider = ({ children, userData }) => {
             }
 
             // Check if we have saved audio settings
-            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
-            const hasSavedSettings = savedSettings && (() => {
-                try {
-                    const parsed = JSON.parse(savedSettings);
-                    return parsed.microphone && parsed.speaker;
-                } catch {
-                    return false;
+            let savedSettings = null;
+            let hasSavedSettings = false;
+            
+            try {
+                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                if (savedSettings) {
+                    try {
+                        const parsed = JSON.parse(savedSettings);
+                        hasSavedSettings = !!(parsed.microphone && parsed.speaker);
+                        console.log('📞 Checking saved settings:', {
+                            hasSettings: hasSavedSettings,
+                            microphone: parsed.microphone ? 'set' : 'missing',
+                            speaker: parsed.speaker ? 'set' : 'missing',
+                            fullSettings: parsed
+                        });
+                    } catch (parseError) {
+                        console.warn('⚠️ Failed to parse saved settings:', parseError);
+                        hasSavedSettings = false;
+                    }
+                } else {
+                    console.log('📞 No saved settings in localStorage');
                 }
-            })();
+            } catch (storageError) {
+                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
+                // Check if we have settings in service memory as fallback
+                const serviceDevices = svLiveKitService.getSelectedDevices();
+                if (serviceDevices.microphone && serviceDevices.speaker) {
+                    console.log('📞 Using settings from service memory:', serviceDevices);
+                    hasSavedSettings = true;
+                    savedSettings = JSON.stringify({
+                        microphone: serviceDevices.microphone,
+                        speaker: serviceDevices.speaker,
+                        micVolume: 75,
+                        speakerVolume: 80
+                    });
+                }
+            }
 
             if (hasSavedSettings) {
                 console.log('✅ Using saved audio settings, proceeding with call...');
                 // Apply saved settings to LiveKit service
                 const settings = JSON.parse(savedSettings);
+                console.log('📞 Applying settings:', {
+                    microphone: settings.microphone,
+                    speaker: settings.speaker
+                });
+                
                 if (settings.microphone) {
+                    console.log('📞 Setting microphone to:', settings.microphone);
                     await svLiveKitService.setMicrophone(settings.microphone);
                 }
                 if (settings.speaker) {
+                    console.log('📞 Setting speaker to:', settings.speaker);
                     await svLiveKitService.setSpeaker(settings.speaker);
                 }
                 await proceedWithCallStart(conversationId, otherUserId, conversation);
@@ -256,24 +291,59 @@ export const SVMessengerProvider = ({ children, userData }) => {
             console.log('📞 acceptCall called - currentCall:', currentCall, 'callState:', callState);
 
             // Check if we have saved audio settings
-            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
-            const hasSavedSettings = savedSettings && (() => {
-                try {
-                    const parsed = JSON.parse(savedSettings);
-                    return parsed.microphone && parsed.speaker;
-                } catch {
-                    return false;
+            let savedSettings = null;
+            let hasSavedSettings = false;
+            
+            try {
+                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                if (savedSettings) {
+                    try {
+                        const parsed = JSON.parse(savedSettings);
+                        hasSavedSettings = !!(parsed.microphone && parsed.speaker);
+                        console.log('📞 Checking saved settings for accept:', {
+                            hasSettings: hasSavedSettings,
+                            microphone: parsed.microphone ? 'set' : 'missing',
+                            speaker: parsed.speaker ? 'set' : 'missing',
+                            fullSettings: parsed
+                        });
+                    } catch (parseError) {
+                        console.warn('⚠️ Failed to parse saved settings:', parseError);
+                        hasSavedSettings = false;
+                    }
+                } else {
+                    console.log('📞 No saved settings in localStorage for accept');
                 }
-            })();
+            } catch (storageError) {
+                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
+                // Check if we have settings in service memory as fallback
+                const serviceDevices = svLiveKitService.getSelectedDevices();
+                if (serviceDevices.microphone && serviceDevices.speaker) {
+                    console.log('📞 Using settings from service memory for accept:', serviceDevices);
+                    hasSavedSettings = true;
+                    savedSettings = JSON.stringify({
+                        microphone: serviceDevices.microphone,
+                        speaker: serviceDevices.speaker,
+                        micVolume: 75,
+                        speakerVolume: 80
+                    });
+                }
+            }
 
             if (hasSavedSettings) {
                 console.log('✅ Using saved audio settings for call accept...');
                 // Apply saved settings to LiveKit service
                 const settings = JSON.parse(savedSettings);
+                console.log('📞 Applying settings for accept:', {
+                    microphone: settings.microphone,
+                    speaker: settings.speaker
+                });
+                
                 if (settings.microphone) {
+                    console.log('📞 Setting microphone to:', settings.microphone);
                     await svLiveKitService.setMicrophone(settings.microphone);
                 }
                 if (settings.speaker) {
+                    console.log('📞 Setting speaker to:', settings.speaker);
                     await svLiveKitService.setSpeaker(settings.speaker);
                 }
                 await proceedWithCallAccept();
@@ -455,7 +525,24 @@ export const SVMessengerProvider = ({ children, userData }) => {
             await new Promise(resolve => setTimeout(resolve, 500));
 
             // Apply saved audio settings after connecting to LiveKit
-            const savedSettings = localStorage.getItem('svmessenger-audio-settings');
+            let savedSettings = null;
+            try {
+                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+            } catch (storageError) {
+                console.warn('⚠️ localStorage access failed (might be incognito):', storageError);
+                // Check service memory as fallback
+                const serviceDevices = svLiveKitService.getSelectedDevices();
+                if (serviceDevices.microphone && serviceDevices.speaker) {
+                    savedSettings = JSON.stringify({
+                        microphone: serviceDevices.microphone,
+                        speaker: serviceDevices.speaker,
+                        micVolume: 75,
+                        speakerVolume: 80
+                    });
+                    console.log('📞 Using settings from service memory after connection');
+                }
+            }
+            
             if (savedSettings) {
                 try {
                     const settings = JSON.parse(savedSettings);
@@ -465,12 +552,16 @@ export const SVMessengerProvider = ({ children, userData }) => {
                     if (settings.microphone) {
                         console.log('📞 Setting microphone to saved device:', settings.microphone);
                         await svLiveKitService.setMicrophone(settings.microphone);
+                    } else {
+                        console.warn('⚠️ No microphone in saved settings');
                     }
 
                     // Apply speaker
                     if (settings.speaker) {
                         console.log('📞 Setting speaker to saved device:', settings.speaker);
                         await svLiveKitService.setSpeaker(settings.speaker);
+                    } else {
+                        console.warn('⚠️ No speaker in saved settings');
                     }
 
                     // Note: Volume settings are applied through the audio stream constraints
@@ -480,6 +571,15 @@ export const SVMessengerProvider = ({ children, userData }) => {
                 }
             } else {
                 console.log('📞 No saved audio settings found - using default devices');
+                // Try to enable default microphone
+                try {
+                    if (svLiveKitService.room && svLiveKitService.isConnected) {
+                        await svLiveKitService.room.localParticipant.setMicrophoneEnabled(true);
+                        console.log('✅ Default microphone enabled');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Failed to enable default microphone:', error);
+                }
             }
         } catch (error) {
             console.error('Failed to connect to LiveKit:', error);
