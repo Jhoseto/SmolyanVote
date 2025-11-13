@@ -7,6 +7,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Room, RoomEvent, LocalAudioTrack } from 'livekit-client';
 import CallWindowModal from './CallWindowModal';
 import svWebSocketService from '../services/svWebSocketService';
+import svLiveKitService from '../services/svLiveKitService';
+import './SVCallVideo.css';
 
 const CallWindowApp = ({ callData }) => {
     // Only log once on mount, not on every render
@@ -18,7 +20,12 @@ const CallWindowApp = ({ callData }) => {
     const [callDuration, setCallDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
-    
+
+    // Video state
+    const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+    const [remoteVideoVisible, setRemoteVideoVisible] = useState(false);
+    const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
+
     const roomRef = useRef(null);
     const audioStreamRef = useRef(null);
     const remoteAudioElementsRef = useRef(new Map());
@@ -27,6 +34,10 @@ const CallWindowApp = ({ callData }) => {
     const callChannelRef = useRef(null);
     const durationIntervalRef = useRef(null);
     const callSoundRef = useRef(null);
+
+    // Video refs
+    const localVideoRef = useRef(null);
+    const remoteVideoRef = useRef(null);
 
     // Зареди настройките на аудиото от localStorage
     useEffect(() => {
@@ -157,14 +168,22 @@ const CallWindowApp = ({ callData }) => {
                         isMuted: track.isMuted
                     });
                     attachRemoteAudioTrack(track, participant.identity);
+                } else if (track && track.kind === 'video') {
+                    console.log('📹 Video track subscribed:', {
+                        participant: participant.identity,
+                        trackSid: track.sid
+                    });
+                    attachRemoteVideoTrack(track, participant.identity);
                 } else {
-                    console.log('Track subscribed but not audio:', track?.kind);
+                    console.log('Track subscribed but unknown kind:', track?.kind);
                 }
             });
 
             room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
                 if (track.kind === 'audio') {
                     detachRemoteAudioTrack(participant.identity);
+                } else if (track.kind === 'video') {
+                    detachRemoteVideoTrack(participant.identity);
                 }
             });
 
@@ -496,6 +515,102 @@ const CallWindowApp = ({ callData }) => {
             remoteAudioElementsRef.current.delete(participantIdentity);
         }
     }, []);
+
+    // ========== VIDEO TRACK HANDLERS ==========
+
+    // Attach remote video track
+    const attachRemoteVideoTrack = useCallback((track, participantIdentity) => {
+        try {
+            console.log('📹 Attaching remote video track:', {
+                participant: participantIdentity,
+                trackSid: track.sid
+            });
+
+            // Use svLiveKitService to create video element
+            const videoElement = svLiveKitService.attachRemoteVideoTrack(track, participantIdentity);
+
+            if (videoElement && remoteVideoRef.current) {
+                // Clear existing content and add video element
+                remoteVideoRef.current.innerHTML = '';
+                remoteVideoRef.current.appendChild(videoElement);
+                setRemoteVideoVisible(true);
+                console.log('✅ Remote video displayed in UI');
+            }
+        } catch (error) {
+            console.error('❌ Error attaching remote video track:', error);
+        }
+    }, []);
+
+    // Detach remote video track
+    const detachRemoteVideoTrack = useCallback((participantIdentity) => {
+        console.log('📹 Detaching remote video track for:', participantIdentity);
+        svLiveKitService.detachRemoteVideoTrack(participantIdentity);
+        setRemoteVideoVisible(false);
+
+        // Clear remote video ref
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.innerHTML = '';
+        }
+    }, []);
+
+    // ========== CAMERA TOGGLE HANDLER ==========
+
+    const handleCameraToggle = useCallback(async () => {
+        if (!roomRef.current || !roomRef.current.isConnected) {
+            console.warn('⚠️ Cannot toggle camera - not connected');
+            return;
+        }
+
+        const newVideoState = !isVideoEnabled;
+        console.log(`📹 Toggling camera: ${isVideoEnabled} → ${newVideoState}`);
+
+        try {
+            // Request camera permission first time
+            if (newVideoState && !cameraPermissionDenied) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    // Stop the test stream (LiveKit will request again)
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (permError) {
+                    console.error('❌ Camera permission denied:', permError);
+                    setCameraPermissionDenied(true);
+                    alert('Моля разрешете достъп до камерата от настройките на браузъра.');
+                    return;
+                }
+            }
+
+            // Toggle camera via LiveKit service
+            const success = await svLiveKitService.toggleCamera(newVideoState);
+
+            if (success) {
+                setIsVideoEnabled(newVideoState);
+
+                // Attach local video preview when enabled
+                if (newVideoState && roomRef.current.localParticipant.videoTracks.size > 0) {
+                    const videoTrack = Array.from(roomRef.current.localParticipant.videoTracks.values())[0].track;
+                    if (localVideoRef.current && videoTrack) {
+                        videoTrack.attach(localVideoRef.current);
+                        console.log('✅ Local video preview attached');
+                    }
+                } else if (!newVideoState && localVideoRef.current) {
+                    // Clear local video preview
+                    localVideoRef.current.srcObject = null;
+                    console.log('📹 Local video preview cleared');
+                }
+
+                // Notify via BroadcastChannel
+                if (callChannelRef.current) {
+                    callChannelRef.current.postMessage({
+                        type: 'CAMERA_TOGGLED',
+                        data: { enabled: newVideoState }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to toggle camera:', error);
+            alert('Грешка при включване/изключване на камерата.');
+        }
+    }, [isVideoEnabled, cameraPermissionDenied]);
 
     // Set microphone
     const setMicrophone = useCallback(async (deviceId) => {
