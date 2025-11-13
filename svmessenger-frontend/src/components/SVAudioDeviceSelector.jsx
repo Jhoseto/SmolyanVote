@@ -3,23 +3,27 @@ import { useSVMessenger } from '../context/SVMessengerContext';
 import svLiveKitService from '../services/svLiveKitService';
 
 /**
- * ✅ FIXED: Professional Audio Device Selector Modal
+ * ✅ FIXED: Professional Audio/Video Device Selector Modal
  * - Bootstrap Icons САМО
  * - Конкретни CSS стойности БЕЗ variables
  * - Перфектен дизайн
  * - Drag and Drop функционалност
  * - Фиксиран хедър
+ * - Camera selection
  */
 const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
   const { deviceSelectorMode } = useSVMessenger();
     const [microphones, setMicrophones] = useState([]);
     const [speakers, setSpeakers] = useState([]);
+    const [cameras, setCameras] = useState([]);
     const [selectedMic, setSelectedMic] = useState('');
     const [selectedSpeaker, setSelectedSpeaker] = useState('');
+    const [selectedCamera, setSelectedCamera] = useState('');
     const [micVolume, setMicVolume] = useState(75);
     const [speakerVolume, setSpeakerVolume] = useState(80);
     const [isLoading, setIsLoading] = useState(true);
     const [isTesting, setIsTesting] = useState(false);
+    const [showCameraPreview, setShowCameraPreview] = useState(false);
     const [error, setError] = useState(null);
     const [micLevel, setMicLevel] = useState(0);
     const [testResults, setTestResults] = useState(null);
@@ -35,6 +39,8 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const microphoneRef = useRef(null);
     const animationFrameRef = useRef(null);
     const streamRef = useRef(null);
+    const cameraPreviewRef = useRef(null);
+    const cameraStreamRef = useRef(null);
 
     // Initialize position to center on mount
     useEffect(() => {
@@ -130,19 +136,19 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
 
     const saveSettings = (settings) => {
         try {
-            
+
             // Try to save to localStorage
             try {
-                localStorage.setItem('svmessenger-audio-settings', JSON.stringify(settings));
-                
+                localStorage.setItem('svmessenger-audio-video-settings', JSON.stringify(settings));
+
                 // Verify it was saved
-                const verify = localStorage.getItem('svmessenger-audio-settings');
+                const verify = localStorage.getItem('svmessenger-audio-video-settings');
                 if (verify) {
                 }
             } catch (storageError) {
                 // In incognito, localStorage might fail - we'll still use the settings in memory
             }
-            
+
             // Also save to service immediately so they're available even if localStorage fails
             if (settings.microphone) {
                 svLiveKitService.selectedMicrophone = settings.microphone;
@@ -150,8 +156,11 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             if (settings.speaker) {
                 svLiveKitService.selectedSpeaker = settings.speaker;
             }
+            if (settings.camera) {
+                svLiveKitService.selectedCamera = settings.camera;
+            }
         } catch (error) {
-            console.warn('Failed to save audio settings:', error);
+            console.warn('Failed to save audio/video settings:', error);
         }
     };
 
@@ -221,6 +230,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
         const finalSettings = {
             microphone: selectedMic,
             speaker: selectedSpeaker,
+            camera: selectedCamera,
             micVolume: micVolume,
             speakerVolume: speakerVolume
         };
@@ -229,6 +239,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
         onComplete({
             microphone: selectedMic,
             speaker: selectedSpeaker,
+            camera: selectedCamera,
             micVolume: micVolume / 100, // Convert to 0-1 range
             speakerVolume: speakerVolume / 100
         });
@@ -257,18 +268,23 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             await svLiveKitService.requestAudioPermissions();
             const devices = await svLiveKitService.enumerateAudioDevices();
 
+            // Load cameras
+            const cameraDevices = await svLiveKitService.getCameras();
+
             setMicrophones(devices.microphones);
             setSpeakers(devices.speakers);
+            setCameras(cameraDevices);
 
             // Prefer saved settings over service selected devices
-            const saved = localStorage.getItem('svmessenger-audio-settings');
-            let savedMic, savedSpeaker;
+            const saved = localStorage.getItem('svmessenger-audio-video-settings');
+            let savedMic, savedSpeaker, savedCamera;
 
             if (saved) {
                 try {
                     const settings = JSON.parse(saved);
                     savedMic = settings.microphone;
                     savedSpeaker = settings.speaker;
+                    savedCamera = settings.camera;
                 } catch (e) {
                     console.warn('Error parsing saved settings:', e);
                 }
@@ -277,6 +293,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             const initialMic = savedMic || (devices.microphones.length > 0 ? devices.microphones[0].deviceId : '');
             setSelectedMic(initialMic);
             setSelectedSpeaker(savedSpeaker || (devices.speakers.length > 0 ? devices.speakers[0].deviceId : ''));
+            setSelectedCamera(savedCamera || (cameraDevices.length > 0 ? cameraDevices[0].deviceId : ''));
 
             // Start audio visualization automatically for the selected microphone
             if (initialMic) {
@@ -287,8 +304,8 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             }
 
         } catch (err) {
-            setError(err.message || 'Failed to access audio devices');
-            console.error('Audio device initialization error:', err);
+            setError(err.message || 'Failed to access audio/video devices');
+            console.error('Audio/Video device initialization error:', err);
         } finally {
             setIsLoading(false);
         }
@@ -615,7 +632,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                         fontSize: '16px',
                         fontWeight: '700',
                         color: '#111827'
-                    }}>Аудио настройки</h2>
+                    }}>Настройки на аудио/видео</h2>
                     <p style={{
                         margin: 0,
                         fontSize: '10px',
@@ -1018,6 +1035,92 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Camera Section */}
+                        <div style={{
+                            background: '#f9fafb',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '10px',
+                            padding: '14px'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginBottom: '12px'
+                            }}>
+                                <div style={{
+                                    width: '30px',
+                                    height: '30px',
+                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <i className="bi bi-camera-video-fill" style={{ fontSize: '16px', color: '#ffffff' }}></i>
+                                </div>
+                                <h3 style={{
+                                    margin: 0,
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    color: '#111827'
+                                }}>Камера</h3>
+                            </div>
+
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '6px',
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    color: '#374151',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                }}>Устройство</label>
+                                <select
+                                    value={selectedCamera}
+                                    onChange={(e) => {
+                                        setSelectedCamera(e.target.value);
+                                        svLiveKitService.selectedCamera = e.target.value;
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 10px',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        background: '#ffffff',
+                                        color: '#111827',
+                                        fontSize: '12px',
+                                        cursor: 'pointer'
+                                    }}
+                                    disabled={cameras.length === 0}
+                                >
+                                    {cameras.length === 0 ? (
+                                        <option>Няма налични камери</option>
+                                    ) : (
+                                        cameras.map((cam) => (
+                                            <option key={cam.deviceId} value={cam.deviceId}>
+                                                {cam.label || `Камера ${cam.deviceId.slice(0, 8)}`}
+                                            </option>
+                                        ))
+                                    )}
+                                </select>
+                            </div>
+
+                            <div style={{
+                                background: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '8px',
+                                padding: '10px',
+                                fontSize: '11px',
+                                color: '#1e40af',
+                                lineHeight: '1.4'
+                            }}>
+                                <i className="bi bi-info-circle-fill" style={{ marginRight: '6px' }}></i>
+                                Камерата ще се използва автоматично при включване на видео по време на разговор.
+                            </div>
                         </div>
                     </div>
                 )}

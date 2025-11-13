@@ -1,0 +1,438 @@
+/**
+ * SVCallVideo.css - Video Call Styles
+ * Модерен, елегантен дизайн за video разговори
+ * Следва естетиката на основния call window дизайн
+ */
+
+/* ========== VIDEO LAYOUT ========== */
+
+.call-window-video-layout {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 120px);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
+}
+
+/* Remote Video Container */
+.call-window-remote-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    transition: all 0.3s ease;
+}
+
+.call-window-remote-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.call-window-remote-video.video-active {
+    background: transparent;
+}
+
+/* Avatar Fallback (когато няма remote video) */
+.call-window-avatar-fallback {
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+
+.call-window-avatar-fallback img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.call-window-avatar-fallback img:hover {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.call-window-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.call-window-status {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 4px;
+}
+
+/* ========== LOCAL VIDEO (Picture-in-Picture) ========== */
+
+.call-window-local-video-pip {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 160px;
+    height: 120px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    z-index: 100;
+    background: #000;
+    transition: all 0.3s ease;
+}
+
+.call-window-local-video-pip:hover {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+.call-window-local-video-pip .local-video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror effect for local video */
+}
+
+.pip-label {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+/* ========== CONTROLS ========== */
+
+.call-window-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+    padding: 20px;
+    z-index: 200;
+}
+
+.call-control-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.call-control-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.call-control-btn:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.call-control-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.call-control-btn:active {
+    transform: scale(0.95);
+}
+
+/* Active state (когато е muted/camera off) */
+.call-control-btn.active {
+    background: rgba(244, 67, 54, 0.8);
+    box-shadow: 0 4px 16px rgba(244, 67, 54, 0.4);
+}
+
+.call-control-btn.active:hover {
+    background: rgba(244, 67, 54, 0.9);
+}
+
+/* Inactive state (disabled) */
+.call-control-btn.inactive {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 0.7;
+}
+
+.call-control-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* End call button (special styling) */
+.call-end-btn {
+    background: rgba(244, 67, 54, 0.9) !important;
+    width: 64px;
+    height: 64px;
+    box-shadow: 0 8px 24px rgba(244, 67, 54, 0.4);
+}
+
+.call-end-btn:hover {
+    background: rgba(244, 67, 54, 1) !important;
+    box-shadow: 0 12px 32px rgba(244, 67, 54, 0.6);
+    transform: scale(1.08);
+}
+
+/* ========== CALL INFO BAR ========== */
+
+.call-window-info {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 14px;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.call-duration {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.video-indicator {
+    color: #4caf50;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.video-indicator::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 8px #4caf50;
+    }
+    50% {
+        opacity: 0.6;
+        box-shadow: 0 0 16px #4caf50;
+    }
+}
+
+/* ========== LOADING STATES ========== */
+
+.video-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    text-align: center;
+    z-index: 5;
+}
+
+.video-loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 12px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+@media (max-width: 480px) {
+    .call-window-local-video-pip {
+        width: 100px;
+        height: 75px;
+        bottom: 90px;
+        right: 12px;
+        border-width: 2px;
+    }
+
+    .call-control-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .call-end-btn {
+        width: 56px;
+        height: 56px;
+    }
+
+    .call-window-controls {
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .call-window-avatar-fallback img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .call-window-name {
+        font-size: 20px;
+    }
+
+    .call-window-info {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+.call-control-btn:focus-visible {
+    outline: 2px solid #4caf50;
+    outline-offset: 4px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .call-control-btn,
+    .call-window-local-video-pip,
+    .call-window-avatar-fallback img {
+        transition: none;
+    }
+
+    .video-loading-spinner {
+        animation: none;
+        border-top-color: rgba(255, 255, 255, 0.5);
+    }
+
+    @keyframes pulse-green {
+        0%, 100% {
+            opacity: 1;
+        }
+    }
+}
+
+/* ========== DARK MODE OPTIMIZATIONS ========== */
+
+@media (prefers-color-scheme: dark) {
+    .call-window-video-layout {
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+
+    .call-window-info {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* ========== SPECIAL EFFECTS ========== */
+
+/* Ripple effect при клик на бутони */
+@keyframes ripple {
+    to {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.call-control-btn::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+}
+
+.call-control-btn:active::after {
+    animation: ripple 0.6s ease-out;
+}
+
+/* Connection quality indicator */
+.connection-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    z-index: 15;
+}
+
+.connection-indicator.good {
+    color: #4caf50;
+}
+
+.connection-indicator.medium {
+    color: #ff9800;
+}
+
+.connection-indicator.poor {
+    color: #f44336;
+}

@@ -15,7 +15,14 @@ const CallWindowModal = ({
     otherUserName,
     otherUserAvatar,
     onMuteToggle,
-    onEndCall
+    onEndCall,
+    // Video props
+    isVideoEnabled,
+    remoteVideoVisible,
+    localVideoRef,
+    remoteVideoRef,
+    onCameraToggle,
+    cameraPermissionDenied
 }) => {
     // Правилно декодиране на името (за emoji и специални символи)
     const decodedName = React.useMemo(() => {
@@ -56,15 +63,117 @@ const CallWindowModal = ({
 
     return (
         <div className="call-window-container">
-            {/* Animated Background */}
-            <div className="call-window-background">
-                <div className="call-window-bg-shape shape-1"></div>
-                <div className="call-window-bg-shape shape-2"></div>
-                <div className="call-window-bg-shape shape-3"></div>
-                <div className="call-window-bg-shape shape-4"></div>
-            </div>
+            {/* Animated Background (only when not connected or no video) */}
+            {(callState !== 'connected' || !remoteVideoVisible) && (
+                <div className="call-window-background">
+                    <div className="call-window-bg-shape shape-1"></div>
+                    <div className="call-window-bg-shape shape-2"></div>
+                    <div className="call-window-bg-shape shape-3"></div>
+                    <div className="call-window-bg-shape shape-4"></div>
+                </div>
+            )}
 
-            <div className="call-window-modal">
+            {/* Video Layout (when connected) */}
+            {callState === 'connected' ? (
+                <div className="call-window-video-layout">
+                    {/* Remote video OR avatar fallback */}
+                    <div
+                        ref={remoteVideoRef}
+                        className={`call-window-remote-video ${remoteVideoVisible ? 'video-active' : ''}`}
+                    >
+                        {!remoteVideoVisible && (
+                            // Fallback: Show avatar when no remote video
+                            <div className="call-window-avatar-fallback">
+                                {decodedAvatar && isValidAvatar(decodedAvatar) ? (
+                                    <img
+                                        src={decodedAvatar}
+                                        alt={decodedName}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            const placeholder = e.target.nextElementSibling;
+                                            if (placeholder) placeholder.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className="call-window-avatar-placeholder"
+                                    style={{
+                                        display: (decodedAvatar && isValidAvatar(decodedAvatar)) ? 'none' : 'flex',
+                                        backgroundColor: avatarColor,
+                                        width: '120px',
+                                        height: '120px',
+                                        fontSize: '48px',
+                                        borderRadius: '50%',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    {initials}
+                                </div>
+                                <p className="call-window-name">{decodedName}</p>
+                                <p className="call-window-status">
+                                    {isConnected ? 'Свързан' : 'Свързване...'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Local video (Picture-in-Picture) - only when camera is ON */}
+                    {isVideoEnabled && (
+                        <div className="call-window-local-video-pip">
+                            <video
+                                ref={localVideoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="local-video-element"
+                            />
+                            <div className="pip-label">Вие</div>
+                        </div>
+                    )}
+
+                    {/* Call info bar */}
+                    <div className="call-window-info">
+                        <span className="call-duration">{formatDuration(callDuration)}</span>
+                        {isVideoEnabled && <span className="video-indicator">Video</span>}
+                    </div>
+
+                    {/* Controls at bottom */}
+                    <div className="call-window-controls">
+                        {/* Mute button */}
+                        <button
+                            className={`call-control-btn ${isMuted ? 'active' : ''}`}
+                            onClick={onMuteToggle}
+                            title={isMuted ? 'Включи микрофон' : 'Изключи микрофон'}
+                        >
+                            <i className={`bi bi-mic${isMuted ? '-mute' : ''}-fill`}></i>
+                        </button>
+
+                        {/* Camera toggle button */}
+                        <button
+                            className={`call-control-btn ${!isVideoEnabled ? 'inactive' : ''}`}
+                            onClick={onCameraToggle}
+                            title={isVideoEnabled ? 'Изключи камера' : 'Включи камера'}
+                            disabled={cameraPermissionDenied}
+                        >
+                            <i className={`bi bi-camera-video${!isVideoEnabled ? '-off' : ''}-fill`}></i>
+                        </button>
+
+                        {/* End call button */}
+                        <button
+                            className="call-control-btn call-end-btn"
+                            onClick={onEndCall}
+                            title="Прекрати"
+                        >
+                            <i className="bi bi-telephone-x-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                // Original modal layout for non-connected states
+                <div className="call-window-modal">
                 {/* Avatar with animation */}
                 <div className={`call-window-avatar ${callState === 'connected' ? 'connected' : ''} ${callState === 'outgoing' || callState === 'incoming' ? 'pulsing' : ''}`}>
                     {decodedAvatar && isValidAvatar(decodedAvatar) ? (
@@ -209,6 +318,7 @@ const CallWindowModal = ({
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 };
