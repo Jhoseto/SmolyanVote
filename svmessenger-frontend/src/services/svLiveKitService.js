@@ -23,6 +23,33 @@ class SVLiveKitService {
     this.remoteVideoElements = new Map(); // Store video elements for remote tracks
     this.isVideoEnabled = false;
 
+    // Adaptive video quality
+    this.connectionQuality = 'excellent'; // excellent, good, poor, unknown
+    this.currentVideoQuality = 'high'; // high, medium, low
+    this.videoQualityPresets = {
+      high: {
+        width: 1280,
+        height: 720,
+        frameRate: 30,
+        bitrate: 2000000, // 2 Mbps
+        label: 'Високо (720p)'
+      },
+      medium: {
+        width: 640,
+        height: 480,
+        frameRate: 24,
+        bitrate: 800000, // 800 Kbps
+        label: 'Средно (480p)'
+      },
+      low: {
+        width: 320,
+        height: 240,
+        frameRate: 15,
+        bitrate: 300000, // 300 Kbps
+        label: 'Ниско (240p)'
+      }
+    };
+
     // Event callbacks
     this.onConnected = null;
     this.onDisconnected = null;
@@ -30,6 +57,7 @@ class SVLiveKitService {
     this.onParticipantDisconnected = null;
     this.onTrackSubscribed = null;
     this.onTrackUnsubscribed = null;
+    this.onConnectionQualityChanged = null; // Callback for quality changes
   }
 
   /**
@@ -84,8 +112,16 @@ class SVLiveKitService {
         if (track.kind === 'audio') {
           this.detachRemoteAudioTrack(participant.identity);
         }
-        
+
         if (this.onTrackUnsubscribed) this.onTrackUnsubscribed(track, publication, participant);
+      });
+
+      // Monitor connection quality for adaptive video
+      this.room.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+        // Only handle our own connection quality
+        if (!participant || participant === this.room.localParticipant) {
+          this.handleConnectionQualityChanged(quality);
+        }
       });
 
       // Connect to room
@@ -482,9 +518,26 @@ class SVLiveKitService {
     try {
       if (enabled) {
         // Enable camera - publishes video track (starts billing as video call)
-        await this.room.localParticipant.setCameraEnabled(true);
+        // Determine appropriate quality based on current connection
+        const initialQuality = this.connectionQuality === 'excellent' || this.connectionQuality === 'good'
+          ? 'high'
+          : this.connectionQuality === 'poor'
+          ? 'medium'
+          : 'low';
+
+        const preset = this.videoQualityPresets[initialQuality];
+
+        await this.room.localParticipant.setCameraEnabled(true, {
+          resolution: {
+            width: preset.width,
+            height: preset.height,
+            frameRate: preset.frameRate
+          }
+        });
+
         this.isVideoEnabled = true;
-        console.log('✅ Camera enabled - now billing as video call');
+        this.currentVideoQuality = initialQuality;
+        console.log(`✅ Camera enabled with ${preset.label} - now billing as video call`);
       } else {
         // Disable camera - UNPUBLISHES video track (saves costs)
         await this.room.localParticipant.setCameraEnabled(false);
@@ -631,6 +684,120 @@ class SVLiveKitService {
       this.videoStream.getTracks().forEach(track => track.stop());
       this.videoStream = null;
     }
+  }
+
+  // ========== ADAPTIVE VIDEO QUALITY METHODS ==========
+
+  /**
+   * Handle connection quality changes from LiveKit
+   * Automatically adjusts video quality based on network conditions
+   * @param {string} quality - LiveKit quality: 'excellent', 'good', 'poor'
+   */
+  async handleConnectionQualityChanged(quality) {
+    const oldQuality = this.connectionQuality;
+    this.connectionQuality = quality;
+
+    console.log(`📡 Connection quality changed: ${oldQuality} → ${quality}`);
+
+    // Map LiveKit quality to our video quality presets
+    let targetVideoQuality;
+
+    if (quality === 'excellent' || quality === 'good') {
+      targetVideoQuality = 'high';
+    } else if (quality === 'poor') {
+      targetVideoQuality = 'medium';
+    } else {
+      // 'unknown' or any degraded state
+      targetVideoQuality = 'low';
+    }
+
+    // Only adjust if video is enabled and quality changed
+    if (this.isVideoEnabled && targetVideoQuality !== this.currentVideoQuality) {
+      console.log(`🎥 Adjusting video quality: ${this.currentVideoQuality} → ${targetVideoQuality}`);
+      await this.adjustVideoQuality(targetVideoQuality);
+    }
+
+    // Notify callback if set
+    if (this.onConnectionQualityChanged) {
+      this.onConnectionQualityChanged(quality, targetVideoQuality);
+    }
+  }
+
+  /**
+   * Adjust video quality to a specific preset
+   * @param {string} quality - Quality preset: 'high', 'medium', 'low'
+   */
+  async adjustVideoQuality(quality) {
+    if (!this.room || !this.isConnected || !this.isVideoEnabled) {
+      console.warn('⚠️ Cannot adjust video quality - not in video call');
+      return false;
+    }
+
+    if (!this.videoQualityPresets[quality]) {
+      console.error('❌ Invalid video quality preset:', quality);
+      return false;
+    }
+
+    try {
+      const preset = this.videoQualityPresets[quality];
+      const localParticipant = this.room.localParticipant;
+
+      // Get the current video track publication
+      const videoTrackPublications = Array.from(localParticipant.videoTrackPublications.values());
+      if (videoTrackPublications.length === 0) {
+        console.warn('⚠️ No video track to adjust');
+        return false;
+      }
+
+      const videoPublication = videoTrackPublications[0];
+      if (!videoPublication.track) {
+        console.warn('⚠️ Video track not available');
+        return false;
+      }
+
+      // Update video encoding parameters
+      await videoPublication.track.setVideoQuality({
+        width: preset.width,
+        height: preset.height,
+        frameRate: preset.frameRate,
+        maxBitrate: preset.bitrate
+      });
+
+      this.currentVideoQuality = quality;
+      console.log(`✅ Video quality adjusted to ${preset.label}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to adjust video quality:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get current video quality info
+   * @returns {object} Quality info
+   */
+  getVideoQualityInfo() {
+    const preset = this.videoQualityPresets[this.currentVideoQuality];
+    return {
+      connectionQuality: this.connectionQuality,
+      videoQuality: this.currentVideoQuality,
+      preset: preset,
+      isVideoEnabled: this.isVideoEnabled
+    };
+  }
+
+  /**
+   * Manually set video quality (override automatic adjustment)
+   * @param {string} quality - Quality preset: 'high', 'medium', 'low'
+   */
+  async setVideoQuality(quality) {
+    if (!this.videoQualityPresets[quality]) {
+      console.error('❌ Invalid video quality:', quality);
+      return false;
+    }
+
+    console.log(`🎬 Manually setting video quality to ${quality}`);
+    return await this.adjustVideoQuality(quality);
   }
 
 }
