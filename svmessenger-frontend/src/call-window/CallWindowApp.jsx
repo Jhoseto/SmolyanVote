@@ -1072,6 +1072,13 @@ const CallWindowApp = ({ callData }) => {
             otherUserAvatar={callData.otherUserAvatar}
             onMuteToggle={handleMuteToggle}
             onEndCall={handleEndCall}
+            // Video props
+            isVideoEnabled={isVideoEnabled}
+            remoteVideoVisible={remoteVideoVisible}
+            localVideoRef={localVideoRef}
+            remoteVideoRef={remoteVideoRef}
+            onCameraToggle={handleCameraToggle}
+            cameraPermissionDenied={cameraPermissionDenied}
         />
     );
 };
