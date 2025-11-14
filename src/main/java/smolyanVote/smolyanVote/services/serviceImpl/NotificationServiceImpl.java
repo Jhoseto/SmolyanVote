@@ -232,7 +232,8 @@ public class NotificationServiceImpl implements NotificationService {
                                 .map(UserEntity::getImageUrl)
                                 .orElse("")
                 ));
-        
+
+
         // Map-ваме с допълнени actorImageUrl
         return entityPage.map(entity -> {
             NotificationDTO dto = NotificationDTO.fromEntity(entity);
