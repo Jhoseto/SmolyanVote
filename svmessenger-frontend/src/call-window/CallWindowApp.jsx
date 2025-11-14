@@ -109,60 +109,29 @@ const CallWindowApp = ({ callData }) => {
             });
 
             room.on(RoomEvent.ParticipantConnected, (participant) => {
+                // With autoSubscribe: true, LiveKit automatically subscribes to all tracks
+                // We only need to attach tracks that are ALREADY available when participant connects
                 console.log('👤 Participant connected:', participant.identity);
                 console.log('  - Audio track publications:', participant.audioTrackPublications.size);
                 console.log('  - Video track publications:', participant.videoTrackPublications.size);
-                
-                // Subscribe to all audio tracks from this participant
-                // Follow the same logic as svLiveKitService - only attach if track already exists
-                // Subscription will happen automatically via TrackSubscribed event
+
+                // Attach already-available audio tracks (if any exist)
                 participant.audioTrackPublications.forEach((publication, trackSid) => {
-                    console.log('  - Processing audio publication:', trackSid, {
-                        hasTrack: !!publication.track,
-                        isSubscribed: publication.isSubscribed,
-                        trackSid: publication.trackSid,
-                        source: publication.source
-                    });
-                    
                     if (publication.track) {
-                        // Track already available, attach it immediately
-                        console.log('  - ✅ Attaching existing audio track for participant:', participant.identity);
+                        console.log('  - ✅ Attaching existing audio track:', trackSid);
                         attachRemoteAudioTrack(publication.track, participant.identity);
                     } else {
-                        // Track not available yet, subscribe to it
-                        // LiveKit will automatically trigger TrackSubscribed when track is ready
-                        console.log('  - ⏳ Audio track not available yet, subscribing...');
-                        try {
-                            room.localParticipant.setSubscribed(publication, true);
-                            console.log('  - ✅ Successfully requested audio subscription, waiting for TrackSubscribed event');
-                        } catch (error) {
-                            console.error('  - ❌ Failed to subscribe to audio track:', error);
-                        }
+                        console.log('  - ⏳ Audio track not ready yet, will attach via TrackSubscribed event');
                     }
                 });
 
-                // Subscribe to all video tracks from this participant
+                // Attach already-available video tracks (if any exist)
                 participant.videoTrackPublications.forEach((publication, trackSid) => {
-                    console.log('  - Processing video publication:', trackSid, {
-                        hasTrack: !!publication.track,
-                        isSubscribed: publication.isSubscribed,
-                        trackSid: publication.trackSid,
-                        source: publication.source
-                    });
-                    
                     if (publication.track) {
-                        // Track already available, attach it immediately
-                        console.log('  - ✅ Attaching existing video track for participant:', participant.identity);
+                        console.log('  - ✅ Attaching existing video track:', trackSid);
                         attachRemoteVideoTrack(publication.track, participant.identity);
                     } else {
-                        // Track not available yet, subscribe to it
-                        console.log('  - ⏳ Video track not available yet, subscribing...');
-                        try {
-                            room.localParticipant.setSubscribed(publication, true);
-                            console.log('  - ✅ Successfully requested video subscription, waiting for TrackSubscribed event');
-                        } catch (error) {
-                            console.error('  - ❌ Failed to subscribe to video track:', error);
-                        }
+                        console.log('  - ⏳ Video track not ready yet, will attach via TrackSubscribed event');
                     }
                 });
             });
@@ -226,47 +195,39 @@ const CallWindowApp = ({ callData }) => {
             });
 
             room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-                if (track && track.kind === 'audio') {
-                    console.log('🎵 Track subscribed event:', {
-                        kind: track.kind,
-                        participant: participant.identity,
-                        trackSid: track.sid,
-                        publicationSid: publication.trackSid,
-                        isMuted: track.isMuted
-                    });
+                const isLocal = participant === room.localParticipant;
+                
+                console.log('✅ [TrackSubscribed] Track subscribed:', {
+                    kind: track.kind,
+                    participant: participant.identity,
+                    trackSid: track.sid,
+                    isLocal: isLocal
+                });
+                
+                if (track.kind === 'audio') {
+                    // Audio tracks are always remote (we don't subscribe to our own audio)
+                    console.log('  - 🔊 Attaching remote audio track');
                     attachRemoteAudioTrack(track, participant.identity);
-                } else if (track && track.kind === 'video') {
-                    console.log('🎬 [TrackSubscribed] Video track subscribed:', {
-                        participant: participant.identity,
-                        trackSid: track.sid,
-                        isLocal: participant === room.localParticipant
-                    });
                     
-                    // Check if this is our own video track (local)
-                    if (participant === room.localParticipant) {
-                        console.log('🎬 [TrackSubscribed] This is LOCAL video track');
-                        // This is our local video track - attach to local preview
-                        if (localVideoRef.current && track) {
+                } else if (track.kind === 'video') {
+                    if (isLocal) {
+                        // Local video track - attach to local preview
+                        console.log('  - 📹 Attaching local video to preview');
+                        if (localVideoRef.current) {
                             try {
-                                console.log('🎬 [TrackSubscribed] Attaching local track to localVideoRef...');
                                 track.attach(localVideoRef.current);
-                                console.log('✅ [TrackSubscribed] Local video preview attached from TrackSubscribed event');
-                            } catch (attachError) {
-                                console.error('❌ [TrackSubscribed] Error attaching local video:', attachError);
+                                console.log('  - ✅ Local video preview attached');
+                            } catch (error) {
+                                console.error('  - ❌ Error attaching local video:', error);
                             }
                         } else {
-                            console.warn('⚠️ [TrackSubscribed] Missing localVideoRef or track:', {
-                                hasRef: !!localVideoRef.current,
-                                hasTrack: !!track
-                            });
+                            console.warn('  - ⚠️ localVideoRef not available');
                         }
                     } else {
-                        console.log('🎬 [TrackSubscribed] This is REMOTE video track');
-                        // This is remote video track
+                        // Remote video track - attach to remote video container
+                        console.log('  - 🎬 Attaching remote video track');
                         attachRemoteVideoTrack(track, participant.identity);
                     }
-                } else {
-                    console.log('🎬 [TrackSubscribed] Track subscribed but unknown kind:', track?.kind);
                 }
             });
 
@@ -313,43 +274,21 @@ const CallWindowApp = ({ callData }) => {
                 }
             });
 
-            // Listen for TrackPublished event from remote participants (when they publish video during call)
+            // Listen for TrackPublished event - for logging only
+            // With autoSubscribe: true, LiveKit handles subscription automatically
             room.on(RoomEvent.TrackPublished, (publication, participant) => {
-                // Only process remote participants (not local)
-                if (participant !== room.localParticipant && publication.track?.kind === 'video') {
-                    console.log('🎬 [TrackPublished] Remote participant published video track:', {
-                        participant: participant.identity,
-                        trackSid: publication.trackSid,
-                        source: publication.source,
-                        hasTrack: !!publication.track,
-                        isSubscribed: publication.isSubscribed
-                    });
-                    
-                    try {
-                        // Subscribe to the track if not already subscribed
-                        if (!publication.isSubscribed) {
-                            try {
-                                console.log('🎬 [TrackPublished] Subscribing to remote video track...');
-                                room.localParticipant.setSubscribed(publication, true);
-                                console.log('✅ [TrackPublished] Successfully requested subscription to remote video track');
-                            } catch (error) {
-                                console.error('❌ [TrackPublished] Failed to subscribe to remote video track:', error);
-                                // Don't throw - this is non-critical, track might subscribe later via TrackSubscribed event
-                            }
-                        } else if (publication.track) {
-                            // Track is already subscribed, attach it immediately
-                            console.log('🎬 [TrackPublished] Track already subscribed, attaching immediately...');
-                            try {
-                                attachRemoteVideoTrack(publication.track, participant.identity);
-                            } catch (attachError) {
-                                console.error('❌ [TrackPublished] Error attaching remote video track:', attachError);
-                                // Don't throw - this is non-critical, track might attach later via TrackSubscribed event
-                            }
-                        }
-                    } catch (error) {
-                        console.error('❌ [TrackPublished] Unexpected error processing remote video track:', error);
-                        // Don't throw - this should not cause disconnect
-                    }
+                const isLocal = participant === room.localParticipant;
+                console.log('📢 [TrackPublished] Track published:', {
+                    kind: publication.kind,
+                    participant: participant.identity,
+                    trackSid: publication.trackSid,
+                    source: publication.source,
+                    isLocal: isLocal
+                });
+                
+                // No manual subscription needed - LiveKit will trigger TrackSubscribed automatically
+                if (!isLocal) {
+                    console.log('  - Remote track will be auto-subscribed by LiveKit');
                 }
             });
 
@@ -710,12 +649,17 @@ const CallWindowApp = ({ callData }) => {
             if (existingTrack && existingTrack.element) {
                 try {
                     existingTrack.track?.detach(existingTrack.element);
+                    // Remove only if it's our dynamically created element
+                    // Use .remove() instead of parentNode.removeChild() for safer removal
+                    if (existingTrack.element.parentNode) {
+                        existingTrack.element.remove();
+                    }
                 } catch (e) {
-                    console.warn('Error detaching existing track:', e);
+                    console.warn('⚠️ Error detaching existing track (non-critical):', e.message);
                 }
             }
 
-            // Create video element (but don't append to DOM yet - React will handle it)
+            // Create new video element
             const videoElement = document.createElement('video');
             videoElement.autoplay = true;
             videoElement.playsInline = true;
@@ -723,7 +667,9 @@ const CallWindowApp = ({ callData }) => {
             videoElement.style.width = '100%';
             videoElement.style.height = '100%';
             videoElement.style.objectFit = 'cover';
+            videoElement.style.objectPosition = 'center';
             videoElement.style.backgroundColor = '#000';
+            videoElement.className = 'remote-video-element';
 
             // Attach track to video element
             track.attach(videoElement);
@@ -731,84 +677,18 @@ const CallWindowApp = ({ callData }) => {
             // Store reference
             remoteVideoElementRef.current.set(participantIdentity, { element: videoElement, track });
 
-            // Attach to React-controlled container
+            // Append to container (React will hide the avatar via remoteVideoVisible state)
+            // DON'T do manual removeChild on React-controlled nodes!
             if (remoteVideoRef.current) {
-                // Check if there's already a video element for this participant
-                const existingElement = remoteVideoElementRef.current.get(participantIdentity)?.element;
-                
-                // If there's an existing element in the DOM, remove it first (safely)
-                if (existingElement && existingElement.parentNode === remoteVideoRef.current) {
-                    try {
-                        // Only remove if it's actually a child of the container
-                        if (remoteVideoRef.current.contains(existingElement)) {
-                            remoteVideoRef.current.removeChild(existingElement);
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Error removing existing video element (non-critical):', e.message);
-                        // If removal fails, try to remove all children (but very carefully)
-                        try {
-                            // Use a more defensive approach - check each child before removing
-                            const children = Array.from(remoteVideoRef.current.children);
-                            for (const child of children) {
-                                if (remoteVideoRef.current.contains(child)) {
-                                    remoteVideoRef.current.removeChild(child);
-                                }
-                            }
-                        } catch (e2) {
-                            console.warn('⚠️ Error clearing container (non-critical):', e2.message);
-                            // If all else fails, just clear innerHTML (last resort)
-                            try {
-                                remoteVideoRef.current.innerHTML = '';
-                            } catch (e3) {
-                                console.error('❌ Failed to clear container:', e3);
-                            }
-                        }
-                    }
-                } else {
-                    // No existing element or it's not in the DOM, clear all children safely
-                    try {
-                        // Use a more defensive approach - collect children first, then remove
-                        const childrenToRemove = [];
-                        let child = remoteVideoRef.current.firstChild;
-                        while (child) {
-                            if (remoteVideoRef.current.contains(child)) {
-                                childrenToRemove.push(child);
-                            }
-                            child = child.nextSibling;
-                        }
-                        // Remove collected children
-                        childrenToRemove.forEach(child => {
-                            try {
-                                if (remoteVideoRef.current.contains(child)) {
-                                    remoteVideoRef.current.removeChild(child);
-                                }
-                            } catch (e) {
-                                console.warn('⚠️ Error removing child (non-critical):', e.message);
-                            }
-                        });
-                    } catch (e) {
-                        console.warn('⚠️ Error clearing container (non-critical):', e.message);
-                        // Last resort - clear innerHTML
-                        try {
-                            remoteVideoRef.current.innerHTML = '';
-                        } catch (e2) {
-                            console.error('❌ Failed to clear container:', e2);
-                        }
-                    }
-                }
-                
-                // Append new video element
-                try {
-                    remoteVideoRef.current.appendChild(videoElement);
-                    setRemoteVideoVisible(true);
-                    console.log('✅ Remote video displayed in UI');
-                } catch (e) {
-                    console.error('❌ Error appending video element:', e);
-                    throw e; // Re-throw to be caught by outer try-catch
-                }
+                remoteVideoRef.current.appendChild(videoElement);
+                setRemoteVideoVisible(true);
+                console.log('✅ Remote video displayed in UI');
             }
         } catch (error) {
             console.error('❌ Error attaching remote video track:', error);
+            // Don't re-throw - this should not cause disconnect or crash
+            // The track might attach later via TrackSubscribed event
+            console.warn('⚠️ Remote video track attachment failed, but will retry via TrackSubscribed event');
         }
     }, []);
 
@@ -826,13 +706,12 @@ const CallWindowApp = ({ callData }) => {
                         trackData.track.detach(trackData.element);
                     }
                     
-                    // Remove element from DOM safely - check if it's still a child
+                    // Remove element from DOM safely - use .remove() instead of parentNode.removeChild()
                     if (trackData.element && trackData.element.parentNode) {
-                        // Check if element is actually a child before removing
-                        if (trackData.element.parentNode.contains(trackData.element)) {
-                            trackData.element.parentNode.removeChild(trackData.element);
-                        } else {
-                            console.warn('⚠️ Element is not a child of parent, skipping removeChild');
+                        try {
+                            trackData.element.remove();
+                        } catch (e) {
+                            console.warn('⚠️ Error removing element (non-critical):', e.message);
                         }
                     }
                 } catch (e) {
@@ -852,17 +731,8 @@ const CallWindowApp = ({ callData }) => {
         
         setRemoteVideoVisible(false);
 
-        // Clear remote video container if no more tracks
-        if (remoteVideoRef.current && (!remoteVideoElementRef.current || remoteVideoElementRef.current.size === 0)) {
-            // Safely remove all children
-            try {
-                while (remoteVideoRef.current.firstChild) {
-                    remoteVideoRef.current.removeChild(remoteVideoRef.current.firstChild);
-                }
-            } catch (e) {
-                console.warn('⚠️ Error clearing container (non-critical):', e.message);
-            }
-        }
+        // DON'T clear React-controlled container - React will show avatar via remoteVideoVisible state
+        // The video element will be removed by React when remoteVideoVisible becomes false
     }, []);
 
     // ========== CAMERA TOGGLE HANDLER ==========
@@ -891,9 +761,10 @@ const CallWindowApp = ({ callData }) => {
 
                 // Request video stream with selected camera
                 const videoConstraints = {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30 }
+                    width: { ideal: 1920, min: 1280 },
+                    height: { ideal: 1080, min: 720 },
+                    frameRate: { ideal: 30, min: 24 },
+                    aspectRatio: { ideal: 16/9 }
                 };
 
                 if (selectedCameraId) {

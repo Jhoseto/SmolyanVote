@@ -419,31 +419,363 @@
     animation: ripple 0.6s ease-out;
 }
 
-/* Connection quality indicator */
-.connection-indicator {
+/* ========== PREMIUM VIDEO IMPROVEMENTS ========== */
+
+/* Remote video element with smooth transitions */
+.remote-video-element {
+    animation: videoFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+}
+
+@keyframes videoFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+/* Remote video container with premium border effect */
+.call-window-remote-video.video-active::before {
+    content: '';
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(129, 199, 132, 0.3) 50%,
+        transparent 70%
+    );
+    animation: borderShimmer 3s linear infinite;
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes borderShimmer {
+    0% {
+        background-position: -200% -200%;
+    }
+    100% {
+        background-position: 200% 200%;
+    }
+}
+
+/* Enhanced local video PiP with premium shadows */
+.call-window-local-video-pip {
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+        0 0 40px rgba(129, 199, 132, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.call-window-local-video-pip:hover {
+    transform: scale(1.05);
+    box-shadow: 
+        0 25px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+        0 0 60px rgba(129, 199, 132, 0.3),
+        0 12px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* Local video with mirroring and smooth rendering */
+.call-window-local-video-pip .local-video-element {
+    object-fit: cover;
+    object-position: center;
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+}
+
+/* Enhanced controls with better glassmorphism */
+.call-window-controls {
+    background: linear-gradient(
+        to top,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(255, 255, 255, 0.85) 50%,
+        rgba(255, 255, 255, 0.5) 80%,
+        transparent 100%
+    );
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    box-shadow: 
+        0 -10px 40px rgba(0, 0, 0, 0.15),
+        0 -1px 0 rgba(255, 255, 255, 0.5) inset;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Video Quality Badge */
+.video-quality-badge {
+    position: absolute;
+    top: 20px;
+    left: 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 100;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    animation: badgeFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes badgeFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.video-quality-badge i {
+    color: #4CAF50;
+    font-size: 18px;
+    animation: hdPulse 2s ease-in-out infinite;
+}
+
+@keyframes hdPulse {
+    0%, 100% {
+        opacity: 1;
+        filter: drop-shadow(0 0 4px rgba(76, 175, 80, 0.5));
+    }
+    50% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.8));
+    }
+}
+
+.video-quality-badge span {
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Connection Quality Indicator */
+.connection-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    z-index: 100;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    animation: badgeFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 16px;
+}
+
+.signal-bars span {
+    width: 3px;
+    background: #4CAF50;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.signal-bars span:nth-child(1) {
+    height: 40%;
+    animation: signalPulse 1.5s ease-in-out infinite;
+}
+
+.signal-bars span:nth-child(2) {
+    height: 70%;
+    animation: signalPulse 1.5s ease-in-out infinite 0.2s;
+}
+
+.signal-bars span:nth-child(3) {
+    height: 100%;
+    animation: signalPulse 1.5s ease-in-out infinite 0.4s;
+}
+
+@keyframes signalPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+    }
+    50% {
+        opacity: 0.6;
+        box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+    }
+}
+
+/* Connection quality states */
+.connection-indicator.excellent .signal-bars span {
+    background: #4CAF50;
+}
+
+.connection-indicator.good .signal-bars span {
+    background: #FFC107;
+}
+
+.connection-indicator.poor .signal-bars span {
+    background: #F44336;
+}
+
+.connection-indicator.poor .signal-bars span:nth-child(3) {
+    opacity: 0.3;
+}
+
+.connection-indicator.poor .signal-bars span:nth-child(2) {
+    opacity: 0.5;
+}
+
+/* Enhanced control buttons with better hover effects */
+.call-control-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.call-control-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
     border-radius: 50%;
-    z-index: 15;
+    background: rgba(129, 199, 132, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
 }
 
-.connection-indicator.good {
-    color: #4caf50;
+.call-control-btn:hover::before {
+    width: 200%;
+    height: 200%;
 }
 
-.connection-indicator.medium {
-    color: #ff9800;
+.call-control-btn:active {
+    transform: scale(0.95);
 }
 
-.connection-indicator.poor {
-    color: #f44336;
+/* Camera button special effect when active */
+.call-control-btn:not(.inactive)::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px rgba(76, 175, 80, 0.8),
+        0 0 0 2px rgba(255, 255, 255, 0.8);
+    animation: recordingPulse 2s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(0.8);
+    }
+}
+
+/* Smooth avatar to video transition */
+.call-window-avatar-fallback {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.call-window-remote-video.video-active .call-window-avatar-fallback {
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
+}
+
+/* Info bar enhancements */
+.call-window-info {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.video-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(76, 175, 80, 0.2);
+    border-radius: 12px;
+    color: #4CAF50;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    animation: videoIndicatorPulse 2s ease-in-out infinite;
+}
+
+@keyframes videoIndicatorPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(76, 175, 80, 0);
+    }
+}
+
+.video-indicator::before {
+    content: '●';
+    color: #4CAF50;
+    animation: recordingBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes recordingBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Premium loading state for video */
+.call-window-remote-video:not(.video-active)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    margin: -30px 0 0 -30px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: rgba(129, 199, 132, 0.8);
+    border-radius: 50%;
+    animation: videoLoading 1s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes videoLoading {
+    to { transform: rotate(360deg); }
 }
 

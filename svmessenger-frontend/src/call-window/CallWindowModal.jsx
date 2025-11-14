@@ -118,6 +118,23 @@ const CallWindowModal = ({
                         )}
                     </div>
 
+                    {/* Video Quality Badge */}
+                    {isVideoEnabled && (
+                        <div className="video-quality-badge">
+                            <i className="bi bi-badge-hd-fill"></i>
+                            <span>Full HD</span>
+                        </div>
+                    )}
+
+                    {/* Connection Quality Indicator */}
+                    <div className="connection-indicator excellent">
+                        <div className="signal-bars">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+
                     {/* Local video (Picture-in-Picture) - only when camera is ON */}
                     {isVideoEnabled && (
                         <div className="call-window-local-video-pip">
@@ -127,6 +144,7 @@ const CallWindowModal = ({
                                 playsInline
                                 muted
                                 className="local-video-element"
+                                style={{ objectFit: 'cover' }}
                             />
                             <div className="pip-label">Вие</div>
                         </div>

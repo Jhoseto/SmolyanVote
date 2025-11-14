@@ -28,25 +28,25 @@ class SVLiveKitService {
     this.currentVideoQuality = 'high'; // high, medium, low
     this.videoQualityPresets = {
       high: {
+        width: 1920,
+        height: 1080,
+        frameRate: 30,
+        bitrate: 5000000, // 5 Mbps - Full HD качество
+        label: 'Full HD (1080p)'
+      },
+      medium: {
         width: 1280,
         height: 720,
         frameRate: 30,
-        bitrate: 2000000, // 2 Mbps
-        label: 'Високо (720p)'
-      },
-      medium: {
-        width: 640,
-        height: 480,
-        frameRate: 24,
-        bitrate: 800000, // 800 Kbps
-        label: 'Средно (480p)'
+        bitrate: 3000000, // 3 Mbps - HD качество
+        label: 'HD (720p)'
       },
       low: {
-        width: 320,
-        height: 240,
-        frameRate: 15,
-        bitrate: 300000, // 300 Kbps
-        label: 'Ниско (240p)'
+        width: 854,
+        height: 480,
+        frameRate: 24,
+        bitrate: 1500000, // 1.5 Mbps - SD качество
+        label: 'SD (480p)'
       }
     };
 
