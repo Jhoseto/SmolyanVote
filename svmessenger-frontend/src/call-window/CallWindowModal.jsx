@@ -22,7 +22,11 @@ const CallWindowModal = ({
     localVideoRef,
     remoteVideoRef,
     onCameraToggle,
-    cameraPermissionDenied
+    cameraPermissionDenied,
+    isCameraLoading,
+    pipPosition,
+    isDragging,
+    onPipMouseDown
 }) => {
     // Правилно декодиране на името (за emoji и специални символи)
     const decodedName = React.useMemo(() => {
@@ -137,7 +141,17 @@ const CallWindowModal = ({
 
                     {/* Local video (Picture-in-Picture) - only when camera is ON */}
                     {isVideoEnabled && (
-                        <div className="call-window-local-video-pip">
+                        <div 
+                            className={`call-window-local-video-pip ${isDragging ? 'dragging' : ''}`}
+                            style={{
+                                right: 'auto',
+                                bottom: 'auto',
+                                left: `${pipPosition.x}px`,
+                                top: `${pipPosition.y}px`,
+                                cursor: isDragging ? 'grabbing' : 'grab'
+                            }}
+                            onMouseDown={onPipMouseDown}
+                        >
                             <video
                                 ref={localVideoRef}
                                 autoPlay
@@ -172,9 +186,13 @@ const CallWindowModal = ({
                             className={`call-control-btn ${!isVideoEnabled ? 'inactive' : ''}`}
                             onClick={onCameraToggle}
                             title={isVideoEnabled ? 'Изключи камера' : 'Включи камера'}
-                            disabled={cameraPermissionDenied}
+                            disabled={cameraPermissionDenied || isCameraLoading}
                         >
-                            <i className={`bi bi-camera-video${!isVideoEnabled ? '-off' : ''}-fill`}></i>
+                            {isCameraLoading ? (
+                                <div className="camera-loading-spinner"></div>
+                            ) : (
+                                <i className={`bi bi-camera-video${!isVideoEnabled ? '-off' : ''}-fill`}></i>
+                            )}
                         </button>
 
                         {/* End call button */}

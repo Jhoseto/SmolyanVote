@@ -25,6 +25,12 @@ const CallWindowApp = ({ callData }) => {
     const [isVideoEnabled, setIsVideoEnabled] = useState(false);
     const [remoteVideoVisible, setRemoteVideoVisible] = useState(false);
     const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
+    const [isCameraLoading, setIsCameraLoading] = useState(false);
+    
+    // PiP drag and drop state
+    const [pipPosition, setPipPosition] = useState({ x: 20, y: 20 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
     const roomRef = useRef(null);
     const audioStreamRef = useRef(null);
@@ -909,6 +915,9 @@ const CallWindowApp = ({ callData }) => {
             cameraPermissionDenied
         });
         
+        // Set loading state
+        setIsCameraLoading(true);
+        
         // Check both state and room property for connection status
         if (!roomRef.current || (!isConnected && !roomRef.current.isConnected)) {
             console.warn('⚠️ [handleCameraToggle] Cannot toggle camera - not connected', {
@@ -916,6 +925,7 @@ const CallWindowApp = ({ callData }) => {
                 isConnectedState: isConnected,
                 roomIsConnected: roomRef.current?.isConnected
             });
+            setIsCameraLoading(false);
             return;
         }
 
@@ -948,6 +958,7 @@ const CallWindowApp = ({ callData }) => {
                 } catch (permError) {
                     console.error('❌ [handleCameraToggle] Camera permission denied:', permError);
                     setCameraPermissionDenied(true);
+                    setIsCameraLoading(false);
                     alert('Моля разрешете достъп до камерата от настройките на браузъра.');
                     return;
                 }
@@ -970,6 +981,7 @@ const CallWindowApp = ({ callData }) => {
                 // Update state AFTER successful toggle
                 console.log('🎬 [handleCameraToggle] toggleCamera succeeded, updating state...');
                 setIsVideoEnabled(newVideoState);
+                setIsCameraLoading(false);
                 console.log('🎬 [handleCameraToggle] isVideoEnabled state updated to:', newVideoState);
                 console.log('🎬 [handleCameraToggle] localVideoRef.current:', {
                     exists: !!localVideoRef.current,
@@ -1079,7 +1091,8 @@ const CallWindowApp = ({ callData }) => {
             } else {
                 console.log('🎬 [handleCameraToggle] toggleCamera failed, state NOT updated');
                 // Don't update state if toggle failed - this prevents the "need to click twice" issue
-                alert('Неуспешно включване/изключване на камерата. Моля опитайте отново.');
+                setIsCameraLoading(false);
+                // No alert - allow user to try again silently
             }
         } catch (error) {
             const errorDetails = {
@@ -1121,7 +1134,8 @@ const CallWindowApp = ({ callData }) => {
                 console.error('Failed to save error to localStorage:', storageError);
             }
             
-            alert('Грешка при включване/изключване на камерата. Проверете конзолата за детайли.');
+            setIsCameraLoading(false);
+            // No alert - allow user to try again silently
         }
     }, [isVideoEnabled, cameraPermissionDenied, isConnected, toggleCameraOnRoom]);
 
@@ -1697,6 +1711,54 @@ const CallWindowApp = ({ callData }) => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Drag handlers for PiP
+    const handlePipMouseDown = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(true);
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+    }, []);
+
+    const handlePipMouseMove = useCallback((e) => {
+        if (!isDragging) return;
+        
+        const container = document.querySelector('.call-window-video-layout');
+        if (!container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const pipWidth = 160;
+        const pipHeight = 120;
+        
+        let newX = e.clientX - containerRect.left - dragOffset.x;
+        let newY = e.clientY - containerRect.top - dragOffset.y;
+        
+        // Ограничения за да не излиза извън екрана
+        newX = Math.max(10, Math.min(newX, containerRect.width - pipWidth - 10));
+        newY = Math.max(10, Math.min(newY, containerRect.height - pipHeight - 10));
+        
+        setPipPosition({ x: newX, y: newY });
+    }, [isDragging, dragOffset]);
+
+    const handlePipMouseUp = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    // Add global mouse move and mouse up listeners
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mousemove', handlePipMouseMove);
+            document.addEventListener('mouseup', handlePipMouseUp);
+            
+            return () => {
+                document.removeEventListener('mousemove', handlePipMouseMove);
+                document.removeEventListener('mouseup', handlePipMouseUp);
+            };
+        }
+    }, [isDragging, handlePipMouseMove, handlePipMouseUp]);
+
     return (
         <CallWindowModal
             callState={callState}
@@ -1715,6 +1777,10 @@ const CallWindowApp = ({ callData }) => {
             remoteVideoRef={remoteVideoRef}
             onCameraToggle={handleCameraToggle}
             cameraPermissionDenied={cameraPermissionDenied}
+            isCameraLoading={isCameraLoading}
+            pipPosition={pipPosition}
+            isDragging={isDragging}
+            onPipMouseDown={handlePipMouseDown}
         />
     );
 };
