@@ -104,6 +104,11 @@ class SVLiveKitService {
           this.attachRemoteAudioTrack(track, participant.identity);
         }
         
+        // Attach video track to HTMLVideoElement for display
+        if (track.kind === 'video') {
+          this.attachRemoteVideoTrack(track, participant.identity);
+        }
+        
         if (this.onTrackSubscribed) this.onTrackSubscribed(track, publication, participant);
       });
 
@@ -111,6 +116,11 @@ class SVLiveKitService {
         // Clean up audio element when track is unsubscribed
         if (track.kind === 'audio') {
           this.detachRemoteAudioTrack(participant.identity);
+        }
+
+        // Clean up video element when track is unsubscribed
+        if (track.kind === 'video') {
+          this.detachRemoteVideoTrack(participant.identity);
         }
 
         if (this.onTrackUnsubscribed) this.onTrackUnsubscribed(track, publication, participant);
@@ -510,13 +520,20 @@ class SVLiveKitService {
    * @returns {Promise<boolean>} success
    */
   async toggleCamera(enabled) {
+    console.log('🎥 [toggleCamera] START', { enabled, hasRoom: !!this.room, isConnected: this.isConnected });
+    
     if (!this.room || !this.isConnected) {
-      console.warn('⚠️ Cannot toggle camera - not in a call');
+      console.warn('⚠️ [toggleCamera] Cannot toggle camera - not in a call', {
+        hasRoom: !!this.room,
+        isConnected: this.isConnected
+      });
       return false;
     }
 
     try {
       if (enabled) {
+        console.log('🎥 [toggleCamera] ENABLING camera...');
+        
         // Enable camera - publishes video track (starts billing as video call)
         // Determine appropriate quality based on current connection
         const initialQuality = this.connectionQuality === 'excellent' || this.connectionQuality === 'good'
@@ -526,28 +543,175 @@ class SVLiveKitService {
           : 'low';
 
         const preset = this.videoQualityPresets[initialQuality];
+        console.log('🎥 [toggleCamera] Video quality:', { initialQuality, preset, connectionQuality: this.connectionQuality });
 
-        await this.room.localParticipant.setCameraEnabled(true, {
-          resolution: {
-            width: preset.width,
-            height: preset.height,
-            frameRate: preset.frameRate
+        // Unpublish existing video tracks first
+        const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
+        console.log('🎥 [toggleCamera] Existing video tracks:', existingVideoTracks.length);
+        for (const publication of existingVideoTracks) {
+          if (publication.track) {
+            console.log('🎥 [toggleCamera] Unpublishing existing track:', publication.trackSid);
+            await this.room.localParticipant.unpublishTrack(publication.track);
+            publication.track.stop();
           }
+        }
+
+        // Stop existing video stream if any
+        if (this.videoStream) {
+          console.log('🎥 [toggleCamera] Stopping existing video stream');
+          this.videoStream.getTracks().forEach(track => track.stop());
+          this.videoStream = null;
+        }
+
+        // Stop existing local video track if any
+        if (this.localVideoTrack) {
+          console.log('🎥 [toggleCamera] Stopping existing local video track');
+          this.localVideoTrack.stop();
+          this.localVideoTrack = null;
+        }
+
+        // Request video stream with selected camera
+        const videoConstraints = {
+          width: { ideal: preset.width },
+          height: { ideal: preset.height },
+          frameRate: { ideal: preset.frameRate }
+        };
+
+        // Add device ID if camera is selected
+        if (this.selectedCamera) {
+          videoConstraints.deviceId = { exact: this.selectedCamera };
+          console.log('🎥 [toggleCamera] Using selected camera:', this.selectedCamera);
+        } else {
+          console.log('🎥 [toggleCamera] No camera selected, using default');
+        }
+
+        console.log('🎥 [toggleCamera] Requesting getUserMedia with constraints:', videoConstraints);
+        
+        // Get video stream from getUserMedia
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints
         });
+
+        console.log('🎥 [toggleCamera] getUserMedia success, stream:', {
+          id: videoStream.id,
+          active: videoStream.active,
+          tracks: videoStream.getTracks().length
+        });
+
+        this.videoStream = videoStream;
+
+        // Get video track from stream
+        const videoTracks = videoStream.getVideoTracks();
+        console.log('🎥 [toggleCamera] Video tracks in stream:', videoTracks.length);
+        
+        if (videoTracks.length === 0) {
+          throw new Error('No video track in stream');
+        }
+
+        const mediaStreamTrack = videoTracks[0];
+        console.log('🎥 [toggleCamera] MediaStreamTrack:', {
+          id: mediaStreamTrack.id,
+          kind: mediaStreamTrack.kind,
+          label: mediaStreamTrack.label,
+          enabled: mediaStreamTrack.enabled,
+          readyState: mediaStreamTrack.readyState
+        });
+        
+        // Create LocalVideoTrack from MediaStreamTrack (same pattern as audio)
+        console.log('🎥 [toggleCamera] Creating LocalVideoTrack...');
+        const videoTrack = new LocalVideoTrack(mediaStreamTrack);
+        console.log('🎥 [toggleCamera] LocalVideoTrack created:', {
+          sid: videoTrack.sid,
+          kind: videoTrack.kind,
+          isMuted: videoTrack.isMuted,
+          isEnabled: videoTrack.isEnabled
+        });
+
+        // Publish video track (this starts billing as video call)
+        console.log('🎥 [toggleCamera] Publishing video track...');
+        await this.room.localParticipant.publishTrack(videoTrack, {
+          source: 'camera'
+        });
+        console.log('🎥 [toggleCamera] Video track published successfully');
+
+        // Store reference
+        this.localVideoTrack = videoTrack;
 
         this.isVideoEnabled = true;
         this.currentVideoQuality = initialQuality;
-        console.log(`✅ Camera enabled with ${preset.label} - now billing as video call`);
+        
+        // Log final state
+        const publishedTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
+        console.log(`✅ [toggleCamera] Camera enabled with ${preset.label}${this.selectedCamera ? ` (device: ${this.selectedCamera})` : ''} - VIDEO TRACK PUBLISHED - now billing as video call`);
+        console.log('🎥 [toggleCamera] Published tracks count:', publishedTracks.length);
+        publishedTracks.forEach((pub, idx) => {
+          console.log(`  Track ${idx + 1}:`, {
+            trackSid: pub.trackSid,
+            source: pub.source,
+            hasTrack: !!pub.track,
+            trackId: pub.track?.id
+          });
+        });
       } else {
+        console.log('🎥 [toggleCamera] DISABLING camera...');
+        
         // Disable camera - UNPUBLISHES video track (saves costs)
-        await this.room.localParticipant.setCameraEnabled(false);
+        // Unpublish all video tracks
+        const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
+        console.log('🎥 [toggleCamera] Unpublishing', existingVideoTracks.length, 'video tracks');
+        
+        for (const publication of existingVideoTracks) {
+          if (publication.track) {
+            console.log('🎥 [toggleCamera] Unpublishing track:', publication.trackSid);
+            await this.room.localParticipant.unpublishTrack(publication.track);
+            publication.track.stop();
+          }
+        }
+
+        // Stop and cleanup local video track
+        if (this.localVideoTrack) {
+          console.log('🎥 [toggleCamera] Stopping local video track');
+          this.localVideoTrack.stop();
+          this.localVideoTrack = null;
+        }
+
+        // Stop video stream
+        if (this.videoStream) {
+          console.log('🎥 [toggleCamera] Stopping video stream');
+          this.videoStream.getTracks().forEach(track => track.stop());
+          this.videoStream = null;
+        }
+
         this.isVideoEnabled = false;
-        console.log('✅ Camera disabled - now billing as audio-only call');
+        console.log('✅ [toggleCamera] Camera disabled - now billing as audio-only call');
       }
       return true;
     } catch (error) {
-      console.error('❌ Failed to toggle camera:', error);
+      console.error('❌ [toggleCamera] Failed to toggle camera:', error);
+      console.error('❌ [toggleCamera] Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       return false;
+    }
+  }
+
+  /**
+   * Set camera device (similar to setMicrophone)
+   * @param {string} deviceId - Camera device ID
+   */
+  async setCamera(deviceId) {
+    this.selectedCamera = deviceId;
+    
+    // If already in a call with video enabled, switch camera
+    if (this.room && this.isConnected && this.isVideoEnabled) {
+      try {
+        await this.switchCamera(deviceId);
+        console.log('✅ Camera switched during call:', deviceId);
+      } catch (error) {
+        console.error('❌ Failed to switch camera during call:', error);
+      }
     }
   }
 

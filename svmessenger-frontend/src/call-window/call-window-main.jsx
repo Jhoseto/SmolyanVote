@@ -6,7 +6,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import CallWindowApp from './CallWindowApp';
-import './call-window.css';
+import '../styles/call-window.css';
 
 // Зареди данни от URL params
 console.log('🚀 Call window popup opened');

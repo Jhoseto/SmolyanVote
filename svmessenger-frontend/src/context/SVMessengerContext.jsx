@@ -22,6 +22,7 @@ export const useSVMessenger = () => {
 
     return {
         // Messages Context
+        currentUser: messages.currentUser,
         conversations: messages.conversations,
         messagesByConversation: messages.messagesByConversation,
         isLoadingConversations: messages.isLoadingConversations,

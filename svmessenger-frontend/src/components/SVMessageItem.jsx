@@ -10,6 +10,17 @@ import { linkifyText, isOnlyEmoji } from '../utils/svHelpers';
 const SVMessageItem = ({ message, searchQuery = '' }) => {
     const { currentUser } = useSVMessenger();
 
+    // Защита срещу невалидни съобщения
+    if (!message || !message.id || !message.text) {
+        console.warn('SVMessageItem: Invalid message received', message);
+        return null;
+    }
+
+    // Защита срещу липсващ currentUser
+    if (!currentUser || !currentUser.id) {
+        return null; // Не показвай съобщението докато currentUser не е зареден
+    }
+
     const isOwnMessage = message.senderId === currentUser.id;
     const isEmojiOnly = isOnlyEmoji(message.text);
 

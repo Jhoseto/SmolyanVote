@@ -27,6 +27,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
     const [error, setError] = useState(null);
     const [micLevel, setMicLevel] = useState(0);
     const [testResults, setTestResults] = useState(null);
+    const [activeTab, setActiveTab] = useState('microphone'); // 'microphone', 'speaker', 'camera'
 
     // Drag and drop state
     const [isDragging, setIsDragging] = useState(false);
@@ -202,7 +203,7 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             setSelectedSpeaker(deviceId);
 
             // Save device selection to localStorage
-            const currentSettings = JSON.parse(localStorage.getItem('svmessenger-audio-settings') || '{}');
+            const currentSettings = JSON.parse(localStorage.getItem('svmessenger-audio-video-settings') || localStorage.getItem('svmessenger-audio-settings') || '{}');
             const newSettings = {
                 ...currentSettings,
                 speaker: deviceId,
@@ -211,6 +212,23 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             saveSettings(newSettings);
         } catch (err) {
             console.error('Error changing speaker:', err);
+        }
+    };
+
+    const handleCameraChange = async (deviceId) => {
+        try {
+            await svLiveKitService.setCamera(deviceId);
+            setSelectedCamera(deviceId);
+
+            // Save device selection to localStorage
+            const currentSettings = JSON.parse(localStorage.getItem('svmessenger-audio-video-settings') || localStorage.getItem('svmessenger-audio-settings') || '{}');
+            const newSettings = {
+                ...currentSettings,
+                camera: deviceId
+            };
+            saveSettings(newSettings);
+        } catch (err) {
+            console.error('Error changing camera:', err);
         }
     };
 
@@ -265,10 +283,19 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
             setError(null);
             setMicLevel(0);
 
+            // Request both audio and camera permissions
             await svLiveKitService.requestAudioPermissions();
+            
+            // Request camera permissions to enumerate cameras
+            try {
+                await svLiveKitService.requestCameraPermissions();
+            } catch (cameraError) {
+                console.warn('Camera permissions not granted, cameras may not be available:', cameraError);
+            }
+            
             const devices = await svLiveKitService.enumerateAudioDevices();
 
-            // Load cameras
+            // Load cameras (after requesting permissions)
             const cameraDevices = await svLiveKitService.getCameras();
 
             setMicrophones(devices.microphones);
@@ -717,410 +744,438 @@ const SVAudioDeviceSelector = ({ isOpen, onComplete, onCancel }) => {
                     </div>
                 )}
 
-                {/* Main Content - Scrollable */}
+                {/* Main Content - Tabs */}
                 {!isLoading && !error && (
                     <div style={{ 
-                        padding: '16px 20px',
-                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
                         flex: 1,
-                        maxHeight: 'calc(500px - 120px)'
+                        overflow: 'hidden'
                     }}>
-                        {/* Microphone Section */}
+                        {/* Tabs Navigation */}
                         <div style={{
-                            background: '#f9fafb',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '10px',
-                            padding: '14px',
-                            marginBottom: '12px'
+                            display: 'flex',
+                            borderBottom: '1px solid #e5e7eb',
+                            background: '#ffffff',
+                            padding: '0 20px'
                         }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '12px'
-                            }}>
-                                <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    background: '#22c55e',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
-                                    <i className="bi bi-mic-fill" style={{ fontSize: '16px', color: '#ffffff' }}></i>
-                                </div>
-                                <h3 style={{
-                                    margin: 0,
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                    color: '#111827'
-                                }}>Микрофон</h3>
-                            </div>
-
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '6px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: '#374151',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>Устройство</label>
-                                <select
-                                    value={selectedMic}
-                                    onChange={(e) => handleMicChange(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        background: '#ffffff',
-                                        color: '#111827',
-                                        fontSize: '12px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {microphones.map((mic) => (
-                                        <option key={mic.deviceId} value={mic.deviceId}>
-                                            {mic.label || `Микрофон ${mic.deviceId.slice(0, 8)}`}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '6px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: '#374151',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>Сила на звука</label>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '10px',
-                                    background: '#f3f4f6',
-                                    borderRadius: '6px'
-                                }}>
-                                    <i className="bi bi-volume-down-fill" style={{ fontSize: '14px', color: '#22c55e' }}></i>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={micVolume}
-                                        onChange={(e) => handleVolumeChange('mic', Number(e.target.value))}
-                                        style={{
-                                            flex: 1,
-                                            height: '4px',
-                                            background: '#d1d5db',
-                                            borderRadius: '2px',
-                                            outline: 'none',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <span style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#111827',
-                                        minWidth: '35px',
-                                        textAlign: 'right'
-                                    }}>{micVolume}%</span>
-                                </div>
-                            </div>
-
-                            <AudioLevelBar level={micLevel} />
-                        </div>
-
-                        {/* Speaker Section */}
-                        <div style={{
-                            background: '#f9fafb',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '10px',
-                            padding: '14px',
-                            marginBottom: '12px'
-                        }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '12px'
-                            }}>
-                                <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    background: '#22c55e',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
-                                    <i className="bi bi-headphones" style={{ fontSize: '16px', color: '#ffffff' }}></i>
-                                </div>
-                                <h3 style={{
-                                    margin: 0,
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                    color: '#111827'
-                                }}>Слушалки</h3>
-                            </div>
-
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '6px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: '#374151',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>Устройство</label>
-                                <select
-                                    value={selectedSpeaker}
-                                    onChange={(e) => handleSpeakerChange(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        background: '#ffffff',
-                                        color: '#111827',
-                                        fontSize: '12px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {speakers.map((speaker) => (
-                                        <option key={speaker.deviceId} value={speaker.deviceId}>
-                                            {speaker.label || `Слушалки ${speaker.deviceId.slice(0, 8)}`}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '6px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: '#374151',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>Сила на звука</label>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '10px',
-                                    background: '#f3f4f6',
-                                    borderRadius: '6px'
-                                }}>
-                                    <i className="bi bi-volume-up-fill" style={{ fontSize: '14px', color: '#22c55e' }}></i>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={speakerVolume}
-                                        onChange={(e) => handleVolumeChange('speaker', Number(e.target.value))}
-                                        style={{
-                                            flex: 1,
-                                            height: '4px',
-                                            background: '#d1d5db',
-                                            borderRadius: '2px',
-                                            outline: 'none',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <span style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#111827',
-                                        minWidth: '35px',
-                                        textAlign: 'right'
-                                    }}>{speakerVolume}%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Speaker Test Section */}
-                        <div style={{
-                            background: '#eaffe9',
-                            border: '1px solid #fbbf24',
-                            borderRadius: '10px',
-                            padding: '12px',
-                            marginBottom: '12px'
-                        }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '10px'
-                            }}>
-                                <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', color: '#22c45e' }}></i>
-                                <span style={{
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    color: '#124100'
-                                }}>Тест на слушалки</span>
-                            </div>
-                            <p style={{
-                                margin: '0 0 10px 0',
-                                fontSize: '11px',
-                                color: '#004217'
-                            }}>
-                                Натиснете бутона по-долу, за да чуете тестов сигнал и да проверите дали слушалките работят правилно.
-                            </p>
                             <button
-                                onClick={handleTestAudio}
-                                disabled={speakers.length === 0 || isTesting}
+                                onClick={() => setActiveTab('microphone')}
                                 style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    background: isTesting ? '#6bb75f' : '#2c9002',
-                                    color: '#ffffff',
+                                    flex: 1,
+                                    padding: '12px 8px',
+                                    background: 'none',
                                     border: 'none',
-                                    borderRadius: '6px',
+                                    borderBottom: activeTab === 'microphone' ? '2px solid #22c55e' : '2px solid transparent',
+                                    color: activeTab === 'microphone' ? '#22c55e' : '#6b7280',
                                     fontSize: '12px',
-                                    fontWeight: '600',
-                                    cursor: speakers.length === 0 || isTesting ? 'not-allowed' : 'pointer',
-                                    opacity: speakers.length === 0 || isTesting ? 0.5 : 1,
+                                    fontWeight: activeTab === 'microphone' ? '600' : '500',
+                                    cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '6px'
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
-                                {isTesting ? (
-                                    <>
-                                        <div style={{
-                                            width: '14px',
-                                            height: '14px',
-                                            border: '2px solid #ffffff',
-                                            borderTop: '2px solid transparent',
-                                            borderRadius: '50%',
-                                            animation: 'spin 0.8s linear infinite'
-                                        }} />
-                                        Тестване...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="bi bi-play-circle-fill" style={{ fontSize: '14px' }}></i>
-                                        Тествай слушалки
-                                    </>
-                                )}
+                                <i className="bi bi-mic-fill" style={{ fontSize: '14px' }}></i>
+                                Микрофон
                             </button>
+                            <button
+                                onClick={() => setActiveTab('speaker')}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px 8px',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderBottom: activeTab === 'speaker' ? '2px solid #22c55e' : '2px solid transparent',
+                                    color: activeTab === 'speaker' ? '#22c55e' : '#6b7280',
+                                    fontSize: '12px',
+                                    fontWeight: activeTab === 'speaker' ? '600' : '500',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <i className="bi bi-headphones" style={{ fontSize: '14px' }}></i>
+                                Слушалки
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('camera')}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px 8px',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderBottom: activeTab === 'camera' ? '2px solid #22c55e' : '2px solid transparent',
+                                    color: activeTab === 'camera' ? '#22c55e' : '#6b7280',
+                                    fontSize: '12px',
+                                    fontWeight: activeTab === 'camera' ? '600' : '500',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <i className="bi bi-camera-video-fill" style={{ fontSize: '14px' }}></i>
+                                Камера
+                            </button>
+                        </div>
 
-                            {testResults && (
-                                <div style={{
-                                    marginTop: '10px',
-                                    padding: '10px',
-                                    background: '#ffffff',
-                                    borderRadius: '6px'
-                                }}>
+                        {/* Tab Content - Scrollable */}
+                        <div style={{ 
+                            padding: '20px',
+                            overflowY: 'auto',
+                            flex: 1,
+                            maxHeight: 'calc(500px - 200px)'
+                        }}>
+                            {/* Microphone Tab */}
+                            {activeTab === 'microphone' && (
+                                <div>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{
+                                            display: 'block',
+                                            marginBottom: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            color: '#374151',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>Устройство</label>
+                                        <select
+                                            value={selectedMic}
+                                            onChange={(e) => handleMicChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 12px',
+                                                border: '1px solid #d1d5db',
+                                                borderRadius: '8px',
+                                                background: '#ffffff',
+                                                color: '#111827',
+                                                fontSize: '13px',
+                                                cursor: 'pointer',
+                                                transition: 'border-color 0.2s ease'
+                                            }}
+                                            onFocus={(e) => e.target.style.borderColor = '#22c55e'}
+                                            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                        >
+                                            {microphones.map((mic) => (
+                                                <option key={mic.deviceId} value={mic.deviceId}>
+                                                    {mic.label || `Микрофон ${mic.deviceId.slice(0, 8)}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{
+                                            display: 'block',
+                                            marginBottom: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            color: '#374151',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>Сила на звука</label>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            padding: '12px',
+                                            background: '#f9fafb',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e5e7eb'
+                                        }}>
+                                            <i className="bi bi-volume-down-fill" style={{ fontSize: '16px', color: '#22c55e' }}></i>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={micVolume}
+                                                onChange={(e) => handleVolumeChange('mic', Number(e.target.value))}
+                                                style={{
+                                                    flex: 1,
+                                                    height: '6px',
+                                                    background: '#d1d5db',
+                                                    borderRadius: '3px',
+                                                    outline: 'none',
+                                                    cursor: 'pointer'
+                                                }}
+                                            />
+                                            <span style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#111827',
+                                                minWidth: '40px',
+                                                textAlign: 'right'
+                                            }}>{micVolume}%</span>
+                                        </div>
+                                    </div>
+
+                                    <AudioLevelBar level={micLevel} />
+                                </div>
+                            )}
+
+                            {/* Speaker Tab */}
+                            {activeTab === 'speaker' && (
+                                <div>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{
+                                            display: 'block',
+                                            marginBottom: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            color: '#374151',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>Устройство</label>
+                                        <select
+                                            value={selectedSpeaker}
+                                            onChange={(e) => handleSpeakerChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 12px',
+                                                border: '1px solid #d1d5db',
+                                                borderRadius: '8px',
+                                                background: '#ffffff',
+                                                color: '#111827',
+                                                fontSize: '13px',
+                                                cursor: 'pointer',
+                                                transition: 'border-color 0.2s ease'
+                                            }}
+                                            onFocus={(e) => e.target.style.borderColor = '#22c55e'}
+                                            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                        >
+                                            {speakers.map((speaker) => (
+                                                <option key={speaker.deviceId} value={speaker.deviceId}>
+                                                    {speaker.label || `Слушалки ${speaker.deviceId.slice(0, 8)}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{
+                                            display: 'block',
+                                            marginBottom: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            color: '#374151',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>Сила на звука</label>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            padding: '12px',
+                                            background: '#f9fafb',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e5e7eb'
+                                        }}>
+                                            <i className="bi bi-volume-up-fill" style={{ fontSize: '16px', color: '#22c55e' }}></i>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={speakerVolume}
+                                                onChange={(e) => handleVolumeChange('speaker', Number(e.target.value))}
+                                                style={{
+                                                    flex: 1,
+                                                    height: '6px',
+                                                    background: '#d1d5db',
+                                                    borderRadius: '3px',
+                                                    outline: 'none',
+                                                    cursor: 'pointer'
+                                                }}
+                                            />
+                                            <span style={{
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#111827',
+                                                minWidth: '40px',
+                                                textAlign: 'right'
+                                            }}>{speakerVolume}%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Speaker Test Section */}
                                     <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
+                                        background: '#eaffe9',
+                                        border: '1px solid #bbf7d0',
+                                        borderRadius: '10px',
+                                        padding: '14px',
+                                        marginTop: '8px'
                                     }}>
-                                        <i className={`bi bi-${testResults.speakerWorking ? 'check-circle-fill' : 'x-circle-fill'}`}
-                                           style={{ fontSize: '14px', color: testResults.speakerWorking ? '#22c55e' : '#ef4444' }}></i>
-                                        <span style={{ fontSize: '12px', color: '#374151' }}>
-                                            {testResults.speakerWorking ? 'Слушалките работят правилно' : 'Проблем със слушалките'}
-                                        </span>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            marginBottom: '10px'
+                                        }}>
+                                            <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', color: '#22c55e' }}></i>
+                                            <span style={{
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                color: '#166534'
+                                            }}>Тест на слушалки</span>
+                                        </div>
+                                        <p style={{
+                                            margin: '0 0 12px 0',
+                                            fontSize: '11px',
+                                            color: '#166534',
+                                            lineHeight: '1.5'
+                                        }}>
+                                            Натиснете бутона по-долу, за да чуете тестов сигнал и да проверите дали слушалките работят правилно.
+                                        </p>
+                                        <button
+                                            onClick={handleTestAudio}
+                                            disabled={speakers.length === 0 || isTesting}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px',
+                                                background: isTesting ? '#6bb75f' : '#22c55e',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                cursor: speakers.length === 0 || isTesting ? 'not-allowed' : 'pointer',
+                                                opacity: speakers.length === 0 || isTesting ? 0.6 : 1,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: speakers.length === 0 || isTesting ? 'none' : '0 2px 6px rgba(34, 197, 94, 0.3)'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (speakers.length > 0 && !isTesting) {
+                                                    e.currentTarget.style.background = '#16a34a';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (speakers.length > 0 && !isTesting) {
+                                                    e.currentTarget.style.background = '#22c55e';
+                                                }
+                                            }}
+                                        >
+                                            {isTesting ? (
+                                                <>
+                                                    <div style={{
+                                                        width: '14px',
+                                                        height: '14px',
+                                                        border: '2px solid #ffffff',
+                                                        borderTop: '2px solid transparent',
+                                                        borderRadius: '50%',
+                                                        animation: 'spin 0.8s linear infinite'
+                                                    }} />
+                                                    Тестване...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="bi bi-play-circle-fill" style={{ fontSize: '14px' }}></i>
+                                                    Тествай слушалки
+                                                </>
+                                            )}
+                                        </button>
+
+                                        {testResults && (
+                                            <div style={{
+                                                marginTop: '12px',
+                                                padding: '10px',
+                                                background: '#ffffff',
+                                                borderRadius: '6px',
+                                                border: '1px solid #bbf7d0'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px'
+                                                }}>
+                                                    <i className={`bi bi-${testResults.speakerWorking ? 'check-circle-fill' : 'x-circle-fill'}`}
+                                                       style={{ fontSize: '16px', color: testResults.speakerWorking ? '#22c55e' : '#ef4444' }}></i>
+                                                    <span style={{ fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                                                        {testResults.speakerWorking ? 'Слушалките работят правилно' : 'Проблем със слушалките'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Camera Section */}
-                        <div style={{
-                            background: '#f9fafb',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '10px',
-                            padding: '14px'
-                        }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '12px'
-                            }}>
-                                <div style={{
-                                    width: '30px',
-                                    height: '30px',
-                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
-                                    <i className="bi bi-camera-video-fill" style={{ fontSize: '16px', color: '#ffffff' }}></i>
-                                </div>
-                                <h3 style={{
-                                    margin: 0,
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                    color: '#111827'
-                                }}>Камера</h3>
-                            </div>
+                            {/* Camera Tab */}
+                            {activeTab === 'camera' && (
+                                <div>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{
+                                            display: 'block',
+                                            marginBottom: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            color: '#374151',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>Устройство</label>
+                                        <select
+                                            value={selectedCamera}
+                                            onChange={(e) => handleCameraChange(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 12px',
+                                                border: '1px solid #d1d5db',
+                                                borderRadius: '8px',
+                                                background: '#ffffff',
+                                                color: '#111827',
+                                                fontSize: '13px',
+                                                cursor: cameras.length === 0 ? 'not-allowed' : 'pointer',
+                                                opacity: cameras.length === 0 ? 0.6 : 1,
+                                                transition: 'border-color 0.2s ease'
+                                            }}
+                                            disabled={cameras.length === 0}
+                                            onFocus={(e) => {
+                                                if (cameras.length > 0) e.target.style.borderColor = '#3b82f6';
+                                            }}
+                                            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                                        >
+                                            {cameras.length === 0 ? (
+                                                <option>Няма налични камери</option>
+                                            ) : (
+                                                cameras.map((cam) => (
+                                                    <option key={cam.deviceId} value={cam.deviceId}>
+                                                        {cam.label || `Камера ${cam.deviceId.slice(0, 8)}`}
+                                                    </option>
+                                                ))
+                                            )}
+                                        </select>
+                                    </div>
 
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '6px',
-                                    fontSize: '10px',
-                                    fontWeight: '600',
-                                    color: '#374151',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>Устройство</label>
-                                <select
-                                    value={selectedCamera}
-                                    onChange={(e) => {
-                                        setSelectedCamera(e.target.value);
-                                        svLiveKitService.selectedCamera = e.target.value;
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        background: '#ffffff',
-                                        color: '#111827',
+                                    <div style={{
+                                        background: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '10px',
+                                        padding: '14px',
                                         fontSize: '12px',
-                                        cursor: 'pointer'
-                                    }}
-                                    disabled={cameras.length === 0}
-                                >
-                                    {cameras.length === 0 ? (
-                                        <option>Няма налични камери</option>
-                                    ) : (
-                                        cameras.map((cam) => (
-                                            <option key={cam.deviceId} value={cam.deviceId}>
-                                                {cam.label || `Камера ${cam.deviceId.slice(0, 8)}`}
-                                            </option>
-                                        ))
-                                    )}
-                                </select>
-                            </div>
-
-                            <div style={{
-                                background: '#eff6ff',
-                                border: '1px solid #bfdbfe',
-                                borderRadius: '8px',
-                                padding: '10px',
-                                fontSize: '11px',
-                                color: '#1e40af',
-                                lineHeight: '1.4'
-                            }}>
-                                <i className="bi bi-info-circle-fill" style={{ marginRight: '6px' }}></i>
-                                Камерата ще се използва автоматично при включване на видео по време на разговор.
-                            </div>
+                                        color: '#1e40af',
+                                        lineHeight: '1.5'
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '8px'
+                                        }}>
+                                            <i className="bi bi-info-circle-fill" style={{ fontSize: '14px', marginTop: '2px', flexShrink: 0 }}></i>
+                                            <span>Камерата ще се използва автоматично при включване на видео по време на разговор.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

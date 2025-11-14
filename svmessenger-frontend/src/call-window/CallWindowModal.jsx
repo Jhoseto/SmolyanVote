@@ -63,15 +63,13 @@ const CallWindowModal = ({
 
     return (
         <div className="call-window-container">
-            {/* Animated Background (only when not connected or no video) */}
-            {(callState !== 'connected' || !remoteVideoVisible) && (
-                <div className="call-window-background">
-                    <div className="call-window-bg-shape shape-1"></div>
-                    <div className="call-window-bg-shape shape-2"></div>
-                    <div className="call-window-bg-shape shape-3"></div>
-                    <div className="call-window-bg-shape shape-4"></div>
-                </div>
-            )}
+            {/* Animated Background - винаги видим */}
+            <div className="call-window-background">
+                <div className="call-window-bg-shape shape-1"></div>
+                <div className="call-window-bg-shape shape-2"></div>
+                <div className="call-window-bg-shape shape-3"></div>
+                <div className="call-window-bg-shape shape-4"></div>
+            </div>
 
             {/* Video Layout (when connected) */}
             {callState === 'connected' ? (

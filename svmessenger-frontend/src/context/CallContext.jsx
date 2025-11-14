@@ -149,27 +149,36 @@ export const CallProvider = ({ children, currentUser }) => {
                 throw new Error('Conversation not found');
             }
 
-            // Check for saved audio settings
+            // Check for saved audio/video settings
             let savedSettings = null;
             let hasSavedSettings = false;
 
             try {
-                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                // Първо проверявам новия ключ (svmessenger-audio-video-settings)
+                savedSettings = localStorage.getItem('svmessenger-audio-video-settings');
+                if (!savedSettings) {
+                    // Fallback към стария ключ (svmessenger-audio-settings)
+                    savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                }
+                
                 if (savedSettings) {
                     try {
                         const parsed = JSON.parse(savedSettings);
+                        // Проверявам дали има микрофон и слушалки (задължителни)
                         hasSavedSettings = !!(parsed.microphone && parsed.speaker);
                     } catch (parseError) {
                         hasSavedSettings = false;
                     }
                 }
             } catch (storageError) {
+                // Fallback към service devices
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
                     hasSavedSettings = true;
                     savedSettings = JSON.stringify({
                         microphone: serviceDevices.microphone,
                         speaker: serviceDevices.speaker,
+                        camera: serviceDevices.camera || null,
                         micVolume: 75,
                         speakerVolume: 80
                     });
@@ -185,6 +194,9 @@ export const CallProvider = ({ children, currentUser }) => {
                 }
                 if (settings.speaker) {
                     await svLiveKitService.setSpeaker(settings.speaker);
+                }
+                if (settings.camera) {
+                    svLiveKitService.selectedCamera = settings.camera;
                 }
                 await proceedWithCallStart(conversationId, otherUserId, conversation);
             } else {
@@ -280,27 +292,36 @@ export const CallProvider = ({ children, currentUser }) => {
 
     const acceptCall = useCallback(async () => {
         try {
-            // Check for saved audio settings
+            // Check for saved audio/video settings
             let savedSettings = null;
             let hasSavedSettings = false;
 
             try {
-                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                // Първо проверявам новия ключ (svmessenger-audio-video-settings)
+                savedSettings = localStorage.getItem('svmessenger-audio-video-settings');
+                if (!savedSettings) {
+                    // Fallback към стария ключ (svmessenger-audio-settings)
+                    savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                }
+                
                 if (savedSettings) {
                     try {
                         const parsed = JSON.parse(savedSettings);
+                        // Проверявам дали има микрофон и слушалки (задължителни)
                         hasSavedSettings = !!(parsed.microphone && parsed.speaker);
                     } catch (parseError) {
                         hasSavedSettings = false;
                     }
                 }
             } catch (storageError) {
+                // Fallback към service devices
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
                     hasSavedSettings = true;
                     savedSettings = JSON.stringify({
                         microphone: serviceDevices.microphone,
                         speaker: serviceDevices.speaker,
+                        camera: serviceDevices.camera || null,
                         micVolume: 75,
                         speakerVolume: 80
                     });
@@ -316,6 +337,9 @@ export const CallProvider = ({ children, currentUser }) => {
                 }
                 if (settings.speaker) {
                     await svLiveKitService.setSpeaker(settings.speaker);
+                }
+                if (settings.camera) {
+                    svLiveKitService.selectedCamera = settings.camera;
                 }
                 await proceedWithCallAccept();
             } else {
@@ -429,16 +453,22 @@ export const CallProvider = ({ children, currentUser }) => {
             // Wait for room to be ready
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Apply saved audio settings
+            // Apply saved audio/video settings
             let savedSettings = null;
             try {
-                savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                // Първо проверявам новия ключ (svmessenger-audio-video-settings)
+                savedSettings = localStorage.getItem('svmessenger-audio-video-settings');
+                if (!savedSettings) {
+                    // Fallback към стария ключ (svmessenger-audio-settings)
+                    savedSettings = localStorage.getItem('svmessenger-audio-settings');
+                }
             } catch (storageError) {
                 const serviceDevices = svLiveKitService.getSelectedDevices();
                 if (serviceDevices.microphone && serviceDevices.speaker) {
                     savedSettings = JSON.stringify({
                         microphone: serviceDevices.microphone,
                         speaker: serviceDevices.speaker,
+                        camera: serviceDevices.camera || null,
                         micVolume: 75,
                         speakerVolume: 80
                     });
@@ -455,6 +485,10 @@ export const CallProvider = ({ children, currentUser }) => {
 
                     if (settings.speaker) {
                         await svLiveKitService.setSpeaker(settings.speaker);
+                    }
+
+                    if (settings.camera) {
+                        svLiveKitService.selectedCamera = settings.camera;
                     }
                 } catch (settingsError) {}
             } else {

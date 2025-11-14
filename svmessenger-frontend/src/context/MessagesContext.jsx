@@ -78,14 +78,30 @@ export const MessagesProvider = ({ children, currentUser }) => {
     }, []);
 
     const handleNewMessage = useCallback((message, activeChats = []) => {
+        // Валидация на съобщението
+        if (!message || !message.id || !message.text || !message.conversationId || !message.sentAt) {
+            console.warn('handleNewMessage: Invalid message received', message);
+            return;
+        }
+
         // Add message to conversation
-        setMessagesByConversation(prev => ({
-            ...prev,
-            [message.conversationId]: [
-                ...(prev[message.conversationId] || []),
-                message
-            ]
-        }));
+        setMessagesByConversation(prev => {
+            const existingMessages = prev[message.conversationId] || [];
+            // Филтрирай невалидни съобщения
+            const validExisting = existingMessages.filter(m => m && m.id && m.text && m.sentAt);
+            // Проверка за дублиране
+            const isDuplicate = validExisting.some(m => m.id === message.id);
+            if (isDuplicate) {
+                return prev;
+            }
+            return {
+                ...prev,
+                [message.conversationId]: [
+                    ...validExisting,
+                    message
+                ]
+            };
+        });
 
         // Update conversation list
         setConversations(prev => prev.map(c =>
@@ -204,9 +220,11 @@ export const MessagesProvider = ({ children, currentUser }) => {
             // Mark all our sent messages as read
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: (prev[conversationId] || []).map(m =>
-                    m.senderId === currentUser.id ? { ...m, isRead: true, readAt: m.readAt || readAt } : m
-                )
+                [conversationId]: (prev[conversationId] || [])
+                    .filter(m => m && m.id && m.text && m.sentAt)
+                    .map(m =>
+                        m.senderId === currentUser.id ? { ...m, isRead: true, readAt: m.readAt || readAt } : m
+                    )
             }));
 
             // Reset unread count
@@ -222,9 +240,11 @@ export const MessagesProvider = ({ children, currentUser }) => {
             // Mark specific message as read
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: (prev[conversationId] || []).map(m =>
-                    m.id === messageId && m.senderId === currentUser.id ? { ...m, isRead: true, readAt } : m
-                )
+                [conversationId]: (prev[conversationId] || [])
+                    .filter(m => m && m.id && m.text && m.sentAt)
+                    .map(m =>
+                        m.id === messageId && m.senderId === currentUser.id ? { ...m, isRead: true, readAt } : m
+                    )
             }));
 
             // Decrease unread count
@@ -249,11 +269,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
                 const updated = { ...prev };
                 conversationIds.forEach(conversationId => {
                     if (updated[conversationId]) {
-                        updated[conversationId] = updated[conversationId].map(m => ({
-                            ...m,
-                            isDelivered: true,
-                            deliveredAt: m.senderId !== currentUser.id ? deliveredAt : m.deliveredAt
-                        }));
+                        updated[conversationId] = updated[conversationId]
+                            .filter(m => m && m.id && m.text && m.sentAt)
+                            .map(m => ({
+                                ...m,
+                                isDelivered: true,
+                                deliveredAt: m.senderId !== currentUser.id ? deliveredAt : m.deliveredAt
+                            }));
                     }
                 });
                 return updated;
@@ -263,9 +285,11 @@ export const MessagesProvider = ({ children, currentUser }) => {
             const { conversationId, messageId, deliveredAt } = data;
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: (prev[conversationId] || []).map(m =>
-                    m.id === messageId ? { ...m, isDelivered: true, deliveredAt } : m
-                )
+                [conversationId]: (prev[conversationId] || [])
+                    .filter(m => m && m.id && m.text && m.sentAt)
+                    .map(m =>
+                        m.id === messageId ? { ...m, isDelivered: true, deliveredAt } : m
+                    )
             }));
         }
     }, [currentUser]);
@@ -319,29 +343,94 @@ export const MessagesProvider = ({ children, currentUser }) => {
         try {
             const data = await svMessengerAPI.getMessages(conversationId, page, size);
 
-            // Handle pagination response
-            let messages = Array.isArray(data) ? data : (data.content || data.messages || []);
+            // Backend връща Page<SVMessageDTO> - Spring Data Page обект
+            // Структура: { content: Array<SVMessageDTO>, totalElements: number, ... }
+            const messagesArray = (data && data.content && Array.isArray(data.content)) 
+                ? data.content 
+                : (Array.isArray(data) ? data : []);
 
-            // Sort chronologically (oldest -> newest)
-            messages = [...messages].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+            // Backend сортира по DESC (най-новите първо), ние искаме ASC (старите първо)
+            // Обърни масива за да получим ASC ред
+            const reversedMessages = [...messagesArray].reverse();
+
+            // Сортирай по sentAt ASC за да сме сигурни
+            const sortedMessages = reversedMessages.sort((a, b) => {
+                if (!a || !b) return 0;
+                const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                return timeA - timeB;
+            });
 
             setMessagesByConversation(prev => {
                 const existingMessages = prev[conversationId] || [];
+                
                 if (page === 0) {
-                    // Merge with existing messages
-                    const allMessages = [...messages, ...existingMessages];
-                    const uniqueMessages = allMessages.filter((msg, index, self) =>
-                        index === self.findIndex(m => m.id === msg.id)
+                    // При page=0 заменяме всички съобщения от API
+                    // Запазваме само новите съобщения от WebSocket които все още не са в API отговора
+                    const apiMessageIds = new Set();
+                    sortedMessages.forEach(m => {
+                        if (m && m.id) {
+                            apiMessageIds.add(m.id);
+                        }
+                    });
+                    
+                    const wsMessages = existingMessages.filter(m => 
+                        m && m.id && !apiMessageIds.has(m.id)
                     );
+                    
+                    // Комбинирай API съобщенията + новите от WebSocket
+                    const combined = [...sortedMessages, ...wsMessages];
+                    
+                    // Премахни дубликати и сортирай по sentAt ASC
+                    const uniqueMap = new Map();
+                    combined.forEach(msg => {
+                        if (msg && msg.id && msg.text && msg.sentAt) {
+                            uniqueMap.set(msg.id, msg);
+                        }
+                    });
+                    
+                    const uniqueMessages = Array.from(uniqueMap.values()).sort((a, b) => {
+                        const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                        const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                        return timeA - timeB;
+                    });
+                    
                     return {
                         ...prev,
-                        [conversationId]: uniqueMessages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
+                        [conversationId]: uniqueMessages
                     };
                 } else {
-                    // Prepend older messages
+                    // При page > 0 добавяме по-стари съобщения отпред (pagination)
+                    const existingIds = new Set();
+                    existingMessages.forEach(m => {
+                        if (m && m.id) {
+                            existingIds.add(m.id);
+                        }
+                    });
+                    
+                    const olderMessages = sortedMessages.filter(m => 
+                        m && m.id && !existingIds.has(m.id)
+                    );
+                    
+                    const combined = [...olderMessages, ...existingMessages];
+                    
+                    // Премахни дубликати и сортирай по sentAt ASC
+                    const uniqueMap = new Map();
+                    combined.forEach(msg => {
+                        if (msg && msg.id && msg.text && msg.sentAt) {
+                            uniqueMap.set(msg.id, msg);
+                        }
+                    });
+                    
+                    const uniqueMessages = Array.from(uniqueMap.values()).sort((a, b) => {
+                        const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+                        const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+                        return timeA - timeB;
+                    });
+                    
                     return {
                         ...prev,
-                        [conversationId]: [...messages, ...existingMessages]
+                        [conversationId]: uniqueMessages
                     };
                 }
             });
@@ -361,11 +450,22 @@ export const MessagesProvider = ({ children, currentUser }) => {
         try {
             const message = await svMessengerAPI.sendMessage(conversationId, text.trim());
 
+            // Валидация на съобщението преди добавяне
+            if (!message || !message.id || !message.text || !message.sentAt) {
+                console.warn('sendMessage: Invalid message received', message);
+                return;
+            }
+
             // Add message optimistically
-            setMessagesByConversation(prev => ({
-                ...prev,
-                [conversationId]: [...(prev[conversationId] || []), message]
-            }));
+            setMessagesByConversation(prev => {
+                const existingMessages = prev[conversationId] || [];
+                // Филтрирай невалидни съобщения
+                const validExisting = existingMessages.filter(m => m && m.id && m.text && m.sentAt);
+                return {
+                    ...prev,
+                    [conversationId]: [...validExisting, message]
+                };
+            });
 
             // Reload conversations
             loadConversations();
@@ -415,11 +515,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
             // Update messages - only mark non-current-user messages as read
             setMessagesByConversation(prev => ({
                 ...prev,
-                [conversationId]: (prev[conversationId] || []).map(m => ({
-                    ...m,
-                    isRead: m.senderId !== currentUser.id ? true : m.isRead,
-                    readAt: m.senderId !== currentUser.id && !m.isRead ? new Date().toISOString() : m.readAt
-                }))
+                [conversationId]: (prev[conversationId] || [])
+                    .filter(m => m && m.id && m.text && m.sentAt)
+                    .map(m => ({
+                        ...m,
+                        isRead: m.senderId !== currentUser.id ? true : m.isRead,
+                        readAt: m.senderId !== currentUser.id && !m.isRead ? new Date().toISOString() : m.readAt
+                    }))
             }));
         } catch (error) {
             console.error('Failed to mark as read:', error);
@@ -501,6 +603,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
 
     const value = {
         // State
+        currentUser,
         conversations,
         messagesByConversation,
         isLoadingConversations,

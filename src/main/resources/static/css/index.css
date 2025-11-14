@@ -217,7 +217,7 @@ body {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 
     /* ДРАМАТИЧЕН СТЪКЛЕН ВИД */
-    background: rgba(25, 134, 28, 0.3);
+    background: rgb(25, 133, 28);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
 

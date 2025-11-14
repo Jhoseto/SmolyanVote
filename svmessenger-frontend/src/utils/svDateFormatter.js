@@ -100,27 +100,43 @@ export const formatRelativeTime = (timestamp) => {
 export const groupMessagesByDate = (messages) => {
   if (!messages || messages.length === 0) return [];
   
+  // Филтрирай невалидни съобщения
+  const validMessages = messages.filter(msg => 
+    msg && 
+    msg.id && 
+    msg.sentAt && 
+    (typeof msg === 'object')
+  );
+  
+  if (validMessages.length === 0) return [];
+  
   const grouped = [];
   let currentDate = null;
   
-  messages.forEach((message, index) => {
-    const messageDate = typeof message.sentAt === 'string' ? parseISO(message.sentAt) : new Date(message.sentAt);
-    const dateKey = format(messageDate, 'yyyy-MM-dd');
+  validMessages.forEach((message, index) => {
+    if (!message || !message.sentAt) return;
     
-    if (dateKey !== currentDate) {
+    try {
+      const messageDate = typeof message.sentAt === 'string' ? parseISO(message.sentAt) : new Date(message.sentAt);
+      const dateKey = format(messageDate, 'yyyy-MM-dd');
+      
+      if (dateKey !== currentDate) {
+        grouped.push({
+          type: 'date',
+          date: messageDate,
+          dateKey: dateKey,
+          formattedDate: formatDateSeparator(messageDate)
+        });
+        currentDate = dateKey;
+      }
+      
       grouped.push({
-        type: 'date',
-        date: messageDate,
-        dateKey: dateKey,
-        formattedDate: formatDateSeparator(messageDate)
+        type: 'message',
+        message: message
       });
-      currentDate = dateKey;
+    } catch (error) {
+      console.warn('Error processing message in groupMessagesByDate:', error, message);
     }
-    
-    grouped.push({
-      type: 'message',
-      message: message
-    });
   });
   
   return grouped;

@@ -85,7 +85,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
                 </span>
               </div>
             );
-          } else {
+          } else if (item.type === 'message' && item.message && item.message.id) {
             const isLast = index === groupedItems.length - 1;
             return (
               <div key={item.message.id} ref={isLast ? lastMessageRef : null}>
@@ -93,6 +93,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
               </div>
             );
           }
+          return null;
         })}
       </div>
 
