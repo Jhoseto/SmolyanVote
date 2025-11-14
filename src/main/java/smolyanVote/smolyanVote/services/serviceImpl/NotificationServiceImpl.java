@@ -230,7 +230,7 @@ public class NotificationServiceImpl implements NotificationService {
                         username -> username,
                         username -> userRepository.findByUsername(username)
                                 .map(UserEntity::getImageUrl)
-                                .orElse(null)
+                                .orElse("")
                 ));
         
         // Map-ваме с допълнени actorImageUrl
@@ -257,7 +257,7 @@ public class NotificationServiceImpl implements NotificationService {
                         username -> username,
                         username -> userRepository.findByUsername(username)
                                 .map(UserEntity::getImageUrl)
-                                .orElse(null)
+                                .orElse("")
                 ));
         
         return entities.stream()
