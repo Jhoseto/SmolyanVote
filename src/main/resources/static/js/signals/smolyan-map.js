@@ -123,6 +123,9 @@ function initializePanels() {
         signalForm.onsubmit = handleSignalSubmit;
     }
 
+    // Initialize image upload functionality
+    initializeImageUpload();
+
     const locationBtn = document.getElementById('selectLocationBtn');
     if (locationBtn) {
         locationBtn.onclick = function(e) {
@@ -389,6 +392,8 @@ function togglePanel(panelName) {
             setTimeout(() => {
                 const firstInput = panel.querySelector('input, textarea');
                 if (firstInput) firstInput.focus();
+                // Инициализираме image upload когато панелът се отвори
+                initializeImageUpload();
             }, 300);
         }
 
@@ -536,11 +541,22 @@ async function handleSignalSubmit(e) {
         resetSignalForm();
         closePanel('newSignal');
 
+        // Веднага обновяваме картата с новия сигнал
         if (window.signalManagement) {
+            // Зареждаме сигналите веднага (без изчакване)
+            // Използваме малък timeout за да се уверяваме че backend-ът е обработил сигнала
             setTimeout(async () => {
-                await window.signalManagement.loadSignalsData();
-                window.mapCore?.showNotification('Картата е обновена с новия сигнал', 'info', 3000);
-            }, 1000);
+                try {
+                    await window.signalManagement.loadSignalsData(false);
+                    window.mapCore?.showNotification('Картата е обновена с новия сигнал', 'info', 3000);
+                } catch (error) {
+                    console.error('Error refreshing signals after creation:', error);
+                    // Опитваме се отново след малко
+                    setTimeout(async () => {
+                        await window.signalManagement.loadSignalsData(false);
+                    }, 1000);
+                }
+            }, 500);
         }
 
     } catch (error) {
@@ -615,6 +631,18 @@ function resetSignalForm() {
         locationBtn.innerHTML = '<i class="bi bi-geo-alt"></i> <span>Изберете местоположение</span>';
         locationBtn.classList.remove('selected', 'selecting');
     }
+
+    // Изчистване на снимката
+    const imageInput = document.getElementById('signalImage');
+    if (imageInput) {
+        imageInput.value = '';
+    }
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileText = document.querySelector('.file-text');
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (previewImage) previewImage.src = '';
+    if (fileText) fileText.textContent = 'Изберете снимка';
 
     const map = window.mapCore?.getMap();
     if (map && temporaryMarker) {
@@ -987,6 +1015,134 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ===== IMAGE UPLOAD FUNCTIONALITY =====
+function initializeImageUpload() {
+    const imageInput = document.getElementById('signalImage');
+    const fileDisplay = document.querySelector('.file-input-display');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileText = document.querySelector('.file-text');
+
+    if (!imageInput) return;
+
+    // Премахваме старите event listeners ако има такива
+    const newImageInput = imageInput.cloneNode(true);
+    imageInput.parentNode.replaceChild(newImageInput, imageInput);
+
+    // Event listener за change на file input
+    newImageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            handleImageSelect(file);
+        }
+    });
+
+    // Добавяме event listener на file-input-display за кликване
+    if (fileDisplay) {
+        // Премахваме стария onclick атрибут ако има такъв
+        fileDisplay.removeAttribute('onclick');
+        
+        // Добавяме нов event listener
+        fileDisplay.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (newImageInput) {
+                newImageInput.click();
+            }
+        });
+        
+        // Уверяваме се че pointer-events са enabled
+        fileDisplay.style.pointerEvents = 'auto';
+        fileDisplay.style.cursor = 'pointer';
+    }
+}
+
+function handleImageSelect(file) {
+    const imageInput = document.getElementById('signalImage');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileDisplay = document.querySelector('.file-input-display');
+    const fileText = document.querySelector('.file-text');
+    const imageFeedback = document.getElementById('imageFeedback');
+
+    // Валидация на размера (максимум 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+        if (imageFeedback) {
+            imageFeedback.textContent = 'Снимката е твърде голяма. Максималният размер е 5MB.';
+            imageFeedback.style.color = '#dc3545';
+            imageFeedback.style.display = 'block';
+        }
+        if (imageInput) imageInput.value = '';
+        return;
+    }
+
+    // Валидация на типа
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        if (imageFeedback) {
+            imageFeedback.textContent = 'Невалиден формат. Разрешени са: JPG, PNG, WEBP.';
+            imageFeedback.style.color = '#dc3545';
+            imageFeedback.style.display = 'block';
+        }
+        if (imageInput) imageInput.value = '';
+        return;
+    }
+
+    // Изчистване на грешки
+    if (imageFeedback) {
+        imageFeedback.textContent = '';
+        imageFeedback.style.display = 'none';
+    }
+
+    // Показване на preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        if (previewImage) {
+            previewImage.src = e.target.result;
+        }
+        if (imagePreview) {
+            imagePreview.style.display = 'block';
+        }
+        if (fileDisplay) {
+            fileDisplay.style.display = 'none';
+        }
+        if (fileText) {
+            fileText.textContent = file.name;
+        }
+    };
+    reader.onerror = function() {
+        if (imageFeedback) {
+            imageFeedback.textContent = 'Грешка при зареждане на снимката.';
+            imageFeedback.style.color = '#dc3545';
+            imageFeedback.style.display = 'block';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage() {
+    const imageInput = document.getElementById('signalImage');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileDisplay = document.querySelector('.file-input-display');
+    const fileText = document.querySelector('.file-text');
+    const imageFeedback = document.getElementById('imageFeedback');
+
+    if (imageInput) imageInput.value = '';
+    if (previewImage) previewImage.src = '';
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (fileDisplay) fileDisplay.style.display = 'block';
+    if (fileText) fileText.textContent = 'Изберете снимка';
+    if (imageFeedback) {
+        imageFeedback.textContent = '';
+        imageFeedback.style.display = 'none';
+    }
+}
+
+// Глобална функция за removeImage (извиква се от HTML)
+window.removeImage = removeImage;
 
 window.togglePanel = togglePanel;
 window.closePanel = closePanel;

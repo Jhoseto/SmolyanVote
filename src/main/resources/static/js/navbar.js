@@ -264,11 +264,60 @@ function toggleLanguageMenu(event) {
     document.getElementById('languageDropdown').classList.toggle('show');
 }
 
+/**
+ * Превключване на език с пълно изчистване на стари cookies
+ * @param {string} lang - Код на езика (bg, en, el, tr, ru, de, fr, es, iw, zh-CN)
+ */
 function translateTo(lang) {
-    document.cookie = `googtrans=/bg/${lang}; path=/; max-age=31536000`;
+    // СТЪПКА 1: Изчистване на ВСИЧКИ Google Translate cookies
+    const cookiesToDelete = [
+        'googtrans',
+        'googtrans=/bg/',
+        'googtrans=/auto/bg',
+        'googtrans=/bg/bg'
+    ];
+    
+    // Изтриваме за текущия домейн и с префикс
+    cookiesToDelete.forEach(cookieName => {
+        // Стандартно изтриване
+        document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        // Изтриване с домейн
+        document.cookie = `${cookieName}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        // Изтриване с точка преди домейна
+        document.cookie = `${cookieName}=; path=/; domain=.${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    });
+    
+    // СТЪПКА 2: Задаване на новото cookie
+    const newCookie = `googtrans=/bg/${lang}`;
+    document.cookie = `${newCookie}; path=/; max-age=31536000`;
+    
+    // СТЪПКА 3: SessionStorage за допълнителен контрол
+    try {
+        sessionStorage.setItem('selectedLanguage', lang);
+    } catch (e) {
+        console.warn('SessionStorage not available:', e);
+    }
+    
+    // СТЪПКА 4: Reload на страницата
     location.reload();
 }
 
+/**
+ * Проверка и прилагане на запазен език при зареждане
+ */
+function applyStoredLanguage() {
+    try {
+        const savedLang = sessionStorage.getItem('selectedLanguage');
+        if (savedLang && savedLang !== 'bg') {
+            // Форсиране на запазения език
+            document.cookie = `googtrans=/bg/${savedLang}; path=/; max-age=31536000`;
+        }
+    } catch (e) {
+        console.warn('Could not apply stored language:', e);
+    }
+}
+
+// Затваряне на dropdown при клик извън него
 document.addEventListener('click', function(e) {
     const dropdown = document.getElementById('languageDropdown');
     if (dropdown && !e.target.closest('.language-switcher-item')) {
@@ -276,6 +325,10 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Прилагане на запазен език при зареждане на страницата
+document.addEventListener('DOMContentLoaded', applyStoredLanguage);
+
+// Зареждане на Google Translate script
 (function() {
     const s = document.createElement('script');
     s.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';

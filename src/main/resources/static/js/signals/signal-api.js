@@ -296,7 +296,26 @@ class SignalAPI {
         formData.append('longitude', data.longitude.toString());
 
         if (data.image && data.image instanceof File) {
+            // Проверяваме размера на файла (максимум 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB в байтове
+            if (data.image.size > maxSize) {
+                throw new APIError('Снимката е твърде голяма. Максималният размер е 5MB.', 400);
+            }
+            
+            // Проверяваме типа на файла
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(data.image.type)) {
+                throw new APIError('Невалиден формат на снимката. Разрешени са: JPG, PNG, WEBP.', 400);
+            }
+            
             formData.append('image', data.image);
+            console.log('✅ Снимка добавена към FormData:', {
+                name: data.image.name,
+                size: data.image.size,
+                type: data.image.type
+            });
+        } else {
+            console.log('ℹ️ Няма снимка за качване');
         }
         return formData;
     }
