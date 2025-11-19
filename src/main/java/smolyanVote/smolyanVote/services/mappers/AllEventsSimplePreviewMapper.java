@@ -47,7 +47,9 @@ public class AllEventsSimplePreviewMapper {
         view.setViewCounter(event.getViewCounter());
         view.setCreatedAt(event.getCreatedAt());
         view.setCreatorName(user != null ? user.getUsername() : event.getCreatorName());
-        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        // Нормализираме празни стрингове към null за правилно показване на placeholder аватари
+        String imageUrl = user != null ? user.getImageUrl() : null;
+        view.setCreatorImage(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl : null);
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(event.getTotalVotes());
 
@@ -79,7 +81,9 @@ public class AllEventsSimplePreviewMapper {
         view.setViewCounter(referendum.getViewCounter());
         view.setCreatedAt(referendum.getCreatedAt());
         view.setCreatorName(user != null ? user.getUsername() : referendum.getCreatorName());
-        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        // Нормализираме празни стрингове към null за правилно показване на placeholder аватари
+        String imageUrl = user != null ? user.getImageUrl() : null;
+        view.setCreatorImage(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl : null);
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(referendum.getTotalVotes());
 
@@ -111,7 +115,9 @@ public class AllEventsSimplePreviewMapper {
         view.setViewCounter(multiPoll.getViewCounter());
         view.setCreatedAt(multiPoll.getCreatedAt());
         view.setCreatorName(user != null ? user.getUsername() : multiPoll.getCreatorName());
-        view.setCreatorImage(user != null ? user.getImageUrl() : null);
+        // Нормализираме празни стрингове към null за правилно показване на placeholder аватари
+        String imageUrl = user != null ? user.getImageUrl() : null;
+        view.setCreatorImage(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl : null);
         view.setCreatorOnlineStatus(user != null ? user.getOnlineStatus() : 0);
         view.setTotalVotes(multiPoll.getTotalVotes());
 

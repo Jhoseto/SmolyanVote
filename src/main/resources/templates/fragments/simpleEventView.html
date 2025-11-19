@@ -76,22 +76,26 @@
           <a th:if="${event.creatorImage != null and #authorization.expression('isAuthenticated()')}"
              th:href="@{/user/{username}(username=${event.creatorName})}">
             <img th:src="${event.creatorImage}"
-                 alt="Автор"
-                 class="author-avatar rounded-circle">
+                 th:alt="${event.creatorName ?: 'Автор'}"
+                 th:data-username="${event.creatorName ?: 'User'}"
+                 class="author-avatar rounded-circle"
+                 onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${event.creatorName ?: 'User'}');}">
           </a>
           <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
              href="javascript:void(0);"
              onclick="showLoginWarning()">
             <img th:src="${event.creatorImage}"
-                 alt="Автор"
-                 class="author-avatar rounded-circle">
+                 th:alt="${event.creatorName ?: 'Автор'}"
+                 th:data-username="${event.creatorName ?: 'User'}"
+                 class="author-avatar rounded-circle"
+                 onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${event.creatorName ?: 'User'}');}">
           </a>
-          <a th:if="${event.creatorImage == null}"
+          <a th:if="${event.creatorImage == null or event.creatorImage == ''}"
              href="javascript:void(0);"
              onclick="showLoginWarning()">
-            <img src="/images/default-avatar.png"
-                 alt="Автор"
-                 class="author-avatar rounded-circle">
+            <div class="author-avatar rounded-circle avatar-placeholder"
+                 th:data-username="${event.creatorName != null ? event.creatorName : 'User'}">
+            </div>
           </a>
 
           <!-- Име и статус -->

@@ -34,7 +34,11 @@
             <div class="event-meta">
                 <div class="creator-section">
                     <a th:href="@{'/user/' + ${eventDetail.creator.username}}" class="creator-link">
-                        <img class="creator-avatar" th:src="${eventDetail.creator.imageUrl}" alt="Създател"/>
+                        <img class="creator-avatar" 
+                             th:src="${eventDetail.creator.imageUrl}" 
+                             th:alt="${eventDetail.creator.username ?: 'Създател'}"
+                             th:data-username="${eventDetail.creator.username ?: 'User'}"
+                             onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${eventDetail.creator.username ?: 'User'}');}"/>
                         <div class="creator-info">
                             <span class="creator-label">Автор</span>
                             <span class="creator-name" th:text="${eventDetail.creator.username}">Име на създателя</span>

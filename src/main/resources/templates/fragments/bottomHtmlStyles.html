@@ -11,18 +11,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
-                // Инициализираме всички avatar placeholders
-                document.querySelectorAll('.avatar-placeholder').forEach(placeholder => {
-                    const imageUrl = placeholder.getAttribute('data-user-image');
-                    const username = placeholder.getAttribute('data-username');
-                    const size = placeholder.offsetWidth || 30;
-                    const className = placeholder.className.replace('avatar-placeholder', '').trim();
-
-                    if (window.createAvatar && username) {
-                        placeholder.outerHTML = window.createAvatar(imageUrl, username, size, className);
-                    }
-                });
-
                 // Стандартна avatarUtils инициализация
                 if (window.avatarUtils) {
                     window.avatarUtils.updateAll();

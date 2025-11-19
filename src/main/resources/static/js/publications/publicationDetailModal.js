@@ -335,21 +335,61 @@ class PublicationDetailModal {
         if (!textarea || !this.currentPost) return;
 
         const newContent = textarea.value.trim();
-        if (!newContent) return;
+        if (!newContent) {
+            window.postInteractions?.showToast('Текстът не може да бъде празен!', 'error');
+            return;
+        }
 
         saveBtn.disabled = true;
         saveBtn.textContent = 'Запазване...';
 
         try {
-            // Update via postInteractions
-            if (window.postInteractions) {
-                await window.postInteractions.editPublication(this.currentPost.id, newContent);
+            // Split content into title and excerpt (same logic as publicationsMain.js)
+            const lines = newContent.split('\n');
+            const newTitle = lines[0].substring(0, 100);
+            const remainingContent = lines.slice(1).join('\n').trim();
+            const newExcerpt = remainingContent.substring(0, 200);
+
+            const updateData = {
+                title: newTitle,
+                content: newContent,
+                category: this.currentPost.category,
+                emotion: this.currentPost.emotion,
+                emotionText: this.currentPost.emotionText,
+                imageUrl: this.currentPost.imageUrl
+            };
+
+            // Update via publicationsAPI (same as publicationsMain.js)
+            if (window.publicationsAPI) {
+                await window.publicationsAPI.updatePublication(this.currentPost.id, updateData);
+                
+                // Update local data
+                this.currentPost.title = newTitle;
+                this.currentPost.excerpt = newExcerpt;
                 this.currentPost.content = newContent;
+                this.currentPost.status = 'EDITED';
+                
+                // Update modal display
                 this.setText('modalPostText', newContent);
                 this.cancelInlineEdit();
+                
+                // Show success message
+                window.postInteractions?.showToast('Публикацията е обновена успешно!', 'success');
+                
+                // Update the post in the main list if it exists
+                if (window.publicationsManager) {
+                    const postElement = document.querySelector(`[data-post-id="${this.currentPost.id}"]`);
+                    if (postElement) {
+                        window.publicationsManager.updatePostContentInDOM(postElement, newTitle, newExcerpt);
+                        window.publicationsManager.updatePostStatus(postElement, 'EDITED');
+                    }
+                }
+            } else {
+                throw new Error('publicationsAPI не е наличен');
             }
         } catch (error) {
             console.error('❌ DEBUG: Error saving edit:', error);
+            window.postInteractions?.showError('Възникна грешка при запазването.');
         } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Запази';

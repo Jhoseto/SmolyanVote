@@ -137,7 +137,7 @@ class AvatarUtils {
     // Инициализира всички avatars на страницата
     initializeAllAvatars() {
         // Намери всички IMG avatars и добави error handler
-        document.querySelectorAll('img.user-avatar, img.author-avatar, img[class*="avatar"]').forEach(img => {
+        document.querySelectorAll('img.user-avatar, img.author-avatar, img.creator-avatar, img[class*="avatar"]').forEach(img => {
             if (!img.dataset.avatarInitialized) {
                 img.dataset.avatarInitialized = 'true';
                 const username = img.alt || img.dataset.username || 'User';
@@ -154,9 +154,30 @@ class AvatarUtils {
             }
         });
 
+        // Обработи placeholder DIV елементи (за случаите когато няма снимка)
+        document.querySelectorAll('.avatar-placeholder').forEach(placeholder => {
+            if (!placeholder.dataset.avatarInitialized) {
+                placeholder.dataset.avatarInitialized = 'true';
+                const username = placeholder.dataset.username || placeholder.textContent?.trim() || 'User';
+                
+                // Ако placeholder-ът е празен или няма правилно форматиране, го попълни
+                if (!placeholder.textContent || placeholder.textContent.trim() === '') {
+                    const initials = this.getInitials(username);
+                    const color = this.getAvatarColor(username);
+                    placeholder.textContent = initials;
+                    placeholder.style.backgroundColor = color;
+                    placeholder.style.color = '#ffffff';
+                    placeholder.style.fontWeight = '700';
+                    placeholder.style.display = 'flex';
+                    placeholder.style.alignItems = 'center';
+                    placeholder.style.justifyContent = 'center';
+                }
+            }
+        });
+
         // Обработи avatars които са с inline style background-image
         document.querySelectorAll('[style*="background-image"]').forEach(el => {
-            if (el.classList.contains('user-avatar') || el.classList.contains('author-avatar')) {
+            if (el.classList.contains('user-avatar') || el.classList.contains('author-avatar') || el.classList.contains('creator-avatar')) {
                 const backgroundImage = el.style.backgroundImage;
                 if (backgroundImage && backgroundImage.includes('default-avatar')) {
                     const username = el.dataset.username || el.textContent || 'User';

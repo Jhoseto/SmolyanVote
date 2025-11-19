@@ -269,6 +269,22 @@ body {
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Placeholder avatar (DIV с инициали) */
+.creator-avatar.avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    flex-shrink: 0;
     transition: all 0.2s var(--ease);
 }
 

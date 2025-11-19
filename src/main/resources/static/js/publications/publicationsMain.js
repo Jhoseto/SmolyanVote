@@ -468,14 +468,14 @@ class PublicationsManager {
         if (!post) return;
 
         const contentDiv = postElement.querySelector('.post-content');
-        const titleElement = postElement.querySelector('.post-title');
-        const excerptElement = postElement.querySelector('.post-excerpt');
+        const textElement = postElement.querySelector('.post-text');
 
-        const fullContent = post.content || ((post.title || '') + '\n\n' + (post.excerpt || '')).trim();
+        const fullContent = post.content || post.excerpt || post.title || '';
 
         // Hide original content
-        titleElement.style.display = 'none';
-        if (excerptElement) excerptElement.style.display = 'none';
+        if (textElement) {
+            textElement.style.display = 'none';
+        }
 
         // Create edit form
         const editForm = document.createElement('div');
@@ -492,15 +492,24 @@ class PublicationsManager {
             </div>
         `;
 
-        // Insert after category
+        // Insert after category or at the beginning of post-content
         const categoryElement = postElement.querySelector('.post-category');
-        categoryElement.parentNode.insertBefore(editForm, categoryElement.nextSibling);
+        if (categoryElement && categoryElement.parentNode) {
+            categoryElement.parentNode.insertBefore(editForm, categoryElement.nextSibling);
+        } else if (contentDiv) {
+            contentDiv.insertBefore(editForm, contentDiv.firstChild);
+        } else {
+            // Fallback: insert at the beginning of post element
+            postElement.insertBefore(editForm, postElement.firstChild);
+        }
 
         // Focus textarea
         setTimeout(() => {
             const textarea = editForm.querySelector('.edit-textarea');
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            if (textarea) {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
         }, 100);
 
         // Close menu
@@ -561,30 +570,28 @@ class PublicationsManager {
     }
 
     updatePostContentInDOM(postElement, newTitle, newExcerpt) {
-        // Update title
-        const titleElement = postElement.querySelector('.post-title');
-        if (titleElement) {
-            titleElement.textContent = newTitle;
-        }
-
-        // Update excerpt
-        const excerptElement = postElement.querySelector('.post-excerpt');
-        if (excerptElement) {
-            if (newExcerpt && newExcerpt !== newTitle) {
-                excerptElement.textContent = newExcerpt;
-                excerptElement.style.display = 'block';
-            } else {
-                excerptElement.style.display = 'none';
-            }
-        } else if (newExcerpt && newExcerpt !== newTitle) {
-            // Create new excerpt element if it doesn't exist
-            const newExcerptDiv = document.createElement('div');
-            newExcerptDiv.className = 'post-excerpt';
-            newExcerptDiv.textContent = newExcerpt;
-
-            const titleElement = postElement.querySelector('.post-title');
-            if (titleElement && titleElement.nextSibling) {
-                titleElement.parentNode.insertBefore(newExcerptDiv, titleElement.nextSibling);
+        // Update post text - use excerpt if available, otherwise use title
+        const textElement = postElement.querySelector('.post-text');
+        const newText = newExcerpt || newTitle || '';
+        
+        if (textElement) {
+            textElement.textContent = newText;
+            textElement.style.display = 'block';
+        } else {
+            // Create new text element if it doesn't exist
+            const contentDiv = postElement.querySelector('.post-content');
+            if (contentDiv) {
+                const newTextDiv = document.createElement('div');
+                newTextDiv.className = 'post-text';
+                newTextDiv.textContent = newText;
+                
+                // Insert before category or at the beginning
+                const categoryElement = postElement.querySelector('.post-category');
+                if (categoryElement) {
+                    contentDiv.insertBefore(newTextDiv, categoryElement);
+                } else {
+                    contentDiv.insertBefore(newTextDiv, contentDiv.firstChild);
+                }
             }
         }
     }
@@ -599,16 +606,18 @@ class PublicationsManager {
 
     cancelInlineEdit(postId) {
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+        
         const editForm = postElement.querySelector('.inline-edit-form');
-        const titleElement = postElement.querySelector('.post-title');
-        const excerptElement = postElement.querySelector('.post-excerpt');
+        const textElement = postElement.querySelector('.post-text');
 
         // Remove edit form
         if (editForm) editForm.remove();
 
         // Show original content
-        titleElement.style.display = 'block';
-        if (excerptElement) excerptElement.style.display = 'block';
+        if (textElement) {
+            textElement.style.display = 'block';
+        }
     }
 
     setupInfiniteScroll() {

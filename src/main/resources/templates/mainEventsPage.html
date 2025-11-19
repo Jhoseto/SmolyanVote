@@ -360,6 +360,72 @@
 <script src="/js/mainEvent/mainEventsPage.js"></script>
 <!-- JS библиотеки -->
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+<!-- Допълнителна инициализация на аватари за събития -->
+<script>
+    (function() {
+        // Функция за инициализация на placeholder аватари
+        function initializePlaceholderAvatars() {
+            const placeholders = document.querySelectorAll('.author-avatar.avatar-placeholder');
+            console.log('Found placeholders:', placeholders.length);
+            
+            placeholders.forEach(placeholder => {
+                // Проверяваме дали вече е инициализиран
+                if (placeholder.dataset.avatarInitialized === 'true') {
+                    return;
+                }
+                
+                // Вземаме username от data-username атрибута
+                const username = placeholder.getAttribute('data-username') || 
+                                placeholder.dataset.username || 
+                                'User';
+                
+                console.log('Initializing placeholder for username:', username);
+                
+                // Маркираме като инициализиран
+                placeholder.dataset.avatarInitialized = 'true';
+                
+                // Генерира инициали и цвят
+                if (window.avatarUtils) {
+                    const initials = window.avatarUtils.getInitials(username);
+                    const color = window.avatarUtils.getAvatarColor(username);
+                    
+                    placeholder.textContent = initials;
+                    placeholder.style.backgroundColor = color;
+                    placeholder.style.color = '#ffffff';
+                    placeholder.style.fontWeight = '700';
+                    placeholder.style.fontSize = '14px';
+                    placeholder.style.display = 'flex';
+                    placeholder.style.alignItems = 'center';
+                    placeholder.style.justifyContent = 'center';
+                    placeholder.style.textTransform = 'uppercase';
+                } else {
+                    console.warn('avatarUtils not available');
+                }
+            });
+        }
+        
+        // Инициализация при зареждане на DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(initializePlaceholderAvatars, 100);
+                setTimeout(initializePlaceholderAvatars, 500);
+                setTimeout(initializePlaceholderAvatars, 1000);
+            });
+        } else {
+            // DOM вече е зареден
+            setTimeout(initializePlaceholderAvatars, 100);
+            setTimeout(initializePlaceholderAvatars, 500);
+            setTimeout(initializePlaceholderAvatars, 1000);
+        }
+        
+        // Също така използваме avatarUtils инициализацията
+        if (window.avatarUtils) {
+            setTimeout(() => {
+                window.avatarUtils.initializeAllAvatars();
+            }, 300);
+        }
+    })();
+</script>
 
 
 </body>

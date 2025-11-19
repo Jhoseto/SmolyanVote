@@ -224,7 +224,25 @@
     transition: transform 0.3s ease;
 }
 
-.author-avatar:hover {
+/* Placeholder avatar (DIV с инициали) */
+.author-avatar.avatar-placeholder {
+    width: var(--author-avatar-size);
+    height: var(--author-avatar-size);
+    border-radius: 50%;
+    border: 2px solid var(--accent-green);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.author-avatar:hover,
+.author-avatar.avatar-placeholder:hover {
     transform: scale(1.1);
 }
 
