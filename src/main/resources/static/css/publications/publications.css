@@ -1227,7 +1227,7 @@
 /* ====== SCROLL TO TOP ====== */
 .scroll-to-top {
     position: fixed;
-    bottom: 20px;
+    bottom: 100px;
     right: 20px;
     width: 48px;
     height: 48px;

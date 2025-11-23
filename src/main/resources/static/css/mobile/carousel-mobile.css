@@ -10,8 +10,9 @@
 
     /* Platform Features Carousel Background - Mobile Override */
     #platform-features-carousel {
-        background: rgba(255, 255, 255, 0.7) url('/images/web/caruselBack.jpg') no-repeat center -30px !important;
-        background-size: cover !important; /* Scale back for better mobile view */
+        background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 25%, #2d1b4e 50%, #1a1f3a 75%, #0a0e27 100%) !important;
+        background-size: 400% 400% !important;
+        animation: gradientShift 15s ease infinite !important;
     }
 
     /* Sponsors Header */
