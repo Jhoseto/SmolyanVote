@@ -286,6 +286,12 @@ body {
     text-transform: uppercase;
     flex-shrink: 0;
     transition: all 0.2s var(--ease);
+    text-decoration: none !important;
+}
+
+/* Премахва подчертаването от placeholder аватарите в детайлните страници */
+.creator-link .avatar-placeholder {
+    text-decoration: none !important;
 }
 
 .creator-info {

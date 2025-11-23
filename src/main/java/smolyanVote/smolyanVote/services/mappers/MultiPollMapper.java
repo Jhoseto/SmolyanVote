@@ -65,7 +65,7 @@ public class MultiPollMapper {
             }
             dto.setImageUrls(urls);
         } else {
-            dto.setImageUrls(List.of("/images/eventImages/defaultEvent.png"));
+            dto.setImageUrls(List.of("/images/eventImages/defaultMultiPoll.jpg"));
         }
 
         return dto;

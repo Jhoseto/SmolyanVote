@@ -353,9 +353,9 @@
                     <div th:each="event : ${userEvents}" class="event-card glass-card"
                          th:attr="data-event-type=${event.eventType.name()}, data-event-id=${event.id}">
                         <div class="event-image">
-                            <img th:src="${event.images != null and !event.images.isEmpty() ? event.images[0] : '/images/eventImages/defaultEvent.png'}"
+                            <img th:src="${event.images != null and !event.images.isEmpty() ? event.images[0] : '/images/eventImages/defaultEvent.jpg'}"
                                  th:alt="${event.title}"
-                                 onerror="this.src='/images/eventImages/defaultEvent.png';">
+                                 onerror="this.src='/images/eventImages/defaultEvent.jpg';">
                             <div class="event-type-badge" th:text="${event.eventType.name() == 'SIMPLEEVENT' ? 'Опростен Вид Събитие' : (event.eventType.name() == 'REFERENDUM' ? 'Референдум' : 'Множествена Анкета')}">Събитие</div>
                         </div>
                         <div class="event-content">

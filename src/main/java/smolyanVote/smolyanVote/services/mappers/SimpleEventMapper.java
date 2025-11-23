@@ -47,7 +47,7 @@ public class SimpleEventMapper {
             }
             view.setImages(imageUrls);
         } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.png"));
+            view.setImages(List.of("/images/eventImages/defaultEvent.jpg"));
         }
 
         view.setCreatedAt(event.getCreatedAt());

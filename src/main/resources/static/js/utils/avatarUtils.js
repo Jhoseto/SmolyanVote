@@ -158,9 +158,19 @@ class AvatarUtils {
         document.querySelectorAll('.avatar-placeholder').forEach(placeholder => {
             if (!placeholder.dataset.avatarInitialized) {
                 placeholder.dataset.avatarInitialized = 'true';
-                const username = placeholder.dataset.username || placeholder.textContent?.trim() || 'User';
+                const username = placeholder.dataset.username || placeholder.getAttribute('data-username') || placeholder.textContent?.trim() || 'User';
+                const imageUrl = placeholder.dataset.userImage || placeholder.getAttribute('data-user-image') || null;
                 
-                // Ако placeholder-ът е празен или няма правилно форматиране, го попълни
+                // Ако има data-user-image атрибут, използваме createAvatar() за да създадем правилния avatar (IMG или DIV)
+                if (imageUrl !== null) {
+                    const size = placeholder.offsetWidth || 40;
+                    const className = Array.from(placeholder.classList).filter(c => c !== 'avatar-placeholder').join(' ') || 'user-avatar';
+                    const avatarHtml = this.createAvatar(imageUrl, username, size, className);
+                    placeholder.outerHTML = avatarHtml;
+                    return; // Не продължаваме, защото елементът е заменен
+                }
+                
+                // Ако няма снимка, попълваме с инициали
                 if (!placeholder.textContent || placeholder.textContent.trim() === '') {
                     const initials = this.getInitials(username);
                     const color = this.getAvatarColor(username);

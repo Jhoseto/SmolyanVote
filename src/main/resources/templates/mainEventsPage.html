@@ -366,7 +366,6 @@
         // Функция за инициализация на placeholder аватари
         function initializePlaceholderAvatars() {
             const placeholders = document.querySelectorAll('.author-avatar.avatar-placeholder');
-            console.log('Found placeholders:', placeholders.length);
             
             placeholders.forEach(placeholder => {
                 // Проверяваме дали вече е инициализиран
@@ -378,8 +377,6 @@
                 const username = placeholder.getAttribute('data-username') || 
                                 placeholder.dataset.username || 
                                 'User';
-                
-                console.log('Initializing placeholder for username:', username);
                 
                 // Маркираме като инициализиран
                 placeholder.dataset.avatarInitialized = 'true';
@@ -398,8 +395,6 @@
                     placeholder.style.alignItems = 'center';
                     placeholder.style.justifyContent = 'center';
                     placeholder.style.textTransform = 'uppercase';
-                } else {
-                    console.warn('avatarUtils not available');
                 }
             });
         }

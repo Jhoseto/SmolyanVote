@@ -150,7 +150,7 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         // Ако няма качени изображения, добавяме default
         if (simpleEventEntity.getImages().isEmpty()) {
             SimpleEventImageEntity defaultImage = new SimpleEventImageEntity();
-            defaultImage.setImageUrl("/images/eventImages/defaultEvent.png");
+            defaultImage.setImageUrl("/images/eventImages/defaultEvent.jpg");
             defaultImage.setEvent(simpleEventEntity);
             simpleEventEntity.getImages().add(defaultImage);
         }

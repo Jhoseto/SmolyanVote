@@ -61,7 +61,7 @@ public class AllEventsSimplePreviewMapper {
             }
             view.setImages(imageUrls);
         } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.png"));
+            view.setImages(List.of("/images/eventImages/defaultEvent.jpg"));
         }
 
         return view;
@@ -95,7 +95,7 @@ public class AllEventsSimplePreviewMapper {
             }
             view.setImages(imageUrls);
         } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.png"));
+            view.setImages(List.of("/images/eventImages/defaultReferendum.jpg"));
         }
 
         return view;
@@ -129,7 +129,7 @@ public class AllEventsSimplePreviewMapper {
             }
             view.setImages(imageUrls);
         } else {
-            view.setImages(List.of("/images/eventImages/defaultEvent.png"));
+            view.setImages(List.of("/images/eventImages/defaultMultiPoll.jpg"));
         }
 
         return view;

@@ -78,8 +78,7 @@
             <img th:src="${event.creatorImage}"
                  th:alt="${event.creatorName ?: 'Автор'}"
                  th:data-username="${event.creatorName ?: 'User'}"
-                 class="author-avatar rounded-circle"
-                 onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${event.creatorName ?: 'User'}');}">
+                 class="author-avatar rounded-circle">
           </a>
           <a th:if="${event.creatorImage != null and !#authorization.expression('isAuthenticated()')}"
              href="javascript:void(0);"
@@ -87,8 +86,7 @@
             <img th:src="${event.creatorImage}"
                  th:alt="${event.creatorName ?: 'Автор'}"
                  th:data-username="${event.creatorName ?: 'User'}"
-                 class="author-avatar rounded-circle"
-                 onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${event.creatorName ?: 'User'}');}">
+                 class="author-avatar rounded-circle">
           </a>
           <a th:if="${event.creatorImage == null or event.creatorImage == ''}"
              href="javascript:void(0);"

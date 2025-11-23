@@ -239,6 +239,28 @@
     font-size: 14px;
     text-transform: uppercase;
     flex-shrink: 0;
+    text-decoration: none !important;
+}
+
+/* Премахва подчертаването от родителския <a> таг за placeholder аватари */
+.author-info > a .avatar-placeholder {
+    text-decoration: none !important;
+}
+
+/* Премахва подчертаването от <a> таговете, които съдържат placeholder аватари */
+.author-info > a:has(.avatar-placeholder) {
+    text-decoration: none !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Fallback за браузъри без поддръжка на :has() */
+.author-info a[href="javascript:void(0);"] .avatar-placeholder {
+    text-decoration: none !important;
+}
+
+.author-info a[href="javascript:void(0);"] {
+    text-decoration: none !important;
 }
 
 .author-avatar:hover,

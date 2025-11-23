@@ -43,7 +43,7 @@ public class ReferendumMapper {
             }
             view.setImageUrls(imageUrls);
         } else {
-            view.setImageUrls(List.of("/images/eventImages/defaultEvent.png")); // Default изображение
+            view.setImageUrls(List.of("/images/eventImages/defaultReferendum.jpg")); // Default изображение
         }
 
         // Присвояване на стойности
