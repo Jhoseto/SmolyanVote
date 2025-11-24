@@ -45,17 +45,58 @@ public class SimpleEventController {
 
 
     @GetMapping("/event/{id}")
-    public String eventDetail(@PathVariable Long id, Model model) {
+    public String eventDetail(@PathVariable Long id, Model model, jakarta.servlet.http.HttpServletRequest request) {
         try {
             SimpleEventDetailViewDTO pageData = simpleEventService.getSimpleEventDetails(id);
             UserEntity currentUser = userService.getCurrentUser();
 
+            // Проверка за Facebook bot
+            String userAgent = request.getHeader("User-Agent");
+            boolean isFacebookBot = userAgent != null && userAgent.contains("facebookexternalhit");
 
-            model.addAttribute("userVote", pageData.getCurrentUserVote());
-            model.addAttribute("eventDetail", pageData);
-            model.addAttribute("currentUser", currentUser);
+            if (isFacebookBot) {
+                // ====== ЗА FACEBOOK BOT - ПОДГОТВИ OG ДАННИ ======
+                String ogTitle = pageData.getTitle();
+                if (ogTitle == null || ogTitle.trim().isEmpty()) {
+                    ogTitle = "Събитие от SmolyanVote";
+                }
 
-            return "simpleEventDetailView";
+                String ogDescription = pageData.getDescription();
+                if (ogDescription != null && ogDescription.length() > 160) {
+                    ogDescription = ogDescription.substring(0, 160) + "...";
+                }
+                if (ogDescription == null || ogDescription.trim().isEmpty()) {
+                    ogDescription = "Участвайте в гласуването и споделете мнението си в SmolyanVote.";
+                }
+
+                String ogImage = null;
+                if (pageData.getImages() != null && !pageData.getImages().isEmpty()) {
+                    ogImage = pageData.getImages().get(0);
+                }
+                if (ogImage == null || ogImage.trim().isEmpty()) {
+                    ogImage = "https://smolyanvote.com/images/logoNew.png";
+                } else if (ogImage.startsWith("/")) {
+                    ogImage = "https://smolyanvote.com" + ogImage;
+                }
+
+                String ogUrl = "https://smolyanvote.com/event/" + id;
+
+                model.addAttribute("eventDetail", pageData);
+                model.addAttribute("ogTitle", ogTitle);
+                model.addAttribute("ogDescription", ogDescription);
+                model.addAttribute("ogImage", ogImage);
+                model.addAttribute("ogUrl", ogUrl);
+                model.addAttribute("ogAuthor", pageData.getCreator().getUsername());
+
+                return "simpleEvent-social";
+            } else {
+                // ====== ЗА НОРМАЛНИ ПОТРЕБИТЕЛИ ======
+                model.addAttribute("userVote", pageData.getCurrentUserVote());
+                model.addAttribute("eventDetail", pageData);
+                model.addAttribute("currentUser", currentUser);
+
+                return "simpleEventDetailView";
+            }
         } catch (IllegalArgumentException e) {
             return "error/404";
         }

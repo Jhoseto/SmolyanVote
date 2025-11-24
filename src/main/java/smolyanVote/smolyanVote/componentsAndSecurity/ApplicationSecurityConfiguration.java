@@ -70,14 +70,19 @@ public class ApplicationSecurityConfiguration {
                                 "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
                                 "/terms-and-conditions","/faq","/signals/**"
                         ).permitAll()
+                        // Публичен достъп до detail views (GET заявки) - за Facebook sharing и нелогнати потребители
+                        .requestMatchers(HttpMethod.GET, "/event/{id}", "/referendum/{id}", "/multipoll/{id}").permitAll()
                         .requestMatchers("/admin/**", "/ws/admin/**", "/sockjs-node/**", "/stomp/**").hasRole("ADMIN")
+                        // Гласуване и създаване изискват authentication
                         .requestMatchers(
-                                "/multipoll", "/multipoll/**", "/referendumVote", "/referendum/**", "/referendum",
+                                "/simpleVote", "/referendumVote", "/multipoll/vote",
+                                "/create", "/createEvent", "/createNewEvent", "/referendum/create", "/multipoll/create",
+                                "/multipoll", "/referendum",
                                 "/user/**", "/profile/update", "/userProfile",
-                                "/comments/**", "/api/comments/**", "/simpleVote", "/create", "/event/**",
-                                "/createEvent", "/createNewEvent", "/user/logout",
+                                "/comments/**", "/api/comments/**",
+                                "/user/logout",
                                 "/user/dashboard/**","/subscription/**","/api/reports/**","/api/user/**",
-                                "/profile/**","/user/**","/api/follow/**","/api/notifications/**",
+                                "/profile/**","/api/follow/**","/api/notifications/**",
                                 "/ws/notifications/**","/api/svmessenger/**","/ws-svmessenger/**"
                         ).authenticated()
                         .anyRequest().denyAll()

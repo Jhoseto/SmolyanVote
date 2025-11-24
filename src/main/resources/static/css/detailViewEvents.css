@@ -678,6 +678,77 @@ body {
    VOTE RESULTS - СПОРЕД РЕАЛНАТА HTML СТРУКТУРА
    ================================================================= */
 
+.voting-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.voting-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.chart-toggle-btn,
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    text-decoration: none;
+}
+
+.chart-toggle-btn:hover,
+.share-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+    transform: translateY(-1px);
+}
+
+.chart-toggle-btn i,
+.share-btn i {
+    font-size: 1rem;
+}
+
+.share-facebook-btn {
+    background: rgba(24, 119, 242, 0.1);
+    border-color: rgba(24, 119, 242, 0.3);
+    color: #1877f2;
+}
+
+.share-facebook-btn:hover {
+    background: rgba(24, 119, 242, 0.15);
+    border-color: #1877f2;
+    color: #1877f2;
+}
+
+.voting-results-bars {
+    display: block;
+}
+
+.voting-results-chart {
+    display: none;
+    padding: 1rem 0;
+    min-height: 300px;
+}
+
+.voting-results-chart canvas {
+    max-height: 400px;
+}
+
 .vote-result {
     margin-bottom: 1.25rem;
 }
@@ -2384,6 +2455,62 @@ body {
         width: 100%;
         max-width: 140px;
     }
+
+    .voting-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .voting-card-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .chart-toggle-btn,
+    .share-btn {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+.voting-results-chart {
+    min-height: 250px;
+}
+
+/* =================================================================
+   LOGIN PROMPT (за нелогнати потребители)
+   ================================================================= */
+
+.login-prompt {
+    padding: 1.5rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-prompt p {
+    margin: 0;
+    color: var(--gray-700);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.login-prompt a {
+    color: var(--primary-green);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s var(--ease);
+}
+
+.login-prompt a:hover {
+    color: #3a7b30;
+    text-decoration: underline;
+}
 
     .options-dropdown.show {
         transform: translateX(-50%) translateY(0);

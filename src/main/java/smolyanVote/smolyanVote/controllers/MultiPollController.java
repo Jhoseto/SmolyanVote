@@ -99,16 +99,56 @@ public class MultiPollController {
 
 
     @GetMapping("/{id}")
-    public String showMultiPollDetail(@PathVariable Long id, Model model) {
+    public String showMultiPollDetail(@PathVariable Long id, Model model, jakarta.servlet.http.HttpServletRequest request) {
         try {
             MultiPollDetailViewDTO multiPollDetail = multiPollService.getMultiPollDetail(id);
             UserEntity currentUser = userService.getCurrentUser();
 
+            // Проверка за Facebook bot
+            String userAgent = request.getHeader("User-Agent");
+            boolean isFacebookBot = userAgent != null && userAgent.contains("facebookexternalhit");
 
+            if (isFacebookBot) {
+                // ====== ЗА FACEBOOK BOT - ПОДГОТВИ OG ДАННИ ======
+                String ogTitle = multiPollDetail.getTitle();
+                if (ogTitle == null || ogTitle.trim().isEmpty()) {
+                    ogTitle = "Анкета от SmolyanVote";
+                }
 
-            model.addAttribute("multiPoll", multiPollDetail);
-            model.addAttribute("currentUser", currentUser);
-            return "multiPollDetailView";
+                String ogDescription = multiPollDetail.getDescription();
+                if (ogDescription != null && ogDescription.length() > 160) {
+                    ogDescription = ogDescription.substring(0, 160) + "...";
+                }
+                if (ogDescription == null || ogDescription.trim().isEmpty()) {
+                    ogDescription = "Участвайте в анкетата и споделете мнението си в SmolyanVote.";
+                }
+
+                String ogImage = null;
+                if (multiPollDetail.getImageUrls() != null && !multiPollDetail.getImageUrls().isEmpty()) {
+                    ogImage = multiPollDetail.getImageUrls().get(0);
+                }
+                if (ogImage == null || ogImage.trim().isEmpty()) {
+                    ogImage = "https://smolyanvote.com/images/logoNew.png";
+                } else if (ogImage.startsWith("/")) {
+                    ogImage = "https://smolyanvote.com" + ogImage;
+                }
+
+                String ogUrl = "https://smolyanvote.com/multipoll/" + id;
+
+                model.addAttribute("multiPoll", multiPollDetail);
+                model.addAttribute("ogTitle", ogTitle);
+                model.addAttribute("ogDescription", ogDescription);
+                model.addAttribute("ogImage", ogImage);
+                model.addAttribute("ogUrl", ogUrl);
+                model.addAttribute("ogAuthor", multiPollDetail.getCreator().getUsername());
+
+                return "multiPoll-social";
+            } else {
+                // ====== ЗА НОРМАЛНИ ПОТРЕБИТЕЛИ ======
+                model.addAttribute("multiPoll", multiPollDetail);
+                model.addAttribute("currentUser", currentUser);
+                return "multiPollDetailView";
+            }
         } catch (IllegalArgumentException e) {
             return "error/404";
         }

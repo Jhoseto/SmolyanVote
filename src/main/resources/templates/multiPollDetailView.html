@@ -138,7 +138,7 @@
 
 
                 <!-- Voting Actions -->
-                <div class="voting-actions-card">
+                <div class="voting-actions-card" th:if="${#authorization.expression('isAuthenticated()')}">
                     <div th:if="${multiPoll.currentUserVotes == null or #lists.isEmpty(multiPoll.currentUserVotes)}">
                         <h3 class="card-title">Избери опции (1-3)</h3>
                         <div class="selection-info">
@@ -172,6 +172,14 @@
                     </div>
                 </div>
 
+                <!-- Login Prompt за нелогнати потребители -->
+                <div class="voting-actions-card" th:if="${!#authorization.expression('isAuthenticated()')}">
+                    <h3 class="card-title">Гласуване</h3>
+                    <div class="login-prompt">
+                        <p>За да гласувате, моля <a href="#" onclick="showLoginModalForVoting(); return false;">влезте в профила си</a> или <a href="/register">създайте акаунт</a>.</p>
+                    </div>
+                </div>
+
                 <!-- Navigation -->
                 <div class="navigation-card">
                     <a href="/mainEvents" class="back-btn">
@@ -185,18 +193,37 @@
 
                 <!-- Voting Results -->
                 <div class="voting-card">
-                    <h3 class="card-title">Резултати</h3>
-
-                    <div th:each="opt, iterStat : ${multiPoll.optionsText}" class="vote-result">
-                        <div class="vote-label">
-                            <span th:text="${opt}">Опция</span>
-                            <span class="vote-count" th:text="${multiPoll.votesForOptions[iterStat.index]} + ' гласа'">0 гласа</span>
+                    <div class="voting-card-header">
+                        <h3 class="card-title">Резултати</h3>
+                        <div class="voting-card-actions">
+                            <button class="chart-toggle-btn" data-type="multiPoll" onclick="VotingCharts.toggleView('multiPoll')">
+                                <i class="bi bi-bar-chart"></i> Покажи графика
+                            </button>
+                            <button class="share-facebook-btn share-btn" 
+                                    th:attr="data-url='/multipoll/' + ${multiPoll.id}, data-title=${multiPoll.title}">
+                                <i class="bi bi-facebook"></i> Сподели
+                            </button>
                         </div>
-                        <div class="vote-bar">
-                            <div class="bar bar-option" th:style="'width:' + ${multiPoll.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
-                                <span class="bar-percent" th:text="${multiPoll.votePercentages[iterStat.index]} + '%'">0%</span>
+                    </div>
+
+                    <!-- Progress Bars View -->
+                    <div class="voting-results-bars" data-type="multiPoll">
+                        <div th:each="opt, iterStat : ${multiPoll.optionsText}" class="vote-result">
+                            <div class="vote-label">
+                                <span th:text="${opt}">Опция</span>
+                                <span class="vote-count" th:text="${multiPoll.votesForOptions[iterStat.index]} + ' гласа'">0 гласа</span>
+                            </div>
+                            <div class="vote-bar">
+                                <div class="bar bar-option" th:style="'width:' + ${multiPoll.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
+                                    <span class="bar-percent" th:text="${multiPoll.votePercentages[iterStat.index]} + '%'">0%</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Chart View -->
+                    <div class="voting-results-chart" data-type="multiPoll" style="display: none;">
+                        <canvas id="multiPollChart"></canvas>
                     </div>
                 </div>
 
@@ -348,12 +375,66 @@
             alert('Моля, влезте в системата за да коментирате.');
         }
     };
+
+    // Функция за показване на login modal при опит за гласуване от нелогнат потребител
+    window.showLoginModalForVoting = function() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Вход в системата',
+                text: 'За да гласувате, моля влезте в профила си или създайте нов акаунт.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Вход',
+                cancelButtonText: 'Регистрация',
+                confirmButtonColor: '#4b9f3e',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Покажи login modal
+                    const modal = document.getElementById('loginModal');
+                    if (modal && typeof bootstrap !== 'undefined') {
+                        const bsModal = new bootstrap.Modal(modal);
+                        bsModal.show();
+                    }
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    // Пренасочи към регистрация
+                    window.location.href = '/register';
+                }
+            });
+        } else {
+            // Fallback ако Swal не е наличен
+            const modal = document.getElementById('loginModal');
+            if (modal && typeof bootstrap !== 'undefined') {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+            } else {
+                window.location.href = '/login';
+            }
+        }
+    };
 </script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+<!-- Chart.js for voting visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/detailEvents/votingCharts.js"></script>
+<script src="/js/detailEvents/socialShare.js"></script>
 <script src="/js/detailEvents/multiPollDetail.js"></script>
 <script src="/js/detailEvents/eventReporting.js"></script>
 <script src="/js/detailEvents/eventDelete.js"></script>
 <script src="/js/commentsManager.js"></script>
+<script th:inline="javascript">
+    // Initialize chart when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.VotingCharts && window.Chart) {
+            const chartData = {
+                optionsText: /*[[${multiPoll.optionsText}]]*/ [],
+                votesForOptions: /*[[${multiPoll.votesForOptions}]]*/ [],
+                votePercentages: /*[[${multiPoll.votePercentages}]]*/ []
+            };
+            window.VotingCharts.initMultiPollChart(chartData);
+        }
+    });
+</script>
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
         // Инициализиране на коментарите за multiPoll

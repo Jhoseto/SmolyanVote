@@ -116,19 +116,61 @@ public class ReferendumController {
 
 
     @GetMapping("/referendum/{id}")
-    public String showReferendumDetail(@PathVariable Long id, Model model) {
+    public String showReferendumDetail(@PathVariable Long id, Model model, jakarta.servlet.http.HttpServletRequest request) {
         try {
             ReferendumDetailViewDTO detailDto = referendumService.getReferendumDetail(id);
             UserEntity currentUser = userService.getCurrentUser();
 
-            List<CommentsEntity> comments = detailDto.getComments();
+            // Проверка за Facebook bot
+            String userAgent = request.getHeader("User-Agent");
+            boolean isFacebookBot = userAgent != null && userAgent.contains("facebookexternalhit");
 
-            model.addAttribute("referendumDetail", detailDto);
-            model.addAttribute("currentUser", currentUser);
-            model.addAttribute("comments", comments);
-            model.addAttribute("currentUrl", "/referendum/" + id);
+            if (isFacebookBot) {
+                // ====== ЗА FACEBOOK BOT - ПОДГОТВИ OG ДАННИ ======
+                String ogTitle = detailDto.getTitle();
+                if (ogTitle == null || ogTitle.trim().isEmpty()) {
+                    ogTitle = "Референдум от SmolyanVote";
+                }
 
-            return "referendumDetailView";
+                String ogDescription = detailDto.getDescription();
+                if (ogDescription != null && ogDescription.length() > 160) {
+                    ogDescription = ogDescription.substring(0, 160) + "...";
+                }
+                if (ogDescription == null || ogDescription.trim().isEmpty()) {
+                    ogDescription = "Участвайте в референдума и споделете мнението си в SmolyanVote.";
+                }
+
+                String ogImage = null;
+                if (detailDto.getImageUrls() != null && !detailDto.getImageUrls().isEmpty()) {
+                    ogImage = detailDto.getImageUrls().get(0);
+                }
+                if (ogImage == null || ogImage.trim().isEmpty()) {
+                    ogImage = "https://smolyanvote.com/images/logoNew.png";
+                } else if (ogImage.startsWith("/")) {
+                    ogImage = "https://smolyanvote.com" + ogImage;
+                }
+
+                String ogUrl = "https://smolyanvote.com/referendum/" + id;
+
+                model.addAttribute("referendumDetail", detailDto);
+                model.addAttribute("ogTitle", ogTitle);
+                model.addAttribute("ogDescription", ogDescription);
+                model.addAttribute("ogImage", ogImage);
+                model.addAttribute("ogUrl", ogUrl);
+                model.addAttribute("ogAuthor", detailDto.getCreator().getUsername());
+
+                return "referendum-social";
+            } else {
+                // ====== ЗА НОРМАЛНИ ПОТРЕБИТЕЛИ ======
+                List<CommentsEntity> comments = detailDto.getComments();
+
+                model.addAttribute("referendumDetail", detailDto);
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("comments", comments);
+                model.addAttribute("currentUrl", "/referendum/" + id);
+
+                return "referendumDetailView";
+            }
         } catch (EntityNotFoundException e) {
             return "redirect:/404";
         }

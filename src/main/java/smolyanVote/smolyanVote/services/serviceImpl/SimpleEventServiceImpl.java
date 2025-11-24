@@ -91,10 +91,14 @@ public class SimpleEventServiceImpl implements SimpleEventService {
             dto.setNoPercent(0);
             dto.setNeutralPercent(0);
         }
-        // Глас
-        VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(currentUser.getId(), id);
-        String voteValue = (vote != null) ? vote.getVoteValue() : null;
-        dto.setCurrentUserVote(voteValue);
+        // Глас на текущия потребител (ако е логнат)
+        if (currentUser != null) {
+            VoteSimpleEventEntity vote = voteService.findByUserIdAndEventId(currentUser.getId(), id);
+            String voteValue = (vote != null) ? vote.getVoteValue() : null;
+            dto.setCurrentUserVote(voteValue);
+        } else {
+            dto.setCurrentUserVote(null);
+        }
 
         return dto;
     }

@@ -139,26 +139,18 @@
 
       <!-- Бутон "Виж повече" -->
       <div class="text-left">
-        <div th:if="${#authorization.expression('isAuthenticated()')}">
-          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
-             th:href="@{/event/{id}(id=${event.id})}"
-             class="btn btn-custom w-100">
-            Виж повече
-          </a>
-          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
-             th:href="@{/referendum/{id}(id=${event.id})}"
-             class="btn btn-custom w-100">
-            Виж повече
-          </a>
-          <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
-             th:href="@{/multipoll/{id}(id=${event.id})}"
-             class="btn btn-custom w-100">
-            Виж повече
-          </a>
-        </div>
-        <a th:if="${#authorization.expression('!isAuthenticated()')}"
-           href="javascript:void(0);"
-           onclick="showLoginWarning()"
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"
+           th:href="@{/event/{id}(id=${event.id})}"
+           class="btn btn-custom w-100">
+          Виж повече
+        </a>
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).REFERENDUM}"
+           th:href="@{/referendum/{id}(id=${event.id})}"
+           class="btn btn-custom w-100">
+          Виж повече
+        </a>
+        <a th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).MULTI_POLL}"
+           th:href="@{/multipoll/{id}(id=${event.id})}"
            class="btn btn-custom w-100">
           Виж повече
         </a>

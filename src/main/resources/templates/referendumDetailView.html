@@ -135,7 +135,7 @@
             <div class="right-column">
 
                 <!-- Voting Actions -->
-                <div class="voting-actions-card">
+                <div class="voting-actions-card" th:if="${#authorization.expression('isAuthenticated()')}">
                     <!-- Ако потребителят НЕ Е гласувал - показваме формата -->
                     <div th:if="${referendumDetail.currentUserVote == null}">
                         <h3 class="card-title">Гласувайте</h3>
@@ -180,6 +180,14 @@
                     </div>
                 </div>
 
+                <!-- Login Prompt за нелогнати потребители -->
+                <div class="voting-actions-card" th:if="${!#authorization.expression('isAuthenticated()')}">
+                    <h3 class="card-title">Гласуване</h3>
+                    <div class="login-prompt">
+                        <p>За да гласувате, моля <a href="#" onclick="showLoginModalForVoting(); return false;">влезте в профила си</a> или <a href="/register">създайте акаунт</a>.</p>
+                    </div>
+                </div>
+
                 <!-- Navigation -->
                 <div class="navigation-card">
                     <a href="/mainEvents" class="back-btn">
@@ -193,18 +201,37 @@
 
                 <!-- Voting Results -->
                 <div class="voting-card">
-                    <h3 class="card-title">Резултати</h3>
-
-                    <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-result">
-                        <div class="vote-label">
-                            <span th:text="${opt}">Опция</span>
-                            <span class="vote-count" th:text="${referendumDetail.votes[iterStat.index]} + ' гласа'">0 гласа</span>
+                    <div class="voting-card-header">
+                        <h3 class="card-title">Резултати</h3>
+                        <div class="voting-card-actions">
+                            <button class="chart-toggle-btn" data-type="referendum" onclick="VotingCharts.toggleView('referendum')">
+                                <i class="bi bi-bar-chart"></i> Покажи графика
+                            </button>
+                            <button class="share-facebook-btn share-btn" 
+                                    th:attr="data-url='/referendum/' + ${referendumDetail.id}, data-title=${referendumDetail.title}">
+                                <i class="bi bi-facebook"></i> Сподели
+                            </button>
                         </div>
-                        <div class="vote-bar">
-                            <div class="bar bar-option" th:style="'width:' + ${referendumDetail.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
-                                <span class="bar-percent" th:text="${referendumDetail.votePercentages[iterStat.index]} + '%'">0%</span>
+                    </div>
+
+                    <!-- Progress Bars View -->
+                    <div class="voting-results-bars" data-type="referendum">
+                        <div th:each="opt, iterStat : ${referendumDetail.options}" class="vote-result">
+                            <div class="vote-label">
+                                <span th:text="${opt}">Опция</span>
+                                <span class="vote-count" th:text="${referendumDetail.votes[iterStat.index]} + ' гласа'">0 гласа</span>
+                            </div>
+                            <div class="vote-bar">
+                                <div class="bar bar-option" th:style="'width:' + ${referendumDetail.votePercentages[iterStat.index]} + '%'" th:data-option="${iterStat.index}">
+                                    <span class="bar-percent" th:text="${referendumDetail.votePercentages[iterStat.index]} + '%'">0%</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Chart View -->
+                    <div class="voting-results-chart" data-type="referendum" style="display: none;">
+                        <canvas id="referendumChart"></canvas>
                     </div>
                 </div>
 
@@ -356,12 +383,66 @@
             alert('Моля, влезте в системата за да коментирате.');
         }
     };
+
+    // Функция за показване на login modal при опит за гласуване от нелогнат потребител
+    window.showLoginModalForVoting = function() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Вход в системата',
+                text: 'За да гласувате, моля влезте в профила си или създайте нов акаунт.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Вход',
+                cancelButtonText: 'Регистрация',
+                confirmButtonColor: '#4b9f3e',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Покажи login modal
+                    const modal = document.getElementById('loginModal');
+                    if (modal && typeof bootstrap !== 'undefined') {
+                        const bsModal = new bootstrap.Modal(modal);
+                        bsModal.show();
+                    }
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    // Пренасочи към регистрация
+                    window.location.href = '/register';
+                }
+            });
+        } else {
+            // Fallback ако Swal не е наличен
+            const modal = document.getElementById('loginModal');
+            if (modal && typeof bootstrap !== 'undefined') {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+            } else {
+                window.location.href = '/login';
+            }
+        }
+    };
 </script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
+<!-- Chart.js for voting visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/detailEvents/votingCharts.js"></script>
+<script src="/js/detailEvents/socialShare.js"></script>
 <script src="/js/detailEvents/referendumDetail.js"></script>
 <script src="/js/detailEvents/eventReporting.js"></script>
 <script src="/js/detailEvents/eventDelete.js"></script>
 <script src="/js/commentsManager.js"></script>
+<script th:inline="javascript">
+    // Initialize chart when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.VotingCharts && window.Chart) {
+            const chartData = {
+                options: /*[[${referendumDetail.options}]]*/ [],
+                votes: /*[[${referendumDetail.votes}]]*/ [],
+                votePercentages: /*[[${referendumDetail.votePercentages}]]*/ []
+            };
+            window.VotingCharts.initReferendumChart(chartData);
+        }
+    });
+</script>
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
         // Инициализиране на коментарите за referendum
