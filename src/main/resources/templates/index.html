@@ -387,7 +387,7 @@
       </div>
     </div>
     <section id="platform-features-carousel" class="py-5 futuristic-carousel-bg">
-      <div class="futuristic-bg-overlay"></div>
+      <div id="particles-carousel" class="particles-container"></div>
       <div th:replace="~{fragments/features :: platform-features-carousel}"></div>
     </section>
   </section>
@@ -429,6 +429,86 @@
 <script src="/js/futuresCarossel.js" defer></script>
 <script src="/js/index.js" defer></script>
 <script src="https://unpkg.com/@mux/mux-player"></script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script>
+    // Инициализация на particles.js за каруселата
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof particlesJS !== 'undefined') {
+            particlesJS("particles-carousel", {
+                "particles": {
+                    "number": { 
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": { "value": "#19861c" }, // Зелено като основния цвят
+                    "shape": { "type": "circle" },
+                    "opacity": { 
+                        "value": 0.3,
+                        "random": false,
+                        "anim": {
+                            "enable": false
+                        }
+                    },
+                    "size": { 
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#19861c", // Зелени линии
+                        "opacity": 0.2,
+                        "width": 1
+                    },
+                    "move": { 
+                        "enable": true, 
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": { 
+                            "enable": true, 
+                            "mode": "grab" 
+                        },
+                        "onclick": { 
+                            "enable": true, 
+                            "mode": "push" 
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 0.4
+                            }
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+    });
+</script>
 
 <!-- Hidden input for cookie consent -->
 <input type="hidden" name="cookieConsent" value="" />
