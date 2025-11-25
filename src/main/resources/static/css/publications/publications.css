@@ -341,6 +341,18 @@
     flex: 1;
     max-width: var(--publications-main-feed-width);
     margin: 0 auto;
+    position: relative;
+}
+
+/* Particles background в main feed */
+.main-feed.particles-background-wrapper .particles-background {
+    z-index: 0;
+    opacity: 0.5;
+}
+
+.main-feed > *:not(.particles-background) {
+    position: relative;
+    z-index: 1;
 }
 
 /* ====== CREATE POST ====== */

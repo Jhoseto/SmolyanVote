@@ -14,6 +14,7 @@
     <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
     <link rel="stylesheet" href="/css/detailViewEvents.css">
     <link rel="stylesheet" href="/css/comments.css">
+    <link rel="stylesheet" href="/css/particles-background.css">
 </head>
 <body>
 
@@ -21,7 +22,8 @@
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- Main Content -->
-<main class="main-wrapper">
+<main class="main-wrapper particles-background-wrapper">
+    <div class="particles-background" data-particles-theme="green" data-particles-count="60"></div>
     <div class="content-container">
 
         <!-- Event Header Card -->
@@ -34,11 +36,9 @@
             <div class="event-meta">
                 <div class="creator-section">
                     <a th:href="@{'/user/' + ${eventDetail.creator.username}}" class="creator-link">
-                        <img class="creator-avatar" 
-                             th:src="${eventDetail.creator.imageUrl}" 
-                             th:alt="${eventDetail.creator.username ?: 'Създател'}"
-                             th:data-username="${eventDetail.creator.username ?: 'User'}"
-                             onerror="if(window.avatarUtils){window.avatarUtils.handleImageError(this, '${eventDetail.creator.username ?: 'User'}');}"/>
+                        <div class="creator-avatar avatar-placeholder"
+                             th:attr="data-user-image=${eventDetail.creator.imageUrl},data-username=${eventDetail.creator.username ?: 'User'}">
+                        </div>
                         <div class="creator-info">
                             <span class="creator-label">Автор</span>
                             <span class="creator-name" th:text="${eventDetail.creator.username}">Име на създателя</span>
@@ -447,6 +447,8 @@
         }
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script src="/js/utils/particles-background.js"></script>
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
         // Инициализиране на коментарите за simpleEvent

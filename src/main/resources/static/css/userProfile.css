@@ -94,6 +94,17 @@ body {
     margin-top: 30px;
 }
 
+/* Particles background в profile hero */
+.profile-hero.particles-background-wrapper .particles-background {
+    z-index: 1;
+    opacity: 0.6;
+}
+
+.profile-hero .container {
+    position: relative;
+    z-index: 2;
+}
+
 .hero-background {
     position: absolute;
     top: 0;

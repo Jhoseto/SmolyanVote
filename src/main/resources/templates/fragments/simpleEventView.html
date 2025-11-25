@@ -3,10 +3,14 @@
 <!-- @thymesVar id="event" type="smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO" -->
 
 <div th:fragment="simple-event" class="event-container">
-  <div class="event-card"
+  <div class="event-card particles-background-wrapper"
        th:classappend="${event.eventType.name() == 'SIMPLEEVENT'} ? ' border-simpleevent' :
                      (${event.eventType.name() == 'REFERENDUM'} ? ' border-referendum' :
                      (${event.eventType.name() == 'MULTI_POLL'} ? ' border-multi_poll' : ''))">
+    <!-- Particles background с динамична тема според типа събитие -->
+    <div class="particles-background" 
+         th:attr="data-particles-theme=${event.eventType.name() == 'SIMPLEEVENT'} ? 'green' : (${event.eventType.name() == 'REFERENDUM'} ? 'orange' : 'cyan'),
+                data-particles-count='25'"></div>
 
     <!-- Надпис в рамката -->
     <div th:if="${event.eventType == T(smolyanVote.smolyanVote.models.enums.EventType).SIMPLEEVENT}"

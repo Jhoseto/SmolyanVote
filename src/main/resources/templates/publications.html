@@ -49,6 +49,7 @@
   <link rel="stylesheet" href="/css/comments.css">
   <link rel="stylesheet" href="/css/publications/publications.css">
   <link rel="stylesheet" href="/css/publications/userSearch.css">
+  <link rel="stylesheet" href="/css/particles-background.css">
 
   <!-- Thymeleaf data for JavaScript -->
   <script th:inline="javascript">
@@ -254,7 +255,8 @@
   </aside>
 
   <!-- Main Feed -->
-  <main class="main-feed" id="mainFeed">
+  <main class="main-feed particles-background-wrapper" id="mainFeed">
+    <div class="particles-background" data-particles-theme="green" data-particles-count="60"></div>
     <!-- Create Post -->
     <div class="create-post" th:if="${#authorization.expression('isAuthenticated()')}">
       <!-- Quick Actions Row -->
@@ -538,6 +540,8 @@
 <div th:replace="~{fragments/publications-detail-modal :: postModal}"></div>
 
 <!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script src="/js/utils/particles-background.js"></script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 
 <script src="/js/publications/filtersManager.js"></script>

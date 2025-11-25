@@ -112,6 +112,26 @@ body {
     transition: all 0.4s var(--ease);
 }
 
+/* Particles background на цялата страница */
+.main-wrapper.particles-background-wrapper {
+    position: relative;
+}
+
+.main-wrapper .particles-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.main-wrapper .content-container {
+    position: relative;
+    z-index: 1;
+}
+
 .event-header-card::before {
     content: '';
     position: absolute;
@@ -125,6 +145,20 @@ body {
 
 /* MultiPoll Header Card */
 .multipoll-header-card {
+    margin-top: 5px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s var(--ease);
+}
+
+/* Referendum Header Card */
+.referendum-header-card {
     margin-top: 5px;
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(16px) saturate(180%);

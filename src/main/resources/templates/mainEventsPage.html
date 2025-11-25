@@ -12,6 +12,7 @@
   <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
   <link rel="stylesheet" href="/css/mainEventPage.css">
   <link rel="stylesheet" href="/css/eventSimpleCard.css">
+  <link rel="stylesheet" href="/css/particles-background.css">
 </head>
 <body>
 <!-- Landscape Warning - Mobile Portrait Only -->
@@ -21,7 +22,8 @@
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <!-- Hero секция -->
-<section class="hero" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -250px;">
+<section class="hero particles-background-wrapper" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -250px;">
+  <div class="particles-background" data-particles-theme="green" data-particles-count="60"></div>
   <div class="container">
     <h1 class="display-4 fw-bold">Събития</h1>
     <p class="lead">
@@ -359,6 +361,8 @@
 <script src="/js/mainEvent/searchAndFilters.js"></script>
 <script src="/js/mainEvent/mainEventsPage.js"></script>
 <!-- JS библиотеки -->
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script src="/js/utils/particles-background.js"></script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <!-- Допълнителна инициализация на аватари за събития -->
 <script>
