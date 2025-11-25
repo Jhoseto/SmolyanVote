@@ -6,6 +6,27 @@
 const BASE_URL = '/api/svmessenger';
 
 /**
+ * Get CSRF token from meta tag or cookie
+ */
+const getCsrfToken = () => {
+  // Try meta tag first (Spring Security default)
+  const meta = document.querySelector('meta[name="_csrf"]');
+  if (meta && meta.content) return meta.content;
+
+  // Fallback to XSRF-TOKEN cookie (CookieCsrfTokenRepository)
+  const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+/**
+ * Get CSRF header name
+ */
+const getCsrfHeader = () => {
+  const meta = document.querySelector('meta[name="_csrf_header"]');
+  return meta && meta.content ? meta.content : 'X-XSRF-TOKEN';
+};
+
+/**
  * Generic fetch wrapper с error handling и CSRF token
  */
 const fetchAPI = async (url, options = {}) => {
@@ -15,22 +36,27 @@ const fetchAPI = async (url, options = {}) => {
     },
     credentials: 'include', // Include session cookies
   };
-  
-  // Add CSRF token if available
-  if (window.SVMESSENGER_CSRF && window.SVMESSENGER_CSRF.token) {
-    defaultOptions.headers[window.SVMESSENGER_CSRF.headerName] = window.SVMESSENGER_CSRF.token;
+
+  // ✅ Add CSRF token (required for POST/PUT/DELETE)
+  const csrfToken = getCsrfToken();
+  const csrfHeader = getCsrfHeader();
+
+  if (csrfToken && csrfHeader) {
+    defaultOptions.headers[csrfHeader] = csrfToken;
+  } else {
+    console.warn('⚠️ CSRF token not found - API call may fail');
   }
-  
+
   try {
     const response = await fetch(url, { ...defaultOptions, ...options });
-    
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ 
-        message: `HTTP ${response.status}: ${response.statusText}` 
+      const error = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`
       }));
       throw new Error(error.message || 'API request failed');
     }
-    
+
     return response.json();
   } catch (error) {
     console.error('API Error:', error);
@@ -39,23 +65,23 @@ const fetchAPI = async (url, options = {}) => {
 };
 
 export const svMessengerAPI = {
-  
+
   // ========== CONVERSATIONS ==========
-  
+
   /**
    * Вземи всички разговори на current user
    */
   getConversations: async () => {
     return fetchAPI(`${BASE_URL}/conversations`);
   },
-  
+
   /**
    * Вземи конкретен разговор по ID
    */
   getConversation: async (conversationId) => {
     return fetchAPI(`${BASE_URL}/conversations/${conversationId}`);
   },
-  
+
   /**
    * Старт на нов разговор или вземи съществуващ
    */
@@ -65,7 +91,7 @@ export const svMessengerAPI = {
       body: JSON.stringify({ otherUserId, initialMessage })
     });
   },
-  
+
   /**
    * Маркирай всички съобщения в разговор като прочетени
    */
@@ -80,7 +106,7 @@ export const svMessengerAPI = {
       method: 'PUT'
     });
   },
-  
+
   /**
    * Изтрий разговор (soft delete)
    */
@@ -89,7 +115,7 @@ export const svMessengerAPI = {
       method: 'DELETE'
     });
   },
-  
+
   /**
    * Скрий разговор от панела (не изтрива историята)
    */
@@ -98,30 +124,30 @@ export const svMessengerAPI = {
       method: 'PUT'
     });
   },
-  
+
   // ========== MESSAGES ==========
-  
+
   /**
    * Вземи съобщения с pagination
    */
   getMessages: async (conversationId, page = 0, size = 50) => {
     return fetchAPI(`${BASE_URL}/messages/conversation/${conversationId}?page=${page}&size=${size}`);
   },
-  
+
   /**
    * Изпрати ново съобщение (HTTP fallback за WebSocket)
    */
   sendMessage: async (conversationId, text) => {
     return fetchAPI(`${BASE_URL}/messages/send`, {
       method: 'POST',
-      body: JSON.stringify({ 
-        conversationId, 
-        text, 
-        messageType: 'TEXT' 
+      body: JSON.stringify({
+        conversationId,
+        text,
+        messageType: 'TEXT'
       })
     });
   },
-  
+
   /**
    * Маркирай съобщение като прочетено
    */
@@ -130,7 +156,7 @@ export const svMessengerAPI = {
       method: 'PUT'
     });
   },
-  
+
   /**
    * Изтрий съобщение
    */
@@ -139,7 +165,7 @@ export const svMessengerAPI = {
       method: 'DELETE'
     });
   },
-  
+
   /**
    * Редактирай съобщение
    */
@@ -149,9 +175,9 @@ export const svMessengerAPI = {
       body: JSON.stringify({ newText })
     });
   },
-  
+
   // ========== USERS ==========
-  
+
   /**
    * Търси потребители по username/име
    */
@@ -159,19 +185,19 @@ export const svMessengerAPI = {
     // Always send the query to backend, let backend handle empty/short queries
     return fetchAPI(`${BASE_URL}/users/search?query=${encodeURIComponent(query || '')}`);
   },
-  
+
   /**
    * Търси в следвани потребители по username/име
    */
   searchFollowingUsers: async (query) => {
-    const url = query ? 
-      `${BASE_URL}/users/following?query=${encodeURIComponent(query)}` : 
+    const url = query ?
+      `${BASE_URL}/users/following?query=${encodeURIComponent(query)}` :
       `${BASE_URL}/users/following`;
     return fetchAPI(url);
   },
-  
+
   // ========== STATISTICS ==========
-  
+
   /**
    * Общ брой непрочетени съобщения
    */
@@ -190,9 +216,9 @@ export const svMessengerAPI = {
       body: JSON.stringify({ conversationId, otherUserId })
     });
   },
-  
+
   // ========== TYPING STATUS ==========
-  
+
   /**
    * Update typing status (HTTP fallback за WebSocket)
    */

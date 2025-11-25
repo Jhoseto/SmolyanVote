@@ -39,8 +39,8 @@ public class ApplicationSecurityConfiguration {
 
     @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
-                                            PasswordEncoder passwordEncoder,
-                                            CustomLogoutSuccessHandler customLogoutSuccessHandler) {
+            PasswordEncoder passwordEncoder,
+            CustomLogoutSuccessHandler customLogoutSuccessHandler) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.customLogoutSuccessHandler = customLogoutSuccessHandler;
@@ -53,24 +53,26 @@ public class ApplicationSecurityConfiguration {
 
         http
                 .headers(headers -> headers
-                        .httpStrictTransportSecurity(HeadersConfigurer.HstsConfig::disable)
-                )
+                        .httpStrictTransportSecurity(HeadersConfigurer.HstsConfig::disable))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(authz -> authz
-                        // Allow CORS preflight OPTIONS for messenger API so browser can POST without 405
+                        // Allow CORS preflight OPTIONS for messenger API so browser can POST without
+                        // 405
                         .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**").permitAll()
                         .requestMatchers(
-                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**","/static/**",
+                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**",
                                 "/svmessenger/**",
-                                "/", "//", "/forgotten_password", "/reset-password", "/user/registration", "/registration",
+                                "/", "//", "/forgotten_password", "/reset-password", "/user/registration",
+                                "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
-                                "/eventDetailView", "/posts","/podcast", "/error/**", "/favicon.ico", "/robots.txt",
-                                "/heartbeat","/search","/contacts","/contact","/publications/**","/api/links/**",
-                                "/terms-and-conditions","/faq","/signals/**"
-                        ).permitAll()
-                        // Публичен достъп до detail views (GET заявки) - за Facebook sharing и нелогнати потребители
+                                "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt",
+                                "/heartbeat", "/search", "/contacts", "/contact", "/publications/**", "/api/links/**",
+                                "/terms-and-conditions", "/faq", "/signals/**")
+                        .permitAll()
+                        // Публичен достъп до detail views (GET заявки) - за Facebook sharing и
+                        // нелогнати потребители
                         .requestMatchers(HttpMethod.GET, "/event/**", "/referendum/**", "/multipoll/**").permitAll()
                         // Endpoints за редактиране - само за администратори (GET и POST)
                         .requestMatchers("/event/*/edit", "/referendum/*/edit", "/multipoll/*/edit").hasRole("ADMIN")
@@ -83,25 +85,22 @@ public class ApplicationSecurityConfiguration {
                                 "/user/**", "/profile/update", "/userProfile",
                                 "/comments/**", "/api/comments/**",
                                 "/user/logout",
-                                "/user/dashboard/**","/subscription/**","/api/reports/**","/api/user/**",
-                                "/profile/**","/api/follow/**","/api/notifications/**",
-                                "/ws/notifications/**","/api/svmessenger/**","/ws-svmessenger/**"
-                        ).authenticated()
-                        .anyRequest().denyAll()
-                )
+                                "/user/dashboard/**", "/subscription/**", "/api/reports/**", "/api/user/**",
+                                "/profile/**", "/api/follow/**", "/api/notifications/**",
+                                "/ws/notifications/**", "/api/svmessenger/**", "/ws-svmessenger/**")
+                        .authenticated()
+                        .anyRequest().denyAll())
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler)
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID", "remember-me", "XSRF-TOKEN")
-                        .permitAll()
-                )
+                        .permitAll())
                 .rememberMe(rememberMe -> rememberMe
                         .key(rememberMeKey())
                         .rememberMeParameter("remember-me")
                         .userDetailsService(customUserDetailsService)
-                        .useSecureCookie(true)
-                )
+                        .useSecureCookie(true))
                 .sessionManagement(session -> session
                         .sessionFixation().migrateSession()
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
@@ -110,30 +109,21 @@ public class ApplicationSecurityConfiguration {
 
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            request.setAttribute("errorMessage", "❌ Нямате достъп до това съдържание! Само администратори.");
+                            request.setAttribute("errorMessage",
+                                    "❌ Нямате достъп до това съдържание! Само администратори.");
                             request.getRequestDispatcher("/error/general").forward(request, response);
                         })
                         .authenticationEntryPoint((request, response, authException) -> {
                             request.setAttribute("errorMessage", "🔒 Моля, влезте в профила си, за да продължите.");
                             request.getRequestDispatcher("/error/general").forward(request, response);
-                        })
-                )
+                        }))
                 .csrf(csrf -> csrf
-                        // 🔒 CSRF ЗАЩИТА ЗА ВСИЧКИ ОБИКНОВЕНИ ENDPOINTS
-                        // 🚫 ВРЕМЕННО ИЗКЛЮЧВАМЕ CSRF ЗА /api/svmessenger/call/** ДО ВРЕМЕНОТО ТЕСТВАНЕ
-                        // TODO(SEC): Върни CSRF обратно и добави правилното front-end изпращане на X-XSRF-TOKEN
-                        // Причина: по време на development имаме проблеми с CSRF token при AJAX POST за call token.
-                        // SockJS handshake е безопасен защото:
-                        // 1. Установява се само след успешна аутентикация
-                        // 2. Same-Origin Policy защитава WebSocket връзки
-                        // 3. Handshake е автоматичен процес, не може да се манипулира от malicious сайтове
-                        // 4. WebSocket връзките изискват valid session cookies
+                        // ✅ CSRF PROTECTION RESTORED - ALL API ENDPOINTS NOW PROTECTED
+                        // WebSocket handshakes remain exempt (safe by design - require valid session +
+                        // Same-Origin Policy)
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat",
-                                "/api/svmessenger/call/**", "/api/svmessenger/**", "/ws-svmessenger/**", "/ws/notifications/**",
-                                "/ws/admin/activity/**")
-                        .csrfTokenRepository(csrfTokenRepository)
-                );
-
+                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
+                        .csrfTokenRepository(csrfTokenRepository));
 
         return http.build();
     }
@@ -168,22 +158,20 @@ public class ApplicationSecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        //TODO След завършване на месенджър трябва да се премахне локала
+        // TODO След завършване на месенджър трябва да се премахне локала
         // Development: allow localhost, Production: only production domains
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
             configuration.setAllowedOriginPatterns(List.of(
-                    "https://smolyanvote.com", 
+                    "https://smolyanvote.com",
                     "https://www.smolyanvote.com",
                     "http://localhost:*",
-                    "http://127.0.0.1:*"
-            ));
+                    "http://127.0.0.1:*"));
         } else {
             configuration.setAllowedOriginPatterns(List.of(
-                    "https://smolyanvote.com", 
-                    "https://www.smolyanvote.com"
-            ));
+                    "https://smolyanvote.com",
+                    "https://www.smolyanvote.com"));
         }
-        
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN"));
         configuration.setAllowCredentials(true);
@@ -206,7 +194,8 @@ public class ApplicationSecurityConfiguration {
                     for (String header : headers) {
                         String updatedHeader = header;
 
-                        boolean isSecureRequest = request.isSecure() || request.getServerName().contains("smolyanvote.com");
+                        boolean isSecureRequest = request.isSecure()
+                                || request.getServerName().contains("smolyanvote.com");
 
                         if (isSecureRequest && !header.toLowerCase().contains("secure")) {
                             updatedHeader += "; Secure";

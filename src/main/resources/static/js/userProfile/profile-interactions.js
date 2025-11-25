@@ -1,5 +1,8 @@
 /* ===== PROFILE INTERACTIONS - REAL DATA INTEGRATION ===== */
 
+// Import safe HTML utilities for XSS protection
+import { safeSetHTMLSync } from '/js/utils/safeHTML.js';
+
 class ProfileManager {
     constructor() {
         this.currentTab = 'overview';
@@ -224,7 +227,7 @@ class ProfileManager {
         const container = document.getElementById(`${tabId}Grid`);
         if (!container) return;
 
-        // Clear existing content
+        // Clear existing content (safe - no user input)
         container.innerHTML = '';
 
         if (tabId === 'signals') {
@@ -297,7 +300,7 @@ class ProfileManager {
 
         // ИЗПОЛЗВАМЕ БЪЛГАРСКИТЕ ИМЕНА ОТ BACKEND-А
         const categoryName = signal.categoryBG || signal.category;
-        
+
         // Изчисляване на оставащи дни
         let expirationDisplay = expirationInfo.name;
         if (signal.activeUntil && signal.isActive !== false) {
@@ -309,7 +312,8 @@ class ProfileManager {
             }
         }
 
-        card.innerHTML = `
+        // ✅ Use safe HTML to prevent XSS
+        safeSetHTMLSync(card, `
         <div class="signal-header">
             <div class="signal-category">
                 <i class="bi bi-${categoryIcons[signal.category] || 'flag'}"></i>
@@ -334,7 +338,7 @@ class ProfileManager {
             </div>
         </div>
         <div class="time-info">${this.formatTimeAgo(signal.created)}</div>
-    `;
+    `);
 
         return card;
     }
@@ -345,11 +349,12 @@ class ProfileManager {
         card.className = 'publication-card glass-card';
         card.dataset.publicationId = pub.id;
 
-        card.innerHTML = `
+        // ✅ Use safe HTML to prevent XSS
+        safeSetHTMLSync(card, `
         <div class="publication-image">
             ${pub.imageUrl
-            ? `<img src="${pub.imageUrl}" alt="Publication Image" class="pub-img"/>`
-            : `<div class="pub-placeholder">📷</div>`}
+                ? `<img src="${pub.imageUrl}" alt="Publication Image" class="pub-img"/>`
+                : `<div class="pub-placeholder">📷</div>`}
         </div>
         <div class="publication-content">
             <p class="publication-excerpt">${pub.content || 'Няма съдържание'}</p>
@@ -363,7 +368,7 @@ class ProfileManager {
                 </div>
             </div>
         </div>
-    `;
+    `);
 
         return card;
     }
@@ -749,13 +754,14 @@ class ProfileManager {
         };
 
         const config = emptyMessages[type];
-        container.innerHTML = `
+        // ✅ Use safe HTML (static template, no user input, but following best practice)
+        safeSetHTMLSync(container, `
             <div class="empty-state">
                 <i class="bi bi-${config.icon}"></i>
                 <h4>${config.title}</h4>
                 <p>${config.message}</p>
             </div>
-        `;
+        `);
     }
 
     formatTimeAgo(dateString) {
@@ -853,25 +859,6 @@ class ProfileManager {
         // Fallback toast
         const toast = document.createElement('div');
         toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
-        toast.style.cssText = `
-            top: 20px; 
-            right: 20px; 
-            z-index: 10000; 
-            min-width: 300px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        toast.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(toast);
-
-        // Animate in
-        setTimeout(() => toast.style.opacity = '1', 10);
 
         // Auto remove
         setTimeout(() => {
