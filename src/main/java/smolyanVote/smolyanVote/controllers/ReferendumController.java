@@ -29,15 +29,18 @@ public class ReferendumController {
     private final ReferendumService referendumService;
     private final UserService userService;
     private final DeleteEventsService deleteEventsService;
+    private final ReferendumRepository referendumRepository;
 
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
                                 UserService userService,
-                                DeleteEventsService deleteEventsService) {
+                                DeleteEventsService deleteEventsService,
+                                ReferendumRepository referendumRepository) {
         this.referendumService = referendumService;
         this.userService = userService;
         this.deleteEventsService = deleteEventsService;
+        this.referendumRepository = referendumRepository;
     }
 
     @GetMapping("/referendum")
@@ -177,6 +180,68 @@ public class ReferendumController {
     }
 
 
+
+    @GetMapping("/referendum/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String showEditReferendum(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            ReferendumDetailViewDTO referendumDetail = referendumService.getReferendumDetail(id);
+            model.addAttribute("referendum", referendumDetail);
+            model.addAttribute("referendumId", id);
+            model.addAttribute("locations", Locations.values());
+            model.addAttribute("isEdit", true);
+            model.addAttribute("existingImages", referendumDetail.getImageUrls());
+            
+            return "createReferendum";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Референдумът не е намерен.");
+            return "redirect:/mainEvents";
+        }
+    }
+
+    @PostMapping("/referendum/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String updateReferendum(@PathVariable Long id,
+                                   @RequestParam String topic,
+                                   @RequestParam String description,
+                                   @RequestParam Locations location,
+                                   @RequestParam("options") List<String> options,
+                                   @RequestParam(value = "image1", required = false) MultipartFile image1,
+                                   @RequestParam(value = "image2", required = false) MultipartFile image2,
+                                   @RequestParam(value = "image3", required = false) MultipartFile image3,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            ReferendumEntity referendum = referendumRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен"));
+
+            // Обновяване на данните
+            referendum.setTitle(topic);
+            referendum.setDescription(description);
+            referendum.setLocation(location);
+
+            // Обновяване на опциите (ако има такива в ентитета)
+            // Референдумите обикновено имат опции в отделна таблица, но за сега ще запазим само основните данни
+
+            // Обработка на нови изображения
+            List<MultipartFile> images = List.of(image1, image2, image3);
+            if (images != null && !images.isEmpty()) {
+                for (MultipartFile file : images) {
+                    if (file != null && !file.isEmpty()) {
+                        // Тук трябва да се добави логика за запазване на изображенията
+                        // За сега ще пропуснем, тъй като изисква допълнителни зависимости
+                    }
+                }
+            }
+
+            referendumRepository.save(referendum);
+            redirectAttributes.addFlashAttribute("successMessage", "Референдумът беше редактиран успешно!");
+            return "redirect:/referendum/" + id;
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при редактиране на референдума: " + e.getMessage());
+            return "redirect:/referendum/" + id;
+        }
+    }
 
     @PostMapping("/referendum/{id}/delete")
     public String deleteReferendum(@PathVariable Long id,

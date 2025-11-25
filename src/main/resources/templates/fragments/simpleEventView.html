@@ -131,13 +131,27 @@
 
       <!-- Блок за информация -->
       <div class="event-stats mb-3">
-        <div class="stat-item d-flex justify-content-between">
+        <div class="stat-item d-flex justify-content-between align-items-center">
           <small class="text-muted">Гласували:</small>
-          <small class="text-muted fw-bold" th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</small>
+          <div class="stat-with-progress">
+            <small class="text-muted fw-bold" th:text="${event.totalVotes != null ? event.totalVotes : 0}">0</small>
+            <div class="progress-bar-mini" 
+                 th:attr="data-value=${event.totalVotes != null ? event.totalVotes : 0},
+                          data-max=${event.totalVotes != null ? (event.totalVotes > 100 ? event.totalVotes : 100) : 100}">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
         </div>
-        <div class="stat-item d-flex justify-content-between">
+        <div class="stat-item d-flex justify-content-between align-items-center">
           <small class="text-muted">Преглеждания:</small>
-          <small class="text-muted fw-bold" th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</small>
+          <div class="stat-with-progress">
+            <small class="text-muted fw-bold" th:text="${event.viewCounter != null ? event.viewCounter : 0}">0</small>
+            <div class="progress-bar-mini" 
+                 th:attr="data-value=${event.viewCounter != null ? event.viewCounter : 0},
+                          data-max=${event.viewCounter != null ? (event.viewCounter > 100 ? event.viewCounter : 100) : 100}">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
         </div>
       </div>
 

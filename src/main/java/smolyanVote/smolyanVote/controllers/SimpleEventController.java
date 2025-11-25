@@ -8,12 +8,17 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import smolyanVote.smolyanVote.models.SimpleEventEntity;
+import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
+import smolyanVote.smolyanVote.services.serviceImpl.ImageCloudinaryServiceImpl;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -24,6 +29,8 @@ public class SimpleEventController {
     private final UserService userService;
     private final DeleteEventsService deleteEventsService;
     private final ReportsService reportsService;
+    private final SimpleEventRepository simpleEventRepository;
+    private final ImageCloudinaryServiceImpl imageStorageService;
 
 
     @Autowired
@@ -31,12 +38,16 @@ public class SimpleEventController {
                                  CommentsService commentsService,
                                  UserService userService,
                                  DeleteEventsService deleteEventsService,
-                                 ReportsService reportsService) {
+                                 ReportsService reportsService,
+                                 SimpleEventRepository simpleEventRepository,
+                                 ImageCloudinaryServiceImpl imageStorageService) {
         this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
         this.deleteEventsService = deleteEventsService;
         this.reportsService = reportsService;
+        this.simpleEventRepository = simpleEventRepository;
+        this.imageStorageService = imageStorageService;
     }
 
 
@@ -136,6 +147,79 @@ public class SimpleEventController {
     }
 
 
+
+    @GetMapping("/event/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String showEditEvent(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            SimpleEventDetailViewDTO eventDetail = simpleEventService.getSimpleEventDetails(id);
+            CreateEventView editView = new CreateEventView();
+            editView.setTitle(eventDetail.getTitle());
+            editView.setDescription(eventDetail.getDescription());
+            editView.setLocation(eventDetail.getLocation());
+            
+            model.addAttribute("event", editView);
+            model.addAttribute("eventId", id);
+            model.addAttribute("locations", Locations.values());
+            model.addAttribute("isEdit", true);
+            model.addAttribute("positiveLabel", eventDetail.getPositiveLabel());
+            model.addAttribute("negativeLabel", eventDetail.getNegativeLabel());
+            model.addAttribute("neutralLabel", eventDetail.getNeutralLabel());
+            model.addAttribute("existingImages", eventDetail.getImages());
+            
+            return "createSimpleEvent";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Събитието не е намерено.");
+            return "redirect:/mainEvents";
+        }
+    }
+
+    @PostMapping("/event/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String updateEvent(@PathVariable Long id,
+                             @ModelAttribute CreateEventView createEventDto,
+                             @RequestParam String positiveLabel,
+                             @RequestParam String negativeLabel,
+                             @RequestParam String neutralLabel,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            SimpleEventEntity event = simpleEventRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
+
+            // Обновяване на данните
+            event.setTitle(createEventDto.getTitle());
+            event.setDescription(createEventDto.getDescription());
+            event.setLocation(createEventDto.getLocation());
+            event.setPositiveLabel(positiveLabel);
+            event.setNegativeLabel(negativeLabel);
+            event.setNeutralLabel(neutralLabel);
+
+            // Обработка на нови изображения
+            MultipartFile[] files = {createEventDto.getImage1(), createEventDto.getImage2(), createEventDto.getImage3()};
+            if (files != null && files.length > 0) {
+                for (MultipartFile file : files) {
+                    if (file != null && !file.isEmpty()) {
+                        String imagePath = imageStorageService.saveSingleImage(file, event.getId());
+                        SimpleEventImageEntity imageEntity = new SimpleEventImageEntity();
+                        imageEntity.setImageUrl(imagePath);
+                        imageEntity.setEvent(event);
+                        if (event.getImages() == null) {
+                            event.setImages(new ArrayList<>());
+                        }
+                        event.getImages().add(imageEntity);
+                    }
+                }
+            }
+
+            simpleEventRepository.save(event);
+            redirectAttributes.addFlashAttribute("successMessage", "Събитието беше редактирано успешно!");
+            return "redirect:/event/" + id;
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при редактиране на събитието: " + e.getMessage());
+            return "redirect:/event/" + id;
+        }
+    }
 
     @PostMapping("/event/{id}/delete")
     public String deleteEvent(@PathVariable Long id,

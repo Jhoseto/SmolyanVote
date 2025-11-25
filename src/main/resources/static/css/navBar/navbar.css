@@ -228,9 +228,10 @@
     }
 
     .vote-arrow-glass {
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
         font-size: 0.7rem;
         padding-top: 5px;
+        will-change: transform;
     }
 
     .vote-arrow-glass.rotated {
@@ -746,7 +747,7 @@
     }
 }
 
-/* Vote Menu Container */
+/* Vote Menu Container - Подобрена плавна анимация */
 .vote-menu-container-glass {
     position: fixed;
     top: 0;
@@ -763,13 +764,22 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     max-height: 0;
     overflow: hidden;
-    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-100%);
+    opacity: 0;
+    will-change: transform, opacity, max-height;
+    transition: 
+        transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+        max-height 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+        padding 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .vote-menu-container-glass.show {
     margin-top: 60px; /* Точно под navbar-а */
-    max-height: 400px;
+    max-height: 500px;
     padding: 1.5rem 0;
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .vote-overlay-glass {
@@ -783,7 +793,10 @@
     z-index: 999;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, visibility;
+    transition: 
+        opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .vote-overlay-glass.show {

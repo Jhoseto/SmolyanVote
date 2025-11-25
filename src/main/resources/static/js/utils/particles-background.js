@@ -3,7 +3,7 @@
  * Просто добави клас .particles-background на контейнера
  * 
  * Опции:
- * - data-particles-theme="green|orange|cyan" - цветова тема (по подразбиране green)
+ * - data-particles-theme="green|orange|cyan|white" - цветова тема (по подразбиране green)
  * - data-particles-count="80" - брой частици (по подразбиране 80)
  */
 
@@ -29,6 +29,10 @@
         cyan: {
             particleColor: '#17CBEA',
             lineColor: '#0EA5E9'
+        },
+        white: {
+            particleColor: '#ffffff',
+            lineColor: '#ffffff'
         }
     };
 
@@ -41,19 +45,24 @@
         const id = container.id || `particles-${Math.random().toString(36).substr(2, 9)}`;
         container.id = id;
 
+        // За бялата тема използваме по-висока opacity за по-добра видимост
+        const isWhiteTheme = themeName === 'white';
+        const particleOpacity = isWhiteTheme ? 0.7 : 0.5;
+        const lineOpacity = isWhiteTheme ? 0.6 : 0.4;
+
         // Конфигурация точно като на страницата за грешки
         particlesJS(id, {
             "particles": {
                 "number": { "value": particleCount },
                 "color": { "value": theme.particleColor },
                 "shape": { "type": "circle" },
-                "opacity": { "value": 0.5 },
+                "opacity": { "value": particleOpacity },
                 "size": { "value": 3 },
                 "line_linked": {
                     "enable": true,
                     "distance": 150,
                     "color": theme.lineColor,
-                    "opacity": 0.4,
+                    "opacity": lineOpacity,
                     "width": 1
                 },
                 "move": { "enable": true, "speed": 3 }

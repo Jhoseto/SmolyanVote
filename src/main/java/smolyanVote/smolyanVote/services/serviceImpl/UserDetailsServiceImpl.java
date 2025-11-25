@@ -23,7 +23,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByEmail(email)
+        // Нормализиране на email на малки букви преди търсене
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+        UserEntity user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Потребителят не беше намерен"));
         user.setOnlineStatus(1);
         userRepository.save(user);

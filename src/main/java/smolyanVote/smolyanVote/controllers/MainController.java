@@ -5,14 +5,36 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import smolyanVote.smolyanVote.repositories.MultiPollRepository;
+import smolyanVote.smolyanVote.repositories.ReferendumRepository;
+import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 
 @Controller
 public class MainController {
 
+    private final SimpleEventRepository simpleEventRepository;
+    private final ReferendumRepository referendumRepository;
+    private final MultiPollRepository multiPollRepository;
 
+    public MainController(SimpleEventRepository simpleEventRepository,
+                         ReferendumRepository referendumRepository,
+                         MultiPollRepository multiPollRepository) {
+        this.simpleEventRepository = simpleEventRepository;
+        this.referendumRepository = referendumRepository;
+        this.multiPollRepository = multiPollRepository;
+    }
 
     @GetMapping("/")
     public String homePage(Model model) {
+        // Броене на трите вида събития
+        long simpleEventsCount = simpleEventRepository.count();
+        long referendumsCount = referendumRepository.count();
+        long multiPollsCount = multiPollRepository.count();
+
+        // Предаване на статистиките в модела
+        model.addAttribute("simpleEventsCount", simpleEventsCount);
+        model.addAttribute("referendumsCount", referendumsCount);
+        model.addAttribute("multiPollsCount", multiPollsCount);
 
         return "index";
     }

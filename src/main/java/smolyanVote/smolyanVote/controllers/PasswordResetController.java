@@ -26,7 +26,9 @@ public class PasswordResetController {
     public String requestPasswordReset(@RequestParam("email") String email,
                                       RedirectAttributes redirectAttributes) {
         try {
-            passwordResetService.requestPasswordReset(email);
+            // Нормализиране на email на малки букви
+            String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+            passwordResetService.requestPasswordReset(normalizedEmail);
             redirectAttributes.addFlashAttribute("message", 
                 "Ако имейлът съществува в системата, ще получите линк за възстановяване на парола.");
         } catch (Exception e) {

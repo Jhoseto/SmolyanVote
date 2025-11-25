@@ -51,7 +51,9 @@ public class LoginController {
                         HttpServletResponse response,
                         HttpServletRequest request) {
 
-        Optional<UserEntity> userOptional = userService.findUserByEmail(userModel.getEmail());
+        // Нормализиране на email на малки букви
+        String normalizedEmail = userModel.getEmail() != null ? userModel.getEmail().toLowerCase().trim() : null;
+        Optional<UserEntity> userOptional = userService.findUserByEmail(normalizedEmail);
 
         if (userOptional.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Невалиден имейл адрес: " + userModel.getEmail());
@@ -70,7 +72,7 @@ public class LoginController {
             return "redirect:/viewLogin";
         }
 
-        Authentication authentication = userService.authenticateUser(userModel.getEmail(), userModel.getPassword());
+        Authentication authentication = userService.authenticateUser(normalizedEmail, userModel.getPassword());
 
         if (authentication != null) {
             // 1. Set в SecurityContextHolder

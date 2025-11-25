@@ -9,10 +9,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.CommentsEntity;
+import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
+import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
@@ -29,16 +31,19 @@ public class MultiPollController {
     private final UserService userService;
     private final VoteService voteService;
     private final DeleteEventsService deleteEventsService;
+    private final MultiPollRepository multiPollRepository;
 
     @Autowired
     public MultiPollController(MultiPollService multiPollService,
                                UserService userService,
                                VoteService voteService,
-                               DeleteEventsService deleteEventsService) {
+                               DeleteEventsService deleteEventsService,
+                               MultiPollRepository multiPollRepository) {
         this.multiPollService = multiPollService;
         this.userService = userService;
         this.voteService = voteService;
         this.deleteEventsService = deleteEventsService;
+        this.multiPollRepository = multiPollRepository;
     }
 
     @GetMapping("/createMultiPoll")
@@ -176,6 +181,76 @@ public class MultiPollController {
 
         // Пренасочваме обратно към страницата с детайли за анкетата
         return "redirect:/multipoll/" + pollId;
+    }
+
+    @GetMapping("/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String showEditMultiPoll(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            MultiPollDetailViewDTO multiPollDetail = multiPollService.getMultiPollDetail(id);
+            CreateMultiPollView editView = new CreateMultiPollView();
+            editView.setTitle(multiPollDetail.getTitle());
+            editView.setDescription(multiPollDetail.getDescription());
+            editView.setLocation(multiPollDetail.getLocation());
+            editView.setOptions(multiPollDetail.getOptionsText());
+            
+            model.addAttribute("createMultiPollView", editView);
+            model.addAttribute("pollId", id);
+            model.addAttribute("locations", Locations.values());
+            model.addAttribute("isEdit", true);
+            model.addAttribute("existingImages", multiPollDetail.getImageUrls());
+            
+            return "createMultiPoll";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Анкетата не е намерена.");
+            return "redirect:/mainEvents";
+        }
+    }
+
+    @PostMapping("/{id}/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String updateMultiPoll(@PathVariable Long id,
+                                 @ModelAttribute CreateMultiPollView createMultiPollView,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            MultiPollEntity poll = multiPollRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Анкетата не е намерена"));
+
+            // Обновяване на данните
+            poll.setTitle(createMultiPollView.getTitle());
+            poll.setDescription(createMultiPollView.getDescription());
+            poll.setLocation(createMultiPollView.getLocation());
+
+            // Обновяване на опциите
+            List<String> filteredOptions = createMultiPollView.getOptions().stream()
+                    .filter(opt -> opt != null && !opt.trim().isEmpty())
+                    .toList();
+
+            if (filteredOptions.size() < 2) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Въведете поне две валидни опции.");
+                return "redirect:/multipoll/" + id;
+            }
+
+            // Задаване на опциите в ентитета
+            poll.setOption1(filteredOptions.size() > 0 ? filteredOptions.get(0) : null);
+            poll.setOption2(filteredOptions.size() > 1 ? filteredOptions.get(1) : null);
+            poll.setOption3(filteredOptions.size() > 2 ? filteredOptions.get(2) : null);
+            poll.setOption4(filteredOptions.size() > 3 ? filteredOptions.get(3) : null);
+            poll.setOption5(filteredOptions.size() > 4 ? filteredOptions.get(4) : null);
+            poll.setOption6(filteredOptions.size() > 5 ? filteredOptions.get(5) : null);
+            poll.setOption7(filteredOptions.size() > 6 ? filteredOptions.get(6) : null);
+            poll.setOption8(filteredOptions.size() > 7 ? filteredOptions.get(7) : null);
+            poll.setOption9(filteredOptions.size() > 8 ? filteredOptions.get(8) : null);
+            poll.setOption10(filteredOptions.size() > 9 ? filteredOptions.get(9) : null);
+
+            multiPollRepository.save(poll);
+            redirectAttributes.addFlashAttribute("successMessage", "Анкетата беше редактирана успешно!");
+            return "redirect:/multipoll/" + id;
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при редактиране на анкетата: " + e.getMessage());
+            return "redirect:/multipoll/" + id;
+        }
     }
 
     @PostMapping("/multipoll/{id}/delete")

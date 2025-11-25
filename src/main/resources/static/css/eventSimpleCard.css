@@ -79,6 +79,13 @@
     padding: 15px;
 }
 
+/* Override за list view */
+.event-list-item .event-card {
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+}
+
 .event-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(37, 175, 180, 0.2);
@@ -96,7 +103,7 @@
     opacity: 0.6; /* По-лек ефект за картите */
 }
 
-.event-card > *:not(.particles-background) {
+.event-card > *:not(.particles-background):not(.type-label):not(.btn-danger):not(:has(.btn-danger)) {
     position: relative;
     z-index: 1;
 }
@@ -106,9 +113,9 @@
 .event-card.border-referendum { border: 2px solid var(--referendum-border); }
 .event-card.border-multi_poll { border: 2px solid var(--multi_poll-border); }
 
-/* Type Label */
-.type-label {
-    position: absolute;
+/* Type Label - специално правило за да не се прецаква от particles-background */
+.event-card .type-label {
+    position: absolute !important;
     top: 0;
     left: 0;
     padding: 1px 14px 1px 16px;
@@ -116,7 +123,7 @@
     font-size: 0.55rem;
     font-weight: 100;
     color: #fff;
-    z-index: 10;
+    z-index: 10 !important;
     transition: transform 0.3s ease;
 }
 
@@ -128,11 +135,24 @@
 .type-label-referendum { background: linear-gradient(45deg, #fb7e14, #fca967); }
 .type-label-multi_poll { background: linear-gradient(45deg, #17cbea, #7ed4e3); }
 
-/* Delete Button */
+/* Delete Button Container - специално правило за да не се прецаква */
+.event-card > div:has(.btn-danger) {
+    position: absolute !important;
+    top: -2px;
+    right: -2px;
+    z-index: 100 !important;
+    pointer-events: none;
+}
+
+.event-card > div:has(.btn-danger) .btn-danger {
+    pointer-events: auto;
+}
+
+/* Delete Button - специално правило за да не се прецаква от particles-background */
 .event-card .btn-danger {
-    background: rgba(220, 53, 69, 0);
-    color: #dc3545;
-    border: 1px solid rgba(220, 53, 69, 0);
+    background: rgba(220, 53, 69, 0.9) !important;
+    color: #ffffff !important;
+    border: 2px solid rgba(255, 255, 255, 0.8) !important;
     border-radius: 50%;
     width: var(--delete-btn-size);
     height: var(--delete-btn-size);
@@ -142,19 +162,47 @@
     font-size: 12px;
     font-weight: bold;
     transition: all 0.3s ease;
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    z-index: 10;
+    position: relative !important;
+    z-index: 100 !important;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+    cursor: pointer;
 }
 
 .event-card .btn-danger:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: red;
-    transform: scale(2.1);
-    border-color: rgba(255, 255, 255, 0.02);
+    background: rgba(220, 53, 69, 1) !important;
+    color: #ffffff !important;
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.6);
 }
+
+/* Progress Bars for Stats */
+.stat-with-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    max-width: 120px;
+}
+
+.progress-bar-mini {
+    flex: 1;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #228e55);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+    width: 0%;
+}
+
 
 /* Event Image Container */
 .event-image-container {
@@ -163,6 +211,8 @@
     overflow: hidden;
     border-radius: 10px;
     padding: var(--image-padding);
+    position: relative;
+    z-index: 1; /* По-нисък от бутона за изтриване */
 }
 
 .event-image {

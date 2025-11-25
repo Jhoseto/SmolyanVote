@@ -69,7 +69,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public Optional<UserEntity> findUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+        // Нормализиране на email на малки букви преди търсене
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+        return userRepository.findByEmail(normalizedEmail);
     }
 
     /**
@@ -93,7 +95,9 @@ public class UserServiceImpl implements UserService {
             details = "Email: {email}, Username: {username}", onSuccessOnly = false)
 
     public Authentication authenticateUser(String email, String password) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        // Нормализиране на email на малки букви преди authentication
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+        UserDetails userDetails = userDetailsService.loadUserByUsername(normalizedEmail);
 
         if (userDetails != null && passwordEncoder.matches(password, userDetails.getPassword())) {
             Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -222,10 +226,14 @@ public class UserServiceImpl implements UserService {
         UserEntity newUser = new UserEntity();
         String confirmationCode = generateConfirmationCode();
         String defaultUserImage = "";
+        
+        // Нормализиране на email на малки букви
+        String normalizedEmail = userRegistrationViewModel.getEmail() != null ? 
+                userRegistrationViewModel.getEmail().toLowerCase().trim() : null;
 
         newUser.setUsername(userRegistrationViewModel.getUsername())
                 .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
-                .setEmail(userRegistrationViewModel.getEmail())
+                .setEmail(normalizedEmail)
                 .setStatus(UserStatusEnum.PENDING_ACTIVATION)
                 .setImageUrl(defaultUserImage)
                 .setUserConfirmationCode(confirmationCode)

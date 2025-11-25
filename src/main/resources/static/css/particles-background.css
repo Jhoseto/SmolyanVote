@@ -9,6 +9,11 @@
     overflow: hidden;
 }
 
+/* Специално правило за каруселата - overflow: visible за да не прецаква 3D трансформациите */
+#platform-features-carousel.particles-background-wrapper {
+    overflow: visible;
+}
+
 /* Particles контейнер */
 .particles-background {
     position: absolute;
@@ -59,5 +64,17 @@
 .particles-background-wrapper > *:not(.particles-background) {
     position: relative;
     z-index: 2;
+}
+
+/* Специално правило за каруселата - не трябва да има position: absolute */
+#platform-features-carousel.particles-background-wrapper > *:not(.particles-background) {
+    position: relative;
+}
+
+/* Специално правило за event картите - баджовете трябва да останат absolute */
+.event-card.particles-background-wrapper > .type-label,
+.event-card.particles-background-wrapper > .btn-danger {
+    position: absolute !important;
+    z-index: 10 !important;
 }
 

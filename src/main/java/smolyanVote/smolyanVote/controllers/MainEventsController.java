@@ -19,6 +19,14 @@ import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
+
 @Controller
 public class MainEventsController {
 
@@ -41,14 +49,39 @@ public class MainEventsController {
             @RequestParam(value = "type", required = false) String type,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "sort", required = false) String sort,
+            @RequestParam(value = "dateFrom", required = false) String dateFrom,
+            @RequestParam(value = "dateTo", required = false) String dateTo,
+            @RequestParam(value = "datePeriod", required = false) String datePeriod,
+            @RequestParam(value = "popularity", required = false) String popularity,
+            @RequestParam(value = "quickFilter", required = false) String quickFilter,
+            @RequestParam(value = "viewMode", required = false) String viewMode,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "6") int size,
+            @RequestParam(value = "size", defaultValue = "8") int size,
             @RequestParam(value = "reset", required = false) String reset,
             Model model) {
 
         // Ако има reset параметър, пренасочваме без параметри
         if ("true".equals(reset)) {
             return "redirect:/mainEvents";
+        }
+
+        // Обработка на бързи филтри (currentUser ще бъде дефиниран по-късно)
+        if (quickFilter != null) {
+            switch (quickFilter) {
+                case "my-events":
+                    // Ще се обработи по-късно след получаване на currentUser
+                    break;
+                case "new-events":
+                    datePeriod = "last-7-days";
+                    break;
+                case "following":
+                    // Това ще се обработи по-късно в service слоя
+                    break;
+                case "not-voted":
+                case "voted":
+                    // Това ще се обработи по-късно в service слоя
+                    break;
+            }
         }
 
         // Валидация и нормализиране на параметрите
@@ -105,26 +138,59 @@ public class MainEventsController {
             sort = null;
         }
 
+        // Парсване на дати
+        Instant parsedDateFrom = parseDate(dateFrom, datePeriod, true);
+        Instant parsedDateTo = parseDate(dateTo, datePeriod, false);
+
+
+        // Валидация на popularity filter
+        String cleanPopularity = cleanParam(popularity);
+        if (cleanPopularity != null && !isValidPopularityFilter(cleanPopularity)) {
+            cleanPopularity = null;
+        }
+
         // Валидация на пагинацията
         page = Math.max(0, page);
-        size = Math.max(6, Math.min(50, size));
+        size = Math.max(8, Math.min(64, size));
 
         // Създаване на сортировка
-        Sort sortObj = getSort(sort);
+        // Ако има popularity filter, той има приоритет над sort параметъра
+        Sort sortObj;
+        if (cleanPopularity != null && !cleanPopularity.trim().isEmpty()) {
+            sortObj = getPopularitySort(cleanPopularity);
+            // Ако има и sort параметър, добавяме го като вторичен критерий
+            if (sort != null && !sort.trim().isEmpty()) {
+                Sort secondarySort = getSort(sort);
+                if (!secondarySort.isEmpty()) {
+                    sortObj = sortObj.and(secondarySort);
+                }
+            }
+        } else {
+            sortObj = getSort(sort);
+        }
 
         // Създаване на Pageable
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
         try {
-            logger.debug("Searching for events with params: search={}, location={}, type={}, status={}, page={}, size={}",
-                    search, location, type, status, page, size);
+            logger.debug("Searching for events with params: search={}, location={}, type={}, status={}, dateFrom={}, dateTo={}, popularity={}, page={}, size={}",
+                    search, location, type, status, parsedDateFrom, parsedDateTo, cleanPopularity, page, size);
+
+            // Получаване на текущия потребител
+            UserEntity currentUser = userService.getCurrentUser();
+
+            // Обработка на my-events quickFilter
+            String cleanCreator = null;
+            if ("my-events".equals(quickFilter) && currentUser != null) {
+                cleanCreator = currentUser.getUsername();
+            }
 
             // Извличане на събития
+            Long currentUserId = currentUser != null ? currentUser.getId() : null;
             Page<EventSimpleViewDTO> events = mainEventsService.findAllEvents(
-                    search, location, eventTypeEnum, eventStatusEnum, pageable);
-
-
-            UserEntity currentUser = userService.getCurrentUser();
+                    search, location, eventTypeEnum, eventStatusEnum, 
+                    parsedDateFrom, parsedDateTo, null, null, 
+                    cleanCreator, cleanPopularity, quickFilter, currentUserId, pageable);
 
             // Основни атрибути за události
             model.addAttribute("events", events);
@@ -140,6 +206,18 @@ public class MainEventsController {
             model.addAttribute("currentType", type);
             model.addAttribute("currentStatus", status);
             model.addAttribute("currentSort", sort);
+            model.addAttribute("currentDateFrom", dateFrom);
+            model.addAttribute("currentDateTo", dateTo);
+            model.addAttribute("currentDatePeriod", datePeriod);
+            model.addAttribute("currentPopularity", cleanPopularity);
+            model.addAttribute("currentQuickFilter", quickFilter);
+            
+            // View mode
+            String cleanViewMode = cleanParam(viewMode);
+            if (cleanViewMode != null && !cleanViewMode.equals("grid") && !cleanViewMode.equals("list")) {
+                cleanViewMode = null;
+            }
+            model.addAttribute("viewMode", cleanViewMode);
 
             // За backward compatibility
             model.addAttribute("param.search", search);
@@ -150,11 +228,33 @@ public class MainEventsController {
 
             // Флаг дали има активни филтри
             boolean hasActiveFilters = search != null || location != null ||
-                    type != null || status != null || sort != null;
+                    type != null || status != null || sort != null ||
+                    parsedDateFrom != null || parsedDateTo != null || datePeriod != null ||
+                    cleanPopularity != null;
             model.addAttribute("hasActiveFilters", hasActiveFilters);
 
             // Пагинация информация за HTML
             addPaginationInfo(model, events, page);
+
+            // Статистики за събитията
+            try {
+                Map<String, Object> statistics = mainEventsService.getEventsStatistics();
+                model.addAttribute("statistics", statistics);
+            } catch (Exception e) {
+                logger.error("Error retrieving statistics", e);
+                // Продължаваме без статистики
+            }
+
+            // Препоръчани събития (ако потребителят е влязъл)
+            if (currentUser != null) {
+                try {
+                    List<EventSimpleViewDTO> recommendedEvents = mainEventsService.getRecommendedEvents(currentUser.getId(), 6);
+                    model.addAttribute("recommendedEvents", recommendedEvents);
+                } catch (Exception e) {
+                    logger.error("Error retrieving recommended events", e);
+                    // Продължаваме без препоръчани събития
+                }
+            }
 
             // Съобщение при липса на резултати
             if (events.isEmpty()) {
@@ -278,10 +378,67 @@ public class MainEventsController {
     }
 
     /**
+     * Валидира popularity филтъра
+     */
+    private boolean isValidPopularityFilter(String popularity) {
+        return ("most-voted".equalsIgnoreCase(popularity) ||
+                "most-viewed".equalsIgnoreCase(popularity) ||
+                "most-commented".equalsIgnoreCase(popularity));
+    }
+
+    /**
+     * Парсва дата от string или от datePeriod (last-7-days, last-month, last-year)
+     */
+    private Instant parseDate(String dateString, String datePeriod, boolean isFrom) {
+        // Ако има datePeriod, използваме него
+        if (datePeriod != null && !datePeriod.trim().isEmpty()) {
+            return parseDatePeriod(datePeriod, isFrom);
+        }
+
+        // Иначе парсваме dateString
+        if (dateString == null || dateString.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            // Опитваме се да парснем като ISO date (YYYY-MM-DD)
+            LocalDate localDate = LocalDate.parse(dateString.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
+            return localDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException e) {
+            logger.warn("Failed to parse date: {}", dateString);
+            return null;
+        }
+    }
+
+    /**
+     * Парсва datePeriod в Instant
+     */
+    private Instant parseDatePeriod(String datePeriod, boolean isFrom) {
+        LocalDate now = LocalDate.now();
+        LocalDate targetDate;
+
+        switch (datePeriod.toLowerCase()) {
+            case "last-7-days":
+                targetDate = isFrom ? now.minusDays(7) : now;
+                break;
+            case "last-month":
+                targetDate = isFrom ? now.minusMonths(1) : now;
+                break;
+            case "last-year":
+                targetDate = isFrom ? now.minusYears(1) : now;
+                break;
+            default:
+                return null;
+        }
+
+        return targetDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    }
+
+    /**
      * Създава Sort обект от string параметър
      */
     private Sort getSort(String sort) {
-        if (sort == null) {
+        if (sort == null || sort.trim().isEmpty()) {
             return Sort.by(Sort.Direction.DESC, "createdAt");
         }
         return switch (sort) {
@@ -289,6 +446,21 @@ public class MainEventsController {
             case "date-asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
             case "popularity" -> Sort.by(Sort.Direction.DESC, "totalVotes");
             case "name" -> Sort.by(Sort.Direction.ASC, "title");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+    }
+
+    /**
+     * Създава Sort обект от popularity filter
+     */
+    private Sort getPopularitySort(String popularity) {
+        if (popularity == null || popularity.trim().isEmpty()) {
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+        return switch (popularity.toLowerCase()) {
+            case "most-voted" -> Sort.by(Sort.Direction.DESC, "totalVotes");
+            case "most-viewed" -> Sort.by(Sort.Direction.DESC, "viewCounter");
+            case "most-commented" -> Sort.by(Sort.Direction.DESC, "totalVotes"); // За сега използваме гласове
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
     }

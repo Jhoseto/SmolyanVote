@@ -34,7 +34,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     @Transactional
     public void requestPasswordReset(String email) {
-        Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+        // Нормализиране на email на малки букви преди търсене
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+        Optional<UserEntity> userOpt = userRepository.findByEmail(normalizedEmail);
         if (userOpt.isEmpty()) {
             return; // Не разкриваме дали имейлът съществува
         }

@@ -80,12 +80,19 @@ public class RegisterController {
             return "redirect:/register";
         }
 
+        // Нормализиране на email на малки букви преди проверка
+        String normalizedEmail = userRegistrationViewModel.getEmail() != null ? 
+                userRegistrationViewModel.getEmail().toLowerCase().trim() : null;
+        
         // Проверка за съществуващ имейл
-        Optional<UserEntity> existingUserByEmail = userRepository.findByEmail(userRegistrationViewModel.getEmail());
+        Optional<UserEntity> existingUserByEmail = userRepository.findByEmail(normalizedEmail);
         if (existingUserByEmail.isPresent()) {
             redirectAttributes.addFlashAttribute("error", "Потребител с този имейл адрес вече съществува!");
             return "redirect:/register";
         }
+        
+        // Задаване на нормализирания email обратно в view model-а
+        userRegistrationViewModel.setEmail(normalizedEmail);
 
         // Проверка за съществуващо потребителско име
         Optional<UserEntity> existingUserByUsername = userRepository.findByUsername(userRegistrationViewModel.getUsername());

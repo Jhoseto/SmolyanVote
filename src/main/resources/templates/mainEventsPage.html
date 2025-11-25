@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/css/eventSimpleCard.css">
   <link rel="stylesheet" href="/css/particles-background.css">
 </head>
-<body>
+<body class="main-events-page">
 <!-- Landscape Warning - Mobile Portrait Only -->
 
 
@@ -23,7 +23,7 @@
 
 <!-- Hero секция -->
 <section class="hero particles-background-wrapper" style="background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/images/web/why.webp') no-repeat center -250px;">
-  <div class="particles-background" data-particles-theme="green" data-particles-count="60"></div>
+  <div class="particles-background" data-particles-theme="white" data-particles-count="60"></div>
   <div class="container">
     <h1 class="display-4 fw-bold">Събития</h1>
     <p class="lead">
@@ -67,20 +67,120 @@
   </div>
 </section>
 
-<!-- Секция за търсене и филтри -->
-<section class="search-section">
-  <div class="container">
-    <!-- Показване на информация за резултатите -->
-    <div class="results-info mb-3" th:if="${not events.isEmpty()}">
-      <p class="text-muted mb-0">
-        Показани <strong th:text="${startResult ?: 0}">0</strong>-<strong th:text="${endResult ?: 0}">0</strong>
-        от общо <strong th:text="${totalElements ?: 0}">0</strong> събития
-        <span th:if="${hasActiveFilters}" class="ms-2">
-          <i class="bi bi-funnel-fill text-primary"></i>
-          <small>Филтрирани резултати</small>
-        </span>
-      </p>
+    <!-- Статистики и аналитика (компактни) -->
+    <section class="statistics-section py-2" th:if="${statistics != null}">
+      <div class="container">
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <div class="stat-card-compact">
+              <div class="stat-icon-compact"><i class="bi bi-calendar-event"></i></div>
+              <div class="stat-value-compact" th:text="${statistics.totalEvents}">0</div>
+              <div class="stat-label-compact">Общо</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card-compact">
+              <div class="stat-icon-compact"><i class="bi bi-check-circle"></i></div>
+              <div class="stat-value-compact" th:text="${statistics.totalActive}">0</div>
+              <div class="stat-label-compact">Активни</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card-compact">
+              <div class="stat-icon-compact"><i class="bi bi-clock-history"></i></div>
+              <div class="stat-value-compact" th:text="${statistics.totalRecent}">0</div>
+              <div class="stat-label-compact">7 дни</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-card-compact">
+              <div class="stat-icon-compact"><i class="bi bi-calendar-month"></i></div>
+              <div class="stat-value-compact" th:text="${statistics.totalMonthly}">0</div>
+              <div class="stat-label-compact">Месец</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile Filters Toggle Button -->
+    <div class="mobile-filters-toggle d-md-none mb-3">
+      <button class="btn btn-primary w-100" type="button" onclick="toggleMobileFilters()">
+        <i class="bi bi-funnel me-2"></i>
+        Филтри
+        <span class="badge bg-light text-dark ms-2" id="activeFiltersCount" th:if="${hasActiveFilters}" th:text="${(currentSearch != null ? 1 : 0) + (currentLocation != null ? 1 : 0) + (currentType != null ? 1 : 0) + (currentStatus != null ? 1 : 0) + (currentDatePeriod != null ? 1 : 0) + (currentPopularity != null ? 1 : 0)}">0</span>
+      </button>
     </div>
+
+    <!-- Секция за търсене и филтри -->
+  <section class="search-section">
+    <div class="container">
+      <!-- Mobile Filters Sidebar -->
+      <div class="mobile-filters-sidebar" id="mobileFiltersSidebar">
+        <div class="mobile-filters-header">
+          <h5>Филтри</h5>
+          <button class="btn-close" onclick="toggleMobileFilters()" aria-label="Close"></button>
+        </div>
+        <div class="mobile-filters-content">
+          <!-- Тук ще копираме филтрите от основната форма -->
+        </div>
+        <div class="mobile-filters-footer">
+          <button class="btn btn-secondary" onclick="clearMobileFilters()">Изчисти</button>
+          <button class="btn btn-primary" onclick="applyMobileFilters()">Приложи</button>
+        </div>
+      </div>
+      <div class="mobile-filters-overlay" id="mobileFiltersOverlay" onclick="toggleMobileFilters()"></div>
+      <!-- Бързи филтри (Quick Filters) -->
+      <div class="quick-filters mb-3" th:if="${#authorization.expression('isAuthenticated()')}">
+        <div class="quick-filters-label">
+          <i class="bi bi-lightning-charge me-2"></i>
+          <span>Бързи филтри:</span>
+        </div>
+        <div class="quick-filters-buttons">
+          <a th:href="@{/mainEvents(quickFilter='my-events')}" 
+             class="quick-filter-btn" 
+             th:classappend="${currentQuickFilter == 'my-events'} ? 'active'">
+            <i class="bi bi-person-circle me-1"></i>
+            Моите събития
+          </a>
+          <a th:href="@{/mainEvents(quickFilter='following')}" 
+             class="quick-filter-btn"
+             th:classappend="${currentQuickFilter == 'following'} ? 'active'">
+            <i class="bi bi-people me-1"></i>
+            Следвани автори
+          </a>
+          <a th:href="@{/mainEvents(quickFilter='not-voted')}" 
+             class="quick-filter-btn"
+             th:classappend="${currentQuickFilter == 'not-voted'} ? 'active'">
+            <i class="bi bi-circle me-1"></i>
+            Не съм гласувал
+          </a>
+          <a th:href="@{/mainEvents(quickFilter='voted')}" 
+             class="quick-filter-btn"
+             th:classappend="${currentQuickFilter == 'voted'} ? 'active'">
+            <i class="bi bi-check-circle me-1"></i>
+            Гласувал съм
+          </a>
+          <a th:href="@{/mainEvents(quickFilter='new-events')}" 
+             class="quick-filter-btn"
+             th:classappend="${currentQuickFilter == 'new-events'} ? 'active'">
+            <i class="bi bi-clock-history me-1"></i>
+            Нови събития
+          </a>
+        </div>
+      </div>
+
+      <!-- Показване на информация за резултатите -->
+      <div class="results-info mb-3" th:if="${not events.isEmpty()}">
+        <p class="text-muted mb-0">
+          Показани <strong th:text="${startResult ?: 0}">0</strong>-<strong th:text="${endResult ?: 0}">0</strong>
+          от общо <strong th:text="${totalElements ?: 0}">0</strong> събития
+          <span th:if="${hasActiveFilters}" class="ms-2">
+            <i class="bi bi-funnel-fill text-primary"></i>
+            <small>Филтрирани резултати</small>
+          </span>
+        </p>
+      </div>
 
     <div class="search-filter-container">
       <form id="searchForm" th:action="@{/mainEvents}" method="get">
@@ -131,6 +231,27 @@
             </select>
           </div>
 
+          <!-- Филтър по времеви период -->
+          <div class="filter-dropdown">
+            <select name="datePeriod" id="eventDatePeriodFilter" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentDatePeriod == null}">Всички периоди</option>
+              <option value="last-7-days" th:selected="${currentDatePeriod == 'last-7-days'}">Последни 7 дни</option>
+              <option value="last-month" th:selected="${currentDatePeriod == 'last-month'}">Последен месец</option>
+              <option value="last-year" th:selected="${currentDatePeriod == 'last-year'}">Последна година</option>
+            </select>
+          </div>
+
+          <!-- Филтър по популярност -->
+          <div class="filter-dropdown">
+            <select name="popularity" id="eventPopularityFilter" onchange="resetPageAndSubmit()">
+              <option value="" th:selected="${currentPopularity == null}">Всички</option>
+              <option value="most-voted" th:selected="${currentPopularity == 'most-voted'}">Най-гласувани</option>
+              <option value="most-viewed" th:selected="${currentPopularity == 'most-viewed'}">Най-преглеждани</option>
+              <option value="most-commented" th:selected="${currentPopularity == 'most-commented'}">Най-коментирани</option>
+            </select>
+          </div>
+
+
           <!-- Сортиране -->
           <div class="filter-dropdown">
             <select name="sort" id="eventSort" onchange="resetPageAndSubmit()">
@@ -142,10 +263,17 @@
             </select>
           </div>
 
-          <!-- Бутон за ресетване на филтрите -->
-          <div class="filter-reset">
+          <!-- Бутони за управление на филтрите -->
+          <div class="filter-actions d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary" 
+                    onclick="shareFiltersLink()" 
+                    title="Сподели линк с текущите филтри">
+              <i class="bi bi-share me-1"></i>
+              Сподели
+            </button>
             <a th:href="@{/mainEvents(reset=true)}" class="btn btn-outline-secondary"
-               th:title="'Изчисти всички филтри'">
+               th:title="'Изчисти всички филтри'"
+               onclick="return handleFilterReset(event)">
               <i class="bi bi-arrow-clockwise me-1"></i>
               Изчисти филтри
             </a>
@@ -155,6 +283,9 @@
         <!-- Скрити полета за запазване на текущата страница при търсене -->
         <input type="hidden" name="page" id="hiddenPage" th:value="${currentPage ?: 0}"/>
         <input type="hidden" name="size" th:value="${size ?: 6}"/>
+        <!-- Запазване на новите филтри при търсене -->
+        <input type="hidden" name="datePeriod" th:if="${currentDatePeriod != null}" th:value="${currentDatePeriod}"/>
+        <input type="hidden" name="popularity" th:if="${currentPopularity != null}" th:value="${currentPopularity}"/>
       </form>
     </div>
 
@@ -166,30 +297,70 @@
         <span th:if="${currentSearch != null}" class="badge bg-primary rounded-pill">
           <i class="bi bi-search me-1"></i>
           <span th:text="'&quot;' + ${currentSearch} + '&quot;'">търсене</span>
-          <a th:href="@{/mainEvents(location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+          <a th:href="@{/mainEvents(location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort}, datePeriod=${currentDatePeriod}, popularity=${currentPopularity})}"
              class="text-white ms-1" style="text-decoration: none;">×</a>
         </span>
 
         <span th:if="${currentLocation != null}" class="badge bg-success rounded-pill">
           <i class="bi bi-geo-alt me-1"></i>
           <span th:text="${T(smolyanVote.smolyanVote.models.enums.Locations).valueOf(currentLocation.toUpperCase()).toBG()}">локация</span>
-          <a th:href="@{/mainEvents(search=${currentSearch}, type=${currentType}, status=${currentStatus}, sort=${currentSort})}"
+          <a th:href="@{/mainEvents(search=${currentSearch}, type=${currentType}, status=${currentStatus}, sort=${currentSort}, datePeriod=${currentDatePeriod}, popularity=${currentPopularity})}"
              class="text-white ms-1" style="text-decoration: none;">×</a>
         </span>
 
         <span th:if="${currentType != null}" class="badge bg-info rounded-pill">
           <i class="bi bi-tag me-1"></i>
           <span th:text="${currentType == 'event' ? 'Опростен вид Събитие' : (currentType == 'referendum' ? 'Референдум' : 'Множествена Анкета')}">тип</span>
-          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, status=${currentStatus}, sort=${currentSort})}"
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, status=${currentStatus}, sort=${currentSort}, datePeriod=${currentDatePeriod}, popularity=${currentPopularity})}"
              class="text-white ms-1" style="text-decoration: none;">×</a>
         </span>
 
         <span th:if="${currentStatus != null}" class="badge bg-warning rounded-pill">
           <i class="bi bi-circle-fill me-1"></i>
           <span th:text="${currentStatus == 'active' ? 'Активен' : 'Неактивен'}">статус</span>
-          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, type=${currentType}, sort=${currentSort})}"
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, type=${currentType}, sort=${currentSort}, datePeriod=${currentDatePeriod}, popularity=${currentPopularity})}"
              class="text-white ms-1" style="text-decoration: none;">×</a>
         </span>
+
+        <span th:if="${currentDatePeriod != null}" class="badge bg-secondary rounded-pill">
+          <i class="bi bi-calendar me-1"></i>
+          <span th:text="${currentDatePeriod == 'last-7-days' ? 'Последни 7 дни' : (currentDatePeriod == 'last-month' ? 'Последен месец' : 'Последна година')}">период</span>
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort}, popularity=${currentPopularity})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+
+        <span th:if="${currentPopularity != null}" class="badge bg-danger rounded-pill">
+          <i class="bi bi-star me-1"></i>
+          <span th:text="${currentPopularity == 'most-voted' ? 'Най-гласувани' : (currentPopularity == 'most-viewed' ? 'Най-преглеждани' : 'Най-коментирани')}">популярност</span>
+          <a th:href="@{/mainEvents(search=${currentSearch}, location=${currentLocation}, type=${currentType}, status=${currentStatus}, sort=${currentSort}, datePeriod=${currentDatePeriod})}"
+             class="text-white ms-1" style="text-decoration: none;">×</a>
+        </span>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Препоръчани събития - Collapsible Panel -->
+<section class="recommended-section-collapsible mb-3" th:if="${recommendedEvents != null and !recommendedEvents.isEmpty()}">
+  <div class="container">
+    <div class="recommended-panel">
+      <button class="recommended-panel-header" type="button" onclick="toggleRecommendedPanel()">
+        <div class="d-flex align-items-center justify-content-between w-100">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-star-fill text-warning me-2"></i>
+            <span class="fw-bold">Препоръчани за теб</span>
+            <span class="badge bg-warning text-dark ms-2" th:text="${recommendedEvents.size()}">0</span>
+          </div>
+          <i class="bi bi-chevron-down recommended-chevron"></i>
+        </div>
+      </button>
+      <div class="recommended-panel-content" id="recommendedPanelContent">
+        <div class="row g-2 mt-2">
+          <div class="col-lg-3 col-md-4 col-sm-6 mb-2" th:each="event : ${recommendedEvents}">
+            <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -198,6 +369,25 @@
 <!-- Събития -->
 <section class="event-container py-5">
   <div class="container">
+    <!-- View Toggle -->
+    <div class="view-controls mb-4 d-flex justify-content-start align-items-center gap-3">
+      <div class="view-toggle-group d-flex align-items-center gap-2">
+        <span class="text-muted small">Изглед:</span>
+        <div class="btn-group" role="group">
+          <input type="radio" class="btn-check" name="viewMode" id="viewGrid" value="grid" 
+                 th:checked="${viewMode == null or viewMode == 'grid'}" onchange="changeViewMode('grid')">
+          <label class="btn btn-outline-primary" for="viewGrid" title="Grid изглед">
+            <i class="bi bi-grid-3x3-gap"></i>
+          </label>
+          <input type="radio" class="btn-check" name="viewMode" id="viewList" value="list" 
+                 th:checked="${viewMode == 'list'}" onchange="changeViewMode('list')">
+          <label class="btn btn-outline-primary" for="viewList" title="List изглед">
+            <i class="bi bi-list-ul"></i>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Съобщение за грешка -->
     <div class="alert alert-danger" role="alert" th:if="${error}">
       <i class="bi bi-exclamation-triangle me-2"></i>
@@ -218,9 +408,18 @@
       </div>
     </div>
 
-    <!-- Списък със събития -->
-    <div class="row" th:if="${not events.isEmpty()}">
-      <div class="col-md-4 mb-4" th:each="event : ${events.content}">
+    <!-- Списък със събития - Grid изглед -->
+    <div class="events-grid row" id="eventsGrid" th:if="${not events.isEmpty()}" 
+         th:classappend="${viewMode == 'list'} ? 'd-none' : ''">
+      <div class="col-lg-3 col-md-4 col-sm-6 mb-3" th:each="event : ${events.content}">
+        <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
+      </div>
+    </div>
+
+    <!-- Списък със събития - List изглед -->
+    <div class="events-list" id="eventsList" th:if="${not events.isEmpty()}" 
+         th:classappend="${viewMode != 'list'} ? 'd-none' : ''">
+      <div class="event-list-item mb-3" th:each="event : ${events.content}">
         <div th:replace="~{fragments/simpleEventView :: simple-event(event=${event})}"></div>
       </div>
     </div>
@@ -238,10 +437,10 @@
         <div class="page-size-selector">
           <label for="pageSizeSelect" class="form-label small text-muted mb-0 me-2">Събития на страница:</label>
           <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;" onchange="changePageSize(this.value)">
-            <option value="6" th:selected="${size == 6}">6</option>
-            <option value="12" th:selected="${size == 12}">12</option>
-            <option value="24" th:selected="${size == 24}">24</option>
-            <option value="50" th:selected="${size == 50}">50</option>
+            <option value="8" th:selected="${size == 8}">8</option>
+            <option value="16" th:selected="${size == 16}">16</option>
+            <option value="32" th:selected="${size == 32}">32</option>
+            <option value="64" th:selected="${size == 64}">64</option>
           </select>
         </div>
       </div>
@@ -357,6 +556,9 @@
 </script>
 <!-- Custom JavaScript -->
 <script src="/js/mainEvent/uiUtils.js"></script>
+<script src="/js/mainEvent/filterManager.js"></script>
+<script src="/js/mainEvent/searchAutocomplete.js"></script>
+<script src="/js/mainEvent/progressBars.js"></script>
 <script src="/js/mainEvent/customDropdowns.js"></script>
 <script src="/js/mainEvent/searchAndFilters.js"></script>
 <script src="/js/mainEvent/mainEventsPage.js"></script>
@@ -426,6 +628,204 @@
     })();
 </script>
 
+
+<script>
+// View Mode Management
+(function() {
+    // Зареждане на viewMode от localStorage или URL параметър
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewModeFromUrl = urlParams.get('viewMode');
+    const viewModeFromStorage = localStorage.getItem('eventsViewMode');
+    const currentViewMode = viewModeFromUrl || viewModeFromStorage || 'grid';
+    
+    // Прилагане на изгледа при зареждане
+    if (currentViewMode === 'list') {
+        document.getElementById('eventsGrid')?.classList.add('d-none');
+        document.getElementById('eventsList')?.classList.remove('d-none');
+        document.getElementById('viewList')?.setAttribute('checked', 'checked');
+    }
+    
+    // Функция за промяна на view mode
+    window.changeViewMode = function(mode) {
+        const gridView = document.getElementById('eventsGrid');
+        const listView = document.getElementById('eventsList');
+        
+        if (mode === 'list') {
+            gridView?.classList.add('d-none');
+            listView?.classList.remove('d-none');
+        } else {
+            gridView?.classList.remove('d-none');
+            listView?.classList.add('d-none');
+        }
+        
+        // Запазване в localStorage
+        localStorage.setItem('eventsViewMode', mode);
+        
+        // Запазване в предпочитанията
+        if (window.filterManager) {
+            const preferences = window.filterManager.getPreferences();
+            preferences.viewMode = mode;
+            window.filterManager.savePreferences(preferences);
+        }
+        
+        // Обновяване на URL без презареждане
+        const url = new URL(window.location);
+        url.searchParams.set('viewMode', mode);
+        window.history.pushState({}, '', url);
+        
+        // Обновяване на филтрите в URL
+        if (window.filterManager) {
+            window.filterManager.updateURL(null, { keepPage: true });
+        }
+    };
+    
+})();
+
+// Функция за споделяне на линк с филтри
+async function shareFiltersLink() {
+    if (!window.filterManager) {
+        showErrorMessage('Системата за управление на филтрите не е заредена.');
+        return;
+    }
+    
+    try {
+        const success = await window.filterManager.copyShareableLink();
+        if (success) {
+            showSuccessMessage('Линкът с филтрите е копиран в клипборда! Можете да го споделите.');
+        } else {
+            // Fallback - показване на линка в диалог
+            const link = window.filterManager.getShareableLink();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Сподели линк',
+                    html: `
+                        <p>Копирайте този линк:</p>
+                        <input type="text" class="form-control" value="${link}" readonly onclick="this.select()">
+                    `,
+                    confirmButtonText: 'Затвори'
+                });
+            } else {
+                prompt('Копирайте този линк:', link);
+            }
+        }
+    } catch (error) {
+        console.error('Error sharing link:', error);
+        showErrorMessage('Възникна грешка при копирането на линка.');
+    }
+}
+
+// Функция за обработка на reset на филтрите
+function handleFilterReset(event) {
+    event.preventDefault();
+    
+    showConfirmDialog(
+        'Изчистване на филтри',
+        'Сигурни ли сте, че искате да изчистите всички филтри?',
+        () => {
+            if (window.filterManager) {
+                window.filterManager.clearAllFilters();
+            }
+            window.location.href = event.target.href;
+        }
+    );
+    
+    return false;
+}
+
+
+// Recommended Panel Toggle Function
+function toggleRecommendedPanel() {
+    const panelContent = document.getElementById('recommendedPanelContent');
+    const panelHeader = document.querySelector('.recommended-panel-header');
+    
+    if (panelContent && panelHeader) {
+        const isExpanded = panelContent.classList.contains('expanded');
+        
+        if (isExpanded) {
+            panelContent.classList.remove('expanded');
+            panelHeader.classList.remove('active');
+        } else {
+            panelContent.classList.add('expanded');
+            panelHeader.classList.add('active');
+        }
+    }
+}
+
+// Mobile Filters Functions
+function toggleMobileFilters() {
+    const sidebar = document.getElementById('mobileFiltersSidebar');
+    const overlay = document.getElementById('mobileFiltersOverlay');
+    
+    if (sidebar && overlay) {
+        const isOpen = sidebar.classList.contains('open');
+        
+        if (isOpen) {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+            document.body.style.overflow = '';
+        } else {
+            // Копираме филтрите в sidebar
+            copyFiltersToSidebar();
+            sidebar.classList.add('open');
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+}
+
+function copyFiltersToSidebar() {
+    const mainFilters = document.querySelectorAll('.filter-sort-group .filter-dropdown');
+    const sidebarContent = document.querySelector('.mobile-filters-content');
+    
+    if (!sidebarContent) return;
+    
+    sidebarContent.innerHTML = '';
+    
+    mainFilters.forEach(filter => {
+        const cloned = filter.cloneNode(true);
+        cloned.querySelector('select').removeAttribute('onchange');
+        sidebarContent.appendChild(cloned);
+    });
+}
+
+function applyMobileFilters() {
+    const sidebar = document.getElementById('mobileFiltersSidebar');
+    const form = document.getElementById('searchForm');
+    
+    if (!form || !sidebar) return;
+    
+    // Копираме стойностите от sidebar към основната форма
+    const sidebarSelects = sidebar.querySelectorAll('select');
+    sidebarSelects.forEach(sidebarSelect => {
+        const name = sidebarSelect.name;
+        const mainSelect = form.querySelector(`select[name="${name}"]`);
+        if (mainSelect) {
+            mainSelect.value = sidebarSelect.value;
+        }
+    });
+    
+    // Затваряме sidebar
+    toggleMobileFilters();
+    
+    // Submit формата
+    if (window.filterManager) {
+        window.filterManager.updateURL(null, { resetPage: true });
+    }
+    form.submit();
+}
+
+function clearMobileFilters() {
+    const sidebar = document.getElementById('mobileFiltersSidebar');
+    if (!sidebar) return;
+    
+    const selects = sidebar.querySelectorAll('select');
+    selects.forEach(select => {
+        select.value = '';
+    });
+}
+
+</script>
 
 </body>
 </html>

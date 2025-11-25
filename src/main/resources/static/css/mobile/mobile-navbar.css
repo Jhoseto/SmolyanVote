@@ -349,8 +349,9 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 .vote-arrow-glass {
   font-size: 14px !important;
   color: #6c757d !important;
-  transition: transform 0.3s ease !important;
+  transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important;
   margin-left: auto !important;
+  will-change: transform !important;
 }
 
 .vote-toggle-glass.active .vote-arrow-glass,
@@ -366,7 +367,13 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
 .vote-menu-container-glass {
   max-height: 0 !important;
   overflow: hidden !important;
-  transition: max-height 0.3s ease !important;
+  opacity: 0 !important;
+  transform: translateY(-10px) !important;
+  will-change: max-height, opacity, transform !important;
+  transition: 
+    max-height 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important,
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important,
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important;
   background: #f8f9fa !important;
   position: relative !important;
 }
@@ -378,6 +385,8 @@ body.mobile-menu-open .toggler-line-glass:nth-child(3) {
   border-radius: 8px !important;
   margin-top: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 /* Vote sections - Mobile cards */

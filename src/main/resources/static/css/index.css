@@ -1038,7 +1038,7 @@ mux-player {
 /* ====== FUTURISTIC CAROUSEL BACKGROUND ====== */
 #platform-features-carousel {
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* visible за да не прецаква 3D трансформациите на каруселата */
   /* Светъл фон подобен на error страницата с точки */
   background: #ffffff;
 }

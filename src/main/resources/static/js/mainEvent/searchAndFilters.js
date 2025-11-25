@@ -86,6 +86,12 @@ function handleSearchKeypress(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
         clearTimeout(window.searchTimeout);
+        
+        // Обновяване на URL с новото търсене
+        if (window.filterManager) {
+            window.filterManager.updateURL(null, { resetPage: true });
+        }
+        
         resetPageAndSubmit();
     }
 }
@@ -126,6 +132,11 @@ function handleFilterChange(event) {
 
     // Добавяне на visual feedback
     select.parentElement.classList.add('filter-changing');
+
+    // Обновяване на URL с новите филтри
+    if (window.filterManager) {
+        window.filterManager.updateURL(null, { resetPage: true });
+    }
 
     setTimeout(() => {
         resetPageAndSubmit();
@@ -182,6 +193,11 @@ function handleFormSubmit(event) {
         return false;
     }
 
+    // Обновяване на URL с филтрите преди submit
+    if (window.filterManager) {
+        window.filterManager.updateURL(null, { resetPage: true });
+    }
+
     showLoading();
     return true;
 }
@@ -219,6 +235,12 @@ function clearSearch() {
     const searchInput = document.getElementById('eventSearch');
     if (searchInput && searchInput.value.trim() !== '') {
         searchInput.value = '';
+        
+        // Обновяване на URL
+        if (window.filterManager) {
+            window.filterManager.updateURL(null, { resetPage: true });
+        }
+        
         resetPageAndSubmit();
     }
 }

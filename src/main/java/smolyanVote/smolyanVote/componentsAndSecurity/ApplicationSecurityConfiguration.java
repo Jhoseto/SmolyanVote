@@ -71,7 +71,9 @@ public class ApplicationSecurityConfiguration {
                                 "/terms-and-conditions","/faq","/signals/**"
                         ).permitAll()
                         // Публичен достъп до detail views (GET заявки) - за Facebook sharing и нелогнати потребители
-                        .requestMatchers(HttpMethod.GET, "/event/{id}", "/referendum/{id}", "/multipoll/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/event/**", "/referendum/**", "/multipoll/**").permitAll()
+                        // Endpoints за редактиране - само за администратори (GET и POST)
+                        .requestMatchers("/event/*/edit", "/referendum/*/edit", "/multipoll/*/edit").hasRole("ADMIN")
                         .requestMatchers("/admin/**", "/ws/admin/**", "/sockjs-node/**", "/stomp/**").hasRole("ADMIN")
                         // Гласуване и създаване изискват authentication
                         .requestMatchers(

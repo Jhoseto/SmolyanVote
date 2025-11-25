@@ -156,15 +156,15 @@
           </div>
           <div class="stat-item">
             <h2 class="stat-title">Опростен вид събития</h2>
-            <span class="stat-number" data-target="22">0</span>
+            <span class="stat-number" th:attr="data-target=${simpleEventsCount ?: 0}">0</span>
           </div>
           <div class="stat-item">
             <h2 class="stat-title">Референдуми</h2>
-            <span class="stat-number" data-target="38">0</span>
+            <span class="stat-number" th:attr="data-target=${referendumsCount ?: 0}">0</span>
           </div>
           <div class="stat-item">
             <h2 class="stat-title">Мулти Анкети</h2>
-            <span class="stat-number" data-target="19">0</span>
+            <span class="stat-number" th:attr="data-target=${multiPollsCount ?: 0}">0</span>
           </div>
         </div>
       </div>

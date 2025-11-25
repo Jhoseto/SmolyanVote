@@ -6,7 +6,7 @@ window.CONFIG = {
     SEARCH_DELAY: 500,
     DEBOUNCE_DELAY: 300,
     MAX_SEARCH_LENGTH: 100,
-    PAGE_SIZE_OPTIONS: [6, 12, 24, 50]
+    PAGE_SIZE_OPTIONS: [8, 16, 32, 64]
 };
 
 // ====== ГЛОБАЛНИ ПРОМЕНЛИВИ ======
@@ -21,6 +21,11 @@ function initializeMainEventsPage() {
     console.log('Initializing Main Events Page...');
 
     try {
+        // Синхронизиране на филтрите от URL при зареждане
+        if (window.filterManager) {
+            window.filterManager.syncFromURL();
+        }
+
         // Инициализация на компонентите
         initializeSearchFunctionality();
         initializeFilterFunctionality();
@@ -48,6 +53,11 @@ function resetPageAndSubmit() {
     const hiddenPageInput = document.getElementById('hiddenPage');
     if (hiddenPageInput) {
         hiddenPageInput.value = '0';
+    }
+
+    // Обновяване на URL с текущите филтри преди submit
+    if (window.filterManager) {
+        window.filterManager.updateURL(null, { resetPage: true });
     }
 
     const form = document.getElementById('searchForm');
@@ -80,6 +90,18 @@ function changePageSize(newSize) {
         sizeInput.name = 'size';
         sizeInput.value = newSize;
         form.appendChild(sizeInput);
+    }
+
+    // Запазване на предпочитанията
+    if (window.filterManager) {
+        const preferences = window.filterManager.getPreferences();
+        preferences.pageSize = newSize;
+        window.filterManager.savePreferences(preferences);
+        
+        // Обновяване на URL
+        const filters = window.filterManager.getAllFilters();
+        filters.size = newSize;
+        window.filterManager.updateURL(filters, { resetPage: true });
     }
 
     showLoading();
