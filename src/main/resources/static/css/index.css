@@ -1041,27 +1041,6 @@ mux-player {
   overflow: hidden;
   /* Светъл фон подобен на error страницата с точки */
   background: #ffffff;
-  isolation: isolate;
-}
-
-.particles-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Уверете се че particles.js canvas е правилно позициониран */
-#particles-carousel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
 }
 
 /* Glassmorphism ефект за съдържанието */
