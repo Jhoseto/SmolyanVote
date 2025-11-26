@@ -1319,7 +1319,7 @@ textarea.form-control {
 }
 
 #map.location-selecting {
-    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="20"><polygon points="8,2 2,14 8,12 14,14" fill="%234cb15c"/></svg>') 8 18, crosshair !important;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32"><path d="M12 0C5.373 0 0 5.373 0 12c0 8.5 12 20 12 20s12-11.5 12-20C24 5.373 18.627 0 12 0zm0 17c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z" fill="%234cb15c" stroke="white" stroke-width="1"/></svg>') 12 28, pointer !important;
 }
 
 /* ===== SCROLLBAR STYLING ===== */
@@ -1359,6 +1359,55 @@ textarea.form-control {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+}
+
+/* ===== REGION BOUNDARY POLYGON ===== */
+.region-boundary-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+}
+
+.region-boundary-tooltip::before {
+    border-top-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Leaflet polygon стилове за границата */
+.leaflet-interactive {
+    cursor: default !important;
+}
+
+.leaflet-interactive:hover {
+    stroke-width: 4 !important;
+    transition: stroke-width 0.2s ease;
+}
+
+/* Полигонът на границата не трябва да блокира събитията събитията на мишката */
+.leaflet-pane svg path[fill-opacity="0.1"] {
+    pointer-events: none !important;
+}
+
+/* Специфично за регионалния полигон */
+#map .leaflet-overlay-pane svg path {
+    pointer-events: none !important;
+}
+
+/* ===== LOCATION PICKER OVERLAY - MOBILE ONLY ===== */
+/* Скрито в desktop версията - показва се само на мобилни устройства */
+.location-picker-overlay {
+    display: none !important; /* Винаги скрито в desktop */
+}
+
+@media (max-width: 768px) {
+    .location-picker-overlay {
+        display: flex !important; /* Показва се само на мобилни */
     }
 }
 

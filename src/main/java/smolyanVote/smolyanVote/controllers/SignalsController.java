@@ -390,6 +390,14 @@ public class SignalsController {
             if (lon.doubleValue() < -180 || lon.doubleValue() > 180) {
                 return "Невалидна географска дължина";
             }
+            
+            // Проверка дали координатите са в границите на област Смолян
+            // Актуализирани граници: lat: 41.336 - 41.926, lng: 24.318 - 25.168
+            double latValue = lat.doubleValue();
+            double lonValue = lon.doubleValue();
+            if (latValue < 41.336 || latValue > 41.926 || lonValue < 24.318 || lonValue > 25.168) {
+                return "Местоположението трябва да е в границите на област Смолян";
+            }
         } catch (Exception e) {
             return "Невалидни координати";
         }

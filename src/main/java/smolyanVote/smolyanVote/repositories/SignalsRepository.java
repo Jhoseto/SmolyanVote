@@ -28,7 +28,9 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
             " LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
             "(:category IS NULL OR s.category = :category) AND " +
             "(:showExpired = true OR s.activeUntil IS NULL OR s.activeUntil > :now) AND " +
-            "(:timeFilter IS NULL OR s.created >= :timeFilter) " +
+            "(:timeFilter IS NULL OR s.created >= :timeFilter) AND " +
+            "s.latitude >= :minLat AND s.latitude <= :maxLat AND " +
+            "s.longitude >= :minLng AND s.longitude <= :maxLng " +
             "ORDER BY " +
             "CASE WHEN :sort = 'newest' THEN s.created END DESC, " +
             "CASE WHEN :sort = 'oldest' THEN s.created END ASC, " +
@@ -42,6 +44,10 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
             @Param("timeFilter") Instant timeFilter,
             @Param("sort") String sort,
             @Param("now") Instant now,
+            @Param("minLat") java.math.BigDecimal minLat,
+            @Param("maxLat") java.math.BigDecimal maxLat,
+            @Param("minLng") java.math.BigDecimal minLng,
+            @Param("maxLng") java.math.BigDecimal maxLng,
             Pageable pageable);
 
     // ===== СТАТИСТИКИ =====

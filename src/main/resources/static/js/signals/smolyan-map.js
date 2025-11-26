@@ -501,6 +501,13 @@ async function handleSignalSubmit(e) {
             throw new Error('Моля изберете местоположение на картата');
         }
 
+        // Проверка дали координатите са в границите на област Смолян
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        if (window.isWithinSmolyanRegion && !window.isWithinSmolyanRegion(lat, lng)) {
+            throw new Error('Местоположението трябва да е в границите на област Смолян');
+        }
+
         const category = document.getElementById('signalCategory').value;
         const expirationDays = document.getElementById('signalExpirationDays').value;
 

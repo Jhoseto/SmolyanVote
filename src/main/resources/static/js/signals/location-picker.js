@@ -99,12 +99,20 @@
                 this.mobilePickerMap.remove();
             }
 
-            // Създай нова карта
+            // Граници на област Смолян (актуализирани според точния полигон)
+            const SMOLYAN_BOUNDS = [
+                [41.336, 24.318], // Югозападен ъгъл
+                [41.926, 25.168]  // Североизточен ъгъл
+            ];
+            
+            // Създай нова карта с ограничения
             this.mobilePickerMap = L.map('locationPickerMap', {
                 center: [41.576, 24.701], // Smolyan coordinates
                 zoom: 14,
                 zoomControl: false,
-                attributionControl: false
+                attributionControl: false,
+                maxBounds: SMOLYAN_BOUNDS,
+                maxBoundsViscosity: 1.0
             });
 
             // Добави tile layer
@@ -120,6 +128,24 @@
 
             // Зареди сигналите (ще създаде маркери с mobile клас)
             this.loadSignalsForPicker();
+
+            // Добавяне на видим полигон на границите на област Смолян
+            const regionPolygon = L.polygon(this.SMOLYAN_POLYGON, {
+                color: '#ffffff',
+                weight: 2,
+                opacity: 0.9,
+                fillColor: '#ffffff',
+                fillOpacity: 0.1, // 10% прозрачност
+                dashArray: '8, 4',
+                interactive: false // Не блокира събитията на мишката
+            }).addTo(this.mobilePickerMap);
+
+            // Добавяне на tooltip към полигона
+            regionPolygon.bindTooltip('Граници на област Смолян', {
+                permanent: false,
+                direction: 'center',
+                className: 'region-boundary-tooltip'
+            });
 
             // Event listener за движение на картата
             this.mobilePickerMap.on('moveend', () => this.updateCoordinates());
@@ -172,6 +198,67 @@
             }
         },
 
+        // Полигон на границите на област Смолян (същият като в map-core.js)
+        // Точни координати
+        SMOLYAN_POLYGON: [
+            [41.795888098191426, 24.318237304687504],
+            [41.828642001860544, 24.337463378906254],
+            [41.85728792769137, 24.367675781250004],
+            [41.86956082699455, 24.406127929687504],
+            [41.89205502378826, 24.42672729492188],
+            [41.92578147109541, 24.444580078125004],
+            [41.917606998887024, 24.510498046875],
+            [41.880808915193874, 24.559936523437504],
+            [41.91249742196845, 24.66018676757813],
+            [41.881831370505594, 24.765930175781254],
+            [41.73340458018376, 24.78927612304688],
+            [41.70880422215806, 24.87167358398438],
+            [41.62673502076991, 24.919738769531254],
+            [41.58360681482734, 25.01312255859375],
+            [41.49726393195056, 25.05294799804688],
+            [41.498292501398545, 25.16830444335938],
+            [41.3737170273134, 25.15457153320313],
+            [41.33660710626426, 25.106506347656254],
+            [41.40668586105652, 24.916992187500004],
+            [41.395354710280166, 24.827728271484375],
+            [41.34691753986531, 24.80850219726563],
+            [41.41904486310779, 24.71649169921875],
+            [41.42625319507272, 24.614868164062504],
+            [41.56819689811343, 24.524230957031254],
+            [41.52708581365465, 24.44869995117188],
+            [41.52502957323801, 24.36904907226563],
+            [41.64110468287587, 24.34982299804688],
+            [41.68111756290652, 24.342956542968754],
+            [41.7200805552871, 24.34158325195313],
+            [41.7559466348148, 24.32235717773438]
+        ],
+
+        // Проверка дали точка е вътре в полигон (Ray casting algorithm)
+        // Полигонът е масив от [lat, lng] координати
+        isPointInPolygon: function(lat, lng, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const lati = polygon[i][0], lngi = polygon[i][1]; // Текуща точка
+                const latj = polygon[j][0], lngj = polygon[j][1]; // Предишна точка
+                
+                // Проверка дали лъчът от точката (вдясно) пресича ръба
+                const intersect = ((lngi > lng) !== (lngj > lng)) && 
+                                 (lat < (latj - lati) * (lng - lngi) / (lngj - lngi) + lati);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        },
+
+        // Проверка дали координатите са в границите на област Смолян
+        isWithinSmolyanRegion: function(lat, lng) {
+            // Първо проверка с bounding box за бързо отхвърляне (актуализирани граници)
+            if (lat < 41.336 || lat > 41.926 || lng < 24.318 || lng > 25.168) {
+                return false;
+            }
+            // След това точна проверка с полигон
+            return this.isPointInPolygon(lat, lng, this.SMOLYAN_POLYGON);
+        },
+
         // Update координати (mobile)
         updateCoordinates: function() {
             if (!this.mobilePickerMap) return;
@@ -179,21 +266,38 @@
             const center = this.mobilePickerMap.getCenter();
             const lat = center.lat.toFixed(6);
             const lng = center.lng.toFixed(6);
+            const latNum = parseFloat(lat);
+            const lngNum = parseFloat(lng);
+
+            // Проверка дали координатите са в границите
+            const isValid = this.isWithinSmolyanRegion(latNum, lngNum);
 
             // Update текста
             const coordsText = document.getElementById('selectedCoordsText');
             if (coordsText) {
                 coordsText.textContent = `${lat}, ${lng}`;
+                if (!isValid) {
+                    coordsText.style.color = '#dc3545';
+                    coordsText.title = 'Местоположението е извън границите на област Смолян';
+                } else {
+                    coordsText.style.color = '';
+                    coordsText.title = '';
+                }
             }
 
-            // Enable confirm button
+            // Enable/disable confirm button според валидността
             const confirmBtn = document.getElementById('confirmLocationBtn');
             if (confirmBtn) {
-                confirmBtn.disabled = false;
+                confirmBtn.disabled = !isValid;
+                if (!isValid) {
+                    confirmBtn.title = 'Моля изберете местоположение в границите на област Смолян';
+                } else {
+                    confirmBtn.title = '';
+                }
             }
 
             // Запази координатите
-            this.tempLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            this.tempLocation = { lat: latNum, lng: lngNum, valid: isValid };
 
             console.log('📍 Coordinates updated:', this.tempLocation);
         },
@@ -224,9 +328,25 @@
 
                     console.log('✅ Location found:', lat, lng);
 
+                    // Проверка дали локацията е в границите на област Смолян
+                    if (!this.isWithinSmolyanRegion(lat, lng)) {
+                        if (btn) {
+                            btn.innerHTML = originalHTML;
+                            btn.disabled = false;
+                        }
+                        if (window.mapCore && window.mapCore.showNotification) {
+                            window.mapCore.showNotification('Вашата локация е извън границите на област Смолян. Моля изберете местоположение върху картата.', 'warning', 6000);
+                        }
+                        // Центрираме картата обратно в Смолян
+                        if (this.mobilePickerMap) {
+                            this.mobilePickerMap.setView([41.576, 24.701], 14);
+                        }
+                        return;
+                    }
+
                     // Центрирай картата
-                    if (window.mapCore && window.mapCore.map) {
-                        window.mapCore.map.setView([lat, lng], 16);
+                    if (this.mobilePickerMap) {
+                        this.mobilePickerMap.setView([lat, lng], 16);
                     }
 
                     // Restore button
@@ -280,6 +400,14 @@
                 return;
             }
 
+            // Проверка дали локацията е валидна (в границите на област Смолян)
+            if (!this.tempLocation.valid) {
+                if (window.mapCore && window.mapCore.showNotification) {
+                    window.mapCore.showNotification('Моля изберете местоположение в границите на област Смолян', 'error', 5000);
+                }
+                return;
+            }
+            
             // Запълни формата
             this.fillForm(this.tempLocation.lat, this.tempLocation.lng);
 
@@ -452,6 +580,14 @@
         // ===== HELPERS =====
         fillForm: function(lat, lng) {
             console.log('📝 Filling form with coordinates:', lat, lng);
+            
+            // Проверка дали координатите са в границите на област Смолян
+            if (!this.isWithinSmolyanRegion(lat, lng)) {
+                if (window.mapCore && window.mapCore.showNotification) {
+                    window.mapCore.showNotification('Местоположението трябва да е в границите на област Смолян', 'error', 5000);
+                }
+                return;
+            }
 
             const latInput = document.getElementById('signalLatitude');
             const lngInput = document.getElementById('signalLongitude');

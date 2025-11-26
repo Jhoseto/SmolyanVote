@@ -243,9 +243,15 @@ public class SignalsServiceImpl implements SignalsService {
 
         Instant now = Instant.now();
         
+        // Граници на област Смолян (актуализирани според точния полигон)
+        java.math.BigDecimal minLat = new java.math.BigDecimal("41.336");
+        java.math.BigDecimal maxLat = new java.math.BigDecimal("41.926");
+        java.math.BigDecimal minLng = new java.math.BigDecimal("24.318");
+        java.math.BigDecimal maxLng = new java.math.BigDecimal("25.168");
+        
         try {
             Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, showExpired,
-                    timeFilterDate, cleanSort, now, pageable);
+                    timeFilterDate, cleanSort, now, minLat, maxLat, minLng, maxLng, pageable);
 
             // Принудително зареждане на author за всички сигнали
             results.getContent().forEach(signal -> {
@@ -261,8 +267,16 @@ public class SignalsServiceImpl implements SignalsService {
             System.err.println("Warning: Error in findWithFilters, using fallback query: " + e.getMessage());
             e.printStackTrace();
             
-            // Fallback query без activeUntil филтър
-            Page<SignalsEntity> results = signalsRepository.findAllWithAuthorOrderByCreatedDesc(pageable);
+            // Fallback query без activeUntil филтър, но с филтър за границите на област Смолян
+            // Актуализирани граници: lat: 41.336 - 41.926, lng: 24.318 - 25.168
+            List<SignalsEntity> allSignals = signalsRepository.findByLocationBounds(
+                    41.336, 41.926, 24.318, 25.168);
+            // Конвертираме в Page
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), allSignals.size());
+            List<SignalsEntity> pageContent = allSignals.subList(start, end);
+            Page<SignalsEntity> results = new org.springframework.data.domain.PageImpl<>(
+                    pageContent, pageable, allSignals.size());
             
             // Принудително зареждане на author
             results.getContent().forEach(signal -> {

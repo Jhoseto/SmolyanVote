@@ -10,7 +10,8 @@
     .mobile-action-buttons,
     .mobile-signals-panel,
     .mobile-filters-panel,
-    .create-signal-fab {
+    .create-signal-fab,
+    .location-picker-overlay {
         display: none !important;
     }
 }
