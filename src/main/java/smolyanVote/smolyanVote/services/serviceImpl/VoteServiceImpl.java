@@ -7,7 +7,6 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.VoteService;
@@ -25,6 +24,12 @@ public class VoteServiceImpl implements VoteService {
     private final MultiPollRepository multiPollRepository;
     private final VoteMultiPollRepository voteMultiPollRepository;
     private final NotificationService notificationService;
+    private final VoteIpRepository voteIpRepository;
+
+    private static final int MAX_VOTES_PER_IP = 3;
+    private static final String EVENT_TYPE_SIMPLE = "SIMPLE_EVENT";
+    private static final String EVENT_TYPE_REFERENDUM = "REFERENDUM";
+    private static final String EVENT_TYPE_MULTI_POLL = "MULTI_POLL";
 
     @Autowired
     public VoteServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -34,7 +39,8 @@ public class VoteServiceImpl implements VoteService {
                            VoteReferendumRepository voteReferendumRepository,
                            MultiPollRepository multiPollRepository,
                            VoteMultiPollRepository voteMultiPollRepository,
-                           NotificationService notificationService) {
+                           NotificationService notificationService,
+                           VoteIpRepository voteIpRepository) {
         this.simpleEventRepository = simpleEventRepository;
         this.userRepository = userRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -43,6 +49,7 @@ public class VoteServiceImpl implements VoteService {
         this.multiPollRepository = multiPollRepository;
         this.voteMultiPollRepository = voteMultiPollRepository;
         this.notificationService = notificationService;
+        this.voteIpRepository = voteIpRepository;
     }
 
 
@@ -50,7 +57,7 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @LogActivity(action = ActivityActionEnum.VOTE_SIMPLE_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             entityIdParam = "eventId", details = "User: {userName}", includeChoice = true)
-    public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail) {
+    public void recordSimpleEventVote(Long eventId, String voteValue, String userEmail, String ipAddress) {
         SimpleEventEntity event = simpleEventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Събитие не е намерено"));
         UserEntity user = userRepository.findByEmail(userEmail)
@@ -58,6 +65,16 @@ public class VoteServiceImpl implements VoteService {
 
         if (voteSimpleEventRepository.existsByUserAndEvent(user, event)) {
             throw new IllegalStateException("Потребителят вече е гласувал за това събитие.");
+        }
+
+        // Проверка за IP лимит (3 гласа от един IP за едно събитие)
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
+                    ipAddress, eventId, EVENT_TYPE_SIMPLE);
+            if (ipVoteCount >= MAX_VOTES_PER_IP) {
+                throw new IllegalStateException(
+                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за това събитие.");
+            }
         }
 
         VoteSimpleEventEntity vote = new VoteSimpleEventEntity();
@@ -87,6 +104,11 @@ public class VoteServiceImpl implements VoteService {
         user.setTotalVotes(user.getTotalVotes() + 1);
         userRepository.save(user);
 
+        // Записване на IP адреса в VoteIpEntity
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, eventId, EVENT_TYPE_SIMPLE);
+            voteIpRepository.save(voteIp);
+        }
 
         // ✅ НОТИФИКАЦИЯ - намери creator-а на събитието
         UserEntity creator = userRepository.findByUsername(event.getCreatorName())
@@ -113,7 +135,7 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @LogActivity(action = ActivityActionEnum.VOTE_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             entityIdParam = "referendumId", details = "User: {userName}", includeChoice = true)
-    public String recordReferendumVote(Long referendumId, String voteValue, String userEmail) {
+    public String recordReferendumVote(Long referendumId, String voteValue, String userEmail, String ipAddress) {
         ReferendumEntity referendum = referendumRepository.findReferendumById(referendumId)
                 .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен."));
         UserEntity user = userRepository.findByEmail(userEmail)
@@ -159,6 +181,12 @@ public class VoteServiceImpl implements VoteService {
         vote.setVoteValue(voteIndex);
         voteReferendumRepository.save(vote);
 
+        // Записване на IP адреса в VoteIpEntity
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, referendumId, EVENT_TYPE_REFERENDUM);
+            voteIpRepository.save(voteIp);
+        }
+
         // ✅ НОТИФИКАЦИЯ
         UserEntity creator = userRepository.findByUsername(referendum.getCreatorName())
                 .orElse(null);
@@ -174,8 +202,7 @@ public class VoteServiceImpl implements VoteService {
     @Override
     @LogActivity(action = ActivityActionEnum.VOTE_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             entityIdParam = "pollId", details = "User: {userName}", includeChoice = true)
-
-    public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions) {
+    public void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions, String ipAddress) {
         if (selectedOptions == null || selectedOptions.isEmpty()) {
             throw new IllegalArgumentException("Трябва да изберете поне една опция.");
         }
@@ -192,6 +219,17 @@ public class VoteServiceImpl implements VoteService {
         boolean alreadyVoted = voteMultiPollRepository.existsByMultiPollIdAndUserId(pollId, user.getId());
         if (alreadyVoted) {
             throw new IllegalArgumentException("Вече сте гласували в тази анкета.");
+        }
+
+        // Проверка за IP лимит (3 гласа от един IP за едно събитие)
+        // За MultiPoll цялата анкета се брои като 1 глас
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
+                    ipAddress, pollId, EVENT_TYPE_MULTI_POLL);
+            if (ipVoteCount >= MAX_VOTES_PER_IP) {
+                throw new IllegalStateException(
+                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за тази анкета.");
+            }
         }
 
         List<String> options = poll.getOptions();
@@ -236,9 +274,13 @@ public class VoteServiceImpl implements VoteService {
             vote.setOptionText(optionText);
 
             voteMultiPollRepository.save(vote);
-
         }
 
+        // Записване на IP адреса в VoteIpEntity (цялата анкета е 1 глас)
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            VoteIpEntity voteIp = new VoteIpEntity(ipAddress, pollId, EVENT_TYPE_MULTI_POLL);
+            voteIpRepository.save(voteIp);
+        }
 
         UserEntity creator = userRepository.findByUsername(poll.getCreatorName())
                 .orElse(null);

@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,9 +30,16 @@ public class VoteController {
             @RequestParam("eventId") Long eventId,
             @RequestParam("vote") String voteValue,
             @RequestParam("userEmail") String userEmail,
+            HttpServletRequest request,
             RedirectAttributes redirectAttributes
     ) {
-        voteService.recordSimpleEventVote(eventId, voteValue, userEmail);
+        String ipAddress = getClientIpAddress(request);
+        try {
+            voteService.recordSimpleEventVote(eventId, voteValue, userEmail, ipAddress);
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/event/" + eventId;
+        }
 
         String voteLabel;
         switch (voteValue) {
@@ -52,26 +60,40 @@ public class VoteController {
             @RequestParam("referendumId") Long referendumId,
             @RequestParam("vote") String voteValue,
             @RequestParam("userEmail") String userEmail,
+            HttpServletRequest request,
             RedirectAttributes redirectAttributes
     ) {
-        System.out.println(referendumId+" /"+voteValue+" /"+userEmail);
-
-
         Optional<ReferendumEntity> optionalReferendum = referendumRepository.findById(referendumId);
         if (optionalReferendum.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "Референдумът не е намерен.");
             return "redirect:/404";
         }
 
-
+        String ipAddress = getClientIpAddress(request);
         try {
-            String voteLabel = voteService.recordReferendumVote(referendumId, voteValue, userEmail);
+            String voteLabel = voteService.recordReferendumVote(referendumId, voteValue, userEmail, ipAddress);
             redirectAttributes.addFlashAttribute("successMessage", "Успешно гласувахте: " + voteLabel);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Грешка при гласуване: " + e.getMessage());
         }
 
         return "redirect:/referendum/" + referendumId;
+    }
+
+    /**
+     * Извлича IP адреса на клиента от заявката
+     * Проверява X-Forwarded-For, X-Real-IP и други headers за прокси/load balancer
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
+        for (String header : headers) {
+            String ip = request.getHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                // Ако има няколко IP-та (често при прокси), вземи първото
+                return ip.split(",")[0].trim();
+            }
+        }
+        return request.getRemoteAddr();
     }
 
 }

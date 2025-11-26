@@ -9,14 +9,14 @@ import java.util.List;
 public interface VoteService {
 
     @Transactional
-    void recordSimpleEventVote(Long eventId, String voteValue, String userEmail);
+    void recordSimpleEventVote(Long eventId, String voteValue, String userEmail, String ipAddress);
 
     VoteSimpleEventEntity findByUserIdAndEventId(Long userId, Long eventId);
 
     VoteReferendumEntity findByUserIdAndReferendumId(Long userId, Long referendumId);
 
-    String recordReferendumVote(Long eventId, String voteValue, String userEmail);
+    String recordReferendumVote(Long eventId, String voteValue, String userEmail, String ipAddress);
 
     @Transactional
-    void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions);
+    void recordMultiPollVote(Long pollId, String userEmail, List<Integer> selectedOptions, String ipAddress);
 }

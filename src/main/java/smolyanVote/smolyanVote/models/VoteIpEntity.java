@@ -5,8 +5,8 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "vote_ips", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"ip_address", "event_id"})  // Един IP може да гласува само 3 пъти за едно събитие
+@Table(name = "vote_ips", indexes = {
+        @Index(name = "idx_ip_event", columnList = "ip_address,event_id,event_type")
 })
 public class VoteIpEntity {
 
@@ -14,31 +14,66 @@ public class VoteIpEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
-    private SimpleEventEntity event;
-
     @Column(nullable = false)
     private String ipAddress;  // IP адрес на потребителя
 
+    @Column(nullable = false)
+    private Long eventId;  // ID на събитието (SimpleEvent, Referendum или MultiPoll)
+
+    @Column(nullable = false, length = 20)
+    private String eventType;  // Тип събитие: "SIMPLE_EVENT", "REFERENDUM", "MULTI_POLL"
+
+    @Column(nullable = false)
     private Instant votedAt = Instant.now();  // Време на гласуване
 
+    // Конструктори
+    public VoteIpEntity() {}
 
+    public VoteIpEntity(String ipAddress, Long eventId, String eventType) {
+        this.ipAddress = ipAddress;
+        this.eventId = eventId;
+        this.eventType = eventType;
+        this.votedAt = Instant.now();
+    }
 
+    // Getters и Setters
+    public Long getId() {
+        return id;
+    }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getId() {return id;}
+    public String getIpAddress() {
+        return ipAddress;
+    }
 
-    public void setId(Long id) {this.id = id;}
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
 
-    public SimpleEventEntity getEvent() {return event;}
+    public Long getEventId() {
+        return eventId;
+    }
 
-    public void setEvent(SimpleEventEntity event) {this.event = event;}
+    public void setEventId(Long eventId) {
+        this.eventId = eventId;
+    }
 
-    public String getIpAddress() {return ipAddress;}
+    public String getEventType() {
+        return eventType;
+    }
 
-    public void setIpAddress(String ipAddress) {this.ipAddress = ipAddress;}
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
 
-    public Instant getVotedAt() {return votedAt;}
+    public Instant getVotedAt() {
+        return votedAt;
+    }
 
-    public void setVotedAt(Instant votedAt) {this.votedAt = votedAt;}
+    public void setVotedAt(Instant votedAt) {
+        this.votedAt = votedAt;
+    }
 }

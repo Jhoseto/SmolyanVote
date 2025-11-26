@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -166,14 +167,16 @@ public class MultiPollController {
             @RequestParam("multiPollId") Long pollId,
             @RequestParam("userEmail") String userEmail,
             @RequestParam("selectedOptions") List<Integer> selectedOptions,
+            HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
 
+        String ipAddress = getClientIpAddress(request);
         try {
             // Извикваме service метода за обработка на гласа
-            voteService.recordMultiPollVote(pollId, userEmail, selectedOptions);
+            voteService.recordMultiPollVote(pollId, userEmail, selectedOptions, ipAddress);
 
             redirectAttributes.addFlashAttribute("successMessage", "Гласът ви беше записан успешно!");
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при записването на гласа.");
@@ -279,5 +282,21 @@ public class MultiPollController {
             redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
             return "redirect:/multipoll/" + id;
         }
+    }
+
+    /**
+     * Извлича IP адреса на клиента от заявката
+     * Проверява X-Forwarded-For, X-Real-IP и други headers за прокси/load balancer
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String[] headers = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
+        for (String header : headers) {
+            String ip = request.getHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                // Ако има няколко IP-та (често при прокси), вземи първото
+                return ip.split(",")[0].trim();
+            }
+        }
+        return request.getRemoteAddr();
     }
 }
