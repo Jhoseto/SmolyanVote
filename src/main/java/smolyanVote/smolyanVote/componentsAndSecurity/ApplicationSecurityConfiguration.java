@@ -60,8 +60,9 @@ public class ApplicationSecurityConfiguration {
                         // Allow CORS preflight OPTIONS for messenger API so browser can POST without
                         // 405
                         .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**").permitAll()
+                        // Статични ресурси и podcast window - трябва да са преди другите правила
+                        .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
                         .requestMatchers(
-                                "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**",
                                 "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration",
                                 "/registration",
@@ -121,7 +122,7 @@ public class ApplicationSecurityConfiguration {
                         // ✅ CSRF PROTECTION RESTORED - ALL API ENDPOINTS NOW PROTECTED
                         // WebSocket handshakes remain exempt (safe by design - require valid session +
                         // Same-Origin Policy)
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/heartbeat",
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/heartbeat",
                                 "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository));
 

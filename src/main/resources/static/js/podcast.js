@@ -10,6 +10,7 @@ class PodcastPlayer {
         this.previousVolume = 1;
         this.shouldAutoPlay = false;
         this.originalOrder = [];
+        this.podcastWindow = null; // Reference към отделния прозорец за desktop
 
         this.init();
     }
@@ -372,6 +373,20 @@ class PodcastPlayer {
             episodeNumber
         };
 
+        // Проверка дали сме на desktop - отваряне на отделен прозорец
+        if (window.innerWidth > 768) {
+            this.openPodcastWindow({
+                audioUrl,
+                title,
+                description,
+                imageUrl,
+                episodeNumber,
+                autoPlay
+            });
+            return;
+        }
+
+        // Mobile версия - продължава с нормалния player
         this.isAudioReady = false;
         this.shouldAutoPlay = autoPlay;
 
@@ -386,6 +401,67 @@ class PodcastPlayer {
         }
 
         this.updateActiveEpisode(episodeCard);
+    }
+
+    openPodcastWindow(episodeData) {
+        // Проверка дали прозорецът вече е отворен
+        if (this.podcastWindow && !this.podcastWindow.closed) {
+            // Прозорецът вече съществува - изпращаме команда за зареждане на нов епизод
+            this.podcastWindow.postMessage({
+                type: 'podcast-control',
+                action: 'load',
+                episode: episodeData
+            }, '*');
+            this.podcastWindow.focus();
+            return;
+        }
+
+        // Създаване на нов прозорец
+        const episodeParam = encodeURIComponent(JSON.stringify(episodeData));
+        const windowFeatures = 'width=600,height=500,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no';
+        
+        this.podcastWindow = window.open(
+            `/podcast/podcast-window.html?episode=${episodeParam}`,
+            'PodcastPlayer',
+            windowFeatures
+        );
+
+        if (!this.podcastWindow) {
+            this.showNotification('Моля разрешете popup прозорците за да отворите player-а', 'error');
+            return;
+        }
+
+        // Запазване на reference
+        this.podcastWindowRef = this.podcastWindow;
+
+        // Слушане за съобщения от прозореца
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'podcast-window-action') {
+                this.handlePodcastWindowAction(event.data);
+            }
+        });
+
+        // Проверка дали прозорецът е затворен
+        const checkClosed = setInterval(() => {
+            if (this.podcastWindow.closed) {
+                clearInterval(checkClosed);
+                this.podcastWindow = null;
+            }
+        }, 1000);
+    }
+
+    handlePodcastWindowAction(data) {
+        switch (data.action) {
+            case 'next':
+                this.playNext();
+                break;
+            case 'previous':
+                this.playPrevious();
+                break;
+            case 'favorite':
+                // Синхронизация на favorite статус
+                break;
+        }
     }
 
     loadAudioWithTimeout(audioUrl, timeout = 15000) {
