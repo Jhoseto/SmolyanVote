@@ -1038,6 +1038,11 @@
         background: #e9ecef !important;
         overflow: hidden !important;
     }
+    
+    /* Полигонът в мобилната карта не трябва да блокира събитията */
+    #locationPickerMap .leaflet-overlay-pane svg path {
+        pointer-events: none !important;
+    }
 
     /* Crosshair Центрирано в екрана */
     .location-picker-crosshair {
