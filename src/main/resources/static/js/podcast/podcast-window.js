@@ -91,10 +91,6 @@ class PodcastWindowPlayer {
                 </div>
                 
                 <div class="podcast-window-modal">
-                    <button class="podcast-minimize-btn" id="minimizeBtn" title="Минимизирай">
-                        <i class="bi bi-dash"></i>
-                    </button>
-                    
                     <div class="podcast-episode-info">
                         <img class="podcast-episode-image" id="episodeImage" src="/images/podcast-default.jpg" alt="Episode">
                         <div class="podcast-episode-details">
@@ -286,7 +282,21 @@ class PodcastWindowPlayer {
             mediaControls: false
         });
 
-        // Event listeners - NE добавяме 'ready' тук, защото се управлява в loadEpisode()
+        // Инсталиране на event listeners
+        this.reinitWaveSurferListeners();
+    }
+    
+    reinitWaveSurferListeners() {
+        if (!this.wavesurfer) return;
+        
+        // Премахване на всички стари listeners (ако има такива)
+        this.wavesurfer.un('play');
+        this.wavesurfer.un('pause');
+        this.wavesurfer.un('finish');
+        this.wavesurfer.un('timeupdate');
+        this.wavesurfer.un('error');
+        
+        // Event listeners - НЕ добавяме 'ready' тук, защото се управлява в loadEpisode()
         
         this.wavesurfer.on('play', () => {
             console.log('WaveSurfer play event fired');
@@ -343,21 +353,33 @@ class PodcastWindowPlayer {
 
     initAudioAnalyserWithRetry(attempt = 0, maxAttempts = 5) {
         // Увеличаващи се забавяния - даваме повече време на audio element да се зареди
-        const delays = [300, 500, 800, 1200, 2000];
-        const delay = delays[Math.min(attempt, delays.length - 1)] || 2000;
+        const delays = [500, 1000, 1500, 2000, 3000];
+        const delay = delays[Math.min(attempt, delays.length - 1)] || 3000;
         
         setTimeout(() => {
             // Проверка дали все още се възпроизвежда (ако не, не правим нищо)
             if (!this.isPlaying) {
-                console.log('Not playing anymore, skipping analyser initialization');
+                if (attempt === 0) {
+                    console.log('Not playing anymore, skipping analyser initialization');
+                }
+                return;
+            }
+            
+            // Проверка дали wavesurfer все още съществува
+            if (!this.wavesurfer) {
+                console.log('WaveSurfer no longer exists, skipping analyser initialization');
                 return;
             }
             
             const success = this.initAudioAnalyser();
             if (!success && attempt < maxAttempts - 1) {
-                console.log(`Retrying audio analyser initialization (attempt ${attempt + 1}/${maxAttempts})...`);
+                // Не показваме warning при първите опити - това е нормално
+                if (attempt >= 2) {
+                    console.log(`Retrying audio analyser initialization (attempt ${attempt + 1}/${maxAttempts})...`);
+                }
                 this.initAudioAnalyserWithRetry(attempt + 1, maxAttempts);
             } else if (!success) {
+                // Показваме warning само ако всички опити са неуспешни
                 console.warn('Failed to initialize audio analyser after all attempts - EQ visualization will not work');
             } else {
                 console.log('✅ Audio analyser initialized successfully');
@@ -382,9 +404,13 @@ class PodcastWindowPlayer {
             // WaveSurfer 7 използва различен API - media е в backend
             let audioElement = null;
             
-            // Опит 1: getMediaElement()
+            // Опит 1: getMediaElement() - най-надеждният начин
             if (this.wavesurfer.getMediaElement) {
-                audioElement = this.wavesurfer.getMediaElement();
+                try {
+                    audioElement = this.wavesurfer.getMediaElement();
+                } catch (e) {
+                    console.log('getMediaElement() failed:', e);
+                }
             }
             
             // Опит 2: backend.media
@@ -392,30 +418,41 @@ class PodcastWindowPlayer {
                 audioElement = this.wavesurfer.backend.media;
             }
             
-            // Опит 3: намиране на audio елемента в DOM
-            if (!audioElement) {
-                const container = document.getElementById('podcast-waveform');
-                if (container) {
-                    audioElement = container.querySelector('audio');
+            // Опит 3: backend.getMediaElement()
+            if (!audioElement && this.wavesurfer.backend?.getMediaElement) {
+                try {
+                    audioElement = this.wavesurfer.backend.getMediaElement();
+                } catch (e) {
+                    // Ignore
                 }
             }
             
-            // Опит 4: Проверка дали audio element е готов
+            // Опит 4: намиране на audio елемента в DOM
+            if (!audioElement) {
+                const container = document.getElementById('podcast-waveform');
+                if (container) {
+                    // Търсим всички audio елементи
+                    const audioElements = container.querySelectorAll('audio');
+                    if (audioElements.length > 0) {
+                        audioElement = audioElements[audioElements.length - 1]; // Вземаме последния
+                    }
+                }
+            }
+            
+            // Проверка дали audio element е готов
             if (!audioElement || !(audioElement instanceof HTMLMediaElement)) {
-                // Не показваме warning - това е нормално при първи опит, retry логиката ще се погрижи
                 return false;
             }
             
             // Проверяваме дали audio element е напълно зареден
             // readyState: 0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA
-            // Искаме поне HAVE_CURRENT_DATA (2) за да работи analyser-ът
-            if (audioElement.readyState < 2) {
-                // Не показваме warning - това е нормално при първи опит
+            // Искаме поне HAVE_METADATA (1) за да работи analyser-ът (може да работи и с 1)
+            if (audioElement.readyState < 1) {
                 return false;
             }
             
             // Допълнителна проверка - дали audio element има валиден src
-            if (!audioElement.src || audioElement.src === '') {
+            if (!audioElement.src || audioElement.src === '' || audioElement.src === 'about:blank') {
                 return false;
             }
 
@@ -698,11 +735,6 @@ class PodcastWindowPlayer {
         const shareBtn = document.getElementById('shareBtn');
         if (shareBtn) {
             shareBtn.addEventListener('click', () => this.shareEpisode());
-        }
-
-        const minimizeBtn = document.getElementById('minimizeBtn');
-        if (minimizeBtn) {
-            minimizeBtn.addEventListener('click', () => this.minimize());
         }
 
         const carouselPrevBtn = document.getElementById('carouselPrevBtn');
@@ -1330,12 +1362,18 @@ class PodcastWindowPlayer {
                     this.wavesurfer.pause();
                 }
                 
-                // ВАЖНО: Премахваме текущото зареждане ако има такова
-                // Това гарантира че новото зареждане ще работи правилно
+                // ВАЖНО: Опитваме се да спрем всички активни зареждания
                 try {
-                    // Опитваме се да "unload" текущото аудио
-                    // WaveSurfer няма директна unload функция, но можем да заредим празен URL или да изчакаме
-                    // Вместо това, просто ще изчакаме да завърши текущото зареждане ако има такова
+                    const mediaElement = this.wavesurfer.getMediaElement?.() || 
+                                       this.wavesurfer.backend?.media;
+                    if (mediaElement) {
+                        try {
+                            mediaElement.pause();
+                            // НЕ променяме src тук - това може да създаде проблеми
+                        } catch (e) {
+                            // Ignore
+                        }
+                    }
                 } catch (e) {
                     console.warn('Error in stopCurrentEpisode wavesurfer:', e);
                 }
@@ -1472,10 +1510,80 @@ class PodcastWindowPlayer {
             // Малко изчакване за да се успокоят всички операции
             await new Promise(resolve => setTimeout(resolve, 50));
             
-            // ВАЖНО: Премахване на всички стари 'ready' listeners (допълнителна защита)
-            // Вече са премахнати в selectEpisode, но това е допълнителна защита
-            this.wavesurfer.un('ready');
+            // ВАЖНО: Унищожаваме и създаваме нов wavesurfer инстанс за да гарантираме чисто зареждане
+            // Това трябва да се направи ПРЕДИ да добавим ready handler-а
+            const waveformContainer = document.getElementById('podcast-waveform');
+            if (waveformContainer && this.wavesurfer) {
+                try {
+                    console.log('Destroying old wavesurfer instance for clean load...');
+                    
+                    // Спиране преди унищожаване
+                    try {
+                        if (this.isPlaying) {
+                            this.wavesurfer.pause();
+                        }
+                    } catch (e) {
+                        // Ignore
+                    }
+                    
+                    // Унищожаване
+                    try {
+                        this.wavesurfer.destroy();
+                    } catch (e) {
+                        console.warn('Error destroying wavesurfer:', e);
+                    }
+                    this.wavesurfer = null;
+                    
+                    // Почистване на analyser и audioContext
+                    if (this.analyser) {
+                        try {
+                            if (this.analyser.disconnect) {
+                                this.analyser.disconnect();
+                            }
+                        } catch (e) {
+                            // Ignore
+                        }
+                        this.analyser = null;
+                        this.dataArray = null;
+                    }
+                    
+                    // Нулиране на audioContext - ще се създаде нов при нужда
+                    this.audioContext = null;
+                    
+                    // Изчакване за да се почисти всичко
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    
+                    // Създаване на нов wavesurfer инстанс
+                    console.log('Creating new wavesurfer instance...');
+                    this.wavesurfer = WaveSurfer.create({
+                        container: '#podcast-waveform',
+                        waveColor: 'rgba(255, 255, 255, 0.3)',
+                        progressColor: '#4cb15c',
+                        cursorColor: '#ffffff',
+                        barWidth: 2,
+                        barRadius: 2,
+                        height: 50,
+                        responsive: true,
+                        normalize: true,
+                        backend: 'WebAudio',
+                        mediaControls: false
+                    });
+                    
+                    // Преинсталиране на event listeners
+                    this.reinitWaveSurferListeners();
+                    
+                    console.log('✅ New wavesurfer instance created');
+                    
+                } catch (e) {
+                    console.error('❌ Error recreating wavesurfer:', e);
+                    // Ако не можем да създадем нов, използваме съществуващия
+                    if (!this.wavesurfer) {
+                        throw new Error('Failed to create wavesurfer instance');
+                    }
+                }
+            }
             
+            // ВАЖНО: Сега добавяме ready handler към НОВИЯ wavesurfer инстанс
             // Добавяне на нов 'ready' listener за този конкретен load
             const readyPromise = new Promise((resolve, reject) => {
                 let timeoutId;
@@ -1633,14 +1741,13 @@ class PodcastWindowPlayer {
             // ВАЖНО: Зареждане на аудиото - това ТРЯБВА да работи винаги
             console.log('Calling wavesurfer.load() with URL:', audioUrl);
             
-            // Зареждане на новия URL - винаги зареждаме, дори ако е същия
-            // Това гарантира че винаги работи правилно
+            // Зареждане на новия URL
             try {
                 await this.wavesurfer.load(audioUrl);
             } catch (loadError) {
                 console.warn('First load attempt failed, retrying...', loadError);
                 // Малко изчакване и повторен опит
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 300));
                 try {
                     await this.wavesurfer.load(audioUrl);
                 } catch (secondError) {
