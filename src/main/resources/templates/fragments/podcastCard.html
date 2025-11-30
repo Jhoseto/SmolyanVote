@@ -5,7 +5,8 @@
 
 <div th:fragment="podcastCard(episode)" class="episode-card"
      th:data-date="${episode.publishDate}"
-     th:data-duration="${episode.durationSeconds}">
+     th:data-duration="${episode.durationSeconds}"
+     th:data-episode-id="${episode.id}">
 
     <div class="episode-image">
         <h3 class="episode-titleNumber style-glass" th:text="${episode.episodeNumber}"></h3>
@@ -22,6 +23,10 @@
         <div class="episode-meta">
             <span class="episode-date" th:text="${episode.formattedPublishDate}"></span>
             <span class="episode-duration" th:text="${episode.formattedDuration}"></span>
+            <span class="episode-listens" th:if="${episode.listenCount != null and episode.listenCount > 0}">
+                <i class="fas fa-headphones"></i>
+                <span th:text="${episode.listenCount}"></span>
+            </span>
         </div>
 
         <div class="episode-actions">

@@ -259,6 +259,8 @@
     background: linear-gradient(90deg, rgba(37, 175, 180, 0.05), rgba(255, 255, 255, 0.95));
     border-bottom: 1px solid var(--accent-green);
     transition: transform 0.3s ease;
+    position: relative;
+    cursor: help;
 }
 
 .card-title:hover {

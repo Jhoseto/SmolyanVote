@@ -906,6 +906,8 @@
     flex: 1 1 auto;
     min-width: 0;
     padding-right: 0.5rem;
+    position: relative;
+    cursor: help;
 }
 
 .event-list-item .author-date-block {
@@ -1554,4 +1556,46 @@
         width: 100% !important;
         page-break-inside: avoid !important;
     }
+}
+
+/* ====== EVENT TITLE TOOLTIP ====== */
+.event-title-tooltip {
+    position: fixed;
+    background: #ffffff;
+    color: #495057;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1.5px solid #4cb15c;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    max-width: 350px;
+    width: max-content;
+    box-shadow: 0 2px 8px rgba(76, 177, 92, 0.15);
+    z-index: 10000;
+    pointer-events: none;
+    display: none;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.event-title-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.event-title-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #4cb15c;
 }

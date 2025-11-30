@@ -69,6 +69,11 @@ class PodcastPlayer {
         this.wavesurfer.on('play', () => {
             this.isPlaying = true;
             this.updatePlayButton();
+            
+            // Инкрементиране на listen count при стартиране на възпроизвеждане (mobile)
+            if (this.currentEpisode?.id && this.currentEpisode?.element) {
+                this.incrementListenCount(this.currentEpisode.id, this.currentEpisode.element);
+            }
         });
 
         this.wavesurfer.on('pause', () => {
@@ -352,6 +357,7 @@ class PodcastPlayer {
     async loadEpisode(episodeCard, autoPlay = false) {
         const playBtn = episodeCard.querySelector('.play-btn');
         const audioUrl = playBtn?.dataset.audio;
+        const episodeId = episodeCard?.dataset?.episodeId;
 
         if (!audioUrl) {
             this.showNotification('Няма наличен аудио файл', 'error');
@@ -370,8 +376,14 @@ class PodcastPlayer {
             title,
             description,
             imageUrl,
-            episodeNumber
+            episodeNumber,
+            id: episodeId
         };
+
+        // Инкрементиране на listen count при стартиране на епизод
+        if (episodeId) {
+            this.incrementListenCount(episodeId, episodeCard);
+        }
 
         // Проверка дали сме на desktop - отваряне на отделен прозорец
         if (window.innerWidth > 768) {
@@ -381,6 +393,7 @@ class PodcastPlayer {
                 description,
                 imageUrl,
                 episodeNumber,
+                id: episodeId,
                 autoPlay
             });
             return;
@@ -403,6 +416,58 @@ class PodcastPlayer {
         this.updateActiveEpisode(episodeCard);
     }
 
+    async incrementListenCount(episodeId, episodeCard) {
+        if (!episodeId) return;
+        
+        try {
+            const response = await fetch(`/api/podcast/episodes/${episodeId}/increment-listen`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const updatedEpisode = await response.json();
+                // Актуализиране на визуалното показване
+                this.updateListenCountDisplay(episodeCard, updatedEpisode.listenCount);
+            }
+        } catch (error) {
+            console.warn('Failed to increment listen count:', error);
+        }
+    }
+
+    updateListenCountDisplay(episodeCard, newCount) {
+        if (!episodeCard || !newCount) return;
+        
+        let listensElement = episodeCard.querySelector('.episode-listens');
+        
+        if (!listensElement) {
+            // Създаване на нов елемент ако не съществува
+            const metaElement = episodeCard.querySelector('.episode-meta');
+            if (metaElement) {
+                listensElement = document.createElement('span');
+                listensElement.className = 'episode-listens';
+                listensElement.innerHTML = `<i class="fas fa-headphones"></i><span>${this.formatNumber(newCount)}</span>`;
+                metaElement.appendChild(listensElement);
+            }
+        } else {
+            // Актуализиране на съществуващия елемент
+            const countSpan = listensElement.querySelector('span:last-child');
+            if (countSpan) {
+                countSpan.textContent = this.formatNumber(newCount);
+            }
+        }
+    }
+
+    formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+
     openPodcastWindow(episodeData) {
         // Проверка дали прозорецът вече е отворен
         if (this.podcastWindow && !this.podcastWindow.closed) {
@@ -418,7 +483,7 @@ class PodcastPlayer {
 
         // Създаване на нов прозорец
         const episodeParam = encodeURIComponent(JSON.stringify(episodeData));
-        const windowFeatures = 'width=600,height=500,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no';
+        const windowFeatures = 'width=900,height=750,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no';
         
         this.podcastWindow = window.open(
             `/podcast/podcast-window.html?episode=${episodeParam}`,

@@ -110,4 +110,25 @@ public class PodcastController {
 
         return "redirect:/podcast";
     }
+
+    @GetMapping("/api/podcast/episodes")
+    @ResponseBody
+    public List<PodcastEpisodeDTO> getAllEpisodes() {
+        List<PodcastEpisodeEntity> episodes = podcastEpisodeRepository.findAllByIsPublishedTrueOrderByPublishDateDesc();
+        return episodes.stream()
+                .map(PodcastEpisodeDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @PostMapping("/api/podcast/episodes/{id}/increment-listen")
+    @ResponseBody
+    public PodcastEpisodeDTO incrementListenCount(@PathVariable Long id) {
+        PodcastEpisodeEntity episode = podcastEpisodeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Епизодът не е намерен"));
+        
+        episode.setListenCount((episode.getListenCount() != null ? episode.getListenCount() : 0L) + 1);
+        podcastEpisodeRepository.save(episode);
+        
+        return new PodcastEpisodeDTO(episode);
+    }
 }

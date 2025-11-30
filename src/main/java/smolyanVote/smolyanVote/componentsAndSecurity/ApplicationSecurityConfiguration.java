@@ -62,6 +62,7 @@ public class ApplicationSecurityConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**").permitAll()
                         // Статични ресурси и podcast window - трябва да са преди другите правила
                         .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
+                        .requestMatchers("/api/podcast/**").permitAll()
                         .requestMatchers(
                                 "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration",
@@ -122,7 +123,7 @@ public class ApplicationSecurityConfiguration {
                         // ✅ CSRF PROTECTION RESTORED - ALL API ENDPOINTS NOW PROTECTED
                         // WebSocket handshakes remain exempt (safe by design - require valid session +
                         // Same-Origin Policy)
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/heartbeat",
+                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
                                 "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
                         .csrfTokenRepository(csrfTokenRepository));
 

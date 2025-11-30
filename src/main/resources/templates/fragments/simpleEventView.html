@@ -71,7 +71,9 @@
     <!-- Тяло на картата -->
     <div class="card-body event-info">
       <!-- Заглавие -->
-      <h5 class="card-title" th:text="${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
+      <h5 class="card-title" 
+          th:text="${event.title != null ? event.title : 'Няма заглавие'}"
+          th:attr="data-full-title=${event.title != null ? event.title : 'Няма заглавие'}">Заглавие</h5>
 
       <!-- Блок за автора и дата -->
       <div class="author-date-block d-flex justify-content-between align-items-center mb-3">

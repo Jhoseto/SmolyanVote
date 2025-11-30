@@ -825,6 +825,68 @@ function clearMobileFilters() {
     });
 }
 
+// Event Title Tooltip Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    initEventTitleTooltips();
+});
+
+function initEventTitleTooltips() {
+    const titles = document.querySelectorAll('.card-title[data-full-title]');
+    
+    titles.forEach(title => {
+        // Проверяваме дали текстът е truncated
+        const isTruncated = title.scrollHeight > title.clientHeight;
+        
+        if (!isTruncated) {
+            // Ако не е truncated, не показваме tooltip
+            title.style.cursor = 'default';
+            return;
+        }
+        
+        // Създаваме tooltip елемент
+        const tooltip = document.createElement('div');
+        tooltip.className = 'event-title-tooltip';
+        tooltip.textContent = title.getAttribute('data-full-title');
+        document.body.appendChild(tooltip);
+        
+        // Показваме tooltip при hover
+        title.addEventListener('mouseenter', function(e) {
+            const rect = title.getBoundingClientRect();
+            tooltip.style.display = 'block';
+            
+            // Позициониране на tooltip
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.bottom + 10;
+            
+            // Проверка дали tooltip излиза извън екрана от дясно
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            
+            // Проверка дали tooltip излиза извън екрана от ляво
+            if (left < 10) {
+                left = 10;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            
+            // Анимация
+            setTimeout(() => {
+                tooltip.classList.add('show');
+            }, 10);
+        });
+        
+        title.addEventListener('mouseleave', function() {
+            tooltip.classList.remove('show');
+            setTimeout(() => {
+                tooltip.style.display = 'none';
+            }, 300);
+        });
+    });
+}
+
 </script>
 
 </body>
