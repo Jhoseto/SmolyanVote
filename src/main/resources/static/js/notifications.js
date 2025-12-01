@@ -492,81 +492,52 @@ class NotificationSystem {
     }
 
     async checkEventExists(eventType, eventId) {
-        // Проверяваме дали събитието съществува чрез GET заявка
-        // Ако събитието не съществува, контролерът връща "error/404" страница
+        // Проверяваме дали събитието съществува чрез API endpoint-и
+        // Използваме специални API endpoint-и за проверка, за да не причиняваме Thymeleaf грешки
         const requestOptions = {
             credentials: 'same-origin',
             headers: { 
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html'
+                'X-Requested-With': 'XMLHttpRequest'
             }
         };
 
         try {
-            let url = '';
+            let apiUrl = '';
             switch (eventType.toUpperCase()) {
                 case 'SIMPLEEVENT':
                 case 'SIMPLE_EVENT':
-                    url = `/event/${eventId}`;
+                    apiUrl = `/api/event/${eventId}/exists`;
                     break;
                 case 'REFERENDUM':
-                    url = `/referendum/${eventId}`;
+                    apiUrl = `/api/referendum/${eventId}/exists`;
                     break;
                 case 'MULTI_POLL':
                 case 'MULTIPOLL':
-                    url = `/multipoll/${eventId}`;
+                    apiUrl = `/api/multipoll/${eventId}/exists`;
                     break;
                 default:
                     return true;
             }
 
-            const response = await fetch(url, { method: 'GET', ...requestOptions });
+            const response = await fetch(apiUrl, { method: 'GET', ...requestOptions });
             
-            // Ако статус кодът не е 200, ресурсът не съществува
-            if (!response.ok) {
-                return false;
+            // Ако статус кодът е 200, ресурсът съществува
+            if (response.ok) {
+                const data = await response.json();
+                return data.exists === true;
             }
-
-            // Проверяваме дали отговорът е HTML страница за грешка
-            const text = await response.text();
             
-            // Проверяваме дали URL-ът е пренасочен към страница за грешка
-            const finalUrl = response.url;
-            if (finalUrl.includes('/error/') || finalUrl.includes('404')) {
+            // Ако статус кодът е 404, ресурсът не съществува
+            if (response.status === 404) {
                 return false;
             }
-
-            // Проверяваме за индикатори за грешка в HTML-а
-            // Страницата за 404 съдържа: "404 - Страницата не съществува" и "Страницата не е намерена"
-            const errorIndicators = [
-                '404 - страницата не съществува',
-                'страницата не е намерена',
-                'не е намерено',
-                'събитието не е намерено',
-                'референдумът не е намерен',
-                'анкетата не е намерена',
-                '/error/404',
-                'error-style.css' // CSS файлът за страниците за грешка
-            ];
-
-            // Проверяваме дали HTML-ът съдържа индикатори за грешка
-            const lowerText = text.toLowerCase();
-            for (const indicator of errorIndicators) {
-                if (lowerText.includes(indicator)) {
-                    return false;
-                }
-            }
-
-            // Допълнителна проверка: ако страницата е много къса (под 500 символа), вероятно е страница за грешка
-            if (text.length < 500 && (lowerText.includes('404') || lowerText.includes('грешка'))) {
-                return false;
-            }
-
-            // Ако не сме намерили индикатори за грешка, приемаме че ресурсът съществува
+            
+            // За други статус кодове приемаме че съществува
             return true;
         } catch (error) {
             console.error('Error checking event existence:', error);
-            return false;
+            // При грешка приемаме че ресурсът съществува, за да не блокираме навигацията
+            return true;
         }
     }
 
@@ -616,37 +587,52 @@ class NotificationSystem {
                 const eventIdMatch = pathname.match(/\/event\/(\d+)/);
                 if (eventIdMatch) {
                     const eventId = eventIdMatch[1];
-                    const apiUrl = `/event/${eventId}`;
+                    // Използваме API endpoint за проверка, за да не причиняваме Thymeleaf грешки
+                    const apiUrl = `/api/event/${eventId}/exists`;
                     const response = await fetch(apiUrl, { 
-                        method: 'HEAD',
+                        method: 'GET',
                         credentials: 'same-origin',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
-                    return response.ok;
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.exists === true;
+                    }
+                    return false;
                 }
             } else if (pathname.includes('/referendum/')) {
                 const referendumIdMatch = pathname.match(/\/referendum\/(\d+)/);
                 if (referendumIdMatch) {
                     const referendumId = referendumIdMatch[1];
-                    const apiUrl = `/referendum/${referendumId}`;
+                    // Използваме API endpoint за проверка, за да не причиняваме Thymeleaf грешки
+                    const apiUrl = `/api/referendum/${referendumId}/exists`;
                     const response = await fetch(apiUrl, { 
-                        method: 'HEAD',
+                        method: 'GET',
                         credentials: 'same-origin',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
-                    return response.ok;
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.exists === true;
+                    }
+                    return false;
                 }
             } else if (pathname.includes('/multipoll/')) {
                 const multipollIdMatch = pathname.match(/\/multipoll\/(\d+)/);
                 if (multipollIdMatch) {
                     const multipollId = multipollIdMatch[1];
-                    const apiUrl = `/multipoll/${multipollId}`;
+                    // Използваме API endpoint за проверка, за да не причиняваме Thymeleaf грешки
+                    const apiUrl = `/api/multipoll/${multipollId}/exists`;
                     const response = await fetch(apiUrl, { 
-                        method: 'HEAD',
+                        method: 'GET',
                         credentials: 'same-origin',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
-                    return response.ok;
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.exists === true;
+                    }
+                    return false;
                 }
             } else if (pathname.includes('/signals/')) {
                 const signalId = searchParams.get('openSignal');

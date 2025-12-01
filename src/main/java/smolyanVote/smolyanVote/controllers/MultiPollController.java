@@ -2,27 +2,21 @@ package smolyanVote.smolyanVote.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.CreateMultiPollView;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/multipoll")
@@ -283,6 +277,7 @@ public class MultiPollController {
             return "redirect:/multipoll/" + id;
         }
     }
+
 
     /**
      * Извлича IP адреса на клиента от заявката

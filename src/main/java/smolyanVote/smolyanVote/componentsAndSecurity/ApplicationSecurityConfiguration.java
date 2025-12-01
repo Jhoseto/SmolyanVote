@@ -63,6 +63,7 @@ public class ApplicationSecurityConfiguration {
                         // Статични ресурси и podcast window - трябва да са преди другите правила
                         .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
                         .requestMatchers("/api/podcast/**").permitAll()
+                        .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists", "/api/multipoll/*/exists").permitAll()
                         .requestMatchers(
                                 "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration",

@@ -3,7 +3,6 @@ package smolyanVote.smolyanVote.controllers;
 import jakarta.persistence.EntityNotFoundException;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -12,12 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.*;
-import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
-import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
-import smolyanVote.smolyanVote.repositories.UserRepository;
-import smolyanVote.smolyanVote.repositories.VoteReferendumRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
@@ -270,5 +265,6 @@ public class ReferendumController {
             return "redirect:/referendum/" + id;
         }
     }
+
 
 }
