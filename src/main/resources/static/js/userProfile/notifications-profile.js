@@ -22,7 +22,7 @@
     }
 
     return items.map(item => `
-      <div class="notification-item ${item.read ? 'read' : 'unread'}" data-notification-id="${item.id}" data-notification-ids="${item._ids?.join(',') || item.id}" data-action-url="${item.actionUrl || ''}">
+      <div class="notification-item ${item.read ? 'read' : 'unread'}" data-notification-id="${item.id}" data-notification-ids="${item._ids?.join(',') || item.id}" data-action-url="${item.actionUrl || ''}" data-entity-type="${item.entityType || ''}" data-entity-id="${item.entityId || ''}">
         <div class="notification-icon">
           ${item.actorImageUrl ? `<img src="${item.actorImageUrl}" alt="${item.actorUsername || ''}">` : `<i class="${item.icon || 'bi-bell'}"></i>`}
         </div>
@@ -84,7 +84,12 @@
 
       if (match && match.actionUrl) {
         if (window.notificationSystem && typeof window.notificationSystem.navigateToNotification === 'function') {
-          window.notificationSystem.navigateToNotification(match.actionUrl);
+          window.notificationSystem.navigateToNotification(
+            match.actionUrl, 
+            match.id, 
+            match.entityType || '', 
+            match.entityId || ''
+          );
         } else if (typeof window.showNotificationMissingModal === 'function') {
           window.showNotificationMissingModal();
         } else {

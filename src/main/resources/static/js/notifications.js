@@ -353,13 +353,15 @@ class NotificationSystem {
         container.querySelectorAll('.notification-item').forEach(item => {
             const id = item.getAttribute('data-notification-id');
             const url = item.getAttribute('data-action-url');
+            const entityType = item.getAttribute('data-entity-type');
+            const entityId = item.getAttribute('data-entity-id');
 
             item.addEventListener('click', async (e) => {
                 // Ако кликнеш на mark-read бутона, не изпълнява handleClick
                 if (e.target.closest('.notification-mark-read')) {
                     return;
                 }
-                await this.handleClick(parseInt(id, 10), url || '');
+                await this.handleClick(parseInt(id, 10), url || '', entityType || '', entityId || '');
             });
         });
         
@@ -396,7 +398,9 @@ class NotificationSystem {
             <div class="notification-item ${isRead ? 'read' : 'unread'}" 
                  data-notification-id="${n.id}"
                  data-notification-ids="${notificationIds}"
-                 data-action-url="${n.actionUrl || ''}">
+                 data-action-url="${n.actionUrl || ''}"
+                 data-entity-type="${n.entityType || ''}"
+                 data-entity-id="${n.entityId || ''}">
                 
                 <div class="notification-icon">
                     ${n.actorImageUrl
@@ -421,15 +425,17 @@ class NotificationSystem {
         `;
     }
 
-    async handleClick(id, url) {
-        this.markAsRead(id);
-        await this.navigateToNotification(url);
+    async handleClick(id, url, entityType = '', entityId = '') {
+        await this.navigateToNotification(url, id, entityType, entityId);
     }
 
-    async navigateToNotification(actionUrl) {
-        if (!actionUrl || actionUrl === 'null' || actionUrl === '') {
-            this.showMissingModal();
-            return;
+    async checkResourceExists(entityType, entityId, actionUrl = '') {
+        if (!entityType || !entityId) {
+            // Ако няма данни, опитваме се да парсираме от URL-а
+            if (actionUrl) {
+                return this.checkResourceFromUrl(actionUrl);
+            }
+            return true; // Ако няма данни, приемаме че съществува
         }
 
         const requestOptions = {
@@ -438,20 +444,283 @@ class NotificationSystem {
         };
 
         try {
-            let response = await fetch(actionUrl, { method: 'HEAD', ...requestOptions });
+            let apiUrl = '';
+            
+            // Проверяваме ресурса по тип
+            switch (entityType.toUpperCase()) {
+                case 'PUBLICATION':
+                    apiUrl = `/publications/api/${entityId}`;
+                    break;
+                case 'COMMENT':
+                    // За коментари парсираме actionUrl за да намерим родителския ресурс
+                    if (actionUrl) {
+                        return await this.checkCommentExists(entityId, actionUrl);
+                    }
+                    // Ако няма actionUrl, не можем да проверим
+                    return false;
+                case 'SIMPLEEVENT':
+                case 'SIMPLE_EVENT':
+                    // За събития правим GET заявка и проверяваме дали отговорът съдържа индикатор за грешка
+                    return await this.checkEventExists('SIMPLEEVENT', entityId);
+                case 'REFERENDUM':
+                    return await this.checkEventExists('REFERENDUM', entityId);
+                case 'MULTI_POLL':
+                case 'MULTIPOLL':
+                    return await this.checkEventExists('MULTI_POLL', entityId);
+                case 'SIGNAL':
+                    apiUrl = `/signals/mainView?openSignal=${entityId}`;
+                    break;
+                default:
+                    // За неизвестни типове приемаме че съществува
+                    return true;
+            }
 
-            if (!response.ok) {
-                response = await fetch(actionUrl, { method: 'GET', ...requestOptions });
+            if (apiUrl) {
+                const response = await fetch(apiUrl, { method: 'HEAD', ...requestOptions });
                 if (!response.ok) {
-                    this.showMissingModal();
-                    return;
+                    const getResponse = await fetch(apiUrl, { method: 'GET', ...requestOptions });
+                    return getResponse.ok;
                 }
+                return true;
             }
         } catch (error) {
+            console.error('Error checking resource existence:', error);
+            return false;
+        }
+
+        return true;
+    }
+
+    async checkEventExists(eventType, eventId) {
+        // Проверяваме дали събитието съществува чрез GET заявка
+        // Ако събитието не съществува, контролерът връща "error/404" страница
+        const requestOptions = {
+            credentials: 'same-origin',
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        };
+
+        try {
+            let url = '';
+            switch (eventType.toUpperCase()) {
+                case 'SIMPLEEVENT':
+                case 'SIMPLE_EVENT':
+                    url = `/event/${eventId}`;
+                    break;
+                case 'REFERENDUM':
+                    url = `/referendum/${eventId}`;
+                    break;
+                case 'MULTI_POLL':
+                case 'MULTIPOLL':
+                    url = `/multipoll/${eventId}`;
+                    break;
+                default:
+                    return true;
+            }
+
+            const response = await fetch(url, { method: 'GET', ...requestOptions });
+            
+            // Ако статус кодът не е 200, ресурсът не съществува
+            if (!response.ok) {
+                return false;
+            }
+
+            // Проверяваме дали отговорът е HTML страница за грешка
+            const text = await response.text();
+            
+            // Проверяваме дали URL-ът е пренасочен към страница за грешка
+            const finalUrl = response.url;
+            if (finalUrl.includes('/error/') || finalUrl.includes('404')) {
+                return false;
+            }
+
+            // Проверяваме за индикатори за грешка в HTML-а
+            // Страницата за 404 съдържа: "404 - Страницата не съществува" и "Страницата не е намерена"
+            const errorIndicators = [
+                '404 - страницата не съществува',
+                'страницата не е намерена',
+                'не е намерено',
+                'събитието не е намерено',
+                'референдумът не е намерен',
+                'анкетата не е намерена',
+                '/error/404',
+                'error-style.css' // CSS файлът за страниците за грешка
+            ];
+
+            // Проверяваме дали HTML-ът съдържа индикатори за грешка
+            const lowerText = text.toLowerCase();
+            for (const indicator of errorIndicators) {
+                if (lowerText.includes(indicator)) {
+                    return false;
+                }
+            }
+
+            // Допълнителна проверка: ако страницата е много къса (под 500 символа), вероятно е страница за грешка
+            if (text.length < 500 && (lowerText.includes('404') || lowerText.includes('грешка'))) {
+                return false;
+            }
+
+            // Ако не сме намерили индикатори за грешка, приемаме че ресурсът съществува
+            return true;
+        } catch (error) {
+            console.error('Error checking event existence:', error);
+            return false;
+        }
+    }
+
+    async checkCommentExists(commentId, actionUrl) {
+        // Парсираме URL-а за да намерим родителския ресурс
+        // Пример: /publications?openModal=123#comment-456
+        // Пример: /event/123#comment-456
+        
+        try {
+            // Извличаме hash преди да парсираме URL-а, защото hash не се предава в URL конструктора
+            const hashMatch = actionUrl.match(/#comment-(\d+)/);
+            const hash = hashMatch ? hashMatch[0] : ''; // #comment-456
+            
+            // Премахваме hash-а от URL-а преди парсиране
+            const urlWithoutHash = actionUrl.split('#')[0];
+            const url = new URL(urlWithoutHash, window.location.origin);
+            const pathname = url.pathname;
+            const searchParams = url.searchParams;
+            
+            // Проверяваме дали коментарът в hash-а съответства на commentId
+            const commentHashMatch = hash.match(/#comment-(\d+)/);
+            if (commentHashMatch && commentHashMatch[1] !== String(commentId)) {
+                return false; // Hash-ът не съответства на commentId
+            }
+            
+            // Проверяваме родителския ресурс
+            if (pathname.includes('/publications')) {
+                const publicationId = searchParams.get('openModal');
+                if (publicationId) {
+                    const apiUrl = `/publications/api/${publicationId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) {
+                        const getResponse = await fetch(apiUrl, { 
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        return getResponse.ok;
+                    }
+                    return true;
+                }
+            } else if (pathname.includes('/event/')) {
+                const eventIdMatch = pathname.match(/\/event\/(\d+)/);
+                if (eventIdMatch) {
+                    const eventId = eventIdMatch[1];
+                    const apiUrl = `/event/${eventId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    return response.ok;
+                }
+            } else if (pathname.includes('/referendum/')) {
+                const referendumIdMatch = pathname.match(/\/referendum\/(\d+)/);
+                if (referendumIdMatch) {
+                    const referendumId = referendumIdMatch[1];
+                    const apiUrl = `/referendum/${referendumId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    return response.ok;
+                }
+            } else if (pathname.includes('/multipoll/')) {
+                const multipollIdMatch = pathname.match(/\/multipoll\/(\d+)/);
+                if (multipollIdMatch) {
+                    const multipollId = multipollIdMatch[1];
+                    const apiUrl = `/multipoll/${multipollId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    return response.ok;
+                }
+            } else if (pathname.includes('/signals/')) {
+                const signalId = searchParams.get('openSignal');
+                if (signalId) {
+                    const apiUrl = `/signals/mainView?openSignal=${signalId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    return response.ok;
+                }
+            }
+            
+            // Ако не можем да определим родителския ресурс, приемаме че не съществува
+            return false;
+        } catch (error) {
+            console.error('Error checking comment existence:', error);
+            return false;
+        }
+    }
+
+    async checkResourceFromUrl(actionUrl) {
+        // Опитваме се да парсираме ресурса от URL-а
+        try {
+            const url = new URL(actionUrl, window.location.origin);
+            const pathname = url.pathname;
+            const searchParams = url.searchParams;
+            
+            if (pathname.includes('/publications')) {
+                const publicationId = searchParams.get('openModal');
+                if (publicationId) {
+                    const apiUrl = `/publications/api/${publicationId}`;
+                    const response = await fetch(apiUrl, { 
+                        method: 'HEAD',
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) {
+                        const getResponse = await fetch(apiUrl, { 
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        return getResponse.ok;
+                    }
+                    return true;
+                }
+            }
+            // Добавете други типове ресурси ако е необходимо
+        } catch (error) {
+            console.error('Error checking resource from URL:', error);
+            return false;
+        }
+        
+        return true; // Ако не можем да проверим, приемаме че съществува
+    }
+
+    async navigateToNotification(actionUrl, notificationId = null, entityType = '', entityId = '') {
+        if (!actionUrl || actionUrl === 'null' || actionUrl === '') {
             this.showMissingModal();
             return;
         }
 
+        // Проверяваме дали ресурсът съществува преди навигация
+        const resourceExists = await this.checkResourceExists(entityType, entityId, actionUrl);
+        if (!resourceExists) {
+            this.showMissingModal();
+            return;
+        }
+
+        if (notificationId) {
+            this.markAsRead(notificationId);
+        }
         window.location.href = actionUrl;
     }
 
