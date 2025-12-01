@@ -804,21 +804,13 @@ class ProfileManager {
     showLoading() {
         this.isLoading = true;
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.style.display = 'flex';
-            overlay.style.opacity = '1';
-        }
+        overlay?.classList.add('is-active');
     }
 
     hideLoading() {
         this.isLoading = false;
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
-        }
+        overlay?.classList.remove('is-active');
     }
 
     hideModal() {

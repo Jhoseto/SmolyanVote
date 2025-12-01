@@ -5,9 +5,9 @@
             if (!this.modal) return;
 
             this.imageWrapper = document.getElementById('profileAvatarModalImageWrapper');
-            this.titleEl = document.getElementById('profileAvatarModalTitle');
+            this.viewport = document.getElementById('profileAvatarViewport');
             this.zoomValueEl = document.getElementById('profileAvatarZoomValue');
-            this.loadingTemplate = this.imageWrapper?.querySelector('.profile-avatar-modal__loading');
+            this.loadingTemplate = this.viewport?.querySelector('.profile-avatar-modal__loading');
 
             this.zoomInBtn = document.getElementById('profileAvatarZoomIn');
             this.zoomOutBtn = document.getElementById('profileAvatarZoomOut');
@@ -61,9 +61,9 @@
                 }
             });
 
-            if (this.imageWrapper) {
-                this.imageWrapper.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
-                this.imageWrapper.addEventListener('dblclick', () => this.toggleZoom());
+            if (this.viewport) {
+                this.viewport.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+                this.viewport.addEventListener('dblclick', () => this.toggleZoom());
             }
         }
 
@@ -100,10 +100,6 @@
             this.modal.classList.add('is-open');
             document.body.classList.add('profile-avatar-modal-open');
 
-            if (this.titleEl) {
-                this.titleEl.textContent = username || 'Потребител';
-            }
-
             this.resetTransform();
             this.renderImage(imageUrl, username);
 
@@ -126,7 +122,7 @@
         }
 
         renderImage(imageUrl, username) {
-            if (!this.imageWrapper) return;
+            if (!this.viewport) return;
 
             this.showLoading();
             this.resetTransform();
@@ -154,7 +150,7 @@
         }
 
         renderPlaceholder(username) {
-            if (!this.imageWrapper) return;
+            if (!this.viewport) return;
 
             let placeholderElement;
 
@@ -179,15 +175,15 @@
         }
 
         injectZoomLayer(contentNode, enableControls) {
-            if (!this.imageWrapper) return;
+            if (!this.viewport) return;
 
-            this.imageWrapper.innerHTML = '';
+            this.viewport.innerHTML = '';
 
             const layer = document.createElement('div');
             layer.className = 'profile-avatar-modal__zoom-layer';
             layer.appendChild(contentNode);
 
-            this.imageWrapper.appendChild(layer);
+            this.viewport.appendChild(layer);
             this.zoomLayer = layer;
 
             this.resetTransform();
@@ -251,15 +247,15 @@
         }
 
         clampTranslation() {
-            if (!this.zoomLayer || !this.imageWrapper) return;
+            if (!this.zoomLayer || !this.viewport) return;
 
             const content = this.zoomLayer.firstElementChild;
             if (!content) return;
 
-            const baseWidth = content.naturalWidth || content.videoWidth || content.offsetWidth || this.imageWrapper.offsetWidth;
-            const baseHeight = content.naturalHeight || content.videoHeight || content.offsetHeight || this.imageWrapper.offsetHeight;
-            const wrapperWidth = this.imageWrapper.clientWidth;
-            const wrapperHeight = this.imageWrapper.clientHeight;
+            const baseWidth = content.naturalWidth || content.videoWidth || content.offsetWidth || this.viewport.offsetWidth;
+            const baseHeight = content.naturalHeight || content.videoHeight || content.offsetHeight || this.viewport.offsetHeight;
+            const wrapperWidth = this.viewport.clientWidth;
+            const wrapperHeight = this.viewport.clientHeight;
 
             const scaledWidth = baseWidth * this.zoom;
             const scaledHeight = baseHeight * this.zoom;
@@ -343,20 +339,20 @@
         }
 
         showLoading() {
-            if (!this.imageWrapper) return;
+            if (!this.viewport) return;
 
             this.zoomLayer = null;
             this.isDragging = false;
             this.activePointerId = null;
 
-            this.imageWrapper.innerHTML = '';
+            this.viewport.innerHTML = '';
             if (this.loadingTemplate) {
-                this.imageWrapper.appendChild(this.loadingTemplate.cloneNode(true));
+                this.viewport.appendChild(this.loadingTemplate.cloneNode(true));
             } else {
                 const spinner = document.createElement('div');
                 spinner.className = 'profile-avatar-modal__loading';
-                spinner.innerHTML = `<div class="profile-avatar-modal__spinner"></div><span>Зареждане...</span>`;
-                this.imageWrapper.appendChild(spinner);
+                spinner.innerHTML = `<div class="profile-avatar-modal__spinner"></div>`;
+                this.viewport.appendChild(spinner);
             }
         }
 

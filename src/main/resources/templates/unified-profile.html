@@ -451,10 +451,7 @@
                         <div class="users-grid" id="followersGrid">
                             <!-- Loading State -->
                             <div class="users-loading-state" id="followersLoading">
-                                <div class="loading-spinner">
-                                    <i class="bi bi-hourglass-split"></i>
-                                </div>
-                                <p>Зареждане на последователи...</p>
+                                <span class="sv-spinner sv-spinner--md"></span>
                             </div>
 
                             <!-- Empty State -->
@@ -475,10 +472,7 @@
                         <div class="users-grid" id="followingGrid">
                             <!-- Loading State -->
                             <div class="users-loading-state" id="followingLoading">
-                                <div class="loading-spinner">
-                                    <i class="bi bi-hourglass-split"></i>
-                                </div>
-                                <p>Зареждане на следвани...</p>
+                                <span class="sv-spinner sv-spinner--md"></span>
                             </div>
 
                             <!-- Empty State -->
@@ -656,22 +650,17 @@
 
 <!-- Profile Avatar Modal -->
 <div id="profileAvatarModal" class="profile-avatar-modal" aria-hidden="true" role="dialog"
-     aria-labelledby="profileAvatarModalTitle">
+     aria-label="Преглед на профилна снимка">
     <div class="profile-avatar-modal__backdrop" data-avatar-modal-close></div>
     <div class="profile-avatar-modal__dialog">
         <button class="profile-avatar-modal__close" type="button" data-avatar-modal-close aria-label="Затвори">
             <i class="bi bi-x-lg"></i>
         </button>
         <div class="profile-avatar-modal__image-wrapper" id="profileAvatarModalImageWrapper">
-            <div class="profile-avatar-modal__loading">
-                <div class="profile-avatar-modal__spinner"></div>
-                <span>Зареждане...</span>
-            </div>
-        </div>
-        <div class="profile-avatar-modal__info">
-            <div class="profile-avatar-modal__user">
-                <h3 id="profileAvatarModalTitle" class="profile-avatar-modal__title">Потребител</h3>
-                <span class="profile-avatar-modal__subtitle">Профилна снимка</span>
+            <div class="profile-avatar-modal__viewport" id="profileAvatarViewport">
+                <div class="profile-avatar-modal__loading">
+                    <div class="sv-spinner sv-spinner--light sv-spinner--md"></div>
+                </div>
             </div>
             <div class="profile-avatar-modal__controls">
                 <button id="profileAvatarZoomOut" class="profile-avatar-control-btn" type="button" title="Намали">
@@ -685,10 +674,6 @@
                 </button>
                 <span class="profile-avatar-modal__zoom-value" id="profileAvatarZoomValue">100%</span>
             </div>
-            <p class="profile-avatar-modal__hint">
-                Използвай колелцето на мишката или плъзни, за да разгледаш детайли.
-                Двойно кликване връща нормален размер.
-            </p>
         </div>
     </div>
 </div>
@@ -696,10 +681,7 @@
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-spinner">
-        <div class="spinner-ring"></div>
-        <div class="loading-text">Зареждане...</div>
-    </div>
+    <div class="sv-spinner sv-spinner--lg sv-spinner--light"></div>
 </div>
 
 <!-- Footer -->
