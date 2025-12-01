@@ -128,15 +128,6 @@ class UserFollowSystem {
     // ==================== EVENT LISTENERS ====================
 
     setupEventListeners() {
-        // Главен follow бутон
-        const followButton = document.getElementById('followButton');
-        if (followButton) {
-            followButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleMainFollowClick(followButton);
-            });
-        }
-
         // Tab switching бутони
         document.addEventListener('click', (e) => {
             if (e.target.matches('.users-sub-tab-btn') || e.target.closest('.users-sub-tab-btn')) {
@@ -179,7 +170,7 @@ class UserFollowSystem {
                 const link = e.target.closest('.user-follow-link');
                 const userId = link?.dataset.userId;
                 if (userId) {
-                    this.handleFollowAction(userId, 'follow');
+                    this.handleFollowAction(userId, 'follow', link);
                 }
             }
 
@@ -189,7 +180,7 @@ class UserFollowSystem {
                 const link = e.target.closest('.user-unfollow-link');
                 const userId = link?.dataset.userId;
                 if (userId) {
-                    this.handleFollowAction(userId, 'unfollow');
+                    this.handleFollowAction(userId, 'unfollow', link);
                 }
             }
 
@@ -248,6 +239,39 @@ class UserFollowSystem {
                 }, 300);
             });
         }
+
+        // Hero действия за чужд профил
+        this.delegateEvent('.profile-follow-link', 'click', async (e, button) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (button?.dataset.userId) {
+                await this.handleFollowAction(button.dataset.userId, 'follow', button);
+            }
+        });
+
+        this.delegateEvent('.profile-unfollow-link', 'click', async (e, button) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (button?.dataset.userId) {
+                await this.handleFollowAction(button.dataset.userId, 'unfollow', button);
+            }
+        });
+
+        this.delegateEvent('.profile-message-link', 'click', async (e, button) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (button?.dataset.userId) {
+                await this.handleMessageAction(button.dataset.userId);
+            }
+        });
+
+        this.delegateEvent('.profile-report-link', 'click', (e, button) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (button?.dataset.userId) {
+                this.handleReportAction(button.dataset.userId);
+            }
+        });
     }
 
     // ==================== TABS УПРАВЛЕНИЕ ====================
@@ -686,43 +710,6 @@ class UserFollowSystem {
     /**
      * Handle на главния follow бутон
      */
-    async handleMainFollowClick(button) {
-        if (!this.isAuthenticated || !button) return;
-
-        const userId = parseInt(button.dataset.userId);
-        const action = button.dataset.action;
-
-        if (!userId) return;
-
-        this.setButtonLoading(button, true);
-
-        try {
-            let response;
-            if (action === 'follow') {
-                response = await this.followUser(userId);
-            } else {
-                response = await this.unfollowUser(userId);
-            }
-
-            if (response && response.success) {
-                this.updateMainFollowButton(button, response.action);
-                this.updateFollowCounters(response);
-                this.showNotification(response.message, 'success');
-
-                // Обновява user картите ако са заредени
-                this.refreshUserCardsAfterFollowChange(userId, response.action);
-            } else {
-                this.showNotification(response?.message || 'Възникна грешка', 'error');
-            }
-
-        } catch (error) {
-            console.error('Follow request failed:', error);
-            this.showNotification('Възникна грешка. Опитайте отново.', 'error');
-        } finally {
-            this.setButtonLoading(button, false);
-        }
-    }
-
     /**
      * Handle на follow бутоните в user картите
      */
@@ -763,8 +750,12 @@ class UserFollowSystem {
     /**
      * Handle на follow/unfollow действия от dropdown
      */
-    async handleFollowAction(userId, action) {
+    async handleFollowAction(userId, action, button = null) {
         if (!this.isAuthenticated) return;
+
+        if (button) {
+            this.setButtonLoading(button, true);
+        }
 
         try {
             let response;
@@ -778,6 +769,9 @@ class UserFollowSystem {
                 // Определяме дали потребителят се следва СЛЕД операцията
                 const isFollowingAfterAction = action === 'follow';
                 this.updateFollowUI(userId, isFollowingAfterAction);
+                if (response.followersCount !== undefined || response.followingCount !== undefined) {
+                    this.updateFollowCounters(response);
+                }
                 this.showNotification(response.message, 'success');
             } else {
                 this.showNotification(response?.message || 'Възникна грешка', 'error');
@@ -786,6 +780,10 @@ class UserFollowSystem {
         } catch (error) {
             console.error('Follow action error:', error);
             this.showNotification('Възникна грешка. Опитайте отново.', 'error');
+        } finally {
+            if (button) {
+                this.setButtonLoading(button, false);
+            }
         }
     }
 
@@ -866,12 +864,8 @@ class UserFollowSystem {
      * Обновява UI-то след follow/unfollow операция
      */
     updateFollowUI(userId, isFollowing) {
-        // Обновяваме главния follow бутон
-        const mainFollowButton = document.getElementById('followButton');
-        if (mainFollowButton && mainFollowButton.dataset.userId === userId.toString()) {
-            const action = isFollowing ? 'followed' : 'not-followed';
-            this.updateMainFollowButton(mainFollowButton, action);
-        }
+        // Обновяваме бутоните в hero секцията
+        this.toggleHeroFollowButtons(isFollowing);
 
         // Обновяваме user картите - прегенерираме цялата карта
         const userCards = document.querySelectorAll(`[data-user-id="${userId}"]`);
@@ -905,21 +899,36 @@ class UserFollowSystem {
                 }
             }
         });
+    }
 
-        // Обновяваме статистиките
-        this.updateFollowCounters({ 
-            followersCount: isFollowing ? 
-                (parseInt(document.querySelector('.followers-count')?.textContent || 0) + 1) : 
-                (parseInt(document.querySelector('.followers-count')?.textContent || 0) - 1)
-        });
+    toggleHeroFollowButtons(isFollowing) {
+        const followBtn = document.getElementById('profileFollowBtn');
+        const unfollowBtn = document.getElementById('profileUnfollowBtn');
+
+        if (followBtn) {
+            if (isFollowing) {
+                followBtn.classList.add('d-none');
+            } else {
+                followBtn.classList.remove('d-none');
+            }
+        }
+
+        if (unfollowBtn) {
+            if (isFollowing) {
+                unfollowBtn.classList.remove('d-none');
+            } else {
+                unfollowBtn.classList.add('d-none');
+            }
+        }
     }
 
     /**
      * Зарежда началното follow състояние
      */
     async loadInitialFollowStatus() {
-        const followButton = document.getElementById('followButton');
-        if (!followButton || !this.profileUserId) return;
+        const followBtn = document.getElementById('profileFollowBtn');
+        const unfollowBtn = document.getElementById('profileUnfollowBtn');
+        if (!this.profileUserId || (!followBtn && !unfollowBtn)) return;
 
         try {
             const response = await fetch(`/api/follow/${this.profileUserId}/status`, {
@@ -928,8 +937,7 @@ class UserFollowSystem {
 
             const data = await response.json();
             if (data && data.success) {
-                const action = data.isFollowing ? 'followed' : 'not-followed';
-                this.updateMainFollowButton(followButton, action);
+                this.toggleHeroFollowButtons(data.isFollowing);
                 this.updateFollowCounters(data);
             }
 
@@ -939,28 +947,6 @@ class UserFollowSystem {
     }
 
     // ==================== UI ОБНОВЛЕНИЯ ====================
-
-    /**
-     * Обновява главния follow бутон
-     */
-    updateMainFollowButton(button, action) {
-        if (!button) return;
-
-        const icon = button.querySelector('i');
-        const span = button.querySelector('span');
-
-        if (action === 'followed') {
-            button.dataset.action = 'unfollow';
-            button.className = 'btn btn-outline-secondary action-btn follow-btn';
-            if (icon) icon.className = 'bi bi-person-dash';
-            if (span) span.textContent = 'Не следвай';
-        } else {
-            button.dataset.action = 'follow';
-            button.className = 'btn btn-primary action-btn follow-btn';
-            if (icon) icon.className = 'bi bi-person-plus';
-            if (span) span.textContent = 'Следвай';
-        }
-    }
 
     /**
      * Обновява follow бутона в user картата
@@ -1015,15 +1001,6 @@ class UserFollowSystem {
         if (followingTabBtn && data.followingCount !== undefined) {
             followingTabBtn.textContent = data.followingCount;
         }
-    }
-
-    /**
-     * Рефрешва user картите след follow промяна
-     */
-    refreshUserCardsAfterFollowChange(userId, action) {
-        document.querySelectorAll(`[data-user-id="${userId}"] .user-follow-btn`).forEach(button => {
-            this.updateUserCardFollowButton(button, action);
-        });
     }
 
     /**
@@ -1242,287 +1219,4 @@ if (!document.querySelector('style[data-follow-system-styles]')) {
         }
     `;
     document.head.appendChild(style);
-}
-
-// ===== PROFILE HEADER DROPDOWN FUNCTIONALITY =====
-
-/**
- * Initialize profile header dropdown functionality
- */
-function initializeProfileHeaderDropdown() {
-    console.log('Initializing profile header dropdown...');
-    
-    // Handle dropdown toggle
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.profile-header-dropdown .dropdown-toggle')) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleProfileHeaderDropdownToggle(e.target.closest('.profile-header-dropdown'));
-        }
-    });
-
-    // Handle dropdown item clicks
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.profile-header-dropdown .dropdown-item') || 
-            e.target.closest('.profile-follow-link') || 
-            e.target.closest('.profile-unfollow-link')) {
-            e.preventDefault();
-            e.stopPropagation();
-            const item = e.target.closest('.dropdown-item') || 
-                        e.target.closest('.profile-follow-link') || 
-                        e.target.closest('.profile-unfollow-link');
-            handleProfileHeaderDropdownAction(item);
-        }
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.profile-header-dropdown')) {
-            closeAllProfileHeaderDropdowns();
-        }
-    });
-}
-
-/**
- * Handle profile header dropdown toggle
- */
-function handleProfileHeaderDropdownToggle(dropdown) {
-    console.log('Profile header dropdown toggle clicked');
-    
-    // Close all other dropdowns first
-    closeAllProfileHeaderDropdowns();
-    
-    const menu = dropdown.querySelector('.dropdown-menu');
-    if (menu) {
-        menu.classList.add('show');
-        console.log('Profile header dropdown opened');
-    }
-}
-
-/**
- * Close all profile header dropdowns
- */
-function closeAllProfileHeaderDropdowns() {
-    const openDropdowns = document.querySelectorAll('.profile-header-dropdown .dropdown-menu.show');
-    openDropdowns.forEach(menu => {
-        menu.classList.remove('show');
-    });
-}
-
-/**
- * Handle profile header dropdown action
- */
-function handleProfileHeaderDropdownAction(item) {
-    const action = item.className;
-    const userId = item.dataset.userId;
-    
-    console.log('Profile header dropdown action:', action, 'for user:', userId);
-    
-    if (action.includes('profile-follow-link')) {
-        handleProfileHeaderFollow(userId);
-    } else if (action.includes('profile-unfollow-link')) {
-        handleProfileHeaderUnfollow(userId);
-    } else if (action.includes('profile-message-link')) {
-        handleProfileHeaderMessage(userId);
-    } else if (action.includes('profile-report-link')) {
-        handleProfileHeaderReport(userId);
-    }
-    
-    // Close dropdown after action
-    closeAllProfileHeaderDropdowns();
-}
-
-/**
- * Handle profile header follow action
- */
-async function handleProfileHeaderFollow(userId) {
-    console.log('Profile header follow action for user:', userId);
-    
-    try {
-        const response = await fetch(`/api/follow/${userId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                [getCsrfHeader()]: getCsrfToken(),
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-
-        if (response.ok) {
-            console.log('Profile header follow successful');
-            // Update UI to show unfollow option
-            updateProfileHeaderFollowUI(userId, true);
-            // Update followers count
-            updateFollowersCount();
-            showNotification('Успешно започнахте да следвате потребителя', 'success');
-        } else {
-            throw new Error('Follow failed');
-        }
-    } catch (error) {
-        console.error('Profile header follow error:', error);
-        showNotification('Грешка при следване на потребителя', 'error');
-    }
-}
-
-/**
- * Handle profile header unfollow action
- */
-async function handleProfileHeaderUnfollow(userId) {
-    console.log('Profile header unfollow action for user:', userId);
-    
-    try {
-        const response = await fetch(`/api/follow/${userId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                [getCsrfHeader()]: getCsrfToken(),
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-
-        if (response.ok) {
-            console.log('Profile header unfollow successful');
-            // Update UI to show follow option
-            updateProfileHeaderFollowUI(userId, false);
-            // Update followers count
-            updateFollowersCount();
-            showNotification('Успешно спряхте да следвате потребителя', 'success');
-        } else {
-            throw new Error('Unfollow failed');
-        }
-    } catch (error) {
-        console.error('Profile header unfollow error:', error);
-        showNotification('Грешка при спиране на следването', 'error');
-    }
-}
-
-/**
- * Handle profile header message action
- */
-async function handleProfileHeaderMessage(userId) {
-    console.log('Profile header message action for user:', userId);
-    
-    if (window.SVMessenger && window.SVMessenger.startConversation) {
-        try {
-            console.log('SVMessenger: Starting conversation with user', userId);
-            const conversation = await window.SVMessenger.startConversation(userId);
-            console.log('SVMessenger: Conversation started successfully', conversation);
-            
-            // Open the chat window
-            if (window.SVMessenger.openChat) {
-                console.log('SVMessenger: Opening chat window for conversation', conversation.id);
-                window.SVMessenger.openChat(conversation.id);
-            }
-        } catch (error) {
-            console.error('SVMessenger: Failed to start conversation:', error);
-            showNotification('Грешка при отваряне на чат прозорец', 'error');
-        }
-    } else {
-        console.log('SVMessenger not available');
-        showNotification('Чат системата не е налична в момента', 'error');
-    }
-}
-
-/**
- * Handle profile header report action
- */
-function handleProfileHeaderReport(userId) {
-    console.log('Profile header report action for user:', userId);
-    showNotification('Функцията за докладване ще бъде добавена скоро', 'info');
-}
-
-/**
- * Update profile header follow UI
- */
-function updateProfileHeaderFollowUI(userId, isFollowing) {
-    const dropdown = document.querySelector('.profile-header-dropdown');
-    if (!dropdown) return;
-    
-    const menu = dropdown.querySelector('.dropdown-menu');
-    if (!menu) return;
-    
-    // Remove existing follow/unfollow options
-    const existingFollow = menu.querySelector('.profile-follow-link');
-    const existingUnfollow = menu.querySelector('.profile-unfollow-link');
-    
-    if (existingFollow) existingFollow.parentElement.remove();
-    if (existingUnfollow) existingUnfollow.parentElement.remove();
-    
-    // Add new option based on follow status
-    const messageItem = menu.querySelector('.profile-message-link').parentElement;
-    if (messageItem) {
-        if (isFollowing) {
-            // Add unfollow option
-            const unfollowItem = document.createElement('li');
-            unfollowItem.innerHTML = `
-                <a class="dropdown-item profile-unfollow-link" href="#" data-user-id="${userId}">
-                    <i class="bi bi-person-dash"></i>
-                    <span>Отследвай</span>
-                </a>
-            `;
-            messageItem.parentElement.insertBefore(unfollowItem, messageItem);
-        } else {
-            // Add follow option
-            const followItem = document.createElement('li');
-            followItem.innerHTML = `
-                <a class="dropdown-item profile-follow-link" href="#" data-user-id="${userId}">
-                    <i class="bi bi-person-plus"></i>
-                    <span>Следвай</span>
-                </a>
-            `;
-            messageItem.parentElement.insertBefore(followItem, messageItem);
-        }
-    }
-}
-
-/**
- * Update followers count
- */
-function updateFollowersCount() {
-    // This function should be implemented to update the followers count in the header
-    // For now, we'll just log it
-    console.log('Updating followers count...');
-}
-
-/**
- * Show notification
- */
-function showNotification(message, type = 'info') {
-    // Simple notification implementation
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
-    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 3000);
-}
-
-/**
- * Get CSRF token
- */
-function getCsrfToken() {
-    const meta = document.querySelector('meta[name="_csrf"]');
-    return meta ? meta.content : '';
-}
-
-function getCsrfHeader() {
-    const meta = document.querySelector('meta[name="_csrf_header"]');
-    return meta ? meta.content : 'X-CSRF-TOKEN';
-}
-
-// Initialize profile header dropdown when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeProfileHeaderDropdown);
-} else {
-    initializeProfileHeaderDropdown();
 }

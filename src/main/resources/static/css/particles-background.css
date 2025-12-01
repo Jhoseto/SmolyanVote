@@ -25,6 +25,14 @@
     pointer-events: none;
 }
 
+.particles-background.particles-interactive {
+    pointer-events: auto;
+}
+
+.particles-background.particles-interactive canvas {
+    pointer-events: auto;
+}
+
 /* particles.js canvas */
 .particles-background canvas {
     display: block;

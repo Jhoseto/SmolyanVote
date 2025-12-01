@@ -104,8 +104,8 @@ body {
 
     /* СНИМКАТА КАТО BACKGROUND */
     background-image: url('/images/web/hero3.jpg');
-    background-size: var(--hero-image-size);
-    background-position: var(--hero-image-x) var(--hero-image-y);
+    background-size: cover;
+    background-position: center top;
     background-repeat: no-repeat;
     /* ПОПРАВЕНО: премахнат fixed за по-ясен текст на всички браузъри */
 

@@ -64,7 +64,8 @@
         <div class="profile-header-card glass-card">
             <!-- Avatar Section -->
             <div class="avatar-section">
-                <div class="avatar-container">
+                <div class="avatar-container"
+                     th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
                     <div class="user-avatar profile-avatar avatar-placeholder"
                          th:attr="data-user-image=${user.imageUrl},data-username=${user.username}">
                     </div>
@@ -112,50 +113,38 @@
                         <i class="bi bi-pencil-square"></i>
                         <span>Редактирай профил</span>
                     </button>
-                    <button class="btn btn-outline-secondary action-btn settings-btn">
-                        <i class="bi bi-gear"></i>
-                        <span>Настройки</span>
-                    </button>
                 </div>
 
                 <!-- Other Profile Actions -->
                 <div th:unless="${isOwnProfile}" class="other-profile-actions">
-                    <!-- Dropdown Menu with all actions -->
-                    <div class="profile-header-dropdown">
-                        <button class="dropdown-toggle" type="button" title="Още опции">
-                            <i class="bi bi-three-dots"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <!-- Follow/Unfollow option -->
-                            <li th:if="${not isFollowing}">
-                                <a class="dropdown-item profile-follow-link" href="#" th:data-user-id="${user.id}">
-                                    <i class="bi bi-person-plus"></i>
-                                    <span>Следвай</span>
-                                </a>
-                            </li>
-                            <li th:if="${isFollowing}">
-                                <a class="dropdown-item profile-unfollow-link" href="#" th:data-user-id="${user.id}">
-                                    <i class="bi bi-person-dash"></i>
-                                    <span>Отследвай</span>
-                                </a>
-                            </li>
-                            <!-- Message option -->
-                            <li>
-                                <a class="dropdown-item profile-message-link" href="#" th:data-user-id="${user.id}">
-                                    <i class="bi bi-chat-dots"></i>
-                                    <span>Съобщение</span>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <!-- Report option -->
-                            <li>
-                                <a class="dropdown-item profile-report-link" href="#" th:data-user-id="${user.id}">
-                                    <i class="bi bi-flag"></i>
-                                    <span>Докладвай потребител</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <button type="button"
+                            id="profileFollowBtn"
+                            class="profile-action-button profile-follow-link"
+                            th:classappend="${isFollowing} ? ' d-none' : ''"
+                            th:attr="data-user-id=${user.id}">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Следвай</span>
+                    </button>
+                    <button type="button"
+                            id="profileUnfollowBtn"
+                            class="profile-action-button profile-unfollow-link"
+                            th:classappend="${isFollowing} ? '' : ' d-none'"
+                            th:attr="data-user-id=${user.id}">
+                        <i class="bi bi-person-dash"></i>
+                        <span>Отследвай</span>
+                    </button>
+                    <button type="button"
+                            class="profile-action-button profile-message-link"
+                            th:attr="data-user-id=${user.id}">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Съобщение</span>
+                    </button>
+                    <button type="button"
+                            class="profile-action-button profile-report-link"
+                            th:attr="data-user-id=${user.id}">
+                        <i class="bi bi-flag"></i>
+                        <span>Докладвай потребител</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -665,6 +654,45 @@
 <!-- Post Detail Modal Fragment -->
 <div th:replace="~{fragments/publications-detail-modal :: postModal}"></div>
 
+<!-- Profile Avatar Modal -->
+<div id="profileAvatarModal" class="profile-avatar-modal" aria-hidden="true" role="dialog"
+     aria-labelledby="profileAvatarModalTitle">
+    <div class="profile-avatar-modal__backdrop" data-avatar-modal-close></div>
+    <div class="profile-avatar-modal__dialog">
+        <button class="profile-avatar-modal__close" type="button" data-avatar-modal-close aria-label="Затвори">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="profile-avatar-modal__image-wrapper" id="profileAvatarModalImageWrapper">
+            <div class="profile-avatar-modal__loading">
+                <div class="profile-avatar-modal__spinner"></div>
+                <span>Зареждане...</span>
+            </div>
+        </div>
+        <div class="profile-avatar-modal__info">
+            <div class="profile-avatar-modal__user">
+                <h3 id="profileAvatarModalTitle" class="profile-avatar-modal__title">Потребител</h3>
+                <span class="profile-avatar-modal__subtitle">Профилна снимка</span>
+            </div>
+            <div class="profile-avatar-modal__controls">
+                <button id="profileAvatarZoomOut" class="profile-avatar-control-btn" type="button" title="Намали">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+                <button id="profileAvatarZoomReset" class="profile-avatar-control-btn" type="button" title="100%">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+                <button id="profileAvatarZoomIn" class="profile-avatar-control-btn" type="button" title="Увеличи">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+                <span class="profile-avatar-modal__zoom-value" id="profileAvatarZoomValue">100%</span>
+            </div>
+            <p class="profile-avatar-modal__hint">
+                Използвай колелцето на мишката или плъзни, за да разгледаш детайли.
+                Двойно кликване връща нормален размер.
+            </p>
+        </div>
+    </div>
+</div>
+
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
@@ -695,7 +723,8 @@
 <script src="/js/utils/particles-background.js"></script>
 <div th:replace="~{fragments/bottomHtmlStyles :: bottomStyles}"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/userProfile/profile-interactions.js"></script>
+<script type="module" src="/js/userProfile/profile-interactions.js"></script>
+<script src="/js/userProfile/profile-avatar-modal.js"></script>
 <script src="/js/notifications.js"></script>
 <script src="/js/userProfile/notifications-profile.js"></script>
 
