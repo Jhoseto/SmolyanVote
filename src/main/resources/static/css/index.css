@@ -106,6 +106,7 @@ body {
     background-image: url('/images/web/hero3.jpg');
     background-size: cover;
     background-position: center top;
+    background-position-y: 38px;
     background-repeat: no-repeat;
     /* ПОПРАВЕНО: премахнат fixed за по-ясен текст на всички браузъри */
 
@@ -163,7 +164,7 @@ body {
     font-weight: 500;
     line-height: 1.1;
     margin-bottom: 0;
-    margin-top: 6.5rem;
+    margin-top: 7.5rem;
 
     /* ПОПРАВЕНО: заменен градиент с обикновен цвят за перфектна четливост */
     color: var(--primary-green);
@@ -191,7 +192,8 @@ body {
     font-weight: 300;
     line-height: 4.6;
     color: var(--text-secondary);
-    margin-bottom: 0;
+    margin-bottom: 15px;
+    margin-top: 15px;
 
     /* ПОПРАВЕНО: минимални ефекти за ясен текст */
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);

@@ -22,6 +22,9 @@ class ProfileManager {
         this.animateCounters();
         this.setupMobileSwipe();
         this.loadUserPreferences();
+        if (this.isOwnProfile) {
+            this.loadOwnerOverview();
+        }
     }
 
     extractPageData() {
@@ -193,7 +196,13 @@ class ProfileManager {
     // ===== REAL API INTEGRATION =====
     async loadTabContent(tabId) {
         // Events are already loaded statically in HTML with Thymeleaf
-        if (!this.userId || tabId === 'overview' || tabId === 'events') return;
+        if (!this.userId || tabId === 'events') return;
+        if (tabId === 'overview') {
+            if (this.isOwnProfile) {
+                this.loadOwnerOverview();
+            }
+            return;
+        }
 
         this.showLoading();
 
@@ -207,6 +216,78 @@ class ProfileManager {
         } finally {
             this.hideLoading();
         }
+    }
+
+    async loadOwnerOverview() {
+        const container = document.getElementById('profile-notifications');
+        if (!container || container.offsetParent === null) return;
+        if (!container.hasAttribute('data-owner-overview')) return;
+
+        if (container.dataset.loaded === 'true') return;
+
+        container.innerHTML = `
+            <div class="owner-overview-loading">
+                <span class="sv-spinner sv-spinner--sm"></span>
+            </div>
+        `;
+
+        try {
+            const response = await this.fetchWithAuth('/api/notifications/recent?limit=50');
+
+            if (window.renderProfileNotifications) {
+                window.renderProfileNotifications(response, container);
+            } else if (window.renderNotificationsList) {
+                window.renderNotificationsList(response, container);
+            } else {
+                container.innerHTML = this.buildNotificationFallback(response);
+            }
+
+            container.dataset.loaded = 'true';
+        } catch (error) {
+            console.error('Failed to load notifications overview:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h4>Грешка</h4>
+                    <p>Неуспешно зареждане на нотификациите.</p>
+                </div>
+            `;
+        }
+    }
+
+    buildNotificationFallback(list = []) {
+        const notifications = this.normalizeNotifications(list);
+
+        if (!notifications.length) {
+            return `
+                <div class="empty-state">
+                    <i class="bi bi-bell"></i>
+                    <h4>Няма нотификации</h4>
+                </div>
+            `;
+        }
+
+        return notifications.map(item => `
+            <div class="notification-item ${item.read ? 'read' : 'unread'}">
+                <div class="notification-icon">
+                    ${item.actorImageUrl ? `<img src="${item.actorImageUrl}" alt="${item.actorUsername || ''}">` : `<i class="${item.icon || 'bi-bell'}"></i>`}
+                </div>
+                <div class="notification-content">
+                    <p class="notification-message">${item.message || ''}</p>
+                    <span class="notification-time">${item.timeAgo || ''}</span>
+                </div>
+                ${!item.read ? '<div class="notification-unread-dot"></div>' : ''}
+            </div>
+        `).join('');
+    }
+
+    normalizeNotifications(list = []) {
+        if (!Array.isArray(list)) return [];
+        return list.map(n => ({
+            ...n,
+            read: n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false),
+            isRead: n.isRead !== undefined ? n.isRead : (n.read !== undefined ? n.read : false)
+        }));
     }
 
     getTabEndpoint(tabId) {

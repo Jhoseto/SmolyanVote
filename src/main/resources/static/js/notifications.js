@@ -353,13 +353,13 @@ class NotificationSystem {
         container.querySelectorAll('.notification-item').forEach(item => {
             const id = item.getAttribute('data-notification-id');
             const url = item.getAttribute('data-action-url');
-            
-            item.addEventListener('click', (e) => {
+
+            item.addEventListener('click', async (e) => {
                 // Ако кликнеш на mark-read бутона, не изпълнява handleClick
                 if (e.target.closest('.notification-mark-read')) {
                     return;
                 }
-                this.handleClick(parseInt(id), url || '');
+                await this.handleClick(parseInt(id, 10), url || '');
             });
         });
         
@@ -421,10 +421,53 @@ class NotificationSystem {
         `;
     }
 
-    handleClick(id, url) {
+    async handleClick(id, url) {
         this.markAsRead(id);
-        if (url && url !== 'null' && url !== '') {
-            setTimeout(() => window.location.href = url, 100);
+        await this.navigateToNotification(url);
+    }
+
+    async navigateToNotification(actionUrl) {
+        if (!actionUrl || actionUrl === 'null' || actionUrl === '') {
+            this.showMissingModal();
+            return;
+        }
+
+        const requestOptions = {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        };
+
+        try {
+            let response = await fetch(actionUrl, { method: 'HEAD', ...requestOptions });
+
+            if (!response.ok) {
+                response = await fetch(actionUrl, { method: 'GET', ...requestOptions });
+                if (!response.ok) {
+                    this.showMissingModal();
+                    return;
+                }
+            }
+        } catch (error) {
+            this.showMissingModal();
+            return;
+        }
+
+        window.location.href = actionUrl;
+    }
+
+    showMissingModal() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Съдържанието не е налично',
+                text: 'Изглежда ресурсът, към който води тази нотификация, е премахнат или недостъпен.',
+                confirmButtonText: 'Разбрах',
+                confirmButtonColor: '#4b9f3e',
+                background: '#ffffff',
+                color: '#1f1f1f'
+            });
+        } else {
+            alert('Това съдържание вече не е налично.');
         }
     }
 
@@ -530,6 +573,24 @@ class NotificationSystem {
     }
 }
 
+if (typeof window.showNotificationMissingModal !== 'function') {
+    window.showNotificationMissingModal = () => {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Съдържанието не е налично',
+                text: 'Изглежда ресурсът, към който води тази нотификация, е премахнат или недостъпен.',
+                confirmButtonText: 'Разбрах',
+                confirmButtonColor: '#4b9f3e',
+                background: '#ffffff',
+                color: '#1f1f1f'
+            });
+        } else {
+            alert('Това съдържание вече не е налично.');
+        }
+    };
+}
+
 // ====== AUTO-INIT ======
 let notificationSystem;
 
@@ -544,6 +605,7 @@ function initNotifications() {
     if (bell) {
         notificationSystem = new NotificationSystem();
         window.notificationSystem = notificationSystem;
+        window.showNotificationMissingModal = notificationSystem.showMissingModal.bind(notificationSystem);
         // expose grouping for other pages (e.g., profile)
         window.groupNotifications = notificationSystem.groupNotifications.bind(notificationSystem);
     }

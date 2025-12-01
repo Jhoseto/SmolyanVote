@@ -1,63 +1,131 @@
 (function () {
-  async function fetchAll(page = 0, size = 50) {
-    const res = await fetch(`/api/notifications?page=${page}&size=${size}`);
-    if (!res.ok) return [];
-    return await res.json();
+  const normalize = (list = []) =>
+    (Array.isArray(list) ? list : []).map(n => ({
+      ...n,
+      read: n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false),
+      isRead: n.isRead !== undefined ? n.isRead : (n.read !== undefined ? n.read : false)
+    }));
+
+  function group(list) {
+    if (window.notificationSystem && typeof window.notificationSystem.groupNotifications === 'function') {
+      return window.notificationSystem.groupNotifications(list);
+    }
+    if (typeof window.groupNotifications === 'function') {
+      return window.groupNotifications(list);
+    }
+    return list;
   }
 
-  function render(list) {
-    const container = document.querySelector('#profile-notifications');
+  function createMarkup(items) {
+    if (window.notificationSystem && typeof window.notificationSystem.createNotificationHTML === 'function') {
+      return items.map(item => window.notificationSystem.createNotificationHTML(item)).join('');
+    }
+
+    return items.map(item => `
+      <div class="notification-item ${item.read ? 'read' : 'unread'}" data-notification-id="${item.id}" data-notification-ids="${item._ids?.join(',') || item.id}" data-action-url="${item.actionUrl || ''}">
+        <div class="notification-icon">
+          ${item.actorImageUrl ? `<img src="${item.actorImageUrl}" alt="${item.actorUsername || ''}">` : `<i class="${item.icon || 'bi-bell'}"></i>`}
+        </div>
+        <div class="notification-content">
+          <p class="notification-message">${item.message || ''}${item._count > 1 ? ` <span class="notification-count">(${item._count})</span>` : ''}</p>
+          <span class="notification-time">${item.timeAgo || ''}</span>
+        </div>
+        ${!item.read ? '<div class="notification-unread-dot"></div>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function attachHandler(container) {
+    if (container._profileNotifHandler) {
+      container.removeEventListener('click', container._profileNotifHandler);
+      container._profileNotifHandler = null;
+    }
+
+    container._profileNotifHandler = function (e) {
+      const markBtn = e.target.closest('.notification-mark-read');
+      const item = e.target.closest('.notification-item');
+      if (!item) return;
+
+      const idsAttr = markBtn
+        ? markBtn.getAttribute('data-notification-ids')
+        : item.getAttribute('data-notification-ids') || item.getAttribute('data-notification-id');
+
+      const ids = (idsAttr || '')
+        .split(',')
+        .map(id => parseInt(id.trim(), 10))
+        .filter(id => !Number.isNaN(id));
+
+      const mainId = ids[0];
+
+      if (markBtn) {
+        if (ids.length && window.notificationSystem && typeof window.notificationSystem.markAsRead === 'function') {
+          Promise.all(ids.map(id => window.notificationSystem.markAsRead(id).catch(() => {})));
+        }
+        item.classList.remove('unread');
+        item.classList.add('read');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      if (mainId && window.notificationSystem && typeof window.notificationSystem.markAsRead === 'function') {
+        window.notificationSystem.markAsRead(mainId).catch(() => {});
+      }
+
+      item.classList.remove('unread');
+      item.classList.add('read');
+
+      const list = container._notifications || [];
+      const match = list.find(n => String(n.id) === String(mainId));
+      if (match) {
+        match.read = true;
+        match.isRead = true;
+      }
+
+      if (match && match.actionUrl) {
+        if (window.notificationSystem && typeof window.notificationSystem.navigateToNotification === 'function') {
+          window.notificationSystem.navigateToNotification(match.actionUrl);
+        } else if (typeof window.showNotificationMissingModal === 'function') {
+          window.showNotificationMissingModal();
+        } else {
+          window.location.href = match.actionUrl;
+        }
+        return;
+      }
+
+      if (typeof window.showNotificationMissingModal === 'function') {
+        window.showNotificationMissingModal();
+      } else {
+        alert('Това съдържание вече не е налично.');
+      }
+    };
+
+    container.addEventListener('click', container._profileNotifHandler);
+  }
+
+  function render(list, container) {
     if (!container) return;
 
-    if (!list || list.length === 0) {
+    const grouped = group(normalize(list));
+    container._notifications = grouped;
+
+    if (!grouped.length) {
       container.innerHTML = '<div class="empty-state"><i class="bi bi-bell"></i><h4>Няма нотификации</h4></div>';
+      if (container._profileNotifHandler) {
+        container.removeEventListener('click', container._profileNotifHandler);
+        container._profileNotifHandler = null;
+      }
       return;
     }
 
-    const grouped = (window.groupNotifications ? window.groupNotifications(list) : list);
-    container.innerHTML = grouped.map(item => `
-      <div class="notif-row ${item.read ? 'read' : 'unread'}" data-id="${item.id}">
-        <div class="icon">${item.actorImageUrl ? `<img src="${item.actorImageUrl}"/>` : `<i class="${item.icon || 'bi-bell'}"></i>`}</div>
-        <div class="content">
-          <div class="title">${item.displayName || ''}</div>
-          <div class="message">${item.message || ''}${item._count > 1 ? ` <span class="notification-count">(${item._count})</span>` : ''}</div>
-          <div class="time">${item.timeAgo || ''}</div>
-        </div>
-        ${!item.read ? '<div class="dot"></div>' : ''}
-      </div>
-    `).join('');
-
-    container.addEventListener('click', function (e) {
-      const row = e.target.closest('.notif-row');
-      if (!row) return;
-      const id = row.getAttribute('data-id');
-      if (id) {
-        fetch(`/api/notifications/${id}/read`, { method: 'PUT' }).catch(() => {});
-      }
-      const idx = grouped.findIndex(n => String(n.id) === String(id));
-      const url = idx >= 0 ? grouped[idx].actionUrl : null;
-      if (url) window.location.href = url;
-    });
+    container.innerHTML = createMarkup(grouped);
+    attachHandler(container);
   }
 
-  function init() {
-    const container = document.querySelector('#profile-notifications');
-    if (!container) return; // Контейнерът не съществува - не е собствен профил
-    
-    // Проверка дали е собствен профил - ако контейнерът е скрит или не съществува, не зареждаме нотификации
-    const notificationsCard = container.closest('.content-card');
-    if (!notificationsCard || notificationsCard.offsetParent === null) {
-      return; // Картата е скрита (не е собствен профил)
-    }
-    
-    fetchAll(0, 100).then(render).catch(() => render([]));
-  }
+  window.renderProfileNotifications = function (list, target) {
+    const container = target || document.querySelector('#profile-notifications');
+    render(list, container);
+  };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  window.renderNotificationsList = window.renderNotificationsList || window.renderProfileNotifications;
 })();
-
-

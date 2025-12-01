@@ -1705,6 +1705,91 @@ body {
     border-top-color: #4cb15c;
 }
 
+.owner-overview-loading {
+    display: flex;
+    justify-content: flex-start;
+    padding: var(--spacing-md) 0;
+}
+
+.profile-overview-card .card-body {
+    padding: var(--spacing-lg);
+}
+
+.profile-notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    margin: 0;
+}
+
+.profile-notifications-list .notification-item {
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 14px 32px rgba(12, 32, 18, 0.08);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.profile-notifications-list .notification-item + .notification-item {
+    margin-top: var(--spacing-sm);
+}
+
+.profile-notifications-list .notification-item:hover {
+    background: rgba(255, 255, 255, 0.96);
+    transform: translateY(-1px);
+}
+
+.profile-notifications-list .notification-item.unread {
+    background: rgba(76, 177, 92, 0.14);
+    border-color: rgba(76, 177, 92, 0.38);
+}
+
+.profile-notifications-list .notification-icon {
+    width: 46px;
+    height: 46px;
+    background: rgba(76, 177, 92, 0.16);
+    border-radius: 50%;
+}
+
+.profile-notifications-list .notification-icon i {
+    color: #19861c;
+}
+
+.profile-notifications-list .notification-message {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.92rem;
+    color: var(--text-primary);
+}
+
+.profile-notifications-list .notification-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.profile-notifications-list .notification-count {
+    background: #19861c;
+}
+
+.profile-notifications-list .notification-unread-dot {
+    background: #4cb15c;
+}
+
+.profile-notifications-list .notification-mark-read {
+    opacity: 0;
+    color: rgba(31, 31, 31, 0.4);
+}
+
+.profile-notifications-list .notification-item:hover .notification-mark-read {
+    opacity: 1;
+}
+
+.owner-overview-loading {
+    display: flex;
+    justify-content: flex-start;
+    padding: var(--spacing-md) 0;
+}
+
 /* Empty States */
 .users-empty-state {
     display: flex;
