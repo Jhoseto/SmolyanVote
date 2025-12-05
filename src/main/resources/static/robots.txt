@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Allow Facebook crawler for Open Graph scraping
+User-agent: facebookexternalhit
+Allow: /
+
+# Allow other social media crawlers
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Sitemap location (if you have one)
+# Sitemap: https://smolyanvote.com/sitemap.xml
+
