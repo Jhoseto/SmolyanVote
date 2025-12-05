@@ -174,7 +174,10 @@ function generateEntityTypeBadge(entityType) {
         PUBLICATION: 'Публикация',
         SIMPLE_EVENT: 'Събитие',
         REFERENDUM: 'Референдум',
-        MULTI_POLL: 'Анкета'
+        MULTI_POLL: 'Анкета',
+        USER: 'Потребител',
+        SIGNAL: 'Сигнал',
+        COMMENT: 'Коментар'
     };
 
     const displayName = typeMap[entityType] || entityType;
@@ -362,7 +365,10 @@ function openReportedContent(entityType, entityId) {
         SIMPLE_EVENT: `/event/${entityId}`,
         REFERENDUM: `/referendum/${entityId}`,
         PUBLICATION: `/publications?openModal=${entityId}`,
-        MULTI_POLL: `/multipoll/${entityId}`
+        MULTI_POLL: `/multipoll/${entityId}`,
+        USER: `/user/${entityId}`, // Временно - ще трябва да се извлече username от entityId
+        SIGNAL: `/signals/${entityId}`,
+        COMMENT: `#comment-${entityId}` // Коментарите се показват в контекста на родителския entity
     };
 
     if (!urls[entityType]) {
@@ -370,7 +376,25 @@ function openReportedContent(entityType, entityId) {
         return;
     }
 
-    window.open(urls[entityType], '_blank');
+    // За USER трябва да извлечем username от entityId
+    if (entityType === 'USER') {
+        // Опитваме се да извлечем username от API
+        fetch(`/api/user/${entityId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.username) {
+                    window.open(`/user/${data.username}`, '_blank');
+                } else {
+                    // Fallback - опитваме се с ID (не работи, но поне показваме опит)
+                    alert('Не може да се отвори профилът. Моля използвайте търсене по username.');
+                }
+            })
+            .catch(() => {
+                alert('Не може да се отвори профилът. Моля използвайте търсене по username.');
+            });
+    } else {
+        window.open(urls[entityType], '_blank');
+    }
 }
 
 function updateSelectAllCheckbox() {

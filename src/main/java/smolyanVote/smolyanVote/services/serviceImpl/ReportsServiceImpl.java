@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -34,14 +33,18 @@ public class ReportsServiceImpl implements ReportsService {
     private final SignalsRepository signalsRepository;
     private final CommentsRepository commentsRepository;
 
-    @Autowired
+    private final UserRepository userRepository;
+
     public ReportsServiceImpl(
             ReportsRepository reportsRepository,
             PublicationRepository publicationRepository,
             SimpleEventRepository simpleEventRepository,
             ReferendumRepository referendumRepository,
             MultiPollRepository multiPollRepository,
-            ActivityLogService activityLogService, SignalsRepository signalsRepository, CommentsRepository commentsRepository) {
+            ActivityLogService activityLogService,
+            SignalsRepository signalsRepository,
+            CommentsRepository commentsRepository,
+            UserRepository userRepository) {
         this.reportsRepository = reportsRepository;
         this.publicationRepository = publicationRepository;
         this.simpleEventRepository = simpleEventRepository;
@@ -50,6 +53,7 @@ public class ReportsServiceImpl implements ReportsService {
         this.activityLogService = activityLogService;
         this.signalsRepository = signalsRepository;
         this.commentsRepository = commentsRepository;
+        this.userRepository = userRepository;
     }
 
     // ===== ГЛАВЕН МЕТОД ЗА СЪЗДАВАНЕ НА ДОКЛАДИ =====
@@ -103,7 +107,7 @@ public class ReportsServiceImpl implements ReportsService {
                 case MULTI_POLL -> ActivityActionEnum.REPORT_EVENT; // няма специален
                 case SIGNAL -> ActivityActionEnum.REPORT_EVENT; // няма специален
                 case COMMENT -> ActivityActionEnum.REPORT_COMMENT;
-                case USER -> ActivityActionEnum.REPORT_USER; // ✅ ДОБАВЕНО
+                case USER -> ActivityActionEnum.REPORT_USER;
             };
 
             String details = String.format("Reported %s (Reason: %s)",
@@ -296,6 +300,7 @@ public class ReportsServiceImpl implements ReportsService {
             case MULTI_POLL -> multiPollRepository.existsById(entityId);
             case SIGNAL -> signalsRepository.existsById(entityId);
             case COMMENT -> commentsRepository.existsById(entityId);
+            case USER -> userRepository.existsById(entityId);
         };
     }
 
@@ -324,6 +329,10 @@ public class ReportsServiceImpl implements ReportsService {
             case COMMENT -> {
                 Optional<CommentsEntity> comment = commentsRepository.findById(entityId);
                 yield comment.isPresent() && comment.get().getAuthor().equals(username);
+            }
+            case USER -> {
+                Optional<UserEntity> user = userRepository.findById(entityId);
+                yield user.isPresent() && user.get().getUsername().equals(username);
             }
         };
     }

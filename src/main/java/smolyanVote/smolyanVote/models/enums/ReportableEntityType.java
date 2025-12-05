@@ -10,7 +10,9 @@ public enum ReportableEntityType {
 
     COMMENT("Коментар"),
 
-    MULTI_POLL("Множествена анкета");
+    MULTI_POLL("Множествена анкета"),
+
+    USER("Потребител");
 
 
 

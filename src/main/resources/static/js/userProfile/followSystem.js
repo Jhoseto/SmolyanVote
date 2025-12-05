@@ -813,9 +813,176 @@ class UserFollowSystem {
             return;
         }
 
-        // За сега показваме проста нотификация, тъй като USER не е в ReportableEntityType
-        // В бъдеще може да се добави пълна функционалност за докладване на потребители
-        this.showNotification('Функционалността за докладване на потребители е в процес на разработка', 'info');
+        // Проверка за SweetAlert2
+        if (typeof Swal === 'undefined') {
+            console.error('SweetAlert2 не е достъпен');
+            this.showNotification('Възникна проблем със системата. Моля опитайте отново.', 'error');
+            return;
+        }
+
+        // Показване на модал за докладване
+        Swal.fire({
+            title: 'Докладвай потребител',
+            html: `
+                <div style="text-align: left; margin-bottom: 20px;">
+                    <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Защо докладвате този потребител?</p>
+                    <select id="reportReason" class="swal2-select" style="width: 85%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                        <option value="SPAM">🚫 Спам или нежелано съдържание</option>
+                        <option value="HARASSMENT">⚠️ Тормоз или заплахи</option>
+                        <option value="HATE_SPEECH">😡 Език на омразата</option>
+                        <option value="MISINFORMATION">❌ Дезинформация или фалшиви новини</option>
+                        <option value="INAPPROPRIATE">🔞 Неподходящо съдържание</option>
+                        <option value="COPYRIGHT">📝 Нарушение на авторски права</option>
+                        <option value="OTHER">❓ Друго</option>
+                    </select>
+                    
+                    <!-- Поле за описание - показва се само при "Друго" -->
+                    <div id="descriptionContainer" style="margin-top: 15px; display: none;">
+                        <label for="reportDescription" style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">
+                            Опишете проблема:
+                        </label>
+                        <textarea 
+                            id="reportDescription" 
+                            placeholder="Моля, опишете подробно защо докладвате този потребител..."
+                            style="width: 85%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical; font-family: inherit;"
+                            maxlength="500"
+                        ></textarea>
+                        <div style="text-align: right; font-size: 12px; color: #999; margin-top: 5px;">
+                            <span id="charCounter">0/500 знака</span>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                        Вашият доклад ще бъде прегледан от нашия екип в рамките на 24 часа.
+                    </p>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-flag-fill"></i> Изпрати доклад',
+            cancelButtonText: '<i class="bi bi-x"></i> Отказ',
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            buttonsStyling: true,
+            customClass: {
+                popup: 'animated fadeInDown',
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-secondary'
+            },
+            didOpen: () => {
+                // Настройване на event listeners за динамичното показване на описанието
+                const reasonSelect = document.getElementById('reportReason');
+                const descriptionContainer = document.getElementById('descriptionContainer');
+                const reportDescription = document.getElementById('reportDescription');
+                const charCounter = document.getElementById('charCounter');
+
+                if (reasonSelect && descriptionContainer) {
+                    reasonSelect.addEventListener('change', () => {
+                        if (reasonSelect.value === 'OTHER') {
+                            descriptionContainer.style.display = 'block';
+                            reportDescription.focus();
+                        } else {
+                            descriptionContainer.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Character counter за описанието
+                if (reportDescription && charCounter) {
+                    reportDescription.addEventListener('input', () => {
+                        const length = reportDescription.value.length;
+                        charCounter.textContent = `${length}/500 знака`;
+
+                        if (length > 450) {
+                            charCounter.style.color = '#e74c3c';
+                        } else if (length > 400) {
+                            charCounter.style.color = '#f39c12';
+                        } else {
+                            charCounter.style.color = '#999';
+                        }
+                    });
+                }
+            },
+            preConfirm: () => {
+                const reason = document.getElementById('reportReason').value;
+                const description = document.getElementById('reportDescription').value.trim();
+
+                if (!reason) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Моля, изберете причина за докладването!');
+                    return false;
+                }
+
+                // Валидация за описанието при избор "Друго"
+                if (reason === 'OTHER' && !description) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Моля, опишете причината за докладването!');
+                    return false;
+                }
+
+                // Валидация за дължина на описанието
+                if (description && description.length < 10) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Описанието трябва да е поне 10 знака!');
+                    return false;
+                }
+
+                if (description && description.length > 500) {
+                    Swal.showValidationMessage('<i class="bi bi-exclamation-triangle"></i> Описанието не може да бъде повече от 500 знака!');
+                    return false;
+                }
+
+                return { reason, description };
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await this.submitUserReport(userId, result.value.reason, result.value.description);
+            }
+        });
+    }
+
+    /**
+     * Изпраща доклад за потребител
+     */
+    async submitUserReport(userId, reason, description) {
+        try {
+            const response = await fetch(`/api/reports/USER/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': this.csrfToken
+                },
+                body: JSON.stringify({
+                    reason: reason,
+                    description: description || null
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Докладът е изпратен!',
+                    text: data.message || 'Благодарим ви за доклада. Ще прегледаме случая в рамките на 24 часа.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#4cb15c'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Грешка',
+                    text: data.error || 'Възникна грешка при изпращането на доклада. Моля опитайте отново.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        } catch (error) {
+            console.error('Error submitting user report:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Грешка',
+                text: 'Възникна неочаквана грешка. Моля опитайте отново по-късно.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#e74c3c'
+            });
+        }
     }
 
     /**
