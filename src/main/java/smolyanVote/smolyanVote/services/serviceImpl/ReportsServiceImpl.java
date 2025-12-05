@@ -103,6 +103,7 @@ public class ReportsServiceImpl implements ReportsService {
                 case MULTI_POLL -> ActivityActionEnum.REPORT_EVENT; // няма специален
                 case SIGNAL -> ActivityActionEnum.REPORT_EVENT; // няма специален
                 case COMMENT -> ActivityActionEnum.REPORT_COMMENT;
+                case USER -> ActivityActionEnum.REPORT_USER; // ✅ ДОБАВЕНО
             };
 
             String details = String.format("Reported %s (Reason: %s)",

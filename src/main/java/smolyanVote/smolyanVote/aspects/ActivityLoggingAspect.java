@@ -94,16 +94,17 @@ public class ActivityLoggingAspect {
                 // Legacy support за String actions
                 actionString = logActivity.actionString();
                 actionEnum = ActivityActionEnum.fromString(actionString);
-                if (currentUser == null && !isGuestAllowed(actionString)) {
-                    return; // Не логваме guest действия които не са разрешени
-                }
             } else {
                 // Използваме enum action
                 actionEnum = logActivity.action();
                 actionString = actionEnum.getActionName();
-                if (currentUser == null && !isGuestAllowed(actionString)) {
-                    return; // Не логваме guest действия които не са разрешени
-                }
+            }
+
+            // Специален случай за регистрация - трябва да се логва дори когато currentUser е null
+            boolean isRegistration = actionEnum == ActivityActionEnum.USER_REGISTER;
+            
+            if (currentUser == null && !isGuestAllowed(actionString) && !isRegistration) {
+                return; // Не логваме guest действия които не са разрешени (освен регистрация)
             }
 
             // Извличаме HTTP информация
@@ -118,13 +119,19 @@ public class ActivityLoggingAspect {
             // Генерираме детайли - ПОДОБРЕНО
             String details = generateDetails(joinPoint, logActivity, result, exception);
 
+            // За регистрация - извличаме потребителя от параметрите или резултата
+            UserEntity userForLogging = currentUser;
+            if (isRegistration && userForLogging == null) {
+                userForLogging = extractUserFromRegistration(joinPoint, result);
+            }
+
             // Записваме активността
             if (actionEnum != null) {
-                activityLogService.logActivity(actionEnum, currentUser, entityType, entityId,
+                activityLogService.logActivity(actionEnum, userForLogging, entityType, entityId,
                         details, ipAddress, userAgent);
             } else {
                 // Fallback за неразпознати действия
-                activityLogService.logActivity(actionString, currentUser, entityType, entityId,
+                activityLogService.logActivity(actionString, userForLogging, entityType, entityId,
                         details, ipAddress, userAgent);
             }
 
@@ -594,6 +601,60 @@ public class ActivityLoggingAspect {
                 actionLower.contains("filter") ||
                 actionLower.contains("api_access") ||
                 actionLower.contains("visit");
+    }
+
+    /**
+     * Извлича потребител от регистрационни параметри или резултат
+     * Използва се когато currentUser е null при регистрация
+     */
+    private UserEntity extractUserFromRegistration(ProceedingJoinPoint joinPoint, Object result) {
+        try {
+            // Първо опитваме да извлечем от резултата (ако методът връща UserEntity)
+            if (result instanceof UserEntity) {
+                return (UserEntity) result;
+            }
+
+            // Опитваме се да извлечем от параметрите (UserRegistrationViewModel)
+            Object[] args = joinPoint.getArgs();
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Parameter[] parameters = signature.getMethod().getParameters();
+
+            for (int i = 0; i < parameters.length; i++) {
+                Object arg = args[i];
+                if (arg != null) {
+                    // Проверяваме за UserRegistrationViewModel
+                    if (arg.getClass().getSimpleName().equals("UserRegistrationViewModel")) {
+                        try {
+                            // Извличаме username и email чрез reflection
+                            java.lang.reflect.Method getUsername = arg.getClass().getMethod("getUsername");
+                            java.lang.reflect.Method getEmail = arg.getClass().getMethod("getEmail");
+                            
+                            String username = (String) getUsername.invoke(arg);
+                            String email = (String) getEmail.invoke(arg);
+                            
+                            if (username != null || email != null) {
+                                // Създаваме временен UserEntity за логиране
+                                UserEntity tempUser = new UserEntity();
+                                tempUser.setUsername(username != null ? username : "Unknown");
+                                tempUser.setEmail(email != null ? email : "");
+                                return tempUser;
+                            }
+                        } catch (Exception e) {
+                            // Ако reflection не работи, продължаваме
+                        }
+                    }
+                    
+                    // Проверяваме за UserEntity в параметрите
+                    if (arg instanceof UserEntity) {
+                        return (UserEntity) arg;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting user from registration: " + e.getMessage());
+        }
+        
+        return null;
     }
 
 }

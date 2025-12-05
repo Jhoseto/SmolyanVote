@@ -11,10 +11,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.models.enums.Locations;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
@@ -34,12 +40,15 @@ public class MainEventsController {
 
     private final MainEventsService mainEventsService;
     private final UserService userService;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public MainEventsController(MainEventsService mainEventsService,
-                                UserService userService) {
+                                UserService userService,
+                                ActivityLogService activityLogService) {
         this.mainEventsService = mainEventsService;
         this.userService = userService;
+        this.activityLogService = activityLogService;
     }
 
     @GetMapping("/mainEvents")
@@ -191,6 +200,40 @@ public class MainEventsController {
                     search, location, eventTypeEnum, eventStatusEnum, 
                     parsedDateFrom, parsedDateTo, null, null, 
                     cleanCreator, cleanPopularity, quickFilter, currentUserId, pageable);
+
+            // ✅ ЛОГИРАНЕ НА SEARCH_CONTENT / FILTER_CONTENT
+            try {
+                if (currentUser != null) {
+                    boolean hasSearch = search != null && !search.trim().isEmpty();
+                    boolean hasFilters = location != null || type != null || status != null 
+                            || parsedDateFrom != null || parsedDateTo != null || cleanPopularity != null 
+                            || quickFilter != null;
+                    
+                    if (hasSearch) {
+                        String ipAddress = extractIpAddress();
+                        String userAgent = extractUserAgent();
+                        String details = String.format("Search query: \"%s\"%s", 
+                                search.length() > 100 ? search.substring(0, 100) + "..." : search,
+                                hasFilters ? " (with filters)" : "");
+                        activityLogService.logActivity(ActivityActionEnum.SEARCH_CONTENT, currentUser,
+                                null, null, details, ipAddress, userAgent);
+                    } else if (hasFilters) {
+                        String ipAddress = extractIpAddress();
+                        String userAgent = extractUserAgent();
+                        StringBuilder filterDetails = new StringBuilder("Filters: ");
+                        if (location != null) filterDetails.append("location=").append(location).append(", ");
+                        if (type != null) filterDetails.append("type=").append(type).append(", ");
+                        if (status != null) filterDetails.append("status=").append(status).append(", ");
+                        if (cleanPopularity != null) filterDetails.append("popularity=").append(cleanPopularity).append(", ");
+                        if (quickFilter != null) filterDetails.append("quickFilter=").append(quickFilter);
+                        String details = filterDetails.toString().replaceAll(", $", "");
+                        activityLogService.logActivity(ActivityActionEnum.FILTER_CONTENT, currentUser,
+                                null, null, details, ipAddress, userAgent);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log search/filter activity: " + e.getMessage());
+            }
 
             // Основни атрибути за události
             model.addAttribute("events", events);
@@ -463,5 +506,48 @@ public class MainEventsController {
             case "most-commented" -> Sort.by(Sort.Direction.DESC, "totalVotes"); // За сега използваме гласове
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 }

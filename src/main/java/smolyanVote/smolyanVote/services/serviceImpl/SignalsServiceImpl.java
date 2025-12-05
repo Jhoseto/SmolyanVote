@@ -419,6 +419,21 @@ public class SignalsServiceImpl implements SignalsService {
             signal.setViewsCount((signal.getViewsCount() == null ? 0 : signal.getViewsCount()) + 1);
             signal.setModified(Instant.now());
             signalsRepository.save(signal);
+
+            // ✅ ЛОГИРАНЕ НА VIEW_SIGNAL
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    String details = String.format("Viewed signal: \"%s\"", 
+                            signal.getTitle() != null && signal.getTitle().length() > 100 
+                                    ? signal.getTitle().substring(0, 100) + "..." 
+                                    : signal.getTitle());
+                    activityLogService.logActivity(ActivityActionEnum.VIEW_SIGNAL, currentUser,
+                            ActivityTypeEnum.SIGNAL.name(), signalId, details, null, null);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log VIEW_SIGNAL activity: " + e.getMessage());
+            }
         }
     }
 

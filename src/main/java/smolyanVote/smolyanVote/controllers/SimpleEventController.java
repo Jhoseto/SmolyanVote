@@ -3,14 +3,20 @@ package smolyanVote.smolyanVote.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 import smolyanVote.smolyanVote.models.SimpleEventEntity;
 import smolyanVote.smolyanVote.models.SimpleEventImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SimpleEventRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
@@ -19,7 +25,9 @@ import smolyanVote.smolyanVote.viewsAndDTO.CreateEventView;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class SimpleEventController {
@@ -31,6 +39,7 @@ public class SimpleEventController {
     private final ReportsService reportsService;
     private final SimpleEventRepository simpleEventRepository;
     private final ImageCloudinaryServiceImpl imageStorageService;
+    private final ActivityLogService activityLogService;
 
 
     @Autowired
@@ -40,7 +49,8 @@ public class SimpleEventController {
                                  DeleteEventsService deleteEventsService,
                                  ReportsService reportsService,
                                  SimpleEventRepository simpleEventRepository,
-                                 ImageCloudinaryServiceImpl imageStorageService) {
+                                 ImageCloudinaryServiceImpl imageStorageService,
+                                 ActivityLogService activityLogService) {
         this.simpleEventService = simpleEventService;
         this.commentsService = commentsService;
         this.userService = userService;
@@ -48,6 +58,7 @@ public class SimpleEventController {
         this.reportsService = reportsService;
         this.simpleEventRepository = simpleEventRepository;
         this.imageStorageService = imageStorageService;
+        this.activityLogService = activityLogService;
     }
 
 
@@ -212,6 +223,22 @@ public class SimpleEventController {
             }
 
             simpleEventRepository.save(event);
+
+            // ✅ ЛОГИРАНЕ НА EDIT_EVENT
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    String details = String.format("Edited event: \"%s\" (ID: %d)", 
+                            event.getTitle() != null && event.getTitle().length() > 100 
+                                    ? event.getTitle().substring(0, 100) + "..." 
+                                    : event.getTitle(), id);
+                    activityLogService.logActivity(ActivityActionEnum.EDIT_EVENT, currentUser,
+                            ActivityTypeEnum.SIMPLEEVENT.name(), id, details, null, null);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log EDIT_EVENT activity: " + e.getMessage());
+            }
+
             redirectAttributes.addFlashAttribute("successMessage", "Събитието беше редактирано успешно!");
             return "redirect:/event/" + id;
 
@@ -247,6 +274,98 @@ public class SimpleEventController {
             redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
             return "redirect:/event/" + id;
         }
+    }
+
+    // ====== SHARE API ENDPOINT ======
+
+    @PostMapping(value = "/api/event/{id}/share", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> shareEvent(@PathVariable Long id, Authentication auth) {
+        try {
+            if (auth == null || !auth.isAuthenticated()) {
+                return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+            }
+
+            SimpleEventEntity event = simpleEventRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Събитието не е намерено"));
+
+            UserEntity currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                return ResponseEntity.status(401).body(createErrorResponse("Потребителят не е намерен"));
+            }
+
+            // ✅ ЛОГИРАНЕ НА SHARE_EVENT
+            try {
+                String ipAddress = extractIpAddress();
+                String userAgent = extractUserAgent();
+                String details = String.format("Shared event: \"%s\" (ID: %d)", 
+                        event.getTitle() != null && event.getTitle().length() > 100 
+                                ? event.getTitle().substring(0, 100) + "..." 
+                                : event.getTitle(), id);
+                activityLogService.logActivity(ActivityActionEnum.SHARE_EVENT, currentUser,
+                        ActivityTypeEnum.SIMPLEEVENT.name(), id, details, ipAddress, userAgent);
+            } catch (Exception e) {
+                System.err.println("Failed to log SHARE_EVENT activity: " + e.getMessage());
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Събитието е споделено успешно");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при споделянето"));
+        }
+    }
+
+    // ===== HELPER METHODS =====
+
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("error", message);
+        return response;
+    }
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 
 

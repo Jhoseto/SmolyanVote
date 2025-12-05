@@ -43,6 +43,7 @@ public class PublicationsController {
     private final CommentsService commentsService;
     private final FollowService followService;  // <-- ДОБАВИ ПОЛЕ
     private final PublicationRepository publicationRepository;
+    private final ActivityLogService activityLogService;
 
     public PublicationsController(PublicationService publicationService,
                                   UserService userService,
@@ -51,7 +52,8 @@ public class PublicationsController {
                                   ReportsService reportsService, 
                                   CommentsService commentsService,
                                   FollowService followService,
-                                  PublicationRepository publicationRepository) {  // <-- ДОБАВИ ПАРАМЕТЪР
+                                  PublicationRepository publicationRepository,
+                                  ActivityLogService activityLogService) {  // <-- ДОБАВИ ПАРАМЕТЪР
         this.publicationService = publicationService;
         this.userService = userService;
         this.imageService = imageService;
@@ -60,6 +62,7 @@ public class PublicationsController {
         this.commentsService = commentsService;
         this.followService = followService;  // <-- ДОБАВИ ПРИСВОЯВАНЕ
         this.publicationRepository = publicationRepository;
+        this.activityLogService = activityLogService;
     }
 
     // ====== MAIN PAGE ======
@@ -157,6 +160,42 @@ public class PublicationsController {
                     search, category, status, time, author, authorIds, pageable, auth
             );
 
+            // ✅ ЛОГИРАНЕ НА SEARCH_CONTENT / FILTER_CONTENT
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    boolean hasSearch = search != null && !search.trim().isEmpty();
+                    boolean hasFilters = (category != null && !category.trim().isEmpty()) 
+                            || (status != null && !status.trim().isEmpty()) 
+                            || (time != null && !time.trim().isEmpty()) 
+                            || (author != null && !author.trim().isEmpty())
+                            || (authorIds != null && !authorIds.isEmpty());
+                    
+                    if (hasSearch) {
+                        String ipAddress = extractIpAddress();
+                        String userAgent = extractUserAgent();
+                        String details = String.format("Search query: \"%s\"%s", 
+                                search.length() > 100 ? search.substring(0, 100) + "..." : search,
+                                hasFilters ? " (with filters)" : "");
+                        activityLogService.logActivity(ActivityActionEnum.SEARCH_CONTENT, currentUser,
+                                null, null, details, ipAddress, userAgent);
+                    } else if (hasFilters) {
+                        String ipAddress = extractIpAddress();
+                        String userAgent = extractUserAgent();
+                        StringBuilder filterDetails = new StringBuilder("Filters: ");
+                        if (category != null && !category.trim().isEmpty()) filterDetails.append("category=").append(category).append(", ");
+                        if (status != null && !status.trim().isEmpty()) filterDetails.append("status=").append(status).append(", ");
+                        if (time != null && !time.trim().isEmpty()) filterDetails.append("time=").append(time).append(", ");
+                        if (author != null && !author.trim().isEmpty()) filterDetails.append("author=").append(author).append(", ");
+                        if (authorIds != null && !authorIds.isEmpty()) filterDetails.append("authorIds=").append(authorIds.size()).append(" users");
+                        String details = filterDetails.toString().replaceAll(", $", "");
+                        activityLogService.logActivity(ActivityActionEnum.FILTER_CONTENT, currentUser,
+                                null, null, details, ipAddress, userAgent);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log search/filter activity: " + e.getMessage());
+            }
 
             //  commentsCount за всички публикации
             List<PublicationEntity> publications = publicationsPage.getContent();
@@ -865,6 +904,49 @@ public class PublicationsController {
         } catch (Exception e) {
             return "redirect:/publications";
         }
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 
 }

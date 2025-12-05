@@ -1,12 +1,18 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.UserFollowEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.repositories.UserFollowRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 
@@ -24,13 +30,16 @@ public class FollowServiceImpl implements FollowService {
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public FollowServiceImpl(UserFollowRepository userFollowRepository,
-                             UserRepository userRepository, NotificationService notificationService) {
+                             UserRepository userRepository, NotificationService notificationService,
+                             ActivityLogService activityLogService) {
         this.userFollowRepository = userFollowRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -61,6 +70,17 @@ public class FollowServiceImpl implements FollowService {
 
         // ✅НОТИФИКАЦИЯ
         notificationService.notifyNewFollower(following, follower);
+
+        // ✅ ЛОГИРАНЕ НА АКТИВНОСТ
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            String details = String.format("Followed user: %s (ID: %d)", following.getUsername(), following.getId());
+            activityLogService.logActivity(ActivityActionEnum.FOLLOW_USER, follower,
+                    ActivityTypeEnum.USER.name(), following.getId(), details, ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log follow activity: " + e.getMessage());
+        }
     }
 
     @Override
@@ -86,6 +106,17 @@ public class FollowServiceImpl implements FollowService {
 
         // ✅ НОТИФИКАЦИЯ
         notificationService.notifyUnfollow(following, follower);
+
+        // ✅ ЛОГИРАНЕ НА АКТИВНОСТ
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            String details = String.format("Unfollowed user: %s (ID: %d)", following.getUsername(), following.getId());
+            activityLogService.logActivity(ActivityActionEnum.UNFOLLOW_USER, follower,
+                    ActivityTypeEnum.USER.name(), following.getId(), details, ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log unfollow activity: " + e.getMessage());
+        }
     }
 
 
@@ -156,5 +187,48 @@ public class FollowServiceImpl implements FollowService {
 
         int offset = page * size;
         return userFollowRepository.searchFollowing(userId, searchTerm.trim(), offset, size);
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 }

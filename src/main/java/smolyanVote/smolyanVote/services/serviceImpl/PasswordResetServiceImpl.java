@@ -1,12 +1,18 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.PasswordResetTokenEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.repositories.PasswordResetTokenRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.EmailService;
 import smolyanVote.smolyanVote.services.interfaces.PasswordResetService;
 
@@ -21,15 +27,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final ActivityLogService activityLogService;
 
     public PasswordResetServiceImpl(PasswordResetTokenRepository tokenRepository,
                                    UserRepository userRepository,
                                    PasswordEncoder passwordEncoder,
-                                   EmailService emailService) {
+                                   EmailService emailService,
+                                   ActivityLogService activityLogService) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.activityLogService = activityLogService;
     }
 
     @Transactional
@@ -78,7 +87,61 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
 
+        // ✅ ЛОГИРАНЕ НА USER_PASSWORD_RESET
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            String details = "Password reset completed successfully";
+            activityLogService.logActivity(ActivityActionEnum.USER_PASSWORD_RESET, user,
+                    ActivityTypeEnum.USER.name(), user.getId(), details, ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log USER_PASSWORD_RESET activity: " + e.getMessage());
+        }
+
         return true;
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 
     @Transactional

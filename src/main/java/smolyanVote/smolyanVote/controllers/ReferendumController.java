@@ -5,17 +5,27 @@ import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 import smolyanVote.smolyanVote.models.*;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.ReferendumRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.*;
 
 @Controller
@@ -25,17 +35,20 @@ public class ReferendumController {
     private final UserService userService;
     private final DeleteEventsService deleteEventsService;
     private final ReferendumRepository referendumRepository;
+    private final ActivityLogService activityLogService;
 
 
     @Autowired
     public ReferendumController(ReferendumService referendumService,
                                 UserService userService,
                                 DeleteEventsService deleteEventsService,
-                                ReferendumRepository referendumRepository) {
+                                ReferendumRepository referendumRepository,
+                                ActivityLogService activityLogService) {
         this.referendumService = referendumService;
         this.userService = userService;
         this.deleteEventsService = deleteEventsService;
         this.referendumRepository = referendumRepository;
+        this.activityLogService = activityLogService;
     }
 
     @GetMapping("/referendum")
@@ -229,6 +242,22 @@ public class ReferendumController {
             }
 
             referendumRepository.save(referendum);
+
+            // ✅ ЛОГИРАНЕ НА EDIT_REFERENDUM
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    String details = String.format("Edited referendum: \"%s\" (ID: %d)", 
+                            referendum.getTitle() != null && referendum.getTitle().length() > 100 
+                                    ? referendum.getTitle().substring(0, 100) + "..." 
+                                    : referendum.getTitle(), id);
+                    activityLogService.logActivity(ActivityActionEnum.EDIT_REFERENDUM, currentUser,
+                            ActivityTypeEnum.REFERENDUM.name(), id, details, null, null);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log EDIT_REFERENDUM activity: " + e.getMessage());
+            }
+
             redirectAttributes.addFlashAttribute("successMessage", "Референдумът беше редактиран успешно!");
             return "redirect:/referendum/" + id;
 
@@ -264,6 +293,98 @@ public class ReferendumController {
             redirectAttributes.addFlashAttribute("errorMessage", "Възникна грешка при изтриването: " + e.getMessage());
             return "redirect:/referendum/" + id;
         }
+    }
+
+    // ====== SHARE API ENDPOINT ======
+
+    @PostMapping(value = "/api/referendum/{id}/share", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> shareReferendum(@PathVariable Long id, Authentication auth) {
+        try {
+            if (auth == null || !auth.isAuthenticated()) {
+                return ResponseEntity.status(401).body(createErrorResponse("Необходима е автентикация"));
+            }
+
+            ReferendumEntity referendum = referendumRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Референдумът не е намерен"));
+
+            UserEntity currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                return ResponseEntity.status(401).body(createErrorResponse("Потребителят не е намерен"));
+            }
+
+            // ✅ ЛОГИРАНЕ НА SHARE_REFERENDUM
+            try {
+                String ipAddress = extractIpAddress();
+                String userAgent = extractUserAgent();
+                String details = String.format("Shared referendum: \"%s\" (ID: %d)", 
+                        referendum.getTitle() != null && referendum.getTitle().length() > 100 
+                                ? referendum.getTitle().substring(0, 100) + "..." 
+                                : referendum.getTitle(), id);
+                activityLogService.logActivity(ActivityActionEnum.SHARE_REFERENDUM, currentUser,
+                        ActivityTypeEnum.REFERENDUM.name(), id, details, ipAddress, userAgent);
+            } catch (Exception e) {
+                System.err.println("Failed to log SHARE_REFERENDUM activity: " + e.getMessage());
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Референдумът е споделен успешно");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Възникна грешка при споделянето"));
+        }
+    }
+
+    // ===== HELPER METHODS =====
+
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("error", message);
+        return response;
+    }
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 
 

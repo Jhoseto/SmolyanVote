@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -8,11 +9,16 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.AuthProvider;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 
 import java.time.Instant;
 import java.util.*;
@@ -25,9 +31,11 @@ import java.util.*;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final ActivityLogService activityLogService;
 
-    public CustomOAuth2UserService(UserRepository userRepository) {
+    public CustomOAuth2UserService(UserRepository userRepository, ActivityLogService activityLogService) {
         this.userRepository = userRepository;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -55,6 +63,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         
         Optional<UserEntity> userOptional = userRepository.findByEmail(normalizedEmail);
         UserEntity user;
+        boolean isNewUser = false;
 
         if (userOptional.isPresent()) {
             // Потребителят вече съществува
@@ -80,12 +89,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         } else {
             // Създаване на нов потребител
             user = createNewOAuth2User(oAuth2UserInfo, authProvider);
+            isNewUser = true;
         }
 
         // Обновяване на последно влизане и online статус
         user.setLastOnline(Instant.now());
         user.setOnlineStatus(1);
         userRepository.save(user);
+
+        // Логване на регистрация ако е нов потребител
+        if (isNewUser) {
+            logOAuth2Registration(user, authProvider);
+        }
 
         // Създаване на authorities
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
@@ -165,22 +180,28 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     /**
      * Генерира username от име (name) от провайдъра.
-     * Премахва специални символи и нормализира.
+     * Запазва интервалите между имената и нормализира.
      */
     private String generateUsernameFromName(String name) {
         if (name == null || name.isEmpty()) {
             return "user";
         }
         
-        // Премахване на специални символи и нормализиране
+        // Премахване на специални символи, но запазване на интервалите
         String username = name.trim()
-            .replaceAll("[^a-zA-Z0-9\\s]", "") // Премахване на специални символи
-            .replaceAll("\\s+", "") // Премахване на интервали
-            .toLowerCase();
+            .replaceAll("[^a-zA-Z0-9а-яА-Я\\s]", "") // Премахване на специални символи (освен букви, цифри и интервали)
+            .replaceAll("\\s+", " ") // Нормализиране на множествените интервали до един интервал
+            .trim();
         
-        // Ограничаване на дължината
+        // Ограничаване на дължината (30 символа)
         if (username.length() > 30) {
-            username = username.substring(0, 30);
+            // Намираме последния интервал преди 30-тия символ, за да не счупим името
+            int lastSpaceIndex = username.substring(0, 30).lastIndexOf(' ');
+            if (lastSpaceIndex > 0) {
+                username = username.substring(0, lastSpaceIndex);
+            } else {
+                username = username.substring(0, 30);
+            }
         }
         
         // Ако е празно след обработката, използваме "user"
@@ -227,6 +248,76 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
         
         return username;
+    }
+
+    /**
+     * Логва регистрация на нов OAuth2 потребител в activity wall
+     */
+    private void logOAuth2Registration(UserEntity user, AuthProvider authProvider) {
+        try {
+            // Извличане на HTTP request информация
+            String ipAddress = "unknown";
+            String userAgent = "unknown";
+            
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    // Извличане на IP адрес
+                    ipAddress = extractIpAddress(request);
+                    // Извличане на User-Agent
+                    userAgent = request.getHeader("User-Agent");
+                    if (userAgent == null) {
+                        userAgent = "unknown";
+                    }
+                }
+            }
+
+            // Генериране на детайли
+            String providerName = authProvider == AuthProvider.GOOGLE ? "Google" : "Facebook";
+            String details = String.format("Username: %s, Email: %s, Provider: %s", 
+                    user.getUsername(), user.getEmail(), providerName);
+
+            // Логване на активността
+            activityLogService.logActivity(
+                    ActivityActionEnum.USER_REGISTER,
+                    user,
+                    ActivityTypeEnum.USER.name(),
+                    user.getId(),
+                    details,
+                    ipAddress,
+                    userAgent
+            );
+        } catch (Exception e) {
+            // Не хвърляме грешка, за да не съсипем OAuth2 процеса
+            System.err.println("Failed to log OAuth2 registration activity: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Извлича IP адрес от request, като взема предвид проксита
+     */
+    private String extractIpAddress(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // Ако има множество IP адреси (от X-Forwarded-For), вземаме първия
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip != null ? ip : "unknown";
     }
 
     // ===== INNER CLASSES FOR OAUTH2 USER INFO =====

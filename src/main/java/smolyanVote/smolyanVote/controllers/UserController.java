@@ -8,7 +8,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -33,6 +38,7 @@ public class UserController {
     private final SignalsRepository signalsRepository;
     private final PublicationService publicationService;
     private final FollowService followService;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public UserController(UserService userService,
@@ -41,7 +47,8 @@ public class UserController {
                           UsersMapper usersMapper, SignalsService signalsService,
                           SignalsRepository signalsRepository,
                           PublicationService publicationService,
-                          FollowService followService) {
+                          FollowService followService,
+                          ActivityLogService activityLogService) {
         this.userService = userService;
         this.mainEventsService = mainEventsService;
         this.userRepository = userRepository;
@@ -50,6 +57,7 @@ public class UserController {
         this.signalsRepository = signalsRepository;
         this.publicationService = publicationService;
         this.followService = followService;
+        this.activityLogService = activityLogService;
     }
 
     // ===== UNIFIED PROFILE ENDPOINTS =====
@@ -104,7 +112,63 @@ public class UserController {
         model.addAttribute("reputationScore", reputationScore);
         model.addAttribute("reputationBadge", getReputationBadge(reputationScore));
 
+        // ✅ ЛОГИРАНЕ НА VIEW_PROFILE (само ако не е собствен профил или ако е логнат потребител)
+        try {
+            if (currentUser != null && !isOwnProfile) {
+                String ipAddress = extractIpAddress();
+                String userAgent = extractUserAgent();
+                String details = String.format("Viewed profile: %s (ID: %d)", profileUser.getUsername(), profileUser.getId());
+                activityLogService.logActivity(ActivityActionEnum.VIEW_PROFILE, currentUser,
+                        ActivityTypeEnum.USER.name(), profileUser.getId(), details, ipAddress, userAgent);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to log VIEW_PROFILE activity: " + e.getMessage());
+        }
+
         return "unified-profile";
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 
     // ===== API ENDPOINTS =====

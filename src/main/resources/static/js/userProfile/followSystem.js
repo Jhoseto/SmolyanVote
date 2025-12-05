@@ -48,8 +48,6 @@ class UserFollowSystem {
     // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
     init() {
-        console.log('UserFollowSystem initializing...');
-
         // Извлича user данни
         if (!this.extractUserData()) {
             console.error('Failed to extract user data');
@@ -70,10 +68,7 @@ class UserFollowSystem {
         // Инициализира users таба ако съществува
         const usersTab = document.getElementById('users');
         if (usersTab) {
-            console.log('Users tab found, initializing...');
             this.initializeUsersTab();
-        } else {
-            console.log('Users tab not found');
         }
     }
 
@@ -96,13 +91,6 @@ class UserFollowSystem {
             this.currentUserId = parseInt(currentUserData.dataset.userId);
             this.isOwnProfile = currentUserData.dataset.isOwnProfile === 'true';
         }
-
-        console.log('User data extracted:', {
-            profileUserId: this.profileUserId,
-            currentUserId: this.currentUserId,
-            isOwnProfile: this.isOwnProfile,
-            isAuthenticated: this.isAuthenticated
-        });
 
         return true;
     }
@@ -128,7 +116,6 @@ class UserFollowSystem {
     // ==================== EVENT LISTENERS ====================
 
     setupEventListeners() {
-        console.log('Setting up event listeners for profile actions...');
         // Tab switching бутони
         document.addEventListener('click', (e) => {
             if (e.target.matches('.users-sub-tab-btn') || e.target.closest('.users-sub-tab-btn')) {
@@ -245,44 +232,32 @@ class UserFollowSystem {
         this.delegateEvent('.profile-follow-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Follow button clicked', button?.dataset);
             if (button?.dataset?.userId) {
                 await this.handleFollowAction(button.dataset.userId, 'follow', button);
-            } else {
-                console.error('Follow button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-unfollow-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Unfollow button clicked', button?.dataset);
             if (button?.dataset?.userId) {
                 await this.handleFollowAction(button.dataset.userId, 'unfollow', button);
-            } else {
-                console.error('Unfollow button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-message-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Message button clicked', button?.dataset);
             if (button?.dataset?.userId) {
                 await this.handleMessageAction(button.dataset.userId);
-            } else {
-                console.error('Message button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-report-link', 'click', (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Report button clicked', button?.dataset);
             if (button?.dataset?.userId) {
                 this.handleReportAction(button.dataset.userId);
-            } else {
-                console.error('Report button missing userId', button);
             }
         });
     }
@@ -298,10 +273,8 @@ class UserFollowSystem {
         const isActive = usersTab && usersTab.classList.contains('active');
 
         if (isActive) {
-            console.log('Users tab is active, loading initial data...');
             this.loadTabData('followers');
         } else {
-            console.log('Users tab not active, waiting...');
             // Ако tabs-а не е активен, слуша за активиране
             this.observeTabActivation();
         }
@@ -319,7 +292,6 @@ class UserFollowSystem {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     if (usersTab.classList.contains('active') && !this.tabState.followers.loaded) {
-                        console.log('Users tab activated, loading data...');
                         this.loadTabData('followers');
                         observer.disconnect(); // Спираме наблюдението
                     }
@@ -340,7 +312,6 @@ class UserFollowSystem {
         const newTab = button.dataset.usersTab;
         if (!newTab || newTab === this.currentTab) return;
 
-        console.log('Switching tab to:', newTab);
 
         // Обновява UI на бутоните
         document.querySelectorAll('.users-sub-tab-btn').forEach(btn =>
@@ -370,8 +341,6 @@ class UserFollowSystem {
         const tabData = this.tabState[tabType];
         if (tabData.loading) return;
 
-        console.log(`Loading ${tabType} data, page ${page}`);
-
         tabData.loading = true;
         this.showLoading(tabType);
 
@@ -379,8 +348,6 @@ class UserFollowSystem {
             const searchParam = tabData.searchTerm ?
                 `&search=${encodeURIComponent(tabData.searchTerm)}` : '';
             const url = `/api/follow/${this.profileUserId}/${tabType}?page=${page}&size=20${searchParam}`;
-
-            console.log('API URL:', url);
 
             const response = await fetch(url, {
                 headers: { [this.csrfHeader]: this.csrfToken }
@@ -391,7 +358,6 @@ class UserFollowSystem {
             }
 
             const data = await response.json();
-            console.log('API Response:', data);
 
             if (data && data.success) {
                 tabData.page = page;
@@ -420,8 +386,6 @@ class UserFollowSystem {
      * Handle търсене
      */
     async handleSearch(searchTerm) {
-        console.log('Search term:', searchTerm);
-
         const tabData = this.tabState[this.currentTab];
         tabData.searchTerm = searchTerm;
         tabData.page = 0; // Reset страницата
@@ -661,10 +625,7 @@ class UserFollowSystem {
     initializeDropdowns() {
         // Инициализира всички dropdown-и в user картите
         const dropdownToggles = document.querySelectorAll('.user-card-dropdown .dropdown-toggle');
-        console.log('Found dropdown toggles:', dropdownToggles.length);
-        
         dropdownToggles.forEach((toggle, index) => {
-            console.log(`Initializing dropdown ${index}:`, toggle);
             
             // Премахва всички съществуващи event listeners
             const newToggle = toggle.cloneNode(true);
@@ -672,7 +633,6 @@ class UserFollowSystem {
             
             // Добавя нов event listener
             newToggle.addEventListener('click', this.handleDropdownToggle.bind(this));
-            console.log(`Added event listener to dropdown ${index}`);
         });
     }
 
@@ -680,18 +640,13 @@ class UserFollowSystem {
      * Handle на dropdown toggle
      */
     handleDropdownToggle(e) {
-        console.log('Dropdown toggle clicked!', e.target);
         e.preventDefault();
         e.stopPropagation();
         
         const toggle = e.target.closest('.dropdown-toggle');
         const dropdown = toggle.nextElementSibling;
         
-        console.log('Toggle:', toggle);
-        console.log('Dropdown:', dropdown);
-        
         if (!dropdown) {
-            console.log('No dropdown found!');
             return;
         }
         
@@ -700,10 +655,8 @@ class UserFollowSystem {
         
         // Показва/скрива текущия dropdown
         if (dropdown.classList.contains('show')) {
-            console.log('Hiding dropdown');
             dropdown.classList.remove('show');
         } else {
-            console.log('Showing dropdown');
             dropdown.classList.add('show');
         }
     }
@@ -804,22 +757,14 @@ class UserFollowSystem {
      * Handle на съобщение действие
      */
     async handleMessageAction(userId) {
-        console.log('handleMessageAction called with userId:', userId);
-        console.log('window.SVMessenger:', window.SVMessenger);
-        console.log('window.SVMessenger type:', typeof window.SVMessenger);
-        console.log('window.SVMessenger.startConversation:', window.SVMessenger?.startConversation);
-        
         // Проверяваме дали SVMessenger е наличен
         if (window.SVMessenger && window.SVMessenger.startConversation) {
             try {
-                console.log('SVMessenger: Starting conversation with user', userId);
                 // Стартираме разговор с потребителя
                 const conversation = await window.SVMessenger.startConversation(userId);
-                console.log('SVMessenger: Conversation started successfully', conversation);
                 
                 // Отваряме чат прозореца
                 if (window.SVMessenger.openChat) {
-                    console.log('SVMessenger: Opening chat window for conversation', conversation.id);
                     window.SVMessenger.openChat(conversation.id);
                 }
             } catch (error) {
@@ -827,23 +772,14 @@ class UserFollowSystem {
                 this.showNotification('Грешка при отваряне на чат прозорец', 'error');
             }
         } else {
-            console.log('SVMessenger not available, waiting...');
-            console.log('Checking for React root element:', document.getElementById('svmessenger-root'));
-            console.log('Checking for React component:', document.querySelector('[data-reactroot]'));
-            
             // Ако SVMessenger не е наличен, чакаме малко и пробваме отново
             setTimeout(async () => {
-                console.log('Retrying SVMessenger after timeout...');
-                console.log('window.SVMessenger after timeout:', window.SVMessenger);
                 if (window.SVMessenger && window.SVMessenger.startConversation) {
                     try {
-                        console.log('SVMessenger: Starting conversation with user', userId);
                         const conversation = await window.SVMessenger.startConversation(userId);
-                        console.log('SVMessenger: Conversation started successfully', conversation);
                         
                         // Отваряме чат прозореца
                         if (window.SVMessenger.openChat) {
-                            console.log('SVMessenger: Opening chat window for conversation', conversation.id);
                             window.SVMessenger.openChat(conversation.id);
                         }
                     } catch (error) {
@@ -851,8 +787,6 @@ class UserFollowSystem {
                         this.showNotification('Грешка при отваряне на чат прозорец', 'error');
                     }
                 } else {
-                    console.log('SVMessenger still not available');
-                    console.log('React component may not be loaded or there is an error');
                     // Ако SVMessenger не работи, показваме съобщение
                     this.showNotification('Чат системата не е налична в момента', 'error');
                 }
@@ -882,7 +816,6 @@ class UserFollowSystem {
         // За сега показваме проста нотификация, тъй като USER не е в ReportableEntityType
         // В бъдеще може да се добави пълна функционалност за докладване на потребители
         this.showNotification('Функционалността за докладване на потребители е в процес на разработка', 'info');
-        console.log(`Report user action triggered for user ID: ${userId}`);
     }
 
     /**
@@ -1174,7 +1107,6 @@ class UserFollowSystem {
     }
 
     showNotification(message, type = 'info') {
-        console.log(`${type.toUpperCase()}: ${message}`);
 
         // Интеграция със съществуващата notification система
         if (window.showToast) {
@@ -1195,7 +1127,6 @@ class UserFollowSystem {
 document.addEventListener('DOMContentLoaded', () => {
     // Инициализира само ако сме в profile страница
     if (document.querySelector('.profile-hero')) {
-        console.log('Initializing UserFollowSystem...');
         new UserFollowSystem();
     }
 });

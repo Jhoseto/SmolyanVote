@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import smolyanVote.smolyanVote.models.MultiPollEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.MultiPollRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
@@ -27,18 +29,21 @@ public class MultiPollController {
     private final VoteService voteService;
     private final DeleteEventsService deleteEventsService;
     private final MultiPollRepository multiPollRepository;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public MultiPollController(MultiPollService multiPollService,
                                UserService userService,
                                VoteService voteService,
                                DeleteEventsService deleteEventsService,
-                               MultiPollRepository multiPollRepository) {
+                               MultiPollRepository multiPollRepository,
+                               ActivityLogService activityLogService) {
         this.multiPollService = multiPollService;
         this.userService = userService;
         this.voteService = voteService;
         this.deleteEventsService = deleteEventsService;
         this.multiPollRepository = multiPollRepository;
+        this.activityLogService = activityLogService;
     }
 
     @GetMapping("/createMultiPoll")
@@ -241,6 +246,22 @@ public class MultiPollController {
             poll.setOption10(filteredOptions.size() > 9 ? filteredOptions.get(9) : null);
 
             multiPollRepository.save(poll);
+
+            // ✅ ЛОГИРАНЕ НА EDIT_MULTI_POLL
+            try {
+                UserEntity currentUser = userService.getCurrentUser();
+                if (currentUser != null) {
+                    String details = String.format("Edited multi-poll: \"%s\" (ID: %d)", 
+                            poll.getTitle() != null && poll.getTitle().length() > 100 
+                                    ? poll.getTitle().substring(0, 100) + "..." 
+                                    : poll.getTitle(), id);
+                    activityLogService.logActivity(ActivityActionEnum.EDIT_MULTI_POLL, currentUser,
+                            ActivityTypeEnum.MULTI_POLL.name(), id, details, null, null);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to log EDIT_MULTI_POLL activity: " + e.getMessage());
+            }
+
             redirectAttributes.addFlashAttribute("successMessage", "Анкетата беше редактирана успешно!");
             return "redirect:/multipoll/" + id;
 

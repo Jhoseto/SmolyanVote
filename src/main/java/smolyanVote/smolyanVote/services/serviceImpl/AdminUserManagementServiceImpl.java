@@ -3,12 +3,18 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.UserRoleAndBansHistoryEntity;
+import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
+import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.repositories.UserRoleAndBansHistoryRepository;
+import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.AdminUserManagementService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.UserBanAndRolesHistoryMapper;
@@ -26,16 +32,19 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     private final UserService userService;
     private final UserRoleAndBansHistoryRepository historyRepository;
     private final UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public AdminUserManagementServiceImpl(UserRepository userRepository,
                                           UserService userService,
                                           UserRoleAndBansHistoryRepository historyRepository,
-                                          UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper) {
+                                          UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper,
+                                          ActivityLogService activityLogService) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.historyRepository = historyRepository;
         this.userBanAndRolesHistoryMapper = userBanAndRolesHistoryMapper;
+        this.activityLogService = activityLogService;
     }
 
     // ===== USER RETRIEVAL =====
@@ -380,6 +389,21 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         history.setNewRole(newRole);
 
         historyRepository.save(history);
+
+        // ✅ ЛОГИРАНЕ НА ADMIN_PROMOTE_USER / ADMIN_DEMOTE_USER
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            ActivityActionEnum action = (newRole == UserRole.ADMIN && oldRole == UserRole.USER) 
+                    ? ActivityActionEnum.ADMIN_PROMOTE_USER 
+                    : ActivityActionEnum.ADMIN_DEMOTE_USER;
+            String details = String.format("Role changed: %s → %s (Reason: %s)", 
+                    oldRole.name(), newRole.name(), reason != null ? reason : "N/A");
+            activityLogService.logActivity(action, adminUser, ActivityTypeEnum.USER.name(), 
+                    targetUser.getId(), details, ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log role change activity: " + e.getMessage());
+        }
     }
 
     @Override
@@ -398,6 +422,19 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         history.setNewStatus(newStatus);
 
         historyRepository.save(history);
+
+        // ✅ ЛОГИРАНЕ НА ADMIN_BAN_USER
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            String details = String.format("Banned user: %s (Type: %s, Reason: %s%s)", 
+                    targetUser.getUsername(), banType, reason != null ? reason : "N/A",
+                    durationDays != null ? ", Duration: " + durationDays + " days" : "");
+            activityLogService.logActivity(ActivityActionEnum.ADMIN_BAN_USER, adminUser, 
+                    ActivityTypeEnum.USER.name(), targetUser.getId(), details, ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log ban activity: " + e.getMessage());
+        }
     }
 
     @Override
@@ -448,5 +485,48 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     public List<UserBanAndRolesHistoryDto> getRecentHistory(int limit) {
         List<UserRoleAndBansHistoryEntity> history = historyRepository.findRecentHistory(limit);
         return userBanAndRolesHistoryMapper.mapToDtoList(history);
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
+
+    private String extractIpAddress() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String ip = request.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = request.getRemoteAddr();
+                    }
+                    if (ip != null && ip.contains(",")) {
+                        ip = ip.split(",")[0].trim();
+                    }
+                    return ip != null ? ip : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                if (request != null) {
+                    String userAgent = request.getHeader("User-Agent");
+                    return userAgent != null ? userAgent : "unknown";
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
     }
 }
