@@ -554,6 +554,116 @@
     color: var(--svm-text-tertiary);
 }
 
+.svmessenger-search-mode-indicator {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: #FFFFFF;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.svmessenger-search-section-header {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--svm-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--svm-border-light);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.svmessenger-search-count {
+    font-size: 10px;
+    color: var(--svm-text-tertiary);
+    font-weight: 500;
+    text-transform: none;
+}
+
+/* Search Results Panel - под search bar-а */
+.svmessenger-search-results-panel {
+    max-height: 300px;
+    overflow-y: auto;
+    border-bottom: 2px solid var(--svm-border-light);
+    background: #fafafa;
+}
+
+.svmessenger-search-results-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.svmessenger-search-results-panel::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.svmessenger-search-results-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.svmessenger-search-results-panel::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Following Users Panel - долу, винаги видим */
+.svmessenger-following-users-panel {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.svmessenger-following-users-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.svmessenger-following-users-panel::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.svmessenger-following-users-panel::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.svmessenger-following-users-panel::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading indicator в search bar-а */
+.svmessenger-search-loading-indicator {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.svmessenger-spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Conversations List */
 .svmessenger-conversations,
 .svmessenger-search-results {

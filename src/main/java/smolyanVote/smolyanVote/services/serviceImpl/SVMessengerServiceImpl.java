@@ -457,32 +457,30 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Transactional(readOnly = true)
     public List<SVUserMinimalDTO> searchUsers(String query, UserEntity currentUser) {
         try {
-            if (query == null || query.trim().isEmpty()) {
-                // Return all users if no query (for following list)
-                List<UserEntity> allUsers = userRepo.findAll();
-                return allUsers.stream()
+            String searchQuery = (query == null) ? "" : query.trim();
+            
+            if (searchQuery.isEmpty() || searchQuery.length() < 2) {
+                // За празен или много кратък query, връщаме първите 20 активни потребители
+                // Използваме Pageable за по-добра производителност
+                org.springframework.data.domain.Pageable pageable = 
+                    org.springframework.data.domain.PageRequest.of(0, 20, 
+                        org.springframework.data.domain.Sort.by("username").ascending());
+                
+                org.springframework.data.domain.Page<UserEntity> userPage = 
+                    userRepo.findAll(pageable);
+                
+                return userPage.getContent().stream()
                         .filter(user -> !user.getId().equals(currentUser.getId()))
-                        .limit(20)
                         .map(SVUserMinimalDTO.Mapper::toDTO)
                         .collect(Collectors.toList());
             }
 
-            if (query.trim().length() < 2) {
-                // For short queries, return all users (for following list)
-                List<UserEntity> allUsers = userRepo.findAll();
-                return allUsers.stream()
-                        .filter(user -> !user.getId().equals(currentUser.getId()))
-                        .limit(20)
-                        .map(SVUserMinimalDTO.Mapper::toDTO)
-                        .collect(Collectors.toList());
-            }
-
-            // Search by username and real name for longer queries
-            List<UserEntity> users = userRepo.findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(query.trim());
+            // Search by username and real name for longer queries (2+ characters)
+            List<UserEntity> users = userRepo.findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(searchQuery);
 
             return users.stream()
                     .filter(user -> !user.getId().equals(currentUser.getId()))
-                    .limit(20)
+                    .limit(50) // Увеличаваме лимита за търсене, за да покажем повече резултати
                     .map(SVUserMinimalDTO.Mapper::toDTO)
                     .collect(Collectors.toList());
 
