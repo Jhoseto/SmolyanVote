@@ -30,9 +30,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         user.setOnlineStatus(1);
         userRepository.save(user);
 
+        // За OAuth2 потребителите (без парола), използваме празна парола
+        // За локални потребители, използваме реалната парола
+        String password = user.getPassword() != null ? user.getPassword() : "{noop}";
+        
         // Връщаме потребителя, като използваме имейла и паролата
         return User.withUsername(user.getEmail())
-                .password(user.getPassword()) // паролата е вече хеширана в базата данни
+                .password(password) // паролата е вече хеширана в базата данни или {noop} за OAuth потребители
                 .roles(user.getRole().name()) // роли на потребителя
                 .build();
     }

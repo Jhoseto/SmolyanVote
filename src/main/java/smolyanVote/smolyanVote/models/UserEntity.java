@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import smolyanVote.smolyanVote.models.enums.AuthProvider;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
@@ -20,10 +21,19 @@ public class UserEntity extends BaseEntity {
     private Locations location;
 
     @JsonIgnore
+    @Column(nullable = true)
     private String password;
+    
     @JsonIgnore
     @Column(unique = true, nullable = false)
     private String email;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+    
+    @Column(name = "provider_id", length = 255)
+    private String providerId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -245,5 +255,23 @@ public class UserEntity extends BaseEntity {
 
     public void setSignalsCount(int signalsCount) {
         this.signalsCount = signalsCount;
+    }
+
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public UserEntity setAuthProvider(AuthProvider authProvider) {
+        this.authProvider = authProvider;
+        return this;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public UserEntity setProviderId(String providerId) {
+        this.providerId = providerId;
+        return this;
     }
 }

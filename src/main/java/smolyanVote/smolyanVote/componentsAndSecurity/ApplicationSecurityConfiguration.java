@@ -19,10 +19,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import smolyanVote.smolyanVote.services.KeyGenerator;
+import smolyanVote.smolyanVote.services.serviceImpl.CustomOAuth2UserService;
 
 import java.util.Collection;
 import java.util.List;
@@ -36,14 +39,23 @@ public class ApplicationSecurityConfiguration {
     private final UserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+    private final OAuth2UserService<org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest, OAuth2User> oAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
     @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
             PasswordEncoder passwordEncoder,
-            CustomLogoutSuccessHandler customLogoutSuccessHandler) {
+            CustomLogoutSuccessHandler customLogoutSuccessHandler,
+            CustomOAuth2UserService customOAuth2UserService,
+            OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
+            OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.customLogoutSuccessHandler = customLogoutSuccessHandler;
+        this.oAuth2UserService = customOAuth2UserService;
+        this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
+        this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
     }
 
     @Bean
@@ -72,7 +84,8 @@ public class ApplicationSecurityConfiguration {
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
                                 "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt",
                                 "/heartbeat", "/search", "/contacts", "/contact", "/publications/**", "/api/links/**",
-                                "/terms-and-conditions", "/faq", "/signals/**")
+                                "/terms-and-conditions", "/faq", "/signals/**",
+                                "/oauth2/**", "/login/oauth2/**")
                         .permitAll()
                         // Публичен достъп до detail views (GET заявки) - за Facebook sharing и
                         // нелогнати потребители
@@ -104,6 +117,11 @@ public class ApplicationSecurityConfiguration {
                         .rememberMeParameter("remember-me")
                         .userDetailsService(customUserDetailsService)
                         .useSecureCookie(true))
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(oAuth2UserService))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler))
                 .sessionManagement(session -> session
                         .sessionFixation().migrateSession()
                         .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
