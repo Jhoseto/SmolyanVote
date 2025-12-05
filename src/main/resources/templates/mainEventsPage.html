@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<html lang="bg" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +35,7 @@
       <strong>Важно!</strong> Преди да създадете ново събитие, проверете дали не съществува вече подобно такова.
     </p>
     <div class="create-event-buttons">
-      <div th:if="${#authorization.expression('isAuthenticated()')}">
+      <div sec:authorize="isAuthenticated()">
         <a th:href="@{/createNewEvent}" class="event-create-item" data-type="event">
           <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
           <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
@@ -49,7 +49,7 @@
           <span class="event-create-content"><h6>Създай Анкета с Множествен Избор</h6></span>
         </a>
       </div>
-      <div th:if="${#authorization.expression('!isAuthenticated()')}">
+      <div sec:authorize="!isAuthenticated()">
         <a href="javascript:void(0);" onclick="showLoginWarning()" class="event-create-item" data-type="event">
           <span class="event-create-icon"><i class="bi bi-pencil-square"></i></span>
           <span class="event-create-content"><h6>Създай Опростен Вид Събитие</h6></span>
@@ -131,7 +131,7 @@
       </div>
       <div class="mobile-filters-overlay" id="mobileFiltersOverlay" onclick="toggleMobileFilters()"></div>
       <!-- Бързи филтри (Quick Filters) -->
-      <div class="quick-filters mb-3" th:if="${#authorization.expression('isAuthenticated()')}">
+      <div class="quick-filters mb-3" sec:authorize="isAuthenticated()">
         <div class="quick-filters-label">
           <i class="bi bi-lightning-charge me-2"></i>
           <span>Бързи филтри:</span>

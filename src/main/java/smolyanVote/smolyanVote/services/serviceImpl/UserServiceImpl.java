@@ -134,6 +134,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Retrieves information about the currently logged-in user.
+     * Works with both traditional authentication and OAuth2 authentication.
      *
      * @return the UserEntity object representing the currently logged-in user, or null if no user is logged in
      */
@@ -141,14 +142,34 @@ public class UserServiceImpl implements UserService {
     public UserEntity getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            String username = authentication.getName();
-            Optional<UserEntity> userOptional = userRepository.findByUsername(username);
-            if (userOptional.isPresent()) {
-                return userOptional.get();
+            String identifier = null;
+            
+            // Проверка за OAuth2User (Google/Facebook login)
+            if (authentication.getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User) {
+                org.springframework.security.oauth2.core.user.OAuth2User oAuth2User = 
+                    (org.springframework.security.oauth2.core.user.OAuth2User) authentication.getPrincipal();
+                // За OAuth2, извличаме email от атрибутите
+                identifier = oAuth2User.getAttribute("email");
             } else {
-                // The user not found by userName, then find by Email
-                Optional<UserEntity> userByEmailOptional = userRepository.findByEmail(username);
-                return userByEmailOptional.orElse(null);
+                // За традиционна автентикация, използваме getName() (което е email)
+                identifier = authentication.getName();
+            }
+            
+            if (identifier != null && !identifier.isEmpty()) {
+                // Нормализиране на email на малки букви
+                String normalizedIdentifier = identifier.toLowerCase().trim();
+                
+                // Първо опитваме по email
+                Optional<UserEntity> userByEmailOptional = userRepository.findByEmail(normalizedIdentifier);
+                if (userByEmailOptional.isPresent()) {
+                    return userByEmailOptional.get();
+                }
+                
+                // Ако не намерим по email, опитваме по username
+                Optional<UserEntity> userOptional = userRepository.findByUsername(normalizedIdentifier);
+                if (userOptional.isPresent()) {
+                    return userOptional.get();
+                }
             }
         }
         return null;

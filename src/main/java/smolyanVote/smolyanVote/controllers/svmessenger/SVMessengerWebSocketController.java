@@ -169,16 +169,21 @@ public class SVMessengerWebSocketController {
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
                 UserEntity user = getUserFromPrincipal(principal);
+                
+                if (user != null) {
+                    // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
+                    user.setOnlineStatus(1);
+                    user.setLastOnline(Instant.now());
+                    userRepository.save(user);
 
-                // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
-                user.setOnlineStatus(1);
-                user.setLastOnline(Instant.now());
-                userRepository.save(user);
-
-                // ✅ СЛЕД ТОВА: Broadcast че е онлайн
-                wsHandler.broadcastOnlineStatus(user.getId(), true);
-
+                    // ✅ СЛЕД ТОВА: Broadcast че е онлайн
+                    wsHandler.broadcastOnlineStatus(user.getId(), true);
+                }
             }
+        } catch (IllegalStateException e) {
+            // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
+            // Това е нормално при logout, затова само логваме на debug ниво
+            log.debug("User not found during WebSocket connect (likely logged out): {}", e.getMessage());
         } catch (Exception e) {
             log.error("Error handling WebSocket connect", e);
         }
@@ -197,16 +202,21 @@ public class SVMessengerWebSocketController {
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
                 UserEntity user = getUserFromPrincipal(principal);
+                
+                if (user != null) {
+                    // ✅ ПЪРВО: Обнови офлайн статуса в базата данни
+                    user.setOnlineStatus(0);
+                    user.setLastOnline(Instant.now());
+                    userRepository.save(user);
 
-                // ✅ ПЪРВО: Обнови офлайн статуса в базата данни
-                user.setOnlineStatus(0);
-                user.setLastOnline(Instant.now());
-                userRepository.save(user);
-
-                // ✅ СЛЕД ТОВА: Broadcast че е офлайн
-                wsHandler.broadcastOnlineStatus(user.getId(), false);
-
+                    // ✅ СЛЕД ТОВА: Broadcast че е офлайн
+                    wsHandler.broadcastOnlineStatus(user.getId(), false);
+                }
             }
+        } catch (IllegalStateException e) {
+            // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
+            // Това е нормално при logout, затова само логваме на debug ниво
+            log.debug("User not found during WebSocket disconnect (likely logged out): {}", e.getMessage());
         } catch (Exception e) {
             log.error("Error handling WebSocket disconnect", e);
         }
@@ -216,16 +226,51 @@ public class SVMessengerWebSocketController {
     
     /**
      * Извлича UserEntity от Principal
+     * Works with both traditional authentication and OAuth2 authentication.
+     * Returns null if user cannot be found (e.g., after logout).
      */
     private UserEntity getUserFromPrincipal(Principal principal) {
         if (principal == null) {
-            throw new IllegalStateException("User not authenticated");
+            return null;
         }
         
-        String identifier = principal.getName();
-        
-        return userRepository.findByEmail(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .orElseThrow(() -> new IllegalStateException("User not found: " + identifier));
+        try {
+            String identifier = null;
+            
+            // Проверка за OAuth2User (Google/Facebook login)
+            if (principal instanceof org.springframework.security.oauth2.core.user.OAuth2User) {
+                org.springframework.security.oauth2.core.user.OAuth2User oAuth2User = 
+                    (org.springframework.security.oauth2.core.user.OAuth2User) principal;
+                // За OAuth2, извличаме email от атрибутите
+                identifier = oAuth2User.getAttribute("email");
+            } else {
+                // За традиционна автентикация, използваме getName() (което е email)
+                identifier = principal.getName();
+            }
+            
+            if (identifier == null || identifier.isEmpty()) {
+                log.debug("User identifier not found in principal");
+                return null;
+            }
+            
+            // Нормализиране на email на малки букви
+            String normalizedIdentifier = identifier.toLowerCase().trim();
+            
+            // Ако identifier изглежда като OAuth2 ID (дълъг числов string без @), 
+            // това означава че Principal все още съдържа OAuth2 ID, но потребителят вече не е наличен
+            // (вероятно е излязъл). В този случай просто връщаме null.
+            if (normalizedIdentifier.matches("^\\d+$") && normalizedIdentifier.length() > 15) {
+                // Вероятно е OAuth2 ID (sub от Google) - потребителят вече не е наличен след logout
+                log.debug("Principal contains OAuth2 ID instead of email, user likely logged out: {}", normalizedIdentifier);
+                return null;
+            }
+            
+            return userRepository.findByEmail(normalizedIdentifier)
+                    .or(() -> userRepository.findByUsername(normalizedIdentifier))
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("Error extracting user from principal: {}", e.getMessage());
+            return null;
+        }
     }
 }

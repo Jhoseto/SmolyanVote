@@ -128,6 +128,7 @@ class UserFollowSystem {
     // ==================== EVENT LISTENERS ====================
 
     setupEventListeners() {
+        console.log('Setting up event listeners for profile actions...');
         // Tab switching бутони
         document.addEventListener('click', (e) => {
             if (e.target.matches('.users-sub-tab-btn') || e.target.closest('.users-sub-tab-btn')) {
@@ -244,32 +245,44 @@ class UserFollowSystem {
         this.delegateEvent('.profile-follow-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            if (button?.dataset.userId) {
+            console.log('Follow button clicked', button?.dataset);
+            if (button?.dataset?.userId) {
                 await this.handleFollowAction(button.dataset.userId, 'follow', button);
+            } else {
+                console.error('Follow button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-unfollow-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            if (button?.dataset.userId) {
+            console.log('Unfollow button clicked', button?.dataset);
+            if (button?.dataset?.userId) {
                 await this.handleFollowAction(button.dataset.userId, 'unfollow', button);
+            } else {
+                console.error('Unfollow button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-message-link', 'click', async (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            if (button?.dataset.userId) {
+            console.log('Message button clicked', button?.dataset);
+            if (button?.dataset?.userId) {
                 await this.handleMessageAction(button.dataset.userId);
+            } else {
+                console.error('Message button missing userId', button);
             }
         });
 
         this.delegateEvent('.profile-report-link', 'click', (e, button) => {
             e.preventDefault();
             e.stopPropagation();
-            if (button?.dataset.userId) {
+            console.log('Report button clicked', button?.dataset);
+            if (button?.dataset?.userId) {
                 this.handleReportAction(button.dataset.userId);
+            } else {
+                console.error('Report button missing userId', button);
             }
         });
     }
@@ -850,14 +863,26 @@ class UserFollowSystem {
     /**
      * Handle на докладване действие
      */
-    handleReportAction(userId) {
-        // Тук може да се добави модал за докладване
-        const reportReason = prompt('Моля въведете причина за докладването:');
-        if (reportReason && reportReason.trim()) {
-            // Тук може да се изпрати AJAX заявка за докладване
-            console.log(`Reporting user ${userId} for: ${reportReason}`);
-            this.showNotification('Докладът е изпратен успешно', 'success');
+    async handleReportAction(userId) {
+        if (!this.isAuthenticated) {
+            if (typeof window.showLoginWarning === 'function') {
+                window.showLoginWarning();
+            } else {
+                alert('За да докладвате потребител, моля влезте в системата!');
+            }
+            return;
         }
+
+        if (!userId) {
+            console.error('User ID is required for reporting');
+            this.showNotification('Грешка: Липсва ID на потребителя', 'error');
+            return;
+        }
+
+        // За сега показваме проста нотификация, тъй като USER не е в ReportableEntityType
+        // В бъдеще може да се добави пълна функционалност за докладване на потребители
+        this.showNotification('Функционалността за докладване на потребители е в процес на разработка', 'info');
+        console.log(`Report user action triggered for user ID: ${userId}`);
     }
 
     /**
@@ -1129,6 +1154,19 @@ class UserFollowSystem {
     }
 
     // ==================== UTILITY МЕТОДИ ====================
+
+    /**
+     * Event delegation helper - регистрира event listener на document level
+     * за елементи, които могат да се появят динамично
+     */
+    delegateEvent(selector, event, handler) {
+        document.addEventListener(event, (e) => {
+            const target = e.target.closest(selector);
+            if (target) {
+                handler(e, target);
+            }
+        });
+    }
 
     getMetaContent(name) {
         const meta = document.querySelector(`meta[name="${name}"]`);

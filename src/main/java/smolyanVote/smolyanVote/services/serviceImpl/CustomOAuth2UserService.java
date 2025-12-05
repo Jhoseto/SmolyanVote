@@ -38,6 +38,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         AuthProvider authProvider = getAuthProvider(registrationId);
         
+        // Получаване на правилния name attribute от конфигурацията
+        String nameAttributeKey = userRequest.getClientRegistration()
+                .getProviderDetails()
+                .getUserInfoEndpoint()
+                .getUserNameAttributeName();
+        
         OAuth2UserInfo oAuth2UserInfo = getOAuth2UserInfo(registrationId, oAuth2User.getAttributes());
         
         if (oAuth2UserInfo.getEmail() == null || oAuth2UserInfo.getEmail().isEmpty()) {
@@ -85,12 +91,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
-        // Връщане на OAuth2User с email като principal name
+        // Запазване на оригиналните атрибути от OAuth2User
+        // Не променяме оригиналните атрибути, за да не счупим name attribute
         Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
+        
+        // Добавяме допълнителни атрибути за нашата логика (без да променяме name attribute)
         attributes.put("email", normalizedEmail);
-        attributes.put("id", user.getId());
+        attributes.put("userId", user.getId());
 
-        return new DefaultOAuth2User(authorities, attributes, "email");
+        // Използваме оригиналния name attribute от конфигурацията
+        return new DefaultOAuth2User(authorities, attributes, nameAttributeKey);
     }
 
     private AuthProvider getAuthProvider(String registrationId) {
@@ -100,6 +110,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             default -> AuthProvider.LOCAL;
         };
     }
+
 
     private OAuth2UserInfo getOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
         return switch (registrationId.toLowerCase()) {

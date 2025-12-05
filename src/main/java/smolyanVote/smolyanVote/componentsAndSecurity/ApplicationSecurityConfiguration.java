@@ -109,7 +109,9 @@ public class ApplicationSecurityConfiguration {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler)
+                        .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
+                        .clearAuthentication(true)
                         .deleteCookies("JSESSIONID", "remember-me", "XSRF-TOKEN")
                         .permitAll())
                 .rememberMe(rememberMe -> rememberMe

@@ -554,19 +554,37 @@ public class SVMessengerController {
     
     /**
      * Извлича current user от Authentication
+     * Works with both traditional authentication and OAuth2 authentication.
      */
     private UserEntity getCurrentUser(Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) {
             throw new IllegalStateException("User not authenticated");
         }
         
-        // Вземи email/username от authentication
-        String identifier = auth.getName();
+        String identifier = null;
         
-        // Load user от database
-        return userRepository.findByEmail(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+        // Проверка за OAuth2User (Google/Facebook login)
+        if (auth.getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User) {
+            org.springframework.security.oauth2.core.user.OAuth2User oAuth2User = 
+                (org.springframework.security.oauth2.core.user.OAuth2User) auth.getPrincipal();
+            // За OAuth2, извличаме email от атрибутите
+            identifier = oAuth2User.getAttribute("email");
+        } else {
+            // За традиционна автентикация, използваме getName() (което е email)
+            identifier = auth.getName();
+        }
+        
+        if (identifier == null || identifier.isEmpty()) {
+            throw new IllegalStateException("User identifier not found");
+        }
+        
+        // Нормализиране на email на малки букви
+        String normalizedIdentifier = identifier.toLowerCase().trim();
+        
+        // Load user от database - първо по email, после по username
+        return userRepository.findByEmail(normalizedIdentifier)
+                .or(() -> userRepository.findByUsername(normalizedIdentifier))
+                .orElseThrow(() -> new IllegalStateException("User not found: " + normalizedIdentifier));
     }
     
     // ========== EXCEPTION HANDLERS ==========

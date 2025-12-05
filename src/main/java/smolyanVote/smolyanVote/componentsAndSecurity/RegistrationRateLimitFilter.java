@@ -55,11 +55,17 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
         
-        // Изключваме конкретни API endpoints от rate limiting
+        // Изключваме конкретни API endpoints и критични endpoints от rate limiting
         if (requestURI != null && (
                 requestURI.startsWith("/api/notifications") ||
                 requestURI.startsWith("/ws/") ||
-                requestURI.startsWith("/heartbeat")
+                requestURI.startsWith("/heartbeat") ||
+                "/login".equals(requestURI) ||
+                "/logout".equals(requestURI) ||
+                "/user/login".equals(requestURI) ||
+                "/user/logout".equals(requestURI) ||
+                requestURI.startsWith("/oauth2/") ||
+                requestURI.startsWith("/login/oauth2/")
         )) {
             filterChain.doFilter(request, response);
             return;
