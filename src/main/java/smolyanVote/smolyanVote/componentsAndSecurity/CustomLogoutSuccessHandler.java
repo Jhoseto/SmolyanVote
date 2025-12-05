@@ -66,7 +66,27 @@ public class CustomLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
             }
         }
 
-        // Използваме родителския метод, който правилно обработва redirect-а
-        super.onLogoutSuccess(request, response, authentication);
+        // Проверяваме дали response-ът вече е committed (връзката е прекъсната)
+        // Ако е, не се опитваме да правим redirect
+        if (response.isCommitted()) {
+            // Response-ът вече е изпратен/прекъснат, не правим нищо
+            return;
+        }
+
+        try {
+            // Използваме родителския метод, който правилно обработва redirect-а
+            super.onLogoutSuccess(request, response, authentication);
+        } catch (IllegalStateException e) {
+            // Ако response-ът е committed по време на redirect, просто игнорираме грешката
+            // Това е нормално когато потребителят затваря браузъра/таба преди завършване на logout
+            if (!response.isCommitted()) {
+                // Ако все още не е committed, хвърляме exception-а нагоре
+                throw e;
+            }
+            // Иначе просто игнорираме - потребителят вече е излязъл
+        } catch (org.springframework.web.context.request.async.AsyncRequestNotUsableException e) {
+            // Игнорираме async request грешки - потребителят е прекъснал връзката
+            // Това е нормално поведение при затваряне на браузъра
+        }
     }
 }
