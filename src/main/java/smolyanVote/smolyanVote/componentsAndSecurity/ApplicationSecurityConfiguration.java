@@ -11,7 +11,6 @@ import org.springframework.core.Ordered;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -65,7 +64,12 @@ public class ApplicationSecurityConfiguration {
 
         http
                 .headers(headers -> headers
-                        .httpStrictTransportSecurity(HeadersConfigurer.HstsConfig::disable))
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .maxAgeInSeconds(31536000) // 1 година
+                                .includeSubDomains(true))
+                        .frameOptions(frame -> frame.deny())
+                        .contentTypeOptions(contentType -> {})
+                        .xssProtection(xss -> {}))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(authz -> authz
@@ -82,7 +86,7 @@ public class ApplicationSecurityConfiguration {
                                 "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
-                                "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt",
+                                "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt", "/sitemap.xml",
                                 "/heartbeat", "/search", "/contacts", "/contact", "/publications/**", "/api/links/**",
                                 "/terms-and-conditions", "/faq", "/signals/**",
                                 "/oauth2/**", "/login/oauth2/**")
@@ -145,7 +149,7 @@ public class ApplicationSecurityConfiguration {
                         // WebSocket handshakes remain exempt (safe by design - require valid session +
                         // Same-Origin Policy)
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
-                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**")
+                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml")
                         .csrfTokenRepository(csrfTokenRepository));
 
         return http.build();

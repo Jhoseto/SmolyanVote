@@ -39,6 +39,46 @@
 
     <!-- STANDARD META -->
     <meta name="description" th:content="${ogDescription}">
+    
+    <!-- CANONICAL URL -->
+    <link rel="canonical" th:href="${ogUrl}">
+    
+    <!-- ARTICLE STRUCTURED DATA (JSON-LD) -->
+    <script type="application/ld+json" th:inline="javascript">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": /*[[${ogTitle}]]*/ "Публикация",
+        "description": /*[[${ogDescription}]]*/ "Публикация от SmolyanVote",
+        "image": /*[[${ogImage}]]*/ "https://smolyanvote.com/images/logoNew.png",
+        "datePublished": /*[[${publication.createdAt != null ? #temporals.format(publication.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : ''}]]*/ "",
+        "dateModified": /*[[${publication.updatedAt != null ? #temporals.format(publication.updatedAt, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : (publication.createdAt != null ? #temporals.format(publication.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : '')}]]*/ "",
+        "author": {
+            "@type": "Person",
+            "name": /*[[${publication.authorUsername}]]*/ "Автор",
+            "url": /*[[${'https://smolyanvote.com/user/' + publication.authorUsername}]]*/ "https://smolyanvote.com"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "SmolyanVote",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://smolyanvote.com/images/logoNew.png",
+                "width": 200,
+                "height": 200
+            }
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": /*[[${ogUrl}]]*/ "https://smolyanvote.com"
+        },
+        "articleSection": /*[[${publication.category != null ? publication.category.toString() : 'Гражданско участие'}]]*/ "Гражданско участие",
+        "keywords": "Смолян, гражданско участие, местна демокрация, /*[[${publication.category != null ? publication.category.toString() : ''}]]*/",
+        "inLanguage": "bg-BG",
+        "isAccessibleForFree": true,
+        "url": /*[[${ogUrl}]]*/ "https://smolyanvote.com"
+    }
+    </script>
     <meta name="author" th:content="${ogAuthor}">
     <meta name="keywords" content="Смолян, публикации, гражданско участие, местна политика">
     <meta name="robots" content="index, follow">

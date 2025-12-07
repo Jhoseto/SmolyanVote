@@ -43,6 +43,48 @@
     <meta name="keywords" content="Смолян, референдум, гласуване, гражданско участие">
     <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#4b9f3e">
+    
+    <!-- CANONICAL URL -->
+    <link rel="canonical" th:href="${ogUrl}">
+    
+    <!-- VOTING EVENT STRUCTURED DATA (JSON-LD) -->
+    <script type="application/ld+json" th:inline="javascript">
+    {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": /*[[${ogTitle}]]*/ "Референдум",
+        "description": /*[[${ogDescription}]]*/ "Референдум от SmolyanVote",
+        "image": /*[[${ogImage}]]*/ "https://smolyanvote.com/images/logoNew.png",
+        "startDate": /*[[${referendumDetail.createdAt != null ? #temporals.format(referendumDetail.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : ''}]]*/ "",
+        "eventType": "Referendum",
+        "organizer": {
+            "@type": "Person",
+            "name": /*[[${ogAuthor}]]*/ "Автор",
+            "url": /*[[${'https://smolyanvote.com/user/' + referendumDetail.creator.username}]]*/ "https://smolyanvote.com"
+        },
+        "location": {
+            "@type": "Place",
+            "name": "Смолян",
+            "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Смолян",
+                "addressRegion": "Смолянска област",
+                "addressCountry": "BG"
+            }
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "BGN",
+            "availability": "https://schema.org/InStock",
+            "url": /*[[${ogUrl}]]*/ "https://smolyanvote.com"
+        },
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+        "url": /*[[${ogUrl}]]*/ "https://smolyanvote.com",
+        "inLanguage": "bg-BG"
+    }
+    </script>
 
     <!-- FAVICON -->
     <link rel="icon" type="image/x-icon" href="/images/logoNew.png">

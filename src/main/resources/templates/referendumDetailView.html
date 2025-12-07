@@ -9,6 +9,9 @@
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>Детайли за референдум</title>
+    
+    <!-- CANONICAL URL -->
+    <link rel="canonical" th:href="@{'https://smolyanvote.com/referendum/' + ${referendumDetail.id}}">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
@@ -149,7 +152,7 @@
                     <div class="images-edit-grid">
                         <div class="image-edit-item" th:each="img, iterStat : ${referendumDetail.imageUrls}">
                             <div class="existing-image-wrapper">
-                                <img th:src="${img}" alt="Снимка" class="existing-image-preview">
+                                <img th:src="${img}" th:alt="${referendumDetail.title + ' - Снимка'}" class="existing-image-preview">
                                 <button type="button" class="remove-existing-image-btn" th:onclick="'removeExistingImage(' + ${iterStat.index} + ', \'referendum\')'">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -199,7 +202,7 @@
                 <div class="gallery-card" th:if="${referendumDetail.imageUrls != null and !referendumDetail.imageUrls.isEmpty()}">
                     <h3 class="card-title">Галерия</h3>
                     <div class="gallery-grid">
-                        <img th:each="img : ${referendumDetail.imageUrls}" th:src="${img}" alt="Снимка" class="gallery-img" loading="lazy"/>
+                        <img th:each="img, iterStat : ${referendumDetail.imageUrls}" th:src="${img}" th:alt="${referendumDetail.title + ' - Галерия снимка ' + (iterStat.index + 1)}" class="gallery-img" loading="lazy"/>
                     </div>
                 </div>
 
@@ -350,7 +353,7 @@
             </button>
 
             <div class="modal-image-frame">
-                <img id="modalImage" src="" alt="Gallery image" class="modal-image">
+                <img id="modalImage" src="" th:alt="${referendumDetail.title + ' - Галерия'}" class="modal-image">
             </div>
 
             <div class="modal-controls">

@@ -83,6 +83,10 @@
     <link rel="alternate" hreflang="bg" th:href="@{https://smolyanvote.com/}">
     <link rel="alternate" hreflang="en" th:href="@{https://smolyanvote.com/en/}">
     <link rel="alternate" hreflang="x-default" th:href="@{https://smolyanvote.com/}">
+    
+    <!-- SECURITY HEADERS -->
+    <!-- Note: Security headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection) 
+         are set via HTTP headers in ApplicationSecurityConfiguration, not via meta tags -->
 
     <!-- AGGRESSIVE PERFORMANCE OPTIMIZATION -->
     <link rel="preload" href="/images/logoNew.png" as="image" type="image/png" importance="high">

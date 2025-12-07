@@ -3,9 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Често задавани въпроси - SmolyanVote</title>
+  <title th:text="${pageTitle ?: 'Често задавани въпроси - SmolyanVote'}">Често задавани въпроси - SmolyanVote</title>
+  <meta name="description" th:content="${metaDescription ?: 'Отговори на най-често задаваните въпроси за SmolyanVote платформата за гражданско участие в Смолян.'}">
+  <meta name="keywords" content="FAQ, често задавани въпроси, SmolyanVote, Смолян, помощ, въпроси и отговори">
+  <meta name="robots" content="index, follow">
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Често задавани въпроси - SmolyanVote">
+  <meta property="og:description" content="Отговори на най-често задаваните въпроси за SmolyanVote платформата.">
+  <meta property="og:url" content="https://smolyanvote.com/faq">
+  <meta property="og:image" content="https://smolyanvote.com/images/SMVshare.JPG">
+  <meta property="og:locale" content="bg_BG">
+  
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Често задавани въпроси - SmolyanVote">
+  <meta name="twitter:description" content="Отговори на най-често задаваните въпроси за SmolyanVote платформата.">
+  
+  <!-- Canonical & Hreflang -->
+  <link rel="canonical" href="https://smolyanvote.com/faq">
+  <link rel="alternate" hreflang="bg" href="https://smolyanvote.com/faq">
+  <link rel="alternate" hreflang="x-default" href="https://smolyanvote.com/faq">
+  
+  <!-- FAQ Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Какво е SmolyanVote?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SmolyanVote е безплатна платформа за гражданско участие в град Смолян, която позволява на жителите да участват в анкети, референдуми и обществени дискусии."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Как да се регистрирам в SmolyanVote?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Регистрацията е безплатна и отнема само няколко минути. Необходим е валиден имейл адрес и потвърждение, че сте жител на Смолян или Смолянска област."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Безопасно ли е гласуването в SmolyanVote?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Да, използваме модерни технологии за защита на данните и гарантиране на честността на всяко гласуване. Всеки може да гласува само веднъж."
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

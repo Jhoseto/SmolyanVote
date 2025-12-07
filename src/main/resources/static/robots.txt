@@ -12,6 +12,6 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
-# Sitemap location (if you have one)
-# Sitemap: https://smolyanvote.com/sitemap.xml
+# Sitemap location
+Sitemap: https://smolyanvote.com/sitemap.xml
 
