@@ -593,12 +593,18 @@
     text-transform: none;
 }
 
-/* Search Results Panel - под search bar-а */
+/* Search Results Panel - над панела със следваните потребители */
 .svmessenger-search-results-panel {
-    max-height: 300px;
+    flex-shrink: 0;
     overflow-y: auto;
-    border-bottom: 2px solid var(--svm-border-light);
-    background: #fafafa;
+    overflow-x: hidden;
+    border-bottom: 3px solid #22c55e;
+    background: #FFFFFF;
+    order: 1; /* Показва се преди Following Users Panel */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(34, 197, 94, 0.1);
+    z-index: 5; /* На преден план пред Following Users Panel */
+    position: relative;
+    border-radius: 0;
 }
 
 .svmessenger-search-results-panel::-webkit-scrollbar {
@@ -623,6 +629,9 @@
     flex: 1;
     overflow-y: auto;
     min-height: 200px;
+    order: 2; /* Показва се след Search Results Panel */
+    position: relative;
+    z-index: 1; /* Под Search Results Panel */
 }
 
 .svmessenger-following-users-panel::-webkit-scrollbar {

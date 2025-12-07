@@ -2600,6 +2600,7 @@
     color: var(--primary-dark);
 }
 
+/* Стар loading-spinner - запазен за обратна съвместимост */
 .loading-spinner {
     display: flex;
     align-items: center;
@@ -2615,6 +2616,29 @@
 }
 
 @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Нов стил за reaction users modal spinner - в стила на SmolyanVote */
+.reaction-users-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    min-height: 200px;
+}
+
+.reaction-users-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(76, 177, 92, 0.18);
+    border-top-color: #4cb15c;
+    border-radius: 50%;
+    animation: reaction-spinner-rotate 0.75s linear infinite;
+}
+
+@keyframes reaction-spinner-rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }

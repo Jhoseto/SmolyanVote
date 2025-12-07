@@ -6,7 +6,7 @@ function showReactionUsersModal(publicationId, reactionType) {
   const body = document.getElementById('reactionUsersModalBody');
   
   title.textContent = reactionType === 'like' ? 'Харесали' : 'Не харесали';
-  body.innerHTML = '<div class="loading-spinner"><i class="bi bi-arrow-repeat"></i> Зареждане...</div>';
+  body.innerHTML = '<div class="reaction-users-loading"><div class="reaction-users-spinner"></div></div>';
   modal.style.display = 'flex';
   
   const endpoint = reactionType === 'like' 

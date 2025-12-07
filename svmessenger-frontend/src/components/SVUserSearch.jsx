@@ -150,9 +150,21 @@ const SVUserSearch = ({ onClose }) => {
         )}
       </div>
 
-      {/* Search Results Panel - ПОД search bar-а, само при активно търсене */}
+      {/* Search Results Panel - НАД панела със следваните потребители, само при активно търсене */}
       {hasActiveSearch && (
-        <div className="svmessenger-search-results-panel">
+        <div 
+          className="svmessenger-search-results-panel"
+          style={{
+            height: isSearching 
+              ? '120px' // Височина при търсене (loading state)
+              : searchResults.length === 0
+              ? '150px' // Височина при празни резултати
+              : searchResults.length <= 6
+              ? `${searchResults.length * 72 + 70}px` // Динамична височина: 72px на item + 70px за headers
+              : `${6 * 72 + 70}px`, // Максимум 6 видими items (432px + 70px = 502px)
+            maxHeight: `${6 * 72 + 70}px` // Максимум 6 видими items
+          }}
+        >
           <div className="svmessenger-search-section-header">
             <span>Резултати от търсенето</span>
             {isSearching && <span className="svmessenger-search-count">Търсене...</span>}
