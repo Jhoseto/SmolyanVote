@@ -42,7 +42,6 @@ public class PodcastController {
                 .map(PodcastEpisodeDTO::new)
                 .collect(Collectors.toList());
 
-        // Статистики
         Long totalListens = podcastEpisodeRepository.getTotalListens();
         Long episodeCount = podcastEpisodeRepository.countByIsPublishedTrue();
 
@@ -50,7 +49,6 @@ public class PodcastController {
         model.addAttribute("totalListens", totalListens != null ? totalListens : 0);
         model.addAttribute("episodeCount", episodeCount != null ? episodeCount : 0);
         
-        // Ако има episode параметър, добавяме го за автоматично отваряне
         if (episode != null) {
             PodcastEpisodeEntity episodeEntity = podcastEpisodeRepository.findById(episode).orElse(null);
             if (episodeEntity != null && episodeEntity.getPublished()) {
@@ -60,7 +58,6 @@ public class PodcastController {
             }
         }
 
-        // SEO
         model.addAttribute("pageTitle", "Подкаст SmolyanVote - Гласът на Смолян");
         model.addAttribute("pageDescription", "Слушайте подкаста на SmolyanVote - истории, новини и разговори за нашия град");
 
@@ -88,7 +85,6 @@ public class PodcastController {
             long totalEpisodes = podcastEpisodeRepository.count();
             episode.setEpisodeNumber((int) totalEpisodes + 1);
 
-            // Конвертиране на продължителността от мм:сс в секунди
             if (duration != null && !duration.isEmpty()) {
                 try {
                     String[] parts = duration.split(":");
@@ -96,7 +92,6 @@ public class PodcastController {
                     int seconds = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
                     episode.setDurationSeconds(minutes * 60 + seconds);
                 } catch (Exception e) {
-                    // Ако има грешка в парсирането, просто игнорираме
                 }
             }
 
@@ -104,14 +99,11 @@ public class PodcastController {
             episode.setPublishDate(Instant.now());
             episode.setListenCount(0L);
 
-            // Първо записваме в базата за да получим ID
             episode = podcastEpisodeRepository.save(episode);
 
-            // След това качваме изображението със знанието за ID-то
             if (imageFile != null && !imageFile.isEmpty()) {
                 String imageUrl = imageCloudinaryService.savePodcastImage(imageFile, episode.getId());
                 episode.setImageUrl(imageUrl);
-                // Запазваме отново с URL-а на изображението
                 podcastEpisodeRepository.save(episode);
             }
 
@@ -145,41 +137,47 @@ public class PodcastController {
         return new PodcastEpisodeDTO(episode);
     }
 
-    /**
-     * Endpoint за споделяне на подкаст епизод във Facebook и други социални мрежи
-     * Връща специален template с Open Graph meta tags за Facebook bot
-     */
     @GetMapping("/podcast/episode/{id}")
     public String sharePodcastEpisode(
             @PathVariable Long id,
             Model model,
             HttpServletRequest request) {
+        
+        try {
+            if (id == null || id <= 0) {
+                return "redirect:/podcast";
+            }
 
-        PodcastEpisodeEntity episode = podcastEpisodeRepository.findById(id)
-                .orElse(null);
+            PodcastEpisodeEntity episode = podcastEpisodeRepository.findById(id)
+                    .orElse(null);
 
-        if (episode == null || !episode.getPublished()) {
-            return "redirect:/podcast";
-        }
+            if (episode == null) {
+                return "redirect:/podcast";
+            }
 
-        String userAgent = request.getHeader("User-Agent");
-        boolean isSocialBot = userAgent != null && (
-                userAgent.contains("facebookexternalhit") ||
-                userAgent.contains("Twitterbot") ||
-                userAgent.contains("LinkedInBot") ||
-                userAgent.contains("WhatsApp") ||
-                userAgent.contains("TelegramBot")
-        );
+            if (episode.getPublished() == null || !episode.getPublished()) {
+                return "redirect:/podcast";
+            }
 
-        if (isSocialBot) {
-            // Подготвяме данни за Open Graph
+            String userAgent = request.getHeader("User-Agent");
+            boolean isSocialBot = userAgent != null && (
+                    userAgent.toLowerCase().contains("facebookexternalhit") ||
+                    userAgent.toLowerCase().contains("facebot") ||
+                    userAgent.toLowerCase().contains("facebookcrawler") ||
+                    userAgent.toLowerCase().contains("twitterbot") ||
+                    userAgent.toLowerCase().contains("linkedinbot") ||
+                    userAgent.toLowerCase().contains("whatsapp") ||
+                    userAgent.toLowerCase().contains("telegrambot") ||
+                    userAgent.toLowerCase().contains("slackbot") ||
+                    userAgent.toLowerCase().contains("skypeuripreview")
+            );
+
             PodcastEpisodeDTO episodeDTO = new PodcastEpisodeDTO(episode);
             
             String ogTitle = episode.getTitle();
             if (ogTitle == null || ogTitle.trim().isEmpty()) {
-                ogTitle = "Епизод " + episode.getEpisodeNumber() + " - SmolyanVote Подкаст";
-            } else {
-                ogTitle = ogTitle + " - SmolyanVote Подкаст";
+                Integer episodeNum = episode.getEpisodeNumber();
+                ogTitle = "Епизод " + (episodeNum != null ? episodeNum : "") + " - SmolyanVote Подкаст";
             }
 
             String ogDescription = episode.getDescription();
@@ -187,35 +185,78 @@ public class PodcastController {
                 ogDescription = ogDescription.substring(0, 200) + "...";
             }
             if (ogDescription == null || ogDescription.trim().isEmpty()) {
-                ogDescription = "Слушайте епизод " + episode.getEpisodeNumber() + " от подкаста на SmolyanVote - истории, новини и разговори за Смолян.";
+                Integer episodeNum = episode.getEpisodeNumber();
+                ogDescription = "Слушайте епизод " + (episodeNum != null ? episodeNum : "") + " от подкаста на SmolyanVote - истории, новини и разговори за Смолян.";
             }
 
-            // Използваме точната снимка от епизода
             String ogImage = episode.getImageUrl();
+            
+            if (ogImage == null || ogImage.trim().isEmpty()) {
+                ogImage = episodeDTO.getImageUrl();
+            }
+            
             if (ogImage != null && !ogImage.trim().isEmpty()) {
-                // Ако е относителен път, добавяме домейна
+                ogImage = ogImage.trim();
+                
                 if (ogImage.startsWith("/")) {
                     ogImage = "https://smolyanvote.com" + ogImage;
+                } else if (!ogImage.startsWith("http://") && !ogImage.startsWith("https://")) {
+                    ogImage = "https://smolyanvote.com/" + ogImage;
                 }
-                // Ако вече е пълен URL, използваме го директно
             } else {
-                // Само ако няма снимка, използваме default
                 ogImage = "https://smolyanvote.com/images/web/podcast1.png";
             }
 
             String ogUrl = "https://smolyanvote.com/podcast/episode/" + id;
 
+            String ogAudio = episode.getAudioUrl();
+            if (ogAudio != null && !ogAudio.trim().isEmpty()) {
+                if (ogAudio.startsWith("/")) {
+                    ogAudio = "https://smolyanvote.com" + ogAudio;
+                } else if (!ogAudio.startsWith("http")) {
+                    ogAudio = "https://smolyanvote.com/" + ogAudio;
+                }
+            } else {
+                ogAudio = "";
+            }
+            
+            episodeDTO.setImageUrl(ogImage);
+            
+            String formattedPublishDate = "";
+            if (episode.getPublishDate() != null) {
+                try {
+                    java.time.format.DateTimeFormatter formatter = 
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+                    formattedPublishDate = episode.getPublishDate()
+                        .atZone(java.time.ZoneId.of("UTC"))
+                        .format(formatter);
+                } catch (Exception e) {
+                    try {
+                        formattedPublishDate = episode.getPublishDate().toString();
+                        if (formattedPublishDate.endsWith("Z")) {
+                            formattedPublishDate = formattedPublishDate.replace("Z", "+00:00");
+                        }
+                    } catch (Exception e2) {
+                        formattedPublishDate = "";
+                    }
+                }
+            }
+            
             model.addAttribute("episode", episodeDTO);
             model.addAttribute("ogTitle", ogTitle);
             model.addAttribute("ogDescription", ogDescription);
             model.addAttribute("ogImage", ogImage);
             model.addAttribute("ogUrl", ogUrl);
-            model.addAttribute("ogAudio", episode.getAudioUrl());
+            model.addAttribute("ogAudio", ogAudio);
+            model.addAttribute("isSocialBot", isSocialBot);
+            model.addAttribute("formattedPublishDate", formattedPublishDate);
 
             return "podcast-episode-social";
+            
+        } catch (Exception e) {
+            System.err.println("Error in sharePodcastEpisode for episode ID " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/podcast";
         }
-
-        // За нормални потребители - редирект към главната страница за подкасти
-        return "redirect:/podcast";
     }
 }

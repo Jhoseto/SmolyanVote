@@ -30,25 +30,51 @@ public class PodcastEpisodeDTO {
         this.title = episode.getTitle();
         this.description = episode.getDescription();
         this.audioUrl = episode.getAudioUrl();
-        this.imageUrl = episode.getImageUrl();
+        
+        // КРИТИЧНО: Обработка на imageUrl - премахваме whitespace и проверяваме за null
+        String entityImageUrl = episode.getImageUrl();
+        if (entityImageUrl != null && !entityImageUrl.trim().isEmpty()) {
+            this.imageUrl = entityImageUrl.trim();
+        } else {
+            this.imageUrl = null; // Явно задаваме null за да работи getImageUrlOrDefault правилно
+        }
+        
         this.publishDate = episode.getPublishDate();
         this.durationSeconds = episode.getDurationSeconds();
         this.episodeNumber = episode.getEpisodeNumber();
         this.listenCount = episode.getListenCount();
 
-        // Format date and duration
-        this.formattedPublishDate = formatPublishDate();
-        this.formattedDuration = formatDuration();
+        // Format date and duration - с защита от грешки
+        try {
+            this.formattedPublishDate = formatPublishDate();
+        } catch (Exception e) {
+            this.formattedPublishDate = "";
+        }
+        
+        try {
+            this.formattedDuration = formatDuration();
+        } catch (Exception e) {
+            this.formattedDuration = "0:00";
+        }
     }
 
     // Helper methods
     private String formatPublishDate() {
         if (publishDate == null) return "";
 
-        // Convert Instant to LocalDateTime with Sofia timezone
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(publishDate, ZoneId.of("Europe/Sofia"));
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy", new Locale("bg", "BG"));
-        return localDateTime.format(formatter);
+        try {
+            // Convert Instant to LocalDateTime with Sofia timezone
+            LocalDateTime localDateTime = LocalDateTime.ofInstant(publishDate, ZoneId.of("Europe/Sofia"));
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy", new Locale("bg", "BG"));
+            return localDateTime.format(formatter);
+        } catch (Exception e) {
+            // Ако има грешка, опитваме се с по-просто форматиране
+            try {
+                return publishDate.toString();
+            } catch (Exception e2) {
+                return "";
+            }
+        }
     }
 
     private String formatDuration() {
@@ -144,8 +170,10 @@ public class PodcastEpisodeDTO {
 
     // Default image if no image provided
     public String getImageUrlOrDefault() {
-        if (imageUrl != null && !imageUrl.isEmpty()) {
-            return imageUrl;
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            // КРИТИЧНО: Ако е относителен път, го връщаме както е
+            // Ако е пълен URL, го връщаме както е
+            return imageUrl.trim();
         }
         // ПОПРАВЕНО - използва локален файл вместо external service
         return "/images/web/podcast1.png";

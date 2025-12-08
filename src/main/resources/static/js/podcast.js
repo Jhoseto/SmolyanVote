@@ -38,20 +38,86 @@ class PodcastPlayer {
         const episodeId = urlParams.get('episode');
         
         if (episodeId) {
-            // Изчакваме само да се заредят DOM елементите
+            let attempts = 0;
+            const maxAttempts = 50; // Максимум 5 секунди (50 * 100ms)
+            
+            // Изчакваме да се заредят DOM елементите и епизодите
             const checkCard = () => {
-                const episodeCard = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
-                if (episodeCard) {
+                attempts++;
+                
+                // КРИТИЧНО: Конвертираме episodeId в число за правилно сравнение
+                const numericId = parseInt(episodeId, 10);
+                if (isNaN(numericId)) {
+                    console.error('Invalid episode ID:', episodeId);
+                    return;
+                }
+                
+                // Проверяваме дали има заредени епизоди
+                const episodes = this.getEpisodes();
+                // КРИТИЧНО: Търсим и с number и с string версия на ID-то
+                let episodeCard = document.querySelector(`.episode-card[data-episode-id="${numericId}"]`);
+                if (!episodeCard) {
+                    episodeCard = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
+                }
+                
+                if (episodeCard && episodes.length > 0) {
                     // Отваряме playera и започваме възпроизвеждане автоматично
                     this.loadEpisode(episodeCard, true);
-                } else {
+                } else if (attempts < maxAttempts) {
                     // Ако картата още не е заредена, пробваме отново след кратко време
                     setTimeout(checkCard, 100);
+                } else {
+                    // Ако след всички опити не сме намерили картата, опитваме да заредим директно от API
+                    this.loadEpisodeById(episodeId);
                 }
             };
             
-            // Първа проверка веднага
-            checkCard();
+            // Първа проверка след малко изчакване за да се заредят епизодите
+            setTimeout(checkCard, 200);
+        }
+    }
+    
+    async loadEpisodeById(episodeId) {
+        try {
+            // КРИТИЧНО: Конвертираме episodeId в число за правилно сравнение
+            const numericId = parseInt(episodeId, 10);
+            if (isNaN(numericId)) {
+                console.error('Invalid episode ID:', episodeId);
+                return;
+            }
+            
+            const response = await fetch('/api/podcast/episodes');
+            if (!response.ok) return;
+            
+            const episodes = await response.json();
+            // КРИТИЧНО: Използваме строго сравнение за да намерим правилния епизод
+            const episode = episodes.find(ep => ep.id === numericId || ep.id == numericId);
+            
+            if (episode) {
+                // Търсим картата отново след като епизодите са заредени
+                // КРИТИЧНО: Използваме и string и number версия на ID-то
+                let episodeCard = document.querySelector(`.episode-card[data-episode-id="${numericId}"]`);
+                if (!episodeCard) {
+                    episodeCard = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
+                }
+                
+                if (episodeCard) {
+                    this.loadEpisode(episodeCard, true);
+                } else {
+                    // Ако все още няма карта, изчакваме още малко
+                    setTimeout(() => {
+                        let card = document.querySelector(`.episode-card[data-episode-id="${numericId}"]`);
+                        if (!card) {
+                            card = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
+                        }
+                        if (card) {
+                            this.loadEpisode(card, true);
+                        }
+                    }, 500);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading episode by ID:', error);
         }
     }
 

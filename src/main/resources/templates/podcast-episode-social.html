@@ -4,69 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- TITLE -->
-    <title th:text="${ogTitle}">Подкаст Епизод - SmolyanVote</title>
+    <title th:text="${'SmolyanVote Podcast епизод ' + (episode.episodeNumber != null ? episode.episodeNumber : '')}">SmolyanVote Podcast епизод</title>
 
-    <!-- ====== OPEN GRAPH META TAGS ====== -->
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="SmolyanVote">
-    <meta property="og:title" th:content="${ogTitle}">
-    <meta property="og:description" th:content="${ogDescription}">
-    <meta property="og:url" th:content="${ogUrl}">
-    <meta property="og:image" th:content="${ogImage}">
-    <meta property="og:image:secure_url" th:content="${ogImage}">
+    <meta property="og:title" th:content="${episode.title != null and !episode.title.isEmpty() ? episode.title : 'Подкаст Епизод - SmolyanVote'}">
+    <meta property="og:description" th:content="${episode.description != null and !episode.description.isEmpty() ? episode.description : 'Слушайте подкаст епизод от SmolyanVote'}">
+    <meta property="og:url" th:content="${ogUrl != null and !ogUrl.isEmpty() ? ogUrl : 'https://smolyanvote.com/podcast'}">
+    <meta property="og:image" th:content="${ogImage != null and !ogImage.isEmpty() ? ogImage : 'https://smolyanvote.com/images/web/podcast1.png'}">
+    <meta property="og:image:secure_url" th:content="${ogImage != null and !ogImage.isEmpty() ? ogImage : 'https://smolyanvote.com/images/web/podcast1.png'}">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" th:content="${ogTitle}">
+    <meta property="og:image:alt" th:content="${episode.title != null and !episode.title.isEmpty() ? episode.title : 'Подкаст Епизод'}">
     <meta property="og:locale" content="bg_BG">
     
-    <!-- ARTICLE SPECIFIC -->
-    <meta property="article:published_time" th:content="${episode.publishDate != null ? #temporals.format(episode.publishDate, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : ''}">
+    <meta property="article:published_time" th:if="${formattedPublishDate != null and !formattedPublishDate.isEmpty()}" th:content="${formattedPublishDate}">
     <meta property="article:author" content="SmolyanVote">
     <meta property="article:section" content="Подкаст">
     <meta property="article:tag" content="SmolyanVote">
     <meta property="article:tag" content="Смолян">
     <meta property="article:tag" content="Подкаст">
-    <meta property="article:tag" th:if="${episode.episodeNumber != null}" th:content="'Епизод ' + ${episode.episodeNumber}">
+    <meta property="article:tag" th:if="${episode.episodeNumber != null}" th:content="${'Епизод ' + episode.episodeNumber.toString()}">
     
-    <!-- AUDIO SPECIFIC -->
-    <meta property="og:audio" th:content="${ogAudio}">
-    <meta property="og:audio:type" content="audio/mpeg">
-    <meta property="og:audio:secure_url" th:content="${ogAudio}">
+    <meta property="og:audio" th:if="${ogAudio != null and !ogAudio.isEmpty()}" th:content="${ogAudio}">
+    <meta property="og:audio:type" th:if="${ogAudio != null and !ogAudio.isEmpty()}" content="audio/mpeg">
+    <meta property="og:audio:secure_url" th:if="${ogAudio != null and !ogAudio.isEmpty()}" th:content="${ogAudio}">
 
-    <!-- TWITTER CARDS -->
     <meta name="twitter:card" content="player">
     <meta name="twitter:site" content="@SmolyanVote">
-    <meta name="twitter:title" th:content="${ogTitle}">
-    <meta name="twitter:description" th:content="${ogDescription}">
-    <meta name="twitter:image" th:content="${ogImage}">
-    <meta name="twitter:image:alt" th:content="${ogTitle}">
-    <meta name="twitter:player" th:content="${ogUrl}">
+    <meta name="twitter:title" th:content="${episode.title != null and !episode.title.isEmpty() ? episode.title : 'Подкаст Епизод - SmolyanVote'}">
+    <meta name="twitter:description" th:content="${episode.description != null and !episode.description.isEmpty() ? episode.description : 'Слушайте подкаст епизод от SmolyanVote'}">
+    <meta name="twitter:image" th:content="${ogImage != null and !ogImage.isEmpty() ? ogImage : 'https://smolyanvote.com/images/web/podcast1.png'}">
+    <meta name="twitter:image:alt" th:content="${episode.title != null and !episode.title.isEmpty() ? episode.title : 'Подкаст Епизод'}">
+    <meta name="twitter:player" th:content="${ogUrl != null and !ogUrl.isEmpty() ? ogUrl : 'https://smolyanvote.com/podcast'}">
     <meta name="twitter:player:width" content="600">
     <meta name="twitter:player:height" content="400">
 
-    <!-- STANDARD META -->
-    <meta name="description" th:content="${ogDescription}">
+    <meta name="description" th:content="${episode.description != null and !episode.description.isEmpty() ? episode.description : 'Слушайте подкаст епизод от SmolyanVote'}">
     
-    <!-- CANONICAL URL -->
-    <link rel="canonical" th:href="${ogUrl}">
+    <link rel="canonical" th:href="${ogUrl != null and !ogUrl.isEmpty() ? ogUrl : 'https://smolyanvote.com/podcast'}">
     
-    <!-- PODCAST EPISODE STRUCTURED DATA (JSON-LD) -->
     <script type="application/ld+json" th:inline="javascript">
     {
         "@context": "https://schema.org",
         "@type": "PodcastEpisode",
-        "name": "Подкаст Епизод",
-        "description": "Епизод от подкаста на SmolyanVote",
-        "image": "https://smolyanvote.com/images/web/podcast1.png",
-        "datePublished":"",
-        "duration":"",
-        "episodeNumber": "",
-        "url": "https://smolyanvote.com/podcast",
+        "name": /*[[${episode.title != null ? episode.title : 'Подкаст Епизод'}]]*/ "Подкаст Епизод",
+        "description": /*[[${episode.description != null ? episode.description : 'Епизод от подкаста на SmolyanVote'}]]*/ "Епизод от подкаста на SmolyanVote",
+        "image": /*[[${ogImage != null and !ogImage.isEmpty() ? ogImage : 'https://smolyanvote.com/images/web/podcast1.png'}]]*/ "https://smolyanvote.com/images/web/podcast1.png",
+        "datePublished": /*[[${formattedPublishDate != null and !formattedPublishDate.isEmpty() ? formattedPublishDate : ''}]]*/ "",
+        "duration": /*[[${episode.durationSeconds != null ? 'PT' + episode.durationSeconds.toString() + 'S' : ''}]]*/ "",
+        "episodeNumber": /*[[${episode.episodeNumber != null ? episode.episodeNumber.toString() : ''}]]*/ "",
+        "url": /*[[${ogUrl != null and !ogUrl.isEmpty() ? ogUrl : 'https://smolyanvote.com/podcast'}]]*/ "https://smolyanvote.com/podcast",
         "audio": {
             "@type": "AudioObject",
-            "contentUrl": "",
+            "contentUrl": /*[[${ogAudio != null && !ogAudio.isEmpty() ? ogAudio : ''}]]*/ "",
             "encodingFormat": "audio/mpeg"
         },
         "partOfSeries": {
@@ -93,17 +85,24 @@
     <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#4b9f3e">
 
-    <!-- FAVICON -->
     <link rel="icon" type="image/x-icon" href="/images/logoNew.png">
 
-    <!-- REDIRECT SCRIPT за нормални потребители -->
     <script>
-        // Ако някой нормален потребител някак си стигне тук, redirect-ваме го към страницата за подкасти с параметър за епизода
-        if (!navigator.userAgent.match(/facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|TelegramBot/i)) {
-            // Извличаме episode ID от URL-а
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isSocialBot = userAgent.includes('facebookexternalhit') ||
+                           userAgent.includes('facebot') ||
+                           userAgent.includes('facebookcrawler') ||
+                           userAgent.includes('twitterbot') ||
+                           userAgent.includes('linkedinbot') ||
+                           userAgent.includes('whatsapp') ||
+                           userAgent.includes('telegrambot') ||
+                           userAgent.includes('slackbot') ||
+                           userAgent.includes('skypeuripreview');
+        
+        if (!isSocialBot) {
             const pathParts = window.location.pathname.split('/');
             const episodeId = pathParts[pathParts.length - 1];
-            if (episodeId) {
+            if (episodeId && !isNaN(episodeId)) {
                 window.location.href = '/podcast?episode=' + episodeId;
             } else {
                 window.location.href = '/podcast';
@@ -111,7 +110,6 @@
         }
     </script>
 
-    <!-- BASIC STYLES -->
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -357,32 +355,32 @@
     <div class="content">
         <div class="episode-header">
             <div class="episode-image">
-                <img th:src="${episode.imageUrl != null and !episode.imageUrl.isEmpty() ? (episode.imageUrl.startsWith('http') ? episode.imageUrl : 'https://smolyanvote.com' + (episode.imageUrl.startsWith('/') ? episode.imageUrl : '/' + episode.imageUrl)) : 'https://smolyanvote.com/images/web/podcast1.png'}" th:alt="${episode.title}">
+                <img th:src="${ogImage != null and !ogImage.isEmpty() ? ogImage : '/images/web/podcast1.png'}" th:alt="${episode.title != null ? episode.title : 'Подкаст Епизод'}">
             </div>
             <div class="episode-info">
                 <div class="episode-number" th:if="${episode.episodeNumber != null}">
                     Епизод #<span th:text="${episode.episodeNumber}">1</span>
                 </div>
-                <h2 class="title" th:text="${episode.title}">Заглавие на епизод</h2>
+                <h2 class="title" th:text="${episode.title != null ? episode.title : 'Подкаст Епизод'}">Заглавие на епизод</h2>
                 
                 <div class="meta">
-                    <div class="meta-item" th:if="${episode.formattedPublishDate}">
+                    <div class="meta-item" th:if="${episode.formattedPublishDate != null and !episode.formattedPublishDate.isEmpty()}">
                         <span class="meta-icon">📅</span>
                         <span th:text="${episode.formattedPublishDate}">Дата</span>
                     </div>
-                    <div class="meta-item" th:if="${episode.formattedDuration}">
+                    <div class="meta-item" th:if="${episode.formattedDuration != null and !episode.formattedDuration.isEmpty()}">
                         <span class="meta-icon">⏱️</span>
                         <span th:text="${episode.formattedDuration}">Продължителност</span>
                     </div>
                     <div class="meta-item" th:if="${episode.listenCount != null and episode.listenCount > 0}">
                         <span class="meta-icon">👂</span>
-                        <span th:text="${episode.listenCount} + ' слушания'">0 слушания</span>
+                        <span th:text="${episode.listenCount.toString() + ' слушания'}">0 слушания</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="description" th:text="${episode.description}">
+        <div class="description" th:text="${episode.description != null ? episode.description : 'Слушайте епизод от подкаста на SmolyanVote'}">
             Описание на епизода
         </div>
 
@@ -390,9 +388,9 @@
             <div class="audio-icon">🎵</div>
             <div class="audio-info">
                 <strong>Слушайте този епизод</strong><br>
-                <span th:if="${episode.formattedDuration}">Продължителност: <span th:text="${episode.formattedDuration}"></span></span>
+                <span th:if="${episode.formattedDuration != null and !episode.formattedDuration.isEmpty()}">Продължителност: <span th:text="${episode.formattedDuration}"></span></span>
             </div>
-            <a href="https://smolyanvote.com/podcast" class="play-button">
+            <a th:href="${'/podcast?episode=' + episode.id}" class="play-button">
                 ▶️ Слушай в SmolyanVote
             </a>
         </div>
@@ -402,7 +400,7 @@
                 <span class="stat-number" th:text="${episode.episodeNumber}">#</span>
                 <span class="stat-label">Епизод</span>
             </div>
-            <div class="stat" th:if="${episode.formattedDuration}">
+            <div class="stat" th:if="${episode.formattedDuration != null and !episode.formattedDuration.isEmpty()}">
                 <span class="stat-number" th:text="${episode.formattedDuration}">0:00</span>
                 <span class="stat-label">Продължителност</span>
             </div>
@@ -431,4 +429,3 @@
 </div>
 </body>
 </html>
-
