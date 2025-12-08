@@ -148,6 +148,6 @@ public class PodcastEpisodeDTO {
             return imageUrl;
         }
         // ПОПРАВЕНО - използва локален файл вместо external service
-        return "/images/podcast-default.jpg";
+        return "/images/web/podcast1.png";
     }
 }

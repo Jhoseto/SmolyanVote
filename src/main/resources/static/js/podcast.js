@@ -27,7 +27,32 @@ class PodcastPlayer {
         this.initCarousel();
         this.loadFavorites();
         this.addNotificationStyles();
-
+        
+        // Проверка за автоматично отваряне на епизод от URL параметър
+        this.checkAutoPlayFromUrl();
+    }
+    
+    checkAutoPlayFromUrl() {
+        // Проверяваме веднага за episode ID в URL-а
+        const urlParams = new URLSearchParams(window.location.search);
+        const episodeId = urlParams.get('episode');
+        
+        if (episodeId) {
+            // Изчакваме само да се заредят DOM елементите
+            const checkCard = () => {
+                const episodeCard = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
+                if (episodeCard) {
+                    // Отваряме playera и започваме възпроизвеждане автоматично
+                    this.loadEpisode(episodeCard, true);
+                } else {
+                    // Ако картата още не е заредена, пробваме отново след кратко време
+                    setTimeout(checkCard, 100);
+                }
+            };
+            
+            // Първа проверка веднага
+            checkCard();
+        }
     }
 
     saveOriginalOrder() {
@@ -48,7 +73,11 @@ class PodcastPlayer {
             responsive: true,
             cursorColor: '#fff',
             cursorWidth: 1,
-            hideScrollbar: true
+            hideScrollbar: true,
+            backend: 'MediaElement', // STREAMING: Използва HTML5 audio за streaming вместо да зарежда целия файл
+            mediaType: 'audio',
+            autoplay: false,
+            interact: true
         });
 
         this.wavesurfer.on('ready', () => {
@@ -70,9 +99,11 @@ class PodcastPlayer {
             this.isPlaying = true;
             this.updatePlayButton();
             
-            // Инкрементиране на listen count при стартиране на възпроизвеждане (mobile)
+            // Инкрементиране на listen count при стартиране на възпроизвеждане (mobile) - асинхронно
             if (this.currentEpisode?.id && this.currentEpisode?.element) {
-                this.incrementListenCount(this.currentEpisode.id, this.currentEpisode.element);
+                this.incrementListenCount(this.currentEpisode.id, this.currentEpisode.element).catch(() => {
+                    // Ignore errors - не критично
+                });
             }
         });
 
@@ -157,8 +188,11 @@ class PodcastPlayer {
             if (e.target.closest('.share-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
-                const episodeCard = e.target.closest('.episode-card');
-                if (episodeCard) this.shareEpisode(episodeCard);
+                const shareBtn = e.target.closest('.share-btn');
+                const episodeCard = shareBtn.closest('.episode-card');
+                // Извличаме episodeId от бутона или от картата
+                const episodeId = shareBtn?.dataset?.episodeId || episodeCard?.dataset?.episodeId;
+                this.shareEpisode(episodeCard, episodeId);
                 return;
             }
 
@@ -368,7 +402,7 @@ class PodcastPlayer {
         const description = episodeCard.querySelector('.episode-description')?.textContent || '';
         const episodeNumber = episodeCard.querySelector('.episode-titleNumber, .episode-number')?.textContent || '';
         const imageElement = episodeCard.querySelector('.episode-image img');
-        let imageUrl = imageElement?.src || '/images/podcast-default.jpg';
+        let imageUrl = imageElement?.src || '/images/web/podcast1.png';
 
         this.currentEpisode = {
             element: episodeCard,
@@ -380,9 +414,12 @@ class PodcastPlayer {
             id: episodeId
         };
 
-        // Инкрементиране на listen count при стартиране на епизод
+        // Инкрементиране на listen count при стартиране на епизод (асинхронно, не блокира)
         if (episodeId) {
-            this.incrementListenCount(episodeId, episodeCard);
+            // Не изчакваме - зареждаме аудиото веднага
+            this.incrementListenCount(episodeId, episodeCard).catch(() => {
+                // Ignore errors - не критично
+            });
         }
 
         // Проверка дали сме на desktop - отваряне на отделен прозорец
@@ -529,36 +566,78 @@ class PodcastPlayer {
         }
     }
 
-    loadAudioWithTimeout(audioUrl, timeout = 15000) {
+    loadAudioWithTimeout(audioUrl, timeout = 10000) {
         return new Promise((resolve, reject) => {
-            const onReady = () => {
-                this.wavesurfer.un('ready', onReady);
-                this.wavesurfer.un('error', onError);
+            let resolved = false;
+            
+            const finish = () => {
+                if (resolved) return;
+                resolved = true;
                 resolve();
             };
 
             const onError = (error) => {
-                this.wavesurfer.un('ready', onReady);
-                this.wavesurfer.un('error', onError);
+                if (resolved) return;
+                resolved = true;
                 reject(error);
             };
 
             const timeoutId = setTimeout(() => {
-                this.wavesurfer.un('ready', onReady);
-                this.wavesurfer.un('error', onError);
+                if (resolved) return;
+                resolved = true;
                 reject(new Error('Audio load timeout'));
             }, timeout);
 
-            this.wavesurfer.on('ready', () => {
-                clearTimeout(timeoutId);
-                onReady();
-            });
-            this.wavesurfer.on('error', (error) => {
-                clearTimeout(timeoutId);
-                onError(error);
-            });
+            // Зареждаме аудиото
+            this.wavesurfer.load(audioUrl).catch(onError);
+            
+            // Слушаме за canplay вместо ready за по-бързо стартиране
+            setTimeout(() => {
+                const mediaElement = this.wavesurfer.getMediaElement?.();
+                if (mediaElement) {
+                    if (mediaElement.readyState >= 2) {
+                        clearTimeout(timeoutId);
+                        finish();
+                    } else {
+                        mediaElement.addEventListener('canplay', () => {
+                            clearTimeout(timeoutId);
+                            finish();
+                        }, { once: true });
+                        
+                        mediaElement.addEventListener('loadedmetadata', () => {
+                            if (!resolved && mediaElement.readyState >= 1) {
+                                clearTimeout(timeoutId);
+                                finish();
+                            }
+                        }, { once: true });
+                        
+                        mediaElement.addEventListener('error', onError, { once: true });
+                    }
+                } else {
+                    // Fallback към ready event
+                    this.wavesurfer.on('ready', () => {
+                        clearTimeout(timeoutId);
+                        this.isAudioReady = true;
+                        this.hideLoadingState(this.currentEpisode.element);
 
-            this.wavesurfer.load(audioUrl);
+                        // Seek към началото
+                        try {
+                            this.wavesurfer.seekTo(0);
+                        } catch (e) {
+                            // Ignore
+                        }
+
+                        if (this.shouldAutoPlay) {
+                            this.wavesurfer.play();
+                            this.shouldAutoPlay = false;
+                        }
+
+                        finish();
+                    });
+                    
+                    this.wavesurfer.on('error', onError);
+                }
+            }, 100);
         });
     }
 
@@ -589,7 +668,7 @@ class PodcastPlayer {
 
         if (titleElement) titleElement.textContent = displayTitle;
         if (descriptionElement) descriptionElement.textContent = description;
-        if (imageElement) imageElement.src = imageUrl || '/images/podcast-default.jpg';
+        if (imageElement) imageElement.src = imageUrl || '/images/web/podcast1.png';
     }
 
     updateActiveEpisode(activeCard) {
@@ -981,25 +1060,53 @@ class PodcastPlayer {
         });
     }
 
-    shareEpisode(episodeCard) {
-        const title = episodeCard.querySelector('.episode-title')?.textContent || 'Епизод';
-        const description = episodeCard.querySelector('.episode-description')?.textContent || '';
+    shareEpisode(episodeCard, episodeIdFromBtn = null) {
+        // Приоритет: 1) episodeId от бутона, 2) от картата, 3) от currentEpisode, 4) fallback
+        let episodeId, title, description;
+        
+        // Първо опитваме се да използваме episodeId от бутона (ако е подаден)
+        if (episodeIdFromBtn) {
+            episodeId = episodeIdFromBtn;
+        } else if (episodeCard) {
+            // Данни от картата
+            episodeId = episodeCard?.dataset?.episodeId;
+        } else if (this.currentEpisode?.id) {
+            // Данни от текущия епизод
+            episodeId = this.currentEpisode.id;
+        }
+        
+        // Извличаме заглавие и описание
+        if (episodeCard) {
+            title = episodeCard.querySelector('.episode-title')?.textContent || 'Епизод';
+            description = episodeCard.querySelector('.episode-description')?.textContent || '';
+        } else if (this.currentEpisode) {
+            title = this.currentEpisode.title || 'Епизод';
+            description = this.currentEpisode.description || '';
+        } else {
+            // Fallback - няма данни
+            title = 'SmolyanVote Подкаст';
+            description = 'Слушайте подкаста на SmolyanVote';
+        }
+        
+        // Използваме специален URL за споделяне на епизод
+        const shareUrl = episodeId ? `https://smolyanvote.com/podcast/episode/${episodeId}` : 'https://smolyanvote.com/podcast';
 
         if (navigator.share) {
             navigator.share({
                 title: title,
                 text: description,
-                url: window.location.href
+                url: shareUrl
             }).catch(() => {
-                this.copyToClipboard(title, description);
+                this.copyToClipboard(title, description, shareUrl);
             });
         } else {
-            this.copyToClipboard(title, description);
+            this.copyToClipboard(title, description, shareUrl);
         }
     }
 
-    copyToClipboard(title, description) {
-        const shareText = `${title} - ${description}\n${window.location.href}`;
+    copyToClipboard(title, description, url) {
+        const shareUrl = url || window.location.href;
+        const shareText = `${title} - ${description}\n${shareUrl}`;
 
         if (navigator.clipboard) {
             navigator.clipboard.writeText(shareText).then(() => {

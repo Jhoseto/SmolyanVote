@@ -28,6 +28,7 @@ class PodcastWindowPlayer {
         this.readyHandler = null;
         this.listenCountIncremented = false; // Флаг за проследяване дали listen count е инкрементиран
         this.currentLoadId = null; // Уникален ID за всяко зареждане
+        this.pendingEpisodeId = null; // Episode ID за автоматично зареждане от URL
         
         // Получаване на данни от родителския прозорец
         this.initFromParent();
@@ -38,22 +39,36 @@ class PodcastWindowPlayer {
         // Получаване на данни от URL параметри или localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const episodeData = urlParams.get('episode');
+        const episodeId = urlParams.get('episodeId');
         
         if (episodeData) {
             try {
+                // Опитваме се да парснем като JSON (пълен обект)
                 this.currentEpisode = JSON.parse(decodeURIComponent(episodeData));
             } catch (e) {
-                console.error('Error parsing episode data:', e);
+                // Ако не е JSON, може би е само ID
+                const parsedId = parseInt(episodeData);
+                if (!isNaN(parsedId)) {
+                    this.pendingEpisodeId = parsedId;
+                }
+            }
+        } else if (episodeId) {
+            // Директно episode ID
+            const parsedId = parseInt(episodeId);
+            if (!isNaN(parsedId)) {
+                this.pendingEpisodeId = parsedId;
             }
         }
         
         // Или от localStorage
-        const savedEpisode = localStorage.getItem('podcast-current-episode');
-        if (savedEpisode && !this.currentEpisode) {
-            try {
-                this.currentEpisode = JSON.parse(savedEpisode);
-            } catch (e) {
-                console.error('Error parsing saved episode:', e);
+        if (!this.currentEpisode && !this.pendingEpisodeId) {
+            const savedEpisode = localStorage.getItem('podcast-current-episode');
+            if (savedEpisode) {
+                try {
+                    this.currentEpisode = JSON.parse(savedEpisode);
+                } catch (e) {
+                    // Ignore parse errors
+                }
             }
         }
     }
@@ -70,9 +85,20 @@ class PodcastWindowPlayer {
         this.bindEvents();
         await this.loadAllEpisodes();
         
-        // Зареждане на епизод само ако има такъв
-        if (this.currentEpisode && this.currentEpisode.audioUrl) {
+        // Зареждане на епизод - първо проверяваме дали има pendingEpisodeId
+        if (this.pendingEpisodeId) {
+            const episode = this.allEpisodes.find(ep => ep.id === this.pendingEpisodeId);
+            if (episode) {
+                const index = this.allEpisodes.indexOf(episode);
+                if (index >= 0) {
+                    await this.selectEpisode(index);
+                }
+            }
+        } else if (this.currentEpisode && this.currentEpisode.audioUrl) {
+            // Зареждане на епизод от JSON данни
             this.findCurrentEpisodeIndex();
+            // КРИТИЧНО: Актуализираме UI преди зареждане за да се покаже правилната снимка
+            this.updateUI();
             this.loadEpisode();
         }
         
@@ -92,7 +118,7 @@ class PodcastWindowPlayer {
                 
                 <div class="podcast-window-modal">
                     <div class="podcast-episode-info">
-                        <img class="podcast-episode-image" id="episodeImage" src="/images/podcast-default.jpg" alt="Episode">
+                        <img class="podcast-episode-image" id="episodeImage" src="/images/web/podcast1.png" alt="Episode">
                         <div class="podcast-episode-details">
                             <h1 class="podcast-episode-title" id="episodeTitle">Изберете епизод</h1>
                             <p class="podcast-episode-description" id="episodeDescription">Кликнете върху епизод за възпроизвеждане</p>
@@ -277,9 +303,12 @@ class PodcastWindowPlayer {
             barRadius: 2,
             height: 50,
             responsive: true,
-            normalize: true,
-            backend: 'WebAudio',
-            mediaControls: false
+            normalize: false, // КРИТИЧНО: false за мигновено зареждане - не декодира целия файл
+            backend: 'MediaElement', // STREAMING: Използва HTML5 audio за streaming
+            mediaControls: false,
+            mediaType: 'audio',
+            autoplay: false,
+            interact: true
         });
 
         // Инсталиране на event listeners
@@ -299,18 +328,11 @@ class PodcastWindowPlayer {
         // Event listeners - НЕ добавяме 'ready' тук, защото се управлява в loadEpisode()
         
         this.wavesurfer.on('play', () => {
-            console.log('WaveSurfer play event fired');
             this.isPlaying = true;
             this.updatePlayButton();
             
-            // Инициализация на audio analyser при първо възпроизвеждане (след user gesture)
-            // Изчакваме по-дълго за да гарантираме че audio element е напълно готов
-            if (!this.analyser || !this.dataArray) {
-                // Опитваме се няколко пъти с увеличаващо се забавяне
-                this.initAudioAnalyserWithRetry(0);
-            }
-            
-            this.startEQVisualization();
+            // ВРЕМЕННО ИЗКЛЮЧЕН - audio analyser счупва възпроизвеждането
+            // this.startEQVisualization();
             this.notifyParent('play');
             
             // Инкрементиране на listen count само веднъж за текущия епизод
@@ -371,23 +393,30 @@ class PodcastWindowPlayer {
                 return;
             }
             
+            // Ако вече е инициализиран, спираме
+            if (this.analyser && this.dataArray) {
+                return;
+            }
+            
             const success = this.initAudioAnalyser();
+            
+            // Ако е успешно ИЛИ вече има analyser, спираме retry-тата
+            if (success || (this.analyser && this.dataArray)) {
+                return;
+            }
+            
+            // Само ако наистина е неуспешно, пробваме отново
             if (!success && attempt < maxAttempts - 1) {
-                // Не показваме warning при първите опити - това е нормално
-                if (attempt >= 2) {
-                    console.log(`Retrying audio analyser initialization (attempt ${attempt + 1}/${maxAttempts})...`);
-                }
                 this.initAudioAnalyserWithRetry(attempt + 1, maxAttempts);
-            } else if (!success) {
-                // Показваме warning само ако всички опити са неуспешни
-                console.warn('Failed to initialize audio analyser after all attempts - EQ visualization will not work');
-            } else {
-                console.log('✅ Audio analyser initialized successfully');
             }
         }, delay);
     }
 
     initAudioAnalyser() {
+        // ВРЕМЕННО ИЗКЛЮЧЕН - audio analyser счупва възпроизвеждането
+        return false;
+        
+        /* ОРИГИНАЛЕН КОД
         try {
             // Почистване на стар analyser
             if (this.analyser) {
@@ -456,7 +485,10 @@ class PodcastWindowPlayer {
                 return false;
             }
 
-            console.log('Found audio element, readyState:', audioElement.readyState, audioElement);
+            // Ако вече е инициализиран, не правим нищо
+            if (this.analyser && this.dataArray) {
+                return true;
+            }
 
             // Използване на AudioContext от wavesurfer или създаване на нов
             if (this.wavesurfer.backend?.ac) {
@@ -471,17 +503,15 @@ class PodcastWindowPlayer {
 
             // Проверка за състояние на AudioContext
             if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume().then(() => {
-                    console.log('AudioContext resumed');
-                }).catch(err => {
-                    console.warn('Could not resume AudioContext:', err);
-                });
+                this.audioContext.resume().catch(() => {});
             }
 
-            // Създаване на analyser
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 256;
-            this.analyser.smoothingTimeConstant = 0.8;
+            // Създаване на analyser само веднъж
+            if (!this.analyser) {
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.analyser.smoothingTimeConstant = 0.8;
+            }
             
             // Свързване на source node
             let sourceNode = null;
@@ -492,7 +522,7 @@ class PodcastWindowPlayer {
             } else if (this.wavesurfer.backend?.sourceNode) {
                 sourceNode = this.wavesurfer.backend.sourceNode;
             } else {
-                // Създаване на нов source node
+                // Създаване на нов source node САМО веднъж
                 try {
                     sourceNode = this.audioContext.createMediaElementSource(audioElement);
                     // Запазване на source node
@@ -500,9 +530,14 @@ class PodcastWindowPlayer {
                         this.wavesurfer.backend.source = sourceNode;
                     }
                 } catch (err) {
-                    // Възможно е вече да има source node, но не го намираме
-                    console.warn('Could not create media source (may already exist):', err);
-                    return false;
+                    // Вече има source node - не е грешка, просто връщаме true
+                    // Създаваме dataArray ако няма
+                    if (!this.dataArray && this.analyser) {
+                        const bufferLength = this.analyser.frequencyBinCount;
+                        this.dataArray = new Uint8Array(bufferLength);
+                    }
+                    // Връщаме true за да спрем retry-тата
+                    return true;
                 }
             }
             
@@ -514,13 +549,14 @@ class PodcastWindowPlayer {
                 const bufferLength = this.analyser.frequencyBinCount;
                 this.dataArray = new Uint8Array(bufferLength);
                 
-                console.log('Audio analyser initialized successfully');
                 return true;
             } catch (err) {
-                console.warn('Could not connect analyser:', err);
-                this.analyser = null;
-                this.dataArray = null;
-                return false;
+                // Ignore connection errors
+                if (!this.dataArray) {
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(bufferLength);
+                }
+                return true;
             }
         } catch (error) {
             console.warn('Could not initialize audio analyser:', error);
@@ -528,6 +564,7 @@ class PodcastWindowPlayer {
             this.dataArray = null;
             return false;
         }
+        */
     }
 
     startEQVisualization() {
@@ -992,10 +1029,10 @@ class PodcastWindowPlayer {
                  data-episode-index="${index}"
                  data-episode-id="${episode.id}">
                 <div class="podcast-episode-card-image">
-                    <img src="${episode.imageUrl || '/images/podcast-default.jpg'}" 
+                    <img src="${episode.imageUrl || '/images/web/podcast1.png'}" 
                          alt="${episode.title}"
                          loading="lazy"
-                         onerror="this.src='/images/podcast-default.jpg'">
+                         onerror="this.src='/images/web/podcast1.png'">
                     <div class="podcast-episode-card-overlay">
                         <button class="podcast-episode-card-play-btn" data-episode-index="${index}">
                             <i class="bi bi-play-fill"></i>
@@ -1292,33 +1329,24 @@ class PodcastWindowPlayer {
         // Ако вече се зарежда РАЗЛИЧЕН епизод, принудително спираме и зареждаме новия
         if (this.isLoading && !isSameEpisode) {
             console.log('Different episode loading, forcing stop and loading new one');
-            // Принудително спираме текущото зареждане
-            this.setLoadingState(false);
-            this.isAudioReady = false;
-            // Премахваме всички ready listeners за да избегнем конфликти
-            if (this.wavesurfer) {
-                this.wavesurfer.un('ready');
-            }
+            // Първо спираме текущото зареждане
+            this.stopCurrentEpisode();
+            // Изчакваме малко за да се завърши почистването
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
-        
-        console.log('Loading NEW episode:', episode.title);
-        console.log('Episode ID:', episode.id);
-        console.log('Audio URL:', episode.audioUrl);
-        console.log('Current index:', index);
         
         // ВИНАГИ стартираме автоматично при кликване на епизод от прозореца
         const shouldAutoPlay = true;
         
-        // Пълно спиране и почистване на текущото възпроизвеждане
-        this.stopCurrentEpisode();
-        
-        // ВАЖНО: Премахваме ВСИЧКИ стари ready listeners ПРЕДИ да актуализираме currentEpisode
-        if (this.wavesurfer) {
-            this.wavesurfer.un('ready');
+        // Пълно спиране и почистване на текущото възпроизвеждане (ако не е направено вече)
+        if (!this.isLoading || isSameEpisode) {
+            this.stopCurrentEpisode();
         }
         
+        // КРИТИЧНО: Изчакваме достатъчно време за да се завърши пълното спиране и почистване
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         // ВАЖНО: Създаваме нов обект с всички данни от епизода
-        // Това трябва да се случи ПРЕДИ loadEpisode() за да работи правилно
         this.currentEpisode = {
             id: episode.id,
             title: episode.title,
@@ -1341,69 +1369,73 @@ class PodcastWindowPlayer {
         this.updateUI();
         this.updateEpisodesCarousel();
         
-        // Показване на loading индикатор
-        this.showLoadingIndicator();
-        
-        // Малко изчакване за да се успокоят всички операции
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Зареждане на новия епизод (ще стартира автоматично)
-        this.loadEpisode();
+        // Зареждане на новия епизод веднага (ще стартира автоматично)
+        await this.loadEpisode();
     }
 
     stopCurrentEpisode() {
-        console.log('=== STOPPING CURRENT EPISODE ===');
+        // КРИТИЧНО: Почистване на currentLoadId за да не блокира новото зареждане
+        this.currentLoadId = null;
         
         // Спиране на текущото възпроизвеждане
         if (this.wavesurfer) {
             try {
-                // ВАЖНО: Спираме възпроизвеждането
                 if (this.isPlaying) {
                     this.wavesurfer.pause();
                 }
                 
-                // ВАЖНО: Опитваме се да спрем всички активни зареждания
+                // Премахване на всички event listeners за да избегнем конфликти
+                this.wavesurfer.un('ready');
+                this.wavesurfer.un('play');
+                this.wavesurfer.un('pause');
+                this.wavesurfer.un('error');
+                this.wavesurfer.un('finish');
+                this.wavesurfer.un('loading');
+                this.wavesurfer.un('decode');
+                
+                // Спиране и ресет на media element
                 try {
                     const mediaElement = this.wavesurfer.getMediaElement?.() || 
                                        this.wavesurfer.backend?.media;
                     if (mediaElement) {
                         try {
+                            // Спиране и ресет
                             mediaElement.pause();
-                            // НЕ променяме src тук - това може да създаде проблеми
+                            mediaElement.currentTime = 0;
+                            // Не нулираме src веднага, защото може да причини проблеми
+                            // Вместо това изчакваме load() да ресетне всичко
+                            mediaElement.load();
                         } catch (e) {
                             // Ignore
                         }
                     }
                 } catch (e) {
-                    console.warn('Error in stopCurrentEpisode wavesurfer:', e);
+                    // Ignore
                 }
             } catch (e) {
-                console.warn('Error stopping wavesurfer:', e);
+                // Ignore
             }
         }
         
         this.isPlaying = false;
         this.isAudioReady = false;
-        this.listenCountIncremented = false; // Нулиране на флага за нов епизод
+        this.isLoading = false;
+        this.listenCountIncremented = false;
         this.updatePlayButton();
         
-        // Почистване на EQ визуализацията
         this.stopEQVisualization();
         
-        // Почистване на audio analyser
         if (this.analyser) {
             try {
                 if (this.analyser.disconnect) {
                     this.analyser.disconnect();
                 }
             } catch (e) {
-                console.warn('Error disconnecting analyser:', e);
+                // Ignore
             }
             this.analyser = null;
             this.dataArray = null;
         }
-        
-        console.log('Current episode stopped');
     }
 
     updateEpisodesCarousel() {
@@ -1440,326 +1472,234 @@ class PodcastWindowPlayer {
     }
 
     async loadEpisode() {
-        // ВАЖНО: Валидация преди всичко
-        if (!this.currentEpisode) {
-            console.error('❌ Cannot load: currentEpisode is null');
-            this.setLoadingState(false);
-            return;
-        }
-
-        if (!this.currentEpisode.audioUrl) {
-            console.error('❌ Cannot load: missing audioUrl', this.currentEpisode);
+        // Валидация
+        if (!this.currentEpisode || !this.currentEpisode.audioUrl) {
             this.setLoadingState(false);
             return;
         }
 
         if (!this.wavesurfer) {
-            console.error('❌ WaveSurfer not initialized');
             this.setLoadingState(false);
             return;
         }
 
-        // ВАЖНО: Проверка дали вече се зарежда
         if (this.isLoading) {
-            console.warn('⚠️ Already loading, waiting for current load to complete...');
-            // Изчакваме малко и пробваме отново
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // Проверяваме отново
-            if (this.isLoading) {
-                console.warn('⚠️ Still loading, aborting this load attempt');
-                return;
-            }
+            return;
         }
 
-        // ВАЖНО: Запазваме референциите ПРЕДИ async операции
+        // Запазваме референциите
         const episodeId = this.currentEpisode.id;
-        const episodeTitle = this.currentEpisode.title;
         const audioUrl = this.currentEpisode.audioUrl;
         const shouldAutoPlay = this.currentEpisode.autoPlay === true;
         
-        // ВАЖНО: Генерираме уникален ID за това зареждане
         const loadId = Date.now() + Math.random();
         this.currentLoadId = loadId;
-        
-        console.log('=== LOADING EPISODE ===');
-        console.log('Load ID:', loadId);
-        console.log('Episode ID:', episodeId);
-        console.log('Title:', episodeTitle);
-        console.log('Audio URL:', audioUrl);
-        console.log('AutoPlay:', shouldAutoPlay);
 
-        // Почистване на старото състояние
         this.isAudioReady = false;
         this.setLoadingState(true);
 
+        const self = this;
+
         try {
-            // ВАЖНО: Спираме всичко преди да заредим ново
-            if (this.wavesurfer) {
+            // Спираме текущото възпроизвеждане
+            if (this.wavesurfer && this.isPlaying) {
                 try {
-                    // Спираме възпроизвеждането ако е активно
-                    if (this.isPlaying) {
-                        this.wavesurfer.pause();
-                    }
-                    // Спираме всички активни зареждания
-                    // WaveSurfer няма директна функция за това, но можем да изчакаме малко
+                    this.wavesurfer.pause();
                 } catch (e) {
-                    console.warn('Error preparing wavesurfer for new load:', e);
+                    // Ignore
                 }
             }
-            
-            // Малко изчакване за да се успокоят всички операции
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            // ВАЖНО: Унищожаваме и създаваме нов wavesurfer инстанс за да гарантираме чисто зареждане
-            // Това трябва да се направи ПРЕДИ да добавим ready handler-а
-            const waveformContainer = document.getElementById('podcast-waveform');
-            if (waveformContainer && this.wavesurfer) {
-                try {
-                    console.log('Destroying old wavesurfer instance for clean load...');
-                    
-                    // Спиране преди унищожаване
-                    try {
-                        if (this.isPlaying) {
-                            this.wavesurfer.pause();
-                        }
-                    } catch (e) {
-                        // Ignore
-                    }
-                    
-                    // Унищожаване
-                    try {
-                        this.wavesurfer.destroy();
-                    } catch (e) {
-                        console.warn('Error destroying wavesurfer:', e);
-                    }
-                    this.wavesurfer = null;
-                    
-                    // Почистване на analyser и audioContext
-                    if (this.analyser) {
-                        try {
-                            if (this.analyser.disconnect) {
-                                this.analyser.disconnect();
-                            }
-                        } catch (e) {
-                            // Ignore
-                        }
-                        this.analyser = null;
-                        this.dataArray = null;
-                    }
-                    
-                    // Нулиране на audioContext - ще се създаде нов при нужда
-                    this.audioContext = null;
-                    
-                    // Изчакване за да се почисти всичко
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                    
-                    // Създаване на нов wavesurfer инстанс
-                    console.log('Creating new wavesurfer instance...');
-                    this.wavesurfer = WaveSurfer.create({
-                        container: '#podcast-waveform',
-                        waveColor: 'rgba(255, 255, 255, 0.3)',
-                        progressColor: '#4cb15c',
-                        cursorColor: '#ffffff',
-                        barWidth: 2,
-                        barRadius: 2,
-                        height: 50,
-                        responsive: true,
-                        normalize: true,
-                        backend: 'WebAudio',
-                        mediaControls: false
-                    });
-                    
-                    // Преинсталиране на event listeners
-                    this.reinitWaveSurferListeners();
-                    
-                    console.log('✅ New wavesurfer instance created');
-                    
-                } catch (e) {
-                    console.error('❌ Error recreating wavesurfer:', e);
-                    // Ако не можем да създадем нов, използваме съществуващия
-                    if (!this.wavesurfer) {
-                        throw new Error('Failed to create wavesurfer instance');
-                    }
+
+            // Създаваме wavesurfer ако няма
+            if (!this.wavesurfer) {
+                const waveformContainer = document.getElementById('podcast-waveform');
+                if (!waveformContainer) {
+                    throw new Error('Waveform container not found');
                 }
-            }
-            
-            // ВАЖНО: Сега добавяме ready handler към НОВИЯ wavesurfer инстанс
-            // Добавяне на нов 'ready' listener за този конкретен load
-            const readyPromise = new Promise((resolve, reject) => {
-                let timeoutId;
-                let resolved = false;
-                let handlerAttached = false;
                 
-                const readyHandler = () => {
-                    // ВАЖНО: Проверка дали това зареждане все още е валидно
-                    if (this.currentLoadId !== loadId) {
-                        console.warn('⚠️ Ready handler for old load, ignoring (loadId mismatch)', {
-                            expected: loadId,
-                            current: this.currentLoadId
-                        });
-                        return;
-                    }
+                this.wavesurfer = WaveSurfer.create({
+                    container: '#podcast-waveform',
+                    waveColor: 'rgba(255, 255, 255, 0.3)',
+                    progressColor: '#4cb15c',
+                    cursorColor: '#ffffff',
+                    barWidth: 2,
+                    barRadius: 2,
+                    height: 50,
+                    responsive: true,
+                    normalize: false,
+                    backend: 'MediaElement',
+                    mediaControls: false,
+                    mediaType: 'audio',
+                    autoplay: false,
+                    interact: true
+                });
+            }
+            
+            // КРИТИЧНО: Винаги реинициализираме listeners за да избегнем проблеми
+            this.reinitWaveSurferListeners();
+            
+            // Promise за зареждане с минимум 3 секунди изчакване
+            const loadStartTime = Date.now();
+            const MIN_LOAD_TIME = 3000; // Минимум 3 секунди
+            const MAX_LOAD_TIME = 15000; // Максимум 15 секунди
+            
+            const loadPromise = new Promise((resolve, reject) => {
+                let resolved = false;
+                let audioReady = false;
+                
+                const finishLoad = () => {
+                    if (resolved) return;
                     
-                    // ВАЖНО: Проверка дали вече е resolved
-                    if (resolved) {
-                        console.warn('⚠️ Ready handler already resolved, ignoring duplicate event');
-                        return;
-                    }
-                    
-                    // ВАЖНО: Проверка дали все още е правилния епизод ПРЕДИ да маркираме като resolved
-                    if (!this.currentEpisode) {
-                        console.warn('❌ Episode changed: currentEpisode is null');
+                    // КРИТИЧНО: Проверка дали това зареждане все още е валидно
+                    if (self.currentLoadId !== loadId) {
                         if (!resolved) {
                             resolved = true;
-                            clearTimeout(timeoutId);
-                            this.wavesurfer.un('ready', readyHandler);
-                            this.setLoadingState(false);
+                            reject(new Error('Load cancelled'));
+                        }
+                        return;
+                    }
+                    
+                    // КРИТИЧНО: Проверка дали currentEpisode все още е правилния
+                    if (!self.currentEpisode || self.currentEpisode.id !== episodeId || self.currentEpisode.audioUrl !== audioUrl) {
+                        if (!resolved) {
+                            resolved = true;
                             reject(new Error('Episode changed during load'));
                         }
                         return;
                     }
                     
-                    // Проверка по ID и audioUrl
-                    const isCorrectEpisode = (
-                        (episodeId && this.currentEpisode.id === episodeId) ||
-                        this.currentEpisode.audioUrl === audioUrl
-                    );
+                    audioReady = true;
                     
-                    if (!isCorrectEpisode) {
-                        console.warn('❌ Episode changed during load:', {
-                            expected: { id: episodeId, url: audioUrl },
-                            current: { id: this.currentEpisode.id, url: this.currentEpisode.audioUrl }
-                        });
-                        if (!resolved) {
-                            resolved = true;
-                            clearTimeout(timeoutId);
-                            this.wavesurfer.un('ready', readyHandler);
-                            this.setLoadingState(false);
-                            reject(new Error('Episode changed during load'));
-                        }
-                        return;
-                    }
+                    // Изчакваме минимум 3 секунди преди да завършим зареждането
+                    // При добър интернет audio ще е готов преди 3 секунди, но ще изчакаме точно до 3-тата секунда
+                    const elapsed = Date.now() - loadStartTime;
+                    const remainingTime = Math.max(0, MIN_LOAD_TIME - elapsed);
                     
-                    // Всичко е наред, маркираме като resolved ВЕДНАГА
-                    resolved = true;
-                    console.log('=== EPISODE READY ===');
-                    clearTimeout(timeoutId);
-                    
-                    // ВАЖНО: Премахваме handler ПРЕДИ да правим нещо друго
-                    this.wavesurfer.un('ready', readyHandler);
-                    
-                    // Всичко е наред, продължаваме
-                    this.isAudioReady = true;
-                    this.setLoadingState(false);
-                    
-                    // ВИНАГИ seek на 0 при зареждане на нов епизод
-                    if (this.wavesurfer) {
-                        try {
-                            this.wavesurfer.seekTo(0);
-                        } catch (e) {
-                            console.warn('Could not seek to 0:', e);
-                        }
-                    }
-                    
-                    this.updateDuration();
-                    this.updatePlayButton();
-                    
-                    // Автоматично възпроизвеждане ако е необходимо
-                    if (shouldAutoPlay) {
-                        console.log('Starting auto-play...');
-                        // Запазваме референциите в closure
-                        const wavesurferRef = this.wavesurfer;
-                        const episodeIdRef = episodeId;
-                        const audioUrlRef = audioUrl;
+                    setTimeout(() => {
+                        if (resolved) return;
                         
-                        setTimeout(() => {
-                            // Финален проверка за правилния епизод
-                            if (!wavesurferRef) {
-                                console.warn('Cannot auto-play: wavesurfer is null');
-                                return;
+                        // Проверка отново дали все още е валидно
+                        if (self.currentLoadId !== loadId || 
+                            !self.currentEpisode || 
+                            self.currentEpisode.id !== episodeId || 
+                            self.currentEpisode.audioUrl !== audioUrl) {
+                            if (!resolved) {
+                                resolved = true;
+                                reject(new Error('Load cancelled'));
                             }
-                            
-                            if (!this.isAudioReady) {
-                                console.warn('Cannot auto-play: audio not ready');
-                                return;
+                            return;
+                        }
+                        
+                        resolved = true;
+                        self.isAudioReady = true;
+                        self.setLoadingState(false);
+                        
+                        if (self.wavesurfer) {
+                            try {
+                                self.wavesurfer.seekTo(0);
+                            } catch (e) {
+                                // Ignore
                             }
+                        }
+                        
+                        self.updateDuration();
+                        self.updatePlayButton();
+                        
+                        // Auto-play след като всичко е готово
+                        // ВИНАГИ се опитваме да пуснем ако shouldAutoPlay е true
+                        if (shouldAutoPlay && self.wavesurfer && self.currentEpisode && 
+                            self.currentEpisode.id === episodeId && self.currentEpisode.audioUrl === audioUrl) {
+                            // Функция за опит за autoplay с максимален брой опити
+                            let attempts = 0;
+                            const maxAttempts = 10;
                             
-                            if (!this.currentEpisode) {
-                                console.warn('Cannot auto-play: currentEpisode is null');
-                                return;
-                            }
+                            const attemptAutoPlay = () => {
+                                attempts++;
+                                
+                                // Проверка дали все още е правилния епизод
+                                if (self.currentEpisode && self.currentEpisode.id === episodeId && 
+                                    self.wavesurfer && !self.isPlaying && self.isAudioReady && attempts <= maxAttempts) {
+                                    const mediaEl = self.wavesurfer.getMediaElement?.();
+                                    // Проверяваме дали media element е готов
+                                    if (mediaEl && mediaEl.readyState >= 2) {
+                                        try {
+                                            self.wavesurfer.play().then(() => {
+                                                self.isPlaying = true;
+                                                self.updatePlayButton();
+                                            }).catch((err) => {
+                                                // Ако не успее и не сме надвишили опитите, опитваме отново след малко
+                                                if (attempts < maxAttempts) {
+                                                    setTimeout(attemptAutoPlay, 300);
+                                                }
+                                            });
+                                        } catch (e) {
+                                            // Ако има грешка и не сме надвишили опитите, опитваме отново след малко
+                                            if (attempts < maxAttempts) {
+                                                setTimeout(attemptAutoPlay, 300);
+                                            }
+                                        }
+                                    } else {
+                                        // Ако не е готов и не сме надвишили опитите, изчакваме и опитваме отново
+                                        if (attempts < maxAttempts) {
+                                            setTimeout(attemptAutoPlay, 200);
+                                        }
+                                    }
+                                }
+                            };
                             
-                            // Проверка дали все още е правилния епизод
-                            const stillCorrect = (
-                                (episodeIdRef && this.currentEpisode.id === episodeIdRef) ||
-                                this.currentEpisode.audioUrl === audioUrlRef
-                            );
-                            
-                            if (!stillCorrect) {
-                                console.warn('Episode changed before auto-play', {
-                                    expected: { id: episodeIdRef, url: audioUrlRef },
-                                    current: { id: this.currentEpisode.id, url: this.currentEpisode.audioUrl }
-                                });
-                                return;
-                            }
-                            
-                            // Всички проверки минаха, стартираме auto-play
-                            wavesurferRef.play().then(() => {
-                                console.log('✅ Auto-play started successfully');
-                            }).catch(err => {
-                                console.warn('Auto-play failed:', err);
-                                this.showNotification('Кликнете Play за стартиране');
-                            });
-                            
-                            // Изчистваме autoPlay флага
-                            if (this.currentEpisode) {
-                                this.currentEpisode.autoPlay = false;
-                            }
-                        }, 200);
-                    }
-                    
-                    resolve();
+                            // Първи опит след малко изчакване
+                            setTimeout(attemptAutoPlay, 200);
+                            self.currentEpisode.autoPlay = false;
+                        }
+                        
+                        resolve();
+                    }, remainingTime);
                 };
                 
-                // ВАЖНО: Използваме once() за да гарантираме че се изпълнява само веднъж
-                this.wavesurfer.once('ready', readyHandler);
-                handlerAttached = true;
-                
-                // Timeout за сигурност
-                timeoutId = setTimeout(() => {
+                // Timeout - максимум 15 секунди
+                const timeoutId = setTimeout(() => {
                     if (!resolved) {
-                        console.error('❌ Timeout waiting for ready event');
                         resolved = true;
-                        this.wavesurfer.un('ready', readyHandler);
-                        this.setLoadingState(false);
-                        this.isAudioReady = false;
+                        self.setLoadingState(false);
                         reject(new Error('Timeout loading audio'));
                     }
-                }, 30000);
+                }, MAX_LOAD_TIME);
+                
+                // Зареждаме аудиото
+                self.wavesurfer.load(audioUrl).catch(() => {
+                    return self.wavesurfer.load(audioUrl);
+                });
+                
+                // Слушаме за canplaythrough event
+                setTimeout(() => {
+                    const mediaElement = self.wavesurfer.getMediaElement?.();
+                    if (mediaElement) {
+                        if (mediaElement.readyState >= 3) {
+                            finishLoad();
+                        } else {
+                            mediaElement.addEventListener('canplaythrough', finishLoad, { once: true });
+                            
+                            // Fallback към canplay ако canplaythrough не се изпълни (след 3.5 секунди)
+                            const canplayTimeout = setTimeout(() => {
+                                if (!resolved && !audioReady && mediaElement.readyState >= 2) {
+                                    finishLoad();
+                                }
+                            }, 3500);
+                            
+                            mediaElement.addEventListener('canplay', () => {
+                                clearTimeout(canplayTimeout);
+                                if (!resolved && !audioReady && mediaElement.readyState >= 2) {
+                                    finishLoad();
+                                }
+                            }, { once: true });
+                        }
+                    } else {
+                        self.wavesurfer.once('ready', finishLoad);
+                    }
+                }, 100);
             });
             
-            // ВАЖНО: Зареждане на аудиото - това ТРЯБВА да работи винаги
-            console.log('Calling wavesurfer.load() with URL:', audioUrl);
-            
-            // Зареждане на новия URL
-            try {
-                await this.wavesurfer.load(audioUrl);
-            } catch (loadError) {
-                console.warn('First load attempt failed, retrying...', loadError);
-                // Малко изчакване и повторен опит
-                await new Promise(resolve => setTimeout(resolve, 300));
-                try {
-                    await this.wavesurfer.load(audioUrl);
-                } catch (secondError) {
-                    console.error('Second load attempt also failed:', secondError);
-                    throw secondError;
-                }
-            }
-            
-            // Изчакване за ready event
-            await readyPromise;
-            
-            console.log('✅ Episode fully loaded');
+            await loadPromise;
             
         } catch (error) {
             console.error('❌ Error loading episode:', error);
@@ -1820,7 +1760,18 @@ class PodcastWindowPlayer {
 
         if (titleEl) titleEl.textContent = this.currentEpisode.title || 'Неизвестен епизод';
         if (descEl) descEl.textContent = this.currentEpisode.description || '';
-        if (imageEl) imageEl.src = this.currentEpisode.imageUrl || '/images/podcast-default.jpg';
+        
+        // КРИТИЧНО: Актуализираме снимката правилно - използваме imageUrl ако има, иначе default
+        if (imageEl) {
+            const imageUrl = this.currentEpisode.imageUrl || '/images/web/podcast1.png';
+            // Ако снимката е различна от текущата, я актуализираме
+            const currentSrc = imageEl.src;
+            const newSrc = imageUrl.startsWith('http') ? imageUrl : (window.location.origin + imageUrl);
+            if (currentSrc !== newSrc) {
+                imageEl.src = imageUrl;
+            }
+        }
+        
         if (dateEl && this.currentEpisode.publishDate) {
             dateEl.textContent = new Date(this.currentEpisode.publishDate).toLocaleDateString('bg-BG');
         }
@@ -2040,25 +1991,44 @@ class PodcastWindowPlayer {
     }
 
     shareEpisode() {
-        if (navigator.share && this.currentEpisode) {
+        // Използваме текущия епизод от playera
+        if (!this.currentEpisode || !this.currentEpisode.id) {
+            this.showNotification('Няма избран епизод за споделяне', 'error');
+            return;
+        }
+        
+        const episodeId = this.currentEpisode.id;
+        const title = this.currentEpisode.title || 'Епизод';
+        const description = this.currentEpisode.description || '';
+        const shareUrl = `https://smolyanvote.com/podcast/episode/${episodeId}`;
+        
+        if (navigator.share) {
             navigator.share({
-                title: this.currentEpisode.title,
-                text: this.currentEpisode.description,
-                url: window.location.href
+                title: title,
+                text: description,
+                url: shareUrl
             }).catch(() => {
-                this.copyToClipboard();
+                this.copyToClipboard(title, description, shareUrl);
             });
         } else {
-            this.copyToClipboard();
+            this.copyToClipboard(title, description, shareUrl);
         }
     }
 
-    copyToClipboard() {
-        if (navigator.clipboard && this.currentEpisode) {
-            navigator.clipboard.writeText(`${this.currentEpisode.title} - ${window.location.href}`)
+    copyToClipboard(title, description, shareUrl) {
+        const url = shareUrl || 'https://smolyanvote.com/podcast';
+        const shareText = `${title} - ${description}\n${url}`;
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareText)
                 .then(() => {
                     this.showNotification('Копирано в клипборда!');
+                })
+                .catch(() => {
+                    this.showNotification('Не може да се копира', 'error');
                 });
+        } else {
+            this.showNotification('Копиране не се поддържа', 'error');
         }
     }
 
@@ -2117,7 +2087,7 @@ class PodcastWindowPlayer {
         window.addEventListener('message', this.messageHandler);
     }
 
-    handleParentCommand(data) {
+    async handleParentCommand(data) {
         switch (data.action) {
             case 'load':
                 if (data.episode && data.episode.audioUrl) {
@@ -2125,11 +2095,18 @@ class PodcastWindowPlayer {
                         ep => ep.id === data.episode.id || ep.audioUrl === data.episode.audioUrl
                     );
                     if (episodeIndex >= 0) {
-                        this.selectEpisode(episodeIndex);
+                        await this.selectEpisode(episodeIndex);
                     } else {
                         // Епизодът не е в списъка, зареждаме го директно
-                        this.currentEpisode = data.episode;
-                        this.loadEpisode();
+                        // Първо спираме текущия епизод
+                        this.stopCurrentEpisode();
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        // След това зареждаме новия
+                        this.currentEpisode = {
+                            ...data.episode,
+                            autoPlay: true
+                        };
+                        await this.loadEpisode();
                     }
                 }
                 break;

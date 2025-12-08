@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- TITLE -->
+    <title th:text="${ogTitle}">Подкаст Епизод - SmolyanVote</title>
+
+    <!-- ====== OPEN GRAPH META TAGS ====== -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="SmolyanVote">
+    <meta property="og:title" th:content="${ogTitle}">
+    <meta property="og:description" th:content="${ogDescription}">
+    <meta property="og:url" th:content="${ogUrl}">
+    <meta property="og:image" th:content="${ogImage}">
+    <meta property="og:image:secure_url" th:content="${ogImage}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" th:content="${ogTitle}">
+    <meta property="og:locale" content="bg_BG">
+    
+    <!-- ARTICLE SPECIFIC -->
+    <meta property="article:published_time" th:content="${episode.publishDate != null ? #temporals.format(episode.publishDate, 'yyyy-MM-dd\'T\'HH:mm:ssXXX') : ''}">
+    <meta property="article:author" content="SmolyanVote">
+    <meta property="article:section" content="Подкаст">
+    <meta property="article:tag" content="SmolyanVote">
+    <meta property="article:tag" content="Смолян">
+    <meta property="article:tag" content="Подкаст">
+    <meta property="article:tag" th:if="${episode.episodeNumber != null}" th:content="'Епизод ' + ${episode.episodeNumber}">
+    
+    <!-- AUDIO SPECIFIC -->
+    <meta property="og:audio" th:content="${ogAudio}">
+    <meta property="og:audio:type" content="audio/mpeg">
+    <meta property="og:audio:secure_url" th:content="${ogAudio}">
+
+    <!-- TWITTER CARDS -->
+    <meta name="twitter:card" content="player">
+    <meta name="twitter:site" content="@SmolyanVote">
+    <meta name="twitter:title" th:content="${ogTitle}">
+    <meta name="twitter:description" th:content="${ogDescription}">
+    <meta name="twitter:image" th:content="${ogImage}">
+    <meta name="twitter:image:alt" th:content="${ogTitle}">
+    <meta name="twitter:player" th:content="${ogUrl}">
+    <meta name="twitter:player:width" content="600">
+    <meta name="twitter:player:height" content="400">
+
+    <!-- STANDARD META -->
+    <meta name="description" th:content="${ogDescription}">
+    
+    <!-- CANONICAL URL -->
+    <link rel="canonical" th:href="${ogUrl}">
+    
+    <!-- PODCAST EPISODE STRUCTURED DATA (JSON-LD) -->
+    <script type="application/ld+json" th:inline="javascript">
+    {
+        "@context": "https://schema.org",
+        "@type": "PodcastEpisode",
+        "name": "Подкаст Епизод",
+        "description": "Епизод от подкаста на SmolyanVote",
+        "image": "https://smolyanvote.com/images/web/podcast1.png",
+        "datePublished":"",
+        "duration":"",
+        "episodeNumber": "",
+        "url": "https://smolyanvote.com/podcast",
+        "audio": {
+            "@type": "AudioObject",
+            "contentUrl": "",
+            "encodingFormat": "audio/mpeg"
+        },
+        "partOfSeries": {
+            "@type": "PodcastSeries",
+            "name": "SmolyanVote Подкаст",
+            "url": "https://smolyanvote.com/podcast"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "SmolyanVote",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://smolyanvote.com/images/logoNew.png",
+                "width": 200,
+                "height": 200
+            }
+        },
+        "inLanguage": "bg-BG"
+    }
+    </script>
+    
+    <meta name="author" content="SmolyanVote">
+    <meta name="keywords" content="Смолян, подкаст, епизод, новини, култура, гражданско участие">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#4b9f3e">
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/x-icon" href="/images/logoNew.png">
+
+    <!-- REDIRECT SCRIPT за нормални потребители -->
+    <script>
+        // Ако някой нормален потребител някак си стигне тук, redirect-ваме го към страницата за подкасти с параметър за епизода
+        if (!navigator.userAgent.match(/facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|TelegramBot/i)) {
+            // Извличаме episode ID от URL-а
+            const pathParts = window.location.pathname.split('/');
+            const episodeId = pathParts[pathParts.length - 1];
+            if (episodeId) {
+                window.location.href = '/podcast?episode=' + episodeId;
+            } else {
+                window.location.href = '/podcast';
+            }
+        }
+    </script>
+
+    <!-- BASIC STYLES -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4b9f3e, #5cb85c);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('/images/web/podcast1.png') center/cover;
+            opacity: 0.1;
+        }
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        .podcast-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 10px 0;
+            font-size: 32px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.95;
+            font-size: 16px;
+        }
+        .content {
+            padding: 40px;
+        }
+        .episode-header {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: flex-start;
+        }
+        .episode-image {
+            flex-shrink: 0;
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .episode-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .episode-info {
+            flex: 1;
+        }
+        .episode-number {
+            display: inline-block;
+            background: #4b9f3e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+        .meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .meta-icon {
+            color: #4b9f3e;
+            font-size: 16px;
+        }
+        .description {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .audio-player-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .audio-icon {
+            font-size: 48px;
+            color: #4b9f3e;
+            margin-bottom: 15px;
+        }
+        .audio-info {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .play-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4b9f3e, #5cb85c);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(76, 177, 92, 0.3);
+        }
+        .play-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 177, 92, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+        }
+        .stat {
+            text-align: center;
+            flex: 1;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4b9f3e;
+            display: block;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #4b9f3e, #5cb85c);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            margin-top: 20px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(76, 177, 92, 0.3);
+        }
+        .cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 177, 92, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        @media (max-width: 768px) {
+            .episode-header {
+                flex-direction: column;
+            }
+            .episode-image {
+                width: 100%;
+                height: 250px;
+            }
+            .title {
+                font-size: 28px;
+            }
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="header-content">
+            <div class="podcast-badge">🎙️ Подкаст</div>
+            <h1>SmolyanVote</h1>
+            <p>Гласът на Смолян</p>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="episode-header">
+            <div class="episode-image">
+                <img th:src="${episode.imageUrl != null and !episode.imageUrl.isEmpty() ? (episode.imageUrl.startsWith('http') ? episode.imageUrl : 'https://smolyanvote.com' + (episode.imageUrl.startsWith('/') ? episode.imageUrl : '/' + episode.imageUrl)) : 'https://smolyanvote.com/images/web/podcast1.png'}" th:alt="${episode.title}">
+            </div>
+            <div class="episode-info">
+                <div class="episode-number" th:if="${episode.episodeNumber != null}">
+                    Епизод #<span th:text="${episode.episodeNumber}">1</span>
+                </div>
+                <h2 class="title" th:text="${episode.title}">Заглавие на епизод</h2>
+                
+                <div class="meta">
+                    <div class="meta-item" th:if="${episode.formattedPublishDate}">
+                        <span class="meta-icon">📅</span>
+                        <span th:text="${episode.formattedPublishDate}">Дата</span>
+                    </div>
+                    <div class="meta-item" th:if="${episode.formattedDuration}">
+                        <span class="meta-icon">⏱️</span>
+                        <span th:text="${episode.formattedDuration}">Продължителност</span>
+                    </div>
+                    <div class="meta-item" th:if="${episode.listenCount != null and episode.listenCount > 0}">
+                        <span class="meta-icon">👂</span>
+                        <span th:text="${episode.listenCount} + ' слушания'">0 слушания</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="description" th:text="${episode.description}">
+            Описание на епизода
+        </div>
+
+        <div class="audio-player-section">
+            <div class="audio-icon">🎵</div>
+            <div class="audio-info">
+                <strong>Слушайте този епизод</strong><br>
+                <span th:if="${episode.formattedDuration}">Продължителност: <span th:text="${episode.formattedDuration}"></span></span>
+            </div>
+            <a href="https://smolyanvote.com/podcast" class="play-button">
+                ▶️ Слушай в SmolyanVote
+            </a>
+        </div>
+
+        <div class="stats">
+            <div class="stat" th:if="${episode.episodeNumber != null}">
+                <span class="stat-number" th:text="${episode.episodeNumber}">#</span>
+                <span class="stat-label">Епизод</span>
+            </div>
+            <div class="stat" th:if="${episode.formattedDuration}">
+                <span class="stat-number" th:text="${episode.formattedDuration}">0:00</span>
+                <span class="stat-label">Продължителност</span>
+            </div>
+            <div class="stat" th:if="${episode.listenCount != null}">
+                <span class="stat-number" th:text="${episode.listenCount ?: 0}">0</span>
+                <span class="stat-label">Слушания</span>
+            </div>
+        </div>
+
+        <p style="text-align: center; font-size: 18px; color: #2c3e50; margin-top: 30px;">
+            <strong>🎧 Присъединете се към подкаста на SmolyanVote!</strong><br>
+            Слушайте истории, новини и разговори за Смолян и региона.
+        </p>
+
+        <div style="text-align: center;">
+            <a href="https://smolyanvote.com/podcast" class="cta">
+                📻 Слушай всички епизоди
+            </a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>SmolyanVote</strong> - Платформата за гражданско участие в Смолян</p>
+        <p>Вашият глас има значение. Споделете мнението си и участвайте в местното управление.</p>
+    </div>
+</div>
+</body>
+</html>
+
