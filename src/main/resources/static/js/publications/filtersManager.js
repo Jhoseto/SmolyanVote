@@ -89,10 +89,8 @@ class FiltersManager {
         // Wait a bit for all components to initialize
         setTimeout(async () => {
             if (window.publicationsManager && typeof window.publicationsManager.loadInitialPosts === 'function') {
-                console.log('🔄 Auto-loading publications...');
                 try {
                     await window.publicationsManager.loadInitialPosts();
-                    console.log('✅ Publications loaded successfully');
                 } catch (error) {
                     console.error('❌ Error auto-loading publications:', error);
                 }
@@ -272,7 +270,7 @@ class FiltersManager {
 
                 return true;
         } catch (error) {
-                console.warn('Error filtering post:', post, error);
+                // Filter error - non-critical
                 return true;
             }
         });
@@ -309,7 +307,7 @@ class FiltersManager {
                         return 0;
                 }
             } catch (error) {
-                console.warn('Error sorting posts:', error);
+                // Sort error - non-critical
                 return 0;
             }
         });
@@ -339,7 +337,7 @@ class FiltersManager {
             try {
                 callback(this.activeFilters);
         } catch (error) {
-                console.warn('Error in filter change observer:', error);
+                // Filter observer error - non-critical
             }
         });
     }
@@ -536,7 +534,7 @@ class FiltersManager {
             }
         });
         } catch (error) {
-            console.warn('Error setting up event listeners:', error);
+            // Event listener setup error - non-critical
         }
     }
 
@@ -582,7 +580,7 @@ class FiltersManager {
                 }
             }
         } catch (error) {
-            console.warn('Error loading filters from storage:', error);
+            // Filter load error - non-critical
         }
     }
 
@@ -595,7 +593,7 @@ class FiltersManager {
                 localStorage.setItem('smolyan_publications_filters', JSON.stringify(this.activeFilters));
             }
         } catch (error) {
-            console.warn('Failed to save filters to localStorage:', error);
+            // Filter save error - non-critical
         }
     }
 
@@ -630,7 +628,7 @@ class FiltersManager {
             try {
                 window.history.replaceState({}, '', newURL);
             } catch (error) {
-                console.warn('Failed to update URL:', error);
+                // URL update failed - non-critical
             }
         }, 300);
     }
@@ -1128,7 +1126,7 @@ class FiltersManager {
             try {
                 document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
             } catch (error) {
-                console.warn('Failed to set body overflow:', error);
+                // Body overflow set failed - non-critical
             }
         }
     }
@@ -1145,7 +1143,7 @@ class FiltersManager {
             try {
                 document.body.style.overflow = '';
             } catch (error) {
-                console.warn('Failed to reset body overflow:', error);
+                // Body overflow reset failed - non-critical
             }
         }
     }

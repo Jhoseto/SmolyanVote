@@ -46,8 +46,10 @@
   <link th:unless="${hasOpenGraph}" rel="canonical" href="https://smolyanvote.com/publications">
   
   <!-- HREFLANG TAGS -->
-  <link rel="alternate" hreflang="bg" th:href="${hasOpenGraph ? ogUrl : 'https://smolyanvote.com/publications'}">
-  <link rel="alternate" hreflang="x-default" th:href="${hasOpenGraph ? ogUrl : 'https://smolyanvote.com/publications'}">
+  <link th:if="${hasOpenGraph}" rel="alternate" hreflang="bg" th:href="${ogUrl}">
+  <link th:unless="${hasOpenGraph}" rel="alternate" hreflang="bg" href="https://smolyanvote.com/publications">
+  <link th:if="${hasOpenGraph}" rel="alternate" hreflang="x-default" th:href="${ogUrl}">
+  <link th:unless="${hasOpenGraph}" rel="alternate" hreflang="x-default" href="https://smolyanvote.com/publications">
 
   <!-- Existing Thymeleaf fragments -->
   <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></th:block>

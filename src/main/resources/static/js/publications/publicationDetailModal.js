@@ -36,7 +36,6 @@ class PublicationDetailModal {
 
         // Изчакваме API-то да се зареди
         window.onYouTubeIframeAPIReady = () => {
-            console.log('✅ YouTube IFrame API loaded');
         };
     }
 
@@ -155,15 +154,9 @@ class PublicationDetailModal {
         if (youtubePlayer && youtubePlayer.style.display !== 'none' && 
             youtubeIframe && youtubeIframe.src && 
             this.currentYouTubeVideo && this.currentYouTubeVideo.embedUrl) {
-            console.log('🎬 Moving video to floating player:', this.currentYouTubeVideo.title);
             // ВЕДНАГА преместваме iframe-а без забавяне
             this.moveVideoToFloatingPlayer(youtubeIframe);
         } else {
-            console.log('❌ No YouTube video to create floating player:', {
-                youtubePlayerVisible: youtubePlayer && youtubePlayer.style.display !== 'none',
-                iframeSrc: youtubeIframe?.src,
-                currentVideo: this.currentYouTubeVideo
-            });
         }
 
         this.modal.classList.remove('show');
@@ -665,7 +658,6 @@ class PublicationDetailModal {
             const existingFloatingPlayer = document.getElementById('floatingYouTubePlayer');
             const existingFloatingIframe = document.getElementById('floatingYouTubeIframe');
             if (existingFloatingPlayer && existingFloatingPlayer.style.display !== 'none' && existingFloatingIframe && existingFloatingIframe.src) {
-                console.log('🛑 Stopping existing video in floating player');
                 // Спираме старото видео като премахваме src
                 existingFloatingIframe.src = '';
                 // Скриваме floating player-а
@@ -688,7 +680,6 @@ class PublicationDetailModal {
                 title: metadata.title || 'YouTube Video',
                 videoId: videoId
             };
-            console.log('✅ YouTube video saved for floating player:', this.currentYouTubeVideo);
             this.pendingSeekTime = null;
             this.videoCurrentTime = 0;
             this.activePlayerType = 'modal';
@@ -755,7 +746,7 @@ class PublicationDetailModal {
 
             return url.toString();
         } catch (error) {
-            console.warn('⚠️ Could not normalize embed URL:', embedUrl, error);
+            // Could not normalize embed URL - non-critical
             return embedUrl;
         }
     }
@@ -835,7 +826,6 @@ class PublicationDetailModal {
         // Показваме контейнера
         imageContainer.style.display = 'block';
 
-        console.log('✅ DEBUG: Image display populated');
     }
 
     showWebsitePreview(metadata) {
@@ -1027,7 +1017,6 @@ class PublicationDetailModal {
                         }
                     },
                     'onReady': (event) => {
-                        console.log('✅ YouTube player ready');
                         // Запазваме референция към player-а
                         this.youtubePlayer = event.target;
                         this.activePlayerType = playerType;
@@ -1036,7 +1025,7 @@ class PublicationDetailModal {
                             try {
                                 event.target.playVideo();
                             } catch (error) {
-                                console.warn('⚠️ Could not auto-play floating player:', error);
+                                // Auto-play failed - non-critical
                             }
                         }
 
@@ -1053,7 +1042,7 @@ class PublicationDetailModal {
 
             this.youtubePlayer = new window.YT.Player(iframe, playerOptions);
         } catch (error) {
-            console.warn('⚠️ Could not initialize YouTube player:', error);
+            // YouTube player init failed - non-critical
             // Fallback: стартираме проследяване без YouTube API
             this.startVideoTimeTracking(playerType);
         }
@@ -1065,7 +1054,7 @@ class PublicationDetailModal {
                 try {
                     player.playVideo();
                 } catch (error) {
-                    console.warn('⚠️ Could not resume floating player automatically:', error);
+                    // Resume failed - non-critical
                 }
             }
             return;
@@ -1077,11 +1066,10 @@ class PublicationDetailModal {
         if (targetTime > 0) {
             try {
                 player.seekTo(targetTime, true);
-                console.log('⏩ Seeking video to', targetTime, 'seconds');
                 this.videoCurrentTime = targetTime;
                 seekSucceeded = true;
             } catch (error) {
-                console.warn('⚠️ Could not seek video:', error);
+                // Seek failed - non-critical
             }
         }
 
@@ -1089,7 +1077,7 @@ class PublicationDetailModal {
             try {
                 player.playVideo();
             } catch (error) {
-                console.warn('⚠️ Could not resume floating player automatically:', error);
+                // Resume failed - non-critical
             }
         }
 
@@ -1147,7 +1135,6 @@ class PublicationDetailModal {
                         this.videoCurrentTime = time;
                         // Логваме само ако има промяна
                         if (time > 0 && time % 5 === 0) {
-                            console.log('⏱️ Video time updated:', time, 'seconds');
                         }
                     }
                 }
@@ -1173,7 +1160,7 @@ class PublicationDetailModal {
                 }
             } catch (error) {
                 // Ако има грешка, използваме запазената стойност
-                console.warn('⚠️ Error getting current time from player:', error);
+                // Get current time failed - non-critical
             }
         }
         // Връщаме запазената позиция
@@ -1197,12 +1184,10 @@ class PublicationDetailModal {
                 maxTime = currentTime;
             }
             
-            console.log(`🔄 Attempt ${attempt}/${retries}: Current video time:`, currentTime, 'seconds, Max:', maxTime, 'seconds');
             
             // Ако player-ът е готов И имаме позиция > 0, или сме изчерпали опитите
             if ((this.youtubePlayer && maxTime > 0) || attempt >= retries) {
                 const finalTime = maxTime > 0 ? maxTime : currentTime;
-                console.log('✅ Final video time:', finalTime, 'seconds (player ready:', !!this.youtubePlayer, ')');
                 callback(finalTime);
                 return;
             }
@@ -1234,14 +1219,12 @@ class PublicationDetailModal {
         // Ако вече има iframe в floating player, спираме го и премахваме
         const existingFloatingIframe = document.getElementById('floatingYouTubeIframe');
         if (existingFloatingIframe && existingFloatingIframe !== modalIframe) {
-            console.log('🛑 Removing existing floating iframe');
             existingFloatingIframe.src = '';
             existingFloatingIframe.remove();
         }
 
         // ПРЕМЕСТВАМЕ САМИЯ IFRAME - НЕ СЪЗДАВАМЕ НОВ!
         // Това гарантира, че видеото продължава без прекъсване
-        console.log('🎬 Moving existing iframe to floating player (no interruption)');
         
         // Променяме ID-то на iframe-а
         modalIframe.id = 'floatingYouTubeIframe';
@@ -1267,7 +1250,6 @@ class PublicationDetailModal {
 
         // Показваме floating мини-плеър ВЕДНАГА
         floatingPlayer.style.display = 'block';
-        console.log('✅ Video moved to floating player, continuing playback without interruption');
 
         // Настройваме drag and drop (само ако още не е настроен)
         if (!floatingPlayer.dataset.dragSetup) {
@@ -1301,14 +1283,12 @@ class PublicationDetailModal {
             title: 'YouTube Video'
         };
 
-        console.log('🎬 Creating/updating floating player:', videoInfo);
 
         // Ако floating player-ът вече е видим, само обновяваме видеото
         const isAlreadyVisible = floatingPlayer.style.display !== 'none' && 
                                   floatingPlayer.style.display !== '';
         
         if (isAlreadyVisible) {
-            console.log('🔄 Updating existing floating player');
             // Спираме старото видео преди да пускаме новото
             floatingIframe.src = '';
             // Малко забавяне за да се спре старото видео
@@ -1317,10 +1297,8 @@ class PublicationDetailModal {
                 if (floatingTitle) {
                     floatingTitle.textContent = videoInfo.title;
                 }
-                console.log('✅ Floating player updated with new video');
             }, 100);
         } else {
-            console.log('🆕 Creating new floating player');
             // Задаваме iframe src
             floatingIframe.src = videoInfo.embedUrl;
             
@@ -1341,7 +1319,6 @@ class PublicationDetailModal {
 
             // Показваме floating мини-плеър
             floatingPlayer.style.display = 'block';
-            console.log('✅ Floating player displayed');
         }
 
         // Настройваме drag and drop (само ако още не е настроен)
@@ -1484,7 +1461,7 @@ class PublicationDetailModal {
                 this.youtubePlayer.destroy();
                 this.youtubePlayer = null;
             } catch (error) {
-                console.warn('⚠️ Error destroying YouTube player:', error);
+                // Destroy YouTube player failed - non-critical
             }
         }
         

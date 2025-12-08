@@ -966,7 +966,6 @@ class PostInteractions {
                 requestBody.description = description.trim();
             }
 
-            console.log('🔄 Изпращам report с данни:', requestBody);
 
             const response = await fetch(`/api/reports/PUBLICATION/${postId}`, {
                 method: 'POST',
@@ -1670,7 +1669,6 @@ window.confirmDelete = function(postId) {
 
 window.showLikesModal = function(postId) {
     // Future implementation
-    console.log('Show likes modal for post:', postId);
 };
 
 // CSS Animations

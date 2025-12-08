@@ -66,7 +66,6 @@ class PublicationsManager {
         const userIdsChanged = JSON.stringify(oldUserIds.sort()) !== JSON.stringify(newUserIds.sort());
         
         if (userIdsChanged) {
-            console.log('🔄 UserIds changed, clearing all loaded posts');
             this.allLoadedPosts = [];
             this.loadedPosts.clear();
             this.currentPage = 0;
@@ -95,7 +94,6 @@ class PublicationsManager {
             }
         }
         
-        console.log('🔵 Applying local filters:', filters);
         
         this.filteredPosts = window.filtersManager.filterPostsLocally(this.allLoadedPosts);
         this.filteredPosts = window.filtersManager.sortPosts(this.filteredPosts);
@@ -171,7 +169,6 @@ class PublicationsManager {
                 const userIds = window.userSearchManager.getSelectedUserIds();
                 if (userIds && userIds.length > 0) {
                     filters.userIds = userIds;
-                    console.log('🔵 LoadMore: Applying userIds filter:', userIds);
                 }
             }
             
@@ -180,14 +177,12 @@ class PublicationsManager {
             let data = window.filtersManager ? window.filtersManager.getCachedResults(cacheKey) : null;
 
             if (!data) {
-                console.log('🔵 Calling API with filters:', filters);
                 data = await window.publicationsAPI.getPublications(filters, this.currentPage, this.postsPerPage);
 
                 if (window.filtersManager) {
                     window.filtersManager.setCachedResults(cacheKey, data);
                 }
             } else {
-                console.log('🔵 Using cached data');
             }
 
             if (data.publications && data.publications.length > 0) {
@@ -198,11 +193,9 @@ class PublicationsManager {
                     publicationsToAdd = data.publications.filter(post => {
                         const matches = post.author && filters.userIds.includes(post.author.id);
                         if (!matches) {
-                            console.log('🔴 Filtering out post', post.id, 'from author', post.author?.id);
                         }
                         return matches;
                     });
-                    console.log('🔵 After local filtering:', publicationsToAdd.length, 'posts remain');
                 }
                 
                 publicationsToAdd.forEach(post => {
@@ -250,7 +243,7 @@ class PublicationsManager {
                 window.filtersManager.setCachedResults(cacheKey, nextPageData);
             }
         } catch (error) {
-            console.warn('Preload failed:', error);
+            // Preload failed - non-critical
         }
     }
 
@@ -1082,7 +1075,6 @@ class PublicationsManager {
         if (window.filtersManager) {
             window.filtersManager.clearCache();
         }
-        console.log('Publications cache cleared');
     }
 }
 
@@ -1237,7 +1229,6 @@ window.showReactionModal = function(postId) {
     if (window.postInteractions) {
         window.postInteractions.showToast('Функцията за показване на харесали ще бъде добавена скоро', 'info');
     } else {
-        console.log('Show likes modal for post:', postId);
     }
 };
 

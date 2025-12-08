@@ -28,7 +28,6 @@ class UserSearchManager {
      * Initialize the user search functionality
      */
     init() {
-        console.log('🚀 [UserSearch] Initializing...');
         
         this.cacheElements();
         this.setupEventListeners();
@@ -38,19 +37,16 @@ class UserSearchManager {
         
         // ✅ КРИТИЧНО: Ако има избрани users, приложи ги ВЕДНАГА
         if (this.selectedUsers.length > 0) {
-            console.log('🔵 Found', this.selectedUsers.length, 'selected users on init');
             this.notifyFiltersManager();
             
             // ✅ Изчакай малко и форсирай зареждане с филтри
             setTimeout(() => {
                 if (window.publicationsManager) {
-                    console.log('🔄 Forcing initial load with user filters...');
                     window.publicationsManager.loadInitialPosts();
                 }
             }, 500);
         }
         
-        console.log('🔍 UserSearchManager initialized');
     }
     
     /**
@@ -353,7 +349,6 @@ class UserSearchManager {
         this.saveToLocalStorage();
         
         // ✅ КРИТИЧНО: Винаги нотифицирай
-        console.log('🟢 Adding user to filter:', user.username, 'ID:', user.id);
         this.notifyFiltersManager();
         
         // ✅ КРИТИЧНО: Форсирай презареждане
@@ -371,7 +366,6 @@ class UserSearchManager {
         this.saveToLocalStorage();
         
         // ✅ КРИТИЧНО: Винаги нотифицирай
-        console.log('🔴 Removing user from filter, ID:', userId);
         this.notifyFiltersManager();
         
         // ✅ КРИТИЧНО: Форсирай презареждане
@@ -383,7 +377,6 @@ class UserSearchManager {
      */
     forceReload() {
         if (window.publicationsManager && typeof window.publicationsManager.loadInitialPosts === 'function') {
-            console.log('🔄 Forcing publications reload...');
             window.publicationsManager.loadInitialPosts();
         }
     }
@@ -529,7 +522,7 @@ class UserSearchManager {
         try {
             localStorage.setItem('publications_selected_users', JSON.stringify(this.selectedUsers));
         } catch (error) {
-            console.warn('⚠️ Could not save to localStorage:', error);
+            // localStorage save failed - non-critical
         }
     }
     
@@ -543,7 +536,7 @@ class UserSearchManager {
                 this.selectedUsers = JSON.parse(saved);
             }
         } catch (error) {
-            console.warn('⚠️ Could not load from localStorage:', error);
+            // localStorage load failed - non-critical
         }
     }
 
@@ -572,7 +565,7 @@ class UserSearchManager {
                 });
             }
         } catch (error) {
-            console.warn('⚠️ Could not sync with URL:', error);
+            // URL sync failed - non-critical
         }
     }
 
@@ -599,7 +592,6 @@ class UserSearchManager {
         if (window.filtersManager) {
             window.filtersManager.setUserFilter(this.getSelectedUserIds());
         } else {
-            console.warn('⚠️ filtersManager not available yet, retrying...');
             // Retry after a short delay
             setTimeout(() => {
                 if (window.filtersManager) {
@@ -625,9 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initUserSearch = () => {
         if (window.filtersManager) {
             window.userSearchManager = new UserSearchManager();
-            console.log('✅ UserSearchManager initialized with filtersManager');
         } else {
-            console.log('⏳ Waiting for filtersManager...');
             setTimeout(initUserSearch, 100);
         }
     };

@@ -55,7 +55,6 @@ class PublicationsAPI {
                 if (key === 'userIds' && Array.isArray(value)) {
                     if (value.length > 0) {
                         params.append(key, value.join(','));
-                        console.log('🔵 API: Adding userIds to request:', value.join(','));
                     }
                 } else if (!Array.isArray(value)) {
                     params.append(key, value);
@@ -67,7 +66,6 @@ class PublicationsAPI {
         params.append('size', size);
         
         const url = `${this.apiUrl}?${params.toString()}`;
-        console.log('🌐 API Request URL:', url);
         
         return await this.request(url, {
             headers: {
@@ -235,7 +233,7 @@ class PublicationsAPI {
         try {
             return await this.getPublications(filters, currentPage + 1, size);
         } catch (error) {
-            console.warn('Failed to preload next page:', error);
+            // Preload failed - non-critical
             return null;
         }
     }
@@ -252,7 +250,7 @@ class PublicationsAPI {
         try {
             return await this.request(url);
         } catch (error) {
-            console.warn('Failed to get search suggestions:', error);
+            // Search suggestions failed - non-critical
             return [];
         }
     }

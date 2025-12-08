@@ -14,7 +14,6 @@ class RightSideBarManager {
         this.setupRefreshButton();
         this.loadAllData();
         this.startAutoRefresh();
-        console.log('✅ RightSideBar initialized');
     }
 
     // ===== REFRESH CONTROL =====
