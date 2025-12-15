@@ -41,6 +41,7 @@ public class ApplicationSecurityConfiguration {
     private final OAuth2UserService<org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest, OAuth2User> oAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
@@ -48,13 +49,15 @@ public class ApplicationSecurityConfiguration {
             CustomLogoutSuccessHandler customLogoutSuccessHandler,
             CustomOAuth2UserService customOAuth2UserService,
             OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
-            OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler) {
+            OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.customLogoutSuccessHandler = customLogoutSuccessHandler;
         this.oAuth2UserService = customOAuth2UserService;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
         this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -75,7 +78,11 @@ public class ApplicationSecurityConfiguration {
                 .authorizeHttpRequests(authz -> authz
                         // Allow CORS preflight OPTIONS for messenger API so browser can POST without
                         // 405
-                        .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**", "/api/mobile/**").permitAll()
+                        // Mobile Auth endpoints - permitAll (JWT validation в filter)
+                        .requestMatchers("/api/mobile/auth/login", "/api/mobile/auth/refresh", "/api/mobile/auth/logout").permitAll()
+                        // Mobile Device endpoints - изискват authentication
+                        .requestMatchers("/api/mobile/device/**").authenticated()
                         // Статични ресурси и podcast window - трябва да са преди другите правила
                         .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
                         .requestMatchers("/api/podcast/**").permitAll()
@@ -107,7 +114,8 @@ public class ApplicationSecurityConfiguration {
                                 "/user/logout",
                                 "/user/dashboard/**", "/subscription/**", "/api/reports/**", "/api/user/**",
                                 "/profile/**", "/api/follow/**", "/api/notifications/**",
-                                "/ws/notifications/**", "/api/svmessenger/**", "/ws-svmessenger/**")
+                                "/ws/notifications/**", "/api/svmessenger/**", "/ws-svmessenger/**",
+                                "/api/mobile/**") // Mobile API endpoints изискват authentication (JWT или session)
                         .authenticated()
                         .anyRequest().denyAll())
                 .logout(logout -> logout
@@ -148,9 +156,13 @@ public class ApplicationSecurityConfiguration {
                         // ✅ CSRF PROTECTION RESTORED - ALL API ENDPOINTS NOW PROTECTED
                         // WebSocket handshakes remain exempt (safe by design - require valid session +
                         // Same-Origin Policy)
+                        // Mobile API endpoints са exempt от CSRF (използват JWT tokens)
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
-                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml")
-                        .csrfTokenRepository(csrfTokenRepository));
+                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml",
+                                "/api/mobile/**") // Mobile API използва JWT, не се нуждае от CSRF
+                        .csrfTokenRepository(csrfTokenRepository))
+                // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -199,9 +211,10 @@ public class ApplicationSecurityConfiguration {
                     "https://www.smolyanvote.com"));
         }
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN", "X-Requested-With"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight requests за 1 час
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

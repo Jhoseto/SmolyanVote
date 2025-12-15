@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -13,6 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
+import smolyanVote.smolyanVote.config.websocket.JwtWebSocketInterceptor;
 
 /**
  * Unified WebSocket конфигурация за real-time комуникация
@@ -29,6 +31,7 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     private final ActivityWebSocketHandler activityWebSocketHandler;
     private final Environment environment;
     private final NotificationWebSocketHandler notificationWebSocketHandler;
+    private final JwtWebSocketInterceptor jwtWebSocketInterceptor;
 
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
@@ -36,10 +39,12 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     @Autowired
     public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
                            Environment environment,
-                           NotificationWebSocketHandler notificationWebSocketHandler) {
+                           NotificationWebSocketHandler notificationWebSocketHandler,
+                           JwtWebSocketInterceptor jwtWebSocketInterceptor) {
         this.activityWebSocketHandler = activityWebSocketHandler;
         this.environment = environment;
         this.notificationWebSocketHandler = notificationWebSocketHandler;
+        this.jwtWebSocketInterceptor = jwtWebSocketInterceptor;
     }
 
     // ========== SOCKJS HANDLERS (WebSocketConfigurer) ==========
@@ -72,6 +77,15 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
         // User destination prefix
         // За private съобщения: /user/{userId}/queue/...
         registry.setUserDestinationPrefix("/user");
+    }
+
+    /**
+     * Конфигуриране на channel interceptors за JWT authentication
+     */
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        // Добавяне на JWT interceptor за WebSocket connections
+        registration.interceptors(jwtWebSocketInterceptor);
     }
 
     @Override

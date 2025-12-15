@@ -45,6 +45,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     private final UserRepository userRepo;
     private final SVMessengerWebSocketHandler webSocketHandler;
     private final FollowService followService;
+    private final smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService pushNotificationService;
 
     private final Map<Long, Map<Long, LocalDateTime>> typingStatuses = new ConcurrentHashMap<>();
 
@@ -64,12 +65,14 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVMessageRepository messageRepo,
             UserRepository userRepo,
             SVMessengerWebSocketHandler webSocketHandler,
-            FollowService followService) {
+            FollowService followService,
+            smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService pushNotificationService) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
         this.userRepo = userRepo;
         this.webSocketHandler = webSocketHandler;
         this.followService = followService;
+        this.pushNotificationService = pushNotificationService;
     }
 
     // ✅ FIX: readOnly=true за read operations
@@ -224,6 +227,22 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 // Keep message as "sent" only (1 gray checkmark) - no delivery receipt
                 log.warn("WebSocket message failed for message {}: {}", message.getId(), e.getMessage());
                 messageDTO.setIsDelivered(false);
+                
+                // ✅ Изпращане на push notification ако recipient е offline
+                try {
+                    String senderName = sender.getRealName() != null && !sender.getRealName().isBlank() 
+                            ? sender.getRealName() 
+                            : sender.getUsername();
+                    String messagePreview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
+                    pushNotificationService.sendNewMessageNotification(
+                            otherUser.getId(), 
+                            senderName, 
+                            messagePreview, 
+                            conversationId
+                    );
+                } catch (Exception pushError) {
+                    log.error("Failed to send push notification: {}", pushError.getMessage());
+                }
             }
 
             return messageDTO;
