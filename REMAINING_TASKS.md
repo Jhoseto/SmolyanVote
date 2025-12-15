@@ -112,21 +112,27 @@
 - `react-native-livekit-client`
 - `react-native-permissions` (за microphone)
 
-#### 7. Push Notifications (Firebase) 🟡
+#### 7. Push Notifications (Firebase) ✅
 **Приоритет**: Среден
-**Статус**: Backend готов, frontend не
+**Статус**: Android готов ✅, iOS pending (не се използва за сега)
 
-**Какво трябва**:
-- [ ] Firebase setup (Android & iOS)
-- [ ] FCM token получване
-- [ ] Device token registration при login
-- [ ] Notification handling
-- [ ] Background notifications
-- [ ] Badge count updates
+**Какво е направено**:
+- ✅ Firebase setup (Android)
+- ✅ google-services.json добавен
+- ✅ FCM token получване
+- ✅ Device token registration при login
+- ✅ Notification handling (foreground & background)
+- ✅ Background notifications
+- ✅ AndroidManifest.xml с notification permissions
+
+**Какво остава (опционално за iOS)**:
+- [ ] iOS Firebase setup (GoogleService-Info.plist)
+- [ ] APNs certificate/key setup
+- [ ] Badge count updates (iOS specific)
 
 **Зависимости**:
-- `@react-native-firebase/app`
-- `@react-native-firebase/messaging`
+- ✅ `@react-native-firebase/app` (инсталирано)
+- ✅ `@react-native-firebase/messaging` (инсталирано)
 
 #### 8. Offline Support 🟡
 **Приоритет**: Среден

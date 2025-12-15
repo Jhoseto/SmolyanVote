@@ -14,6 +14,7 @@ import { CallScreen } from '../screens/calls/CallScreen';
 import { IncomingCallScreen } from '../screens/calls/IncomingCallScreen';
 import { useAuthStore } from '../store/authStore';
 import { useCallsStore } from '../store/callsStore';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { CallState } from '../types/call';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

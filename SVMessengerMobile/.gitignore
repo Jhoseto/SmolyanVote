@@ -73,3 +73,7 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Firebase (contains sensitive information - DO NOT COMMIT!)
+**/google-services.json
+**/GoogleService-Info.plist

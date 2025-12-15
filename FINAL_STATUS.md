@@ -63,13 +63,17 @@
 - ✅ Call state management
 - ✅ WebSocket call signaling
 
-### Push Notifications (90%) ✅
+### Push Notifications (100% Android) ✅
 - ✅ Push notification service structure
 - ✅ Device token registration/unregistration
 - ✅ Hook за push notifications
-- ⏳ Firebase integration (трябва Firebase setup)
-- ⏳ FCM token получване (трябва Firebase)
-- ⏳ Background notifications (трябва Firebase)
+- ✅ Firebase integration (Android)
+- ✅ google-services.json добавен
+- ✅ FCM token получване
+- ✅ Background notifications
+- ✅ Foreground notifications
+- ✅ Notification handlers (received & opened)
+- ⏳ iOS setup (не се използва за сега)
 
 ### Network Status (100%) ✅
 - ✅ Network monitoring
