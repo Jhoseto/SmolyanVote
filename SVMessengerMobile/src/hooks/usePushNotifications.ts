@@ -142,9 +142,17 @@ export const usePushNotifications = () => {
     );
   }, [handleNotificationReceived, handleNotificationOpened]);
 
+  // Track previous authentication state to detect logout
+  const prevIsAuthenticatedRef = useRef(isAuthenticated);
+
   // Request permissions and register token when authenticated
+  // Unregister ONLY when user logs out (isAuthenticated changes from true to false)
   useEffect(() => {
-    if (isAuthenticated) {
+    const wasAuthenticated = prevIsAuthenticatedRef.current;
+    const isNowAuthenticated = isAuthenticated;
+
+    if (isNowAuthenticated) {
+      // User logged in - register token
       const setupNotifications = async () => {
         const hasPermission = await requestPermissions();
         if (hasPermission) {
@@ -156,14 +164,18 @@ export const usePushNotifications = () => {
       };
 
       setupNotifications();
-    } else {
-      // Unregister token when user logs out
+    } else if (wasAuthenticated && !isNowAuthenticated) {
+      // User logged out (was authenticated, now not) - unregister token
+      // Това се случва само при logout, не при всяко зареждане
       getFCMToken().then((token) => {
         if (token) {
           unregisterDeviceToken(token);
         }
       });
     }
+
+    // Update ref for next render
+    prevIsAuthenticatedRef.current = isAuthenticated;
   }, [
     isAuthenticated,
     requestPermissions,

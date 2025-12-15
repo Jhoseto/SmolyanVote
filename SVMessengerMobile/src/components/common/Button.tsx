@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   primaryText: {
     color: Colors.text.inverse,
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
     color: Colors.green[500],
   },
   smallText: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: 14,
   },
   mediumText: {
-    fontSize: Typography.fontSize.base,
+    fontSize: 16,
   },
   largeText: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: 18,
   },
 });
 

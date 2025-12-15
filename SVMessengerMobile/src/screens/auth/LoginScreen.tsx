@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Input } from '../../components/common';
+import { OAuthButtons } from '../../components/auth/OAuthButtons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -114,6 +115,16 @@ export const LoginScreen: React.FC = () => {
               style={styles.loginButton}
             />
 
+            {/* OAuth Buttons */}
+            <OAuthButtons
+              onSuccess={() => {
+                // Navigation ще се направи автоматично от AppNavigator
+              }}
+              onError={(error) => {
+                console.error('OAuth error:', error);
+              }}
+            />
+
             <View style={styles.registerSection}>
               <Text style={styles.registerText}>Нямаш акаунт? </Text>
               <TouchableOpacity
@@ -143,14 +154,14 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   title: {
-    fontSize: Typography.fontSize['4xl'],
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 36,
+    fontWeight: '700',
     color: Colors.green[500],
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   subtitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: 18,
     color: Colors.text.secondary,
     textAlign: 'center',
     marginBottom: Spacing.xl,

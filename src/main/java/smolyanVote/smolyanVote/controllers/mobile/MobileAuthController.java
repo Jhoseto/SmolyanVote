@@ -18,7 +18,10 @@ import smolyanVote.smolyanVote.services.jwt.JwtTokenService;
 import smolyanVote.smolyanVote.viewsAndDTO.mobile.MobileLoginRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.mobile.MobileLoginResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.mobile.MobileRefreshTokenRequest;
+import smolyanVote.smolyanVote.viewsAndDTO.mobile.MobileOAuthRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
+import smolyanVote.smolyanVote.models.enums.AuthProvider;
+import smolyanVote.smolyanVote.services.mobile.MobileOAuthService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -39,16 +42,19 @@ public class MobileAuthController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final JwtTokenService jwtTokenService;
+    private final MobileOAuthService mobileOAuthService;
 
     public MobileAuthController(
             AuthenticationManager authenticationManager,
             UserService userService,
             UserRepository userRepository,
-            JwtTokenService jwtTokenService) {
+            JwtTokenService jwtTokenService,
+            MobileOAuthService mobileOAuthService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.userRepository = userRepository;
         this.jwtTokenService = jwtTokenService;
+        this.mobileOAuthService = mobileOAuthService;
     }
 
     /**
@@ -218,6 +224,83 @@ public class MobileAuthController {
             response.put("success", false);
             response.put("message", "Грешка при излизане");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * POST /api/mobile/auth/oauth
+     * OAuth login endpoint за Google и Facebook
+     * 
+     * Request body: { "provider": "google|facebook", "idToken": "..." (за Google) или "accessToken": "..." (за Facebook) }
+     * Response: { "accessToken": "...", "refreshToken": "...", "user": {...} }
+     */
+    @PostMapping("/oauth")
+    public ResponseEntity<?> oauthLogin(@RequestBody @Valid MobileOAuthRequest request) {
+        try {
+            String provider = request.getProvider().toLowerCase();
+            Map<String, Object> userInfo;
+
+            // Валидация на token според provider
+            if ("google".equals(provider)) {
+                if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(createErrorResponse("Google ID token е задължителен"));
+                }
+                userInfo = mobileOAuthService.validateGoogleToken(request.getIdToken());
+            } else if ("facebook".equals(provider)) {
+                if (request.getAccessToken() == null || request.getAccessToken().isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(createErrorResponse("Facebook access token е задължителен"));
+                }
+                userInfo = mobileOAuthService.validateFacebookToken(request.getAccessToken());
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Неподдържан OAuth provider. Използвайте 'google' или 'facebook'"));
+            }
+
+            // Създаване или обновяване на user
+            AuthProvider authProvider = "google".equals(provider) ? AuthProvider.GOOGLE : AuthProvider.FACEBOOK;
+            UserEntity user = mobileOAuthService.processOAuthUser(userInfo, authProvider);
+
+            // Проверка за статус
+            if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Акаунтът не е активиран"));
+            }
+
+            // Проверка за бан
+            if (user.getBanEndDate() != null && user.getBanEndDate().isAfter(Instant.now())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Акаунтът е блокиран до: " + user.getBanEndDate()));
+            }
+
+            // Генериране на JWT tokens
+            String accessToken = jwtTokenService.generateAccessToken(user);
+            String refreshToken = jwtTokenService.generateRefreshToken(user);
+
+            // User DTO
+            SVUserMinimalDTO userDTO = SVUserMinimalDTO.Mapper.toDTO(user);
+
+            // Response
+            MobileLoginResponse response = MobileLoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .tokenType("Bearer")
+                    .expiresIn(3600L)
+                    .user(userDTO)
+                    .build();
+
+            log.info("Mobile OAuth login successful for user: {} via {}", user.getEmail(), provider);
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            log.warn("Mobile OAuth login failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error during mobile OAuth login", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Вътрешна грешка. Моля, опитайте отново."));
         }
     }
 

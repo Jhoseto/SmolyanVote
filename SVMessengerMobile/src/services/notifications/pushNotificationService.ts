@@ -65,16 +65,20 @@ class PushNotificationService {
 
   /**
    * Unregister device token
+   * Best effort - не хвърля грешки които чупят приложението
    */
   async unregisterDeviceToken(deviceToken: string): Promise<void> {
     try {
-      await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.UNREGISTER, {
-        deviceToken,
+      // Backend очаква DELETE метод с body
+      await apiClient.delete(API_CONFIG.ENDPOINTS.DEVICE.UNREGISTER, {
+        data: { deviceToken },
       });
       console.log('Device token unregistered successfully');
-    } catch (error) {
-      console.error('Error unregistering device token:', error);
-      throw error;
+    } catch (error: any) {
+      // Не хвърляй грешка - това е "best effort" операция
+      // Токенът може да липсва, да е вече изтрит, user да не е логнат, backend да е спрян
+      console.warn('Error unregistering device token (non-critical):', error?.response?.status || error?.message);
+      // Не хвърляй error - просто лог
     }
   }
 

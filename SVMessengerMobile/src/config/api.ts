@@ -27,6 +27,7 @@ export const API_CONFIG = {
       LOGIN: '/api/mobile/auth/login',
       REFRESH: '/api/mobile/auth/refresh',
       LOGOUT: '/api/mobile/auth/logout',
+      OAUTH: '/api/mobile/auth/oauth',
     },
     
     // Device
