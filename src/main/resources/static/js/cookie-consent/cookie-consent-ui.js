@@ -48,7 +48,10 @@
             // Чакаме CookieConsentCore
             this.waitForConsentCore(() => {
                 this.setupUI();
-                this.checkAndShowBanner();
+                // Проверяваме банер след малко за да се гарантира че UI е настроен
+                setTimeout(() => {
+                    this.checkAndShowBanner();
+                }, 300);
             });
         }
 
@@ -79,20 +82,46 @@
          * Настройка на UI елементи
          */
         setupUI() {
-            // Проверка за съществуващи елементи
-            this.bannerElement = document.getElementById(this.config.bannerId);
-            this.modalElement = document.getElementById(this.config.modalId);
+            // Проверка за съществуващи елементи - опитваме се няколко пъти
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const findElements = () => {
+                this.bannerElement = document.getElementById(this.config.bannerId);
+                this.modalElement = document.getElementById(this.config.modalId);
+                
+                this.log(`Finding elements - attempt ${attempts + 1}, banner: ${!!this.bannerElement}, modal: ${!!this.modalElement}`);
+                
+                if (this.bannerElement || attempts >= maxAttempts) {
+                    // Ако няма HTML фрагмент, създаваме динамично
+                    if (!this.bannerElement) {
+                        this.log('Banner not found in DOM, creating dynamically');
+                        this.createBanner();
+                    } else {
+                        this.log('Banner found in DOM');
+                    }
 
-            // Ако няма HTML фрагмент, създаваме динамично
-            if (!this.bannerElement) {
-                this.createBanner();
+                    // Настройка на event listeners
+                    this.setupEventListeners();
+
+                    this.isInitialized = true;
+                    this.log('UI initialized successfully');
+                    return true;
+                }
+                
+                attempts++;
+                return false;
+            };
+
+            // Опитваме се веднага
+            if (!findElements()) {
+                // Ако не са намерени, опитваме се няколко пъти
+                const checkInterval = setInterval(() => {
+                    if (findElements() || attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                    }
+                }, 100);
             }
-
-            // Настройка на event listeners
-            this.setupEventListeners();
-
-            this.isInitialized = true;
-            this.log('UI initialized');
         }
 
         /**
@@ -176,7 +205,19 @@
          * Показване на банер
          */
         showBanner() {
+            // Ако банерът все още не е намерен, опитваме се да го намерим
             if (!this.bannerElement) {
+                this.bannerElement = document.getElementById(this.config.bannerId);
+            }
+
+            // Ако все още няма банер, създаваме го
+            if (!this.bannerElement) {
+                this.createBanner();
+                this.setupEventListeners();
+            }
+
+            if (!this.bannerElement) {
+                this.log('Cannot show banner - element not found', 'error');
                 return;
             }
 

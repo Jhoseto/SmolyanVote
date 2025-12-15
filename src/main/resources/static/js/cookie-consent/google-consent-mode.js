@@ -124,6 +124,12 @@
                 return;
             }
 
+            // Ако няма съгласие, не зареждаме Google Analytics
+            if (!this.consentCore.hasConsent()) {
+                this.log('No consent found, keeping analytics blocked');
+                return;
+            }
+
             if (this.consentCore.isAccepted()) {
                 this.handleConsentAccepted();
             } else if (this.consentCore.isRejected()) {
@@ -180,6 +186,24 @@
         loadGoogleAnalytics() {
             if (this.analyticsLoaded) {
                 this.log('Google Analytics already loaded');
+                return;
+            }
+
+            // Проверка дали скриптът вече не е зареден
+            const existingScript = document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`);
+            if (existingScript) {
+                this.log('Google Analytics script already exists in DOM');
+                // Ако скриптът съществува, само инициализираме
+                if (typeof window.gtag === 'function') {
+                    window.gtag('js', new Date());
+                    window.gtag('config', this.config.gtagId, {
+                        'anonymize_ip': true,
+                        'allow_google_signals': false,
+                        'allow_ad_personalization_signals': false
+                    });
+                    this.analyticsLoaded = true;
+                    this.log('Google Analytics initialized (script already existed)');
+                }
                 return;
             }
 

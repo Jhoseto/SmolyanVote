@@ -15,14 +15,14 @@
             cookieSecure: window.location.protocol === 'https:' || 
                          window.location.hostname === 'localhost' ||
                          window.location.hostname === '127.0.0.1',
-            debug: false // Поставяне на true за debugging
+            debug: true // Поставяне на true за debugging
         };
 
         // Конфигурация за Google Consent Mode
         window.googleConsentConfig = {
             gtagId: 'G-9G3Y2XM1JE',
             loadAnalyticsOnConsent: true, // Динамично зареждане след съгласие
-            debug: false
+            debug: true
         };
 
         // Конфигурация за Cookie Consent UI
@@ -30,7 +30,7 @@
             bannerId: 'cookie-consent-banner',
             modalId: 'cookie-consent-modal',
             showBannerOnLoad: true,
-            debug: false
+            debug: true
         };
     </script>
 
@@ -46,22 +46,61 @@
     <!-- ✅ Инициализация на Cookie Consent системата -->
     <script>
         // Инициализация след като всички модули са заредени
-        document.addEventListener('DOMContentLoaded', function() {
-            // Създаване на CookieConsentCore инстанция
-            if (window.CookieConsentCore && !window.cookieConsent) {
-                window.cookieConsent = new window.CookieConsentCore(window.cookieConsentConfig);
+        (function() {
+            function initCookieConsent() {
+                // Проверка дали всички модули са заредени
+                if (!window.CookieConsentCore || !window.GoogleConsentMode || !window.CookieConsentUI) {
+                    return false;
+                }
+
+                // Създаване на CookieConsentCore инстанция ПЪРВО
+                if (!window.cookieConsent) {
+                    window.cookieConsent = new window.CookieConsentCore(window.cookieConsentConfig);
+                }
+
+                // Създаване на GoogleConsentMode инстанция ВТОРО
+                if (!window.googleConsentMode) {
+                    window.googleConsentMode = new window.GoogleConsentMode(window.googleConsentConfig);
+                }
+
+                // Създаване на CookieConsentUI инстанция ТРЕТО (след като Core е готов)
+                if (!window.cookieConsentUI) {
+                    // Малко забавяне за да се гарантира че HTML фрагментите са рендерирани
+                    setTimeout(function() {
+                        if (!window.cookieConsentUI) {
+                            window.cookieConsentUI = new window.CookieConsentUI(window.cookieConsentUIConfig);
+                        }
+                    }, 100);
+                }
+
+                return true;
             }
 
-            // Създаване на GoogleConsentMode инстанция
-            if (window.GoogleConsentMode && !window.googleConsentMode) {
-                window.googleConsentMode = new window.GoogleConsentMode(window.googleConsentConfig);
+            // Опит за инициализация веднага ако DOM е готов
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Опитваме се няколко пъти за да сме сигурни че всички скриптове са заредени
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    const checkInterval = setInterval(function() {
+                        attempts++;
+                        if (initCookieConsent() || attempts >= maxAttempts) {
+                            clearInterval(checkInterval);
+                        }
+                    }, 100);
+                });
+            } else {
+                // DOM вече е готов
+                let attempts = 0;
+                const maxAttempts = 10;
+                const checkInterval = setInterval(function() {
+                    attempts++;
+                    if (initCookieConsent() || attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                    }
+                }, 100);
             }
-
-            // Създаване на CookieConsentUI инстанция
-            if (window.CookieConsentUI && !window.cookieConsentUI) {
-                window.cookieConsentUI = new window.CookieConsentUI(window.cookieConsentUIConfig);
-            }
-        });
+        })();
     </script>
 
     <script src="/js/utils/avatarUtils.js"></script>
