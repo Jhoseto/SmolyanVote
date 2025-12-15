@@ -3,32 +3,58 @@
  * Hook за управление на push notifications
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { pushNotificationService } from '../services/notifications/pushNotificationService';
 import { Platform, AppState } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
+import { stompClient } from '../services/websocket/stompClient';
+import { debounce } from '../utils/constants';
 
 export const usePushNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { fetchConversations } = useConversationsStore();
   const { fetchMessages } = useMessagesStore();
+  
+  // Оптимизация: Debounced refresh за conversations (избягва излишни API calls)
+  const debouncedRefreshConversations = useRef(
+    debounce(() => {
+      fetchConversations();
+    }, 500) // 500ms debounce
+  ).current;
 
   /**
    * Handle notification received
+   * Оптимизация: Показва notification само ако WebSocket не е активен (за по-малко Firebase разходи)
    */
   const handleNotificationReceived = useCallback(
     (notification: any) => {
       console.log('Notification received:', notification);
       const data = notification.data;
 
-      // Refresh conversations if notification is about a new message
+      // Проверка: Ако WebSocket е активен, не показвай foreground notification
+      // Данните вече идват през WebSocket, няма нужда от системно notification
+      const isWebSocketActive = stompClient.getConnected();
+      const isAppInForeground = AppState.currentState === 'active';
+
+      if (isAppInForeground && isWebSocketActive) {
+        // App е foreground и WebSocket е активен - данните идват през WebSocket
+        // Не показвай системно notification, само refresh conversations
+        console.log('WebSocket active, skipping foreground notification, refreshing conversations...');
+        if (data?.type === 'NEW_MESSAGE' || data?.conversationId) {
+          debouncedRefreshConversations();
+        }
+        return; // Не показвай системно notification
+      }
+
+      // App е в background или WebSocket не е активен - покажи notification
+      // Refresh conversations с debounce
       if (data?.type === 'NEW_MESSAGE' || data?.conversationId) {
-        fetchConversations();
+        debouncedRefreshConversations();
       }
     },
-    [fetchConversations]
+    [debouncedRefreshConversations]
   );
 
   /**
@@ -147,18 +173,19 @@ export const usePushNotifications = () => {
   ]);
 
   // Handle app state changes
+  // Оптимизация: Refresh conversations само когато app става active (не при всяка промяна)
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active' && isAuthenticated) {
-        // Refresh conversations when app becomes active
-        fetchConversations();
+        // Refresh conversations when app becomes active (с debounce)
+        debouncedRefreshConversations();
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated, fetchConversations]);
+  }, [isAuthenticated, debouncedRefreshConversations]);
 
   return {
     registerDeviceToken,

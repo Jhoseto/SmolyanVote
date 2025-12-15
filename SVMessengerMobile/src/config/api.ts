@@ -4,7 +4,9 @@
  */
 
 // Development
-const DEV_API_URL = 'http://localhost:2662';
+// За Android Studio Emulator използвай 10.0.2.2 (специален IP който сочи към localhost на host машината)
+// За физическо устройство използвай IP адреса на твоя компютър (примерно 192.168.1.100)
+const DEV_API_URL = 'http://10.0.2.2:2662'; // Android Emulator IP за localhost
 
 // Production
 const PROD_API_URL = 'https://smolyanvote.com';
@@ -15,7 +17,7 @@ const isDevelopment = __DEV__;
 export const API_CONFIG = {
   BASE_URL: isDevelopment ? DEV_API_URL : PROD_API_URL,
   WS_URL: isDevelopment 
-    ? 'ws://localhost:2662/ws-svmessenger' 
+    ? 'ws://10.0.2.2:2662/ws-svmessenger' // Android Emulator IP за localhost
     : 'wss://smolyanvote.com/ws-svmessenger',
   
   // API Endpoints

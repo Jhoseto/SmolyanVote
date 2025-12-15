@@ -15,6 +15,7 @@ export const APP_CONSTANTS = {
   // Debounce delays (ms)
   TYPING_DEBOUNCE: 300,
   SEARCH_DEBOUNCE: 500,
+  CONVERSATIONS_REFRESH_DEBOUNCE: 500, // Оптимизация: debounce за conversations refresh
 
   // Timeouts (ms)
   TYPING_TIMEOUT: 3000,

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { stompClient } from '../services/websocket/stompClient';
 import { useAuthStore } from '../store/authStore';
 import { useMessagesStore } from '../store/messagesStore';
@@ -206,6 +207,33 @@ export const useWebSocket = () => {
 
     return () => {
       disconnect();
+    };
+  }, [isAuthenticated, connect, disconnect]);
+
+  // Оптимизация: Управление на WebSocket според AppState (затваряне в background за по-малко батерия)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App става active - свържи WebSocket
+        if (!stompClient.getConnected()) {
+          console.log('App became active, connecting WebSocket...');
+          connect();
+        }
+      } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // App отива в background - затвори WebSocket за по-малко батерия
+        if (stompClient.getConnected()) {
+          console.log('App went to background, disconnecting WebSocket to save battery...');
+          disconnect();
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
     };
   }, [isAuthenticated, connect, disconnect]);
 

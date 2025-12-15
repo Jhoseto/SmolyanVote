@@ -64,9 +64,9 @@ class StompClient {
         connectHeaders: {
           Authorization: `Bearer ${token}`,
         },
-        reconnectDelay: 5000,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
+        reconnectDelay: 10000, // Оптимизирано: 10 секунди вместо 5 (по-малко батерия)
+        heartbeatIncoming: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
+        heartbeatOutgoing: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
         onConnect: (frame) => {
           console.log('WebSocket connected:', frame);
           this.isConnected = true;
