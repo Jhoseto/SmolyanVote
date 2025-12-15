@@ -1,0 +1,62 @@
+<!-- Cookie Consent Banner Fragment -->
+<div th:fragment="cookieConsentBanner">
+    <div id="cookie-consent-banner" class="cookie-consent-banner" role="dialog" aria-label="Cookie съгласие" aria-live="polite" aria-hidden="true">
+        <div class="cookie-consent-content">
+            <div class="cookie-consent-text">
+                <p>
+                    Използваме аналитични Cookies, за да подобрим изживяването ви при сърфиране на нашия уебсайт и да анализираме трафика. 
+                    Прочетете повече в <a href="/terms-and-conditions#cookies" target="_blank" rel="noopener">Условия за ползване</a>.
+                </p>
+            </div>
+            <div class="cookie-consent-actions">
+                <button type="button" class="cookie-consent-btn cookie-consent-reject" aria-label="Откажи бисквитките">
+                    Откажи
+                </button>
+                <button type="button" class="cookie-consent-btn cookie-consent-accept" aria-label="Приеми бисквитките">
+                    Приеми всички
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cookie Consent Modal Fragment -->
+<div th:fragment="cookieConsentModal">
+    <div id="cookie-consent-modal" class="cookie-consent-modal" role="dialog" aria-label="Управление на бисквитките" aria-hidden="true">
+        <div class="cookie-consent-modal-overlay" aria-label="Затвори"></div>
+        <div class="cookie-consent-modal-content">
+            <div class="cookie-consent-modal-header">
+                <h2>Управление на бисквитките</h2>
+                <button type="button" class="cookie-consent-modal-close" aria-label="Затвори">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="cookie-consent-modal-body">
+                <p>Можете да управлявате вашите предпочитания за бисквитките тук.</p>
+                
+                <div class="cookie-consent-preference">
+                    <label class="cookie-consent-switch">
+                        <input type="checkbox" id="cookie-pref-analytics" aria-label="Аналитични бисквитки">
+                        <span class="cookie-consent-slider"></span>
+                    </label>
+                    <div class="cookie-consent-preference-info">
+                        <strong>Аналитични бисквитки</strong>
+                        <p>Помагат ни да разберем как посетителите използват сайта ни. Тези бисквитки събират информация за това как използвате нашия уебсайт, което ни помага да го подобрим.</p>
+                    </div>
+                </div>
+
+                <div class="cookie-consent-info">
+                    <p>
+                        За повече информация вижте нашата 
+                        <a href="/terms-and-conditions#cookies" target="_blank" rel="noopener">Cookie политика</a>.
+                    </p>
+                </div>
+            </div>
+            <div class="cookie-consent-modal-footer">
+                <button type="button" class="cookie-consent-btn cookie-consent-reject">Откажи всички</button>
+                <button type="button" class="cookie-consent-btn cookie-consent-accept">Запази предпочитания</button>
+            </div>
+        </div>
+    </div>
+</div>
+

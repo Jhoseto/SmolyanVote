@@ -9,14 +9,8 @@
   <!-- SEO  БОМБА  -->
   <th:block th:replace="~{fragments/indexSeo :: indexSeo}"></th:block>
 
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9G3Y2XM1JE"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-9G3Y2XM1JE');
-  </script>
+  <!-- ✅ Google Analytics сега се зарежда динамично след съгласие чрез cookie-consent модула -->
+  <!-- Старият код е премахнат - използва се Google Consent Mode v2 -->
 
   <!-- Enhanced Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,7 +23,7 @@
   <link rel="stylesheet" href="/css/index.css">
   <link rel="stylesheet" href="/css/features.css">
   <link rel="stylesheet" href="/css/particles-background.css">
-  <link rel="stylesheet" href="/css/acceptCookies.css">
+  <!-- ✅ Cookie Consent CSS сега се зарежда глобално чрез topHtmlStyles фрагмента -->
 
   <!-- Structured Data for SEO -->
   <script type="application/ld+json">
@@ -63,30 +57,8 @@
     }
   </script>
 
-  <!-- Cookie Consent Configuration -->
-  <script type="text/javascript">
-    window.acceptCookies = {
-      content: 'Използваме аналитични Cookies, за да подобрим изживяването ви при сърфиране на нашия уебсайт и да анализираме трафика. Прочетете повече в <a href="/terms-conditions" target="_blank">Условия за ползване</a>.',
-      accept: "Приеми всички",
-      reject: "Откажи",
-      manageCookies: "Управление на бисквитките",
-      cookieName: "accept_cookies",
-      showAnswered: function () {
-        return true;
-      },
-      onAccept: function () {
-        gtag('consent', 'update', {
-          'analytics_storage': 'granted'
-        });
-      },
-      afterAction: function (value) {
-        const consentInput = document.querySelector('input[name=cookieConsent]');
-        if (consentInput) {
-          consentInput.value = value === 'accepted' ? '1' : '';
-        }
-      }
-    };
-  </script>
+  <!-- ✅ Cookie Consent сега се управлява глобално чрез cookie-consent модула -->
+  <!-- Конфигурацията е в bottomHtmlStyles фрагмента -->
 
 <!--  &lt;!&ndash; Smartsupp Live Chat script &ndash;&gt;-->
 <!--  <script type="text/javascript">-->
@@ -433,8 +405,7 @@
 <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
 <script src="/js/utils/particles-background.js" defer></script>
 
-<!-- Hidden input for cookie consent -->
-<input type="hidden" name="cookieConsent" value="" />
+<!-- ✅ Cookie Consent сега се управлява глобално чрез cookie-consent модула -->
 
 </body>
 </html>

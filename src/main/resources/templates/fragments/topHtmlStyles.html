@@ -3,6 +3,24 @@
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 
+    <!-- ✅ Google Consent Mode v2 - ПЪРВО ПРЕДИ ВСИЧКО (GDPR compliant) -->
+    <script>
+        // Инициализация на dataLayer и gtag функция ПРЕДИ всички други скриптове
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+
+        // Първоначално всичко е DENIED - GDPR compliant
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'functionality_storage': 'denied',
+            'personalization_storage': 'denied',
+            'security_storage': 'granted', // Винаги granted за необходимите бисквитки
+            'wait_for_update': 500
+        });
+    </script>
 
     <!-- ✅ Favicon -->
     <link rel="icon" type="image/x-icon" href="/images/logoNew.png">
@@ -30,6 +48,9 @@
     <link rel="stylesheet" href="/css/oauth-buttons.css">
     <link rel="stylesheet" href="/css/fonts.css">
     <link rel="stylesheet" href="/css/notifications.css">
+
+    <!-- ✅ Cookie Consent CSS -->
+    <link rel="stylesheet" href="/css/cookie-consent.css">
 
     <!-- ========================================
          MOBILE CSS - Loads AFTER desktop (overrides)

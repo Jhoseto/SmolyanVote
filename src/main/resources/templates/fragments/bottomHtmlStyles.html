@@ -4,6 +4,66 @@
         window.isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
     </script>
 
+    <!-- ✅ Cookie Consent Configuration -->
+    <script>
+        // Конфигурация за Cookie Consent Core
+        window.cookieConsentConfig = {
+            cookieName: 'smolyanvote_cookie_consent',
+            cookieExpiry: 397, // 13 месеца
+            cookiePath: '/',
+            cookieSameSite: 'Lax',
+            cookieSecure: window.location.protocol === 'https:' || 
+                         window.location.hostname === 'localhost' ||
+                         window.location.hostname === '127.0.0.1',
+            debug: false // Поставяне на true за debugging
+        };
+
+        // Конфигурация за Google Consent Mode
+        window.googleConsentConfig = {
+            gtagId: 'G-9G3Y2XM1JE',
+            loadAnalyticsOnConsent: true, // Динамично зареждане след съгласие
+            debug: false
+        };
+
+        // Конфигурация за Cookie Consent UI
+        window.cookieConsentUIConfig = {
+            bannerId: 'cookie-consent-banner',
+            modalId: 'cookie-consent-modal',
+            showBannerOnLoad: true,
+            debug: false
+        };
+    </script>
+
+    <!-- ✅ Cookie Consent Modules (зареждане в правилния ред) -->
+    <script src="/js/cookie-consent/cookie-consent-core.js"></script>
+    <script src="/js/cookie-consent/google-consent-mode.js"></script>
+    <script src="/js/cookie-consent/cookie-consent-ui.js"></script>
+
+    <!-- ✅ Cookie Consent HTML Fragments -->
+    <div th:replace="~{fragments/cookieConsent :: cookieConsentBanner}"></div>
+    <div th:replace="~{fragments/cookieConsent :: cookieConsentModal}"></div>
+
+    <!-- ✅ Инициализация на Cookie Consent системата -->
+    <script>
+        // Инициализация след като всички модули са заредени
+        document.addEventListener('DOMContentLoaded', function() {
+            // Създаване на CookieConsentCore инстанция
+            if (window.CookieConsentCore && !window.cookieConsent) {
+                window.cookieConsent = new window.CookieConsentCore(window.cookieConsentConfig);
+            }
+
+            // Създаване на GoogleConsentMode инстанция
+            if (window.GoogleConsentMode && !window.googleConsentMode) {
+                window.googleConsentMode = new window.GoogleConsentMode(window.googleConsentConfig);
+            }
+
+            // Създаване на CookieConsentUI инстанция
+            if (window.CookieConsentUI && !window.cookieConsentUI) {
+                window.cookieConsentUI = new window.CookieConsentUI(window.cookieConsentUIConfig);
+            }
+        });
+    </script>
+
     <script src="/js/utils/avatarUtils.js"></script>
     <script src="/js/footer.js"></script>
 
