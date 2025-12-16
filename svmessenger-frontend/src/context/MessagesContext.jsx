@@ -89,7 +89,6 @@ export const MessagesProvider = ({ children, currentUser }) => {
         // Това предотвратява дублиране ако handleNewMessage се извика два пъти за едно и също съобщение
         const messageKey = `${message.id}-${message.conversationId}`;
         if (processedMessageIds.current.has(messageKey)) {
-            console.log('🚫 BLOCKED DUPLICATE: Message', message.id, 'already processed in this cycle, ignoring');
             return;
         }
         
@@ -110,7 +109,6 @@ export const MessagesProvider = ({ children, currentUser }) => {
             if (existingIndex !== -1) {
                 // Съобщението вече съществува - обнови го (може да има нови данни като isDelivered, isRead)
                 // НЕ добавяме дубликат!
-                console.log('🔄 DUPLICATE DETECTED IN STATE! Updating existing message:', message.id, 'instead of adding duplicate. Current count:', validExisting.length);
                 const updated = [...validExisting];
                 updated[existingIndex] = { ...updated[existingIndex], ...message };
                 return {
@@ -120,7 +118,6 @@ export const MessagesProvider = ({ children, currentUser }) => {
             }
             
             // Ново съобщение - добави го
-            console.log('✅ Adding new message:', message.id, 'to conversation:', message.conversationId, 'Total messages:', validExisting.length + 1);
             return {
                 ...prev,
                 [message.conversationId]: [
