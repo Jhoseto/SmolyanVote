@@ -1,7 +1,25 @@
 <div th:fragment="navbarStyles">
-    <!-- ✅ CSRF Meta Tags (за всички страници) -->
+    <!-- ✅ CSRF Meta Tags (за всички страници) - ВИНАГИ ПЪРВО -->
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- ✅ CSRF Token в JavaScript за да е достъпен навсякъде -->
+    <script th:inline="javascript">
+        // CSRF Token за всички JavaScript заявки
+        window.CSRF_TOKEN = /*[[${_csrf.token}]]*/ '';
+        window.CSRF_HEADER = /*[[${_csrf.headerName}]]*/ 'X-XSRF-TOKEN';
+        
+        // Функция за получаване на CSRF token (fallback към cookie ако няма)
+        window.getCsrfToken = function() {
+            if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
+            var match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : null;
+        };
+        
+        window.getCsrfHeader = function() {
+            return window.CSRF_HEADER || 'X-XSRF-TOKEN';
+        };
+    </script>
 
     <!-- ✅ Google Consent Mode v2 - ПЪРВО ПРЕДИ ВСИЧКО (GDPR compliant) -->
     <script>

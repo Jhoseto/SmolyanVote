@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/authStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useCallsStore } from '../store/callsStore';
-import { Message, TypingStatus } from '../types/message';
+import { Message, TypingStatus, MessageType } from '../types/message';
 import { Conversation } from '../types/conversation';
 import { CallState } from '../types/call';
 
@@ -38,12 +38,45 @@ export const useWebSocket = () => {
     // Subscribe to private messages
     const messagesSubscription = stompClient.subscribe(
       '/user/queue/svmessenger-messages',
-      (message: Message) => {
-        console.log('Received message:', message);
-        addMessage(message.conversationId, message);
-        updateConversation(message.conversationId, {
-          lastMessage: message,
-        });
+      (data: any) => {
+        try {
+          console.log('✅ WebSocket message received:', data);
+          
+          // Parse message from backend DTO format to mobile Message format
+          const message: Message = {
+            id: data.id,
+            conversationId: data.conversationId,
+            senderId: data.senderId,
+            text: data.text || '',
+            createdAt: data.sentAt || data.createdAt || new Date().toISOString(),
+            isRead: data.isRead || false,
+            isDelivered: data.isDelivered || false,
+            readAt: data.readAt,
+            deliveredAt: data.deliveredAt,
+            type: (data.messageType || data.type || 'TEXT') as MessageType,
+          };
+          
+          console.log('✅ Adding message to store:', message.id, 'for conversation:', message.conversationId);
+          addMessage(message.conversationId, message);
+          
+          // Update conversation with last message
+          updateConversation(message.conversationId, {
+            lastMessage: {
+              text: message.text,
+              createdAt: message.createdAt,
+            },
+            updatedAt: message.createdAt,
+          });
+          
+          // Increment unread count if message is from other user
+          if (message.senderId !== user.id) {
+            incrementUnreadCount(message.conversationId);
+          }
+          
+          console.log('✅ Message processed successfully');
+        } catch (error) {
+          console.error('❌ Error processing WebSocket message:', error, data);
+        }
       }
     );
 
@@ -51,17 +84,9 @@ export const useWebSocket = () => {
       subscriptionsRef.current.set('messages', messagesSubscription);
     }
 
-    // Subscribe to typing status
-    const typingSubscription = stompClient.subscribe(
-      '/user/queue/svmessenger-typing',
-      (data: { conversationId: number; userId: number; isTyping: boolean }) => {
-        setTyping(data.conversationId, data.userId, data.isTyping);
-      }
-    );
-
-    if (typingSubscription) {
-      subscriptionsRef.current.set('typing', typingSubscription);
-    }
+    // Typing status се изпраща към topic за всеки conversation
+    // Ще се subscribe-ваме динамично когато се отвори conversation (в useMessages hook)
+    // Тук не се subscribe-ваме защото не знаем кои conversations са активни
 
     // Subscribe to read receipts
     // Backend изпраща към /queue/svmessenger-read-receipts (с 's' в края)
@@ -70,7 +95,14 @@ export const useWebSocket = () => {
       (data: { messageId?: number; conversationId: number; readAt: string; type?: string }) => {
         if (data.type === 'BULK_READ') {
           // Bulk read - маркира всички съобщения в разговора като прочетени
-          // Това ще се обработи от conversations store
+          const { messages } = useMessagesStore.getState();
+          const conversationMessages = messages[data.conversationId] || [];
+          conversationMessages.forEach((msg) => {
+            updateMessage(data.conversationId, msg.id, {
+              isRead: true,
+              readAt: data.readAt,
+            });
+          });
         } else if (data.messageId) {
           // Individual message read receipt
           updateMessage(data.conversationId, data.messageId, {
@@ -89,11 +121,28 @@ export const useWebSocket = () => {
     // Backend изпраща към /queue/svmessenger-delivery-receipts (с 's' в края)
     const deliveryReceiptSubscription = stompClient.subscribe(
       '/user/queue/svmessenger-delivery-receipts',
-      (data: { messageId: number; conversationId: number; deliveredAt: string }) => {
-        updateMessage(data.conversationId, data.messageId, {
-          isDelivered: true,
-          deliveredAt: data.deliveredAt,
-        });
+      (data: { messageId?: number; conversationId?: number; conversationIds?: number[]; deliveredAt: string; type?: string }) => {
+        if (data.type === 'BULK_DELIVERY' && data.conversationIds) {
+          // Bulk delivery - маркира всички не-delivered съобщения в засегнатите conversations като delivered
+          const { messages } = useMessagesStore.getState();
+          data.conversationIds.forEach((convId) => {
+            const conversationMessages = messages[convId] || [];
+            conversationMessages.forEach((msg) => {
+              if (!msg.isDelivered) {
+                updateMessage(convId, msg.id, {
+                  isDelivered: true,
+                  deliveredAt: data.deliveredAt,
+                });
+              }
+            });
+          });
+        } else if (data.messageId && data.conversationId) {
+          // Individual message delivery receipt
+          updateMessage(data.conversationId, data.messageId, {
+            isDelivered: true,
+            deliveredAt: data.deliveredAt,
+          });
+        }
       }
     );
 
@@ -101,11 +150,22 @@ export const useWebSocket = () => {
       subscriptionsRef.current.set('deliveryReceipt', deliveryReceiptSubscription);
     }
 
-    // Subscribe to online status updates
+    // Subscribe to online status updates (broadcast topic, not user queue)
     const onlineStatusSubscription = stompClient.subscribe(
-      '/user/queue/svmessenger-online-status',
-      (data: { userId: number; isOnline: boolean }) => {
+      '/topic/svmessenger-online-status',
+      (data: { userId: number; isOnline: boolean; timestamp?: string }) => {
         // Update conversation participant online status
+        const { conversations } = useConversationsStore.getState();
+        conversations.forEach((conv) => {
+          if (conv.participant?.id === data.userId) {
+            updateConversation(conv.id, {
+              participant: {
+                ...conv.participant,
+                isOnline: data.isOnline,
+              },
+            });
+          }
+        });
       }
     );
 
@@ -188,6 +248,56 @@ export const useWebSocket = () => {
   }, []);
 
 
+  // Subscribe to typing status for a specific conversation
+  // Backend изпраща към /topic/svmessenger-typing/{conversationId}
+  const subscribeToTypingStatus = useCallback(
+    (conversationId: number) => {
+      if (!stompClient.getConnected()) return;
+
+      const topic = `/topic/svmessenger-typing/${conversationId}`;
+      const key = `typing-${conversationId}`;
+
+      // Unsubscribe from previous subscription if exists
+      const existingSubscription = subscriptionsRef.current.get(key);
+      if (existingSubscription) {
+        try {
+          existingSubscription.unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing from typing status:', error);
+        }
+      }
+
+      const subscription = stompClient.subscribe(
+        topic,
+        (data: { conversationId: number; userId: number; isTyping: boolean }) => {
+          setTyping(data.conversationId, data.userId, data.isTyping);
+        }
+      );
+
+      if (subscription) {
+        subscriptionsRef.current.set(key, subscription);
+      }
+    },
+    [setTyping]
+  );
+
+  // Unsubscribe from typing status for a specific conversation
+  const unsubscribeFromTypingStatus = useCallback(
+    (conversationId: number) => {
+      const key = `typing-${conversationId}`;
+      const subscription = subscriptionsRef.current.get(key);
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+          subscriptionsRef.current.delete(key);
+        } catch (error) {
+          console.error('Error unsubscribing from typing status:', error);
+        }
+      }
+    },
+    []
+  );
+
   // Send typing status
   const sendTypingStatus = useCallback(
     (conversationId: number, isTyping: boolean) => {
@@ -238,41 +348,34 @@ export const useWebSocket = () => {
     };
   }, [isAuthenticated, user, connect, disconnect]);
 
-  // Оптимизация: Управление на WebSocket според AppState (затваряне в background за по-малко батерия)
+  // WebSocket остава активен в background за real-time нотификации
+  // При app state change само reconnect ако не е connected
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      try {
-        if (nextAppState === 'active') {
-          // App става active - свържи WebSocket
-          if (!stompClient.getConnected()) {
-            console.log('App became active, connecting WebSocket...');
-            connect();
-          }
-        } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-          // App отива в background - затвори WebSocket за по-малко батерия
-          if (stompClient.getConnected()) {
-            console.log('App went to background, disconnecting WebSocket to save battery...');
-            disconnect();
-          }
+      if (nextAppState === 'active') {
+        // App стана active - reconnect WebSocket ако не е connected
+        if (!stompClient.getConnected()) {
+          connect();
+        } else {
+          // Refresh subscriptions ако вече е connected
+          subscribeToChannels();
         }
-      } catch (error) {
-        console.error('Error handling app state change:', error);
       }
+      // НЕ затваряме WebSocket в background - остава активен за real-time нотификации
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
-  }, [isAuthenticated, user, connect, disconnect]);
+    return () => subscription.remove();
+  }, [isAuthenticated, user, connect, subscribeToChannels]);
 
   return {
     isConnected: stompClient.getConnected(),
     sendTypingStatus,
     sendReadReceipt,
+    subscribeToTypingStatus,
+    unsubscribeFromTypingStatus,
     reconnect: connect,
   };
 };

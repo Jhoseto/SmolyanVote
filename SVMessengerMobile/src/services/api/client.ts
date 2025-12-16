@@ -57,8 +57,9 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-        // Ако получим 401 и не сме опитали refresh
-        if (error.response?.status === 401 && !originalRequest._retry && originalRequest) {
+        // Ако получим 401 или 405 (вероятно изтекъл token) и не сме опитали refresh
+        const isAuthError = error.response?.status === 401 || error.response?.status === 405;
+        if (isAuthError && !originalRequest._retry && originalRequest) {
           originalRequest._retry = true;
 
           try {

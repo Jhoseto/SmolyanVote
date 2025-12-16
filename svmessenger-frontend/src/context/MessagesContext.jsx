@@ -44,6 +44,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
     const messageSound = useRef(null);
     const conversationsRef = useRef(conversations);
     const messagesByConversationRef = useRef(messagesByConversation);
+    const processedMessageIds = useRef(new Set()); // ✅ Защита срещу дублиране - track обработени съобщения
 
     // Preload message sound
     useEffect(() => {
@@ -84,16 +85,42 @@ export const MessagesProvider = ({ children, currentUser }) => {
             return;
         }
 
-        // Add message to conversation
+        // ✅ КРИТИЧНО: Проверка дали това съобщение вече е обработено в този render cycle
+        // Това предотвратява дублиране ако handleNewMessage се извика два пъти за едно и също съобщение
+        const messageKey = `${message.id}-${message.conversationId}`;
+        if (processedMessageIds.current.has(messageKey)) {
+            console.log('🚫 BLOCKED DUPLICATE: Message', message.id, 'already processed in this cycle, ignoring');
+            return;
+        }
+        
+        // Маркирай като обработено (ще се изчисти след малко)
+        processedMessageIds.current.add(messageKey);
+        setTimeout(() => {
+            processedMessageIds.current.delete(messageKey);
+        }, 5000); // Изчисти след 5 секунди (увеличено за предотвратяване на дублиране от мобилно приложение)
+
+        // Add message to conversation (с проверка за дубликати и обновяване)
         setMessagesByConversation(prev => {
             const existingMessages = prev[message.conversationId] || [];
             // Филтрирай невалидни съобщения
             const validExisting = existingMessages.filter(m => m && m.id && m.text && m.sentAt);
-            // Проверка за дублиране
-            const isDuplicate = validExisting.some(m => m.id === message.id);
-            if (isDuplicate) {
-                return prev;
+            
+            // ✅ Проверка за дубликати - ако съобщението вече съществува, обнови го вместо да го добавиш отново
+            const existingIndex = validExisting.findIndex(m => m.id === message.id);
+            if (existingIndex !== -1) {
+                // Съобщението вече съществува - обнови го (може да има нови данни като isDelivered, isRead)
+                // НЕ добавяме дубликат!
+                console.log('🔄 DUPLICATE DETECTED IN STATE! Updating existing message:', message.id, 'instead of adding duplicate. Current count:', validExisting.length);
+                const updated = [...validExisting];
+                updated[existingIndex] = { ...updated[existingIndex], ...message };
+                return {
+                    ...prev,
+                    [message.conversationId]: updated
+                };
             }
+            
+            // Ново съобщение - добави го
+            console.log('✅ Adding new message:', message.id, 'to conversation:', message.conversationId, 'Total messages:', validExisting.length + 1);
             return {
                 ...prev,
                 [message.conversationId]: [
@@ -448,32 +475,18 @@ export const MessagesProvider = ({ children, currentUser }) => {
         }
 
         try {
-            const message = await svMessengerAPI.sendMessage(conversationId, text.trim());
+            // Изпрати съобщението през HTTP API
+            // Backend ще изпрати съобщението до sender-а и recipient-а през WebSocket
+            // НЕ добавяме съобщението тук - ще го получим от WebSocket
+            await svMessengerAPI.sendMessage(conversationId, text.trim());
 
-            // Валидация на съобщението преди добавяне
-            if (!message || !message.id || !message.text || !message.sentAt) {
-                console.warn('sendMessage: Invalid message received', message);
-                return;
-            }
-
-            // Add message optimistically
-            setMessagesByConversation(prev => {
-                const existingMessages = prev[conversationId] || [];
-                // Филтрирай невалидни съобщения
-                const validExisting = existingMessages.filter(m => m && m.id && m.text && m.sentAt);
-                return {
-                    ...prev,
-                    [conversationId]: [...validExisting, message]
-                };
-            });
-
-            // Reload conversations
-            loadConversations();
+            // ✅ НЕ refresh-ваме conversations тук - WebSocket ще обнови conversation list-а автоматично
+            // Това предотвратява дублиране на съобщенията и излишни API calls
         } catch (error) {
             console.error('Failed to send message:', error);
             alert('Грешка при изпращане на съобщение. Моля опитайте отново.');
         }
-    }, [isWebSocketConnected, loadConversations]);
+    }, [isWebSocketConnected]);
 
     const startConversation = useCallback(async (otherUserId) => {
         try {

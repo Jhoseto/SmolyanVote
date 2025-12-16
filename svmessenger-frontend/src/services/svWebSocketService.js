@@ -14,12 +14,21 @@ class SVWebSocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
+    this.isConnecting = false; // ✅ Защита срещу множествени извиквания на connect
   }
   
   /**
    * Connect към WebSocket server
    */
   connect(callbacks = {}) {
+    // ✅ Защита срещу множествени извиквания - ако вече се connect-ва, не прави нищо
+    if (this.isConnecting || (this.client && this.client.connected)) {
+      console.log('⚠️ WebSocket already connecting or connected, skipping duplicate connect call');
+      return;
+    }
+    
+    this.isConnecting = true;
+    
     const {
       onConnect = () => {},
       onDisconnect = () => {},
@@ -31,6 +40,31 @@ class SVWebSocketService {
       onOnlineStatus = () => {},
       onCallSignal = () => {}
     } = callbacks;
+    
+    // ✅ КРИТИЧНО: Премахни стария client преди да създадеш нов (предотвратява дублиране на subscriptions)
+    if (this.client) {
+      console.log('⚠️ Disconnecting existing WebSocket client before creating new one');
+      try {
+        // Unsubscribe от всички channels
+        this.subscriptions.forEach(sub => {
+          try {
+            sub.unsubscribe();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        });
+        this.subscriptions.clear();
+        
+        // Deactivate стария client
+        if (this.client.connected) {
+          this.client.deactivate();
+        }
+      } catch (error) {
+        console.warn('Error disconnecting old client:', error);
+      }
+      this.client = null;
+      this.connected = false;
+    }
     
     // Create SockJS instance
     const socket = new SockJS('/ws-svmessenger');
@@ -52,9 +86,17 @@ class SVWebSocketService {
       
       // Connection success callback
       onConnect: () => {
+        // ✅ Защита срещу множествени извиквания на onConnect (може да се случи при auto-reconnect)
+        if (this.connected) {
+          console.log('⚠️ onConnect called but already connected, skipping duplicate subscription');
+          return;
+        }
+        
         this.connected = true;
+        this.isConnecting = false; // ✅ Reset connecting flag
         this.reconnectAttempts = 0;
 
+        console.log('✅ WebSocket connected, subscribing to channels...');
 
         // Subscribe to channels
         this.subscribeToChannels({
@@ -73,6 +115,7 @@ class SVWebSocketService {
       onStompError: (frame) => {
         console.error('STOMP error:', frame);
         this.connected = false;
+        this.isConnecting = false; // ✅ Reset connecting flag
         onError(frame);
         
         // Retry connection
@@ -82,6 +125,7 @@ class SVWebSocketService {
       // WebSocket close callback
       onWebSocketClose: () => {
         this.connected = false;
+        this.isConnecting = false; // ✅ Reset connecting flag
         onDisconnect();
         
         // Retry connection
@@ -99,19 +143,33 @@ class SVWebSocketService {
   subscribeToChannels(callbacks) {
     const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
     
-    // 1. Private messages channel
-    const messagesSub = this.client.subscribe(
-      '/user/queue/svmessenger-messages',
-      (message) => {
+    // ✅ Премахни старите subscriptions преди да създадеш нови (предотвратява дублиране)
+    const coreSubscriptionKeys = ['messages', 'receipts', 'delivery', 'status', 'callSignals'];
+    coreSubscriptionKeys.forEach(key => {
+      const oldSub = this.subscriptions.get(key);
+      if (oldSub) {
         try {
-          const data = JSON.parse(message.body);
-          onNewMessage(data);
+          oldSub.unsubscribe();
         } catch (error) {
-          console.error('Error parsing message:', error);
+          console.warn('Error unsubscribing old subscription:', key, error);
         }
+        this.subscriptions.delete(key);
       }
-    );
-    this.subscriptions.set('messages', messagesSub);
+    });
+    
+        // 1. Private messages channel
+        const messagesSub = this.client.subscribe(
+          '/user/queue/svmessenger-messages',
+          (message) => {
+            try {
+              const data = JSON.parse(message.body);
+              onNewMessage(data);
+            } catch (error) {
+              console.error('Error parsing message:', error);
+            }
+          }
+        );
+        this.subscriptions.set('messages', messagesSub);
     
     // 2. Read receipts channel
     const receiptsSub = this.client.subscribe(
@@ -305,13 +363,27 @@ class SVWebSocketService {
    * Disconnect от WebSocket
    */
   disconnect() {
+    this.isConnecting = false; // ✅ Reset connecting flag
     if (this.client) {
       // Unsubscribe от всички channels
-      this.subscriptions.forEach(sub => sub.unsubscribe());
+      this.subscriptions.forEach(sub => {
+        try {
+          sub.unsubscribe();
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      });
       this.subscriptions.clear();
       
       // Deactivate client
-      this.client.deactivate();
+      try {
+        if (this.client.connected) {
+          this.client.deactivate();
+        }
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      this.client = null;
       this.connected = false;
     }
   }

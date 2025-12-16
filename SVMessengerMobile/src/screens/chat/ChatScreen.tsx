@@ -44,14 +44,26 @@ export const ChatScreen: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+    if (messages.length > 0 && flatListRef.current) {
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
     }
-  }, [messages.length]);
+  }, [messages.length, messages]);
+
+  // Scroll to bottom when component mounts with messages
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 300);
+    }
+  }, [conversationId]);
 
   const handleInputChange = (text: string) => {
     setInputText(text);
@@ -64,12 +76,13 @@ export const ChatScreen: React.FC = () => {
     const text = inputText.trim();
     setInputText('');
 
-    const sentMessage = await sendMessage(text);
-    if (sentMessage) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
+    // Send message - it will arrive via WebSocket
+    await sendMessage(text);
+    
+    // Scroll to bottom after sending
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 200);
   };
 
   if (isLoading && messages.length === 0) {
@@ -85,10 +98,29 @@ export const ChatScreen: React.FC = () => {
       <FlatList
         ref={flatListRef}
         data={messages}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item?.id?.toString() || `message-${index}`}
         renderItem={({ item }) => <MessageBubble message={item} />}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={[
+          styles.messagesContainer,
+          messages.length === 0 && styles.emptyContainer,
+        ]}
         inverted={false}
+        onContentSizeChange={() => {
+          // Auto-scroll to bottom when content size changes
+          if (messages.length > 0) {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }, 50);
+          }
+        }}
+        onLayout={() => {
+          // Scroll to bottom on layout
+          if (messages.length > 0) {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }, 100);
+          }
+        }}
       />
       {isTyping && (
         <View style={styles.typingContainer}>
@@ -121,6 +153,12 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     padding: Spacing.md,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   typingContainer: {
     paddingHorizontal: Spacing.md,

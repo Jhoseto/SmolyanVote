@@ -1,11 +1,13 @@
 package smolyanVote.smolyanVote.controllers.svmessenger;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -33,6 +35,35 @@ public class SVMessengerController {
                                   UserRepository userRepository) {
         this.messengerService = messengerService;
         this.userRepository = userRepository;
+    }
+    
+    // ========== CSRF TOKEN ==========
+    
+    /**
+     * GET /api/svmessenger/csrf-token
+     * Връща CSRF token за web клиенти (ако липсва)
+     * Това endpoint генерира CSRF token ако не е наличен
+     * 
+     * Response: { "token": "...", "headerName": "X-XSRF-TOKEN" }
+     */
+    @GetMapping("/csrf-token")
+    public ResponseEntity<Map<String, String>> getCsrfToken(HttpServletRequest request) {
+        Map<String, String> response = new HashMap<>();
+        
+        // Spring Security автоматично генерира CSRF token при първия GET заявка
+        // Това endpoint гарантира че token е наличен
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf");
+        if (csrfToken != null) {
+            response.put("token", csrfToken.getToken());
+            response.put("headerName", csrfToken.getHeaderName());
+        } else {
+            // Ако token не е наличен, връщаме празен response
+            // Spring Security ще генерира token при следващата заявка
+            response.put("token", "");
+            response.put("headerName", "X-XSRF-TOKEN");
+        }
+        
+        return ResponseEntity.ok(response);
     }
     
     // ========== CONVERSATIONS ==========

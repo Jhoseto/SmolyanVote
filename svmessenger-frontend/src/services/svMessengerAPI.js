@@ -6,24 +6,54 @@
 const BASE_URL = '/api/svmessenger';
 
 /**
- * Get CSRF token from meta tag or cookie
+ * Get CSRF token from multiple sources (priority order)
  */
 const getCsrfToken = () => {
-  // Try meta tag first (Spring Security default)
+  // 1. Try window.CSRF_TOKEN (от topHtmlStyles fragment) - НАЙ-БЪРЗО
+  if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
+  
+  // 2. Try window.getCsrfToken() function (от topHtmlStyles fragment)
+  if (window.getCsrfToken && typeof window.getCsrfToken === 'function') {
+    const token = window.getCsrfToken();
+    if (token) return token;
+  }
+  
+  // 3. Try meta tag (Spring Security default)
   const meta = document.querySelector('meta[name="_csrf"]');
   if (meta && meta.content) return meta.content;
 
-  // Fallback to XSRF-TOKEN cookie (CookieCsrfTokenRepository)
+  // 4. Try window.SVMESSENGER_CSRF (от svMessengerWidget)
+  if (window.SVMESSENGER_CSRF && window.SVMESSENGER_CSRF.token) {
+    return window.SVMESSENGER_CSRF.token;
+  }
+
+  // 5. Fallback to XSRF-TOKEN cookie (CookieCsrfTokenRepository)
   const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 };
 
 /**
- * Get CSRF header name
+ * Get CSRF header name from multiple sources (priority order)
  */
 const getCsrfHeader = () => {
+  // 1. Try window.CSRF_HEADER (от topHtmlStyles fragment) - НАЙ-БЪРЗО
+  if (window.CSRF_HEADER) return window.CSRF_HEADER;
+  
+  // 2. Try window.getCsrfHeader() function (от topHtmlStyles fragment)
+  if (window.getCsrfHeader && typeof window.getCsrfHeader === 'function') {
+    return window.getCsrfHeader();
+  }
+  
+  // 3. Try meta tag
   const meta = document.querySelector('meta[name="_csrf_header"]');
-  return meta && meta.content ? meta.content : 'X-XSRF-TOKEN';
+  if (meta && meta.content) return meta.content;
+  
+  // 4. Try window.SVMESSENGER_CSRF (от svMessengerWidget)
+  if (window.SVMESSENGER_CSRF && window.SVMESSENGER_CSRF.headerName) {
+    return window.SVMESSENGER_CSRF.headerName;
+  }
+  
+  return 'X-XSRF-TOKEN';
 };
 
 /**

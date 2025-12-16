@@ -55,12 +55,29 @@ class PushNotificationService {
    */
   async registerDeviceToken(request: DeviceTokenRequest): Promise<void> {
     try {
-      await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.REGISTER, request);
-      console.log('Device token registered successfully');
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.REGISTER, request);
+      console.log('Device token registered successfully:', response.data);
     } catch (error: any) {
-      console.error('Error registering device token:', error?.response?.status, error?.message);
-      // Не хвърляй грешка - това е non-critical операция
-      // Приложението трябва да работи дори без push notifications
+      const status = error?.response?.status;
+      const statusText = error?.response?.statusText;
+      const message = error?.message;
+      
+      // Логване на подробна информация за грешката
+      console.error('Error registering device token:', {
+        status,
+        statusText,
+        message,
+        endpoint: API_CONFIG.ENDPOINTS.DEVICE.REGISTER,
+        hasResponse: !!error?.response,
+        responseData: error?.response?.data,
+      });
+      
+      // Ако е 401 или 405 (вероятно изтекъл token), хвърли грешка за retry логиката
+      if (status === 401 || status === 405) {
+        throw error; // Хвърли за retry логиката в hook-а
+      }
+      
+      // За други грешки, не хвърляй - това е non-critical операция
       console.warn('Device token registration failed (non-critical), continuing...');
     }
   }

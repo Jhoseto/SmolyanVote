@@ -160,8 +160,8 @@ public class SVMessengerWebSocketController {
                     .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
 
             String recipientPrincipal = recipient.getEmail() != null && !recipient.getEmail().isBlank()
-                    ? recipient.getEmail()
-                    : recipient.getUsername();
+                    ? recipient.getEmail().toLowerCase()
+                    : recipient.getUsername().toLowerCase();
 
             log.info("Forwarding call signal from {} to {} (principal: {})", sender.getId(), recipientUserId, recipientPrincipal);
 
@@ -253,6 +253,11 @@ public class SVMessengerWebSocketController {
         }
         
         try {
+            // Проверка дали Principal е UserPrincipal (от JWT WebSocket interceptor)
+            if (principal instanceof smolyanVote.smolyanVote.config.websocket.UserPrincipal) {
+                return ((smolyanVote.smolyanVote.config.websocket.UserPrincipal) principal).getUser();
+            }
+            
             // Проверка дали Principal е вече UserEntity (от JWT filter)
             if (principal instanceof UserEntity) {
                 return (UserEntity) principal;

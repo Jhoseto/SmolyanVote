@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing } from '../../theme';
 
 interface MessageInputProps {

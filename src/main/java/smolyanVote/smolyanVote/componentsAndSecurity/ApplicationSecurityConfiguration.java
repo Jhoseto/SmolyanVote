@@ -2,7 +2,6 @@ package smolyanVote.smolyanVote.componentsAndSecurity;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -63,6 +62,8 @@ public class ApplicationSecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokenRepository.setCookiePath("/");
+        // CSRF cookie трябва да е достъпен от JavaScript за да може web версията да го прочете
+        // SameSite=Lax за да работи с cross-site заявки, но все още да е защитен
 
         http
                 .headers(headers -> headers
@@ -154,13 +155,27 @@ public class ApplicationSecurityConfiguration {
                             request.getRequestDispatcher("/error/general").forward(request, response);
                         }))
                 .csrf(csrf -> csrf
-                        // ✅ CSRF PROTECTION RESTORED - ALL API ENDPOINTS NOW PROTECTED
-                        // WebSocket handshakes remain exempt (safe by design - require valid session +
-                        // Same-Origin Policy)
-                        // Mobile API endpoints са exempt от CSRF (използват JWT tokens)
-                        .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
-                                "/ws-svmessenger/**", "/ws-svmessenger-ws/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml",
-                                "/api/mobile/**") // Mobile API използва JWT, не се нуждае от CSRF
+                        // ✅ CSRF PROTECTION - Правилна имплементация за web и mobile
+                        // Mobile API endpoints са exempt (използват JWT tokens в Authorization header)
+                        // Web messenger API endpoints ИЗПОЛЗВАТ CSRF protection (session cookies + X-XSRF-TOKEN header)
+                        .ignoringRequestMatchers(
+                                // Static resources
+                                "/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
+                                // WebSocket endpoints
+                                "/ws-svmessenger/**", "/ws-svmessenger-ws/**", "/ws/notifications/**", "/ws/admin/activity/**",
+                                // Other public endpoints
+                                "/robots.txt", "/sitemap.xml",
+                                // Mobile API endpoints (JWT authentication)
+                                "/api/mobile/**"
+                        )
+                        // Custom matcher: exempt заявки с JWT token в Authorization header (mobile app)
+                        // Web заявките (без Authorization header) изискват CSRF token в X-XSRF-TOKEN header
+                        .ignoringRequestMatchers(request -> {
+                            String authHeader = request.getHeader("Authorization");
+                            // Ако има Authorization header с Bearer token, значи е от mobile app - exempt от CSRF
+                            // Web заявките нямат Authorization header и трябва да изпращат X-XSRF-TOKEN header
+                            return authHeader != null && authHeader.startsWith("Bearer ");
+                        })
                         .csrfTokenRepository(csrfTokenRepository))
                 // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
@@ -242,10 +257,14 @@ public class ApplicationSecurityConfiguration {
                             updatedHeader += "; Secure";
                         }
 
+                        // CSRF token cookie (XSRF-TOKEN) не трябва да има HttpOnly за да може JavaScript да го прочете
+                        // CookieCsrfTokenRepository вече го конфигурира правилно, но нека се уверим че не го променяме
                         if (!header.toLowerCase().contains("httponly") && !header.startsWith("XSRF-TOKEN")) {
                             updatedHeader += "; HttpOnly";
                         }
 
+                        // SameSite=Lax за всички cookies (включително CSRF token)
+                        // Това работи правилно за same-origin заявки
                         if (!header.toLowerCase().contains("samesite")) {
                             updatedHeader += "; SameSite=Lax";
                         }

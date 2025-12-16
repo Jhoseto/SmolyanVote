@@ -198,51 +198,64 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Convert to DTO
             SVMessageDTO messageDTO = SVMessageDTO.Mapper.toDTO(message);
 
-            // Send via WebSocket (route by principal name: email -> username fallback)
-            try {
-                String recipientPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
-                        ? otherUser.getEmail()
-                        : otherUser.getUsername();
-                webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
+            // ✅ FACEBOOK MESSENGER STYLE: Изпращане на съобщението до И двамата (sender и recipient)
+            // Това гарантира реално време синхронизация на всички устройства (web и mobile)
+            String recipientPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
+                    ? otherUser.getEmail().toLowerCase()
+                    : otherUser.getUsername().toLowerCase();
+            String senderPrincipal = sender.getEmail() != null && !sender.getEmail().isBlank()
+                    ? sender.getEmail().toLowerCase()
+                    : sender.getUsername().toLowerCase();
 
-                // ✅ SUCCESS: WebSocket message sent successfully (recipient is online)
-                // Mark as delivered and send delivery receipt to sender
+            // 1. Изпращане до получателя (за реално време получаване)
+            boolean recipientReceived = false;
+            try {
+                webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
+                recipientReceived = true;
+            } catch (Exception e) {
+                log.warn("WebSocket message failed for recipient {}: {}", recipientPrincipal, e.getMessage());
+            }
+
+            // 2. Изпращане до изпращача (за реално време синхронизация на всички негови устройства)
+            try {
+                webSocketHandler.sendPrivateMessageToUsername(senderPrincipal, messageDTO);
+            } catch (Exception e) {
+                log.warn("WebSocket message failed for sender {}: {}", senderPrincipal, e.getMessage());
+            }
+
+            // 3. Маркиране като delivered ако recipient е получил съобщението
+            if (recipientReceived) {
                 message.markAsDelivered();
                 messageRepo.save(message);
                 messageDTO.setIsDelivered(true);
                 messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
 
-                // Send delivery receipt to sender (only if message was successfully delivered)
+                // Изпращане на delivery receipt до изпращача
                 try {
-                    String senderPrincipal = sender.getEmail() != null && !sender.getEmail().isBlank()
-                            ? sender.getEmail()
-                            : sender.getUsername();
                     webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(), message.getConversation().getId());
                 } catch (Exception e) {
                     log.error("Failed to send delivery receipt for message {}: {}", message.getId(), e.getMessage());
                 }
-
-            } catch (Exception e) {
-                // ❌ FAILED: WebSocket message failed (recipient is offline)
-                // Keep message as "sent" only (1 gray checkmark) - no delivery receipt
-                log.warn("WebSocket message failed for message {}: {}", message.getId(), e.getMessage());
+            } else {
                 messageDTO.setIsDelivered(false);
-                
-                // ✅ Изпращане на push notification ако recipient е offline
-                try {
-                    String senderName = sender.getRealName() != null && !sender.getRealName().isBlank() 
-                            ? sender.getRealName() 
-                            : sender.getUsername();
-                    String messagePreview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
-                    pushNotificationService.sendNewMessageNotification(
-                            otherUser.getId(), 
-                            senderName, 
-                            messagePreview, 
-                            conversationId
-                    );
-                } catch (Exception pushError) {
-                    log.error("Failed to send push notification: {}", pushError.getMessage());
-                }
+            }
+
+            // 4. ✅ ВИНАГИ изпращане на push notification (независимо дали WebSocket работи или не)
+            // Това гарантира че потребителят получава нотификация дори ако е offline или в background
+            try {
+                String senderName = sender.getRealName() != null && !sender.getRealName().isBlank() 
+                        ? sender.getRealName() 
+                        : sender.getUsername();
+                String messagePreview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
+                pushNotificationService.sendNewMessageNotification(
+                        otherUser.getId(), 
+                        senderName, 
+                        messagePreview, 
+                        conversationId
+                );
+                log.info("✅ Push notification sent to user: {}", otherUser.getId());
+            } catch (Exception pushError) {
+                log.error("❌ Failed to send push notification: {}", pushError.getMessage());
             }
 
             return messageDTO;
@@ -299,13 +312,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             conversationRepo.resetUnreadCount(conversationId, reader.getId());
 
 
-            // Send bulk read receipt (по principal name)
+            // Send bulk read receipt (по principal name - нормализирано на lowercase)
             UserEntity otherUser = conversation.getOtherUser(reader);
             if (otherUser != null) {
                 try {
                     String otherPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
-                            ? otherUser.getEmail()
-                            : otherUser.getUsername();
+                            ? otherUser.getEmail().toLowerCase()
+                            : otherUser.getUsername().toLowerCase();
                     if (otherPrincipal != null && !otherPrincipal.isBlank()) {
                         webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
                     } else {
@@ -338,11 +351,11 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Маркирай всички не-delivered съобщения като delivered
             int updated = messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
 
-            // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name)
+            // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name - нормализирано на lowercase)
             if (!affectedConversations.isEmpty()) {
                 String userPrincipal = user.getEmail() != null && !user.getEmail().isBlank()
-                        ? user.getEmail()
-                        : user.getUsername();
+                        ? user.getEmail().toLowerCase()
+                        : user.getUsername().toLowerCase();
                 webSocketHandler.sendBulkDeliveryReceipt(userPrincipal, affectedConversations);
             }
         } catch (Exception e) {

@@ -15,6 +15,7 @@ export const WebSocketManager = () => {
     const ui = useUI();
 
     const activeChatsRef = useRef(ui.activeChats);
+    const initializedRef = useRef(false); // ✅ Защита срещу множествени инициализации
 
     // Keep activeChatsRef in sync
     useEffect(() => {
@@ -23,16 +24,35 @@ export const WebSocketManager = () => {
 
     // Initialize WebSocket connection
     useEffect(() => {
+        // ✅ Защита срещу множествени инициализации
+        if (initializedRef.current) {
+            console.warn('⚠️ WebSocketManager: Already initialized, skipping duplicate initialization');
+            return;
+        }
+
+        console.log('🔌 WebSocketManager: Initializing WebSocket connection...');
+        initializedRef.current = true;
+
         // Create wrapped handleNewMessage that has access to current activeChats
         const handleNewMessageWithUI = (message) => {
+            console.log('📬 WebSocketManager: handleNewMessageWithUI called for message:', message.id);
             messages.handleNewMessage(message, activeChatsRef.current);
         };
 
         // Initialize WebSocket with all handlers
         svWebSocketService.connect({
-            onConnect: () => messages.handleWebSocketConnect?.(),
-            onDisconnect: () => messages.handleWebSocketDisconnect?.(),
-            onError: (error) => messages.handleWebSocketError?.(error),
+            onConnect: () => {
+                console.log('✅ WebSocketManager: WebSocket connected');
+                messages.handleWebSocketConnect?.();
+            },
+            onDisconnect: () => {
+                console.log('❌ WebSocketManager: WebSocket disconnected');
+                messages.handleWebSocketDisconnect?.();
+            },
+            onError: (error) => {
+                console.error('❌ WebSocketManager: WebSocket error', error);
+                messages.handleWebSocketError?.(error);
+            },
             onNewMessage: handleNewMessageWithUI,
             onTypingStatus: messages.handleTypingStatus,
             onReadReceipt: messages.handleReadReceipt,
@@ -43,6 +63,8 @@ export const WebSocketManager = () => {
 
         // Cleanup on unmount
         return () => {
+            console.log('🧹 WebSocketManager: Cleaning up WebSocket connection...');
+            initializedRef.current = false;
             svWebSocketService.disconnect();
         };
     }, []); // Empty deps - only initialize once

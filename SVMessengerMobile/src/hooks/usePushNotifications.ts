@@ -26,35 +26,38 @@ export const usePushNotifications = () => {
 
   /**
    * Handle notification received
-   * Оптимизация: Показва notification само ако WebSocket не е активен (за по-малко Firebase разходи)
+   * ВИНАГИ fetch-ваме съобщенията за конкретния conversation когато се получи notification
+   * Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
    */
   const handleNotificationReceived = useCallback(
     (notification: any) => {
-      console.log('Notification received:', notification);
+      console.log('📬 Notification received:', notification);
       const data = notification.data;
 
-      // Проверка: Ако WebSocket е активен, не показвай foreground notification
-      // Данните вече идват през WebSocket, няма нужда от системно notification
-      const isWebSocketActive = stompClient.getConnected();
       const isAppInForeground = AppState.currentState === 'active';
+      const conversationId = data?.conversationId ? Number(data.conversationId) : null;
 
-      if (isAppInForeground && isWebSocketActive) {
-        // App е foreground и WebSocket е активен - данните идват през WebSocket
-        // Не показвай системно notification, само refresh conversations
-        console.log('WebSocket active, skipping foreground notification, refreshing conversations...');
-        if (data?.type === 'NEW_MESSAGE' || data?.conversationId) {
-          debouncedRefreshConversations();
-        }
-        return; // Не показвай системно notification
-      }
-
-      // App е в background или WebSocket не е активен - покажи notification
-      // Refresh conversations с debounce
-      if (data?.type === 'NEW_MESSAGE' || data?.conversationId) {
+      if (conversationId && (data?.type === 'NEW_MESSAGE' || conversationId)) {
+        // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation
+        // Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
+        console.log('📥 Fetching messages for conversation:', conversationId);
+        fetchMessages(conversationId);
+        
+        // Refresh conversations list
         debouncedRefreshConversations();
       }
+
+      // Ако app е в background или WebSocket не е активен, покажи системно notification
+      const isWebSocketActive = stompClient.getConnected();
+      if (!isAppInForeground || !isWebSocketActive) {
+        // Системното notification ще се покаже автоматично от Firebase
+        // Ние само fetch-ваме данните за да са налични когато потребителят отвори app-а
+        console.log('📱 App in background or WebSocket inactive - system notification will show');
+      } else {
+        console.log('✅ App in foreground and WebSocket active - data fetched via WebSocket and API');
+      }
     },
-    [debouncedRefreshConversations]
+    [debouncedRefreshConversations, fetchMessages]
   );
 
   /**
@@ -62,17 +65,17 @@ export const usePushNotifications = () => {
    */
   const handleNotificationOpened = useCallback(
     (notification: any) => {
-      console.log('Notification opened:', notification);
+      console.log('📬 Notification opened:', notification);
       const data = notification.data;
 
       // Navigate to conversation if notification is about a message
       if (data?.conversationId) {
-        // This will be handled by navigation logic
-        // For now, just refresh conversations
+        const conversationId = Number(data.conversationId);
+        console.log('📥 Fetching messages for conversation:', conversationId);
+        
+        // ВИНАГИ fetch-ваме conversations и messages когато се отвори notification
         fetchConversations();
-        if (data.conversationId) {
-          fetchMessages(Number(data.conversationId));
-        }
+        fetchMessages(conversationId);
       }
     },
     [fetchConversations, fetchMessages]
@@ -80,9 +83,10 @@ export const usePushNotifications = () => {
 
   /**
    * Register device token when user logs in
+   * Retry logic за да се справи с изтекъл token
    */
   const registerDeviceToken = useCallback(
-    async (deviceToken: string) => {
+    async (deviceToken: string, retryCount = 0) => {
       if (!isAuthenticated || !user) {
         console.log('Skipping device token registration - not authenticated');
         return;
@@ -97,8 +101,19 @@ export const usePushNotifications = () => {
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
           appVersion: '1.0.0', // TODO: Get from app config
         });
-      } catch (error) {
-        console.error('Failed to register device token:', error);
+      } catch (error: any) {
+        // Ако получим 401 или 405 (вероятно изтекъл token), опитай да refresh-неш token и retry
+        if ((error?.response?.status === 401 || error?.response?.status === 405) && retryCount < 2) {
+          console.log(`Device token registration failed (${error?.response?.status}), attempting token refresh and retry...`);
+          
+          // Изчакай малко преди retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Retry - interceptor-ът ще се опита да refresh-не token-а
+          return registerDeviceToken(deviceToken, retryCount + 1);
+        }
+        
+        console.error('Failed to register device token:', error?.response?.status || error?.message);
         // Не хвърляй грешка - non-critical операция
       }
     },

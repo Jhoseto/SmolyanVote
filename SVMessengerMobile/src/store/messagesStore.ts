@@ -36,7 +36,29 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         params: { page, size },
       });
 
-      const fetchedMessages: Message[] = response.data.content || response.data || [];
+      // Backend връща Page<SVMessageDTO> - Spring Data Page обект
+      const messagesArray = (response.data && response.data.content && Array.isArray(response.data.content)) 
+        ? response.data.content 
+        : (Array.isArray(response.data) ? response.data : []);
+      
+      // Parse messages from backend DTO format
+      const fetchedMessages: Message[] = messagesArray
+        .filter((msg: any) => msg && msg.id != null)
+        .map((msg: any) => ({
+          id: msg.id,
+          conversationId: msg.conversationId || conversationId,
+          senderId: msg.senderId,
+          text: msg.text || '',
+          createdAt: msg.sentAt || msg.createdAt || new Date().toISOString(),
+          isRead: msg.isRead || false,
+          isDelivered: msg.isDelivered || false,
+          readAt: msg.readAt,
+          deliveredAt: msg.deliveredAt,
+          type: (msg.messageType || msg.type || 'TEXT') as MessageType,
+        }))
+        // Backend връща DESC (новите първо), но ние искаме ASC (старите първо)
+        .reverse()
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
       set((state) => ({
         messages: {
@@ -54,20 +76,33 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     }
   },
 
-  // Add message
+  // Add message with deduplication and sorting
   addMessage: (conversationId: number, message: Message) => {
     set((state) => {
       const existingMessages = state.messages[conversationId] || [];
       const exists = existingMessages.some((m) => m.id === message.id);
       
       if (exists) {
-        return state;
+        // Update existing message instead of adding duplicate
+        return {
+          messages: {
+            ...state.messages,
+            [conversationId]: existingMessages.map((m) =>
+              m.id === message.id ? message : m
+            ),
+          },
+        };
       }
 
+      // Add new message and sort by date ascending (oldest first, newest last)
+      const updatedMessages = [...existingMessages, message].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
       return {
         messages: {
           ...state.messages,
-          [conversationId]: [...existingMessages, message],
+          [conversationId]: updatedMessages,
         },
       };
     });
@@ -101,22 +136,30 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     });
   },
 
-  // Send message (via WebSocket или REST API fallback)
-  sendMessage: async (conversationId: number, text: string, useWebSocket: boolean = true) => {
+  // Send message via REST API (fallback when WebSocket is not available)
+  sendMessage: async (conversationId: number, text: string) => {
     try {
-      // Try WebSocket first if available
-      if (useWebSocket) {
-        // WebSocket sending ще се направи от hook-а
-        // Тук само използваме REST API като fallback
-      }
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.MESSENGER.SEND_MESSAGE, {
+        conversationId,
+        text,
+      });
 
-      // REST API fallback
-      const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.SEND_MESSAGE.replace(':id', conversationId.toString());
-      const response = await apiClient.post(endpoint, { text });
-
-      const message: Message = response.data;
-      get().addMessage(conversationId, message);
+      // Parse message from backend DTO format
+      const msg = response.data;
+      const message: Message = {
+        id: msg.id,
+        conversationId: msg.conversationId || conversationId,
+        senderId: msg.senderId,
+        text: msg.text || '',
+        createdAt: msg.sentAt || msg.createdAt || new Date().toISOString(),
+        isRead: msg.isRead || false,
+        isDelivered: msg.isDelivered || false,
+        readAt: msg.readAt,
+        deliveredAt: msg.deliveredAt,
+        type: (msg.messageType || msg.type || 'TEXT') as MessageType,
+      };
       
+      get().addMessage(conversationId, message);
       return message;
     } catch (error: any) {
       set({ error: error.message || 'Failed to send message' });

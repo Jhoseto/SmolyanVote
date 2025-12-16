@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import smolyanVote.smolyanVote.config.websocket.UserPrincipal;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.jwt.JwtTokenService;
@@ -63,11 +64,15 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                                     UserEntity user = userOptional.get();
 
                                     if (user.getId().equals(userId)) {
-                                        // Създаване на authentication
+                                        // Създаване на UserPrincipal за правилно WebSocket routing
+                                        // UserPrincipal гарантира че getName() винаги връща lowercase email
+                                        UserPrincipal userPrincipal = new UserPrincipal(user);
+                                        
+                                        // Създаване на authentication с UserPrincipal
                                         String role = user.getRole() != null ? user.getRole().name() : "USER";
                                         UsernamePasswordAuthenticationToken authentication =
                                                 new UsernamePasswordAuthenticationToken(
-                                                        user,
+                                                        userPrincipal,
                                                         null,
                                                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                                                 );
@@ -75,7 +80,8 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                                         // Set authentication в accessor
                                         accessor.setUser(authentication);
 
-                                        log.info("WebSocket JWT authentication successful for user: {}", email);
+                                        log.info("WebSocket JWT authentication successful for user: {} (principal name: {})", 
+                                                email, userPrincipal.getName());
                                     }
                                 }
                             }
