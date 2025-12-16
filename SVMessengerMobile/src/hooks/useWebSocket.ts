@@ -26,21 +26,29 @@ export const useWebSocket = () => {
   // Използваме същия формат като web приложението: /user/queue/... (без username в path)
   const subscribeToChannels = useCallback(() => {
     if (!user) {
-      console.log('WebSocket: Cannot subscribe - no user');
+      console.log('⚠️ WebSocket: Cannot subscribe - no user');
       return;
     }
 
     if (!stompClient.getConnected()) {
-      console.log('WebSocket: Cannot subscribe - not connected');
+      console.log('⚠️ WebSocket: Cannot subscribe - not connected');
       return;
     }
+
+    console.log('🔄 WebSocket: Subscribing to channels for user:', user.email || user.username);
 
     // Subscribe to private messages
     const messagesSubscription = stompClient.subscribe(
       '/user/queue/svmessenger-messages',
       (data: any) => {
         try {
-          console.log('✅ WebSocket message received:', data);
+          console.log('📨 WebSocket: New message received via WebSocket');
+          console.log('📨 Message data:', {
+            id: data.id,
+            conversationId: data.conversationId,
+            senderId: data.senderId,
+            text: data.text?.substring(0, 50) + '...',
+          });
           
           // Parse message from backend DTO format to mobile Message format
           const message: Message = {
@@ -56,7 +64,9 @@ export const useWebSocket = () => {
             type: (data.messageType || data.type || 'TEXT') as MessageType,
           };
           
-          console.log('✅ Adding message to store:', message.id, 'for conversation:', message.conversationId);
+          console.log('📨 Adding message to store:', message.id, 'for conversation:', message.conversationId);
+          
+          // Add message to store (will trigger UI update)
           addMessage(message.conversationId, message);
           
           // Update conversation with last message
@@ -73,15 +83,19 @@ export const useWebSocket = () => {
             incrementUnreadCount(message.conversationId);
           }
           
-          console.log('✅ Message processed successfully');
+          console.log('✅ Message processed and added to store successfully');
         } catch (error) {
-          console.error('❌ Error processing WebSocket message:', error, data);
+          console.error('❌ Error processing WebSocket message:', error);
+          console.error('❌ Message data:', data);
         }
       }
     );
-
+    
     if (messagesSubscription) {
+      console.log('✅ Subscribed to /user/queue/svmessenger-messages');
       subscriptionsRef.current.set('messages', messagesSubscription);
+    } else {
+      console.error('❌ Failed to subscribe to /user/queue/svmessenger-messages');
     }
 
     // Typing status се изпраща към topic за всеки conversation
@@ -154,23 +168,38 @@ export const useWebSocket = () => {
     const onlineStatusSubscription = stompClient.subscribe(
       '/topic/svmessenger-online-status',
       (data: { userId: number; isOnline: boolean; timestamp?: string }) => {
+        console.log('🟢 Online status update received:', {
+          userId: data.userId,
+          isOnline: data.isOnline,
+        });
+        
         // Update conversation participant online status
         const { conversations } = useConversationsStore.getState();
+        let updated = false;
         conversations.forEach((conv) => {
           if (conv.participant?.id === data.userId) {
+            console.log('🟢 Updating online status for conversation:', conv.id, 'participant:', data.userId, 'isOnline:', data.isOnline);
             updateConversation(conv.id, {
               participant: {
                 ...conv.participant,
                 isOnline: data.isOnline,
               },
             });
+            updated = true;
           }
         });
+        
+        if (!updated) {
+          console.log('⚠️ Online status update received but no matching conversation found for userId:', data.userId);
+        }
       }
     );
 
     if (onlineStatusSubscription) {
+      console.log('✅ Subscribed to /topic/svmessenger-online-status');
       subscriptionsRef.current.set('onlineStatus', onlineStatusSubscription);
+    } else {
+      console.error('❌ Failed to subscribe to /topic/svmessenger-online-status');
     }
 
     // Subscribe to call signals
@@ -209,23 +238,43 @@ export const useWebSocket = () => {
   // Connect to WebSocket
   const connect = useCallback(async () => {
     if (!isAuthenticated || !user) {
-      console.log('WebSocket: Skipping connection - not authenticated or no user');
+      console.log('⚠️ WebSocket: Skipping connection - not authenticated or no user');
       return;
     }
 
+    if (stompClient.getConnected()) {
+      console.log('✅ WebSocket: Already connected, refreshing subscriptions');
+      subscribeToChannels();
+      return;
+    }
+
+    console.log('🔄 WebSocket: Attempting to connect...');
+    console.log('🔄 WebSocket: User:', user.email || user.username);
+    
     try {
       await stompClient.connect(
         () => {
-          console.log('WebSocket connected');
-          subscribeToChannels();
+          console.log('✅ WebSocket: Connection successful, subscribing to channels...');
+          // Изчакай малко преди да subscribe-неш за да се уверя че connection е напълно готов
+          setTimeout(() => {
+            subscribeToChannels();
+          }, 500);
         },
         (error) => {
-          console.error('WebSocket connection error:', error);
+          console.error('❌ WebSocket connection error:', error);
+          console.error('❌ WebSocket error details:', {
+            message: error?.message,
+            stack: error?.stack,
+          });
           // Не хвърляме грешка, за да не crash-не приложението
         }
       );
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
+      console.error('❌ Failed to connect WebSocket:', error);
+      console.error('❌ Connection error details:', {
+        message: (error as Error)?.message,
+        stack: (error as Error)?.stack,
+      });
       // Не хвърляме грешка, за да не crash-не приложението
     }
   }, [isAuthenticated, user, subscribeToChannels]);
@@ -329,18 +378,22 @@ export const useWebSocket = () => {
   // Effect: Connect on mount, disconnect on unmount
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Изчакваме 2 секунди преди да се свържем, за да се уверим че:
+      console.log('🔄 WebSocket: User authenticated, connecting...');
+      // Изчакваме 500ms преди да се свържем, за да се уверим че:
       // 1. Token е запазен правилно
       // 2. Token е refresh-нат ако е изтекъл
       // 3. API call-овете са завършени
       const timeoutId = setTimeout(() => {
+        console.log('🔄 WebSocket: Timeout expired, calling connect()...');
         connect();
-      }, 2000);
+      }, 500);
 
       return () => {
         clearTimeout(timeoutId);
         disconnect();
       };
+    } else {
+      console.log('⚠️ WebSocket: User not authenticated, skipping connection');
     }
 
     return () => {

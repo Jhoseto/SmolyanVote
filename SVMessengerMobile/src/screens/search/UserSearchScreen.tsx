@@ -11,15 +11,16 @@ import {
   TextInput,
   Text,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar, Loading } from '../../components/common';
-import { Colors, Typography, Spacing } from '../../theme';
+import { Colors, Typography, Spacing, Shadows } from '../../theme';
 import apiClient from '../../services/api/client';
 import { API_CONFIG } from '../../config/api';
 import { UserSearchResult } from '../../types/user';
 import { useConversationsStore } from '../../store/conversationsStore';
-import { debounce } from '../../utils/constants';
+import { debounce, APP_CONSTANTS } from '../../utils/constants';
 
 export const UserSearchScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -84,7 +85,7 @@ export const UserSearchScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -121,13 +122,16 @@ export const UserSearchScreen: React.FC = () => {
             <Avatar
               imageUrl={item.imageUrl}
               name={item.fullName}
-              size={50}
+              size={56}
               isOnline={item.isOnline}
             />
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{item.fullName}</Text>
               <Text style={styles.userUsername}>@{item.username}</Text>
             </View>
+            {item.isOnline && (
+              <View style={styles.onlineIndicator} />
+            )}
           </TouchableOpacity>
         )}
         ListEmptyComponent={
@@ -137,49 +141,66 @@ export const UserSearchScreen: React.FC = () => {
             </View>
           ) : null
         }
+        contentContainerStyle={styles.listContent}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background.secondary, // SmolyanVote style - light gray background
   },
   searchContainer: {
     padding: Spacing.md,
+    paddingTop: Spacing.sm,
+    backgroundColor: Colors.background.primary,
+    ...Shadows.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.light,
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: Colors.border.medium,
-    borderRadius: 20,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    borderColor: Colors.border.light,
+    borderRadius: 24, // More rounded like web version
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
     backgroundColor: Colors.background.secondary,
+    ...Shadows.sm,
   },
   loadingContainer: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
     alignItems: 'center',
   },
   errorContainer: {
     padding: Spacing.md,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.semantic.error + '15', // Light red background
+    borderRadius: 8,
     alignItems: 'center',
   },
   errorText: {
     color: Colors.semantic.error,
     fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  listContent: {
+    paddingBottom: Spacing.xl,
   },
   userItem: {
     flexDirection: 'row',
     padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.background.primary,
+    borderRadius: 12,
+    borderBottomWidth: 0,
     alignItems: 'center',
+    ...Shadows.sm,
   },
   userInfo: {
     marginLeft: Spacing.md,
@@ -189,19 +210,28 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xs / 2,
   },
   userUsername: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
   },
+  onlineIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.green[500],
+    borderWidth: 2,
+    borderColor: Colors.background.primary,
+  },
   emptyContainer: {
-    padding: Spacing.xl,
+    padding: Spacing.xl * 2,
     alignItems: 'center',
   },
   emptyText: {
     color: Colors.text.secondary,
     fontSize: Typography.fontSize.base,
+    fontStyle: 'italic',
   },
 });
 

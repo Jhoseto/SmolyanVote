@@ -31,11 +31,23 @@ export const usePushNotifications = () => {
    */
   const handleNotificationReceived = useCallback(
     (notification: any) => {
-      console.log('📬 Notification received:', notification);
-      const data = notification.data;
+      console.log('📬 Notification received:', {
+        notification: notification?.notification,
+        data: notification?.data,
+        messageId: notification?.messageId,
+      });
+      
+      const data = notification.data || notification;
 
       const isAppInForeground = AppState.currentState === 'active';
       const conversationId = data?.conversationId ? Number(data.conversationId) : null;
+
+      console.log('📬 Notification details:', {
+        isAppInForeground,
+        conversationId,
+        type: data?.type,
+        hasData: !!data,
+      });
 
       if (conversationId && (data?.type === 'NEW_MESSAGE' || conversationId)) {
         // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation
@@ -45,17 +57,12 @@ export const usePushNotifications = () => {
         
         // Refresh conversations list
         debouncedRefreshConversations();
+      } else {
+        console.log('⚠️ Notification received but conversationId is missing or invalid:', conversationId);
       }
 
-      // Ако app е в background или WebSocket не е активен, покажи системно notification
-      const isWebSocketActive = stompClient.getConnected();
-      if (!isAppInForeground || !isWebSocketActive) {
-        // Системното notification ще се покаже автоматично от Firebase
-        // Ние само fetch-ваме данните за да са налични когато потребителят отвори app-а
-        console.log('📱 App in background or WebSocket inactive - system notification will show');
-      } else {
-        console.log('✅ App in foreground and WebSocket active - data fetched via WebSocket and API');
-      }
+      // ВИНАГИ fetch-ваме съобщенията за да се виждат в реално време
+      // Firebase автоматично показва notification дори когато app-ът е в foreground
     },
     [debouncedRefreshConversations, fetchMessages]
   );

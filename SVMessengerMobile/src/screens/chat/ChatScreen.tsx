@@ -54,7 +54,7 @@ export const ChatScreen: React.FC = () => {
         }, 100);
       });
     }
-  }, [messages.length, messages]);
+  }, [messages.length, messages.map(m => m.id).join(',')]); // Track message IDs for better change detection
 
   // Scroll to bottom when component mounts with messages
   useEffect(() => {

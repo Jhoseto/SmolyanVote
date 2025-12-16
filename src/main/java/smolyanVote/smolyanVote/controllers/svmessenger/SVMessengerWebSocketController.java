@@ -214,22 +214,29 @@ public class SVMessengerWebSocketController {
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-
         try {
             // Извади user info от session
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
+                log.info("WebSocket disconnected - Principal name: {}", principal.getName());
                 UserEntity user = getUserFromPrincipal(principal);
                 
                 if (user != null) {
+                    log.info("WebSocket disconnected - User ID: {}, Email: {}", user.getId(), user.getEmail());
+                    
                     // ✅ ПЪРВО: Обнови офлайн статуса в базата данни
                     user.setOnlineStatus(0);
                     user.setLastOnline(Instant.now());
                     userRepository.save(user);
 
                     // ✅ СЛЕД ТОВА: Broadcast че е офлайн
+                    log.info("Broadcasting offline status for user ID: {}", user.getId());
                     wsHandler.broadcastOnlineStatus(user.getId(), false);
+                } else {
+                    log.warn("WebSocket disconnected but user not found for principal: {}", principal.getName());
                 }
+            } else {
+                log.warn("WebSocket disconnected but no principal found");
             }
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла

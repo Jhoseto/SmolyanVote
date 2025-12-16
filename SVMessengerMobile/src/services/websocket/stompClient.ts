@@ -76,7 +76,8 @@ class StompClient {
         heartbeatIncoming: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
         heartbeatOutgoing: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
         onConnect: (frame) => {
-          console.log('WebSocket connected:', frame);
+          console.log('✅ WebSocket STOMP connected successfully');
+          console.log('✅ STOMP frame headers:', frame.headers);
           this.isConnected = true;
           onConnect?.();
         },

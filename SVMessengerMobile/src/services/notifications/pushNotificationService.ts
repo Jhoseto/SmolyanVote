@@ -103,19 +103,27 @@ class PushNotificationService {
 
   /**
    * Setup notification handlers
-   * Оптимизация: Foreground notifications се обработват в hook-а, който проверява дали WebSocket е активен
-   * Ако WebSocket е активен, не се показва системно notification (данните идват през WebSocket)
+   * ВИНАГИ показваме notification дори когато app-ът е в foreground
+   * Това гарантира че потребителят винаги получава notification за нови съобщения
    */
   setupNotificationHandlers(
     onNotificationReceived?: (notification: any) => void,
     onNotificationOpened?: (notification: any) => void
   ): void {
     // Handle foreground notifications
-    // Оптимизация: Hook-ът ще реши дали да покаже notification според WebSocket статуса
+    // Firebase автоматично показва notifications в foreground на Android и iOS
+    // Ние само обработваме данните за да обновим UI-то
     messaging().onMessage(async (remoteMessage) => {
-      console.log('Foreground notification received:', remoteMessage);
+      console.log('📬 Firebase foreground notification received:', {
+        notification: remoteMessage?.notification,
+        data: remoteMessage?.data,
+        messageId: remoteMessage?.messageId,
+      });
+      
       if (onNotificationReceived) {
         onNotificationReceived(remoteMessage);
+      } else {
+        console.warn('⚠️ onNotificationReceived callback not set');
       }
     });
 
