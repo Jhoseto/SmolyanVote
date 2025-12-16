@@ -57,3 +57,4 @@ cd ios && pod install && cd ..
 - Тези файлове съдържат чувствителна информация
 - За production, използвай отделни Firebase проекти за dev и prod
 
+

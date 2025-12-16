@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:fast": "react-native run-android --no-packager",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
+    "start:fast": "react-native start --no-interactive",
+    "quick-start": "powershell -ExecutionPolicy Bypass -File ./quick-start.ps1",
     "restart": "powershell -ExecutionPolicy Bypass -File ./restart.ps1",
     "stop-metro": "powershell -ExecutionPolicy Bypass -File ./stop-metro.ps1",
     "start-metro": "powershell -ExecutionPolicy Bypass -File ./start-metro.ps1",

@@ -1,6 +1,11 @@
 package smolyanVote.smolyanVote.services.mobile;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.mobile.MobileDeviceTokenEntity;
@@ -22,12 +27,18 @@ import java.util.Map;
 public class PushNotificationService implements MobilePushNotificationService {
 
     private final MobileDeviceTokenRepository deviceTokenRepository;
+    private FirebaseMessaging firebaseMessaging;
 
     @Value("${firebase.enabled:false}")
     private boolean firebaseEnabled;
 
     public PushNotificationService(MobileDeviceTokenRepository deviceTokenRepository) {
         this.deviceTokenRepository = deviceTokenRepository;
+    }
+
+    @Autowired(required = false)
+    public void setFirebaseMessaging(FirebaseMessaging firebaseMessaging) {
+        this.firebaseMessaging = firebaseMessaging;
     }
 
     /**
@@ -93,34 +104,90 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща FCM notification за Android
-     * TODO: Имплементиране с Firebase Admin SDK
      */
     private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data) {
-        // TODO: Имплементиране с Firebase Admin SDK
-        log.info("FCM notification (TODO): token={}, title={}, body={}", deviceToken, title, body);
-        
-        // Placeholder implementation
-        // В production ще използваме Firebase Admin SDK:
-        // Message message = Message.builder()
-        //     .setToken(deviceToken)
-        //     .setNotification(Notification.builder()
-        //         .setTitle(title)
-        //         .setBody(body)
-        //         .build())
-        //     .putAllData(data != null ? data : new HashMap<>())
-        //     .build();
-        // FirebaseMessaging.getInstance().send(message);
+        if (firebaseMessaging == null) {
+            log.warn("FirebaseMessaging not available - cannot send FCM notification");
+            return;
+        }
+
+        try {
+            Message.Builder messageBuilder = Message.builder()
+                    .setToken(deviceToken)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build());
+
+            // Добавяне на data payload
+            if (data != null && !data.isEmpty()) {
+                messageBuilder.putAllData(data);
+            }
+
+            Message message = messageBuilder.build();
+            String response = firebaseMessaging.send(message);
+            log.info("✅ FCM notification sent successfully: token={}, response={}", deviceToken, response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("❌ Failed to send FCM notification: token={}, error={}", deviceToken, e.getMessage());
+            
+            // Ако token е невалиден, маркирай device token като неактивен
+            if (e.getErrorCode().equals("invalid-argument") || 
+                e.getErrorCode().equals("registration-token-not-registered")) {
+                log.warn("Invalid device token detected - should be marked as inactive");
+            }
+        } catch (Exception e) {
+            log.error("❌ Unexpected error sending FCM notification: token={}", deviceToken, e);
+        }
     }
 
     /**
      * Изпраща APNs notification за iOS
-     * TODO: Имплементиране с Firebase Admin SDK (поддържа и iOS)
+     * Firebase Admin SDK поддържа iOS чрез APNs автоматично
      */
     private void sendAPNsNotification(String deviceToken, String title, String body, Map<String, String> data) {
-        // TODO: Имплементиране с Firebase Admin SDK (поддържа и iOS чрез APNs)
-        log.info("APNs notification (TODO): token={}, title={}, body={}", deviceToken, title, body);
-        
-        // Firebase Admin SDK поддържа и iOS чрез APNs конфигурация
+        if (firebaseMessaging == null) {
+            log.warn("FirebaseMessaging not available - cannot send APNs notification");
+            return;
+        }
+
+        try {
+            Message.Builder messageBuilder = Message.builder()
+                    .setToken(deviceToken)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build())
+                    .setApnsConfig(com.google.firebase.messaging.ApnsConfig.builder()
+                            .setAps(com.google.firebase.messaging.Aps.builder()
+                                    .setAlert(com.google.firebase.messaging.ApsAlert.builder()
+                                            .setTitle(title)
+                                            .setBody(body)
+                                            .build())
+                                    .setSound("default")
+                                    .build())
+                            .build());
+
+            // Добавяне на data payload
+            if (data != null && !data.isEmpty()) {
+                messageBuilder.putAllData(data);
+            }
+
+            Message message = messageBuilder.build();
+            String response = firebaseMessaging.send(message);
+            log.info("✅ APNs notification sent successfully: token={}, response={}", deviceToken, response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("❌ Failed to send APNs notification: token={}, error={}", deviceToken, e.getMessage());
+            
+            // Ако token е невалиден, маркирай device token като неактивен
+            if (e.getErrorCode().equals("invalid-argument") || 
+                e.getErrorCode().equals("registration-token-not-registered")) {
+                log.warn("Invalid device token detected - should be marked as inactive");
+            }
+        } catch (Exception e) {
+            log.error("❌ Unexpected error sending APNs notification: token={}", deviceToken, e);
+        }
     }
 
     /**
