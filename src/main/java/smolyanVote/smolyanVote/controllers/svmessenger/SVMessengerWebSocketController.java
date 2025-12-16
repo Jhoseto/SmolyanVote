@@ -11,7 +11,6 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
-import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVSendMessageRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO;
@@ -57,12 +56,15 @@ public class SVMessengerWebSocketController {
             UserEntity sender = getUserFromPrincipal(principal);
             
             // Изпрати съобщението (през service)
-            SVMessageDTO message = messengerService.sendMessage(
+            // Message се изпраща автоматично от service към получателя
+            messengerService.sendMessage(
                     request.getConversationId(),
                     request.getText(),
                     sender
             );
             
+            log.debug("Message sent via WebSocket: conversationId={}, senderId={}", 
+                    request.getConversationId(), sender.getId());
             
         } catch (Exception e) {
             log.error("Error sending message via WebSocket", e);
@@ -83,6 +85,11 @@ public class SVMessengerWebSocketController {
         try {
             // Вземи current user
             UserEntity user = getUserFromPrincipal(principal);
+            
+            if (user == null) {
+                log.warn("Cannot update typing status: user not found from principal");
+                return;
+            }
             
             // Update typing status (през service)
             messengerService.updateTypingStatus(
@@ -106,6 +113,12 @@ public class SVMessengerWebSocketController {
         // Използваме SVTypingStatusDTO само за да пренесем conversationId (isTyping не се използва)
         try {
             UserEntity currentUser = getUserFromPrincipal(principal);
+            
+            if (currentUser == null) {
+                log.warn("Cannot mark conversation as read: user not found from principal");
+                return;
+            }
+            
             Long conversationId = readReq.getConversationId();
             messengerService.markAllAsRead(conversationId, currentUser);
         } catch (Exception e) {
@@ -126,6 +139,11 @@ public class SVMessengerWebSocketController {
 
         try {
             UserEntity sender = getUserFromPrincipal(principal);
+
+            if (sender == null) {
+                log.warn("Cannot handle call signal: user not found from principal");
+                return;
+            }
 
             if (!sender.getId().equals(signal.getCallerId()) && !sender.getId().equals(signal.getReceiverId())) {
                 log.warn("Unauthorized call signal attempt by user {}", sender.getId());
@@ -226,7 +244,7 @@ public class SVMessengerWebSocketController {
     
     /**
      * Извлича UserEntity от Principal
-     * Works with both traditional authentication and OAuth2 authentication.
+     * Works with JWT authentication (UserEntity Principal), traditional authentication, and OAuth2 authentication.
      * Returns null if user cannot be found (e.g., after logout).
      */
     private UserEntity getUserFromPrincipal(Principal principal) {
@@ -235,6 +253,11 @@ public class SVMessengerWebSocketController {
         }
         
         try {
+            // Проверка дали Principal е вече UserEntity (от JWT filter)
+            if (principal instanceof UserEntity) {
+                return (UserEntity) principal;
+            }
+            
             String identifier = null;
             
             // Проверка за OAuth2User (Google/Facebook login)

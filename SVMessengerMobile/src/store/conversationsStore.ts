@@ -32,13 +32,33 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.get(API_CONFIG.ENDPOINTS.MESSENGER.CONVERSATIONS);
+      const rawData = response.data;
+      
+      // Map backend response да съответства на frontend типовете
+      // Backend връща: { id, otherUser, lastMessage, lastMessageTime, unreadCount, createdAt }
+      // Frontend очаква: { id, participant, lastMessage, unreadCount, createdAt, updatedAt }
+      const mappedConversations = Array.isArray(rawData) ? rawData.map((conv: any) => ({
+        id: conv.id,
+        participant: conv.otherUser || {}, // Map otherUser -> participant
+        lastMessage: conv.lastMessage ? {
+          text: conv.lastMessage,
+          createdAt: conv.lastMessageTime,
+        } : null,
+        unreadCount: conv.unreadCount || 0,
+        isHidden: false,
+        createdAt: conv.createdAt,
+        updatedAt: conv.lastMessageTime || conv.createdAt,
+      })) : [];
+      
       set({
-        conversations: response.data || [],
+        conversations: mappedConversations,
         isLoading: false,
         error: null,
       });
     } catch (error: any) {
+      console.error('Error fetching conversations:', error);
       set({
+        conversations: [], // Винаги връща масив, дори при грешка
         isLoading: false,
         error: error.message || 'Failed to fetch conversations',
       });

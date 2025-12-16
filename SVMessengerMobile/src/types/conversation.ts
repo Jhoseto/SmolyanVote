@@ -7,12 +7,14 @@ import { Message } from './message';
 
 export interface Conversation {
   id: number;
-  participant: User;
+  participant: User; // Frontend използва participant
+  otherUser?: User; // Backend връща otherUser
   lastMessage?: Message;
   unreadCount: number;
-  isHidden: boolean;
+  isHidden?: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  lastMessageTime?: string; // Backend връща lastMessageTime
 }
 
 export interface ConversationListItem {

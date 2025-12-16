@@ -11,7 +11,6 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.*;
-import org.springframework.http.HttpStatus;
 
 import java.util.HashMap;
 import java.util.List;
@@ -554,11 +553,16 @@ public class SVMessengerController {
     
     /**
      * Извлича current user от Authentication
-     * Works with both traditional authentication and OAuth2 authentication.
+     * Works with both traditional authentication, OAuth2 authentication, and JWT authentication.
      */
     private UserEntity getCurrentUser(Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) {
             throw new IllegalStateException("User not authenticated");
+        }
+        
+        // Проверка дали Principal е вече UserEntity (от JWT filter)
+        if (auth.getPrincipal() instanceof UserEntity) {
+            return (UserEntity) auth.getPrincipal();
         }
         
         String identifier = null;

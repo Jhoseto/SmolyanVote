@@ -43,7 +43,6 @@ public class ApplicationSecurityConfiguration {
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Autowired
     public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
             PasswordEncoder passwordEncoder,
             CustomLogoutSuccessHandler customLogoutSuccessHandler,
@@ -87,6 +86,8 @@ public class ApplicationSecurityConfiguration {
                         .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
                         .requestMatchers("/api/podcast/**").permitAll()
                         .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists", "/api/multipoll/*/exists").permitAll()
+                        // WebSocket handshake endpoints - permitAll (authentication се проверява от JWT interceptor при STOMP CONNECT)
+                        .requestMatchers("/ws-svmessenger/**", "/ws-svmessenger-ws/**").permitAll()
                         .requestMatchers(
                                 "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration",
@@ -114,7 +115,7 @@ public class ApplicationSecurityConfiguration {
                                 "/user/logout",
                                 "/user/dashboard/**", "/subscription/**", "/api/reports/**", "/api/user/**",
                                 "/profile/**", "/api/follow/**", "/api/notifications/**",
-                                "/ws/notifications/**", "/api/svmessenger/**", "/ws-svmessenger/**",
+                                "/ws/notifications/**", "/api/svmessenger/**",
                                 "/api/mobile/**") // Mobile API endpoints изискват authentication (JWT или session)
                         .authenticated()
                         .anyRequest().denyAll())
@@ -158,7 +159,7 @@ public class ApplicationSecurityConfiguration {
                         // Same-Origin Policy)
                         // Mobile API endpoints са exempt от CSRF (използват JWT tokens)
                         .ignoringRequestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
-                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml",
+                                "/ws-svmessenger/**", "/ws-svmessenger-ws/**", "/ws/notifications/**", "/ws/admin/activity/**", "/robots.txt", "/sitemap.xml",
                                 "/api/mobile/**") // Mobile API използва JWT, не се нуждае от CSRF
                         .csrfTokenRepository(csrfTokenRepository))
                 // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter

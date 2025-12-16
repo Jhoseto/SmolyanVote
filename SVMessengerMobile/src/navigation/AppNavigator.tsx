@@ -28,8 +28,12 @@ export const AppNavigator: React.FC = () => {
 
   useEffect(() => {
     // Проверяваме дали user е все още authenticated при стартиране
-    refreshAuth();
-  }, []);
+    try {
+      refreshAuth();
+    } catch (error) {
+      console.error('Error refreshing auth:', error);
+    }
+  }, [refreshAuth]);
 
   // Show call screens if call is active
   const showCallScreen =

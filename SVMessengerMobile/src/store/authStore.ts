@@ -54,6 +54,16 @@ export const useAuthStore = create<AuthStore>()(
       logout: async () => {
         set({ isLoading: true });
         try {
+          // Disconnect WebSocket преди logout
+          try {
+            const { stompClient } = require('../services/websocket/stompClient');
+            if (stompClient.getConnected()) {
+              stompClient.disconnect();
+            }
+          } catch (error) {
+            console.error('Error disconnecting WebSocket on logout:', error);
+          }
+
           await authService.logout();
         } catch (error) {
           console.error('Logout error:', error);
@@ -69,8 +79,21 @@ export const useAuthStore = create<AuthStore>()(
 
       // Refresh auth (check if still authenticated)
       refreshAuth: async () => {
-        const isAuthenticated = await authService.isAuthenticated();
-        set({ isAuthenticated });
+        try {
+          const hasTokens = await authService.isAuthenticated();
+          if (!hasTokens) {
+            set({ isAuthenticated: false, user: null });
+            return;
+          }
+
+          // Token съществува - считаме че сме authenticated
+          // Ако token е изтекъл, API interceptor ще се опита да го refresh-не при следващата заявка
+          // Не правим API call тук, за да избегнем излишни заявки
+          set({ isAuthenticated: true });
+        } catch (error) {
+          console.error('Error refreshing auth:', error);
+          set({ isAuthenticated: false, user: null });
+        }
       },
 
       // Set user manually

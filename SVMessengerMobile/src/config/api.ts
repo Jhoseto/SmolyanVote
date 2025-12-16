@@ -17,8 +17,8 @@ const isDevelopment = __DEV__;
 export const API_CONFIG = {
   BASE_URL: isDevelopment ? DEV_API_URL : PROD_API_URL,
   WS_URL: isDevelopment 
-    ? 'ws://10.0.2.2:2662/ws-svmessenger' // Android Emulator IP за localhost
-    : 'wss://smolyanvote.com/ws-svmessenger',
+    ? 'ws://10.0.2.2:2662/ws-svmessenger-ws' // Android Emulator IP за localhost - plain WebSocket endpoint
+    : 'wss://smolyanvote.com/ws-svmessenger-ws', // Plain WebSocket endpoint за production
   
   // API Endpoints
   ENDPOINTS: {

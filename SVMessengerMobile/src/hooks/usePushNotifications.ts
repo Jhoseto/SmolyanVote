@@ -83,9 +83,15 @@ export const usePushNotifications = () => {
    */
   const registerDeviceToken = useCallback(
     async (deviceToken: string) => {
-      if (!isAuthenticated || !user) return;
+      if (!isAuthenticated || !user) {
+        console.log('Skipping device token registration - not authenticated');
+        return;
+      }
 
       try {
+        // Изчакваме малко, за да се уверим че token е запазен след login
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         await pushNotificationService.registerDeviceToken({
           deviceToken,
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
@@ -93,6 +99,7 @@ export const usePushNotifications = () => {
         });
       } catch (error) {
         console.error('Failed to register device token:', error);
+        // Не хвърляй грешка - non-critical операция
       }
     },
     [isAuthenticated, user]

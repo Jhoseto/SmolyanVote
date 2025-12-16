@@ -18,32 +18,47 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   conversation,
   onPress,
 }) => {
+  // Защита срещу undefined данни
+  if (!conversation || !conversation.participant) {
+    console.error('ConversationItem: invalid conversation data', conversation);
+    return null;
+  }
+
   const { participant, lastMessage, unreadCount, updatedAt } = conversation;
 
   const formatTime = (dateString: string) => {
-    const { formatChatTime } = require('../../utils/formatting');
-    return formatChatTime(dateString);
+    try {
+      const { formatChatTime } = require('../../utils/formatting');
+      return formatChatTime(dateString);
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
   };
+
+  const participantName = participant?.fullName || participant?.username || 'Unknown';
+  const participantImage = participant?.imageUrl || undefined;
+  const participantOnline = participant?.isOnline || false;
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <Avatar
-        imageUrl={participant.imageUrl}
-        name={participant.fullName}
+        imageUrl={participantImage}
+        name={participantName}
         size={50}
-        isOnline={participant.isOnline}
+        isOnline={participantOnline}
       />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>
-            {participant.fullName}
+            {participantName}
           </Text>
           {updatedAt && (
             <Text style={styles.time}>{formatTime(updatedAt)}</Text>
           )}
         </View>
         <View style={styles.footer}>
-          {lastMessage ? (
+          {lastMessage && lastMessage.text ? (
             <Text style={styles.lastMessage} numberOfLines={1}>
               {lastMessage.text}
             </Text>

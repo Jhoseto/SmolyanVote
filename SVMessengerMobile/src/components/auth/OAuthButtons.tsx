@@ -33,6 +33,7 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }
         fullName: response.user.fullName,
         imageUrl: response.user.imageUrl,
         isOnline: response.user.isOnline,
+        lastSeen: response.user.lastSeen,
       });
       
       onSuccess?.();
@@ -57,6 +58,7 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }
         fullName: response.user.fullName,
         imageUrl: response.user.imageUrl,
         isOnline: response.user.isOnline,
+        lastSeen: response.user.lastSeen,
       });
       
       onSuccess?.();

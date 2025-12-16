@@ -32,6 +32,9 @@ export const ConversationsListScreen: React.FC = () => {
     selectConversation,
   } = useConversations();
 
+  // Защита срещу undefined conversations
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
+
   const handleRefresh = () => {
     fetchConversations();
   };
@@ -44,7 +47,7 @@ export const ConversationsListScreen: React.FC = () => {
     });
   };
 
-  if (isLoading && conversations.length === 0) {
+  if (isLoading && safeConversations.length === 0) {
     return <Loading message="Зареждане на разговори..." />;
   }
 
@@ -59,13 +62,15 @@ export const ConversationsListScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id.toString()}
+        data={safeConversations.filter((item) => item != null && item.id != null)}
+        keyExtractor={(item) => item?.id?.toString() || `temp-${Math.random()}`}
         renderItem={({ item }) => (
-          <ConversationItem
-            conversation={item}
-            onPress={() => handleConversationPress(item)}
-          />
+          item ? (
+            <ConversationItem
+              conversation={item}
+              onPress={() => handleConversationPress(item)}
+            />
+          ) : null
         )}
         refreshControl={
           <RefreshControl

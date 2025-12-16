@@ -32,6 +32,7 @@ export interface OAuthTokenResponse {
     fullName: string;
     imageUrl?: string;
     isOnline: boolean;
+    lastSeen?: string;
   };
 }
 

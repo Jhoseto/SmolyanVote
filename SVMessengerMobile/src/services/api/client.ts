@@ -58,7 +58,7 @@ class ApiClient {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Ако получим 401 и не сме опитали refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && originalRequest) {
           originalRequest._retry = true;
 
           try {
@@ -67,11 +67,22 @@ class ApiClient {
             const refreshToken = await tokenManager.getRefreshToken();
             
             if (!refreshToken) {
-              // Няма refresh token - redirect към login
+              // Няма refresh token - clear tokens и logout
               await tokenManager.clearTokens();
-              // TODO: Navigate to login screen
+              console.log('No refresh token available, logging out...');
+              
+              // Trigger logout в authStore
+              try {
+                const { useAuthStore } = await import('../../store/authStore');
+                useAuthStore.getState().logout();
+              } catch (e) {
+                console.error('Error triggering logout:', e);
+              }
+              
               return Promise.reject(error);
             }
+
+            console.log('Token expired, attempting refresh...');
 
             // Refresh token
             const response = await axios.post(
@@ -84,6 +95,8 @@ class ApiClient {
             // Запазване на новите tokens
             await tokenManager.setTokens(accessToken, newRefreshToken);
 
+            console.log('Token refreshed successfully, retrying request...');
+
             // Retry на оригиналната заявка с новия token
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -91,10 +104,19 @@ class ApiClient {
 
             return this.client(originalRequest);
           } catch (refreshError) {
-            // Refresh failed - clear tokens и redirect към login
+            // Refresh failed - clear tokens и logout
+            console.error('Token refresh failed:', refreshError);
             const tokenManager = getTokenManager();
             await tokenManager.clearTokens();
-            // TODO: Navigate to login screen
+            
+            // Trigger logout в authStore
+            try {
+              const { useAuthStore } = await import('../../store/authStore');
+              useAuthStore.getState().logout();
+            } catch (e) {
+              console.error('Error triggering logout:', e);
+            }
+            
             return Promise.reject(refreshError);
           }
         }

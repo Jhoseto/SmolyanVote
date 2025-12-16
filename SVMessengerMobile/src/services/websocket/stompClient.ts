@@ -8,16 +8,23 @@ import { API_CONFIG } from '../../config/api';
 import { TokenManager } from '../auth/tokenManager';
 
 // WebSocket factory за React Native
-// В React Native използваме native WebSocket вместо SockJS
-// SockJS endpoint: /ws-svmessenger -> WebSocket: ws://host/ws-svmessenger/websocket
+// В React Native използваме native WebSocket
+// Backend използва обикновен WebSocket, не SockJS, така че не добавяме /websocket
 const createWebSocket = (url: string): WebSocket => {
-  // SockJS автоматично добавя /websocket към URL-а
-  // За React Native трябва да го добавим ръчно
-  let wsUrl = url;
-  if (!wsUrl.endsWith('/websocket')) {
-    wsUrl = wsUrl.endsWith('/') ? `${wsUrl}websocket` : `${wsUrl}/websocket`;
-  }
-  return new WebSocket(wsUrl);
+  console.log('Creating WebSocket connection to:', url);
+  const ws = new WebSocket(url);
+  
+  // Add error logging
+  ws.onerror = (error) => {
+    console.error('WebSocket creation error:', error);
+    console.error('Failed URL:', url);
+  };
+  
+  ws.onopen = () => {
+    console.log('WebSocket opened successfully:', url);
+  };
+  
+  return ws;
 };
 
 export type MessageCallback = (message: any) => void;
@@ -55,8 +62,9 @@ class StompClient {
       }
 
       // Създаване на WebSocket connection за React Native
-      // В production може да се използва react-native-websocket или native WebSocket
-      const wsUrl = API_CONFIG.WS_URL.replace('ws://', 'ws://').replace('wss://', 'wss://');
+      const wsUrl = API_CONFIG.WS_URL;
+      console.log('Connecting to WebSocket:', wsUrl);
+      console.log('Access token available:', !!token);
       
       // Създаване на STOMP client
       this.client = new Client({
@@ -79,8 +87,14 @@ class StompClient {
         },
         onWebSocketError: (event) => {
           console.error('WebSocket error:', event);
+          console.error('WebSocket error details:', {
+            type: event?.type,
+            target: event?.target,
+            url: wsUrl,
+          });
           this.isConnected = false;
-          onError?.(new Error('WebSocket connection error'));
+          const errorMessage = event?.message || 'WebSocket connection error';
+          onError?.(new Error(`WebSocket error: ${errorMessage}. URL: ${wsUrl}`));
         },
         onDisconnect: () => {
           console.log('WebSocket disconnected');
@@ -102,17 +116,33 @@ class StompClient {
    * Disconnect от WebSocket server
    */
   disconnect(): void {
-    if (this.client) {
-      // Unsubscribe от всички subscriptions
-      this.subscriptions.forEach((subscription) => {
-        subscription.unsubscribe();
-      });
-      this.subscriptions.clear();
+    try {
+      if (this.client) {
+        // Unsubscribe от всички subscriptions
+        this.subscriptions.forEach((subscription) => {
+          try {
+            subscription.unsubscribe();
+          } catch (error) {
+            console.error('Error unsubscribing:', error);
+          }
+        });
+        this.subscriptions.clear();
 
-      // Deactivate client
-      this.client.deactivate();
+        // Deactivate client
+        try {
+          this.client.deactivate();
+        } catch (error) {
+          console.error('Error deactivating client:', error);
+        }
+        this.client = null;
+        this.isConnected = false;
+      }
+    } catch (error) {
+      console.error('Error disconnecting WebSocket:', error);
+      // Ensure state is reset even if disconnect fails
       this.client = null;
       this.isConnected = false;
+      this.subscriptions.clear();
     }
   }
 

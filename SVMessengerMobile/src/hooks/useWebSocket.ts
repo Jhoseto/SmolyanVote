@@ -21,52 +21,26 @@ export const useWebSocket = () => {
   const { setCallState, startCall } = useCallsStore();
   const subscriptionsRef = useRef<Map<string, any>>(new Map());
 
-  // Connect to WebSocket
-  const connect = useCallback(async () => {
-    if (!isAuthenticated || !user) {
+  // Subscribe to user-specific channels
+  // Spring STOMP автоматично мапва /user/queue/... към правилния user на базата на authentication
+  // Използваме същия формат като web приложението: /user/queue/... (без username в path)
+  const subscribeToChannels = useCallback(() => {
+    if (!user) {
+      console.log('WebSocket: Cannot subscribe - no user');
       return;
     }
 
-    try {
-      await stompClient.connect(
-        () => {
-          console.log('WebSocket connected');
-          subscribeToChannels();
-        },
-        (error) => {
-          console.error('WebSocket connection error:', error);
-        }
-      );
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
+    if (!stompClient.getConnected()) {
+      console.log('WebSocket: Cannot subscribe - not connected');
+      return;
     }
-  }, [isAuthenticated, user]);
-
-  // Disconnect from WebSocket
-  const disconnect = useCallback(() => {
-    subscriptionsRef.current.forEach((subscription) => {
-      subscription?.unsubscribe();
-    });
-    subscriptionsRef.current.clear();
-    stompClient.disconnect();
-  }, []);
-
-  // Subscribe to user-specific channels
-  // Backend използва username за routing, затова subscribe-ваме към /user/{username}/queue/...
-  const subscribeToChannels = useCallback(() => {
-    if (!user) return;
-
-    const username = user.username;
 
     // Subscribe to private messages
-    // Backend route: /user/{username}/queue/svmessenger-messages
     const messagesSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-messages`,
+      '/user/queue/svmessenger-messages',
       (message: Message) => {
         console.log('Received message:', message);
         addMessage(message.conversationId, message);
-        
-        // Update conversation
         updateConversation(message.conversationId, {
           lastMessage: message,
         });
@@ -78,9 +52,8 @@ export const useWebSocket = () => {
     }
 
     // Subscribe to typing status
-    // Backend route: /user/{username}/queue/svmessenger-typing
     const typingSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-typing`,
+      '/user/queue/svmessenger-typing',
       (data: { conversationId: number; userId: number; isTyping: boolean }) => {
         setTyping(data.conversationId, data.userId, data.isTyping);
       }
@@ -91,14 +64,20 @@ export const useWebSocket = () => {
     }
 
     // Subscribe to read receipts
-    // Backend route: /user/{username}/queue/svmessenger-read-receipt
+    // Backend изпраща към /queue/svmessenger-read-receipts (с 's' в края)
     const readReceiptSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-read-receipt`,
-      (data: { messageId: number; conversationId: number; readAt: string }) => {
-        updateMessage(data.conversationId, data.messageId, {
-          isRead: true,
-          readAt: data.readAt,
-        });
+      '/user/queue/svmessenger-read-receipts',
+      (data: { messageId?: number; conversationId: number; readAt: string; type?: string }) => {
+        if (data.type === 'BULK_READ') {
+          // Bulk read - маркира всички съобщения в разговора като прочетени
+          // Това ще се обработи от conversations store
+        } else if (data.messageId) {
+          // Individual message read receipt
+          updateMessage(data.conversationId, data.messageId, {
+            isRead: true,
+            readAt: data.readAt,
+          });
+        }
       }
     );
 
@@ -107,9 +86,9 @@ export const useWebSocket = () => {
     }
 
     // Subscribe to delivery receipts
-    // Backend route: /user/{username}/queue/svmessenger-delivery-receipt
+    // Backend изпраща към /queue/svmessenger-delivery-receipts (с 's' в края)
     const deliveryReceiptSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-delivery-receipt`,
+      '/user/queue/svmessenger-delivery-receipts',
       (data: { messageId: number; conversationId: number; deliveredAt: string }) => {
         updateMessage(data.conversationId, data.messageId, {
           isDelivered: true,
@@ -123,12 +102,10 @@ export const useWebSocket = () => {
     }
 
     // Subscribe to online status updates
-    // Backend route: /user/{username}/queue/svmessenger-online-status
     const onlineStatusSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-online-status`,
+      '/user/queue/svmessenger-online-status',
       (data: { userId: number; isOnline: boolean }) => {
         // Update conversation participant online status
-        // This will be handled by conversations store
       }
     );
 
@@ -137,9 +114,8 @@ export const useWebSocket = () => {
     }
 
     // Subscribe to call signals
-    // Backend route: /user/{username}/queue/svmessenger-call-signals
     const callSignalSubscription = stompClient.subscribe(
-      `/user/${username}/queue/svmessenger-call-signals`,
+      '/user/queue/svmessenger-call-signals',
       (data: {
         conversationId: number;
         eventType: 'CALL_REQUEST' | 'CALL_ANSWERED' | 'CALL_REJECTED' | 'CALL_ENDED';
@@ -150,7 +126,6 @@ export const useWebSocket = () => {
         roomName?: string;
       }) => {
         if (data.eventType === 'CALL_REQUEST') {
-          // Incoming call
           startCall(
             data.conversationId,
             data.callerId,
@@ -159,10 +134,8 @@ export const useWebSocket = () => {
           );
           setCallState(CallState.INCOMING);
         } else if (data.eventType === 'CALL_ANSWERED') {
-          // Call answered
           setCallState(CallState.CONNECTING);
         } else if (data.eventType === 'CALL_REJECTED' || data.eventType === 'CALL_ENDED') {
-          // Call rejected or ended
           setCallState(CallState.DISCONNECTED);
         }
       }
@@ -172,6 +145,48 @@ export const useWebSocket = () => {
       subscriptionsRef.current.set('callSignal', callSignalSubscription);
     }
   }, [user, addMessage, setTyping, updateMessage, updateConversation, setCallState, startCall]);
+
+  // Connect to WebSocket
+  const connect = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      console.log('WebSocket: Skipping connection - not authenticated or no user');
+      return;
+    }
+
+    try {
+      await stompClient.connect(
+        () => {
+          console.log('WebSocket connected');
+          subscribeToChannels();
+        },
+        (error) => {
+          console.error('WebSocket connection error:', error);
+          // Не хвърляме грешка, за да не crash-не приложението
+        }
+      );
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error);
+      // Не хвърляме грешка, за да не crash-не приложението
+    }
+  }, [isAuthenticated, user, subscribeToChannels]);
+
+  // Disconnect from WebSocket
+  const disconnect = useCallback(() => {
+    try {
+      subscriptionsRef.current.forEach((subscription) => {
+        try {
+          subscription?.unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing:', error);
+        }
+      });
+      subscriptionsRef.current.clear();
+      stompClient.disconnect();
+    } catch (error) {
+      console.error('Error disconnecting WebSocket:', error);
+    }
+  }, []);
+
 
   // Send typing status
   const sendTypingStatus = useCallback(
@@ -186,14 +201,16 @@ export const useWebSocket = () => {
     []
   );
 
-  // Send read receipt
+  // Send read receipt - маркира целия разговор като прочетен
+  // Backend endpoint: /app/svmessenger/mark-read
   const sendReadReceipt = useCallback(
-    (conversationId: number, messageId: number) => {
+    (conversationId: number, messageId?: number) => {
       if (!stompClient.getConnected()) return;
 
-      stompClient.send('/app/svmessenger/read-receipt', {
+      // Backend очаква само conversationId за mark-read
+      stompClient.send('/app/svmessenger/mark-read', {
         conversationId,
-        messageId,
+        isTyping: false, // Backend използва SVTypingStatusDTO, но isTyping не се използва
       });
     },
     []
@@ -201,32 +218,47 @@ export const useWebSocket = () => {
 
   // Effect: Connect on mount, disconnect on unmount
   useEffect(() => {
-    if (isAuthenticated) {
-      connect();
+    if (isAuthenticated && user) {
+      // Изчакваме 2 секунди преди да се свържем, за да се уверим че:
+      // 1. Token е запазен правилно
+      // 2. Token е refresh-нат ако е изтекъл
+      // 3. API call-овете са завършени
+      const timeoutId = setTimeout(() => {
+        connect();
+      }, 2000);
+
+      return () => {
+        clearTimeout(timeoutId);
+        disconnect();
+      };
     }
 
     return () => {
       disconnect();
     };
-  }, [isAuthenticated, connect, disconnect]);
+  }, [isAuthenticated, user, connect, disconnect]);
 
   // Оптимизация: Управление на WebSocket според AppState (затваряне в background за по-малко батерия)
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user) return;
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        // App става active - свържи WebSocket
-        if (!stompClient.getConnected()) {
-          console.log('App became active, connecting WebSocket...');
-          connect();
+      try {
+        if (nextAppState === 'active') {
+          // App става active - свържи WebSocket
+          if (!stompClient.getConnected()) {
+            console.log('App became active, connecting WebSocket...');
+            connect();
+          }
+        } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+          // App отива в background - затвори WebSocket за по-малко батерия
+          if (stompClient.getConnected()) {
+            console.log('App went to background, disconnecting WebSocket to save battery...');
+            disconnect();
+          }
         }
-      } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // App отива в background - затвори WebSocket за по-малко батерия
-        if (stompClient.getConnected()) {
-          console.log('App went to background, disconnecting WebSocket to save battery...');
-          disconnect();
-        }
+      } catch (error) {
+        console.error('Error handling app state change:', error);
       }
     };
 
@@ -235,7 +267,7 @@ export const useWebSocket = () => {
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated, connect, disconnect]);
+  }, [isAuthenticated, user, connect, disconnect]);
 
   return {
     isConnected: stompClient.getConnected(),

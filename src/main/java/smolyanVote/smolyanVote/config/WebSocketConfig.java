@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -36,7 +35,6 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
 
-    @Autowired
     public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
                            Environment environment,
                            NotificationWebSocketHandler notificationWebSocketHandler,
@@ -94,22 +92,43 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
         // Client ще се connectva към: ws://localhost:2662/ws-svmessenger
 
         // Development: allow localhost, Production: only production domains
+        String[] allowedOrigins;
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
-            registry.addEndpoint("/ws-svmessenger")
-                    .setAllowedOriginPatterns(
-                            "https://smolyanvote.com",
-                            "https://www.smolyanvote.com",
-                            "http://localhost:*",
-                            "http://127.0.0.1:*"
-                    )
-                    .withSockJS();
+            allowedOrigins = new String[]{
+                    "https://smolyanvote.com",
+                    "https://www.smolyanvote.com",
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "ws://localhost:*",
+                    "ws://127.0.0.1:*",
+                    "http://10.0.2.2:*", // Android Emulator HTTP
+                    "ws://10.0.2.2:*",   // Android Emulator WebSocket
+                    "*"                  // Allow all origins for mobile apps (origin is null for React Native)
+            };
         } else {
-            registry.addEndpoint("/ws-svmessenger")
-                    .setAllowedOriginPatterns(
-                            "https://smolyanvote.com",
-                            "https://www.smolyanvote.com"
-                    )
-                    .withSockJS();
+            allowedOrigins = new String[]{
+                    "https://smolyanvote.com",
+                    "https://www.smolyanvote.com",
+                    "wss://smolyanvote.com",
+                    "wss://www.smolyanvote.com"
+            };
+        }
+
+        // SockJS endpoint (за web клиенти)
+        registry.addEndpoint("/ws-svmessenger")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .withSockJS();
+
+        // Plain WebSocket endpoint (за мобилни клиенти - React Native)
+        // Използваме различен path за да избегнем конфликт
+        // React Native мобилни приложения нямат origin header, затова разрешаваме всички origins в dev
+        if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
+            // В development разрешаваме всички origins за мобилни приложения
+            registry.addEndpoint("/ws-svmessenger-ws")
+                    .setAllowedOriginPatterns("*");
+        } else {
+            registry.addEndpoint("/ws-svmessenger-ws")
+                    .setAllowedOriginPatterns(allowedOrigins);
         }
     }
 

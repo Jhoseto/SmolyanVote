@@ -57,9 +57,11 @@ class PushNotificationService {
     try {
       await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.REGISTER, request);
       console.log('Device token registered successfully');
-    } catch (error) {
-      console.error('Error registering device token:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('Error registering device token:', error?.response?.status, error?.message);
+      // Не хвърляй грешка - това е non-critical операция
+      // Приложението трябва да работи дори без push notifications
+      console.warn('Device token registration failed (non-critical), continuing...');
     }
   }
 
