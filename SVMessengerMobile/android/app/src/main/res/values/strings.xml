@@ -2,8 +2,7 @@
     <string name="app_name">SVMessengerMobile</string>
     
     <!-- Facebook OAuth Configuration -->
-    <!-- TODO: Замени с твоите Facebook App ID и Client Token от Facebook Developer Console -->
-    <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
-    <string name="fb_login_protocol_scheme">fbYOUR_FACEBOOK_APP_ID</string>
+    <string name="facebook_app_id">1381612716938832</string>
+    <string name="facebook_client_token">44173e627441c15c12ce16232d405c09</string>
+    <string name="fb_login_protocol_scheme">fb1381612716938832</string>
 </resources>

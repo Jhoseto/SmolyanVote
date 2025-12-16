@@ -31,8 +31,8 @@
               <action android:name="android.intent.action.VIEW" />
               <category android:name="android.intent.category.DEFAULT" />
               <category android:name="android.intent.category.BROWSABLE" />
-              <!-- Facebook login protocol scheme - трябва да се замени с реален App ID -->
-              <data android:scheme="fbYOUR_FACEBOOK_APP_ID" />
+              <!-- Facebook login protocol scheme -->
+              <data android:scheme="fb1381612716938832" />
           </intent-filter>
       </activity>
       <activity

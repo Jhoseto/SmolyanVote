@@ -3,14 +3,13 @@
  * Root component
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StatusBar, useColorScheme, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { OfflineIndicator } from './src/components/common/OfflineIndicator';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
 import { Colors } from './src/theme';
-import { oauthService } from './src/services/auth/oauthService';
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -45,13 +44,6 @@ class ErrorBoundary extends React.Component<
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-  
-  // Initialize OAuth services
-  useEffect(() => {
-    oauthService.initializeGoogleSignIn().catch((error) => {
-      console.warn('Failed to initialize Google Sign-In:', error);
-    });
-  }, []);
   
   // Monitor network status
   useNetworkStatus();
