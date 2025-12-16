@@ -100,7 +100,7 @@ export const useCalls = () => {
       const { user } = useAuthStore.getState();
       if (stompClient.getConnected() && user) {
         stompClient.send('/app/svmessenger/call-signal', {
-          eventType: 'CALL_ANSWERED',
+          eventType: 'CALL_ACCEPT', // ✅ Съответства на backend enum SVCallEventType.CALL_ACCEPT
           conversationId: currentCall.conversationId,
           callerId: currentCall.participantId,
           receiverId: user.id,
@@ -122,7 +122,7 @@ export const useCalls = () => {
     if (currentCall && stompClient.getConnected() && user) {
       // Send reject signal via WebSocket
       stompClient.send('/app/svmessenger/call-signal', {
-        eventType: 'CALL_REJECTED',
+        eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
         conversationId: currentCall.conversationId,
         callerId: currentCall.participantId,
         receiverId: user.id,
@@ -139,7 +139,7 @@ export const useCalls = () => {
     if (currentCall && stompClient.getConnected() && user) {
       // Send end signal via WebSocket
       stompClient.send('/app/svmessenger/call-signal', {
-        eventType: 'CALL_ENDED',
+        eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
         conversationId: currentCall.conversationId,
         callerId: currentCall.participantId,
         receiverId: user.id,

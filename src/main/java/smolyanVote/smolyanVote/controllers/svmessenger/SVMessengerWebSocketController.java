@@ -11,9 +11,11 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
+import smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVSendMessageRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
 import java.security.Principal;
@@ -30,14 +32,17 @@ public class SVMessengerWebSocketController {
     private final SVMessengerService messengerService;
     private final SVMessengerWebSocketHandler wsHandler;
     private final UserRepository userRepository;
+    private final MobilePushNotificationService pushNotificationService;
     
     public SVMessengerWebSocketController(
             SVMessengerService messengerService,
             SVMessengerWebSocketHandler wsHandler,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            MobilePushNotificationService pushNotificationService) {
         this.messengerService = messengerService;
         this.wsHandler = wsHandler;
         this.userRepository = userRepository;
+        this.pushNotificationService = pushNotificationService;
     }
     
     // ========== MESSAGE SENDING ==========
@@ -165,7 +170,26 @@ public class SVMessengerWebSocketController {
 
             log.info("Forwarding call signal from {} to {} (principal: {})", sender.getId(), recipientUserId, recipientPrincipal);
 
+            // Изпращане на WebSocket signal
             wsHandler.sendCallSignal(recipientPrincipal, signal);
+
+            // ✅ Изпращане на push notification за CALL_REQUEST (ако recipient е offline или в background)
+            if (signal.getEventType() == SVCallEventType.CALL_REQUEST) {
+                try {
+                    String callerName = sender.getRealName() != null && !sender.getRealName().isBlank()
+                            ? sender.getRealName()
+                            : sender.getUsername();
+                    pushNotificationService.sendIncomingCallNotification(
+                            recipientUserId,
+                            callerName,
+                            signal.getConversationId()
+                    );
+                    log.info("✅ Push notification sent for incoming call to user: {}", recipientUserId);
+                } catch (Exception pushError) {
+                    log.error("❌ Failed to send push notification for incoming call: {}", pushError.getMessage());
+                    // Не прекъсваме WebSocket signal-а дори ако push notification fail-не
+                }
+            }
 
         } catch (Exception e) {
             log.error("Error handling call signal via WebSocket", e);
@@ -236,7 +260,9 @@ public class SVMessengerWebSocketController {
                     log.warn("WebSocket disconnected but user not found for principal: {}", principal.getName());
                 }
             } else {
-                log.warn("WebSocket disconnected but no principal found");
+                // Principal може да липсва при някои нормални случаи (например connection timeout, network issues)
+                // Това не е грешка, затова логваме на debug ниво
+                log.debug("WebSocket disconnected but no principal found (likely connection timeout or network issue)");
             }
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла

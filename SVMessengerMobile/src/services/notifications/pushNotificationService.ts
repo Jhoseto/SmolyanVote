@@ -151,9 +151,11 @@ class PushNotificationService {
     messaging().onTokenRefresh((token) => {
       console.log('FCM token refreshed:', token);
       // Re-register token with backend
+      const appVersion = require('../../../package.json').version || '0.0.1';
       this.registerDeviceToken({
         deviceToken: token,
         platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        appVersion,
       }).catch((error) => {
         console.error('Error re-registering token:', error);
       });

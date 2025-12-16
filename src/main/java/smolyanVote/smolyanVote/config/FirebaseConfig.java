@@ -83,8 +83,37 @@ public class FirebaseConfig {
         if (serviceAccount == null) {
             String serviceAccountJson = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
             if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
-                // За сега пропускаме - може да се имплементира по-късно
-                log.warn("FIREBASE_SERVICE_ACCOUNT_JSON environment variable found but not yet implemented");
+                try {
+                    // Парсване на JSON string от environment variable
+                    serviceAccount = new java.io.ByteArrayInputStream(serviceAccountJson.getBytes("UTF-8"));
+                    log.info("Loading Firebase service account from FIREBASE_SERVICE_ACCOUNT_JSON environment variable");
+                } catch (Exception e) {
+                    log.warn("Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {}", e.getMessage());
+                }
+            }
+        }
+        
+        // Ако все още няма, опитваме от различни места
+        if (serviceAccount == null) {
+            String[] possiblePaths = {
+                "../SVMessengerMobile/firebase-service-account.json",
+                "SVMessengerMobile/firebase-service-account.json",
+                "./SVMessengerMobile/firebase-service-account.json",
+                "firebase-service-account.json",
+                "../firebase-service-account.json"
+            };
+            
+            for (String path : possiblePaths) {
+                try {
+                    java.io.File firebaseFile = new java.io.File(path);
+                    if (firebaseFile.exists() && firebaseFile.isFile()) {
+                        serviceAccount = new FileInputStream(firebaseFile);
+                        log.info("✅ Loading Firebase service account from: {}", firebaseFile.getAbsolutePath());
+                        break;
+                    }
+                } catch (Exception e) {
+                    // Continue to next path
+                }
             }
         }
 

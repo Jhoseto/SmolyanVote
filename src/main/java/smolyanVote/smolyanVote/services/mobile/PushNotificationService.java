@@ -90,9 +90,9 @@ public class PushNotificationService implements MobilePushNotificationService {
             String token = deviceToken.getDeviceToken();
 
             if ("android".equals(platform)) {
-                sendFCMNotification(token, title, body, data);
+                sendFCMNotification(token, title, body, data, deviceToken);
             } else if ("ios".equals(platform)) {
-                sendAPNsNotification(token, title, body, data);
+                sendAPNsNotification(token, title, body, data, deviceToken);
             } else {
                 log.warn("Unknown platform: {}", platform);
             }
@@ -105,7 +105,7 @@ public class PushNotificationService implements MobilePushNotificationService {
     /**
      * Изпраща FCM notification за Android
      */
-    private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data) {
+    private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
             log.warn("FirebaseMessaging not available - cannot send FCM notification");
             return;
@@ -129,12 +129,26 @@ public class PushNotificationService implements MobilePushNotificationService {
             log.info("✅ FCM notification sent successfully: token={}, response={}", deviceToken, response);
 
         } catch (FirebaseMessagingException e) {
-            log.error("❌ Failed to send FCM notification: token={}, error={}", deviceToken, e.getMessage());
+            log.error("❌ Failed to send FCM notification: token={}, error={}, errorCode={}", 
+                    deviceToken, e.getMessage(), e.getErrorCode());
             
-            // Ако token е невалиден, маркирай device token като неактивен
-            if (e.getErrorCode().equals("invalid-argument") || 
-                e.getErrorCode().equals("registration-token-not-registered")) {
-                log.warn("Invalid device token detected - should be marked as inactive");
+            // ✅ Маркирай device token като неактивен ако е невалиден
+            // Проверяваме всички възможни error codes които означават невалиден token
+            String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : "";
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "";
+            boolean isInvalidToken = 
+                "INVALID_ARGUMENT".equals(errorCode) || 
+                "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
+                "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
+                "NOT_FOUND".equals(errorCode) ||
+                errorMessage.contains("Requested entity was not found") ||
+                errorMessage.contains("NotRegistered") ||
+                errorMessage.contains("not found");
+            
+            if (isInvalidToken) {
+                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive", 
+                        errorCode, errorMessage);
+                markTokenAsInactive(tokenEntity);
             }
         } catch (Exception e) {
             log.error("❌ Unexpected error sending FCM notification: token={}", deviceToken, e);
@@ -145,7 +159,7 @@ public class PushNotificationService implements MobilePushNotificationService {
      * Изпраща APNs notification за iOS
      * Firebase Admin SDK поддържа iOS чрез APNs автоматично
      */
-    private void sendAPNsNotification(String deviceToken, String title, String body, Map<String, String> data) {
+    private void sendAPNsNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
             log.warn("FirebaseMessaging not available - cannot send APNs notification");
             return;
@@ -178,15 +192,44 @@ public class PushNotificationService implements MobilePushNotificationService {
             log.info("✅ APNs notification sent successfully: token={}, response={}", deviceToken, response);
 
         } catch (FirebaseMessagingException e) {
-            log.error("❌ Failed to send APNs notification: token={}, error={}", deviceToken, e.getMessage());
+            log.error("❌ Failed to send APNs notification: token={}, error={}, errorCode={}", 
+                    deviceToken, e.getMessage(), e.getErrorCode());
             
-            // Ако token е невалиден, маркирай device token като неактивен
-            if (e.getErrorCode().equals("invalid-argument") || 
-                e.getErrorCode().equals("registration-token-not-registered")) {
-                log.warn("Invalid device token detected - should be marked as inactive");
+            // ✅ Маркирай device token като неактивен ако е невалиден
+            // Проверяваме всички възможни error codes които означават невалиден token
+            String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : "";
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "";
+            boolean isInvalidToken = 
+                "INVALID_ARGUMENT".equals(errorCode) || 
+                "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
+                "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
+                "NOT_FOUND".equals(errorCode) ||
+                errorMessage.contains("Requested entity was not found") ||
+                errorMessage.contains("NotRegistered") ||
+                errorMessage.contains("not found");
+            
+            if (isInvalidToken) {
+                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive", 
+                        errorCode, errorMessage);
+                markTokenAsInactive(tokenEntity);
             }
         } catch (Exception e) {
             log.error("❌ Unexpected error sending APNs notification: token={}", deviceToken, e);
+        }
+    }
+    
+    /**
+     * Маркира device token като неактивен
+     */
+    private void markTokenAsInactive(MobileDeviceTokenEntity tokenEntity) {
+        try {
+            if (tokenEntity != null) {
+                tokenEntity.setIsActive(false);
+                deviceTokenRepository.save(tokenEntity);
+                log.info("Device token marked as inactive: {}", tokenEntity.getDeviceToken());
+            }
+        } catch (Exception e) {
+            log.error("Failed to mark device token as inactive", e);
         }
     }
 

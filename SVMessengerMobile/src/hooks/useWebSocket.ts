@@ -207,7 +207,7 @@ export const useWebSocket = () => {
       '/user/queue/svmessenger-call-signals',
       (data: {
         conversationId: number;
-        eventType: 'CALL_REQUEST' | 'CALL_ANSWERED' | 'CALL_REJECTED' | 'CALL_ENDED';
+        eventType: 'CALL_REQUEST' | 'CALL_ACCEPT' | 'CALL_REJECT' | 'CALL_END';
         callerId: number;
         receiverId: number;
         callerName?: string;
@@ -222,9 +222,9 @@ export const useWebSocket = () => {
             data.callerAvatar
           );
           setCallState(CallState.INCOMING);
-        } else if (data.eventType === 'CALL_ANSWERED') {
+        } else if (data.eventType === 'CALL_ACCEPT') {
           setCallState(CallState.CONNECTING);
-        } else if (data.eventType === 'CALL_REJECTED' || data.eventType === 'CALL_ENDED') {
+        } else if (data.eventType === 'CALL_REJECT' || data.eventType === 'CALL_END') {
           setCallState(CallState.DISCONNECTED);
         }
       }

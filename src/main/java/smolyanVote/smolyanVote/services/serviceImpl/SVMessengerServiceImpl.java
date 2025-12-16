@@ -2,7 +2,6 @@ package smolyanVote.smolyanVote.services.serviceImpl;
 
 import io.livekit.server.RoomName;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomJoin;
-import io.livekit.server.VideoGrant;
 
 @Service
 @Slf4j
@@ -59,7 +57,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Value("${livekit.websocket-url}")
     private String liveKitWebSocketUrl;
 
-    @Autowired
     public SVMessengerServiceImpl(
             SVConversationRepository conversationRepo,
             SVMessageRepository messageRepo,
@@ -299,6 +296,12 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     // ✅ FIX: Proper transaction
     @Override
     @Transactional
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = {org.springframework.dao.CannotAcquireLockException.class, 
+                       org.hibernate.exception.LockAcquisitionException.class},
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100, multiplier = 2, maxDelay = 1000)
+    )
     public void markAllAsRead(Long conversationId, UserEntity reader) {
         try {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
@@ -308,7 +311,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 throw new IllegalArgumentException("Access denied");
             }
 
-            int updated = messageRepo.markAllAsRead(conversationId, reader.getId(), LocalDateTime.now());
+            messageRepo.markAllAsRead(conversationId, reader.getId(), LocalDateTime.now());
             conversationRepo.resetUnreadCount(conversationId, reader.getId());
 
 
@@ -349,7 +352,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             List<Long> affectedConversations = messageRepo.findConversationsWithUndeliveredMessagesForUser(user.getId());
 
             // Маркирай всички не-delivered съобщения като delivered
-            int updated = messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
+            messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
 
             // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name - нормализирано на lowercase)
             if (!affectedConversations.isEmpty()) {

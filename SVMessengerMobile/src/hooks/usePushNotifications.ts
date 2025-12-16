@@ -49,13 +49,29 @@ export const usePushNotifications = () => {
         hasData: !!data,
       });
 
-      if (conversationId && (data?.type === 'NEW_MESSAGE' || conversationId)) {
+      const notificationType = data?.type;
+      
+      // ✅ Обработка на INCOMING_CALL notifications
+      if (notificationType === 'INCOMING_CALL' && conversationId) {
+        console.log('📞 Incoming call notification received for conversation:', conversationId);
+        // Call handling се прави чрез WebSocket, но notification-ът гарантира че потребителят е уведомен
+        // WebSocket signal-ът ще отвори IncomingCallScreen автоматично
+        // Тук само refresh-ваме conversations за да се вижда актуализираната информация
+        debouncedRefreshConversations();
+      }
+      // ✅ Обработка на NEW_MESSAGE notifications
+      else if (notificationType === 'NEW_MESSAGE' && conversationId) {
         // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation
         // Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
         console.log('📥 Fetching messages for conversation:', conversationId);
         fetchMessages(conversationId);
         
         // Refresh conversations list
+        debouncedRefreshConversations();
+      } else if (conversationId) {
+        // Fallback: ако има conversationId но няма type, все пак fetch-ваме messages
+        console.log('📥 Fetching messages for conversation (fallback):', conversationId);
+        fetchMessages(conversationId);
         debouncedRefreshConversations();
       } else {
         console.log('⚠️ Notification received but conversationId is missing or invalid:', conversationId);
@@ -75,14 +91,22 @@ export const usePushNotifications = () => {
       console.log('📬 Notification opened:', notification);
       const data = notification.data;
 
-      // Navigate to conversation if notification is about a message
+      // Navigate based on notification type
       if (data?.conversationId) {
         const conversationId = Number(data.conversationId);
-        console.log('📥 Fetching messages for conversation:', conversationId);
+        const notificationType = data?.type;
         
-        // ВИНАГИ fetch-ваме conversations и messages когато се отвори notification
-        fetchConversations();
-        fetchMessages(conversationId);
+        if (notificationType === 'INCOMING_CALL') {
+          console.log('📞 Incoming call notification opened for conversation:', conversationId);
+          // Call handling се прави чрез WebSocket
+          // Тук само refresh-ваме conversations
+          fetchConversations();
+        } else {
+          // NEW_MESSAGE или друг тип - fetch-ваме messages
+          console.log('📥 Fetching messages for conversation:', conversationId);
+          fetchConversations();
+          fetchMessages(conversationId);
+        }
       }
     },
     [fetchConversations, fetchMessages]
@@ -103,10 +127,13 @@ export const usePushNotifications = () => {
         // Изчакваме малко, за да се уверим че token е запазен след login
         await new Promise(resolve => setTimeout(resolve, 1500));
         
+        // Get app version from package.json
+        const appVersion = require('../../package.json').version || '0.0.1';
+        
         await pushNotificationService.registerDeviceToken({
           deviceToken,
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
-          appVersion: '1.0.0', // TODO: Get from app config
+          appVersion,
         });
       } catch (error: any) {
         // Ако получим 401 или 405 (вероятно изтекъл token), опитай да refresh-неш token и retry
