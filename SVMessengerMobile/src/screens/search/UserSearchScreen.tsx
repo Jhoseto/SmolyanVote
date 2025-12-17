@@ -3,7 +3,7 @@
  * Търсене на потребители и започване на нови разговори
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -12,6 +12,7 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Avatar, Loading } from '../../components/common';
@@ -20,15 +21,42 @@ import apiClient from '../../services/api/client';
 import { API_CONFIG } from '../../config/api';
 import { UserSearchResult } from '../../types/user';
 import { useConversationsStore } from '../../store/conversationsStore';
+import { useAuthStore } from '../../store/authStore';
 import { debounce, APP_CONSTANTS } from '../../utils/constants';
 
 export const UserSearchScreen: React.FC = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [followingUsers, setFollowingUsers] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingFollowing, setIsLoadingFollowing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { fetchConversations } = useConversationsStore();
+  const { user } = useAuthStore();
+
+  // Load following users on mount
+  useEffect(() => {
+    if (user) {
+      loadFollowingUsers();
+    }
+  }, [user]);
+
+  // Load following users
+  const loadFollowingUsers = async () => {
+    setIsLoadingFollowing(true);
+    try {
+      const response = await apiClient.get(API_CONFIG.ENDPOINTS.MESSENGER.SEARCH_FOLLOWING, {
+        params: { query: '' }, // Empty query to get all following users
+      });
+      setFollowingUsers(response.data || []);
+    } catch (err: any) {
+      console.error('Error loading following users:', err);
+      setFollowingUsers([]);
+    } finally {
+      setIsLoadingFollowing(false);
+    }
+  };
 
   // Debounced search function
   const performSearch = useCallback(
@@ -84,6 +112,9 @@ export const UserSearchScreen: React.FC = () => {
     }
   };
 
+  const hasSearchQuery = searchQuery.trim().length >= 2;
+  const showFollowingUsers = !hasSearchQuery && !isSearching;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.searchContainer}>
@@ -110,39 +141,82 @@ export const UserSearchScreen: React.FC = () => {
         </View>
       )}
 
-      <FlatList
-        data={searchResults}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.userItem}
-            onPress={() => handleUserSelect(item)}
-            activeOpacity={0.7}
-          >
-            <Avatar
-              imageUrl={item.imageUrl}
-              name={item.fullName}
-              size={56}
-              isOnline={item.isOnline}
-            />
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{item.fullName}</Text>
-              <Text style={styles.userUsername}>@{item.username}</Text>
+      {showFollowingUsers ? (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.listContent}>
+          {isLoadingFollowing ? (
+            <View style={styles.loadingContainer}>
+              <Loading size="small" />
             </View>
-            {item.isOnline && (
-              <View style={styles.onlineIndicator} />
-            )}
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          searchQuery.length >= 2 && !isSearching ? (
+          ) : followingUsers.length > 0 ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Следвани потребители</Text>
+              </View>
+              {followingUsers.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.userItem}
+                  onPress={() => handleUserSelect(item)}
+                  activeOpacity={0.7}
+                >
+                  <Avatar
+                    imageUrl={item.imageUrl}
+                    name={item.fullName}
+                    size={56}
+                    isOnline={item.isOnline}
+                  />
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{item.fullName}</Text>
+                    <Text style={styles.userUsername}>@{item.username}</Text>
+                  </View>
+                  {item.isOnline && (
+                    <View style={styles.onlineIndicator} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Няма резултати</Text>
+              <Text style={styles.emptyText}>Няма следвани потребители</Text>
+              <Text style={styles.emptySubtext}>Започни да следваш потребители за да ги видиш тук</Text>
             </View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-      />
+          )}
+        </ScrollView>
+      ) : (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.userItem}
+              onPress={() => handleUserSelect(item)}
+              activeOpacity={0.7}
+            >
+              <Avatar
+                imageUrl={item.imageUrl}
+                name={item.fullName}
+                size={56}
+                isOnline={item.isOnline}
+              />
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{item.fullName}</Text>
+                <Text style={styles.userUsername}>@{item.username}</Text>
+              </View>
+              {item.isOnline && (
+                <View style={styles.onlineIndicator} />
+              )}
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            hasSearchQuery && !isSearching ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Няма резултати</Text>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -188,8 +262,25 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
   },
+  scrollView: {
+    flex: 1,
+  },
   listContent: {
     paddingBottom: Spacing.xl,
+  },
+  sectionHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   userItem: {
     flexDirection: 'row',
@@ -232,6 +323,12 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontSize: Typography.fontSize.base,
     fontStyle: 'italic',
+    marginBottom: Spacing.xs,
+  },
+  emptySubtext: {
+    color: Colors.text.tertiary,
+    fontSize: Typography.fontSize.sm,
+    textAlign: 'center',
   },
 });
 

@@ -19,7 +19,13 @@ export type MainTabParamList = {
   Conversations: undefined;
   Chat: { conversationId: number; participantName: string };
   Search: undefined;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
+};
+
+export type ProfileStackParamList = {
+  ProfileMain: undefined;
+  Settings: undefined;
+  EditProfile: undefined;
 };
 
 export type ConversationsStackParamList = {

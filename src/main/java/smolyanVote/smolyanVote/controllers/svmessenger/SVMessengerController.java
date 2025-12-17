@@ -283,11 +283,13 @@ public class SVMessengerController {
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
-            SVMessageDTO message = messengerService.sendMessage(
-                    request.getConversationId(),
-                    request.getText(),
-                    currentUser
-            );
+            SVMessageDTO message = ((smolyanVote.smolyanVote.services.serviceImpl.SVMessengerServiceImpl) messengerService)
+                    .sendMessage(
+                            request.getConversationId(),
+                            request.getText(),
+                            currentUser,
+                            request.getParentMessageId()
+                    );
             
             return ResponseEntity.ok(message);
         } catch (IllegalArgumentException e) {

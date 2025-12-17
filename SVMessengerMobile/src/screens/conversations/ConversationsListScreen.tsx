@@ -3,7 +3,7 @@
  * Показва списък с всички разговори
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -14,6 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useConversations } from '../../hooks/useConversations';
 import { ConversationItem } from '../../components/conversations/ConversationItem';
+import { ConversationSearchBar } from '../../components/conversations/ConversationSearchBar';
 import { Loading } from '../../components/common';
 import { Colors, Spacing } from '../../theme';
 import { Conversation } from '../../types/conversation';
@@ -32,8 +33,32 @@ export const ConversationsListScreen: React.FC = () => {
     selectConversation,
   } = useConversations();
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Защита срещу undefined conversations
   const safeConversations = Array.isArray(conversations) ? conversations : [];
+
+  // Filter conversations based on search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return safeConversations;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return safeConversations.filter((conv) => {
+      if (!conv || !conv.participant) return false;
+      
+      const participantName = (conv.participant.fullName || '').toLowerCase();
+      const participantUsername = (conv.participant.username || '').toLowerCase();
+      const lastMessageText = (conv.lastMessage?.text || '').toLowerCase();
+      
+      return (
+        participantName.includes(query) ||
+        participantUsername.includes(query) ||
+        lastMessageText.includes(query)
+      );
+    });
+  }, [safeConversations, searchQuery]);
 
   const handleRefresh = () => {
     fetchConversations();
@@ -61,8 +86,13 @@ export const ConversationsListScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <ConversationSearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onClearSearch={() => setSearchQuery('')}
+      />
       <FlatList
-        data={safeConversations.filter((item) => item != null && item.id != null)}
+        data={filteredConversations.filter((item) => item != null && item.id != null)}
         keyExtractor={(item) => item?.id?.toString() || `temp-${Math.random()}`}
         renderItem={({ item }) => (
           item ? (
@@ -81,7 +111,9 @@ export const ConversationsListScreen: React.FC = () => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Няма разговори</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery.trim() ? 'Няма резултати' : 'Няма разговори'}
+            </Text>
           </View>
         }
       />

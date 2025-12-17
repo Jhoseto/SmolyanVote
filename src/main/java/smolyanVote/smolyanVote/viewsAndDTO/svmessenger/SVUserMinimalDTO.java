@@ -22,6 +22,7 @@ public class SVUserMinimalDTO {
     private String imageUrl;
     private Boolean isOnline;
     private Instant lastSeen;
+    private String bio;
     
     // ========== INNER MAPPER CLASS ==========
     
@@ -58,6 +59,9 @@ public class SVUserMinimalDTO {
             
             // Last seen (използваме lastOnline от UserEntity)
             dto.setLastSeen(user.getLastOnline());
+            
+            // Bio
+            dto.setBio(user.getBio());
             
             return dto;
         }

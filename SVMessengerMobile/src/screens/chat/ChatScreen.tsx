@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { ConversationsStackParamList } from '../../types/navigation';
@@ -18,10 +19,13 @@ import { useMessages } from '../../hooks/useMessages';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
 import { ChatHeader } from '../../components/chat/ChatHeader';
+import { MessageSearchBar } from '../../components/chat/MessageSearchBar';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import { Loading } from '../../components/common';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
+import { useAuthStore } from '../../store/authStore';
+import { Message } from '../../types/message';
 
 type ChatScreenRouteProp = RouteProp<ConversationsStackParamList, 'Chat'>;
 
@@ -33,6 +37,7 @@ export const ChatScreen: React.FC = () => {
   
   const conversation = conversations.find((c) => c.id === conversationId);
   const participant = conversation?.participant;
+  const { user } = useAuthStore();
 
   const {
     messages,
@@ -40,9 +45,17 @@ export const ChatScreen: React.FC = () => {
     isTyping,
     sendMessage,
     handleTyping,
+    loadMoreMessages,
+    hasMore,
+    isLoadingMore,
   } = useMessages(conversationId);
 
   const [inputText, setInputText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [replyToMessage, setReplyToMessage] = useState<{ id: number; text: string; senderName: string } | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Auto-scroll to bottom when messages change
@@ -75,15 +88,70 @@ export const ChatScreen: React.FC = () => {
     if (!inputText.trim()) return;
 
     const text = inputText.trim();
+    const parentMessageId = replyToMessage?.id;
     setInputText('');
+    setReplyToMessage(null);
 
     // Send message - it will arrive via WebSocket
-    await sendMessage(text);
+    await sendMessage(text, parentMessageId);
     
     // Scroll to bottom after sending
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 200);
+  };
+
+  const handleReply = (message: Message) => {
+    const senderName = message.senderId === user?.id
+      ? 'Вие'
+      : participantName || 'Потребител';
+    setReplyToMessage({
+      id: message.id,
+      text: message.text,
+      senderName,
+    });
+  };
+
+  const handleCancelReply = () => {
+    setReplyToMessage(null);
+  };
+
+  // Search functionality
+  useEffect(() => {
+    if (searchQuery.trim().length > 0) {
+      const results = messages
+        .map((msg, index) => (msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? index : -1))
+        .filter((index) => index !== -1);
+      setSearchResults(results);
+      setCurrentSearchIndex(0);
+    } else {
+      setSearchResults([]);
+      setCurrentSearchIndex(0);
+    }
+  }, [searchQuery, messages]);
+
+  const handleSearchNext = () => {
+    if (currentSearchIndex < searchResults.length - 1) {
+      setCurrentSearchIndex(currentSearchIndex + 1);
+      scrollToMessage(searchResults[currentSearchIndex + 1]);
+    }
+  };
+
+  const handleSearchPrevious = () => {
+    if (currentSearchIndex > 0) {
+      setCurrentSearchIndex(currentSearchIndex - 1);
+      scrollToMessage(searchResults[currentSearchIndex - 1]);
+    }
+  };
+
+  const scrollToMessage = (index: number) => {
+    if (flatListRef.current && messages[index]) {
+      flatListRef.current.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
   };
 
   if (isLoading && messages.length === 0) {
@@ -100,6 +168,22 @@ export const ChatScreen: React.FC = () => {
         conversationId={conversationId}
         isOnline={participant?.isOnline || false}
         onBack={() => navigation.goBack()}
+        onSearchPress={() => setShowSearch(!showSearch)}
+      />
+
+      {/* Message Search Bar */}
+      <MessageSearchBar
+        visible={showSearch}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onClose={() => {
+          setShowSearch(false);
+          setSearchQuery('');
+        }}
+        resultCount={searchResults.length}
+        currentIndex={currentSearchIndex}
+        onNext={handleSearchNext}
+        onPrevious={handleSearchPrevious}
       />
       <KeyboardAvoidingView
         style={styles.container}
@@ -110,41 +194,63 @@ export const ChatScreen: React.FC = () => {
         ref={flatListRef}
         data={messages}
         keyExtractor={(item, index) => item?.id?.toString() || `message-${index}`}
-        renderItem={({ item }) => (
-          <MessageBubble
-            message={item}
-            participantImageUrl={participant?.imageUrl}
-            participantName={participant?.fullName || participantName}
-          />
-        )}
+              renderItem={({ item }) => (
+                <MessageBubble
+                  message={item}
+                  participantImageUrl={participant?.imageUrl}
+                  participantName={participant?.fullName || participantName}
+                  onReply={handleReply}
+                />
+              )}
         contentContainerStyle={[
           styles.messagesContainer,
           messages.length === 0 && styles.emptyContainer,
         ]}
         inverted={false}
+        onEndReached={() => {
+          // Load more messages when scrolling to top (older messages)
+          if (hasMore && !isLoadingMore) {
+            loadMoreMessages();
+          }
+        }}
+        onEndReachedThreshold={0.3}
+        ListHeaderComponent={
+          isLoadingMore ? (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={Colors.green[500]} />
+              <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
+            </View>
+          ) : null
+        }
         onContentSizeChange={() => {
-          // Auto-scroll to bottom when content size changes
-          if (messages.length > 0) {
+          // Auto-scroll to bottom when content size changes (only if not loading more)
+          if (messages.length > 0 && !isLoadingMore) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
             }, 50);
           }
         }}
         onLayout={() => {
-          // Scroll to bottom on layout
-          if (messages.length > 0) {
+          // Scroll to bottom on layout (only if not loading more)
+          if (messages.length > 0 && !isLoadingMore) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
             }, 100);
           }
         }}
       />
-        {isTyping && <TypingIndicator name={participantName} />}
-        <MessageInput
-          value={inputText}
-          onChangeText={handleInputChange}
-          onSend={handleSend}
-        />
+            {isTyping && <TypingIndicator name={participantName} />}
+            <MessageInput
+              value={inputText}
+              onChangeText={handleInputChange}
+              onSend={handleSend}
+              replyPreview={replyToMessage ? {
+                messageId: replyToMessage.id,
+                text: replyToMessage.text,
+                senderName: replyToMessage.senderName,
+              } : null}
+              onCancelReply={handleCancelReply}
+            />
       </KeyboardAvoidingView>
     </View>
   );
@@ -167,6 +273,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingMoreContainer: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  loadingMoreText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.sm,
   },
 });
 

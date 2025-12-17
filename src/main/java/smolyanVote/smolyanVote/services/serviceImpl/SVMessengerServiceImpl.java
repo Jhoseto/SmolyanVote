@@ -154,6 +154,14 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Override
     @Transactional
     public SVMessageDTO sendMessage(Long conversationId, String text, UserEntity sender) {
+        return sendMessage(conversationId, text, sender, null);
+    }
+
+    /**
+     * Send message with optional parent message (for replies)
+     */
+    @Transactional
+    public SVMessageDTO sendMessage(Long conversationId, String text, UserEntity sender, Long parentMessageId) {
         try {
             // Validation
             if (text == null || text.trim().isEmpty()) {
@@ -174,6 +182,20 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             // Create message
             SVMessageEntity message = new SVMessageEntity(conversation, sender, text.trim());
+            
+            // Set parent message if this is a reply
+            if (parentMessageId != null) {
+                SVMessageEntity parentMessage = messageRepo.findById(parentMessageId)
+                        .orElseThrow(() -> new IllegalArgumentException("Parent message not found"));
+                
+                // Validate parent message is in the same conversation
+                if (!parentMessage.getConversation().getId().equals(conversationId)) {
+                    throw new IllegalArgumentException("Parent message must be in the same conversation");
+                }
+                
+                message.setParentMessage(parentMessage);
+            }
+            
             message = messageRepo.save(message);
 
             // Update conversation

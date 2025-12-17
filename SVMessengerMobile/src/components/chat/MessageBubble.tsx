@@ -4,35 +4,50 @@
  * Стил идентичен с web версията
  */
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Message } from '../../types/message';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
 import { Avatar } from '../common';
+import { MessageMenu } from './MessageMenu';
+import { EditMessageModal } from './EditMessageModal';
+import { MessageStatusModal } from './MessageStatusModal';
 
 interface MessageBubbleProps {
   message: Message;
   participantImageUrl?: string;
   participantName?: string;
+  onReply?: (message: Message) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message,
   participantImageUrl,
   participantName,
+  onReply,
 }) => {
   const { user } = useAuthStore();
   const isOwnMessage = message.senderId === user?.id;
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+
+  const handleLongPress = () => {
+    setShowMenu(true);
+  };
 
   return (
-    <View
-      style={[
-        styles.container,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage,
-      ]}
-    >
+    <>
+      <TouchableOpacity
+        style={[
+          styles.container,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage,
+        ]}
+        onLongPress={handleLongPress}
+        activeOpacity={0.9}
+      >
       {isOwnMessage ? (
         // Sent message - синкав градиент
         <LinearGradient
@@ -41,9 +56,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           end={{ x: 1, y: 1 }}
           style={[styles.bubble, styles.ownBubble]}
         >
+          {/* Reply Preview */}
+          {message.parentMessageText && (
+            <View style={styles.replyPreview}>
+              <View style={styles.replyLine} />
+              <View style={styles.replyContent}>
+                <Text style={styles.replyAuthor} numberOfLines={1}>
+                  {message.senderId === user?.id ? 'Вие' : participantName || 'Потребител'}
+                </Text>
+                <Text style={styles.replyText} numberOfLines={2}>
+                  {message.parentMessageText}
+                </Text>
+              </View>
+            </View>
+          )}
           <Text style={[styles.text, styles.ownText]}>
             {message.text}
           </Text>
+          {message.isEdited && (
+            <Text style={styles.editedBadge}>Редактирано</Text>
+          )}
           <View style={styles.footer}>
             <Text style={styles.time}>
               {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
@@ -51,7 +83,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 minute: '2-digit',
               })}
             </Text>
-            <View style={styles.status}>
+            <TouchableOpacity
+              onPress={() => setShowStatusModal(true)}
+              activeOpacity={0.7}
+              style={styles.status}
+            >
               {!message.isDelivered ? (
                 // 1 сива лястовица: SENT (не е delivered)
                 <Text style={styles.statusIcon}>✓</Text>
@@ -62,7 +98,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 // 2 зелени лястовици: READ (delivered и read)
                 <Text style={[styles.statusIcon, styles.readIcon]}>✓✓</Text>
               )}
-            </View>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       ) : (
@@ -80,6 +116,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             end={{ x: 1, y: 1 }}
             style={[styles.bubble, styles.otherBubble]}
           >
+            {/* Reply Preview */}
+            {message.parentMessageText && (
+              <View style={styles.replyPreview}>
+                <View style={[styles.replyLine, styles.replyLineOther]} />
+                <View style={styles.replyContent}>
+                  <Text style={styles.replyAuthor} numberOfLines={1}>
+                    {message.senderId === user?.id ? 'Вие' : participantName || 'Потребител'}
+                  </Text>
+                  <Text style={styles.replyText} numberOfLines={2}>
+                    {message.parentMessageText}
+                  </Text>
+                </View>
+              </View>
+            )}
             <Text style={[styles.text, styles.otherText]}>
               {message.text}
             </Text>
@@ -94,7 +144,37 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </LinearGradient>
         </View>
       )}
-    </View>
+      </TouchableOpacity>
+
+      {/* Message Menu */}
+      <MessageMenu
+        visible={showMenu}
+        messageId={message.id}
+        conversationId={message.conversationId}
+        messageText={message.text}
+        isOwnMessage={isOwnMessage}
+        onClose={() => setShowMenu(false)}
+        onEdit={() => setShowEditModal(true)}
+        onReply={() => onReply?.(message)}
+      />
+
+      {/* Edit Message Modal */}
+      {showEditModal && (
+        <EditMessageModal
+          visible={showEditModal}
+          messageId={message.id}
+          currentText={message.text}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
+
+      {/* Message Status Modal */}
+      <MessageStatusModal
+        visible={showStatusModal}
+        message={message}
+        onClose={() => setShowStatusModal(false)}
+      />
+    </>
   );
 };
 
@@ -183,6 +263,42 @@ const styles = StyleSheet.create({
   },
   readIcon: {
     color: '#ffffff', // Бяло за прочетени съобщения (като web версията)
+  },
+  editedBadge: {
+    fontSize: 10,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  replyPreview: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  replyLine: {
+    width: 3,
+    backgroundColor: Colors.green[500],
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  replyLineOther: {
+    backgroundColor: Colors.gray[400],
+  },
+  replyContent: {
+    flex: 1,
+  },
+  replyAuthor: {
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.secondary,
+    marginBottom: 2,
+  },
+  replyText: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
+    lineHeight: 16,
   },
 });
 

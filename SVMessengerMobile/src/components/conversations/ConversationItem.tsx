@@ -3,11 +3,14 @@
  * Показва един разговор в списъка
  */
 
-import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet, Alert } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Avatar, Badge } from '../common';
 import { Conversation } from '../../types/conversation';
 import { Colors, Typography, Spacing } from '../../theme';
+import { useConversationsStore } from '../../store/conversationsStore';
+import { TrashIcon, EyeSlashIcon } from '../common/Icons';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -18,6 +21,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   conversation,
   onPress,
 }) => {
+  const swipeableRef = useRef<Swipeable>(null);
+  const { deleteConversation, hideConversation } = useConversationsStore();
+
   // Защита срещу undefined данни
   if (!conversation || !conversation.participant) {
     console.error('ConversationItem: invalid conversation data', conversation);
@@ -40,8 +46,69 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const participantImage = participant?.imageUrl || undefined;
   const participantOnline = participant?.isOnline || false;
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Изтриване на разговор',
+      'Сигурен ли си, че искаш да изтриеш този разговор?',
+      [
+        { text: 'Отказ', style: 'cancel', onPress: () => swipeableRef.current?.close() },
+        {
+          text: 'Изтрий',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteConversation(conversation.id);
+            swipeableRef.current?.close();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleHide = () => {
+    Alert.alert(
+      'Скриване на разговор',
+      'Сигурен ли си, че искаш да скриеш този разговор?',
+      [
+        { text: 'Отказ', style: 'cancel', onPress: () => swipeableRef.current?.close() },
+        {
+          text: 'Скрий',
+          onPress: async () => {
+            await hideConversation(conversation.id);
+            swipeableRef.current?.close();
+          },
+        },
+      ]
+    );
+  };
+
+  const renderRightActions = () => (
+    <View style={styles.rightActions}>
+      <TouchableOpacity
+        style={[styles.actionButton, styles.hideButton]}
+        onPress={handleHide}
+        activeOpacity={0.8}
+      >
+        <EyeSlashIcon size={20} color={Colors.text.inverse} />
+        <Text style={styles.actionText}>Скрий</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.actionButton, styles.deleteButton]}
+        onPress={handleDelete}
+        activeOpacity={0.8}
+      >
+        <TrashIcon size={20} color={Colors.text.inverse} />
+        <Text style={styles.actionText}>Изтрий</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={40}
+    >
+      <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <Avatar
         imageUrl={participantImage}
         name={participantName}
@@ -68,7 +135,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           {unreadCount > 0 && <Badge count={unreadCount} size="small" />}
         </View>
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Swipeable>
   );
 };
 
@@ -116,6 +184,31 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.text.tertiary,
     fontStyle: 'italic',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingRight: Spacing.md,
+  },
+  actionButton: {
+    width: 80,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  hideButton: {
+    backgroundColor: Colors.gray[500],
+  },
+  deleteButton: {
+    backgroundColor: Colors.semantic.error,
+  },
+  actionText: {
+    color: Colors.text.inverse,
+    fontSize: Typography.fontSize.xs,
+    marginTop: Spacing.xs,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

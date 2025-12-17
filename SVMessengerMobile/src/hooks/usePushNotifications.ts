@@ -9,13 +9,17 @@ import { pushNotificationService } from '../services/notifications/pushNotificat
 import { Platform, AppState } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
+import { useCallsStore } from '../store/callsStore';
+import { CallState } from '../types/call';
 import { stompClient } from '../services/websocket/stompClient';
 import { debounce } from '../utils/constants';
+import { soundService } from '../services/sounds/soundService';
 
 export const usePushNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { fetchConversations } = useConversationsStore();
   const { fetchMessages } = useMessagesStore();
+  const { startCall, setCallState } = useCallsStore();
   
   // Оптимизация: Debounced refresh за conversations (избягва излишни API calls)
   const debouncedRefreshConversations = useRef(
@@ -85,11 +89,12 @@ export const usePushNotifications = () => {
 
   /**
    * Handle notification opened
+   * Когато app-ът се отвори от notification (затворен или в background)
    */
   const handleNotificationOpened = useCallback(
-    (notification: any) => {
+    async (notification: any) => {
       console.log('📬 Notification opened:', notification);
-      const data = notification.data;
+      const data = notification.data || notification;
 
       // Navigate based on notification type
       if (data?.conversationId) {
@@ -98,9 +103,53 @@ export const usePushNotifications = () => {
         
         if (notificationType === 'INCOMING_CALL') {
           console.log('📞 Incoming call notification opened for conversation:', conversationId);
-          // Call handling се прави чрез WebSocket
-          // Тук само refresh-ваме conversations
-          fetchConversations();
+          
+          // Намери conversation за да вземем participant информация
+          await fetchConversations();
+          
+          // Изчакай малко за да се заредят conversations
+          setTimeout(() => {
+            // Вземи актуализираните conversations от store
+            const { conversations } = useConversationsStore.getState();
+            const conversation = conversations.find((c) => c.id === conversationId);
+            const participant = conversation?.participant;
+            
+            if (participant) {
+              // Стартирай incoming call от notification data
+              console.log('📞 Starting incoming call from notification:', {
+                conversationId,
+                participantId: participant.id,
+                participantName: data.callerName || participant.fullName || 'Unknown',
+                participantImageUrl: participant.imageUrl,
+              });
+              
+              startCall(
+                conversationId,
+                participant.id,
+                data.callerName || participant.fullName || 'Unknown',
+                participant.imageUrl
+              );
+              setCallState(CallState.INCOMING);
+              
+              // Пусни звук за incoming call
+              soundService.playIncomingCallSound();
+              
+              // Свържи WebSocket ако не е свързан (за да получим call signals)
+              if (!stompClient.getConnected() && isAuthenticated && user) {
+                console.log('📞 Connecting WebSocket for incoming call...');
+                // WebSocket ще се свърже автоматично от useWebSocket hook
+                // Но тук можем да се уверим че е свързан
+              }
+            } else {
+              console.warn('⚠️ Participant not found for conversation:', conversationId);
+              // Fallback: опитай да стартираш call само с данните от notification
+              if (data.callerName) {
+                // Трябва да имаме callerId в notification data за да работи правилно
+                // За сега само refresh-ваме conversations
+                console.log('⚠️ Cannot start call - missing participant data');
+              }
+            }
+          }, 500);
         } else {
           // NEW_MESSAGE или друг тип - fetch-ваме messages
           console.log('📥 Fetching messages for conversation:', conversationId);
@@ -109,7 +158,7 @@ export const usePushNotifications = () => {
         }
       }
     },
-    [fetchConversations, fetchMessages]
+    [fetchConversations, fetchMessages, startCall, setCallState, isAuthenticated, user]
   );
 
   /**

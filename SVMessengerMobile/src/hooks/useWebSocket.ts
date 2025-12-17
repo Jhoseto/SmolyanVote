@@ -10,6 +10,7 @@ import { useAuthStore } from '../store/authStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useCallsStore } from '../store/callsStore';
+import { soundService } from '../services/sounds/soundService';
 import { Message, TypingStatus, MessageType } from '../types/message';
 import { Conversation } from '../types/conversation';
 import { CallState } from '../types/call';
@@ -62,6 +63,8 @@ export const useWebSocket = () => {
             readAt: data.readAt,
             deliveredAt: data.deliveredAt,
             type: (data.messageType || data.type || 'TEXT') as MessageType,
+            parentMessageId: data.parentMessageId,
+            parentMessageText: data.parentMessageText,
           };
           
           console.log('📨 Adding message to store:', message.id, 'for conversation:', message.conversationId);
@@ -81,6 +84,8 @@ export const useWebSocket = () => {
           // Increment unread count if message is from other user
           if (message.senderId !== user.id) {
             incrementUnreadCount(message.conversationId);
+            // Play message sound
+            soundService.playMessageSound();
           }
           
           console.log('✅ Message processed and added to store successfully');
@@ -222,10 +227,17 @@ export const useWebSocket = () => {
             data.callerAvatar
           );
           setCallState(CallState.INCOMING);
+          // Play incoming call sound
+          soundService.playIncomingCallSound();
         } else if (data.eventType === 'CALL_ACCEPT') {
+          // Stop incoming call sound when call is accepted
+          soundService.stopIncomingCallSound();
           setCallState(CallState.CONNECTING);
         } else if (data.eventType === 'CALL_REJECT' || data.eventType === 'CALL_END') {
           setCallState(CallState.DISCONNECTED);
+          // Stop all call sounds when call ends or is rejected
+          soundService.stopIncomingCallSound();
+          soundService.stopOutgoingCallSound();
         }
       }
     );

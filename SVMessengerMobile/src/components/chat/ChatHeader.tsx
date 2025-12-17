@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Platform } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Avatar } from '../common';
-import { ArrowLeftIcon, TelephoneIcon, CameraVideoIcon } from '../common/Icons';
+import { ArrowLeftIcon, TelephoneIcon, CameraVideoIcon, MagnifyingGlassIcon } from '../common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
@@ -20,6 +20,7 @@ interface ChatHeaderProps {
   conversationId: number;
   isOnline?: boolean;
   onBack?: () => void;
+  onSearchPress?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -29,6 +30,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   conversationId,
   isOnline = false,
   onBack,
+  onSearchPress,
 }) => {
   const { startCall } = useCalls();
   const { user } = useAuthStore();
@@ -120,6 +122,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
+            {/* Search Button */}
+            {onSearchPress && (
+              <TouchableOpacity
+                onPress={onSearchPress}
+                style={styles.actionButton}
+                activeOpacity={0.7}
+              >
+                <View style={styles.iconButton}>
+                  <MagnifyingGlassIcon size={20} color={Colors.text.inverse} />
+                </View>
+              </TouchableOpacity>
+            )}
+
             {/* Voice Call Button */}
             <TouchableOpacity
               onPress={handleVoiceCall}

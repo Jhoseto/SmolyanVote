@@ -62,11 +62,13 @@ public class SVMessengerWebSocketController {
             
             // Изпрати съобщението (през service)
             // Message се изпраща автоматично от service към получателя
-            messengerService.sendMessage(
-                    request.getConversationId(),
-                    request.getText(),
-                    sender
-            );
+            ((smolyanVote.smolyanVote.services.serviceImpl.SVMessengerServiceImpl) messengerService)
+                    .sendMessage(
+                            request.getConversationId(),
+                            request.getText(),
+                            sender,
+                            request.getParentMessageId()
+                    );
             
             log.debug("Message sent via WebSocket: conversationId={}, senderId={}", 
                     request.getConversationId(), sender.getId());

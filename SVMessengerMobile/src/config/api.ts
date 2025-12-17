@@ -42,6 +42,7 @@ export const API_CONFIG = {
       MESSAGES: '/api/svmessenger/messages/conversation/:id', // GET /api/svmessenger/messages/conversation/{id}
       SEND_MESSAGE: '/api/svmessenger/messages/send', // POST /api/svmessenger/messages/send
       SEARCH_USERS: '/api/svmessenger/users/search',
+      SEARCH_FOLLOWING: '/api/svmessenger/users/following', // GET /api/svmessenger/users/following?query=
       CALL_TOKEN: '/api/svmessenger/call/token',
       START_CONVERSATION: '/api/svmessenger/conversations/start', // POST to start new conversation
     },

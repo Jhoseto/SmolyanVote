@@ -12,12 +12,18 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ProfileStackParamList } from '../../types/navigation';
 import { Avatar, Button } from '../../components/common';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 
+type NavigationProp = NativeStackNavigationProp<ProfileStackParamList>;
+
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuthStore();
   const { setLoading } = useUIStore();
 
@@ -70,12 +76,25 @@ export const ProfileScreen: React.FC = () => {
       </View>
 
       <View style={styles.settingsSection}>
-        <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.settingItem} 
+          activeOpacity={0.7}
+          onPress={() => {
+            // TODO: Navigate to EditProfileScreen
+            navigation.navigate('EditProfile');
+          }}
+        >
           <Text style={styles.settingLabel}>Редактирай профил</Text>
           <Text style={styles.settingArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.settingItem} 
+          activeOpacity={0.7}
+          onPress={() => {
+            navigation.navigate('Settings');
+          }}
+        >
           <Text style={styles.settingLabel}>Настройки</Text>
           <Text style={styles.settingArrow}>›</Text>
         </TouchableOpacity>

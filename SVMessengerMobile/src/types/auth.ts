@@ -33,6 +33,7 @@ export interface User {
   imageUrl?: string;
   isOnline: boolean;
   lastSeen?: string;
+  bio?: string;
 }
 
 export interface AuthState {

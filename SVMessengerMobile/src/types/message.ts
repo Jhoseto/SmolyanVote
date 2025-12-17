@@ -13,6 +13,10 @@ export interface Message {
   readAt?: string;
   deliveredAt?: string;
   type: MessageType;
+  isEdited?: boolean;
+  editedAt?: string;
+  parentMessageId?: number;
+  parentMessageText?: string;
 }
 
 export enum MessageType {
@@ -25,6 +29,7 @@ export enum MessageType {
 export interface SendMessageRequest {
   conversationId: number;
   text: string;
+  parentMessageId?: number;
 }
 
 export interface SendMessageResponse {

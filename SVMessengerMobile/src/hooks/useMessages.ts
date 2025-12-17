@@ -8,6 +8,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { useMessagesStore } from '../store/messagesStore';
 import { useWebSocket } from './useWebSocket';
 import { useConversationsStore } from '../store/conversationsStore';
+import { soundService } from '../services/sounds/soundService';
 
 export const useMessages = (conversationId: number) => {
   const {
@@ -17,6 +18,8 @@ export const useMessages = (conversationId: number) => {
     fetchMessages,
     sendMessage,
     typingUsers,
+    pagination,
+    loadMoreMessages,
   } = useMessagesStore();
 
   const { sendTypingStatus, sendReadReceipt, subscribeToTypingStatus, unsubscribeFromTypingStatus } = useWebSocket();
@@ -88,7 +91,7 @@ export const useMessages = (conversationId: number) => {
   );
 
   const handleSendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, parentMessageId?: number) => {
       // Stop typing
       sendTypingStatus(conversationId, false);
 
@@ -101,6 +104,7 @@ export const useMessages = (conversationId: number) => {
             stompClient.send('/app/svmessenger/send', {
               conversationId,
               text,
+              parentMessageId,
             });
             
             // Не добавяме optimistic message тук - ще получим реалното съобщение от server през WebSocket
@@ -109,20 +113,26 @@ export const useMessages = (conversationId: number) => {
           } catch (error) {
             console.error('WebSocket send failed, using REST:', error);
             // Fallback to REST API
-            return await sendMessage(conversationId, text);
+            return await sendMessage(conversationId, text, parentMessageId);
           }
         } else {
           // WebSocket not connected, use REST API
-          return await sendMessage(conversationId, text);
+          return await sendMessage(conversationId, text, parentMessageId);
         }
       } catch (error) {
         console.error('Error sending message:', error);
         // Fallback to REST API
-        return await sendMessage(conversationId, text);
+        return await sendMessage(conversationId, text, parentMessageId);
       }
     },
     [conversationId, sendMessage, sendTypingStatus]
   );
+
+  const conversationPagination = pagination[conversationId] || {
+    currentPage: 0,
+    hasMore: false,
+    isLoadingMore: false,
+  };
 
   return {
     messages: conversationMessages,
@@ -131,7 +141,10 @@ export const useMessages = (conversationId: number) => {
     isTyping,
     sendMessage: handleSendMessage,
     handleTyping,
-    refreshMessages: () => fetchMessages(conversationId),
+    refreshMessages: () => fetchMessages(conversationId, 0, 50, false),
+    loadMoreMessages: () => loadMoreMessages(conversationId),
+    hasMore: conversationPagination.hasMore,
+    isLoadingMore: conversationPagination.isLoadingMore,
   };
 };
 

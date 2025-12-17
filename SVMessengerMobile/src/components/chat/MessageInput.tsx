@@ -3,55 +3,132 @@
  * Input за въвеждане и изпращане на съобщения
  */
 
-import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { SendIcon } from '../common/Icons';
+import { SendIcon, FaceSmileIcon, PaperClipIcon, XMarkIcon } from '../common/Icons';
+import { EmojiPicker } from './EmojiPicker';
 import { Colors, Typography, Spacing } from '../../theme';
+
+interface ReplyPreview {
+  messageId: number;
+  text: string;
+  senderName: string;
+}
 
 interface MessageInputProps {
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
+  replyPreview?: ReplyPreview | null;
+  onCancelReply?: () => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   value,
   onChangeText,
   onSend,
+  replyPreview,
+  onCancelReply,
 }) => {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleEmojiSelect = (emoji: string) => {
+    onChangeText(value + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleAttachPress = () => {
+    // TODO: File attachments placeholder
+    console.log('File attachments - coming soon');
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.inputWrapper}>
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder="Напиши съобщение..."
-          placeholderTextColor={Colors.text.tertiary}
-          multiline
-          maxLength={1000}
-        />
-      </View>
-      <TouchableOpacity
-        onPress={onSend}
-        disabled={!value.trim()}
-        activeOpacity={0.8}
-        style={styles.sendButtonWrapper}
-      >
-        <LinearGradient
-          colors={value.trim() 
-            ? [Colors.green[500], Colors.green[600]]
-            : [Colors.gray[400], Colors.gray[500]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.sendButton, !value.trim() && styles.sendButtonDisabled]}
+    <>
+      {/* Reply Preview */}
+      {replyPreview && (
+        <View style={styles.replyPreviewContainer}>
+          <View style={styles.replyPreviewContent}>
+            <View style={styles.replyLine} />
+            <View style={styles.replyTextContainer}>
+              <Text style={styles.replyAuthor} numberOfLines={1}>
+                Отговор на {replyPreview.senderName}
+              </Text>
+              <Text style={styles.replyText} numberOfLines={1}>
+                {replyPreview.text}
+              </Text>
+            </View>
+            {onCancelReply && (
+              <TouchableOpacity
+                onPress={onCancelReply}
+                style={styles.cancelReplyButton}
+                activeOpacity={0.7}
+              >
+                <XMarkIcon size={18} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.container}>
+        {/* Attach Button (placeholder) */}
+        <TouchableOpacity
+          onPress={handleAttachPress}
+          style={styles.iconButton}
+          activeOpacity={0.7}
         >
-          <SendIcon size={20} color={Colors.text.inverse} />
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+          <PaperClipIcon size={22} color={Colors.text.secondary} />
+        </TouchableOpacity>
+
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={replyPreview ? "Напиши отговор..." : "Напиши съобщение..."}
+            placeholderTextColor={Colors.text.tertiary}
+            multiline
+            maxLength={1000}
+          />
+        </View>
+
+        {/* Emoji Button */}
+        <TouchableOpacity
+          onPress={() => setShowEmojiPicker(true)}
+          style={styles.iconButton}
+          activeOpacity={0.7}
+        >
+          <FaceSmileIcon size={22} color={Colors.text.secondary} />
+        </TouchableOpacity>
+
+        {/* Send Button */}
+        <TouchableOpacity
+          onPress={onSend}
+          disabled={!value.trim()}
+          activeOpacity={0.8}
+          style={styles.sendButtonWrapper}
+        >
+          <LinearGradient
+            colors={value.trim() 
+              ? [Colors.green[500], Colors.green[600]]
+              : [Colors.gray[400], Colors.gray[500]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.sendButton, !value.trim() && styles.sendButtonDisabled]}
+          >
+            <SendIcon size={20} color={Colors.text.inverse} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      {/* Emoji Picker Modal */}
+      <EmojiPicker
+        visible={showEmojiPicker}
+        onEmojiSelect={handleEmojiSelect}
+        onClose={() => setShowEmojiPicker(false)}
+      />
+    </>
   );
 };
 
@@ -70,9 +147,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  iconButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.xs,
+  },
   inputWrapper: {
     flex: 1,
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   input: {
     backgroundColor: Colors.background.primary,
@@ -111,6 +195,46 @@ const styles = StyleSheet.create({
     opacity: 0.4,
     shadowOpacity: 0,
     elevation: 0,
+  },
+  replyPreviewContainer: {
+    backgroundColor: Colors.background.secondary,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.light,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  replyPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderRadius: 8,
+    padding: Spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.green[500],
+  },
+  replyLine: {
+    width: 3,
+    height: '100%',
+    backgroundColor: Colors.green[500],
+    borderRadius: 2,
+    marginRight: Spacing.sm,
+  },
+  replyTextContainer: {
+    flex: 1,
+  },
+  replyAuthor: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.secondary,
+    marginBottom: 2,
+  },
+  replyText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.tertiary,
+  },
+  cancelReplyButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
 });
 

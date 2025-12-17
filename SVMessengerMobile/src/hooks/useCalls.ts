@@ -7,6 +7,7 @@ import { useCallback, useEffect } from 'react';
 import { useCallsStore } from '../store/callsStore';
 import { useAuthStore } from '../store/authStore';
 import { liveKitService } from '../services/calls/liveKitService';
+import { soundService } from '../services/sounds/soundService';
 import { CallState } from '../types/call';
 import { stompClient } from '../services/websocket/stompClient';
 
@@ -28,6 +29,8 @@ export const useCalls = () => {
   useEffect(() => {
     liveKitService.onConnected(() => {
       setCallState(CallState.CONNECTED);
+      // Stop outgoing call sound when connected
+      soundService.stopOutgoingCallSound();
     });
 
     liveKitService.onDisconnected(() => {
@@ -63,6 +66,9 @@ export const useCalls = () => {
         // Start call in store (will be updated with imageUrl if available)
         startCall(conversationId, participantId, participantName);
 
+        // Play outgoing call sound
+        soundService.playOutgoingCallSound();
+
         // Send call signal via WebSocket
         if (stompClient.getConnected()) {
           stompClient.send('/app/svmessenger/call-signal', {
@@ -76,6 +82,7 @@ export const useCalls = () => {
 
         // Connect to LiveKit room
         await liveKitService.connect(token, roomName, serverUrl);
+        // Note: outgoing call sound will be stopped in onConnected callback
       } catch (error) {
         console.error('Error starting call:', error);
         clearCall();
@@ -89,6 +96,8 @@ export const useCalls = () => {
     if (!currentCall) return;
 
     try {
+      // Stop incoming call sound when answering
+      soundService.stopIncomingCallSound();
       answerCall();
 
       // Generate call token
@@ -129,6 +138,8 @@ export const useCalls = () => {
       });
     }
 
+    // Stop incoming call sound when rejecting
+    soundService.stopIncomingCallSound();
     rejectCall();
     liveKitService.disconnect();
   }, [currentCall, rejectCall]);
@@ -146,6 +157,9 @@ export const useCalls = () => {
       });
     }
 
+    // Stop all call sounds when ending call
+    soundService.stopIncomingCallSound();
+    soundService.stopOutgoingCallSound();
     liveKitService.disconnect();
     endCall();
   }, [currentCall, endCall]);

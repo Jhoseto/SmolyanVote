@@ -14,6 +14,8 @@ interface ConversationsStore extends ConversationsState {
   addConversation: (conversation: Conversation) => void;
   updateConversation: (conversationId: number, updates: Partial<Conversation>) => void;
   removeConversation: (conversationId: number) => void;
+  deleteConversation: (conversationId: number) => Promise<boolean>;
+  hideConversation: (conversationId: number) => Promise<boolean>;
   selectConversation: (conversationId: number | null) => void;
   markAsRead: (conversationId: number) => void;
   incrementUnreadCount: (conversationId: number) => void;
@@ -87,13 +89,37 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     }));
   },
 
-  // Remove conversation
+  // Remove conversation (local only)
   removeConversation: (conversationId: number) => {
     set((state) => ({
       conversations: state.conversations.filter((conv) => conv.id !== conversationId),
       selectedConversationId:
         state.selectedConversationId === conversationId ? null : state.selectedConversationId,
     }));
+  },
+
+  // Delete conversation (API call)
+  deleteConversation: async (conversationId: number) => {
+    try {
+      await apiClient.delete(`/api/svmessenger/conversations/${conversationId}`);
+      get().removeConversation(conversationId);
+      return true;
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to delete conversation' });
+      return false;
+    }
+  },
+
+  // Hide conversation (API call)
+  hideConversation: async (conversationId: number) => {
+    try {
+      await apiClient.put(`/api/svmessenger/conversations/${conversationId}/hide`);
+      get().removeConversation(conversationId);
+      return true;
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to hide conversation' });
+      return false;
+    }
   },
 
   // Select conversation

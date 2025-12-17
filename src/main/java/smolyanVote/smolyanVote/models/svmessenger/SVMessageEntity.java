@@ -63,6 +63,11 @@ public class SVMessageEntity {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
+    // Reply to message support
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_message_id")
+    private SVMessageEntity parentMessage;
+
     public void markAsRead() {
         if (!this.isRead) {
             this.isRead = true;

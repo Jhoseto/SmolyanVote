@@ -23,4 +23,6 @@ public class SVSendMessageRequest {
     private String text;
     
     private String messageType = "TEXT";
+    
+    private Long parentMessageId; // For reply functionality
 }

@@ -30,6 +30,8 @@ public class SVMessageDTO {
     private String messageType;
     private Boolean isEdited;
     private Instant editedAt;
+    private Long parentMessageId;
+    private String parentMessageText; // Preview of parent message
 
     // ========== INNER MAPPER CLASS ==========
 
@@ -64,6 +66,12 @@ public class SVMessageDTO {
             dto.setIsEdited(message.getIsEdited());
             dto.setEditedAt(message.getEditedAt() != null ?
                     message.getEditedAt().atZone(ZoneId.systemDefault()).toInstant() : null);
+            
+            // Parent message info for replies
+            if (message.getParentMessage() != null) {
+                dto.setParentMessageId(message.getParentMessage().getId());
+                dto.setParentMessageText(message.getParentMessage().getMessageText());
+            }
 
             return dto;
         }

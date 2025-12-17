@@ -44,6 +44,11 @@ class ApiClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
+        // За FormData не задаваме Content-Type - Axios ще го зададе автоматично
+        if (config.data instanceof FormData && config.headers) {
+          delete config.headers['Content-Type'];
+        }
+        
         return config;
       },
       (error: AxiosError) => {

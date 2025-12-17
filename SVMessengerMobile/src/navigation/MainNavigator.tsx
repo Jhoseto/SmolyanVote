@@ -6,16 +6,19 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { MainTabParamList, ConversationsStackParamList } from '../types/navigation';
+import { MainTabParamList, ConversationsStackParamList, ProfileStackParamList } from '../types/navigation';
 import { ConversationsListScreen } from '../screens/conversations/ConversationsListScreen';
 import { ChatScreen } from '../screens/chat/ChatScreen';
 import { UserSearchScreen } from '../screens/search/UserSearchScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
+import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { Colors } from '../theme';
 import { ChatIcon, SearchIcon, PersonIcon, ChatIconSolid, SearchIconSolid, PersonIconSolid } from '../components/common/Icons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const ConversationsStack = createNativeStackNavigator<ConversationsStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 // Conversations Stack Navigator
 const ConversationsNavigator: React.FC = () => {
@@ -44,6 +47,39 @@ const ConversationsNavigator: React.FC = () => {
         }}
       />
     </ConversationsStack.Navigator>
+  );
+};
+
+// Profile Stack Navigator
+const ProfileNavigator: React.FC = () => {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.green[500],
+        },
+        headerTintColor: Colors.text.inverse,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <ProfileStack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{ title: 'Профил' }}
+      />
+      <ProfileStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: 'Настройки' }}
+      />
+      <ProfileStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: 'Редактирай профил' }}
+      />
+    </ProfileStack.Navigator>
   );
 };
 
@@ -102,7 +138,7 @@ export const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileNavigator}
         options={{
           tabBarLabel: 'Профил',
           tabBarIcon: ({ color, focused }) =>
