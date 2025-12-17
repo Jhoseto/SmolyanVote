@@ -8,4 +8,5 @@ export { Avatar } from './Avatar';
 export { Badge } from './Badge';
 export { Loading } from './Loading';
 export { OfflineIndicator } from './OfflineIndicator';
+export * from './Icons';
 

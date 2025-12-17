@@ -12,6 +12,7 @@ import { ChatScreen } from '../screens/chat/ChatScreen';
 import { UserSearchScreen } from '../screens/search/UserSearchScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { Colors } from '../theme';
+import { ChatIcon, SearchIcon, PersonIcon, ChatIconSolid, SearchIconSolid, PersonIconSolid } from '../components/common/Icons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const ConversationsStack = createNativeStackNavigator<ConversationsStackParamList>();
@@ -38,10 +39,9 @@ const ConversationsNavigator: React.FC = () => {
       <ConversationsStack.Screen
         name="Chat"
         component={ChatScreen}
-        options={({ route }) => ({
-          title: route.params.participantName,
-          headerBackTitle: 'Назад',
-        })}
+        options={{
+          headerShown: false, // Use custom header instead
+        }}
       />
     </ConversationsStack.Navigator>
   );
@@ -58,6 +58,19 @@ export const MainNavigator: React.FC = () => {
         tabBarStyle: {
           backgroundColor: Colors.background.primary,
           borderTopColor: Colors.border.light,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
@@ -66,7 +79,12 @@ export const MainNavigator: React.FC = () => {
         component={ConversationsNavigator}
         options={{
           tabBarLabel: 'Разговори',
-          // TODO: Add tabBarIcon
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <ChatIconSolid size={24} color={color} />
+            ) : (
+              <ChatIcon size={24} color={Colors.text.secondary} />
+            ),
         }}
       />
       <Tab.Screen
@@ -74,7 +92,12 @@ export const MainNavigator: React.FC = () => {
         component={UserSearchScreen}
         options={{
           tabBarLabel: 'Търсене',
-          // TODO: Add tabBarIcon
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <SearchIconSolid size={24} color={color} />
+            ) : (
+              <SearchIcon size={24} color={Colors.text.secondary} />
+            ),
         }}
       />
       <Tab.Screen
@@ -82,7 +105,12 @@ export const MainNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Профил',
-          // TODO: Add tabBarIcon
+          tabBarIcon: ({ color, focused }) =>
+            focused ? (
+              <PersonIconSolid size={24} color={color} />
+            ) : (
+              <PersonIcon size={24} color={Colors.text.secondary} />
+            ),
         }}
       />
     </Tab.Navigator>

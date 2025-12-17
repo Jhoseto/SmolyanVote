@@ -58,3 +58,4 @@ cd ios && pod install && cd ..
 - За production, използвай отделни Firebase проекти за dev и prod
 
 
+

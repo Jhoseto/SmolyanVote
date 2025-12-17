@@ -10,12 +10,19 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Message } from '../../types/message';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
+import { Avatar } from '../common';
 
 interface MessageBubbleProps {
   message: Message;
+  participantImageUrl?: string;
+  participantName?: string;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
+  message,
+  participantImageUrl,
+  participantName,
+}) => {
   const { user } = useAuthStore();
   const isOwnMessage = message.senderId === user?.id;
 
@@ -27,9 +34,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       ]}
     >
       {isOwnMessage ? (
-        // Sent message - синкав градиент (като web версията)
+        // Sent message - синкав градиент
         <LinearGradient
-          colors={['#f0f9ff', '#e0f2fe', '#bae6fd', '#7dd3fc']}
+          colors={['#e0f2fe', '#bae6fd', '#7dd3fc']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.bubble, styles.ownBubble]}
@@ -59,25 +66,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </View>
         </LinearGradient>
       ) : (
-        // Received message - сив градиент (като web версията)
-        <LinearGradient
-          colors={['#f8fafc', '#f1f5f9', '#e2e8f0']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.bubble, styles.otherBubble]}
-        >
-          <Text style={[styles.text, styles.otherText]}>
-            {message.text}
-          </Text>
-          <View style={styles.footer}>
-            <Text style={styles.time}>
-              {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+        // Received message - сив градиент с avatar
+        <View style={styles.otherMessageContainer}>
+          <Avatar
+            imageUrl={participantImageUrl}
+            name={participantName || 'User'}
+            size={32}
+            style={styles.messageAvatar}
+          />
+          <LinearGradient
+            colors={['#ffffff', '#f8fafc', '#f1f5f9']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.bubble, styles.otherBubble]}
+          >
+            <Text style={[styles.text, styles.otherText]}>
+              {message.text}
             </Text>
-          </View>
-        </LinearGradient>
+            <View style={styles.footer}>
+              <Text style={styles.time}>
+                {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
       )}
     </View>
   );
@@ -94,33 +109,39 @@ const styles = StyleSheet.create({
   otherMessage: {
     justifyContent: 'flex-start',
   },
+  otherMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
+    maxWidth: '85%',
+  },
+  messageAvatar: {
+    marginBottom: 2,
+  },
   bubble: {
     maxWidth: '75%',
-    paddingVertical: 12, // var(--svm-space-3)
-    paddingHorizontal: 16, // var(--svm-space-4)
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    // Shadows като web версията
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2, // Android shadow
+    elevation: 3,
     borderWidth: 1,
   },
   ownBubble: {
     borderBottomRightRadius: 6,
-    borderColor: 'rgba(34, 197, 94, 0.2)', // rgba(34, 197, 94, 0.2)
-    // Sent shadow: 0 2px 8px rgba(34, 197, 94, 0.15)
+    borderColor: 'rgba(34, 197, 94, 0.2)',
     shadowColor: '#22c55e',
     shadowOpacity: 0.15,
   },
   otherBubble: {
     borderBottomLeftRadius: 6,
-    borderColor: 'rgba(255, 255, 255, 0.4)', // rgba(255, 255, 255, 0.4)
-    // Received shadow: 0 2px 8px rgba(0, 0, 0, 0.08)
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     shadowColor: '#000',
     shadowOpacity: 0.08,
   },

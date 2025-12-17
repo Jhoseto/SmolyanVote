@@ -17,7 +17,8 @@ import { ConversationsStackParamList } from '../../types/navigation';
 import { useMessages } from '../../hooks/useMessages';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
-import { CallButton } from '../../components/chat/CallButton';
+import { ChatHeader } from '../../components/chat/ChatHeader';
+import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import { Loading } from '../../components/common';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
@@ -90,16 +91,32 @@ export const ChatScreen: React.FC = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <FlatList
+    <View style={styles.wrapper}>
+      {/* Custom Header */}
+      <ChatHeader
+        participantName={participantName}
+        participantImageUrl={participant?.imageUrl}
+        participantId={participant?.id || 0}
+        conversationId={conversationId}
+        isOnline={participant?.isOnline || false}
+        onBack={() => navigation.goBack()}
+      />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <FlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={(item, index) => item?.id?.toString() || `message-${index}`}
-        renderItem={({ item }) => <MessageBubble message={item} />}
+        renderItem={({ item }) => (
+          <MessageBubble
+            message={item}
+            participantImageUrl={participant?.imageUrl}
+            participantName={participant?.fullName || participantName}
+          />
+        )}
         contentContainerStyle={[
           styles.messagesContainer,
           messages.length === 0 && styles.emptyContainer,
@@ -122,31 +139,22 @@ export const ChatScreen: React.FC = () => {
           }
         }}
       />
-      {isTyping && (
-        <View style={styles.typingContainer}>
-          <Text style={styles.typingText}>{participantName} пише...</Text>
-        </View>
-      )}
-      {participant && (
-        <View style={styles.callButtonContainer}>
-          <CallButton
-            conversationId={conversationId}
-            participantId={participant.id}
-            participantName={participant.fullName}
-            participantImageUrl={participant.imageUrl}
-          />
-        </View>
-      )}
-      <MessageInput
-        value={inputText}
-        onChangeText={handleInputChange}
-        onSend={handleSend}
-      />
-    </KeyboardAvoidingView>
+        {isTyping && <TypingIndicator name={participantName} />}
+        <MessageInput
+          value={inputText}
+          onChangeText={handleInputChange}
+          onSend={handleSend}
+        />
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary,
@@ -159,21 +167,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  typingContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.background.primary,
-  },
-  typingText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    fontStyle: 'italic',
-  },
-  callButtonContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    alignItems: 'flex-end',
   },
 });
 

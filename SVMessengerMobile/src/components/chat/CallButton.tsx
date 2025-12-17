@@ -8,6 +8,7 @@ import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
+import { TelephoneIcon } from '../common/Icons';
 
 interface CallButtonProps {
   conversationId: number;
@@ -32,7 +33,7 @@ export const CallButton: React.FC<CallButtonProps> = ({
 
   return (
     <TouchableOpacity style={styles.button} onPress={handleCall} activeOpacity={0.7}>
-      <Text style={styles.icon}>📞</Text>
+      <TelephoneIcon size={20} color={Colors.text.inverse} />
       <Text style={styles.label}>Обаждане</Text>
     </TouchableOpacity>
   );
@@ -47,9 +48,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.green[500],
     borderRadius: 20,
     gap: Spacing.xs,
-  },
-  icon: {
-    fontSize: Typography.fontSize.base,
   },
   label: {
     fontSize: Typography.fontSize.sm,
