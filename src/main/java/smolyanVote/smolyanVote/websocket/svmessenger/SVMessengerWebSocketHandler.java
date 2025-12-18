@@ -240,7 +240,6 @@ public class SVMessengerWebSocketHandler {
         }
 
         try {
-            log.info("Sending call signal to principal: {} - eventType: {}", recipientPrincipalName, signal.getEventType());
 
             messagingTemplate.convertAndSendToUser(
                     recipientPrincipalName,

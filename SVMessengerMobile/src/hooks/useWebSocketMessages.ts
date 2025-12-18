@@ -83,10 +83,8 @@ export const useWebSocketMessages = () => {
         console.log('📨 Message received for closed conversation, updating and incrementing unread count');
 
         if (conversationExists) {
-          updateConversationWithNewMessage(message.conversationId, {
-            text: message.text,
-            createdAt: message.createdAt,
-          });
+          // Conversation exists - update last message and increment unread count
+          updateConversationWithNewMessage(message.conversationId, message.text, message.createdAt, true); // incrementUnread = true
         } else {
           // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
           console.log('📨 Conversation not found, fetching conversation details');
@@ -96,10 +94,7 @@ export const useWebSocketMessages = () => {
 
               if (alreadyExists) {
                 // Conversation already added, just update it
-                updateConversationWithNewMessage(conv.id, {
-                  text: message.text,
-                  createdAt: message.createdAt,
-                });
+                updateConversationWithNewMessage(conv.id, message.text, message.createdAt, true); // incrementUnread = true
               } else {
                 // Add new conversation with unreadCount incremented (exactly like web version)
                 addConversation({

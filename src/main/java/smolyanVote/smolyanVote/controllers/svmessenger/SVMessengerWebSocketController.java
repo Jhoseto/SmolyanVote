@@ -170,7 +170,6 @@ public class SVMessengerWebSocketController {
                     ? recipient.getEmail().toLowerCase()
                     : recipient.getUsername().toLowerCase();
 
-            log.info("Forwarding call signal from {} to {} (principal: {})", sender.getId(), recipientUserId, recipientPrincipal);
 
             // Изпращане на WebSocket signal
             wsHandler.sendCallSignal(recipientPrincipal, signal);
@@ -186,7 +185,6 @@ public class SVMessengerWebSocketController {
                             callerName,
                             signal.getConversationId()
                     );
-                    log.info("✅ Push notification sent for incoming call to user: {}", recipientUserId);
                 } catch (Exception pushError) {
                     log.error("❌ Failed to send push notification for incoming call: {}", pushError.getMessage());
                     // Не прекъсваме WebSocket signal-а дори ако push notification fail-не
@@ -207,7 +205,6 @@ public class SVMessengerWebSocketController {
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        log.info("🔌 WebSocket connection established - Session ID: {}", headerAccessor.getSessionId());
 
         try {
             // Извади user info от session
@@ -219,7 +216,6 @@ public class SVMessengerWebSocketController {
                 return;
             }
             
-            log.info("✅ WebSocket Principal found: {}", principal.getName());
             
             UserEntity user = getUserFromPrincipal(principal);
             
@@ -228,7 +224,6 @@ public class SVMessengerWebSocketController {
                 return;
             }
             
-            log.info("✅ WebSocket UserEntity found: ID={}, Email={}", user.getId(), user.getEmail());
             
             // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
             Integer oldStatus = user.getOnlineStatus();
@@ -236,12 +231,9 @@ public class SVMessengerWebSocketController {
             user.setLastOnline(Instant.now());
             userRepository.save(user);
             
-            log.info("✅ Online status updated in database: User ID={}, Old Status={}, New Status=1", 
-                    user.getId(), oldStatus != null ? oldStatus : 0);
 
             // ✅ СЛЕД ТОВА: Broadcast че е онлайн
             wsHandler.broadcastOnlineStatus(user.getId(), true);
-            log.info("✅ Online status broadcasted: User ID={}, Status=ONLINE", user.getId());
             
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
@@ -266,11 +258,9 @@ public class SVMessengerWebSocketController {
             // Извади user info от session
             Principal principal = headerAccessor.getUser();
             if (principal != null) {
-                log.info("WebSocket disconnected - Principal name: {}", principal.getName());
                 UserEntity user = getUserFromPrincipal(principal);
                 
                 if (user != null) {
-                    log.info("WebSocket disconnected - User ID: {}, Email: {}", user.getId(), user.getEmail());
                     
                     // ✅ ПЪРВО: Обнови офлайн статуса в базата данни
                     user.setOnlineStatus(0);
@@ -278,7 +268,6 @@ public class SVMessengerWebSocketController {
                     userRepository.save(user);
 
                     // ✅ СЛЕД ТОВА: Broadcast че е офлайн
-                    log.info("Broadcasting offline status for user ID: {}", user.getId());
                     wsHandler.broadcastOnlineStatus(user.getId(), false);
                 } else {
                     log.warn("WebSocket disconnected but user not found for principal: {}", principal.getName());

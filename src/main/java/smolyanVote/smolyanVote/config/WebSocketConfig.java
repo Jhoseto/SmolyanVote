@@ -122,9 +122,7 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
 
         // РЕШЕНИЕ: ДВА endpoint-а - един за SockJS (web) и един за plain WebSocket (mobile)
         // Mobile clients използват plain WebSocket за да се избегнат проблеми с SockJS headers
-        log.info("🔌 Registering universal SockJS STOMP endpoint for all clients");
-        log.info("🔌 Active profile: {}", activeProfile);
-        log.info("🔌 Allowed origins: {}", java.util.Arrays.toString(allowedOrigins));
+        log.info("WebSocket endpoints configured for profile: {}", activeProfile);
 
         // Universal SockJS endpoint за всички clients
         // SockJS автоматично предоставя WebSocket fallbacks и работи с React Native
@@ -133,7 +131,6 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
                 .addInterceptors(webSocketHandshakeInterceptor)
                 .withSockJS();
 
-        log.info("✅ Universal SockJS STOMP endpoint registered: /ws-svmessenger");
     }
 
     /**

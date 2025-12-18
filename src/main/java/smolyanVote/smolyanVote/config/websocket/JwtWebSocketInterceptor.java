@@ -65,29 +65,24 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
         }
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.info("🔐 WebSocket CONNECT command received - Session ID: {}", accessor.getSessionId());
 
             String token = null;
 
             // 1. Първо проверяваме Authorization header (за SockJS clients)
             List<String> authHeaders = accessor.getNativeHeader("Authorization");
-            log.info("🔐 Authorization headers: {}", authHeaders != null ? authHeaders.size() : "NULL");
 
             if (authHeaders != null && !authHeaders.isEmpty()) {
                 String authHeader = authHeaders.get(0);
                 if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
                     token = authHeader.substring(7);
-                    log.info("🔐 JWT token extracted from Authorization header (length: {})", token.length());
                 }
             }
 
             // 2. Ако няма в headers, проверяваме session attributes (от handshake interceptor)
             if (token == null) {
-                log.info("🔐 No Authorization header found, checking session attributes...");
                 Object accessToken = accessor.getSessionAttributes().get("access_token");
                 if (accessToken instanceof String) {
                     token = (String) accessToken;
-                    log.info("🔐 JWT token extracted from session attributes (length: {})", token.length());
                 }
             }
 
@@ -96,49 +91,38 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                 List<String> sockJsHeaders = accessor.getNativeHeader("access_token");
                 if (sockJsHeaders != null && !sockJsHeaders.isEmpty()) {
                     token = sockJsHeaders.get(0);
-                    log.info("🔐 JWT token extracted from access_token header (length: {})", token.length());
                 }
             }
 
             // 4. Ако все още няма token, проверяваме URL query parameters от session attributes (fallback за стари clients)
             if (token == null) {
-                log.info("🔐 No token found in headers or session, checking URL query parameters from session attributes...");
                 Object uriObj = accessor.getSessionAttributes().get("websocket_uri");
                 if (uriObj instanceof String) {
                     String uriString = (String) uriObj;
-                    log.info("🔐 WebSocket URI from session: {}", uriString);
-
                     try {
                         java.net.URI uri = new java.net.URI(uriString);
                         String query = uri.getQuery();
-                        log.info("🔐 URL query: {}", query);
-
                         if (query != null && query.contains("access_token=")) {
                             String[] params = query.split("&");
                             for (String param : params) {
                                 if (param.startsWith("access_token=")) {
                                     token = param.substring("access_token=".length());
-                                    log.info("🔐 JWT token extracted from URL query parameter (length: {})", token.length());
                                     break;
                                 }
                             }
                         }
                     } catch (Exception e) {
-                        log.warn("🔐 Failed to parse WebSocket URI: {}", e.getMessage());
+                        log.warn("Failed to parse WebSocket URI: {}", e.getMessage());
                     }
                 }
             }
 
             if (token == null) {
-                log.warn("⚠️ No JWT token found in any location (headers, session attributes, URL query)");
-                log.info("🔐 Session attributes: {}", accessor.getSessionAttributes());
-                log.info("🔐 All native headers: {}", accessor.toNativeHeaderMap());
-                log.info("🔐 All headers: {}", accessor.toMap());
+                log.warn("No JWT token found in WebSocket connection - Session ID: {}", accessor.getSessionId());
                 return message; // Return early if no token
             }
 
             if (token != null) {
-                log.info("🔐 JWT token extracted (length: {})", token.length());
 
                 try {
                     // Валидация на token
@@ -176,8 +160,6 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                                         // Set authentication в accessor
                                         accessor.setUser(authentication);
 
-                                        log.info("✅ WebSocket JWT authentication successful for user: {} (principal name: {})", 
-                                                email, userPrincipal.getName());
                                     } else {
                                         log.warn("⚠️ User ID mismatch: token userId={}, db userId={}", userId, user.getId());
                                     }

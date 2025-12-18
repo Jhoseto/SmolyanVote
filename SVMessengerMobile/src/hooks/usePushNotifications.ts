@@ -30,6 +30,26 @@ export const usePushNotifications = () => {
     }, 500) // 500ms debounce
   ).current;
 
+  // Heartbeat за поддържане на online статус в базата данни
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        // Изпрати heartbeat само ако app е active
+        if (AppState.currentState === 'active') {
+          await apiClient.post(API_CONFIG.HEARTBEAT);
+          console.log('💓 Heartbeat sent - online status maintained');
+        }
+      } catch (error) {
+        // Тихо игнорирай - heartbeat не е критична операция
+        console.debug('Heartbeat failed (non-critical):', error?.message);
+      }
+    }, 30000); // На всеки 30 секунди
+
+    return () => clearInterval(heartbeatInterval);
+  }, [isAuthenticated]);
+
   /**
    * Handle notification received
    * ВИНАГИ fetch-ваме съобщенията за конкретния conversation когато се получи notification

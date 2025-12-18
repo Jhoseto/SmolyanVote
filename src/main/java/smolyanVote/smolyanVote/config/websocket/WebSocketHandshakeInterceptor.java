@@ -21,30 +21,21 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
 
-        log.info("🚨🚨🚨 HANDSHAKE INTERCEPTOR CALLED 🚨🚨🚨");
-        log.info("🔌 WebSocket handshake started for: {}", request.getURI());
-
         // Поставяме URI-то в session attributes за да може JWT interceptor да го получи
         attributes.put("websocket_uri", request.getURI().toString());
 
         // Извличане на query parameters от WebSocket URL (за plain WebSocket connections)
         String query = request.getURI().getQuery();
-        log.info("🔌 Query string: {}", query);
-
         if (query != null && query.contains("access_token=")) {
             String[] params = query.split("&");
             for (String param : params) {
                 if (param.startsWith("access_token=")) {
                     String token = param.substring("access_token=".length());
                     attributes.put("access_token", token);
-                    log.info("🔐 Access token extracted from WebSocket URL query parameter (length: {})", token.length());
                     break;
                 }
             }
         }
-
-        // За SockJS connections, token вече е в headers от SockJS client
-        log.info("🔌 WebSocket handshake attributes: {}", attributes.keySet());
         return true;
     }
 
