@@ -9,8 +9,14 @@ export interface Conversation {
   id: number;
   participant: User; // Frontend използва participant
   otherUser?: User; // Backend връща otherUser
-  lastMessage?: Message;
+  lastMessage?: {
+    id?: number;
+    text: string;
+    senderId?: number;
+    createdAt: string;
+  };
   unreadCount: number;
+  missedCalls?: number; // Number of missed calls in this conversation
   isHidden?: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -36,5 +42,6 @@ export interface ConversationsState {
   isLoading: boolean;
   error: string | null;
   selectedConversationId: number | null;
+  totalUnreadCount: number;
 }
 

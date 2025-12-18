@@ -6,6 +6,7 @@
 import React from 'react';
 import { StatusBar, useColorScheme, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { OfflineIndicator } from './src/components/common/OfflineIndicator';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
@@ -51,18 +52,20 @@ function App() {
   // Note: Push notifications are handled in AppNavigator.tsx
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor={Colors.green[500]}
-        />
-        <View style={{ flex: 1 }}>
-          <AppNavigator />
-          <OfflineIndicator />
-        </View>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <StatusBar
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+            backgroundColor={Colors.green[500]}
+          />
+          <View style={{ flex: 1 }}>
+            <AppNavigator />
+            <OfflineIndicator />
+          </View>
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
 

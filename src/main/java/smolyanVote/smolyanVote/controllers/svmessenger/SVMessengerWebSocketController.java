@@ -207,29 +207,51 @@ public class SVMessengerWebSocketController {
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
 
+        log.info("🔌 WebSocket connection established - Session ID: {}", headerAccessor.getSessionId());
 
         try {
             // Извади user info от session
             Principal principal = headerAccessor.getUser();
-            if (principal != null) {
-                UserEntity user = getUserFromPrincipal(principal);
-                
-                if (user != null) {
-                    // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
-                    user.setOnlineStatus(1);
-                    user.setLastOnline(Instant.now());
-                    userRepository.save(user);
-
-                    // ✅ СЛЕД ТОВА: Broadcast че е онлайн
-                    wsHandler.broadcastOnlineStatus(user.getId(), true);
-                }
+            
+            if (principal == null) {
+                log.warn("⚠️ WebSocket connected but Principal is NULL - JWT authentication may have failed");
+                log.warn("⚠️ Session ID: {}, Headers: {}", headerAccessor.getSessionId(), headerAccessor.toMap());
+                return;
             }
+            
+            log.info("✅ WebSocket Principal found: {}", principal.getName());
+            
+            UserEntity user = getUserFromPrincipal(principal);
+            
+            if (user == null) {
+                log.warn("⚠️ WebSocket connected but UserEntity is NULL for principal: {}", principal.getName());
+                return;
+            }
+            
+            log.info("✅ WebSocket UserEntity found: ID={}, Email={}", user.getId(), user.getEmail());
+            
+            // ✅ ПЪРВО: Обнови онлайн статуса в базата данни
+            Integer oldStatus = user.getOnlineStatus();
+            user.setOnlineStatus(1);
+            user.setLastOnline(Instant.now());
+            userRepository.save(user);
+            
+            log.info("✅ Online status updated in database: User ID={}, Old Status={}, New Status=1", 
+                    user.getId(), oldStatus != null ? oldStatus : 0);
+
+            // ✅ СЛЕД ТОВА: Broadcast че е онлайн
+            wsHandler.broadcastOnlineStatus(user.getId(), true);
+            log.info("✅ Online status broadcasted: User ID={}, Status=ONLINE", user.getId());
+            
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
-            // Това е нормално при logout, затова само логваме на debug ниво
-            log.debug("User not found during WebSocket connect (likely logged out): {}", e.getMessage());
+            log.warn("⚠️ User not found during WebSocket connect (likely logged out): {}", e.getMessage());
+            log.warn("⚠️ Session ID: {}", headerAccessor.getSessionId());
         } catch (Exception e) {
-            log.error("Error handling WebSocket connect", e);
+            log.error("❌ Error handling WebSocket connect", e);
+            log.error("❌ Session ID: {}, Principal: {}", 
+                    headerAccessor.getSessionId(), 
+                    headerAccessor.getUser() != null ? headerAccessor.getUser().getName() : "NULL");
         }
     }
     

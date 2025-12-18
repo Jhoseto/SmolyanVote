@@ -11,7 +11,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { Avatar, Button } from '../../components/common';
+import { Avatar } from '../../components/common';
+import { TelephoneIcon, XMarkIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 
@@ -40,16 +41,18 @@ export const IncomingCallScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.controlButton, styles.rejectButton]}
             onPress={rejectCall}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlButtonText}>📞</Text>
+            <XMarkIcon size={28} color={Colors.text.inverse} />
             <Text style={styles.controlButtonLabel}>Откажи</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.controlButton, styles.answerButton]}
             onPress={answerCall}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlButtonText}>📞</Text>
+            <TelephoneIcon size={28} color={Colors.text.inverse} />
             <Text style={styles.controlButtonLabel}>Приеми</Text>
           </TouchableOpacity>
         </View>
@@ -100,6 +103,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: Colors.border.medium,
+    gap: Spacing.xs,
   },
   rejectButton: {
     backgroundColor: Colors.semantic.error,
@@ -109,13 +113,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.green[500],
     borderColor: Colors.green[500],
   },
-  controlButtonText: {
-    fontSize: 24,
-  },
   controlButtonLabel: {
     fontSize: Typography.fontSize.xs,
     color: Colors.text.inverse,
-    marginTop: Spacing.xs,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

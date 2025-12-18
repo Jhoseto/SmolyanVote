@@ -35,32 +35,32 @@ class SoundService {
       }
     );
 
-    // Load incoming call sound - използваме IncomingCall.mp3 като в web версията
+    // Load incoming call sound - използваме incoming_call.mp3 като в web версията
     this.incomingCallSound = new Sound(
-      Platform.OS === 'ios' ? 'IncomingCall.mp3' : 'IncomingCall.mp3',
+      Platform.OS === 'ios' ? 'IncomingCall.mp3' : 'incoming_call.mp3',
       Sound.MAIN_BUNDLE,
       (error) => {
         if (error) {
           console.log('Failed to load incoming call sound:', error);
           this.incomingCallSound = null;
         } else {
-          console.log('✅ Incoming call sound loaded: IncomingCall.mp3');
+          console.log('✅ Incoming call sound loaded: incoming_call.mp3');
           // Set to loop for incoming calls
           this.incomingCallSound?.setNumberOfLoops(-1);
         }
       }
     );
 
-    // Load outgoing call sound - използваме OutCall.mp3 като в web версията
+    // Load outgoing call sound - използваме out_call.mp3 като в web версията
     this.outgoingCallSound = new Sound(
-      Platform.OS === 'ios' ? 'OutCall.mp3' : 'OutCall.mp3',
+      Platform.OS === 'ios' ? 'OutCall.mp3' : 'out_call.mp3',
       Sound.MAIN_BUNDLE,
       (error) => {
         if (error) {
           console.log('Failed to load outgoing call sound:', error);
           this.outgoingCallSound = null;
         } else {
-          console.log('✅ Outgoing call sound loaded: OutCall.mp3');
+          console.log('✅ Outgoing call sound loaded: out_call.mp3');
           // Set to loop for outgoing calls
           this.outgoingCallSound?.setNumberOfLoops(-1);
         }

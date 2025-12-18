@@ -11,18 +11,41 @@ import { TokenManager } from '../auth/tokenManager';
 // В React Native използваме native WebSocket
 // Backend използва обикновен WebSocket, не SockJS, така че не добавяме /websocket
 const createWebSocket = (url: string): WebSocket => {
-  console.log('Creating WebSocket connection to:', url);
+  console.log('🔌 Creating WebSocket connection to:', url);
   const ws = new WebSocket(url);
   
-  // Add error logging
+  // Add comprehensive error logging
   ws.onerror = (error) => {
-    console.error('WebSocket creation error:', error);
-    console.error('Failed URL:', url);
+    console.error('❌ WebSocket creation error:', error);
+    console.error('❌ Failed URL:', url);
+    console.error('❌ WebSocket readyState:', ws.readyState);
+    // WebSocket readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
   };
   
   ws.onopen = () => {
-    console.log('WebSocket opened successfully:', url);
+    console.log('✅ WebSocket opened successfully:', url);
+    console.log('✅ WebSocket readyState:', ws.readyState);
   };
+  
+  ws.onclose = (event) => {
+    console.log('⚠️ WebSocket closed:', {
+      code: event.code,
+      reason: event.reason,
+      wasClean: event.wasClean,
+      url: url,
+    });
+  };
+  
+  // Log connection state after a short delay
+  setTimeout(() => {
+    console.log('🔍 WebSocket state check after 1s:', {
+      readyState: ws.readyState,
+      url: url,
+      state: ws.readyState === 0 ? 'CONNECTING' : 
+             ws.readyState === 1 ? 'OPEN' : 
+             ws.readyState === 2 ? 'CLOSING' : 'CLOSED'
+    });
+  }, 1000);
   
   return ws;
 };
@@ -67,31 +90,53 @@ class StompClient {
       console.log('Access token available:', !!token);
       
       // Създаване на STOMP client
+      const connectHeaders = {
+        Authorization: `Bearer ${token}`,
+      };
+      console.log('🔐 WebSocket connect headers:', {
+        hasAuth: !!connectHeaders.Authorization,
+        authLength: connectHeaders.Authorization?.length || 0,
+        tokenPrefix: connectHeaders.Authorization?.substring(0, 20) || 'none',
+      });
+      
       this.client = new Client({
-        webSocketFactory: () => createWebSocket(wsUrl),
-        connectHeaders: {
-          Authorization: `Bearer ${token}`,
+        webSocketFactory: () => {
+          console.log('🔌 STOMP Client requesting WebSocket connection to:', wsUrl);
+          const ws = createWebSocket(wsUrl);
+          console.log('🔌 WebSocket instance created, readyState:', ws.readyState);
+          return ws;
         },
+        connectHeaders,
         reconnectDelay: 10000, // Оптимизирано: 10 секунди вместо 5 (по-малко батерия)
         heartbeatIncoming: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
         heartbeatOutgoing: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
+        // Debug logging за STOMP
+        debug: (str) => {
+          console.log('🔍 STOMP debug:', str);
+        },
         onConnect: (frame) => {
-          console.log('✅ WebSocket STOMP connected successfully');
+          console.log('✅✅✅ WebSocket STOMP connected successfully ✅✅✅');
           console.log('✅ STOMP frame headers:', frame.headers);
+          console.log('✅ STOMP frame command:', frame.command);
+          console.log('✅ Backend will automatically update online status in database');
           this.isConnected = true;
           onConnect?.();
         },
         onStompError: (frame) => {
-          console.error('STOMP error:', frame);
+          console.error('❌ STOMP error:', frame);
+          console.error('❌ STOMP error headers:', frame.headers);
+          console.error('❌ STOMP error body:', frame.body);
           this.isConnected = false;
-          onError?.(new Error(frame.headers['message'] || 'STOMP error'));
+          const errorMessage = frame.headers['message'] || frame.body || 'STOMP error';
+          onError?.(new Error(`STOMP error: ${errorMessage}`));
         },
         onWebSocketError: (event) => {
-          console.error('WebSocket error:', event);
-          console.error('WebSocket error details:', {
+          console.error('❌ WebSocket error:', event);
+          console.error('❌ WebSocket error details:', {
             type: event?.type,
             target: event?.target,
             url: wsUrl,
+            message: event?.message,
           });
           this.isConnected = false;
           const errorMessage = event?.message || 'WebSocket connection error';
@@ -104,9 +149,30 @@ class StompClient {
       });
 
       // Activate client
+      console.log('🚀 Activating STOMP client...');
       this.client.activate();
+      console.log('🚀 STOMP client activation called, waiting for connection...');
+      
+      // Check connection status after a delay
+      setTimeout(() => {
+        if (this.client) {
+          console.log('🔍 STOMP client status check after 2s:', {
+            connected: this.client.connected,
+            active: this.client.active,
+            isConnected: this.isConnected,
+          });
+          if (!this.client.connected && !this.isConnected) {
+            console.warn('⚠️ STOMP client not connected after 2 seconds - connection may have failed');
+            console.warn('⚠️ Check backend logs for JWT authentication errors');
+          }
+        }
+      }, 2000);
     } catch (error) {
-      console.error('Error connecting to WebSocket:', error);
+      console.error('❌ Error connecting to WebSocket:', error);
+      console.error('❌ Error details:', {
+        message: (error as Error)?.message,
+        stack: (error as Error)?.stack,
+      });
       this.isConnected = false;
       onError?.(error as Error);
       throw error;

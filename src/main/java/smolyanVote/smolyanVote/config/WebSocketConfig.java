@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -25,6 +26,7 @@ import smolyanVote.smolyanVote.config.websocket.JwtWebSocketInterceptor;
 @Configuration
 @EnableWebSocket
 @EnableWebSocketMessageBroker
+@Slf4j
 public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBrokerConfigurer {
 
     private final ActivityWebSocketHandler activityWebSocketHandler;
@@ -114,22 +116,26 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
             };
         }
 
-        // SockJS endpoint (за web клиенти)
-        registry.addEndpoint("/ws-svmessenger")
-                .setAllowedOriginPatterns(allowedOrigins)
-                .withSockJS();
-
-        // Plain WebSocket endpoint (за мобилни клиенти - React Native)
-        // Използваме различен path за да избегнем конфликт
-        // React Native мобилни приложения нямат origin header, затова разрешаваме всички origins в dev
+        // КРИТИЧНО: ЕДИН endpoint който поддържа И SockJS (за web) И plain WebSocket (за mobile)
+        // Spring WebSocket автоматично разпознава дали клиентът използва SockJS или plain WebSocket
+        // Web клиентите използват SockJS wrapper, мобилните използват plain WebSocket
+        log.info("🔌 Registering WebSocket STOMP endpoint: /ws-svmessenger (supports both SockJS for web and plain WebSocket for mobile)");
+        log.info("🔌 Active profile: {}", activeProfile);
+        
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
             // В development разрешаваме всички origins за мобилни приложения
-            registry.addEndpoint("/ws-svmessenger-ws")
-                    .setAllowedOriginPatterns("*");
+            log.info("🔌 Setting allowed origins to * for development");
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns("*")
+                    .withSockJS(); // SockJS за web, но plain WebSocket също работи
         } else {
-            registry.addEndpoint("/ws-svmessenger-ws")
-                    .setAllowedOriginPatterns(allowedOrigins);
+            log.info("🔌 Setting allowed origins to production list");
+            registry.addEndpoint("/ws-svmessenger")
+                    .setAllowedOriginPatterns(allowedOrigins)
+                    .withSockJS(); // SockJS за web, но plain WebSocket също работи
         }
+        
+        log.info("✅ WebSocket STOMP endpoint /ws-svmessenger registered successfully (supports both SockJS and plain WebSocket)");
     }
 
     /**

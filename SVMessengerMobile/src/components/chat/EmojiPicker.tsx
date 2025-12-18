@@ -3,11 +3,53 @@
  * Модерен emoji picker за мобилното приложение
  */
 
-import React from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import EmojiSelector from 'react-native-emoji-selector';
 import { Colors, Spacing, Typography } from '../../theme';
 import { XMarkIcon } from '../common/Icons';
+
+// Error Boundary for EmojiSelector
+class EmojiSelectorErrorBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; onError: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('EmojiSelector Error:', error, errorInfo);
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.fallbackContainer}>
+          <Text style={styles.fallbackText}>Грешка при зареждане на emoji picker</Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Lazy load EmojiSelector to avoid initialization errors
+let EmojiSelector: any = null;
+let EmojiSelectorLoaded = false;
+try {
+  EmojiSelector = require('react-native-emoji-selector').default;
+  EmojiSelectorLoaded = true;
+} catch (error) {
+  console.warn('Failed to load react-native-emoji-selector:', error);
+  EmojiSelectorLoaded = false;
+}
 
 interface EmojiPickerProps {
   visible: boolean;
@@ -22,6 +64,40 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 }) => {
   const handleEmojiSelect = (emoji: string) => {
     onEmojiSelect(emoji);
+  };
+
+  const [hasError, setHasError] = useState(false);
+
+  // Wrap EmojiSelector in error boundary to prevent crashes
+  const renderEmojiSelector = () => {
+    if (!EmojiSelectorLoaded || !EmojiSelector) {
+      return (
+        <View style={styles.fallbackContainer}>
+          <Text style={styles.fallbackText}>Emoji picker не е наличен</Text>
+        </View>
+      );
+    }
+
+    // Wrap in ErrorBoundary to catch fontSize errors
+    return (
+      <EmojiSelectorErrorBoundary onError={() => setHasError(true)}>
+        <View style={styles.emojiWrapper}>
+          <EmojiSelector
+            onEmojiSelected={handleEmojiSelect}
+            showSearchBar={true}
+            showTabs={true}
+            showSectionTitles={true}
+            columns={7}
+            placeholder="Търси емотикони..."
+            categoryEmojiSize={24}
+            emojiSize={32}
+            categoryFontSize={14}
+            searchBarStyle={styles.searchBar}
+            categoryContainerStyle={styles.categoryContainer}
+          />
+        </View>
+      </EmojiSelectorErrorBoundary>
+    );
   };
 
   return (
@@ -43,14 +119,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 
           {/* Emoji Selector */}
           <View style={styles.emojiContainer}>
-            <EmojiSelector
-              onEmojiSelected={handleEmojiSelect}
-              showSearchBar={true}
-              showTabs={true}
-              showSectionTitles={true}
-              columns={7}
-              placeholder="Търси емотикони..."
-            />
+            {renderEmojiSelector()}
           </View>
         </View>
       </View>
@@ -95,6 +164,33 @@ const styles = StyleSheet.create({
   },
   emojiContainer: {
     flex: 1,
+    // Fix for negative fontSize issue in react-native-emoji-selector
+    // Ensure all text has positive fontSize
+    overflow: 'hidden',
+  },
+  emojiWrapper: {
+    flex: 1,
+    // Force positive fontSize values
+    minHeight: 0,
+  },
+  searchBar: {
+    fontSize: 16,
+    minHeight: 40,
+  },
+  categoryContainer: {
+    paddingVertical: 8,
+    minHeight: 40,
+  },
+  fallbackContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  fallbackText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
 });
 

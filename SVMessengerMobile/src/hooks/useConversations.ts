@@ -32,9 +32,16 @@ export const useConversations = () => {
   }, []);
 
   // Оптимизация: Refresh conversations when WebSocket connects (с debounce)
+  // НЕ refresh-ваме ако има отворен чат, за да не презапишем локалните промени
   useEffect(() => {
     if (isConnected) {
-      debouncedRefresh();
+      const { selectedConversationId } = useConversationsStore.getState();
+      // Refresh само ако няма отворен чат
+      if (!selectedConversationId) {
+        debouncedRefresh();
+      } else {
+        console.log('⏭️ Skipping conversations refresh on WebSocket connect - chat is open');
+      }
     }
   }, [isConnected, debouncedRefresh]);
 

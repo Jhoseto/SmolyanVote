@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { MagnifyingGlassIcon, XMarkIcon } from '../common/Icons';
+import { SearchIcon, XMarkIcon } from '../common/Icons';
 import { Colors, Spacing, Typography } from '../../theme';
 
 interface ConversationSearchBarProps {
@@ -22,7 +22,7 @@ export const ConversationSearchBar: React.FC<ConversationSearchBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <MagnifyingGlassIcon size={20} color={Colors.text.secondary} style={styles.icon} />
+        <SearchIcon size={20} color={Colors.text.secondary} style={styles.icon} />
         <TextInput
           style={styles.input}
           placeholder="Търси разговори..."

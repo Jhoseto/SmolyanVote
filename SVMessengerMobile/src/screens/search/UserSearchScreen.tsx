@@ -11,10 +11,13 @@ import {
   TextInput,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MainTabParamList, ConversationsStackParamList } from '../../types/navigation';
 import { Avatar, Loading } from '../../components/common';
 import { Colors, Typography, Spacing, Shadows } from '../../theme';
 import apiClient from '../../services/api/client';
@@ -24,8 +27,13 @@ import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
 import { debounce, APP_CONSTANTS } from '../../utils/constants';
 
+type NavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Search'>,
+  NativeStackNavigationProp<ConversationsStackParamList>
+>;
+
 export const UserSearchScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [followingUsers, setFollowingUsers] = useState<UserSearchResult[]>([]);
@@ -102,10 +110,13 @@ export const UserSearchScreen: React.FC = () => {
       // Refresh conversations list
       await fetchConversations();
 
-      // Navigate to chat
-      navigation.navigate('Chat' as any, {
-        conversationId: conversation.id,
-        participantName: user.fullName,
+      // Navigate to chat - navigate to Conversations tab first, then to Chat screen
+      navigation.navigate('Conversations', {
+        screen: 'Chat',
+        params: {
+          conversationId: conversation.id,
+          participantName: user.fullName,
+        },
       });
     } catch (error: any) {
       console.error('Error starting conversation:', error);

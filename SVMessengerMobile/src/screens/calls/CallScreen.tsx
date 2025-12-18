@@ -12,6 +12,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Avatar } from '../../components/common';
+import { TelephoneIcon, SpeakerWaveIcon, MicrophoneIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { CallState } from '../../types/call';
@@ -63,8 +64,13 @@ export const CallScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.controlButton, isMuted && styles.controlButtonActive]}
             onPress={toggleMute}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlButtonText}>{isMuted ? '🔇' : '🎤'}</Text>
+            {isMuted ? (
+              <MicrophoneIcon size={28} color={Colors.text.inverse} />
+            ) : (
+              <SpeakerWaveIcon size={28} color={Colors.text.inverse} />
+            )}
             <Text style={styles.controlButtonLabel}>
               {isMuted ? 'Включи' : 'Изключи'}
             </Text>
@@ -73,8 +79,9 @@ export const CallScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.controlButton, styles.endCallButton]}
             onPress={endCall}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlButtonText}>📞</Text>
+            <TelephoneIcon size={28} color={Colors.text.inverse} />
             <Text style={styles.controlButtonLabel}>Затвори</Text>
           </TouchableOpacity>
         </View>
@@ -125,6 +132,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: Colors.border.medium,
+    gap: Spacing.xs,
   },
   controlButtonActive: {
     backgroundColor: Colors.green[500],
@@ -134,13 +142,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.semantic.error,
     borderColor: Colors.semantic.error,
   },
-  controlButtonText: {
-    fontSize: 24,
-  },
   controlButtonLabel: {
     fontSize: Typography.fontSize.xs,
     color: Colors.text.inverse,
-    marginTop: Spacing.xs,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 

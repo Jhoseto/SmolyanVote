@@ -28,11 +28,11 @@ class LiveKitService {
   /**
    * Generate call token from backend
    */
-  async generateCallToken(conversationId: number): Promise<CallTokenResponse> {
+  async generateCallToken(conversationId: number, otherUserId: number): Promise<CallTokenResponse> {
     try {
       const response = await apiClient.post<CallTokenResponse>(
         API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
-        { conversationId }
+        { conversationId, otherUserId }
       );
       return response.data;
     } catch (error) {

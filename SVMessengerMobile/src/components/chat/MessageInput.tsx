@@ -49,7 +49,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       {replyPreview && (
         <View style={styles.replyPreviewContainer}>
           <View style={styles.replyPreviewContent}>
-            <View style={styles.replyLine} />
             <View style={styles.replyTextContainer}>
               <Text style={styles.replyAuthor} numberOfLines={1}>
                 Отговор на {replyPreview.senderName}
@@ -211,13 +210,6 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderLeftWidth: 3,
     borderLeftColor: Colors.green[500],
-  },
-  replyLine: {
-    width: 3,
-    height: '100%',
-    backgroundColor: Colors.green[500],
-    borderRadius: 2,
-    marginRight: Spacing.sm,
   },
   replyTextContainer: {
     flex: 1,

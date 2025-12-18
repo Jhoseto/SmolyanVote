@@ -17,8 +17,8 @@ const isDevelopment = __DEV__;
 export const API_CONFIG = {
   BASE_URL: isDevelopment ? DEV_API_URL : PROD_API_URL,
   WS_URL: isDevelopment 
-    ? 'ws://10.0.2.2:2662/ws-svmessenger-ws' // Android Emulator IP за localhost - plain WebSocket endpoint
-    : 'wss://smolyanvote.com/ws-svmessenger-ws', // Plain WebSocket endpoint за production
+    ? 'ws://10.0.2.2:2662/ws-svmessenger' // Android Emulator IP за localhost - използваме същия endpoint като web версията
+    : 'wss://smolyanvote.com/ws-svmessenger', // Същия endpoint като web версията за production
   
   // API Endpoints
   ENDPOINTS: {
@@ -30,6 +30,9 @@ export const API_CONFIG = {
       OAUTH: '/api/mobile/auth/oauth',
     },
     
+    // Heartbeat (for online status)
+    HEARTBEAT: '/heartbeat',
+    
     // Device
     DEVICE: {
       REGISTER: '/api/mobile/device/register',
@@ -39,6 +42,8 @@ export const API_CONFIG = {
     // Messenger
     MESSENGER: {
       CONVERSATIONS: '/api/svmessenger/conversations',
+      GET_CONVERSATION: '/api/svmessenger/conversations/:id', // GET /api/svmessenger/conversations/{id}
+      MARK_AS_READ: '/api/svmessenger/conversations/:id/read', // PUT /api/svmessenger/conversations/{id}/read
       MESSAGES: '/api/svmessenger/messages/conversation/:id', // GET /api/svmessenger/messages/conversation/{id}
       SEND_MESSAGE: '/api/svmessenger/messages/send', // POST /api/svmessenger/messages/send
       SEARCH_USERS: '/api/svmessenger/users/search',

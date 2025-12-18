@@ -16,8 +16,7 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  Conversations: undefined;
-  Chat: { conversationId: number; participantName: string };
+  Conversations: NavigatorScreenParams<ConversationsStackParamList>;
   Search: undefined;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
 };

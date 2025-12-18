@@ -61,7 +61,7 @@ export const useCalls = () => {
         }
 
         // Generate call token
-        const { token, roomName, serverUrl } = await liveKitService.generateCallToken(conversationId);
+        const { token, roomName, serverUrl } = await liveKitService.generateCallToken(conversationId, participantId);
 
         // Start call in store (will be updated with imageUrl if available)
         startCall(conversationId, participantId, participantName);
@@ -102,7 +102,8 @@ export const useCalls = () => {
 
       // Generate call token
       const { token, roomName, serverUrl } = await liveKitService.generateCallToken(
-        currentCall.conversationId
+        currentCall.conversationId,
+        currentCall.participantId
       );
 
       // Send answer signal via WebSocket

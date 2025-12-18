@@ -8,6 +8,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { useMessagesStore } from '../store/messagesStore';
 import { useWebSocket } from './useWebSocket';
 import { useConversationsStore } from '../store/conversationsStore';
+import { useAuthStore } from '../store/authStore';
 import { soundService } from '../services/sounds/soundService';
 
 export const useMessages = (conversationId: number) => {
@@ -23,18 +24,36 @@ export const useMessages = (conversationId: number) => {
   } = useMessagesStore();
 
   const { sendTypingStatus, sendReadReceipt, subscribeToTypingStatus, unsubscribeFromTypingStatus } = useWebSocket();
-  const { markAsRead } = useConversationsStore();
+  const { markAsRead, selectConversation } = useConversationsStore();
+  const { user } = useAuthStore();
 
   const conversationMessages = messages[conversationId] || [];
   const isTyping = (typingUsers[conversationId] || []).length > 0;
 
-  // Fetch messages on mount
+  // Fetch messages on mount and select conversation
   useEffect(() => {
     if (conversationId) {
+      // Select conversation first to mark it as open (prevents unread count increment)
+      selectConversation(conversationId);
+      
+      // Mark as read immediately if conversation has unread messages (exactly like web version)
+      const { conversations } = useConversationsStore.getState();
+      const conversation = conversations.find(c => c.id === conversationId);
+      
+      if (conversation && (conversation.unreadCount || 0) > 0) {
+        console.log('📖 Chat opened with unread messages, marking as read immediately');
+        markAsRead(conversationId).catch(error => {
+          console.error('Failed to mark as read:', error);
+        });
+        sendReadReceipt(conversationId);
+      }
+      
       fetchMessages(conversationId);
-      markAsRead(conversationId);
+    } else {
+      // Deselect when conversationId is null
+      selectConversation(null);
     }
-  }, [conversationId]);
+  }, [conversationId, selectConversation, markAsRead, sendReadReceipt]);
 
   // ✅ Refresh messages when app becomes active (за да се виждат новите съобщения веднага)
   useEffect(() => {
@@ -62,16 +81,24 @@ export const useMessages = (conversationId: number) => {
     }
   }, [conversationId, subscribeToTypingStatus, unsubscribeFromTypingStatus]);
 
-  // Mark conversation as read when viewing
+  // Mark conversation as read when messages are loaded (backup check - exactly like web version)
+  // This ensures that if messages are loaded and there are unread messages, we mark them as read
   useEffect(() => {
-    if (conversationId && conversationMessages.length > 0) {
-      markAsRead(conversationId);
-      
-      // Send read receipt за целия разговор (backend ще маркира всички съобщения)
-      // Не изпращаме за всяко съобщение отделно, за да избегнем излишни заявки
-      sendReadReceipt(conversationId);
+    if (conversationId && conversationMessages.length > 0 && user) {
+      // Check if there are unread messages from other users
+      const hasUnreadMessages = conversationMessages.some(
+        m => m.senderId !== user.id && !m.isRead
+      );
+
+      if (hasUnreadMessages) {
+        console.log('📖 Unread messages detected after loading, marking as read');
+        markAsRead(conversationId).catch(error => {
+          console.error('Failed to mark as read:', error);
+        });
+        sendReadReceipt(conversationId);
+      }
     }
-  }, [conversationId, conversationMessages.length, markAsRead, sendReadReceipt]);
+  }, [conversationId, conversationMessages.length, user, markAsRead, sendReadReceipt]);
 
   // Debounced typing indicator
   const handleTyping = useCallback(

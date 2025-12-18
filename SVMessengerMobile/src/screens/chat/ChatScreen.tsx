@@ -12,6 +12,7 @@ import {
   Platform,
   Text,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { ConversationsStackParamList } from '../../types/navigation';
@@ -26,6 +27,7 @@ import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
 import { Message } from '../../types/message';
+import { TelephoneIcon } from '../../components/common/Icons';
 
 type ChatScreenRouteProp = RouteProp<ConversationsStackParamList, 'Chat'>;
 
@@ -37,7 +39,9 @@ export const ChatScreen: React.FC = () => {
   
   const conversation = conversations.find((c) => c.id === conversationId);
   const participant = conversation?.participant;
+  const missedCalls = conversation?.missedCalls || 0;
   const { user } = useAuthStore();
+  const { clearMissedCalls } = useConversationsStore();
 
   const {
     messages,
@@ -56,7 +60,9 @@ export const ChatScreen: React.FC = () => {
   const [searchResults, setSearchResults] = useState<number[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [replyToMessage, setReplyToMessage] = useState<{ id: number; text: string; senderName: string } | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList<Message>>(null);
+  const scrollOffsetRef = useRef(0);
+  const hasScrolledRef = useRef(false);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -73,6 +79,7 @@ export const ChatScreen: React.FC = () => {
   // Scroll to bottom when component mounts with messages
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
+      hasScrolledRef.current = false; // Reset scroll flag when conversation changes
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
       }, 300);
@@ -207,21 +214,45 @@ export const ChatScreen: React.FC = () => {
           messages.length === 0 && styles.emptyContainer,
         ]}
         inverted={false}
-        onEndReached={() => {
-          // Load more messages when scrolling to top (older messages)
-          if (hasMore && !isLoadingMore) {
-            loadMoreMessages();
-          }
-        }}
-        onEndReachedThreshold={0.3}
         ListHeaderComponent={
-          isLoadingMore ? (
+          missedCalls > 0 ? (
+            <View style={styles.missedCallsContainer}>
+              <TelephoneIcon size={18} color={Colors.red[500]} />
+              <Text style={styles.missedCallsText}>
+                {missedCalls === 1 
+                  ? 'Пропуснато обаждане' 
+                  : `${missedCalls} пропуснати обаждания`}
+              </Text>
+              <TouchableOpacity
+                onPress={() => clearMissedCalls(conversationId)}
+                style={styles.clearMissedCallsButton}
+              >
+                <Text style={styles.clearMissedCallsText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ) : isLoadingMore ? (
             <View style={styles.loadingMoreContainer}>
               <ActivityIndicator size="small" color={Colors.green[500]} />
               <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
             </View>
           ) : null
         }
+        onScroll={(event) => {
+          const offsetY = event.nativeEvent.contentOffset.y;
+          scrollOffsetRef.current = offsetY;
+          
+          // Mark that user has scrolled
+          if (offsetY > 50) {
+            hasScrolledRef.current = true;
+          }
+          
+          // Load more messages when scrolling near the top (offsetY < 200)
+          // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
+          if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && messages.length > 0) {
+            loadMoreMessages();
+          }
+        }}
+        scrollEventThrottle={400}
         onContentSizeChange={() => {
           // Auto-scroll to bottom when content size changes (only if not loading more)
           if (messages.length > 0 && !isLoadingMore) {
@@ -285,6 +316,33 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
     marginLeft: Spacing.sm,
+  },
+  missedCallsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.red[50],
+    padding: Spacing.md,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.red[500],
+  },
+  missedCallsText: {
+    flex: 1,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.red[700],
+    marginLeft: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  clearMissedCallsButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
+  },
+  clearMissedCallsText: {
+    fontSize: 20,
+    color: Colors.red[500],
+    fontWeight: Typography.fontWeight.bold,
   },
 });
 

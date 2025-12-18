@@ -12,7 +12,7 @@ import {
   Text,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
-import { XMarkIcon, MagnifyingGlassIcon } from '../common/Icons';
+import { XMarkIcon, SearchIcon } from '../common/Icons';
 
 interface MessageSearchBarProps {
   visible: boolean;
@@ -40,7 +40,7 @@ export const MessageSearchBar: React.FC<MessageSearchBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <MagnifyingGlassIcon size={20} color={Colors.text.secondary} />
+        <SearchIcon size={20} color={Colors.text.secondary} />
         <TextInput
           style={styles.input}
           value={searchQuery}

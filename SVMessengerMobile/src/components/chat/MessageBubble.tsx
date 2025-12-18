@@ -61,9 +61,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <View style={styles.replyPreview}>
               <View style={styles.replyLine} />
               <View style={styles.replyContent}>
-                <Text style={styles.replyAuthor} numberOfLines={1}>
-                  {message.senderId === user?.id ? 'Вие' : participantName || 'Потребител'}
-                </Text>
                 <Text style={styles.replyText} numberOfLines={2}>
                   {message.parentMessageText}
                 </Text>
@@ -121,9 +118,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               <View style={styles.replyPreview}>
                 <View style={[styles.replyLine, styles.replyLineOther]} />
                 <View style={styles.replyContent}>
-                  <Text style={styles.replyAuthor} numberOfLines={1}>
-                    {message.senderId === user?.id ? 'Вие' : participantName || 'Потребител'}
-                  </Text>
                   <Text style={styles.replyText} numberOfLines={2}>
                     {message.parentMessageText}
                   </Text>

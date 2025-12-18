@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Platform } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Avatar } from '../common';
-import { ArrowLeftIcon, TelephoneIcon, CameraVideoIcon, MagnifyingGlassIcon } from '../common/Icons';
+import { ArrowLeftIcon, TelephoneIcon, CameraVideoIcon, SearchIcon } from '../common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
@@ -130,7 +130,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.iconButton}>
-                  <MagnifyingGlassIcon size={20} color={Colors.text.inverse} />
+                  <SearchIcon size={20} color={Colors.text.inverse} />
                 </View>
               </TouchableOpacity>
             )}

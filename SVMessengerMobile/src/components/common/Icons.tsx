@@ -21,6 +21,7 @@ import {
   BellIcon as HeroBellIcon,
   ShieldCheckIcon as HeroShieldCheckIcon,
   SpeakerWaveIcon as HeroSpeakerWaveIcon,
+  MicrophoneIcon as HeroMicrophoneIcon,
   InformationCircleIcon as HeroInformationCircleIcon,
   CameraIcon as HeroCameraIcon,
 } from 'react-native-heroicons/outline';
@@ -111,6 +112,10 @@ export const ShieldCheckIcon: React.FC<IconProps> = ({ size = 24, color = '#6b72
 
 export const SpeakerWaveIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280' }) => (
   <HeroSpeakerWaveIcon size={size} color={color} />
+);
+
+export const MicrophoneIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280' }) => (
+  <HeroMicrophoneIcon size={size} color={color} />
 );
 
 export const InformationCircleIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280' }) => (

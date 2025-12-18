@@ -18,7 +18,7 @@ import { CallState } from '../types/call';
 export const useWebSocket = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { addMessage, setTyping, updateMessage } = useMessagesStore();
-  const { updateConversation, incrementUnreadCount } = useConversationsStore();
+  const { updateConversation, updateConversationWithNewMessage, incrementUnreadCount, incrementMissedCalls } = useConversationsStore();
   const { setCallState, startCall } = useCallsStore();
   const subscriptionsRef = useRef<Map<string, any>>(new Map());
 
@@ -72,20 +72,91 @@ export const useWebSocket = () => {
           // Add message to store (will trigger UI update)
           addMessage(message.conversationId, message);
           
-          // Update conversation with last message
-          updateConversation(message.conversationId, {
-            lastMessage: {
-              text: message.text,
-              createdAt: message.createdAt,
-            },
-            updatedAt: message.createdAt,
-          });
+          // Update conversation list immediately (exactly like web version)
+          const store = useConversationsStore.getState();
+          const { conversations, fetchConversations } = store;
+          const conversationExists = conversations.some(c => c.id === message.conversationId);
           
-          // Increment unread count if message is from other user
+          // Handle unread count based on conversation state (exactly like web version)
           if (message.senderId !== user.id) {
-            incrementUnreadCount(message.conversationId);
-            // Play message sound
-            soundService.playMessageSound();
+            const { selectedConversationId } = store;
+
+            if (selectedConversationId === message.conversationId) {
+              // Conversation is currently open - update lastMessage but don't increment unread count
+              console.log('📨 Message received for currently open conversation, marking as read');
+              if (conversationExists) {
+                updateConversation(message.conversationId, {
+                  lastMessage: {
+                    text: message.text,
+                    createdAt: message.createdAt,
+                  },
+                  updatedAt: message.createdAt,
+                });
+              }
+              sendReadReceipt(message.conversationId);
+            } else {
+              // Conversation is not open - update lastMessage AND increment unread count (exactly like web version)
+              console.log('📨 Message received for closed conversation, updating and incrementing unread count');
+              
+              if (conversationExists) {
+                // Update existing conversation with lastMessage AND increment unreadCount in single update (exactly like web version)
+                updateConversationWithNewMessage(
+                  message.conversationId,
+                  message.text,
+                  message.createdAt,
+                  true // incrementUnread = true
+                );
+              } else {
+                // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
+                console.log('📨 Conversation not found, fetching conversation details');
+                const { getConversation } = useConversationsStore.getState();
+                getConversation(message.conversationId).then(conv => {
+                  if (conv) {
+                    const { conversations } = useConversationsStore.getState();
+                    const alreadyExists = conversations.some(c => c.id === conv.id);
+                    
+                    if (alreadyExists) {
+                      // Conversation was added by another process, just update it
+                      updateConversationWithNewMessage(
+                        message.conversationId,
+                        message.text,
+                        message.createdAt,
+                        true // incrementUnread = true
+                      );
+                    } else {
+                      // Add new conversation with unreadCount incremented (exactly like web version)
+                      const { addConversation } = useConversationsStore.getState();
+                      addConversation({
+                        ...conv,
+                        unreadCount: (conv.unreadCount || 0) + 1,
+                        lastMessage: {
+                          text: message.text,
+                          createdAt: message.createdAt,
+                        },
+                        updatedAt: message.createdAt,
+                      });
+                      // Note: addConversation already updates totalUnreadCount
+                    }
+                  }
+                }).catch(error => {
+                  console.error('Failed to fetch conversation:', error);
+                });
+              }
+              
+              // Play message sound
+              soundService.playMessageSound();
+            }
+          } else {
+            // Message from current user - just update lastMessage, no unread count change
+            if (conversationExists) {
+              updateConversation(message.conversationId, {
+                lastMessage: {
+                  text: message.text,
+                  createdAt: message.createdAt,
+                },
+                updatedAt: message.createdAt,
+              });
+            }
           }
           
           console.log('✅ Message processed and added to store successfully');
@@ -113,7 +184,7 @@ export const useWebSocket = () => {
       '/user/queue/svmessenger-read-receipts',
       (data: { messageId?: number; conversationId: number; readAt: string; type?: string }) => {
         if (data.type === 'BULK_READ') {
-          // Bulk read - маркира всички съобщения в разговора като прочетени
+          // Bulk read - маркира всички съобщения в разговора като прочетени (exactly like web version)
           const { messages } = useMessagesStore.getState();
           const conversationMessages = messages[data.conversationId] || [];
           conversationMessages.forEach((msg) => {
@@ -122,8 +193,35 @@ export const useWebSocket = () => {
               readAt: data.readAt,
             });
           });
+
+          // Reset unread count and recalculate total (exactly like web version)
+          const store = useConversationsStore.getState();
+          const updated = store.conversations.map(c =>
+            c.id === data.conversationId ? { ...c, unreadCount: 0 } : c
+          );
+          const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+          useConversationsStore.setState({
+            conversations: updated,
+            totalUnreadCount: totalUnread,
+          });
         } else if (data.messageId) {
-          // Individual message read receipt
+          // Individual message read receipt - decrease unread count by 1 (exactly like web version)
+          const { conversations } = useConversationsStore.getState();
+          const conversation = conversations.find(c => c.id === data.conversationId);
+
+          if (conversation && (conversation.unreadCount || 0) > 0) {
+            const updated = conversations.map(c =>
+              c.id === data.conversationId
+                ? { ...c, unreadCount: Math.max(0, (c.unreadCount || 0) - 1) }
+                : c
+            );
+            const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+            useConversationsStore.setState({
+              conversations: updated,
+              totalUnreadCount: totalUnread,
+            });
+          }
+
           updateMessage(data.conversationId, data.messageId, {
             isRead: true,
             readAt: data.readAt,
@@ -233,9 +331,22 @@ export const useWebSocket = () => {
           // Stop incoming call sound when call is accepted
           soundService.stopIncomingCallSound();
           setCallState(CallState.CONNECTING);
-        } else if (data.eventType === 'CALL_REJECT' || data.eventType === 'CALL_END') {
+        } else if (data.eventType === 'CALL_REJECT') {
+          // If we rejected an incoming call, it's a missed call for the caller
+          // If someone rejected our outgoing call, it's a missed call for us
+          if (data.receiverId === user.id && data.eventType === 'CALL_REJECT') {
+            // Someone rejected our call - not a missed call, just rejected
+          } else if (data.callerId !== user.id) {
+            // We rejected someone's call - increment missed calls for them
+            incrementMissedCalls(data.conversationId);
+          }
           setCallState(CallState.DISCONNECTED);
           // Stop all call sounds when call ends or is rejected
+          soundService.stopIncomingCallSound();
+          soundService.stopOutgoingCallSound();
+        } else if (data.eventType === 'CALL_END') {
+          setCallState(CallState.DISCONNECTED);
+          // Stop all call sounds when call ends
           soundService.stopIncomingCallSound();
           soundService.stopOutgoingCallSound();
         }
@@ -267,6 +378,7 @@ export const useWebSocket = () => {
       await stompClient.connect(
         () => {
           console.log('✅ WebSocket: Connection successful, subscribing to channels...');
+          console.log('✅ WebSocket: Backend will automatically update online status in database');
           // Изчакай малко преди да subscribe-неш за да се уверя че connection е напълно готов
           setTimeout(() => {
             subscribeToChannels();
@@ -388,42 +500,112 @@ export const useWebSocket = () => {
   );
 
   // Effect: Connect on mount, disconnect on unmount
+  // КРИТИЧНО: WebSocket трябва да се свърже ВЕДНАГА когато app се отвори за да се обнови online статус
   useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('🔄 WebSocket: User authenticated, connecting...');
-      // Изчакваме 500ms преди да се свържем, за да се уверим че:
-      // 1. Token е запазен правилно
-      // 2. Token е refresh-нат ако е изтекъл
-      // 3. API call-овете са завършени
-      const timeoutId = setTimeout(() => {
-        console.log('🔄 WebSocket: Timeout expired, calling connect()...');
-        connect();
-      }, 500);
-
-      return () => {
-        clearTimeout(timeoutId);
-        disconnect();
-      };
-    } else {
+    if (!isAuthenticated || !user) {
       console.log('⚠️ WebSocket: User not authenticated, skipping connection');
+      return;
     }
 
-    return () => {
-      disconnect();
+    // Check if already connected to avoid multiple connections
+    if (stompClient.getConnected()) {
+      console.log('✅ WebSocket: Already connected, skipping');
+      return;
+    }
+
+    console.log('🔄 WebSocket: User authenticated, connecting IMMEDIATELY...');
+    console.log('🔄 WebSocket: User ID:', user.id, 'Email:', user.email);
+    
+    // КРИТИЧНО: Свързваме се ВЕДНАГА без забавяне за да се обнови online статус веднага
+    // Token трябва да е вече запазен от auth flow
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 секунди между опитите
+    
+    const attemptConnect = () => {
+      if (stompClient.getConnected()) {
+        console.log('✅ WebSocket: Already connected during retry, skipping');
+        return;
+      }
+      
+      console.log(`🔄 WebSocket: Connection attempt ${retryCount + 1}/${maxRetries}`);
+      
+      // Connect с callbacks за успех и грешка
+      connect(
+        () => {
+          // Connection успешен - проверяваме дали наистина е connected
+          setTimeout(() => {
+            if (stompClient.getConnected()) {
+              console.log('✅ WebSocket: Connection verified - online status will be updated by backend');
+            } else {
+              console.warn('⚠️ WebSocket: Connection callback called but not actually connected');
+              if (retryCount < maxRetries - 1) {
+                retryCount++;
+                setTimeout(attemptConnect, retryDelay);
+              }
+            }
+          }, 1000);
+        },
+        (error) => {
+          // Connection failed - retry ако има още опити
+          console.error(`❌ WebSocket: Connection attempt ${retryCount + 1} failed:`, error);
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            setTimeout(attemptConnect, retryDelay);
+          } else {
+            console.error('❌ WebSocket: Max retries reached, giving up');
+          }
+        }
+      );
     };
-  }, [isAuthenticated, user, connect, disconnect]);
+    
+    // Първи опит веднага
+    attemptConnect();
+
+    return () => {
+      // Don't disconnect on cleanup - WebSocket should stay connected
+      // Only disconnect on logout
+    };
+  }, [isAuthenticated, user, connect]);
 
   // WebSocket остава активен в background за real-time нотификации
-  // При app state change само reconnect ако не е connected
+  // При app state change КРИТИЧНО: reconnect ако не е connected за да се обнови online статус
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        // App стана active - reconnect WebSocket ако не е connected
+        console.log('📱 App became active - CRITICAL: Ensuring WebSocket connection for online status');
+        console.log('📱 WebSocket connection status:', stompClient.getConnected());
+        
+        // КРИТИЧНО: App стана active - reconnect WebSocket ако не е connected
+        // Това гарантира че online статус се обновява веднага
         if (!stompClient.getConnected()) {
-          connect();
+          console.log('📱 WebSocket not connected, reconnecting IMMEDIATELY...');
+          console.log('📱 User ID:', user.id, 'Email:', user.email);
+          
+          // Reconnect веднага без забавяне
+          connect(
+            () => {
+              console.log('✅ WebSocket reconnected successfully - online status will be updated by backend');
+              // Refresh subscriptions след reconnect
+              setTimeout(() => {
+                subscribeToChannels();
+              }, 500);
+            },
+            (error) => {
+              console.error('❌ WebSocket reconnection failed:', error);
+              // Retry after 2 seconds
+              setTimeout(() => {
+                if (!stompClient.getConnected()) {
+                  console.log('📱 Retrying WebSocket reconnection...');
+                  connect();
+                }
+              }, 2000);
+            }
+          );
         } else {
+          console.log('✅ WebSocket already connected, refreshing subscriptions');
           // Refresh subscriptions ако вече е connected
           subscribeToChannels();
         }

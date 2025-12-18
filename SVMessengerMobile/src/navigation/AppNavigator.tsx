@@ -3,10 +3,10 @@
  * Главен navigator - управлява Auth и Main flows
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { RootStackParamList } from '../types/navigation';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
@@ -16,28 +16,45 @@ import { useAuthStore } from '../store/authStore';
 import { useCallsStore } from '../store/callsStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { CallState } from '../types/call';
+import { Colors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator: React.FC = () => {
   const { isAuthenticated, refreshAuth } = useAuthStore();
   const { callState, currentCall } = useCallsStore();
+  const [isInitializing, setIsInitializing] = useState(true);
   
   // Setup push notifications
   usePushNotifications();
 
   useEffect(() => {
     // Проверяваме дали user е все още authenticated при стартиране
-    try {
-      refreshAuth();
-    } catch (error) {
-      console.error('Error refreshing auth:', error);
-    }
+    const initializeAuth = async () => {
+      try {
+        await refreshAuth();
+      } catch (error) {
+        console.error('Error refreshing auth:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeAuth();
   }, [refreshAuth]);
 
   // Show call screens if call is active
   const showCallScreen =
     callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
+
+  // Show loading screen while initializing auth
+  if (isInitializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.green[500]} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -73,4 +90,13 @@ export const AppNavigator: React.FC = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+  },
+});
 
