@@ -168,13 +168,16 @@ public class ApplicationSecurityConfiguration {
                                 // Mobile API endpoints (JWT authentication)
                                 "/api/mobile/**"
                         )
-                        // Custom matcher: exempt заявки с JWT token в Authorization header (mobile app)
-                        // Web заявките (без Authorization header) изискват CSRF token в X-XSRF-TOKEN header
+                        // Custom matcher: exempt само Bearer JWT tokens (mobile app)
+                        // Web заявките изискват CSRF token в X-XSRF-TOKEN header
+                        // Това предотвратява CSRF bypass чрез фалшиви Authorization headers
                         .ignoringRequestMatchers(request -> {
                             String authHeader = request.getHeader("Authorization");
-                            // Ако има Authorization header с Bearer token, значи е от mobile app - exempt от CSRF
-                            // Web заявките нямат Authorization header и трябва да изпращат X-XSRF-TOKEN header
-                            return authHeader != null && authHeader.startsWith("Bearer ");
+                            // Exempt само Bearer JWT tokens от mobile app
+                            // Други Authorization schemes (Basic, Digest, etc.) все още изискват CSRF
+                            return authHeader != null &&
+                                   authHeader.startsWith("Bearer ") &&
+                                   authHeader.length() > 100; // JWT tokens са достатъчно дълги
                         })
                         .csrfTokenRepository(csrfTokenRepository))
                 // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter
@@ -213,22 +216,25 @@ public class ApplicationSecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // TODO След завършване на месенджър трябва да се премахне локала
-        // Development: allow localhost and Android emulator, Production: only production domains
+        // Development: allow specific localhost ports and Android emulator, Production: only production domains
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",
                     "https://www.smolyanvote.com",
-                    "http://localhost:*",
-                    "http://127.0.0.1:*",
-                    "http://10.0.2.2:*",  // Android Emulator
-                    "ws://10.0.2.2:*",    // Android Emulator WebSocket
-                    "ws://localhost:*",   // WebSocket localhost
-                    "ws://127.0.0.1:*")); // WebSocket localhost
+                    "http://localhost:3000",    // React dev server
+                    "http://localhost:8081",    // Metro bundler
+                    "http://127.0.0.1:3000",
+                    "http://127.0.0.1:8081",
+                    "http://10.0.2.2:8081",     // Android Emulator Metro
+                    "ws://localhost:3000",      // WebSocket for React
+                    "ws://127.0.0.1:3000",
+                    "ws://10.0.2.2:8081"));     // WebSocket for Android
         } else {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",
-                    "https://www.smolyanvote.com"));
+                    "https://www.smolyanvote.com",
+                    "wss://smolyanvote.com",    // WebSocket for production
+                    "wss://www.smolyanvote.com"));
         }
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
