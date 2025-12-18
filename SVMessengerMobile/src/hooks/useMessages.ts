@@ -24,7 +24,7 @@ export const useMessages = (conversationId: number) => {
   } = useMessagesStore();
 
   const { sendTypingStatus, sendReadReceipt, subscribeToTypingStatus, unsubscribeFromTypingStatus } = useWebSocket();
-  const { markAsRead, selectConversation } = useConversationsStore();
+  const { markAsRead, selectConversation, conversations } = useConversationsStore();
   const { user } = useAuthStore();
 
   const conversationMessages = messages[conversationId] || [];
@@ -37,7 +37,6 @@ export const useMessages = (conversationId: number) => {
       selectConversation(conversationId);
       
       // Mark as read immediately if conversation has unread messages (exactly like web version)
-      const { conversations } = useConversationsStore.getState();
       const conversation = conversations.find(c => c.id === conversationId);
       
       if (conversation && (conversation.unreadCount || 0) > 0) {
@@ -124,15 +123,11 @@ export const useMessages = (conversationId: number) => {
 
       // Try WebSocket first
       try {
-        const { stompClient } = require('../services/websocket/stompClient');
-        if (stompClient.getConnected()) {
+        const { svMobileWebSocketService } = require('../services/websocket/stompClient');
+        if (svMobileWebSocketService.isConnected()) {
           try {
             // Send via WebSocket - server will send back via WebSocket to both sender and recipient
-            stompClient.send('/app/svmessenger/send', {
-              conversationId,
-              text,
-              parentMessageId,
-            });
+            svMobileWebSocketService.sendMessage(conversationId, text);
             
             // Не добавяме optimistic message тук - ще получим реалното съобщение от server през WebSocket
             // Това гарантира че няма дубликати и че всички данни са правилни

@@ -29,6 +29,7 @@ export interface RefreshTokenResponse {
 export interface User {
   id: number;
   username: string;
+  email: string; // Добавено за WebSocket authentication
   fullName: string;
   imageUrl?: string;
   isOnline: boolean;

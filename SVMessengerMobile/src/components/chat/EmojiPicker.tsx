@@ -92,8 +92,6 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
             categoryEmojiSize={24}
             emojiSize={32}
             categoryFontSize={14}
-            searchBarStyle={styles.searchBar}
-            categoryContainerStyle={styles.categoryContainer}
           />
         </View>
       </EmojiSelectorErrorBoundary>

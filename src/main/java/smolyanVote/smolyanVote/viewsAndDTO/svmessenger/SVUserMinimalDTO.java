@@ -18,6 +18,7 @@ public class SVUserMinimalDTO {
     
     private Long id;
     private String username;
+    private String email; // Добавено за WebSocket authentication
     private String fullName;
     private String imageUrl;
     private Boolean isOnline;
@@ -42,7 +43,8 @@ public class SVUserMinimalDTO {
             SVUserMinimalDTO dto = new SVUserMinimalDTO();
             dto.setId(user.getId());
             dto.setUsername(user.getUsername());
-            
+            dto.setEmail(user.getEmail()); // Добавено за WebSocket authentication
+
             // Compose full name от realName или username
             String fullName = "";
             if (user.getRealName() != null && !user.getRealName().trim().isEmpty()) {

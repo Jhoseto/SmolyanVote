@@ -88,7 +88,7 @@ public class ApplicationSecurityConfiguration {
                         .requestMatchers("/api/podcast/**").permitAll()
                         .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists", "/api/multipoll/*/exists").permitAll()
                         // WebSocket handshake endpoints - permitAll (authentication се проверява от JWT interceptor при STOMP CONNECT)
-                        .requestMatchers("/ws-svmessenger/**", "/ws-svmessenger-ws/**").permitAll()
+                        .requestMatchers("/ws-svmessenger/**").permitAll()
                         .requestMatchers(
                                 "/svmessenger/**",
                                 "/", "//", "/forgotten_password", "/reset-password", "/user/registration",
@@ -162,7 +162,7 @@ public class ApplicationSecurityConfiguration {
                                 // Static resources
                                 "/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
                                 // WebSocket endpoints
-                                "/ws-svmessenger/**", "/ws-svmessenger-ws/**", "/ws/notifications/**", "/ws/admin/activity/**",
+                                "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**",
                                 // Other public endpoints
                                 "/robots.txt", "/sitemap.xml",
                                 // Mobile API endpoints (JWT authentication)
@@ -214,13 +214,17 @@ public class ApplicationSecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // TODO След завършване на месенджър трябва да се премахне локала
-        // Development: allow localhost, Production: only production domains
+        // Development: allow localhost and Android emulator, Production: only production domains
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",
                     "https://www.smolyanvote.com",
                     "http://localhost:*",
-                    "http://127.0.0.1:*"));
+                    "http://127.0.0.1:*",
+                    "http://10.0.2.2:*",  // Android Emulator
+                    "ws://10.0.2.2:*",    // Android Emulator WebSocket
+                    "ws://localhost:*",   // WebSocket localhost
+                    "ws://127.0.0.1:*")); // WebSocket localhost
         } else {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",

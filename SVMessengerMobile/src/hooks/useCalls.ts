@@ -9,7 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import { liveKitService } from '../services/calls/liveKitService';
 import { soundService } from '../services/sounds/soundService';
 import { CallState } from '../types/call';
-import { stompClient } from '../services/websocket/stompClient';
+import { svMobileWebSocketService } from '../services/websocket/stompClient';
 
 export const useCalls = () => {
   const {
@@ -70,8 +70,8 @@ export const useCalls = () => {
         soundService.playOutgoingCallSound();
 
         // Send call signal via WebSocket
-        if (stompClient.getConnected()) {
-          stompClient.send('/app/svmessenger/call-signal', {
+        if (svMobileWebSocketService.isConnected()) {
+          svMobileWebSocketService.sendCallSignal({
             eventType: 'CALL_REQUEST',
             conversationId,
             callerId: user.id,
@@ -108,8 +108,8 @@ export const useCalls = () => {
 
       // Send answer signal via WebSocket
       const { user } = useAuthStore.getState();
-      if (stompClient.getConnected() && user) {
-        stompClient.send('/app/svmessenger/call-signal', {
+      if (svMobileWebSocketService.isConnected() && user) {
+        svMobileWebSocketService.sendCallSignal({
           eventType: 'CALL_ACCEPT', // ✅ Съответства на backend enum SVCallEventType.CALL_ACCEPT
           conversationId: currentCall.conversationId,
           callerId: currentCall.participantId,
@@ -129,9 +129,9 @@ export const useCalls = () => {
   // Reject call
   const handleRejectCall = useCallback(() => {
     const { user } = useAuthStore.getState();
-    if (currentCall && stompClient.getConnected() && user) {
+    if (currentCall && svMobileWebSocketService.isConnected() && user) {
       // Send reject signal via WebSocket
-      stompClient.send('/app/svmessenger/call-signal', {
+      svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
         conversationId: currentCall.conversationId,
         callerId: currentCall.participantId,
@@ -148,9 +148,9 @@ export const useCalls = () => {
   // End call
   const handleEndCall = useCallback(() => {
     const { user } = useAuthStore.getState();
-    if (currentCall && stompClient.getConnected() && user) {
+    if (currentCall && svMobileWebSocketService.isConnected() && user) {
       // Send end signal via WebSocket
-      stompClient.send('/app/svmessenger/call-signal', {
+      svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
         conversationId: currentCall.conversationId,
         callerId: currentCall.participantId,

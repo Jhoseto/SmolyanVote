@@ -15,6 +15,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.JwtWebSocketInterceptor;
+import smolyanVote.smolyanVote.config.websocket.WebSocketHandshakeInterceptor;
 
 /**
  * Unified WebSocket конфигурация за real-time комуникация
@@ -33,6 +34,7 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     private final Environment environment;
     private final NotificationWebSocketHandler notificationWebSocketHandler;
     private final JwtWebSocketInterceptor jwtWebSocketInterceptor;
+    private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
 
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
@@ -40,11 +42,13 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     public WebSocketConfig(ActivityWebSocketHandler activityWebSocketHandler,
                            Environment environment,
                            NotificationWebSocketHandler notificationWebSocketHandler,
-                           JwtWebSocketInterceptor jwtWebSocketInterceptor) {
+                           JwtWebSocketInterceptor jwtWebSocketInterceptor,
+                           WebSocketHandshakeInterceptor webSocketHandshakeInterceptor) {
         this.activityWebSocketHandler = activityWebSocketHandler;
         this.environment = environment;
         this.notificationWebSocketHandler = notificationWebSocketHandler;
         this.jwtWebSocketInterceptor = jwtWebSocketInterceptor;
+        this.webSocketHandshakeInterceptor = webSocketHandshakeInterceptor;
     }
 
     // ========== SOCKJS HANDLERS (WebSocketConfigurer) ==========
@@ -116,26 +120,20 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
             };
         }
 
-        // КРИТИЧНО: ЕДИН endpoint който поддържа И SockJS (за web) И plain WebSocket (за mobile)
-        // Spring WebSocket автоматично разпознава дали клиентът използва SockJS или plain WebSocket
-        // Web клиентите използват SockJS wrapper, мобилните използват plain WebSocket
-        log.info("🔌 Registering WebSocket STOMP endpoint: /ws-svmessenger (supports both SockJS for web and plain WebSocket for mobile)");
+        // РЕШЕНИЕ: ДВА endpoint-а - един за SockJS (web) и един за plain WebSocket (mobile)
+        // Mobile clients използват plain WebSocket за да се избегнат проблеми с SockJS headers
+        log.info("🔌 Registering universal SockJS STOMP endpoint for all clients");
         log.info("🔌 Active profile: {}", activeProfile);
-        
-        if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
-            // В development разрешаваме всички origins за мобилни приложения
-            log.info("🔌 Setting allowed origins to * for development");
-            registry.addEndpoint("/ws-svmessenger")
-                    .setAllowedOriginPatterns("*")
-                    .withSockJS(); // SockJS за web, но plain WebSocket също работи
-        } else {
-            log.info("🔌 Setting allowed origins to production list");
-            registry.addEndpoint("/ws-svmessenger")
-                    .setAllowedOriginPatterns(allowedOrigins)
-                    .withSockJS(); // SockJS за web, но plain WebSocket също работи
-        }
-        
-        log.info("✅ WebSocket STOMP endpoint /ws-svmessenger registered successfully (supports both SockJS and plain WebSocket)");
+        log.info("🔌 Allowed origins: {}", java.util.Arrays.toString(allowedOrigins));
+
+        // Universal SockJS endpoint за всички clients
+        // SockJS автоматично предоставя WebSocket fallbacks и работи с React Native
+        registry.addEndpoint("/ws-svmessenger")
+                .setAllowedOriginPatterns(allowedOrigins)
+                .addInterceptors(webSocketHandshakeInterceptor)
+                .withSockJS();
+
+        log.info("✅ Universal SockJS STOMP endpoint registered: /ws-svmessenger");
     }
 
     /**
@@ -148,12 +146,17 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
 
 
         if (profileStr.contains("dev") || profileStr.contains("local") || profileStr.equals("default")) {
-            // Development environment - само localhost
+            // Development environment - localhost и Android emulator
             return new String[]{
-                    "http://localhost:2662",
-                    "http://127.0.0.1:2662",
-                    "ws://localhost:2662",
-                    "wss://localhost:2662"
+                    "https://smolyanvote.com",
+                    "https://www.smolyanvote.com",
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "ws://localhost:*",
+                    "ws://127.0.0.1:*",
+                    "http://10.0.2.2:*", // Android Emulator HTTP
+                    "ws://10.0.2.2:*",   // Android Emulator WebSocket
+                    "*"                   // Allow all origins for mobile apps (origin is null for React Native)
             };
         } else {
             // Production environment - само production домейни

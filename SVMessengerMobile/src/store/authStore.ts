@@ -56,9 +56,9 @@ export const useAuthStore = create<AuthStore>()(
         try {
           // Disconnect WebSocket преди logout
           try {
-            const { stompClient } = require('../services/websocket/stompClient');
-            if (stompClient.getConnected()) {
-              stompClient.disconnect();
+            const { svMobileWebSocketService } = require('../services/websocket/stompClient');
+            if (svMobileWebSocketService.isConnected()) {
+              svMobileWebSocketService.disconnect();
             }
           } catch (error) {
             console.error('Error disconnecting WebSocket on logout:', error);
@@ -89,6 +89,7 @@ export const useAuthStore = create<AuthStore>()(
           // Token съществува - считаме че сме authenticated
           // Ако token е изтекъл, API interceptor ще се опита да го refresh-не при следващата заявка
           // Не правим API call тук, за да избегнем излишни заявки
+          // Не override-ваме user - той вече е възстановен от persist state
           set({ isAuthenticated: true });
         } catch (error) {
           console.error('Error refreshing auth:', error);

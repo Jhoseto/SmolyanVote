@@ -1,294 +1,461 @@
 /**
- * STOMP WebSocket Client
- * Connection management за real-time messaging
+ * SVMessenger WebSocket Service за React Native
+ * Използва custom SockJS implementation за съвместимост с backend
  */
 
-import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { API_CONFIG } from '../../config/api';
 import { TokenManager } from '../auth/tokenManager';
 
-// WebSocket factory за React Native
-// В React Native използваме native WebSocket
-// Backend използва обикновен WebSocket, не SockJS, така че не добавяме /websocket
-const createWebSocket = (url: string): WebSocket => {
-  console.log('🔌 Creating WebSocket connection to:', url);
-  const ws = new WebSocket(url);
-  
-  // Add comprehensive error logging
-  ws.onerror = (error) => {
-    console.error('❌ WebSocket creation error:', error);
-    console.error('❌ Failed URL:', url);
-    console.error('❌ WebSocket readyState:', ws.readyState);
-    // WebSocket readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
-  };
-  
-  ws.onopen = () => {
-    console.log('✅ WebSocket opened successfully:', url);
-    console.log('✅ WebSocket readyState:', ws.readyState);
-  };
-  
-  ws.onclose = (event) => {
-    console.log('⚠️ WebSocket closed:', {
-      code: event.code,
-      reason: event.reason,
-      wasClean: event.wasClean,
-      url: url,
-    });
-  };
-  
-  // Log connection state after a short delay
-  setTimeout(() => {
-    console.log('🔍 WebSocket state check after 1s:', {
-      readyState: ws.readyState,
-      url: url,
-      state: ws.readyState === 0 ? 'CONNECTING' : 
-             ws.readyState === 1 ? 'OPEN' : 
-             ws.readyState === 2 ? 'CLOSING' : 'CLOSED'
-    });
-  }, 1000);
-  
-  return ws;
-};
-
-export type MessageCallback = (message: any) => void;
-export type ErrorCallback = (error: Error) => void;
-export type ConnectionCallback = () => void;
-
-class StompClient {
-  private client: Client | null = null;
-  private tokenManager: TokenManager;
-  private subscriptions: Map<string, StompSubscription> = new Map();
-  private isConnected: boolean = false;
-
+class SVMobileWebSocketService {
   constructor() {
+    this.client = null;
+    this.connected = false;
+    this.subscriptions = new Map();
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 3000;
+    this.isConnecting = false; // Защита срещу множествени извиквания на connect
     this.tokenManager = new TokenManager();
   }
 
   /**
    * Connect към WebSocket server
    */
-  async connect(
-    onConnect?: ConnectionCallback,
-    onError?: ErrorCallback
-  ): Promise<void> {
-    if (this.isConnected && this.client?.connected) {
-      console.log('Already connected to WebSocket');
+  async connect(callbacks = {}) {
+    // Защита срещу множествени извиквания - ако вече се connect-ва, не прави нищо
+    if (this.isConnecting || (this.client && this.client.connected)) {
+      console.log('⚠️ WebSocket already connecting or connected, skipping duplicate connect call');
       return;
     }
 
-    try {
-      // Извличане на access token
-      const token = await this.tokenManager.getAccessToken();
+    this.isConnecting = true;
 
-      if (!token) {
-        throw new Error('No access token available');
-      }
+    const {
+      onConnect = () => {},
+      onDisconnect = () => {},
+      onError = () => {},
+      onNewMessage = () => {},
+      onTypingStatus = () => {},
+      onReadReceipt = () => {},
+      onDeliveryReceipt = () => {},
+      onOnlineStatus = () => {},
+      onCallSignal = () => {}
+    } = callbacks;
 
-      // Създаване на WebSocket connection за React Native
-      const wsUrl = API_CONFIG.WS_URL;
-      console.log('Connecting to WebSocket:', wsUrl);
-      console.log('Access token available:', !!token);
-      
-      // Създаване на STOMP client
-      const connectHeaders = {
-        Authorization: `Bearer ${token}`,
-      };
-      console.log('🔐 WebSocket connect headers:', {
-        hasAuth: !!connectHeaders.Authorization,
-        authLength: connectHeaders.Authorization?.length || 0,
-        tokenPrefix: connectHeaders.Authorization?.substring(0, 20) || 'none',
-      });
-      
-      this.client = new Client({
-        webSocketFactory: () => {
-          console.log('🔌 STOMP Client requesting WebSocket connection to:', wsUrl);
-          const ws = createWebSocket(wsUrl);
-          console.log('🔌 WebSocket instance created, readyState:', ws.readyState);
-          return ws;
-        },
-        connectHeaders,
-        reconnectDelay: 10000, // Оптимизирано: 10 секунди вместо 5 (по-малко батерия)
-        heartbeatIncoming: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
-        heartbeatOutgoing: 15000, // Оптимизирано: 15 секунди вместо 4 (по-малко батерия)
-        // Debug logging за STOMP
-        debug: (str) => {
-          console.log('🔍 STOMP debug:', str);
-        },
-        onConnect: (frame) => {
-          console.log('✅✅✅ WebSocket STOMP connected successfully ✅✅✅');
-          console.log('✅ STOMP frame headers:', frame.headers);
-          console.log('✅ STOMP frame command:', frame.command);
-          console.log('✅ Backend will automatically update online status in database');
-          this.isConnected = true;
-          onConnect?.();
-        },
-        onStompError: (frame) => {
-          console.error('❌ STOMP error:', frame);
-          console.error('❌ STOMP error headers:', frame.headers);
-          console.error('❌ STOMP error body:', frame.body);
-          this.isConnected = false;
-          const errorMessage = frame.headers['message'] || frame.body || 'STOMP error';
-          onError?.(new Error(`STOMP error: ${errorMessage}`));
-        },
-        onWebSocketError: (event) => {
-          console.error('❌ WebSocket error:', event);
-          console.error('❌ WebSocket error details:', {
-            type: event?.type,
-            target: event?.target,
-            url: wsUrl,
-            message: event?.message,
-          });
-          this.isConnected = false;
-          const errorMessage = event?.message || 'WebSocket connection error';
-          onError?.(new Error(`WebSocket error: ${errorMessage}. URL: ${wsUrl}`));
-        },
-        onDisconnect: () => {
-          console.log('WebSocket disconnected');
-          this.isConnected = false;
-        },
-      });
-
-      // Activate client
-      console.log('🚀 Activating STOMP client...');
-      this.client.activate();
-      console.log('🚀 STOMP client activation called, waiting for connection...');
-      
-      // Check connection status after a delay
-      setTimeout(() => {
-        if (this.client) {
-          console.log('🔍 STOMP client status check after 2s:', {
-            connected: this.client.connected,
-            active: this.client.active,
-            isConnected: this.isConnected,
-          });
-          if (!this.client.connected && !this.isConnected) {
-            console.warn('⚠️ STOMP client not connected after 2 seconds - connection may have failed');
-            console.warn('⚠️ Check backend logs for JWT authentication errors');
-          }
-        }
-      }, 2000);
-    } catch (error) {
-      console.error('❌ Error connecting to WebSocket:', error);
-      console.error('❌ Error details:', {
-        message: (error as Error)?.message,
-        stack: (error as Error)?.stack,
-      });
-      this.isConnected = false;
-      onError?.(error as Error);
-      throw error;
-    }
-  }
-
-  /**
-   * Disconnect от WebSocket server
-   */
-  disconnect(): void {
-    try {
-      if (this.client) {
-        // Unsubscribe от всички subscriptions
-        this.subscriptions.forEach((subscription) => {
+    // Премахни стария client преди да създадеш нов (предотвратява дублиране на subscriptions)
+    if (this.client) {
+      console.log('⚠️ Disconnecting existing WebSocket client before creating new one');
+      try {
+        // Unsubscribe от всички channels
+        this.subscriptions.forEach(sub => {
           try {
-            subscription.unsubscribe();
-          } catch (error) {
-            console.error('Error unsubscribing:', error);
+            sub.unsubscribe();
+          } catch (e) {
+            // Ignore errors during cleanup
           }
         });
         this.subscriptions.clear();
 
-        // Deactivate client
-        try {
+        // Deactivate стария client
+        if (this.client.connected) {
           this.client.deactivate();
-        } catch (error) {
-          console.error('Error deactivating client:', error);
         }
-        this.client = null;
-        this.isConnected = false;
+      } catch (error) {
+        console.warn('Error disconnecting old client:', error);
       }
-    } catch (error) {
-      console.error('Error disconnecting WebSocket:', error);
-      // Ensure state is reset even if disconnect fails
       this.client = null;
-      this.isConnected = false;
-      this.subscriptions.clear();
-    }
-  }
-
-  /**
-   * Subscribe към destination
-   */
-  subscribe(
-    destination: string,
-    callback: MessageCallback
-  ): StompSubscription | null {
-    if (!this.client || !this.client.connected) {
-      console.error('WebSocket not connected');
-      return null;
+      this.connected = false;
     }
 
     try {
-      const subscription = this.client.subscribe(destination, (message: IMessage) => {
-        try {
-          const data = JSON.parse(message.body);
-          callback(data);
-        } catch (error) {
-          console.error('Error parsing message:', error);
+      // Извличане на JWT token
+      const token = await this.tokenManager.getAccessToken();
+      if (!token) {
+        throw new Error('No access token available for WebSocket connection');
+      }
+
+      console.log('🔐 WebSocket token available, connecting...');
+
+      // Create plain WebSocket connection URL with token
+      const wsUrl = API_CONFIG.WS_URL;
+      console.log('🔌 Connecting to plain WebSocket endpoint:', wsUrl);
+
+      // Create STOMP client with SockJS (standard approach за React Native + Spring Boot)
+      this.client = new Client({
+        webSocketFactory: () => new SockJS(wsUrl),
+
+        // STOMP connect headers с JWT token
+        connectHeaders: {
+          'Authorization': `Bearer ${token}`
+        },
+
+        // Debug logging само в development
+        debug: (str) => {
+          if (__DEV__) {
+            console.log('🔍 STOMP debug:', str);
+          }
+        },
+
+        // Reconnect settings
+        reconnectDelay: this.reconnectDelay,
+        heartbeatIncoming: 10000,
+        heartbeatOutgoing: 10000,
+
+        // Connection success callback
+        onConnect: () => {
+          // Защита срещу множествени извиквания на onConnect
+          if (this.connected) {
+            console.log('⚠️ onConnect called but already connected, skipping duplicate subscription');
+            return;
+          }
+
+          this.connected = true;
+          this.isConnecting = false; // Reset connecting flag
+          this.reconnectAttempts = 0;
+
+          console.log('✅ WebSocket STOMP connected, subscribing to channels...');
+
+          // Subscribe to channels
+          this.subscribeToChannels({
+              onNewMessage,
+              onTypingStatus,
+              onReadReceipt,
+              onDeliveryReceipt,
+              onOnlineStatus,
+              onCallSignal
+          });
+
+          onConnect();
+        },
+
+        // Connection error callback
+        onStompError: (frame) => {
+          console.error('❌ STOMP connection error:', frame);
+          this.connected = false;
+          this.isConnecting = false; // Reset connecting flag
+          onError(frame);
+
+          // Retry connection
+          this.handleReconnect();
+        },
+
+        // WebSocket close callback
+        onWebSocketClose: () => {
+          console.log('⚠️ WebSocket connection closed');
+          this.connected = false;
+          this.isConnecting = false; // Reset connecting flag
+          onDisconnect();
+
+          // Retry connection
+          this.handleReconnect();
         }
       });
 
-      this.subscriptions.set(destination, subscription);
-      return subscription;
+      // Activate connection
+      console.log('🚀 Activating STOMP client...');
+      this.client.activate();
+
     } catch (error) {
-      console.error('Error subscribing:', error);
+      console.error('❌ Error setting up WebSocket connection:', error);
+      this.connected = false;
+      this.isConnecting = false;
+      onError(error);
+    }
+  }
+
+  /**
+   * Subscribe to WebSocket channels
+   */
+  subscribeToChannels(callbacks) {
+    const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
+
+    // Премахни старите subscriptions преди да създадеш нови
+    const coreSubscriptionKeys = ['messages', 'receipts', 'delivery', 'status', 'callSignals'];
+    coreSubscriptionKeys.forEach(key => {
+      const oldSub = this.subscriptions.get(key);
+      if (oldSub) {
+        try {
+          oldSub.unsubscribe();
+        } catch (error) {
+          console.warn('Error unsubscribing old subscription:', key, error);
+        }
+        this.subscriptions.delete(key);
+      }
+    });
+
+    try {
+      // 1. Private messages channel
+      const messagesSub = this.client.subscribe(
+        '/user/queue/svmessenger-messages',
+        (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            onNewMessage(data);
+          } catch (error) {
+            console.error('Error parsing message:', error);
+          }
+        }
+      );
+      this.subscriptions.set('messages', messagesSub);
+
+      // 2. Read receipts channel
+      const receiptsSub = this.client.subscribe(
+        '/user/queue/svmessenger-read-receipts',
+        (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            onReadReceipt(data);
+          } catch (error) {
+            console.error('Error parsing receipt:', error);
+          }
+        }
+      );
+      this.subscriptions.set('receipts', receiptsSub);
+
+      // 3. Delivery receipts channel
+      const deliverySub = this.client.subscribe(
+        '/user/queue/svmessenger-delivery-receipts',
+        (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            onDeliveryReceipt(data);
+          } catch (error) {
+            console.error('Error parsing delivery receipt:', error);
+          }
+        }
+      );
+      this.subscriptions.set('delivery', deliverySub);
+
+      // 4. Online status channel
+      const statusSub = this.client.subscribe(
+        '/topic/svmessenger-online-status',
+        (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            onOnlineStatus(data);
+          } catch (error) {
+            console.error('Error parsing status:', error);
+          }
+        }
+      );
+      this.subscriptions.set('status', statusSub);
+
+      // 5. Call signals channel
+      const callSignalsSub = this.client.subscribe(
+        '/user/queue/svmessenger-call-signals',
+        (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            if (onCallSignal && typeof onCallSignal === 'function') {
+              onCallSignal(data);
+            } else {
+              console.error('onCallSignal is not a function:', typeof onCallSignal);
+            }
+          } catch (error) {
+            console.error('Error parsing call signal:', error);
+          }
+        }
+      );
+      this.subscriptions.set('callSignals', callSignalsSub);
+
+      console.log('✅ All WebSocket channels subscribed successfully');
+
+    } catch (error) {
+      console.error('❌ Error subscribing to channels:', error);
+    }
+  }
+
+  /**
+   * Subscribe to typing status за конкретен conversation
+   */
+  subscribeToTyping(conversationId, callback) {
+    if (!this.connected || !this.client) {
+      console.warn('Cannot subscribe to typing - not connected');
       return null;
     }
+
+    const destination = `/topic/svmessenger-typing/${conversationId}`;
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing typing status:', error);
+      }
+    });
+
+    // Store subscription
+    const key = `typing-${conversationId}`;
+    this.subscriptions.set(key, subscription);
+
+    return subscription;
   }
 
   /**
-   * Unsubscribe от destination
+   * Unsubscribe от typing status
    */
-  unsubscribe(destination: string): void {
-    const subscription = this.subscriptions.get(destination);
+  unsubscribeFromTyping(conversationId) {
+    const key = `typing-${conversationId}`;
+    const subscription = this.subscriptions.get(key);
+
     if (subscription) {
       subscription.unsubscribe();
-      this.subscriptions.delete(destination);
+      this.subscriptions.delete(key);
     }
   }
 
   /**
-   * Send message към destination
+   * Изпрати съобщение през WebSocket
    */
-  send(destination: string, body: any): void {
-    if (!this.client || !this.client.connected) {
-      console.error('WebSocket not connected');
-      return;
+  sendMessage(conversationId, text, messageType = 'TEXT') {
+    if (!this.connected || !this.client) {
+      console.warn('Cannot send message - not connected');
+      return false;
     }
 
     try {
       this.client.publish({
-        destination,
-        body: JSON.stringify(body),
+        destination: '/app/svmessenger/send',
+        body: JSON.stringify({
+          conversationId,
+          text,
+          messageType
+        })
       });
+      return true;
     } catch (error) {
       console.error('Error sending message:', error);
+      return false;
     }
   }
 
   /**
-   * Проверява дали е connected
+   * Изпрати typing status
    */
-  getConnected(): boolean {
-    return this.isConnected && (this.client?.connected ?? false);
+  sendTypingStatus(conversationId, isTyping) {
+    if (!this.connected || !this.client) {
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: '/app/svmessenger/typing',
+        body: JSON.stringify({
+          conversationId,
+          isTyping
+        })
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending typing status:', error);
+      return false;
+    }
   }
 
   /**
-   * Reconnect с нов token (при token refresh)
+   * Маркирай разговор като прочетен през WebSocket
    */
-  async reconnect(): Promise<void> {
-    this.disconnect();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
-    await this.connect();
+  sendReadReceipt(conversationId) {
+    if (!this.connected || !this.client) {
+      console.warn('Cannot send mark-read - not connected');
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: '/app/svmessenger/mark-read',
+        body: JSON.stringify({ conversationId })
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending mark-read via WS:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Handle reconnection logic
+   */
+  handleReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('Max reconnect attempts reached, giving up');
+      return;
+    }
+
+    this.reconnectAttempts++;
+
+    // Exponential backoff
+    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+    console.log(`🔄 Scheduling WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts})`);
+
+    setTimeout(() => {
+      console.log(`🔄 Attempting WebSocket reconnection (attempt ${this.reconnectAttempts})`);
+      // The client will auto-reconnect, but we can trigger a manual reconnect if needed
+    }, delay);
+  }
+
+  /**
+   * Disconnect от WebSocket
+   */
+  disconnect() {
+    this.isConnecting = false; // Reset connecting flag
+    if (this.client) {
+      // Unsubscribe от всички channels
+      this.subscriptions.forEach(sub => {
+        try {
+          sub.unsubscribe();
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      });
+      this.subscriptions.clear();
+
+      // Deactivate client
+      try {
+        if (this.client.connected) {
+          this.client.deactivate();
+        }
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      this.client = null;
+      this.connected = false;
+    }
+  }
+
+  /**
+   * Check дали е connected
+   */
+  isConnected() {
+    return this.connected;
+  }
+
+  /**
+   * Изпрати call signal през WebSocket
+   */
+  sendCallSignal(signal) {
+    if (!this.connected || !this.client) {
+      console.warn('Cannot send call signal - not connected');
+      return false;
+    }
+
+    try {
+      this.client.publish({
+        destination: '/app/svmessenger/call-signal',
+        body: JSON.stringify(signal)
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending call signal:', error);
+      return false;
+    }
   }
 }
 
-export const stompClient = new StompClient();
+// Export singleton instance
+export const svMobileWebSocketService = new SVMobileWebSocketService();
 

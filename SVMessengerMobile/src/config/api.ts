@@ -16,9 +16,9 @@ const isDevelopment = __DEV__;
 
 export const API_CONFIG = {
   BASE_URL: isDevelopment ? DEV_API_URL : PROD_API_URL,
-  WS_URL: isDevelopment 
-    ? 'ws://10.0.2.2:2662/ws-svmessenger' // Android Emulator IP за localhost - използваме същия endpoint като web версията
-    : 'wss://smolyanvote.com/ws-svmessenger', // Същия endpoint като web версията за production
+  WS_URL: isDevelopment
+    ? 'http://10.0.2.2:2662/ws-svmessenger' // Android Emulator IP за localhost - SockJS endpoint за mobile
+    : 'https://smolyanvote.com/ws-svmessenger', // SockJS endpoint за production
   
   // API Endpoints
   ENDPOINTS: {

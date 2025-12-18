@@ -16,6 +16,7 @@ export const useConversations = () => {
     fetchConversations,
     selectConversation,
     markAsRead,
+    selectedConversationId,
   } = useConversationsStore();
 
   const { isConnected } = useWebSocket();
@@ -35,7 +36,6 @@ export const useConversations = () => {
   // НЕ refresh-ваме ако има отворен чат, за да не презапишем локалните промени
   useEffect(() => {
     if (isConnected) {
-      const { selectedConversationId } = useConversationsStore.getState();
       // Refresh само ако няма отворен чат
       if (!selectedConversationId) {
         debouncedRefresh();
@@ -43,7 +43,7 @@ export const useConversations = () => {
         console.log('⏭️ Skipping conversations refresh on WebSocket connect - chat is open');
       }
     }
-  }, [isConnected, debouncedRefresh]);
+  }, [isConnected, selectedConversationId, debouncedRefresh]);
 
   return {
     conversations,

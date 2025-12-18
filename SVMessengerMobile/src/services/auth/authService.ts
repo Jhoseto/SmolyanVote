@@ -20,6 +20,7 @@ export interface LoginResponse {
   user: {
     id: number;
     username: string;
+    email: string; // Добавено за WebSocket authentication
     fullName: string;
     imageUrl?: string;
     isOnline: boolean;

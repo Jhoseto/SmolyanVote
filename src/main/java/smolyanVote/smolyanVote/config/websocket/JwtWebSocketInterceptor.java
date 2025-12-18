@@ -1,6 +1,8 @@
 package smolyanVote.smolyanVote.config.websocket;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -11,13 +13,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import smolyanVote.smolyanVote.config.websocket.UserPrincipal;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.jwt.JwtTokenService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -62,44 +66,98 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             log.info("🔐 WebSocket CONNECT command received - Session ID: {}", accessor.getSessionId());
-            
-            // Извличане на JWT token от headers
+
+            String token = null;
+
+            // 1. Първо проверяваме Authorization header (за SockJS clients)
             List<String> authHeaders = accessor.getNativeHeader("Authorization");
-            
             log.info("🔐 Authorization headers: {}", authHeaders != null ? authHeaders.size() : "NULL");
-            if (authHeaders != null && !authHeaders.isEmpty()) {
-                log.info("🔐 First auth header: {}", authHeaders.get(0).substring(0, Math.min(30, authHeaders.get(0).length())));
-            } else {
-                log.warn("⚠️ No Authorization header found in WebSocket CONNECT - JWT authentication will fail");
-                log.warn("⚠️ All native headers: {}", accessor.toNativeHeaderMap());
-                return message; // Return early if no auth header
-            }
 
             if (authHeaders != null && !authHeaders.isEmpty()) {
                 String authHeader = authHeaders.get(0);
-
                 if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-                    String token = authHeader.substring(7);
-                    log.info("🔐 JWT token extracted (length: {})", token.length());
+                    token = authHeader.substring(7);
+                    log.info("🔐 JWT token extracted from Authorization header (length: {})", token.length());
+                }
+            }
+
+            // 2. Ако няма в headers, проверяваме session attributes (от handshake interceptor)
+            if (token == null) {
+                log.info("🔐 No Authorization header found, checking session attributes...");
+                Object accessToken = accessor.getSessionAttributes().get("access_token");
+                if (accessToken instanceof String) {
+                    token = (String) accessToken;
+                    log.info("🔐 JWT token extracted from session attributes (length: {})", token.length());
+                }
+            }
+
+            // 3. Ако няма в session attributes, проверяваме access_token header (SockJS fallback)
+            if (token == null) {
+                List<String> sockJsHeaders = accessor.getNativeHeader("access_token");
+                if (sockJsHeaders != null && !sockJsHeaders.isEmpty()) {
+                    token = sockJsHeaders.get(0);
+                    log.info("🔐 JWT token extracted from access_token header (length: {})", token.length());
+                }
+            }
+
+            // 4. Ако все още няма token, проверяваме URL query parameters от session attributes (fallback за стари clients)
+            if (token == null) {
+                log.info("🔐 No token found in headers or session, checking URL query parameters from session attributes...");
+                Object uriObj = accessor.getSessionAttributes().get("websocket_uri");
+                if (uriObj instanceof String) {
+                    String uriString = (String) uriObj;
+                    log.info("🔐 WebSocket URI from session: {}", uriString);
 
                     try {
-                        // Валидация на token
-                        boolean isValid = jwtTokenService.validateToken(token);
-                        boolean isAccessToken = jwtTokenService.isAccessToken(token);
-                        log.info("🔐 Token validation: isValid={}, isAccessToken={}", isValid, isAccessToken);
-                        
-                        if (isValid && isAccessToken) {
-                            // Извличане на user info
-                            String email = jwtTokenService.extractEmail(token);
-                            Long userId = jwtTokenService.extractUserId(token);
-                            log.info("🔐 Extracted user info: email={}, userId={}", email, userId);
+                        java.net.URI uri = new java.net.URI(uriString);
+                        String query = uri.getQuery();
+                        log.info("🔐 URL query: {}", query);
 
-                            if (email != null && userId != null) {
-                                Optional<UserEntity> userOptional = userRepository.findByEmail(email);
+                        if (query != null && query.contains("access_token=")) {
+                            String[] params = query.split("&");
+                            for (String param : params) {
+                                if (param.startsWith("access_token=")) {
+                                    token = param.substring("access_token=".length());
+                                    log.info("🔐 JWT token extracted from URL query parameter (length: {})", token.length());
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("🔐 Failed to parse WebSocket URI: {}", e.getMessage());
+                    }
+                }
+            }
 
-                                if (userOptional.isPresent()) {
-                                    UserEntity user = userOptional.get();
-                                    log.info("🔐 UserEntity found: ID={}, Email={}", user.getId(), user.getEmail());
+            if (token == null) {
+                log.warn("⚠️ No JWT token found in any location (headers, session attributes, URL query)");
+                log.info("🔐 Session attributes: {}", accessor.getSessionAttributes());
+                log.info("🔐 All native headers: {}", accessor.toNativeHeaderMap());
+                log.info("🔐 All headers: {}", accessor.toMap());
+                return message; // Return early if no token
+            }
+
+            if (token != null) {
+                log.info("🔐 JWT token extracted (length: {})", token.length());
+
+                try {
+                    // Валидация на token
+                    boolean isValid = jwtTokenService.validateToken(token);
+                    boolean isAccessToken = jwtTokenService.isAccessToken(token);
+                    log.info("🔐 Token validation: isValid={}, isAccessToken={}", isValid, isAccessToken);
+
+                    if (isValid && isAccessToken) {
+                        // Извличане на user info
+                        String email = jwtTokenService.extractEmail(token);
+                        Long userId = jwtTokenService.extractUserId(token);
+                        log.info("🔐 Extracted user info: email={}, userId={}", email, userId);
+
+                        if (email != null && userId != null) {
+                            Optional<UserEntity> userOptional = userRepository.findByEmail(email);
+
+                            if (userOptional.isPresent()) {
+                                UserEntity user = userOptional.get();
+                                log.info("🔐 UserEntity found: ID={}, Email={}", user.getId(), user.getEmail());
 
                                     if (user.getId().equals(userId)) {
                                         // Създаване на UserPrincipal за правилно WebSocket routing
@@ -135,10 +193,6 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                     } catch (Exception e) {
                         log.error("❌ Error authenticating WebSocket connection with JWT: {}", e.getMessage(), e);
                     }
-                } else {
-                    log.warn("⚠️ Authorization header doesn't start with 'Bearer ' or is empty: {}", 
-                            authHeader != null ? authHeader.substring(0, Math.min(30, authHeader.length())) : "NULL");
-                }
             }
         }
 

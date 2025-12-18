@@ -11,7 +11,7 @@ import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { useCallsStore } from '../store/callsStore';
 import { CallState } from '../types/call';
-import { stompClient } from '../services/websocket/stompClient';
+import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import { debounce } from '../utils/constants';
 import { soundService } from '../services/sounds/soundService';
 import apiClient from '../services/api/client';
@@ -209,7 +209,7 @@ export const usePushNotifications = () => {
               soundService.playIncomingCallSound();
               
               // Свържи WebSocket ако не е свързан (за да получим call signals)
-              if (!stompClient.getConnected() && isAuthenticated && user) {
+              if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {
                 console.log('📞 Connecting WebSocket for incoming call...');
                 // WebSocket ще се свърже автоматично от useWebSocket hook
                 // Но тук можем да се уверим че е свързан
@@ -374,7 +374,7 @@ export const usePushNotifications = () => {
     
     // WebSocket connection автоматично обновява online статуса когато се свърже
     // Проверяваме дали WebSocket е connected
-    if (stompClient.getConnected()) {
+    if (svMobileWebSocketService.isConnected()) {
       console.log('💓 WebSocket is connected - online status maintained automatically by backend');
       return;
     }
