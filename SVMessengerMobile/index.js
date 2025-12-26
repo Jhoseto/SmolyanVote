@@ -42,6 +42,7 @@ try {
     global.MediaStreamTrack = MediaStreamTrack;
     
     // getUserMedia is CRITICAL for livekit-client - must be bound successfully
+    // If this fails, webrtcRegistered MUST remain false
     let getUserMediaBound = false;
     let getUserMediaError = null;
     
@@ -51,17 +52,19 @@ try {
         global.navigator.mediaDevices = global.navigator.mediaDevices || {};
         global.navigator.mediaDevices.getUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
         
-        // Verify binding was successful
+        // Verify binding was successful - MUST be a callable function
         if (typeof global.navigator.mediaDevices.getUserMedia === 'function') {
           getUserMediaBound = true;
           console.log('✅ getUserMedia bound successfully');
         } else {
           getUserMediaError = 'getUserMedia binding failed - function is not callable after binding';
           console.error('❌', getUserMediaError);
+          getUserMediaBound = false; // Explicitly ensure it's false
         }
       } catch (bindError) {
         getUserMediaError = `Error binding getUserMedia: ${bindError.message}`;
         console.error('❌', getUserMediaError);
+        getUserMediaBound = false; // Explicitly ensure it's false
       }
     } else {
       getUserMediaError = 'mediaDevices or getUserMedia is undefined';
@@ -69,12 +72,14 @@ try {
         hasMediaDevices: !!mediaDevices,
         hasGetUserMedia: !!(mediaDevices && mediaDevices.getUserMedia),
       });
+      getUserMediaBound = false; // Explicitly ensure it's false
     }
     
-    // Only mark as registered if getUserMedia was successfully bound
+    // CRITICAL: Fail fast if getUserMedia was not bound - webrtcRegistered MUST remain false
     if (!getUserMediaBound) {
       console.error('❌ getUserMedia is required for livekit-client but was not bound');
       console.error('❌ getUserMedia error:', getUserMediaError);
+      console.error('❌ webrtcRegistered will remain FALSE - LiveKit calls will fail');
       throw new Error(`getUserMedia binding failed: ${getUserMediaError || 'unknown error'}`);
     }
     
