@@ -16,52 +16,89 @@ export const useWebSocketCalls = () => {
 
   // Handle call signals
   const handleCallSignal = useCallback((data: any) => {
-    console.log('📞 WebSocket: Call signal received:', data);
+    console.log('📞 [useWebSocketCalls] handleCallSignal called with:', data);
+    console.log('📞 [useWebSocketCalls] Data type:', typeof data, 'Keys:', data ? Object.keys(data) : 'null');
 
     try {
       const signal = data;
+      // Backend използва 'eventType', не 'type'
+      const eventType = signal.eventType || signal.type;
 
-      switch (signal.type) {
-        case 'CALL_INITIATED':
-          console.log('📞 Incoming call initiated:', signal.callId);
-          setCallState(CallState.INCOMING, {
-            id: signal.callId,
+      switch (eventType) {
+        case 'CALL_REQUEST':
+          console.log('📞 [useWebSocketCalls] Incoming call request received:', {
+            conversationId: signal.conversationId,
             callerId: signal.callerId,
             callerName: signal.callerName,
-            conversationId: signal.conversationId,
+            callerAvatar: signal.callerAvatar,
+            fullSignal: signal,
           });
-
-          // Play ringtone
-          soundService.playSound('ringtone');
+          
+          try {
+            // Уверете се че данните са правилни типове
+            const conversationId = Number(signal.conversationId);
+            const callerId = Number(signal.callerId);
+            
+            if (!conversationId || !callerId) {
+              console.error('❌ [useWebSocketCalls] Invalid conversationId or callerId:', {
+                conversationId: signal.conversationId,
+                callerId: signal.callerId,
+              });
+              return;
+            }
+            
+            // Създай currentCall обект директно с INCOMING state
+            startCall(
+              conversationId,
+              callerId,
+              signal.callerName || 'Потребител',
+              signal.callerAvatar,
+              CallState.INCOMING // Задай state директно при създаване
+            );
+            
+            console.log('✅ [useWebSocketCalls] startCall executed successfully:', {
+              conversationId,
+              callerId,
+              callerName: signal.callerName || 'Потребител',
+            });
+            
+            // Play ringtone
+            soundService.playIncomingCallSound();
+          } catch (error) {
+            console.error('❌ [useWebSocketCalls] Error handling CALL_REQUEST:', error);
+          }
           break;
 
+        case 'CALL_ACCEPT':
         case 'CALL_ACCEPTED':
-          console.log('📞 Call accepted:', signal.callId);
+          console.log('📞 Call accepted');
           setCallState(CallState.CONNECTED);
-          soundService.stopSound('ringtone');
+          soundService.stopIncomingCallSound();
           break;
 
+        case 'CALL_REJECT':
         case 'CALL_REJECTED':
-          console.log('📞 Call rejected:', signal.callId);
+          console.log('📞 Call rejected');
           setCallState(CallState.IDLE);
-          soundService.stopSound('ringtone');
+          soundService.stopIncomingCallSound();
           break;
 
+        case 'CALL_END':
         case 'CALL_ENDED':
-          console.log('📞 Call ended:', signal.callId);
+          console.log('📞 Call ended');
           setCallState(CallState.IDLE);
-          soundService.stopSound('ringtone');
+          soundService.stopIncomingCallSound();
           break;
 
         case 'CALL_MISSED':
-          console.log('📞 Call missed:', signal.callId);
+          console.log('📞 Call missed');
           setCallState(CallState.IDLE);
           incrementMissedCalls();
-          soundService.stopSound('ringtone');
+          soundService.stopIncomingCallSound();
           break;
 
         default:
-          console.warn('Unknown call signal type:', signal.type);
+          console.warn('Unknown call signal eventType:', eventType, 'Full signal:', signal);
       }
     } catch (error) {
       console.error('Error handling call signal:', error);

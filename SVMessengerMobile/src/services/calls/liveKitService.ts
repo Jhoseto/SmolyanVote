@@ -1,9 +1,10 @@
 /**
  * LiveKit Service for React Native
- * Управление на voice calls чрез LiveKit
+ * Управление на voice и video calls чрез LiveKit
+ * Базирано на web версията (svLiveKitService.js) за съвместимост
  */
 
-import { Room, RoomEvent, Track, LocalAudioTrack, RemoteParticipant } from 'livekit-client';
+import { Room, RoomEvent, Track, LocalAudioTrack, LocalVideoTrack, RemoteParticipant } from 'livekit-client';
 import { CallTokenResponse } from '../../types/call';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
@@ -17,6 +18,8 @@ class LiveKitService {
   private isConnected: boolean = false;
   private currentRoomName: string | null = null;
   private localAudioTrack: LocalAudioTrack | null = null;
+  private localVideoTrack: LocalVideoTrack | null = null;
+  private isVideoEnabled: boolean = false;
 
   // Event callbacks
   private onConnectedCallback: CallEventCallback | null = null;
@@ -24,6 +27,7 @@ class LiveKitService {
   private onParticipantConnectedCallback: ParticipantEventCallback | null = null;
   private onParticipantDisconnectedCallback: ParticipantEventCallback | null = null;
   private onTrackSubscribedCallback: TrackEventCallback | null = null;
+  private onVideoTrackSubscribedCallback: TrackEventCallback | null = null;
 
   /**
    * Generate call token from backend
@@ -50,7 +54,13 @@ class LiveKitService {
         await this.disconnect();
       }
 
-      this.room = new Room();
+      // Create Room with React Native compatible options
+      this.room = new Room({
+        // Use default WebSocket implementation for React Native
+        // livekit-client will use the registered WebRTC globals
+        adaptiveStream: true,
+        dynacast: true,
+      });
       this.currentRoomName = roomName;
 
       // Setup event listeners
@@ -67,10 +77,6 @@ class LiveKitService {
         this.onDisconnectedCallback?.();
       });
 
-      this.room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-        console.log('Participant connected:', participant.identity);
-        this.onParticipantConnectedCallback?.(participant);
-      });
 
       this.room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
         console.log('Participant disconnected:', participant.identity);
@@ -81,15 +87,81 @@ class LiveKitService {
         console.log('Track subscribed:', track.kind, participant.identity);
         if (track.kind === 'audio') {
           this.onTrackSubscribedCallback?.(track, participant);
+        } else if (track.kind === 'video') {
+          this.onVideoTrackSubscribedCallback?.(track, participant);
         }
       });
 
-      // Connect to room (ensure URL starts with wss://)
-      const wsUrl = serverUrl.startsWith('wss://') || serverUrl.startsWith('ws://')
-        ? serverUrl
-        : `wss://${serverUrl}`;
-      await this.room.connect(wsUrl, token);
-      console.log('Successfully connected to LiveKit room');
+      // Handle existing participants' tracks when connecting
+      this.room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+        console.log('Participant connected:', participant.identity);
+        
+        // Subscribe to existing audio tracks
+        participant.audioTrackPublications.forEach((publication) => {
+          if (publication.track) {
+            this.onTrackSubscribedCallback?.(publication.track, participant);
+          }
+        });
+        
+        // Subscribe to existing video tracks
+        participant.videoTrackPublications.forEach((publication) => {
+          if (publication.track) {
+            this.onVideoTrackSubscribedCallback?.(publication.track, participant);
+          }
+        });
+        
+        this.onParticipantConnectedCallback?.(participant);
+      });
+
+      // Connect to room
+      // For Android emulator, convert wss:// to ws:// and localhost to 10.0.2.2
+      let wsUrl = serverUrl;
+      
+      // If running on Android emulator and URL contains localhost, replace with emulator IP
+      if (__DEV__ && (wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1'))) {
+        wsUrl = wsUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
+      }
+      
+      // Ensure URL has proper protocol
+      if (!wsUrl.startsWith('wss://') && !wsUrl.startsWith('ws://')) {
+        // Default to wss:// for production, ws:// for development
+        wsUrl = __DEV__ ? `ws://${wsUrl}` : `wss://${wsUrl}`;
+      }
+      
+      // For Android emulator in development, use ws:// instead of wss://
+      if (__DEV__ && wsUrl.startsWith('wss://')) {
+        wsUrl = wsUrl.replace('wss://', 'ws://');
+      }
+      
+      console.log('🔌 [LiveKit] Connecting to:', wsUrl, 'Room:', roomName, 'Token length:', token?.length || 0);
+      
+      try {
+        // Connect to LiveKit room
+        // Note: Room.connect(url, token) - third parameter is not standard, using just url and token
+        await this.room.connect(wsUrl, token);
+        console.log('✅ [LiveKit] Successfully connected to LiveKit room');
+      } catch (connectError: any) {
+        console.error('❌ [LiveKit] Connection error details:', {
+          error: connectError,
+          message: connectError?.message,
+          code: connectError?.code,
+          name: connectError?.name,
+          wsUrl,
+          roomName,
+          tokenLength: token?.length || 0,
+          hasWebRTC: typeof global.RTCPeerConnection !== 'undefined',
+        });
+        
+        // More detailed error logging
+        if (connectError?.message?.includes('WebRTC')) {
+          console.error('❌ [LiveKit] WebRTC not properly initialized. Check WebRTC globals registration.');
+        }
+        if (connectError?.message?.includes('websocket')) {
+          console.error('❌ [LiveKit] WebSocket connection failed. Check server URL and network connectivity.');
+        }
+        
+        throw connectError;
+      }
     } catch (error) {
       console.error('Error connecting to LiveKit room:', error);
       this.isConnected = false;
@@ -124,6 +196,14 @@ class LiveKitService {
    */
   async disconnect(): Promise<void> {
     try {
+      // Stop video track
+      if (this.localVideoTrack) {
+        this.localVideoTrack.stop();
+        this.localVideoTrack = null;
+      }
+      this.isVideoEnabled = false;
+
+      // Stop audio track
       if (this.localAudioTrack) {
         this.localAudioTrack.stop();
         this.localAudioTrack = null;
@@ -196,6 +276,100 @@ class LiveKitService {
 
   onTrackSubscribed(callback: TrackEventCallback): void {
     this.onTrackSubscribedCallback = callback;
+  }
+
+  onVideoTrackSubscribed(callback: TrackEventCallback): void {
+    this.onVideoTrackSubscribedCallback = callback;
+  }
+
+  /**
+   * Toggle camera on/off during active call
+   * COST OPTIMIZATION: Unpublishes video track when disabled to save money
+   */
+  async toggleCamera(enabled: boolean): Promise<boolean> {
+    console.log('🎥 [toggleCamera] START', { enabled, hasRoom: !!this.room, isConnected: this.isConnected });
+    
+    if (!this.room || !this.isConnected) {
+      console.warn('⚠️ [toggleCamera] Cannot toggle camera - not in a call');
+      return false;
+    }
+
+    try {
+      if (enabled) {
+        console.log('🎥 [toggleCamera] ENABLING camera...');
+        
+        // Unpublish existing video tracks first
+        const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
+        for (const publication of existingVideoTracks) {
+          if (publication.track) {
+            await this.room.localParticipant.unpublishTrack(publication.track);
+            publication.track.stop();
+          }
+        }
+
+        // Stop existing local video track if any
+        if (this.localVideoTrack) {
+          this.localVideoTrack.stop();
+          this.localVideoTrack = null;
+        }
+
+        // Create new video track
+        this.localVideoTrack = await LocalVideoTrack.createLocalVideoTrack({
+          facingMode: 'user', // Front camera by default
+          resolution: {
+            width: 1280,
+            height: 720,
+          },
+        });
+
+        // Publish video track (this starts billing as video call)
+        await this.room.localParticipant.publishTrack(this.localVideoTrack, {
+          source: 'camera'
+        });
+
+        this.isVideoEnabled = true;
+        console.log('✅ [toggleCamera] Camera enabled - VIDEO TRACK PUBLISHED');
+      } else {
+        console.log('🎥 [toggleCamera] DISABLING camera...');
+        
+        // Unpublish all video tracks
+        const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
+        for (const publication of existingVideoTracks) {
+          if (publication.track) {
+            await this.room.localParticipant.unpublishTrack(publication.track);
+            publication.track.stop();
+          }
+        }
+
+        // Stop and cleanup local video track
+        if (this.localVideoTrack) {
+          this.localVideoTrack.stop();
+          this.localVideoTrack = null;
+        }
+
+        this.isVideoEnabled = false;
+        console.log('✅ [toggleCamera] Camera disabled - now billing as audio-only call');
+      }
+      return true;
+    } catch (error) {
+      console.error('❌ [toggleCamera] Failed to toggle camera:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if camera is currently enabled
+   */
+  isCameraEnabled(): boolean {
+    if (!this.room || !this.isConnected) return false;
+    return this.isVideoEnabled || this.room.localParticipant.isCameraEnabled;
+  }
+
+  /**
+   * Get local video track for preview
+   */
+  getLocalVideoTrack(): LocalVideoTrack | null {
+    return this.localVideoTrack;
   }
 }
 

@@ -247,14 +247,20 @@ class SVMobileWebSocketService {
         '/user/queue/svmessenger-call-signals',
         (message) => {
           try {
+            console.log('📞 [stompClient] Raw call signal received:', message.body);
             const data = JSON.parse(message.body);
+            console.log('📞 [stompClient] Parsed call signal:', data);
+            console.log('📞 [stompClient] onCallSignal type:', typeof onCallSignal, 'is function:', typeof onCallSignal === 'function');
+            
             if (onCallSignal && typeof onCallSignal === 'function') {
+              console.log('📞 [stompClient] Calling onCallSignal with data:', data);
               onCallSignal(data);
+              console.log('📞 [stompClient] onCallSignal executed');
             } else {
-              console.error('onCallSignal is not a function:', typeof onCallSignal);
+              console.error('❌ [stompClient] onCallSignal is not a function:', typeof onCallSignal);
             }
           } catch (error) {
-            console.error('Error parsing call signal:', error);
+            console.error('❌ [stompClient] Error parsing call signal:', error);
           }
         }
       );

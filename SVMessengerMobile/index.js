@@ -1,8 +1,135 @@
 /**
  * SVMessenger Mobile - Entry Point
  * Това е главният entry point на приложението
+ * 
+ * ВАЖНО: WebRTC globals ТРЯБВА да се регистрират ПРЕДИ всички imports,
+ * защото livekit-client се импортира в CallScreen и се инициализира веднага.
  */
 
+// ========== STEP 1: Register WebRTC globals FIRST (before any imports) ==========
+// This MUST happen before any code that imports livekit-client
+// Using require() instead of import ensures this executes immediately, before ES6 imports
+let webrtcRegistered = false;
+try {
+  const webrtc = require('react-native-webrtc');
+  
+  if (webrtc && webrtc.RTCPeerConnection) {
+    const { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStream, MediaStreamTrack, mediaDevices } = webrtc;
+    
+    // Verify all required APIs are available
+    const hasRequiredAPIs = RTCPeerConnection && 
+                            RTCSessionDescription && 
+                            RTCIceCandidate && 
+                            MediaStream && 
+                            MediaStreamTrack;
+    
+    if (!hasRequiredAPIs) {
+      console.error('❌ Missing required WebRTC APIs:', {
+        hasRTCPeerConnection: !!RTCPeerConnection,
+        hasRTCSessionDescription: !!RTCSessionDescription,
+        hasRTCIceCandidate: !!RTCIceCandidate,
+        hasMediaStream: !!MediaStream,
+        hasMediaStreamTrack: !!MediaStreamTrack,
+      });
+      throw new Error('Missing required WebRTC APIs');
+    }
+    
+    // Set global WebRTC APIs that livekit-client expects
+    global.RTCPeerConnection = RTCPeerConnection;
+    global.RTCSessionDescription = RTCSessionDescription;
+    global.RTCIceCandidate = RTCIceCandidate;
+    global.MediaStream = MediaStream;
+    global.MediaStreamTrack = MediaStreamTrack;
+    
+    // getUserMedia is CRITICAL for livekit-client - must be bound successfully
+    let getUserMediaBound = false;
+    let getUserMediaError = null;
+    
+    if (mediaDevices && mediaDevices.getUserMedia) {
+      try {
+        global.navigator = global.navigator || {};
+        global.navigator.mediaDevices = global.navigator.mediaDevices || {};
+        global.navigator.mediaDevices.getUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
+        
+        // Verify binding was successful
+        if (typeof global.navigator.mediaDevices.getUserMedia === 'function') {
+          getUserMediaBound = true;
+          console.log('✅ getUserMedia bound successfully');
+        } else {
+          getUserMediaError = 'getUserMedia binding failed - function is not callable after binding';
+          console.error('❌', getUserMediaError);
+        }
+      } catch (bindError) {
+        getUserMediaError = `Error binding getUserMedia: ${bindError.message}`;
+        console.error('❌', getUserMediaError);
+      }
+    } else {
+      getUserMediaError = 'mediaDevices or getUserMedia is undefined';
+      console.error('❌', getUserMediaError, {
+        hasMediaDevices: !!mediaDevices,
+        hasGetUserMedia: !!(mediaDevices && mediaDevices.getUserMedia),
+      });
+    }
+    
+    // Only mark as registered if getUserMedia was successfully bound
+    if (!getUserMediaBound) {
+      console.error('❌ getUserMedia is required for livekit-client but was not bound');
+      console.error('❌ getUserMedia error:', getUserMediaError);
+      throw new Error(`getUserMedia binding failed: ${getUserMediaError || 'unknown error'}`);
+    }
+    
+    // Also set window for compatibility (some libraries check window instead of global)
+    if (typeof global.window === 'undefined') {
+      global.window = global;
+    }
+    
+    // Verify all globals are set correctly
+    // CRITICAL: getUserMediaBound MUST be true for registration to succeed
+    const allGlobalsSet = getUserMediaBound && // Explicit check that getUserMedia was bound
+                         global.RTCPeerConnection &&
+                         global.RTCSessionDescription &&
+                         global.RTCIceCandidate &&
+                         global.MediaStream &&
+                         global.MediaStreamTrack &&
+                         typeof global.navigator?.mediaDevices?.getUserMedia === 'function';
+    
+    if (allGlobalsSet) {
+      webrtcRegistered = true;
+      console.log('✅ WebRTC globals registered successfully for livekit-client');
+      console.log('✅ Verified: RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStream, MediaStreamTrack, getUserMedia');
+    } else {
+      console.error('❌ WebRTC globals verification failed:', {
+        getUserMediaBound: getUserMediaBound, // Explicit check result
+        hasRTCPeerConnection: !!global.RTCPeerConnection,
+        hasRTCSessionDescription: !!global.RTCSessionDescription,
+        hasRTCIceCandidate: !!global.RTCIceCandidate,
+        hasMediaStream: !!global.MediaStream,
+        hasMediaStreamTrack: !!global.MediaStreamTrack,
+        hasGetUserMedia: typeof global.navigator?.mediaDevices?.getUserMedia === 'function',
+      });
+      throw new Error('WebRTC globals verification failed');
+    }
+  } else {
+    console.warn('⚠️ react-native-webrtc module loaded but RTCPeerConnection is undefined');
+    console.warn('⚠️ This usually means the native module is not properly linked');
+  }
+} catch (error) {
+  console.error('❌ Failed to register WebRTC globals:', error.message);
+  console.error('❌ Error details:', error);
+  console.warn('⚠️ This usually means:');
+  console.warn('   1. react-native-webrtc is not installed (run: npm install react-native-webrtc)');
+  console.warn('   2. Native module is not linked (rebuild Android app after npm install)');
+  console.warn('   3. Android app needs to be rebuilt (cd android && ./gradlew clean && cd .. && npm run android)');
+  webrtcRegistered = false;
+}
+
+// Verify registration
+if (!webrtcRegistered) {
+  console.error('❌ CRITICAL: WebRTC globals NOT registered! LiveKit calls will fail!');
+  console.error('❌ Please rebuild Android app: cd android && ./gradlew clean && cd .. && npm run android');
+}
+
+// ========== STEP 2: Polyfills for TextDecoder/TextEncoder ==========
 // Polyfill for TextDecoder and TextEncoder (required for STOMP WebSocket library)
 // React Native doesn't have these built-in, so we need to add them
 if (typeof global.TextDecoder === 'undefined') {
@@ -62,6 +189,7 @@ if (typeof global.TextEncoder === 'undefined') {
   };
 }
 
+// ========== STEP 3: Now import React Native modules (after WebRTC setup) ==========
 import { AppRegistry } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import App from './App';

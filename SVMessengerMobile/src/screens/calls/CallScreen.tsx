@@ -1,24 +1,70 @@
 /**
  * Call Screen
- * Екран за активен voice call
+ * Екран за активен voice и video call
+ * Подобрена версия с video поддръжка като web версията
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/common';
-import { TelephoneIcon, SpeakerWaveIcon, MicrophoneIcon } from '../../components/common/Icons';
+import { TelephoneIcon, SpeakerWaveIcon, MicrophoneIcon, CameraVideoIcon, CameraIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { CallState } from '../../types/call';
+import { liveKitService } from '../../services/calls/liveKitService';
+import { RemoteParticipant, Track as LiveKitTrack } from 'livekit-client';
+
+// Video component wrapper - handles react-native-webrtc availability
+const VideoView: React.FC<{ stream: MediaStream | null; style: any; mirror?: boolean; zOrder?: number }> = ({ stream, style, mirror = false, zOrder = 0 }) => {
+  const [RTCViewComponent, setRTCViewComponent] = useState<any>(null);
+
+  useEffect(() => {
+    // Try to load RTCView dynamically
+    try {
+      const webrtc = require('react-native-webrtc');
+      setRTCViewComponent(() => webrtc.RTCView);
+    } catch (e) {
+      // Module not available - will show placeholder
+      console.warn('react-native-webrtc not available. Rebuild Android app to enable video.');
+    }
+  }, []);
+
+  if (!stream) return null;
+
+  if (RTCViewComponent) {
+    return (
+      <RTCViewComponent
+        streamURL={stream.id}
+        style={style}
+        objectFit="cover"
+        mirror={mirror}
+        zOrder={zOrder}
+      />
+    );
+  }
+
+  // Fallback placeholder
+  return (
+    <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.dark }]}>
+      <Text style={{ color: Colors.text.inverse, fontSize: Typography.fontSize.sm }}>
+        Video{'\n'}Rebuild app
+      </Text>
+    </View>
+  );
+};
 
 export const CallScreen: React.FC = () => {
-  const { currentCall, callState, isMuted, endCall, toggleMute } = useCalls();
+  const { currentCall, callState, isMuted, endCall, toggleMute, toggleCamera, isVideoEnabled } = useCalls();
+  const [remoteVideoTrack, setRemoteVideoTrack] = useState<LiveKitTrack | null>(null);
+  const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     // Auto-end call if disconnected
@@ -28,6 +74,69 @@ export const CallScreen: React.FC = () => {
       }, 2000);
     }
   }, [callState, endCall]);
+
+  // Setup video track listeners and convert to stream URLs for RTCView
+  useEffect(() => {
+    if (callState !== CallState.CONNECTED) return;
+
+    // Listen for video track subscriptions
+    liveKitService.onVideoTrackSubscribed((track: LiveKitTrack, participant: RemoteParticipant) => {
+      console.log('Video track subscribed:', track.kind, participant.identity);
+      if (track.kind === 'video' && track.mediaStreamTrack) {
+        setRemoteVideoTrack(track);
+        setRemoteParticipant(participant);
+        
+        // Create MediaStream from track for RTCView
+        const stream = new MediaStream([track.mediaStreamTrack]);
+        setRemoteStream(stream);
+      }
+    });
+
+    // Listen for participant connections
+    liveKitService.onParticipantConnected((participant: RemoteParticipant) => {
+      // Check for existing video tracks
+      participant.videoTrackPublications.forEach((publication) => {
+        if (publication.track && publication.track.kind === 'video' && publication.track.mediaStreamTrack) {
+          setRemoteVideoTrack(publication.track);
+          setRemoteParticipant(participant);
+          
+          // Create MediaStream from track
+          const stream = new MediaStream([publication.track.mediaStreamTrack]);
+          setRemoteStream(stream);
+        }
+      });
+    });
+
+    // Cleanup on disconnect
+    return () => {
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      setRemoteVideoTrack(null);
+      setRemoteParticipant(null);
+      setRemoteStream(null);
+      setLocalStream(null);
+    };
+  }, [callState]);
+
+  // Update local video stream when local track changes
+  useEffect(() => {
+    const localTrack = liveKitService.getLocalVideoTrack();
+    if (localTrack && localTrack.mediaStreamTrack) {
+      const stream = new MediaStream([localTrack.mediaStreamTrack]);
+      setLocalStream(stream);
+      
+      // Cleanup function
+      return () => {
+        stream.getTracks().forEach(track => track.stop());
+      };
+    } else {
+      setLocalStream(null);
+    }
+  }, [isVideoEnabled]);
 
   if (!currentCall) {
     return null;
@@ -42,25 +151,52 @@ export const CallScreen: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const localVideoTrack = liveKitService.getLocalVideoTrack();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.participantSection}>
-          <Avatar
-            imageUrl={currentCall.participantImageUrl}
-            name={currentCall.participantName}
-            size={120}
-            isOnline={true}
-          />
-          <Text style={styles.participantName}>{currentCall.participantName}</Text>
-          <Text style={styles.callStatus}>
-            {callState === CallState.CONNECTING && 'Свързване...'}
-            {callState === CallState.CONNECTED && formatCallDuration(currentCall.startTime)}
-            {callState === CallState.DISCONNECTED && 'Разговорът приключи'}
-          </Text>
-        </View>
+        {/* Remote Video (full screen when video is enabled) */}
+        {isVideoEnabled && remoteStream ? (
+          <View style={styles.remoteVideoContainer}>
+            <VideoView
+              stream={remoteStream}
+              style={styles.remoteVideo}
+              mirror={false}
+              zOrder={0}
+            />
+            {/* Local video preview (PiP style) */}
+            {localStream && (
+              <View style={styles.localVideoPreview}>
+                <VideoView
+                  stream={localStream}
+                  style={styles.localVideo}
+                  mirror={true}
+                  zOrder={1}
+                />
+              </View>
+            )}
+          </View>
+        ) : (
+          /* Audio call view (avatar) */
+          <View style={styles.participantSection}>
+            <Avatar
+              imageUrl={currentCall.participantImageUrl}
+              name={currentCall.participantName}
+              size={120}
+              isOnline={true}
+            />
+            <Text style={styles.participantName}>{currentCall.participantName}</Text>
+            <Text style={styles.callStatus}>
+              {callState === CallState.CONNECTING && 'Свързване...'}
+              {callState === CallState.CONNECTED && formatCallDuration(currentCall.startTime)}
+              {callState === CallState.DISCONNECTED && 'Разговорът приключи'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.controlsSection}>
+          {/* Mute/Unmute button */}
           <TouchableOpacity
             style={[styles.controlButton, isMuted && styles.controlButtonActive]}
             onPress={toggleMute}
@@ -76,6 +212,25 @@ export const CallScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
+          {/* Camera toggle button */}
+          {callState === CallState.CONNECTED && (
+            <TouchableOpacity
+              style={[styles.controlButton, isVideoEnabled && styles.controlButtonActive]}
+              onPress={toggleCamera}
+              activeOpacity={0.8}
+            >
+              {isVideoEnabled ? (
+                <CameraVideoIcon size={28} color={Colors.text.inverse} />
+              ) : (
+                <CameraIcon size={28} color={Colors.text.inverse} />
+              )}
+              <Text style={styles.controlButtonLabel}>
+                {isVideoEnabled ? 'Камера' : 'Камера'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* End call button */}
           <TouchableOpacity
             style={[styles.controlButton, styles.endCallButton]}
             onPress={endCall}
@@ -146,6 +301,46 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: Colors.text.inverse,
     fontWeight: Typography.fontWeight.medium,
+  },
+  remoteVideoContainer: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: Colors.background.dark,
+    position: 'relative',
+  },
+  remoteVideo: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  localVideoPreview: {
+    position: 'absolute',
+    top: Spacing.lg,
+    right: Spacing.lg,
+    width: 120,
+    height: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.background.dark,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+  },
+  localVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlaceholder: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.background.dark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlaceholderText: {
+    color: Colors.text.inverse,
+    fontSize: Typography.fontSize.lg,
+    textAlign: 'center',
   },
 });
 

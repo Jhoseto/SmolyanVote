@@ -8,6 +8,7 @@ import { useCallsStore } from '../store/callsStore';
 import { useAuthStore } from '../store/authStore';
 import { liveKitService } from '../services/calls/liveKitService';
 import { soundService } from '../services/sounds/soundService';
+import { callPermissionsService } from '../services/permissions/callPermissionsService';
 import { CallState } from '../types/call';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 
@@ -60,6 +61,14 @@ export const useCalls = () => {
           throw new Error('User not authenticated');
         }
 
+        // Request microphone permission before starting call
+        const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
+        if (!hasAudioPermission) {
+          console.error('❌ Microphone permission denied, cannot start call');
+          clearCall();
+          return;
+        }
+
         // Generate call token
         const { token, roomName, serverUrl } = await liveKitService.generateCallToken(conversationId, participantId);
 
@@ -96,15 +105,34 @@ export const useCalls = () => {
     if (!currentCall) return;
 
     try {
+      // Request microphone permission before answering call
+      const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
+      if (!hasAudioPermission) {
+        console.error('❌ Microphone permission denied, cannot answer call');
+        clearCall();
+        return;
+      }
+
       // Stop incoming call sound when answering
       soundService.stopIncomingCallSound();
       answerCall();
 
       // Generate call token
+      console.log('📞 [useCalls] Generating call token for answer:', {
+        conversationId: currentCall.conversationId,
+        participantId: currentCall.participantId,
+      });
+      
       const { token, roomName, serverUrl } = await liveKitService.generateCallToken(
         currentCall.conversationId,
         currentCall.participantId
       );
+      
+      console.log('📞 [useCalls] Call token received:', {
+        roomName,
+        serverUrl,
+        hasToken: !!token,
+      });
 
       // Send answer signal via WebSocket
       const { user } = useAuthStore.getState();
@@ -119,9 +147,16 @@ export const useCalls = () => {
       }
 
       // Connect to LiveKit room
+      console.log('📞 [useCalls] Connecting to LiveKit room...');
       await liveKitService.connect(token, roomName, serverUrl);
-    } catch (error) {
-      console.error('Error answering call:', error);
+      console.log('✅ [useCalls] Successfully connected to LiveKit room');
+    } catch (error: any) {
+      console.error('❌ [useCalls] Error answering call:', {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        currentCall,
+      });
       clearCall();
     }
   }, [currentCall, answerCall, clearCall]);
@@ -172,15 +207,42 @@ export const useCalls = () => {
     return newMuteState;
   }, [toggleMute]);
 
+  // Toggle camera
+  const handleToggleCamera = useCallback(async () => {
+    if (callState !== CallState.CONNECTED) return false;
+    
+    const currentVideoState = liveKitService.isCameraEnabled();
+    const wantsToEnable = !currentVideoState;
+
+    // If trying to enable camera, request permission first
+    if (wantsToEnable) {
+      const hasCameraPermission = await callPermissionsService.requestCameraPermission();
+      if (!hasCameraPermission) {
+        console.error('❌ Camera permission denied, cannot enable camera');
+        return false;
+      }
+    }
+    
+    const newVideoState = await liveKitService.toggleCamera(wantsToEnable);
+    return newVideoState;
+  }, [callState]);
+
+  // Get video enabled state
+  const getIsVideoEnabled = useCallback(() => {
+    return liveKitService.isCameraEnabled();
+  }, []);
+
   return {
     currentCall,
     callState,
     isMuted,
+    isVideoEnabled: getIsVideoEnabled(),
     startCall: handleStartCall,
     answerCall: handleAnswerCall,
     rejectCall: handleRejectCall,
     endCall: handleEndCall,
     toggleMute: handleToggleMute,
+    toggleCamera: handleToggleCamera,
   };
 };
 

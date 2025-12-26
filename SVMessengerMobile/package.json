@@ -45,6 +45,7 @@
     "react-native-screens": "^4.1.0",
     "react-native-svg": "^15.15.1",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-webrtc": "^124.0.7",
     "sockjs-client": "^1.6.1",
     "zustand": "^5.0.2"
   },

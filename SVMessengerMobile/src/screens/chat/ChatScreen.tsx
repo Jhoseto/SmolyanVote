@@ -64,9 +64,22 @@ export const ChatScreen: React.FC = () => {
   const scrollOffsetRef = useRef(0);
   const hasScrolledRef = useRef(false);
 
+  // Track last message ID to detect new messages
+  const lastMessageIdRef = useRef<number | null>(null);
+  const lastMessageCountRef = useRef(0);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageId = lastMessage?.id || null;
+    const messageCount = messages.length;
+
+    // Only scroll if we have new messages (count changed or last message ID changed)
+    if (messages.length > 0 && flatListRef.current && 
+        (messageCount !== lastMessageCountRef.current || lastMessageId !== lastMessageIdRef.current)) {
+      lastMessageIdRef.current = lastMessageId;
+      lastMessageCountRef.current = messageCount;
+      
       // Use requestAnimationFrame for better performance
       requestAnimationFrame(() => {
         setTimeout(() => {
@@ -74,7 +87,7 @@ export const ChatScreen: React.FC = () => {
         }, 100);
       });
     }
-  }, [messages.length, messages.map(m => m.id).join(',')]); // Track message IDs for better change detection
+  }, [messages.length, messages[messages.length - 1]?.id]);
 
   // Scroll to bottom when component mounts with messages
   useEffect(() => {
@@ -123,19 +136,38 @@ export const ChatScreen: React.FC = () => {
     setReplyToMessage(null);
   };
 
-  // Search functionality
+  // Search functionality - use refs to track changes and avoid infinite loops
+  const prevSearchQueryRef = useRef('');
+  const prevMessagesCountRef = useRef(0);
+  const prevLastMessageIdRef = useRef<number | null>(null);
+  
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      const results = messages
-        .map((msg, index) => (msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ? index : -1))
-        .filter((index) => index !== -1);
-      setSearchResults(results);
-      setCurrentSearchIndex(0);
-    } else {
-      setSearchResults([]);
-      setCurrentSearchIndex(0);
+    const searchQueryTrimmed = searchQuery.trim();
+    const messagesCount = messages.length;
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageId = lastMessage?.id || null;
+    
+    // Only recalculate if search query changed or messages actually changed
+    const searchChanged = searchQueryTrimmed !== prevSearchQueryRef.current;
+    const messagesChanged = messagesCount !== prevMessagesCountRef.current || lastMessageId !== prevLastMessageIdRef.current;
+    
+    if (searchChanged || messagesChanged) {
+      prevSearchQueryRef.current = searchQueryTrimmed;
+      prevMessagesCountRef.current = messagesCount;
+      prevLastMessageIdRef.current = lastMessageId;
+      
+      if (searchQueryTrimmed.length > 0) {
+        const results = messages
+          .map((msg, index) => (msg.text.toLowerCase().includes(searchQueryTrimmed.toLowerCase()) ? index : -1))
+          .filter((index) => index !== -1);
+        setSearchResults(results);
+        setCurrentSearchIndex(0);
+      } else {
+        setSearchResults([]);
+        setCurrentSearchIndex(0);
+      }
     }
-  }, [searchQuery, messages]);
+  }, [searchQuery, messages.length, messages[messages.length - 1]?.id]);
 
   const handleSearchNext = () => {
     if (currentSearchIndex < searchResults.length - 1) {

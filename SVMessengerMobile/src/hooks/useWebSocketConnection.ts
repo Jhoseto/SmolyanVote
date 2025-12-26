@@ -101,20 +101,12 @@ export const useWebSocketConnection = () => {
   }, []);
 
   // Handle app state changes
+  // NOTE: Reconnection should be handled by useWebSocket hook with proper callbacks
+  // This is kept for logging purposes only
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       console.log('📱 App state changed:', nextAppState);
-
-      if (nextAppState === 'active') {
-        // App became active - reconnect WebSocket if needed
-        if (isAuthenticated && user && !svMobileWebSocketService.isConnected() && !isConnectingRef.current) {
-          console.log('🔄 App became active, reconnecting WebSocket...');
-          connectWebSocket();
-        }
-      } else if (nextAppState === 'background') {
-        // App went to background - can disconnect or keep connection
-        // For now, keep connection for notifications
-      }
+      // Reconnection is handled by useWebSocket hook
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
@@ -122,18 +114,11 @@ export const useWebSocketConnection = () => {
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated, user, connectWebSocket]);
+  }, []);
 
-  // Connect WebSocket when authenticated
-  useEffect(() => {
-    if (isAuthenticated && user && !svMobileWebSocketService.isConnected() && !isConnectingRef.current) {
-      console.log('🔄 User authenticated, connecting WebSocket...');
-      connectWebSocket();
-    } else if (!isAuthenticated && svMobileWebSocketService.isConnected()) {
-      console.log('🔌 User logged out, disconnecting WebSocket...');
-      disconnectWebSocket();
-    }
-  }, [isAuthenticated, user, connectWebSocket, disconnectWebSocket]);
+  // NOTE: WebSocket connection with callbacks should be handled by useWebSocket hook
+  // This effect only handles automatic connection, but callbacks must be set up separately
+  // The actual connection with callbacks happens in useWebSocket hook
 
   // Cleanup on unmount
   useEffect(() => {

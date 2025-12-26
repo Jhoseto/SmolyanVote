@@ -9,8 +9,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/common';
 import { TelephoneIcon, XMarkIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';

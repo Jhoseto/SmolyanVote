@@ -3,12 +3,14 @@
  * Главен hook който комбинира всички WebSocket функционалности
  */
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useWebSocketConnection } from './useWebSocketConnection';
 import { useWebSocketMessages } from './useWebSocketMessages';
 import { useWebSocketStatus } from './useWebSocketStatus';
 import { useWebSocketCalls } from './useWebSocketCalls';
 import { useWebSocketTyping } from './useWebSocketTyping';
+import { useAuthStore } from '../store/authStore';
+import { svMobileWebSocketService } from '../services/websocket/stompClient';
 
 export const useWebSocket = () => {
   // Message handling
@@ -28,6 +30,10 @@ export const useWebSocket = () => {
 
   // Enhanced connect function that includes all callbacks
   const enhancedConnectWebSocket = useCallback(async () => {
+    console.log('📞 [useWebSocket] Connecting with callbacks:', {
+      hasHandleCallSignal: !!handleCallSignal,
+      handleCallSignalType: typeof handleCallSignal,
+    });
     return connectWebSocket({
       onNewMessage: handleNewMessage,
       onReadReceipt: handleReadReceipt,
@@ -37,6 +43,15 @@ export const useWebSocket = () => {
       onTypingStatus: handleTypingStatus,
     });
   }, [connectWebSocket, handleNewMessage, handleReadReceipt, handleDeliveryReceipt, handleOnlineStatus, handleCallSignal, handleTypingStatus]);
+
+  // Auto-connect when authenticated (with callbacks)
+  const { isAuthenticated, user } = useAuthStore();
+  React.useEffect(() => {
+    if (isAuthenticated && user && !isConnected && !svMobileWebSocketService.isConnecting) {
+      console.log('📞 [useWebSocket] Auto-connecting WebSocket with callbacks...');
+      enhancedConnectWebSocket();
+    }
+  }, [isAuthenticated, user, isConnected, enhancedConnectWebSocket]);
 
   return {
     // Connection management

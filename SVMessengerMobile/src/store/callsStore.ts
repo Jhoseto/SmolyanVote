@@ -14,7 +14,7 @@ interface CallsState {
 
 interface CallsStore extends CallsState {
   // Actions
-  startCall: (conversationId: number, participantId: number, participantName: string) => void;
+  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState) => void;
   answerCall: () => void;
   rejectCall: () => void;
   endCall: () => void;
@@ -30,20 +30,37 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
   isMuted: false,
 
   // Start call
-  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string) => {
+  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState) => {
+    console.log('📞 [callsStore] startCall called:', {
+      conversationId,
+      participantId,
+      participantName,
+      participantImageUrl,
+      initialState,
+    });
+    
+    const callState = initialState || CallState.OUTGOING;
     const call: Call = {
       id: `call-${Date.now()}`,
       conversationId,
       participantId,
       participantName,
       participantImageUrl,
-      state: CallState.OUTGOING,
+      state: callState,
       startTime: new Date(),
     };
 
+    console.log('📞 [callsStore] Creating call object:', call);
+    console.log('📞 [callsStore] Setting callState to:', callState);
+
     set({
       currentCall: call,
-      callState: CallState.OUTGOING,
+      callState: callState,
+    });
+    
+    console.log('📞 [callsStore] Store updated. New state:', {
+      currentCall: call,
+      callState: callState,
     });
   },
 

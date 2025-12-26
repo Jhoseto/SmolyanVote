@@ -47,6 +47,24 @@ export const AppNavigator: React.FC = () => {
   const showCallScreen =
     callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
 
+  // Debug logging - log ALL state changes
+  React.useEffect(() => {
+    console.log('📞 [AppNavigator] State update:', {
+      callState,
+      hasCurrentCall: !!currentCall,
+      currentCall: currentCall ? {
+        id: currentCall.id,
+        conversationId: currentCall.conversationId,
+        participantId: currentCall.participantId,
+        participantName: currentCall.participantName,
+        state: currentCall.state,
+      } : null,
+      showCallScreen,
+      shouldShowIncoming: callState === CallState.INCOMING,
+      shouldShowCall: callState !== CallState.IDLE && callState !== CallState.DISCONNECTED,
+    });
+  }, [callState, currentCall, showCallScreen]);
+
   // Show loading screen while initializing auth
   if (isInitializing) {
     return (
