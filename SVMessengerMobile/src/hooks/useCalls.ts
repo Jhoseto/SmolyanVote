@@ -123,16 +123,34 @@ export const useCalls = () => {
         participantId: currentCall.participantId,
       });
       
-      const { token, roomName, serverUrl } = await liveKitService.generateCallToken(
-        currentCall.conversationId,
-        currentCall.participantId
-      );
+      let token: string;
+      let roomName: string;
+      let serverUrl: string;
       
-      console.log('📞 [useCalls] Call token received:', {
-        roomName,
-        serverUrl,
-        hasToken: !!token,
-      });
+      try {
+        const tokenResponse = await liveKitService.generateCallToken(
+          currentCall.conversationId,
+          currentCall.participantId
+        );
+        token = tokenResponse.token;
+        roomName = tokenResponse.roomName;
+        serverUrl = tokenResponse.serverUrl;
+        
+        console.log('📞 [useCalls] Call token received:', {
+          roomName,
+          serverUrl,
+          hasToken: !!token,
+          tokenLength: token?.length || 0,
+        });
+      } catch (tokenError: any) {
+        console.error('❌ [useCalls] Error generating call token:', {
+          error: tokenError,
+          message: tokenError?.message,
+          response: tokenError?.response?.data,
+          status: tokenError?.response?.status,
+        });
+        throw tokenError;
+      }
 
       // Send answer signal via WebSocket
       const { user } = useAuthStore.getState();

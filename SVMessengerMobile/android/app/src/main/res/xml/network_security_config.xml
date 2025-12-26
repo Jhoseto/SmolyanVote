@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow all SSL/TLS connections for development and LiveKit Cloud -->
+    <!-- This is needed for wss:// connections to work properly in Android -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- Trust system certificates -->
+            <certificates src="system" />
+            <!-- Trust user added certificates (for development) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Specific configuration for LiveKit Cloud -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">livekit.cloud</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
+

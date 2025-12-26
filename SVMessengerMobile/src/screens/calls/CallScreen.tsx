@@ -19,43 +19,27 @@ import { useCalls } from '../../hooks/useCalls';
 import { CallState } from '../../types/call';
 import { liveKitService } from '../../services/calls/liveKitService';
 import { RemoteParticipant, Track as LiveKitTrack } from 'livekit-client';
+import { VideoView as LiveKitVideoView } from '@livekit/react-native';
 
-// Video component wrapper - handles react-native-webrtc availability
-const VideoView: React.FC<{ stream: MediaStream | null; style: any; mirror?: boolean; zOrder?: number }> = ({ stream, style, mirror = false, zOrder = 0 }) => {
-  const [RTCViewComponent, setRTCViewComponent] = useState<any>(null);
-
-  useEffect(() => {
-    // Try to load RTCView dynamically
-    try {
-      const webrtc = require('react-native-webrtc');
-      setRTCViewComponent(() => webrtc.RTCView);
-    } catch (e) {
-      // Module not available - will show placeholder
-      console.warn('react-native-webrtc not available. Rebuild Android app to enable video.');
-    }
-  }, []);
-
-  if (!stream) return null;
-
-  if (RTCViewComponent) {
+// Video component wrapper using LiveKit's VideoView
+const VideoView: React.FC<{ stream: MediaStream | null; track: LiveKitTrack | null; style: any; mirror?: boolean }> = ({ stream, track, style, mirror = false }) => {
+  if (!track || !track.mediaStreamTrack) {
+    // Fallback placeholder when no track
     return (
-      <RTCViewComponent
-        streamURL={stream.id}
-        style={style}
-        objectFit="cover"
-        mirror={mirror}
-        zOrder={zOrder}
-      />
+      <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.dark }]}>
+        <Text style={{ color: Colors.text.inverse, fontSize: Typography.fontSize.sm }}>
+          Waiting for video...
+        </Text>
+      </View>
     );
   }
 
-  // Fallback placeholder
   return (
-    <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.dark }]}>
-      <Text style={{ color: Colors.text.inverse, fontSize: Typography.fontSize.sm }}>
-        Video{'\n'}Rebuild app
-      </Text>
-    </View>
+    <LiveKitVideoView
+      track={track}
+      style={style}
+      mirror={mirror}
+    />
   );
 };
 

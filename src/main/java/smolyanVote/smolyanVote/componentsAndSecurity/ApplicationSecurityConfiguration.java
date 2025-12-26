@@ -166,7 +166,9 @@ public class ApplicationSecurityConfiguration {
                                 // Other public endpoints
                                 "/robots.txt", "/sitemap.xml",
                                 // Mobile API endpoints (JWT authentication)
-                                "/api/mobile/**"
+                                "/api/mobile/**",
+                                // LiveKit call token endpoint (used by mobile app with JWT)
+                                "/api/svmessenger/call/token"
                         )
                         // Custom matcher: exempt само Bearer JWT tokens (mobile app)
                         // Web заявките изискват CSRF token в X-XSRF-TOKEN header

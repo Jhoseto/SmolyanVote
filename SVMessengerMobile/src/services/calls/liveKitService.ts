@@ -1,10 +1,21 @@
 /**
  * LiveKit Service for React Native
  * Управление на voice и video calls чрез LiveKit
- * Базирано на web версията (svLiveKitService.js) за съвместимост
+ * 
+ * ВАЖНО: @livekit/react-native предоставя само registerGlobals() и React компоненти.
+ * Room, Track, и други класове идват от livekit-client пакета.
  */
 
-import { Room, RoomEvent, Track, LocalAudioTrack, LocalVideoTrack, RemoteParticipant } from 'livekit-client';
+import { 
+  Room, 
+  RoomEvent, 
+  Track, 
+  LocalAudioTrack, 
+  LocalVideoTrack, 
+  RemoteParticipant,
+  createLocalAudioTrack,
+  createLocalVideoTrack
+} from 'livekit-client';
 import { CallTokenResponse } from '../../types/call';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
@@ -34,13 +45,37 @@ class LiveKitService {
    */
   async generateCallToken(conversationId: number, otherUserId: number): Promise<CallTokenResponse> {
     try {
+      console.log('🔑 [LiveKit] Requesting call token from backend:', {
+        endpoint: API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
+        conversationId,
+        otherUserId,
+      });
+      
       const response = await apiClient.post<CallTokenResponse>(
         API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
         { conversationId, otherUserId }
       );
+      
+      console.log('🔑 [LiveKit] Call token response received:', {
+        hasToken: !!response.data?.token,
+        hasRoomName: !!response.data?.roomName,
+        hasServerUrl: !!response.data?.serverUrl,
+        tokenLength: response.data?.token?.length || 0,
+        roomName: response.data?.roomName,
+        serverUrl: response.data?.serverUrl,
+      });
+      
       return response.data;
-    } catch (error) {
-      console.error('Error generating call token:', error);
+    } catch (error: any) {
+      console.error('❌ [LiveKit] Error generating call token:', {
+        error,
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        conversationId,
+        otherUserId,
+      });
       throw error;
     }
   }
@@ -113,51 +148,124 @@ class LiveKitService {
         this.onParticipantConnectedCallback?.(participant);
       });
 
-      // Connect to room
-      // For Android emulator, convert wss:// to ws:// and localhost to 10.0.2.2
+      // Connect to room - simplified URL handling for LiveKit Cloud
       let wsUrl = serverUrl;
       
-      // If running on Android emulator and URL contains localhost, replace with emulator IP
-      if (__DEV__ && (wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1'))) {
+      // Check if this is a LiveKit Cloud URL
+      const isLiveKitCloud = wsUrl.includes('.livekit.cloud') || wsUrl.includes('livekit.cloud');
+      
+      // Ensure URL has proper protocol (wss:// for LiveKit Cloud, ws:// for local dev)
+      if (!wsUrl.startsWith('wss://') && !wsUrl.startsWith('ws://') && !wsUrl.startsWith('https://') && !wsUrl.startsWith('http://')) {
+        wsUrl = isLiveKitCloud ? `wss://${wsUrl}` : (__DEV__ ? `ws://${wsUrl}` : `wss://${wsUrl}`);
+      }
+      
+      // For local development, replace localhost with Android emulator IP
+      if (__DEV__ && !isLiveKitCloud && (wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1'))) {
         wsUrl = wsUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
       }
       
-      // Ensure URL has proper protocol
-      if (!wsUrl.startsWith('wss://') && !wsUrl.startsWith('ws://')) {
-        // Default to wss:// for production, ws:// for development
-        wsUrl = __DEV__ ? `ws://${wsUrl}` : `wss://${wsUrl}`;
-      }
-      
-      // For Android emulator in development, use ws:// instead of wss://
-      if (__DEV__ && wsUrl.startsWith('wss://')) {
-        wsUrl = wsUrl.replace('wss://', 'ws://');
-      }
-      
-      console.log('🔌 [LiveKit] Connecting to:', wsUrl, 'Room:', roomName, 'Token length:', token?.length || 0);
+      console.log('🔌 [LiveKit] Connecting to:', wsUrl, 'Room:', roomName);
+      console.log('🔌 [LiveKit] Connection details:', {
+        wsUrl,
+        roomName,
+        tokenLength: token?.length || 0,
+        isLiveKitCloud,
+        platform: 'android',
+      });
       
       try {
-        // Connect to LiveKit room
-        // Note: Room.connect(url, token) - third parameter is not standard, using just url and token
+        // Connect to LiveKit room using @livekit/react-native
+        console.log('🔌 [LiveKit] Calling room.connect()...');
         await this.room.connect(wsUrl, token);
         console.log('✅ [LiveKit] Successfully connected to LiveKit room');
       } catch (connectError: any) {
-        console.error('❌ [LiveKit] Connection error details:', {
-          error: connectError,
+        // Enhanced error logging - try to extract all possible error information
+        const errorDetails: any = {
           message: connectError?.message,
           code: connectError?.code,
           name: connectError?.name,
+          stack: connectError?.stack,
           wsUrl,
           roomName,
           tokenLength: token?.length || 0,
           hasWebRTC: typeof global.RTCPeerConnection !== 'undefined',
-        });
+        };
+        
+        // Try to extract nested error information
+        if (connectError?.cause) {
+          errorDetails.cause = connectError.cause;
+          // Try to stringify cause if it's an object
+          if (typeof connectError.cause === 'object') {
+            try {
+              errorDetails.causeString = JSON.stringify(connectError.cause, Object.getOwnPropertyNames(connectError.cause));
+            } catch (e) {
+              errorDetails.causeString = String(connectError.cause);
+            }
+          }
+        }
+        if (connectError?.reason) {
+          errorDetails.reason = connectError.reason;
+        }
+        if (connectError?.originalError) {
+          errorDetails.originalError = connectError.originalError;
+        }
+        
+        // Try to get all properties of the error object
+        const errorProps: any = {};
+        try {
+          const props = Object.getOwnPropertyNames(connectError);
+          for (const prop of props) {
+            try {
+              const value = (connectError as any)[prop];
+              if (typeof value === 'object' && value !== null) {
+                errorProps[prop] = JSON.stringify(value, Object.getOwnPropertyNames(value));
+              } else {
+                errorProps[prop] = value;
+              }
+            } catch (e) {
+              errorProps[prop] = '[Unable to serialize]';
+            }
+          }
+          errorDetails.allProperties = errorProps;
+        } catch (e) {
+          errorDetails.allPropertiesError = String(e);
+        }
+        
+        // Try to stringify the entire error object
+        try {
+          errorDetails.errorString = JSON.stringify(connectError, Object.getOwnPropertyNames(connectError), 2);
+        } catch (e) {
+          errorDetails.errorString = String(connectError);
+          errorDetails.stringifyError = String(e);
+        }
+        
+        // Log error details in a more readable way
+        console.error('❌ [LiveKit] Connection error details:', JSON.stringify(errorDetails, null, 2));
+        console.error('❌ [LiveKit] Error message:', connectError?.message);
+        console.error('❌ [LiveKit] Error name:', connectError?.name);
+        console.error('❌ [LiveKit] Error code:', connectError?.code);
+        if (errorDetails.allProperties) {
+          console.error('❌ [LiveKit] All error properties:', JSON.stringify(errorDetails.allProperties, null, 2));
+        }
+        if (errorDetails.causeString) {
+          console.error('❌ [LiveKit] Error cause:', errorDetails.causeString);
+        }
+        console.error('❌ [LiveKit] Full error object:', connectError);
         
         // More detailed error logging
         if (connectError?.message?.includes('WebRTC')) {
           console.error('❌ [LiveKit] WebRTC not properly initialized. Check WebRTC globals registration.');
         }
-        if (connectError?.message?.includes('websocket')) {
+        if (connectError?.message?.includes('websocket') || connectError?.message?.includes('WebSocket')) {
           console.error('❌ [LiveKit] WebSocket connection failed. Check server URL and network connectivity.');
+          console.error('❌ [LiveKit] WebSocket URL:', wsUrl);
+          console.error('❌ [LiveKit] This might be a network issue, SSL/TLS issue, or React Native WebSocket compatibility issue.');
+        }
+        if (connectError?.message?.includes('404')) {
+          console.error('❌ [LiveKit] 404 error - Room or endpoint not found. Check room name and server URL.');
+        }
+        if (connectError?.message?.includes('SSL') || connectError?.message?.includes('TLS') || connectError?.message?.includes('certificate')) {
+          console.error('❌ [LiveKit] SSL/TLS error - Certificate validation failed. This might be an Android emulator issue.');
         }
         
         throw connectError;
@@ -176,8 +284,8 @@ class LiveKitService {
     if (!this.room || !this.isConnected) return;
 
     try {
-      // Create local audio track
-      this.localAudioTrack = await LocalAudioTrack.createLocalAudioTrack({
+      // Create local audio track using React Native API
+      this.localAudioTrack = await createLocalAudioTrack({
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
@@ -313,8 +421,8 @@ class LiveKitService {
           this.localVideoTrack = null;
         }
 
-        // Create new video track
-        this.localVideoTrack = await LocalVideoTrack.createLocalVideoTrack({
+        // Create new video track using React Native API
+        this.localVideoTrack = await createLocalVideoTrack({
           facingMode: 'user', // Front camera by default
           resolution: {
             width: 1280,

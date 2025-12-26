@@ -17,6 +17,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@livekit/react-native": "^2.9.6",
+    "@livekit/react-native-webrtc": "^137.0.2",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-community/netinfo": "^11.3.1",
     "@react-native-firebase/app": "^20.5.0",
@@ -29,7 +31,7 @@
     "@stomp/stompjs": "^7.0.1",
     "@tanstack/react-query": "^5.62.11",
     "axios": "^1.7.9",
-    "livekit-client": "^2.5.4",
+    "livekit-client": "^2.9.6",
     "react": "19.2.0",
     "react-native": "0.83.0",
     "react-native-emoji-selector": "^0.2.0",
@@ -45,7 +47,6 @@
     "react-native-screens": "^4.1.0",
     "react-native-svg": "^15.15.1",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-webrtc": "^124.0.7",
     "sockjs-client": "^1.6.1",
     "zustand": "^5.0.2"
   },
