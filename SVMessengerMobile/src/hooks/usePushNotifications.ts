@@ -226,7 +226,7 @@ export const usePushNotifications = () => {
               setCallState(CallState.INCOMING);
               
               // Пусни звук за incoming call
-              soundService.playIncomingCallSound();
+              soundService.playIncomingCallSound().catch(err => console.error('Error playing incoming call sound:', err));
               
               // Свържи WebSocket ако не е свързан (за да получим call signals)
               if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {

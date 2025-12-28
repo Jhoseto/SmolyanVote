@@ -3,7 +3,8 @@
  * Navigation за основното приложение (след login)
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Keyboard } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MainTabParamList, ConversationsStackParamList, ProfileStackParamList } from '../types/navigation';
@@ -85,6 +86,22 @@ const ProfileNavigator: React.FC = () => {
 
 // Main Tab Navigator
 export const MainNavigator: React.FC = () => {
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardWillHide = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -103,6 +120,7 @@ export const MainNavigator: React.FC = () => {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
+          display: isKeyboardVisible ? 'none' : 'flex',
         },
         tabBarLabelStyle: {
           fontSize: 12,

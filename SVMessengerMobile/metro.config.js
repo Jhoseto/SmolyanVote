@@ -14,6 +14,10 @@ const config = {
   resolver: {
     // Enable source map support
     sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
+    // Disable package exports to fix event-target-shim issue with LiveKit
+    // This allows Metro to use file-based resolution instead of package.json exports
+    // The warning is harmless - Metro uses file-based resolution as fallback
+    unstable_enablePackageExports: false,
   },
 };
 

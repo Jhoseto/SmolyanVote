@@ -17,12 +17,15 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
           // Note: @livekit/react-native is auto-linked and initializes automatically
+          add(SoundPackage())
         },
     )
   }
 
   override fun onCreate() {
     super.onCreate()
+    // Create notification channels for Android 8.0+
+    NotificationChannelManager.createChannels(this)
     loadReactNative(this)
   }
 }

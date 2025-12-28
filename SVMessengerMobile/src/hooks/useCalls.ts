@@ -31,7 +31,7 @@ export const useCalls = () => {
     liveKitService.onConnected(() => {
       setCallState(CallState.CONNECTED);
       // Stop outgoing call sound when connected
-      soundService.stopOutgoingCallSound();
+      soundService.stopOutgoingCallSound().catch(err => console.error('Error stopping outgoing call sound:', err));
     });
 
     liveKitService.onDisconnected(() => {
@@ -76,7 +76,7 @@ export const useCalls = () => {
         startCall(conversationId, participantId, participantName);
 
         // Play outgoing call sound
-        soundService.playOutgoingCallSound();
+        soundService.playOutgoingCallSound().catch(err => console.error('Error playing outgoing call sound:', err));
 
         // Send call signal via WebSocket
         if (svMobileWebSocketService.isConnected()) {

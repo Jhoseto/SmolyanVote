@@ -141,22 +141,22 @@ export const CallScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Remote Video (full screen when video is enabled) */}
-        {isVideoEnabled && remoteStream ? (
+        {isVideoEnabled && remoteVideoTrack ? (
           <View style={styles.remoteVideoContainer}>
             <VideoView
               stream={remoteStream}
+              track={remoteVideoTrack}
               style={styles.remoteVideo}
               mirror={false}
-              zOrder={0}
             />
             {/* Local video preview (PiP style) */}
-            {localStream && (
+            {isVideoEnabled && localVideoTrack && (
               <View style={styles.localVideoPreview}>
                 <VideoView
                   stream={localStream}
+                  track={localVideoTrack}
                   style={styles.localVideo}
                   mirror={true}
-                  zOrder={1}
                 />
               </View>
             )}

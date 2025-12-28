@@ -445,13 +445,19 @@ class LiveKitService {
         for (const publication of existingVideoTracks) {
           if (publication.track) {
             await this.room.localParticipant.unpublishTrack(publication.track);
-            publication.track.stop();
+            // Stop the track
+            if (publication.track.mediaStreamTrack) {
+              publication.track.mediaStreamTrack.stop();
+            }
           }
         }
 
         // Stop and cleanup local video track
         if (this.localVideoTrack) {
-          this.localVideoTrack.stop();
+          // Stop the media stream track if it exists
+          if (this.localVideoTrack.mediaStreamTrack) {
+            this.localVideoTrack.mediaStreamTrack.stop();
+          }
           this.localVideoTrack = null;
         }
 

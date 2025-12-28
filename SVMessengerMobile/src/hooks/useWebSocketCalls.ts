@@ -63,7 +63,7 @@ export const useWebSocketCalls = () => {
             });
             
             // Play ringtone
-            soundService.playIncomingCallSound();
+            soundService.playIncomingCallSound().catch(err => console.error('Error playing incoming call sound:', err));
           } catch (error) {
             console.error('❌ [useWebSocketCalls] Error handling CALL_REQUEST:', error);
           }
@@ -73,28 +73,28 @@ export const useWebSocketCalls = () => {
         case 'CALL_ACCEPTED':
           console.log('📞 Call accepted');
           setCallState(CallState.CONNECTED);
-          soundService.stopIncomingCallSound();
+          soundService.stopIncomingCallSound().catch(err => console.error('Error stopping incoming call sound:', err));
           break;
 
         case 'CALL_REJECT':
         case 'CALL_REJECTED':
           console.log('📞 Call rejected');
           setCallState(CallState.IDLE);
-          soundService.stopIncomingCallSound();
+          soundService.stopIncomingCallSound().catch(err => console.error('Error stopping incoming call sound:', err));
           break;
 
         case 'CALL_END':
         case 'CALL_ENDED':
           console.log('📞 Call ended');
           setCallState(CallState.IDLE);
-          soundService.stopIncomingCallSound();
+          soundService.stopIncomingCallSound().catch(err => console.error('Error stopping incoming call sound:', err));
           break;
 
         case 'CALL_MISSED':
           console.log('📞 Call missed');
           setCallState(CallState.IDLE);
           incrementMissedCalls();
-          soundService.stopIncomingCallSound();
+          soundService.stopIncomingCallSound().catch(err => console.error('Error stopping incoming call sound:', err));
           break;
 
         default:

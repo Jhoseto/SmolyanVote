@@ -1,6 +1,7 @@
 # ============================================
-# SVMessenger Mobile - Restart Script
-# Restarts Metro and Android app
+# SVMessenger Mobile - Restart for Physical Device
+# Restarts Metro and Android app for PHYSICAL DEVICE (not emulator)
+# Изтрива всички APK и кешове преди rebuild
 # ============================================
 
 # Find npm and node in PATH or common installation locations
@@ -61,11 +62,9 @@ if (-not $npmPath) {
             if (Test-Path $npmCmdPath) {
                 $npmPath = $npmCmdPath
             }
-
-
         }
         
-        # Also check for local node_modules/.bin (for npm scripts, not node.exe)
+        # Also check for local node_modules/.bin
         $localNodeBin = Join-Path $PSScriptRoot "node_modules\.bin"
         if (Test-Path $localNodeBin) {
             if ($env:Path -notlike "*$localNodeBin*") {
@@ -96,11 +95,23 @@ if (-not $npmPath) {
 }
 Write-Host ""
 
-Write-Host "Restarting Metro and Android app..." -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "RESTART FOR PHYSICAL DEVICE" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "This script will:" -ForegroundColor Yellow
+Write-Host "  1. Stop Metro processes" -ForegroundColor Gray
+Write-Host "  2. Delete ALL APK files" -ForegroundColor Gray
+Write-Host "  3. Clear Metro cache" -ForegroundColor Gray
+Write-Host "  4. Clear Android build cache" -ForegroundColor Gray
+Write-Host "  5. Clear Gradle cache" -ForegroundColor Gray
+Write-Host "  6. Uninstall old app from device" -ForegroundColor Gray
+Write-Host "  7. Start Metro with clean cache" -ForegroundColor Gray
+Write-Host "  8. Build and install on device" -ForegroundColor Gray
 Write-Host ""
 
 # Step 1: Stop all Metro processes
-Write-Host "Stopping Metro processes..." -ForegroundColor Yellow
+Write-Host "Step 1: Stopping Metro processes..." -ForegroundColor Yellow
 $nodeProcesses = Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { 
     $_.Path -like "*node.exe*" 
 }
@@ -112,10 +123,48 @@ if ($nodeProcesses) {
 } else {
     Write-Host "No Metro processes running" -ForegroundColor Gray
 }
-
-# Step 2: Clear Metro cache and build artifacts
 Write-Host ""
-Write-Host "Clearing Metro cache and build artifacts..." -ForegroundColor Yellow
+
+# Step 2: Delete ALL APK files
+Write-Host "Step 2: Deleting ALL APK files..." -ForegroundColor Yellow
+$apkPaths = @(
+    "$PSScriptRoot\android\app\build\outputs\apk",
+    "$PSScriptRoot\android\app\build\outputs\bundle"
+)
+
+$apkCount = 0
+foreach ($apkPath in $apkPaths) {
+    if (Test-Path $apkPath) {
+        $apkFiles = Get-ChildItem -Path $apkPath -Filter "*.apk" -Recurse -ErrorAction SilentlyContinue
+        foreach ($apkFile in $apkFiles) {
+            Remove-Item -Path $apkFile.FullName -Force -ErrorAction SilentlyContinue
+            $apkCount++
+            Write-Host "  Deleted: $($apkFile.Name)" -ForegroundColor Gray
+        }
+    }
+}
+
+# Also check for AAB files
+foreach ($apkPath in $apkPaths) {
+    if (Test-Path $apkPath) {
+        $aabFiles = Get-ChildItem -Path $apkPath -Filter "*.aab" -Recurse -ErrorAction SilentlyContinue
+        foreach ($aabFile in $aabFiles) {
+            Remove-Item -Path $aabFile.FullName -Force -ErrorAction SilentlyContinue
+            $apkCount++
+            Write-Host "  Deleted: $($aabFile.Name)" -ForegroundColor Gray
+        }
+    }
+}
+
+if ($apkCount -gt 0) {
+    Write-Host "Deleted $apkCount APK/AAB file(s)" -ForegroundColor Green
+} else {
+    Write-Host "No APK files found to delete" -ForegroundColor Gray
+}
+Write-Host ""
+
+# Step 3: Clear Metro cache and build artifacts
+Write-Host "Step 3: Clearing Metro cache..." -ForegroundColor Yellow
 
 # Clear Metro cache
 $cachePaths = @(
@@ -136,26 +185,71 @@ if (Test-Path $bundlePath) {
     Write-Host "Old bundle file removed" -ForegroundColor Gray
 }
 
-# Clear Android build cache (important after adding native modules)
-Write-Host "Clearing Android build cache..." -ForegroundColor Yellow
-$androidBuildPaths = @(
+# Clear TEMP cache
+Get-ChildItem -Path $env:TEMP -Filter "metro-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+Get-ChildItem -Path $env:TEMP -Filter "react-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+Get-ChildItem -Path $env:TEMP -Filter "haste-map-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+Write-Host "Metro cache cleared" -ForegroundColor Green
+Write-Host ""
+
+# Step 4: Clear Android build cache
+Write-Host "Step 4: Clearing Android build cache..." -ForegroundColor Yellow
+$androidCachePaths = @(
     "$PSScriptRoot\android\app\build",
     "$PSScriptRoot\android\build",
     "$PSScriptRoot\android\.gradle"
 )
 
-foreach ($buildPath in $androidBuildPaths) {
-    if (Test-Path $buildPath) {
-        Remove-Item -Path $buildPath -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "Cleared: $buildPath" -ForegroundColor Gray
+foreach ($cachePath in $androidCachePaths) {
+    if (Test-Path $cachePath) {
+        Remove-Item -Path $cachePath -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  Deleted: $cachePath" -ForegroundColor Gray
     }
 }
-
-Write-Host "Cache cleared" -ForegroundColor Green
-
-# Step 3: Start Metro in new window
+Write-Host "Android build cache cleared" -ForegroundColor Green
 Write-Host ""
-Write-Host "Starting Metro Bundler..." -ForegroundColor Yellow
+
+# Step 5: Run Gradle clean
+Write-Host "Step 5: Running Gradle clean..." -ForegroundColor Yellow
+Set-Location "$PSScriptRoot\android"
+try {
+    if (Test-Path "gradlew.bat") {
+        .\gradlew.bat clean 2>&1 | Out-Null
+        Write-Host "Gradle clean completed" -ForegroundColor Green
+    } else {
+        Write-Host "Gradle wrapper not found, skipping..." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "Gradle clean skipped (not critical)" -ForegroundColor Yellow
+}
+Set-Location $PSScriptRoot
+Write-Host ""
+
+# Step 6: Uninstall old app from device
+Write-Host "Step 6: Uninstalling old app from device..." -ForegroundColor Yellow
+$adbCheck = Get-Command adb -ErrorAction SilentlyContinue
+if ($adbCheck) {
+    try {
+        $devices = adb devices 2>&1 | Select-String "device$"
+        if ($devices) {
+            Write-Host "Found device, uninstalling old app..." -ForegroundColor Gray
+            adb uninstall com.svmessengermobile 2>&1 | Out-Null
+            Write-Host "Old app uninstalled (if it existed)" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: No devices found!" -ForegroundColor Yellow
+            Write-Host "  Make sure your phone is connected via USB with USB debugging enabled" -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host "Could not uninstall (not critical)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "ADB not found in PATH, skipping uninstall..." -ForegroundColor Yellow
+}
+Write-Host ""
+
+# Step 7: Start Metro in new window
+Write-Host "Step 7: Starting Metro Bundler..." -ForegroundColor Yellow
 
 # Build PATH for Metro window
 $metroPath = $env:Path
@@ -170,7 +264,7 @@ $metroCommand = "cd '$PSScriptRoot'; `$env:Path = '$metroPath'; Write-Host 'Metr
 $metroWindow = Start-Process powershell -ArgumentList "-NoExit", "-Command", $metroCommand -PassThru
 Write-Host "Metro started in new window (PID: $($metroWindow.Id))" -ForegroundColor Green
 
-# Step 4: Wait for Metro to start
+# Step 8: Wait for Metro to start
 Write-Host ""
 Write-Host "Waiting for Metro to start (10 seconds)..." -ForegroundColor Yellow
 for ($i = 10; $i -gt 0; $i--) {
@@ -180,20 +274,19 @@ for ($i = 10; $i -gt 0; $i--) {
 }
 Write-Host "   Ready!    " -ForegroundColor Green
 
-# Step 5: Check if Metro is running
+# Step 9: Check if Metro is running
 Write-Host ""
 Write-Host "Checking if Metro is running..." -ForegroundColor Yellow
 try {
-    $null = Invoke-WebRequest -Uri "http://localhost:8081/status" -TimeoutSec 2 -ErrorAction Stop
+    $response = Invoke-WebRequest -Uri "http://localhost:8081/status" -TimeoutSec 2 -ErrorAction Stop
     Write-Host "Metro is running on port 8081" -ForegroundColor Green
 } catch {
     Write-Host "Metro may not be ready yet, but continuing..." -ForegroundColor Yellow
 }
 
-# Step 6: Start Android app
+# Step 10: Setup Android SDK and Java (same as restart.ps1)
 Write-Host ""
-Write-Host "Starting Android app..." -ForegroundColor Yellow
-Write-Host ""
+Write-Host "Setting up Android SDK and Java..." -ForegroundColor Yellow
 
 Set-Location $PSScriptRoot
 
@@ -202,7 +295,6 @@ if ($nodePath) {
     $nodeDir = Split-Path $nodePath
     if ($env:Path -notlike "*$nodeDir*") {
         $env:Path = "$nodeDir;$env:Path"
-        Write-Host "Updated PATH with Node.js directory" -ForegroundColor Gray
     }
 }
 
@@ -347,7 +439,8 @@ if (-not $env:JAVA_HOME) {
     }
 }
 
-# Check for Android devices/emulators
+# Check for Android devices
+Write-Host ""
 Write-Host "Checking for Android devices..." -ForegroundColor Yellow
 $adbCheck = Get-Command adb -ErrorAction SilentlyContinue
 if ($adbCheck) {
@@ -358,7 +451,8 @@ if ($adbCheck) {
             $devices | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
         } else {
             Write-Host "WARNING: No Android devices found!" -ForegroundColor Yellow
-            Write-Host "  Make sure emulator is running or device is connected" -ForegroundColor Gray
+            Write-Host "  Make sure your phone is connected via USB" -ForegroundColor Gray
+            Write-Host "  Enable USB debugging in Developer Options" -ForegroundColor Gray
             Write-Host "  The app will try to start anyway..." -ForegroundColor Gray
         }
     } catch {
@@ -367,6 +461,10 @@ if ($adbCheck) {
 } else {
     Write-Host "ADB not found in PATH, but continuing..." -ForegroundColor Yellow
 }
+Write-Host ""
+
+# Step 11: Start Android app
+Write-Host "Step 11: Building and installing Android app..." -ForegroundColor Yellow
 Write-Host ""
 
 # Verify npm is accessible
@@ -383,20 +481,6 @@ if (-not $npmCheck) {
         exit 1
     }
 } else {
-    # Run Gradle clean first (important after adding native modules)
-    Write-Host "Running Gradle clean..." -ForegroundColor Yellow
-    Set-Location "$PSScriptRoot\android"
-    try {
-        if (Test-Path "gradlew.bat") {
-            .\gradlew.bat clean 2>&1 | Out-Null
-            Write-Host "Gradle clean completed" -ForegroundColor Green
-        }
-    } catch {
-        Write-Host "Gradle clean skipped (non-critical)" -ForegroundColor Yellow
-    }
-    Set-Location $PSScriptRoot
-    Write-Host ""
-    
     Write-Host "Running: npm run android" -ForegroundColor Cyan
     Write-Host ""
     
@@ -420,35 +504,33 @@ if (-not $npmCheck) {
         Write-Host "========================================" -ForegroundColor Red
         Write-Host ""
         Write-Host "Common issues:" -ForegroundColor Yellow
-        Write-Host "  1. Java JDK not found (JAVA_HOME not set)" -ForegroundColor Gray
+        Write-Host "  1. Phone not connected or USB debugging not enabled" -ForegroundColor Gray
+        Write-Host "     - Connect phone via USB" -ForegroundColor DarkGray
+        Write-Host "     - Enable USB debugging in Developer Options" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  2. Java JDK not found (JAVA_HOME not set)" -ForegroundColor Gray
         Write-Host "     - Android Studio includes Java (JBR)" -ForegroundColor DarkGray
         Write-Host "     - Or install JDK 17+ from: https://adoptium.net/" -ForegroundColor DarkGray
-        Write-Host "     - Set JAVA_HOME environment variable" -ForegroundColor DarkGray
-        Write-Host ""
-        Write-Host "  2. No Android device/emulator running" -ForegroundColor Gray
-        Write-Host "     - Start emulator from Android Studio" -ForegroundColor DarkGray
-        Write-Host "     - Or connect physical device via USB" -ForegroundColor DarkGray
         Write-Host ""
         Write-Host "  3. Android SDK not configured" -ForegroundColor Gray
         Write-Host "     - Run: cd android; .\setup-android-sdk.ps1" -ForegroundColor DarkGray
         Write-Host ""
         Write-Host "  4. Gradle build failed" -ForegroundColor Gray
         Write-Host "     - Check Android Studio for errors" -ForegroundColor DarkGray
-        Write-Host "     - Try: cd android; .\gradlew clean" -ForegroundColor DarkGray
-        Write-Host ""
-        Write-Host "  5. Metro not ready" -ForegroundColor Gray
-        Write-Host "     - Wait a bit longer for Metro to start" -ForegroundColor DarkGray
-        Write-Host "     - Check Metro window for errors" -ForegroundColor DarkGray
         Write-Host ""
         exit 1
     }
 }
 
 Write-Host ""
-Write-Host "Done! App should start on emulator." -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "SUCCESS! App installed on device!" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Tips:" -ForegroundColor Cyan
 Write-Host "   - Metro runs in separate window" -ForegroundColor Gray
 Write-Host "   - To stop Metro: close window or Ctrl+C" -ForegroundColor Gray
-Write-Host "   - To reload: press R twice in emulator" -ForegroundColor Gray
-Write-Host "   - To open Android Studio: cd android; start ." -ForegroundColor Gray
+Write-Host "   - To reload: press R twice in app" -ForegroundColor Gray
+Write-Host "   - Make sure phone and computer are on same Wi-Fi network" -ForegroundColor Gray
+Write-Host ""
+

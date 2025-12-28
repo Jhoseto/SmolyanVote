@@ -110,7 +110,7 @@ export const useWebSocketMessages = () => {
       }
 
       // Play notification sound for new messages
-      soundService.playSound('notification');
+      soundService.playSound('notification').catch(err => console.error('Error playing notification sound:', err));
     }
   }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation]);
 
