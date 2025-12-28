@@ -200,6 +200,7 @@ export const useCalls = () => {
 
   // End call
   const handleEndCall = useCallback(() => {
+    console.log('🛑 [useCalls] handleEndCall called', new Error().stack);
     const { user } = useAuthStore.getState();
     if (currentCall && svMobileWebSocketService.isConnected() && user) {
       // Send end signal via WebSocket

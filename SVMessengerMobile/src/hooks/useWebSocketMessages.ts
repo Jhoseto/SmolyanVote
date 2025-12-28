@@ -27,6 +27,11 @@ export const useWebSocketMessages = () => {
   // Track subscriptions for cleanup
   const subscriptionsRef = useRef<any[]>([]);
 
+  // Send read receipt (defined before handleNewMessage to avoid dependency issues)
+  const sendReadReceipt = useCallback((conversationId: number) => {
+    return svMobileWebSocketService.sendReadReceipt(conversationId);
+  }, []);
+
   // Handle incoming messages
   const handleNewMessage = useCallback((data: any) => {
     if (!user) return;
@@ -112,7 +117,7 @@ export const useWebSocketMessages = () => {
       // Play notification sound for new messages
       soundService.playSound('notification').catch(err => console.error('Error playing notification sound:', err));
     }
-  }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation]);
+  }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation, sendReadReceipt]);
 
   // Handle delivery receipts
   const handleDeliveryReceipt = useCallback((data: any) => {
@@ -158,11 +163,6 @@ export const useWebSocketMessages = () => {
       });
     }
   }, [conversations, updateConversation, updateMessage]);
-
-  // Send read receipt
-  const sendReadReceipt = useCallback((conversationId: number) => {
-    return svMobileWebSocketService.sendReadReceipt(conversationId);
-  }, []);
 
   // Send message
   const sendMessage = useCallback((conversationId: number, text: string, parentMessageId?: number) => {

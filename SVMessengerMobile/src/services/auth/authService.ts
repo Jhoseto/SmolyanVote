@@ -39,20 +39,33 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
+      console.log('🔐 [AuthService] Attempting login for:', credentials.email);
+      console.log('🔐 [AuthService] Login endpoint:', API_CONFIG.ENDPOINTS.AUTH.LOGIN);
+      console.log('🔐 [AuthService] Base URL:', API_CONFIG.BASE_URL);
+      
       const response = await apiClient.post<LoginResponse>(
         API_CONFIG.ENDPOINTS.AUTH.LOGIN,
         credentials
       );
 
+      console.log('✅ [AuthService] Login successful, status:', response.status);
+      
       const { accessToken, refreshToken } = response.data;
 
       // Запазване на tokens
       await this.tokenManager.setTokens(accessToken, refreshToken);
+      console.log('✅ [AuthService] Tokens saved successfully');
 
       return response.data;
     } catch (error: any) {
-      console.error('Login error:', error);
-      throw new Error(error.response?.data?.error || 'Login failed');
+      console.error('❌ [AuthService] Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        code: error.code,
+      });
+      throw new Error(error.response?.data?.error || error.message || 'Login failed');
     }
   }
 

@@ -64,8 +64,7 @@ export const RegisterScreen: React.FC = () => {
 
     setLoading(true, 'Регистрация...');
     try {
-      // TODO: Използвай правилния registration endpoint
-      const response = await apiClient.post('/api/user/registration', {
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.REGISTRATION, {
         email: email.toLowerCase().trim(),
         username: username.trim(),
         password,

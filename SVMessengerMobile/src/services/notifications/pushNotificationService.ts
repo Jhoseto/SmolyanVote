@@ -89,6 +89,7 @@ class PushNotificationService {
   async unregisterDeviceToken(deviceToken: string): Promise<void> {
     try {
       // Backend очаква DELETE метод с body
+      // Axios delete приема config като втори параметър, data се задава в config.data
       await apiClient.delete(API_CONFIG.ENDPOINTS.DEVICE.UNREGISTER, {
         data: { deviceToken },
       });

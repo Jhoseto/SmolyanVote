@@ -49,7 +49,7 @@ class ProfileService {
       // Axios автоматично обработва FormData - не задаваме Content-Type header
       // Interceptor-ът в apiClient ще премахне Content-Type за FormData
       const response = await apiClient.put(
-        '/api/mobile/profile/update',
+        API_CONFIG.ENDPOINTS.PROFILE.UPDATE,
         formData
       );
 
@@ -69,7 +69,7 @@ class ProfileService {
    */
   async getProfile(): Promise<User> {
     try {
-      const response = await apiClient.get('/api/mobile/profile');
+      const response = await apiClient.get(API_CONFIG.ENDPOINTS.PROFILE.GET);
       return response.data.user;
     } catch (error: any) {
       console.error('Error getting profile:', error);

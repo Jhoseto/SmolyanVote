@@ -101,7 +101,7 @@ export const UserSearchScreen: React.FC = () => {
   const handleUserSelect = async (user: UserSearchResult) => {
     try {
       // Start conversation (backend ще създаде или върне съществуващ)
-      const response = await apiClient.post('/api/svmessenger/conversations/start', {
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.MESSENGER.START_CONVERSATION, {
         otherUserId: user.id,
       });
 

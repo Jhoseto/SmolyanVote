@@ -38,12 +38,16 @@ export const usePushNotifications = () => {
       try {
         // Изпрати heartbeat само ако app е active
         if (AppState.currentState === 'active') {
-          await apiClient.post(API_CONFIG.HEARTBEAT);
+          await apiClient.post(API_CONFIG.ENDPOINTS.HEARTBEAT);
           console.log('💓 Heartbeat sent - online status maintained');
         }
-      } catch (error) {
+      } catch (error: any) {
         // Тихо игнорирай - heartbeat не е критична операция
-        console.debug('Heartbeat failed (non-critical):', error?.message);
+        // WebSocket поддържа online статус автоматично, така че heartbeat е допълнителен механизъм
+        // Не логваме грешки защото endpoint-ът може да връща 401 ако не е правилно конфигуриран
+        if (error?.response?.status !== 401) {
+          console.debug('Heartbeat failed (non-critical):', error?.message);
+        }
       }
     }, 30000); // На всеки 30 секунди
 

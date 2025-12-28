@@ -21,6 +21,8 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    console.log('🔧 [ApiClient] Initializing with BASE_URL:', API_CONFIG.BASE_URL);
+    console.log('🔧 [ApiClient] Development mode:', __DEV__);
     
     this.client = axios.create({
       baseURL: API_CONFIG.BASE_URL,
@@ -49,22 +51,50 @@ class ApiClient {
           delete config.headers['Content-Type'];
         }
         
+        const url = config.url || 'undefined';
+        console.log(`📤 [ApiClient] ${config.method?.toUpperCase()} ${url}`, {
+          baseURL: config.baseURL,
+          hasToken: !!token,
+          fullUrl: url === 'undefined' ? 'ERROR: URL is undefined!' : `${config.baseURL}${url}`,
+        });
+        
+        if (!config.url) {
+          console.error('❌ [ApiClient] CRITICAL: Request URL is undefined!', {
+            method: config.method,
+            baseURL: config.baseURL,
+            data: config.data,
+            stack: new Error().stack,
+          });
+        }
+        
         return config;
       },
       (error: AxiosError) => {
+        console.error('❌ [ApiClient] Request error:', error);
         return Promise.reject(error);
       }
     );
 
     // Response interceptor - обработка на 401 и token refresh
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log(`✅ [ApiClient] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+        return response;
+      },
       async (error: AxiosError) => {
+        console.error(`❌ [ApiClient] ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`, {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          message: error.message,
+          code: error.code,
+        });
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Ако получим 401 или 405 (вероятно изтекъл token) и не сме опитали refresh
+        // НЕ правим token refresh за /heartbeat endpoint - той не е критичен и WebSocket поддържа online статус
+        const isHeartbeat = originalRequest?.url === '/heartbeat' || originalRequest?.url?.endsWith('/heartbeat');
         const isAuthError = error.response?.status === 401 || error.response?.status === 405;
-        if (isAuthError && !originalRequest._retry && originalRequest) {
+        if (isAuthError && !originalRequest._retry && originalRequest && originalRequest.url && !isHeartbeat) {
           originalRequest._retry = true;
 
           try {

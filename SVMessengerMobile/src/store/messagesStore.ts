@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { Message, MessagesState, TypingStatus } from '../types/message';
+import { Message, MessagesState, TypingStatus, MessageType } from '../types/message';
 import apiClient from '../services/api/client';
 import { API_CONFIG } from '../config/api';
 
@@ -232,7 +232,8 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   // Edit message
   editMessage: async (messageId: number, newText: string) => {
     try {
-      const response = await apiClient.put(`/api/svmessenger/messages/${messageId}/edit`, {
+      const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.EDIT_MESSAGE.replace(':id', messageId.toString());
+      const response = await apiClient.put(endpoint, {
         newText,
       });
 
@@ -264,7 +265,8 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   // Delete message
   deleteMessage: async (messageId: number, conversationId: number) => {
     try {
-      await apiClient.delete(`/api/svmessenger/messages/${messageId}`);
+      const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.DELETE_MESSAGE.replace(':id', messageId.toString());
+      await apiClient.delete(endpoint);
       
       // Remove message from store
       get().removeMessage(conversationId, messageId);

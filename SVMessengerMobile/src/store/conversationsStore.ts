@@ -177,7 +177,8 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   // Delete conversation (API call)
   deleteConversation: async (conversationId: number) => {
     try {
-      await apiClient.delete(`/api/svmessenger/conversations/${conversationId}`);
+      const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.DELETE_CONVERSATION.replace(':id', conversationId.toString());
+      await apiClient.delete(endpoint);
       get().removeConversation(conversationId);
       return true;
     } catch (error: any) {
@@ -189,7 +190,8 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   // Hide conversation (API call)
   hideConversation: async (conversationId: number) => {
     try {
-      await apiClient.put(`/api/svmessenger/conversations/${conversationId}/hide`);
+      const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.HIDE_CONVERSATION.replace(':id', conversationId.toString());
+      await apiClient.put(endpoint);
       get().removeConversation(conversationId);
       return true;
     } catch (error: any) {

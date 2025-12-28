@@ -63,6 +63,8 @@ const PROD_WS_URL = 'https://smolyanvote.com/ws-svmessenger';
 // - false в production/release builds
 const isDevelopment = __DEV__;
 
+console.log('⚙️ [API_CONFIG] Loading configuration...');
+
 export const API_CONFIG = {
   // В production автоматично използва PROD_API_URL
   // В development използва DEV_API_URL (който зависи от платформата)
@@ -96,14 +98,27 @@ export const API_CONFIG = {
     MESSENGER: {
       CONVERSATIONS: '/api/svmessenger/conversations',
       GET_CONVERSATION: '/api/svmessenger/conversations/:id', // GET /api/svmessenger/conversations/{id}
+      DELETE_CONVERSATION: '/api/svmessenger/conversations/:id', // DELETE /api/svmessenger/conversations/{id}
+      HIDE_CONVERSATION: '/api/svmessenger/conversations/:id/hide', // PUT /api/svmessenger/conversations/{id}/hide
       MARK_AS_READ: '/api/svmessenger/conversations/:id/read', // PUT /api/svmessenger/conversations/{id}/read
       MESSAGES: '/api/svmessenger/messages/conversation/:id', // GET /api/svmessenger/messages/conversation/{id}
       SEND_MESSAGE: '/api/svmessenger/messages/send', // POST /api/svmessenger/messages/send
+      EDIT_MESSAGE: '/api/svmessenger/messages/:id/edit', // PUT /api/svmessenger/messages/{id}/edit
+      DELETE_MESSAGE: '/api/svmessenger/messages/:id', // DELETE /api/svmessenger/messages/{id}
       SEARCH_USERS: '/api/svmessenger/users/search',
       SEARCH_FOLLOWING: '/api/svmessenger/users/following', // GET /api/svmessenger/users/following?query=
       CALL_TOKEN: '/api/svmessenger/call/token',
       START_CONVERSATION: '/api/svmessenger/conversations/start', // POST to start new conversation
     },
+    
+    // Profile
+    PROFILE: {
+      GET: '/api/mobile/profile', // GET /api/mobile/profile
+      UPDATE: '/api/mobile/profile/update', // PUT /api/mobile/profile/update
+    },
+    
+    // Registration
+    REGISTRATION: '/api/user/registration', // POST /api/user/registration
   },
   
   // Request timeout (ms)
