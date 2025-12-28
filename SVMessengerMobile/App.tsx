@@ -46,7 +46,7 @@ class ErrorBoundary extends React.Component<
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-  
+
   // Monitor network status
   useNetworkStatus();
 

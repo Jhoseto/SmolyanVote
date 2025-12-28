@@ -51,23 +51,27 @@ class SoundService {
     });
   }
 
-  playIncomingCallSound() {
+  async playIncomingCallSound() {
     if (!this.isEnabled) {
       console.log('🔇 [SoundService] Incoming call sound disabled');
       return;
     }
 
     this.currentIncomingSound = 'incoming_call.mp3';
-    this.callNativeMethod('playSound', 'incoming_call.mp3', true).catch((error) => {
+    try {
+      await this.callNativeMethod('playSound', 'incoming_call.mp3', true);
+    } catch (error) {
       console.error('❌ [SoundService] Failed to play incoming call sound:', error);
-    });
+    }
   }
 
-  stopIncomingCallSound() {
+  async stopIncomingCallSound() {
     if (this.currentIncomingSound) {
-      this.callNativeMethod('stopSound', this.currentIncomingSound).catch((error) => {
+      try {
+        await this.callNativeMethod('stopSound', this.currentIncomingSound);
+      } catch (error) {
         console.error('❌ [SoundService] Failed to stop incoming call sound:', error);
-      });
+      }
       this.currentIncomingSound = null;
     }
   }
@@ -84,11 +88,13 @@ class SoundService {
     });
   }
 
-  stopOutgoingCallSound() {
+  async stopOutgoingCallSound() {
     if (this.currentOutgoingSound) {
-      this.callNativeMethod('stopSound', this.currentOutgoingSound).catch((error) => {
+      try {
+        await this.callNativeMethod('stopSound', this.currentOutgoingSound);
+      } catch (error) {
         console.error('❌ [SoundService] Failed to stop outgoing call sound:', error);
-      });
+      }
       this.currentOutgoingSound = null;
     }
   }

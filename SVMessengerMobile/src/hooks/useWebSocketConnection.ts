@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/authStore';
 
 export const useWebSocketConnection = () => {
   const { isAuthenticated, user } = useAuthStore();
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
   const isConnectingRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
 

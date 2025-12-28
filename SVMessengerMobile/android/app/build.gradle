@@ -85,6 +85,21 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        // Enable x86_64 for emulator support with proper configuration
+        ndk {
+            abiFilters "x86_64"
+            // Force x86_64 STL to be linked statically
+            stl "c++_static"
+        }
+
+        // External native build configuration for x86_64
+        externalNativeBuild {
+            cmake {
+                cppFlags "-fexceptions", "-frtti", "-std=c++17"
+                arguments "-DANDROID_STL=c++_static"
+            }
+        }
     }
     signingConfigs {
         debug {

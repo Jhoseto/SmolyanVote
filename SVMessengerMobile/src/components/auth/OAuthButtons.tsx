@@ -30,6 +30,7 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }
       setUser({
         id: response.user.id,
         username: response.user.username,
+        email: `${response.user.username}@oauth.local`, // OAuth users don't have email from server
         fullName: response.user.fullName,
         imageUrl: response.user.imageUrl,
         isOnline: response.user.isOnline,
@@ -55,6 +56,7 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }
       setUser({
         id: response.user.id,
         username: response.user.username,
+        email: `${response.user.username}@oauth.local`, // OAuth users don't have email from server
         fullName: response.user.fullName,
         imageUrl: response.user.imageUrl,
         isOnline: response.user.isOnline,
