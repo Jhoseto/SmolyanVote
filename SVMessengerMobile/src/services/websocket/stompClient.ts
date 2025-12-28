@@ -9,6 +9,17 @@ import { API_CONFIG } from '../../config/api';
 import { TokenManager } from '../auth/tokenManager';
 
 class SVMobileWebSocketService {
+  // Деклариране на properties (задължително в TypeScript)
+  private client: Client | null;
+  private connected: boolean;
+  private subscriptions: Map<string, any>;
+  private reconnectAttempts: number;
+  private maxReconnectAttempts: number;
+  private reconnectDelay: number;
+  private isConnecting: boolean;
+  private tokenManager: TokenManager;
+  private currentCallbacks: any;
+
   constructor() {
     this.client = null;
     this.connected = false;
@@ -18,6 +29,7 @@ class SVMobileWebSocketService {
     this.reconnectDelay = 3000;
     this.isConnecting = false; // Защита срещу множествени извиквания на connect
     this.tokenManager = new TokenManager();
+    this.currentCallbacks = null;
   }
 
   /**
@@ -467,6 +479,13 @@ class SVMobileWebSocketService {
    */
   isConnected() {
     return this.connected;
+  }
+
+  /**
+   * Check дали се connect-ва в момента
+   */
+  getIsConnecting(): boolean {
+    return this.isConnecting;
   }
 
   /**

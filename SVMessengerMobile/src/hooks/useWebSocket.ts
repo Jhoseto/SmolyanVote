@@ -47,7 +47,7 @@ export const useWebSocket = () => {
   // Auto-connect when authenticated (with callbacks)
   const { isAuthenticated, user } = useAuthStore();
   React.useEffect(() => {
-    if (isAuthenticated && user && !isConnected && !svMobileWebSocketService.isConnecting) {
+    if (isAuthenticated && user && !isConnected && !svMobileWebSocketService.getIsConnecting()) {
       console.log('📞 [useWebSocket] Auto-connecting WebSocket with callbacks...');
       enhancedConnectWebSocket();
     }
