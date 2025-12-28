@@ -18,6 +18,32 @@ interface AuthStore extends AuthState {
   clearError: () => void;
 }
 
+// Safe AsyncStorage wrapper to prevent crashes
+const safeAsyncStorage = {
+  getItem: async (key: string) => {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.warn('AsyncStorage getItem error:', error);
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string) => {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('AsyncStorage setItem error:', error);
+    }
+  },
+  removeItem: async (key: string) => {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.warn('AsyncStorage removeItem error:', error);
+    }
+  },
+};
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -109,11 +135,20 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => safeAsyncStorage),
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
+      skipHydration: false, // Allow hydration but handle errors gracefully
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('Error rehydrating auth store:', error);
+          return;
+        }
+        // Called after rehydration - safe to use AsyncStorage here
+        console.log('Auth store rehydrated:', state);
+      },
     }
   )
 );

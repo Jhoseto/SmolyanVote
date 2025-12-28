@@ -3,10 +3,24 @@
  * Управление на push notifications чрез Firebase Cloud Messaging
  */
 
-import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
+
+// Safe Firebase messaging import
+let messaging: any = null;
+try {
+  messaging = require('@react-native-firebase/messaging').default;
+} catch (error) {
+  console.warn('Firebase messaging not available:', error);
+}
+
+const getMessaging = () => {
+  if (!messaging) {
+    throw new Error('Firebase messaging is not initialized');
+  }
+  return messaging();
+};
 
 export interface DeviceTokenRequest {
   deviceToken: string;
@@ -21,8 +35,13 @@ class PushNotificationService {
    */
   async requestPermissions(): Promise<boolean> {
     try {
+      if (!messaging) {
+        console.warn('Firebase messaging not available');
+        return false;
+      }
+      
       if (Platform.OS === 'ios') {
-        const authStatus = await messaging().requestPermission();
+        const authStatus = await getMessaging().requestPermission();
         const enabled =
           authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
           authStatus === messaging.AuthorizationStatus.PROVISIONAL;
@@ -42,7 +61,12 @@ class PushNotificationService {
    */
   async getFCMToken(): Promise<string | null> {
     try {
-      const token = await messaging().getToken();
+      if (!messaging) {
+        console.warn('Firebase messaging not available');
+        return null;
+      }
+      
+      const token = await getMessaging().getToken();
       return token;
     } catch (error) {
       console.error('Error getting FCM token:', error);
@@ -111,56 +135,64 @@ class PushNotificationService {
     onNotificationReceived?: (notification: any) => void,
     onNotificationOpened?: (notification: any) => void
   ): void {
-    // Handle foreground notifications
-    // Firebase автоматично показва notifications в foreground на Android и iOS
-    // Ние само обработваме данните за да обновим UI-то
-    messaging().onMessage(async (remoteMessage) => {
-      console.log('📬 Firebase foreground notification received:', {
-        notification: remoteMessage?.notification,
-        data: remoteMessage?.data,
-        messageId: remoteMessage?.messageId,
-      });
-      
-      if (onNotificationReceived) {
-        onNotificationReceived(remoteMessage);
-      } else {
-        console.warn('⚠️ onNotificationReceived callback not set');
-      }
-    });
-
-    // Handle background notifications (when app is in background)
-    messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('Notification opened app:', remoteMessage);
-      if (onNotificationOpened) {
-        onNotificationOpened(remoteMessage);
-      }
-    });
-
-    // Handle notification that opened app from quit state
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log('Notification opened app from quit state:', remoteMessage);
-          if (onNotificationOpened) {
-            onNotificationOpened(remoteMessage);
-          }
+    if (!messaging) {
+      console.warn('Firebase messaging not available, skipping notification handlers setup');
+      return;
+    }
+    
+    try {
+      // Handle foreground notifications
+      getMessaging().onMessage(async (remoteMessage) => {
+        console.log('📬 Firebase foreground notification received:', {
+          notification: remoteMessage?.notification,
+          data: remoteMessage?.data,
+          messageId: remoteMessage?.messageId,
+        });
+        
+        if (onNotificationReceived) {
+          onNotificationReceived(remoteMessage);
         }
       });
 
-    // Handle token refresh
-    messaging().onTokenRefresh((token) => {
-      console.log('FCM token refreshed:', token);
-      // Re-register token with backend
-      const appVersion = require('../../../package.json').version || '0.0.1';
-      this.registerDeviceToken({
-        deviceToken: token,
-        platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        appVersion,
-      }).catch((error) => {
-        console.error('Error re-registering token:', error);
+      // Handle background notifications (when app is in background)
+      getMessaging().onNotificationOpenedApp((remoteMessage) => {
+        console.log('Notification opened app:', remoteMessage);
+        if (onNotificationOpened) {
+          onNotificationOpened(remoteMessage);
+        }
       });
-    });
+
+      // Handle notification that opened app from quit state
+      getMessaging()
+        .getInitialNotification()
+        .then((remoteMessage) => {
+          if (remoteMessage) {
+            console.log('Notification opened app from quit state:', remoteMessage);
+            if (onNotificationOpened) {
+              onNotificationOpened(remoteMessage);
+            }
+          }
+        })
+        .catch((error) => {
+          console.warn('Error getting initial notification:', error);
+        });
+
+      // Handle token refresh
+      getMessaging().onTokenRefresh((token) => {
+        console.log('FCM token refreshed:', token);
+        // Re-register token with backend
+        const appVersion = require('../../../package.json').version || '0.0.1';
+        this.registerDeviceToken({
+          deviceToken: token,
+          platform: Platform.OS === 'ios' ? 'ios' : 'android',
+          appVersion,
+        }).catch((error) => {
+          console.error('Error re-registering token:', error);
+        });
+      });
+    } catch (error) {
+      console.error('Error setting up notification handlers:', error);
+    }
   }
 
   /**
@@ -168,7 +200,12 @@ class PushNotificationService {
    */
   async deleteToken(): Promise<void> {
     try {
-      await messaging().deleteToken();
+      if (!messaging) {
+        console.warn('Firebase messaging not available');
+        return;
+      }
+      
+      await getMessaging().deleteToken();
       console.log('FCM token deleted');
     } catch (error) {
       console.error('Error deleting FCM token:', error);

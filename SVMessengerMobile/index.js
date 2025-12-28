@@ -91,28 +91,14 @@ AppRegistry.registerComponent(appName, () => App);
 /**
  * Background Message Handler for Firebase
  * Това се изпълнява в background thread за background notifications
- * Когато приложението е затворено или в background, Firebase автоматично показва notification-а
- * Този handler се извиква преди notification-ът да се покаже, за да можем да обработим данните
  */
 // Register background handler (only if Firebase is available)
 try {
   messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log('📬 [Background] Notification received:', {
-      notification: remoteMessage?.notification,
-      data: remoteMessage?.data,
-      messageId: remoteMessage?.messageId,
-    });
-    
-    // Firebase автоматично показва notification-а когато приложението е в background/killed
-    // Тук можем да обработим данните преди notification-ът да се покаже
-    // Важно: Не можем да използваме React hooks или navigation тук
-    
-    // Notification-ът ще се покаже автоматично от Firebase
-    // Backend трябва да изпраща правилно форматирани FCM notifications с:
-    // - notification.title
-    // - notification.body
-    // - data (за deep linking)
+    console.log('Background notification received:', remoteMessage);
+    // Handle background notification here
+    // Note: This runs in a separate thread, so you can't use React hooks or navigation here
   });
 } catch (error) {
-  console.warn('⚠️ Firebase messaging not initialized yet:', error);
+  console.warn('Firebase messaging not initialized yet:', error);
 }

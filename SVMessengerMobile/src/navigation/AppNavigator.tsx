@@ -6,12 +6,10 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { RootStackParamList } from '../types/navigation';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
-import { CallScreen } from '../screens/calls/CallScreen';
-import { IncomingCallScreen } from '../screens/calls/IncomingCallScreen';
 import { useAuthStore } from '../store/authStore';
 import { useCallsStore } from '../store/callsStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -24,9 +22,28 @@ export const AppNavigator: React.FC = () => {
   const { isAuthenticated, refreshAuth } = useAuthStore();
   const { callState, currentCall } = useCallsStore();
   const [isInitializing, setIsInitializing] = useState(true);
+  const [callScreensLoaded, setCallScreensLoaded] = useState(false);
+  const [CallScreenComponent, setCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
+  const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   
   // Setup push notifications
   usePushNotifications();
+
+  // Lazy load call screens when needed (only when call is active)
+  useEffect(() => {
+    const showCallScreen = callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
+    if (showCallScreen && !callScreensLoaded) {
+      try {
+        const callScreenModule = require('../screens/calls/CallScreen');
+        const incomingCallScreenModule = require('../screens/calls/IncomingCallScreen');
+        setCallScreenComponent(() => callScreenModule.CallScreen);
+        setIncomingCallScreenComponent(() => incomingCallScreenModule.IncomingCallScreen);
+        setCallScreensLoaded(true);
+      } catch (error) {
+        console.error('Failed to load call screens:', error);
+      }
+    }
+  }, [callState, callScreensLoaded]);
 
   useEffect(() => {
     // Проверяваме дали user е все още authenticated при стартиране
@@ -86,7 +103,7 @@ export const AppNavigator: React.FC = () => {
         </Stack.Navigator>
 
         {/* Call Screens Overlay */}
-        {showCallScreen && (
+        {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
           <View
             style={{
               position: 'absolute',
@@ -98,9 +115,9 @@ export const AppNavigator: React.FC = () => {
             }}
           >
             {callState === CallState.INCOMING ? (
-              <IncomingCallScreen />
+              <IncomingCallScreenComponent />
             ) : (
-              <CallScreen />
+              <CallScreenComponent />
             )}
           </View>
         )}
