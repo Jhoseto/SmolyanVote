@@ -26,7 +26,7 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    
+
     // Initialize Firebase - CRITICAL for push notifications!
     // Wrap in try-catch to prevent crash if google-services.json is missing or malformed
     try {
@@ -37,7 +37,7 @@ class MainApplication : Application(), ReactApplication {
       android.util.Log.e("MainApplication", "❌ Firebase initialization failed (non-critical):", e)
       android.util.Log.w("MainApplication", "⚠️ App will continue without push notifications")
     }
-    
+
     loadReactNative(this)
   }
 }

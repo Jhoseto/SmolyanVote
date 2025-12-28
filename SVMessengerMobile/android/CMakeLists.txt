@@ -1,23 +1,21 @@
-# CMakeLists.txt for React Native Android x86_64 support
+# CMakeLists.txt for React Native Android x86_64 support with SHARED STL
 
 cmake_minimum_required(VERSION 3.4.1)
 
-# Set the ABI to x86_64
-set(ANDROID_ABI x86_64)
-
-# Force static linking for STL
+# Force shared STL for x86_64 architecture to fix Hermes compatibility
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fexceptions -frtti")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
 
-# Add React Native specific flags
-add_definitions(-DANDROID)
-add_definitions(-DANDROID_ABI=${ANDROID_ABI})
-
-# Ensure x86_64 compatibility
+# For x86_64, ensure we use shared STL
 if (${ANDROID_ABI} STREQUAL "x86_64")
+    # Force shared STL linking
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lc++_shared")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lc++_shared")
+
+    # Add x86_64 specific flags
     add_definitions(-D__x86_64__)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -mtune=intel")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=x86-64 -mtune=intel")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=x86-64")
 endif()
 
 # Include React Native CMake
