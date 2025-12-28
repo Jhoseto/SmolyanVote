@@ -24,6 +24,7 @@ interface MessagesStore extends MessagesState {
   clearMessages: (conversationId: number) => void;
   clearError: () => void;
   loadMoreMessages: (conversationId: number) => Promise<void>;
+  clearAllMessages: () => void;
 }
 
 export const useMessagesStore = create<MessagesStore>((set, get) => ({
@@ -345,6 +346,15 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   // Clear error
   clearError: () => {
     set({ error: null });
+  },
+
+  // Clear all messages
+  clearAllMessages: () => {
+    set({
+      messages: {},
+      pagination: {},
+      typingUsers: {},
+    });
   },
 }));
 

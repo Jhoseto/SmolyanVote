@@ -15,7 +15,7 @@ export const useWebSocketCalls = () => {
   const { incrementUnreadCount } = useConversationsStore();
 
   // Handle call signals
-  const handleCallSignal = useCallback((data: any) => {
+  const handleCallSignal = useCallback(async (data: any) => {
     console.log('📞 [useWebSocketCalls] handleCallSignal called with:', data);
     console.log('📞 [useWebSocketCalls] Data type:', typeof data, 'Keys:', data ? Object.keys(data) : 'null');
 
@@ -47,19 +47,30 @@ export const useWebSocketCalls = () => {
               return;
             }
             
+            // Опитай да намериш информация за участника от store/API
+            const { getConversation, conversations } = useConversationsStore.getState();
+            let participant = conversations.find((c) => c.id === conversationId)?.participant;
+            if (!participant) {
+              const conv = await getConversation(conversationId).catch(() => null);
+              participant = conv?.participant;
+            }
+
+            const participantName = signal.callerName || participant?.fullName || participant?.username || 'Потребител';
+            const participantImageUrl = participant?.imageUrl;
+
             // Създай currentCall обект директно с INCOMING state
             startCall(
               conversationId,
               callerId,
-              signal.callerName || 'Потребител',
-              signal.callerAvatar,
+              participantName,
+              participantImageUrl || signal.callerAvatar,
               CallState.INCOMING // Задай state директно при създаване
             );
             
             console.log('✅ [useWebSocketCalls] startCall executed successfully:', {
               conversationId,
               callerId,
-              callerName: signal.callerName || 'Потребител',
+              callerName: participantName,
             });
             
             // Play ringtone

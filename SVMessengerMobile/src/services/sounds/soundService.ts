@@ -1,144 +1,148 @@
 /**
- * Sound Service
+ * Sound Service for React Native
  * Управление на звуци за съобщения и обаждания
- * Използва Android SoundPool за възпроизвеждане на звуци от res/raw
+ * Използва native модул (RNSoundPlayer) за възпроизвеждане на звуци от raw директорията
+ * 
+ * Native модулът използва Android MediaPlayer за възпроизвеждане на звуците
  */
 
-import { Platform } from 'react-native';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-// Native module за Android звуци
-const { SoundModule } = NativeModules;
+// Native module interface (will be implemented in Android)
+interface SoundModule {
+  playSound(soundName: string, loop: boolean): Promise<void>;
+  stopSound(soundName: string): Promise<void>;
+  setVolume(volume: number): Promise<void>;
+}
+
+const { RNSoundPlayer } = NativeModules;
 
 class SoundService {
   private isEnabled: boolean = true;
   private volume: number = 0.8;
-  private currentCallSoundId: number | null = null;
+  private currentIncomingSound: string | null = null;
+  private currentOutgoingSound: string | null = null;
 
-  private async playAndroidSound(soundName: string, loop: boolean = false): Promise<number | null> {
-    if (!this.isEnabled || Platform.OS !== 'android') {
-      return null;
-    }
-
-    try {
-      if (SoundModule) {
-        const soundId = await SoundModule.playSound(soundName, this.volume, loop);
-        return soundId;
-      } else {
-        console.warn('⚠️ SoundModule not available');
-        return null;
-      }
-    } catch (error) {
-      console.error('Error playing sound:', error);
-      return null;
-    }
-  }
-
-  private async stopAndroidSound(soundId: number | null) {
-    if (Platform.OS !== 'android' || !soundId) {
+  private async callNativeMethod(method: keyof SoundModule, ...args: any[]): Promise<void> {
+    if (!this.isEnabled) {
+      console.log(`🔇 [SoundService] Sound disabled: ${method}`);
       return;
     }
 
-    try {
-      if (SoundModule) {
-        await SoundModule.stopSound(soundId);
+    if (Platform.OS === 'android' && RNSoundPlayer) {
+      try {
+        await RNSoundPlayer[method](...args);
+      } catch (error) {
+        console.error(`❌ [SoundService] Error calling ${method}:`, error);
       }
-    } catch (error) {
-      console.error('Error stopping sound:', error);
-    }
-  }
-
-  async playMessageSound() {
-    if (!this.isEnabled) return;
-    
-    if (Platform.OS === 'android') {
-      // Използва s1.mp3 за съобщения
-      await this.playAndroidSound('s1', false);
     } else {
-      console.log('🔇 Message sound (iOS not implemented)');
+      console.log(`🔇 [SoundService] Native module not available (${Platform.OS})`);
     }
   }
 
-  async playIncomingCallSound() {
-    if (!this.isEnabled) return;
-    
-    if (Platform.OS === 'android') {
-      // Използва incoming_call.mp3 и го пуска в loop
-      const soundId = await this.playAndroidSound('incoming_call', true);
-      this.currentCallSoundId = soundId;
-    } else {
-      console.log('🔇 Incoming call sound (iOS not implemented)');
+  playMessageSound() {
+    if (!this.isEnabled) {
+      console.log('🔇 [SoundService] Message sound disabled');
+      return;
+    }
+
+    this.callNativeMethod('playSound', 's1.mp3', false).catch((error) => {
+      console.error('❌ [SoundService] Failed to play message sound:', error);
+    });
+  }
+
+  playIncomingCallSound() {
+    if (!this.isEnabled) {
+      console.log('🔇 [SoundService] Incoming call sound disabled');
+      return;
+    }
+
+    this.currentIncomingSound = 'incoming_call.mp3';
+    this.callNativeMethod('playSound', 'incoming_call.mp3', true).catch((error) => {
+      console.error('❌ [SoundService] Failed to play incoming call sound:', error);
+    });
+  }
+
+  stopIncomingCallSound() {
+    if (this.currentIncomingSound) {
+      this.callNativeMethod('stopSound', this.currentIncomingSound).catch((error) => {
+        console.error('❌ [SoundService] Failed to stop incoming call sound:', error);
+      });
+      this.currentIncomingSound = null;
     }
   }
 
-  async stopIncomingCallSound() {
-    if (this.currentCallSoundId !== null) {
-      await this.stopAndroidSound(this.currentCallSoundId);
-      this.currentCallSoundId = null;
+  playOutgoingCallSound() {
+    if (!this.isEnabled) {
+      console.log('🔇 [SoundService] Outgoing call sound disabled');
+      return;
     }
+
+    this.currentOutgoingSound = 'out_call.mp3';
+    this.callNativeMethod('playSound', 'out_call.mp3', true).catch((error) => {
+      console.error('❌ [SoundService] Failed to play outgoing call sound:', error);
+    });
   }
 
-  async playOutgoingCallSound() {
-    if (!this.isEnabled) return;
-    
-    if (Platform.OS === 'android') {
-      // Използва out_call.mp3 и го пуска в loop
-      const soundId = await this.playAndroidSound('out_call', true);
-      this.currentCallSoundId = soundId;
-    } else {
-      console.log('🔇 Outgoing call sound (iOS not implemented)');
-    }
-  }
-
-  async stopOutgoingCallSound() {
-    if (this.currentCallSoundId !== null) {
-      await this.stopAndroidSound(this.currentCallSoundId);
-      this.currentCallSoundId = null;
+  stopOutgoingCallSound() {
+    if (this.currentOutgoingSound) {
+      this.callNativeMethod('stopSound', this.currentOutgoingSound).catch((error) => {
+        console.error('❌ [SoundService] Failed to stop outgoing call sound:', error);
+      });
+      this.currentOutgoingSound = null;
     }
   }
 
   // Legacy methods for backward compatibility
-  async playCallSound() {
-    await this.playIncomingCallSound();
+  playCallSound() {
+    this.playIncomingCallSound();
   }
 
-  async stopCallSound() {
-    await this.stopIncomingCallSound();
-    await this.stopOutgoingCallSound();
+  stopCallSound() {
+    this.stopIncomingCallSound();
+    this.stopOutgoingCallSound();
   }
 
-  async playSound(soundType: string) {
-    if (soundType === 'notification' || soundType === 'message') {
-      await this.playMessageSound();
-    } else if (soundType === 'incoming_call') {
-      await this.playIncomingCallSound();
-    } else if (soundType === 'outgoing_call') {
-      await this.playOutgoingCallSound();
-    } else {
-      console.log(`🔇 Unknown sound type: ${soundType}`);
+  playSound(soundType: string) {
+    switch (soundType) {
+      case 'incoming':
+        this.playIncomingCallSound();
+        break;
+      case 'outgoing':
+        this.playOutgoingCallSound();
+        break;
+      case 'message':
+      case 'notification':
+        this.playMessageSound();
+        break;
+      default:
+        console.warn(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
     }
   }
 
-  async stopSound(soundType: string) {
-    if (soundType === 'incoming_call') {
-      await this.stopIncomingCallSound();
-    } else if (soundType === 'outgoing_call') {
-      await this.stopOutgoingCallSound();
-    } else if (soundType === 'call') {
-      await this.stopCallSound();
+  stopSound(soundType: string) {
+    switch (soundType) {
+      case 'incoming':
+        this.stopIncomingCallSound();
+        break;
+      case 'outgoing':
+        this.stopOutgoingCallSound();
+        break;
+      default:
+        console.warn(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
     }
   }
 
   setEnabled(enabled: boolean) {
     this.isEnabled = enabled;
     if (!enabled) {
-      // Stop sounds asynchronously without blocking
-      this.stopCallSound().catch(err => console.error('Error stopping sounds:', err));
+      this.stopCallSound();
     }
   }
 
-  setVolume(volume: number) {
+  async setVolume(volume: number) {
     this.volume = Math.max(0, Math.min(1, volume));
+    await this.callNativeMethod('setVolume', this.volume);
   }
 
   getVolume(): number {
@@ -149,8 +153,8 @@ class SoundService {
     return this.isEnabled;
   }
 
-  async cleanup() {
-    await this.stopCallSound();
+  cleanup() {
+    this.stopCallSound();
   }
 }
 

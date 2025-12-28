@@ -171,6 +171,10 @@ class SVMobileWebSocketService {
   subscribeToChannels(callbacks) {
     const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
 
+    // ВАЖНО: Запазваме callbacks в instance променливи за да избегнем stale closures
+    // Когато callback-ът се промени, subscription-ът трябва да използва новия callback
+    this.currentCallbacks = callbacks;
+
     // Премахни старите subscriptions преди да създадеш нови
     const coreSubscriptionKeys = ['messages', 'receipts', 'delivery', 'status', 'callSignals'];
     coreSubscriptionKeys.forEach(key => {
@@ -187,18 +191,33 @@ class SVMobileWebSocketService {
 
     try {
       // 1. Private messages channel
+      // ВАЖНО: Използваме this.currentCallbacks.onNewMessage за да винаги използваме най-новия callback
       const messagesSub = this.client.subscribe(
         '/user/queue/svmessenger-messages',
         (message) => {
           try {
             const data = JSON.parse(message.body);
-            onNewMessage(data);
+            // Използваме текущия callback от instance променливата
+            const currentCallback = this.currentCallbacks?.onNewMessage;
+            if (currentCallback && typeof currentCallback === 'function') {
+              currentCallback(data);
+            } else {
+              console.error('❌ [stompClient] onNewMessage callback is not available or not a function!', {
+                hasCallbacks: !!this.currentCallbacks,
+                hasOnNewMessage: !!this.currentCallbacks?.onNewMessage,
+                type: typeof this.currentCallbacks?.onNewMessage,
+              });
+            }
           } catch (error) {
-            console.error('Error parsing message:', error);
+            console.error('❌ [stompClient] Error parsing message:', error, {
+              body: message.body,
+              headers: message.headers,
+            });
           }
         }
       );
       this.subscriptions.set('messages', messagesSub);
+      console.log('✅ [stompClient] Subscribed to /user/queue/svmessenger-messages');
 
       // 2. Read receipts channel
       const receiptsSub = this.client.subscribe(
@@ -206,7 +225,10 @@ class SVMobileWebSocketService {
         (message) => {
           try {
             const data = JSON.parse(message.body);
-            onReadReceipt(data);
+            const currentCallback = this.currentCallbacks?.onReadReceipt;
+            if (currentCallback && typeof currentCallback === 'function') {
+              currentCallback(data);
+            }
           } catch (error) {
             console.error('Error parsing receipt:', error);
           }
@@ -220,7 +242,10 @@ class SVMobileWebSocketService {
         (message) => {
           try {
             const data = JSON.parse(message.body);
-            onDeliveryReceipt(data);
+            const currentCallback = this.currentCallbacks?.onDeliveryReceipt;
+            if (currentCallback && typeof currentCallback === 'function') {
+              currentCallback(data);
+            }
           } catch (error) {
             console.error('Error parsing delivery receipt:', error);
           }
@@ -234,7 +259,10 @@ class SVMobileWebSocketService {
         (message) => {
           try {
             const data = JSON.parse(message.body);
-            onOnlineStatus(data);
+            const currentCallback = this.currentCallbacks?.onOnlineStatus;
+            if (currentCallback && typeof currentCallback === 'function') {
+              currentCallback(data);
+            }
           } catch (error) {
             console.error('Error parsing status:', error);
           }
@@ -250,14 +278,15 @@ class SVMobileWebSocketService {
             console.log('📞 [stompClient] Raw call signal received:', message.body);
             const data = JSON.parse(message.body);
             console.log('📞 [stompClient] Parsed call signal:', data);
-            console.log('📞 [stompClient] onCallSignal type:', typeof onCallSignal, 'is function:', typeof onCallSignal === 'function');
+            const currentCallback = this.currentCallbacks?.onCallSignal;
+            console.log('📞 [stompClient] onCallSignal type:', typeof currentCallback, 'is function:', typeof currentCallback === 'function');
             
-            if (onCallSignal && typeof onCallSignal === 'function') {
+            if (currentCallback && typeof currentCallback === 'function') {
               console.log('📞 [stompClient] Calling onCallSignal with data:', data);
-              onCallSignal(data);
+              currentCallback(data);
               console.log('📞 [stompClient] onCallSignal executed');
             } else {
-              console.error('❌ [stompClient] onCallSignal is not a function:', typeof onCallSignal);
+              console.error('❌ [stompClient] onCallSignal is not a function:', typeof currentCallback);
             }
           } catch (error) {
             console.error('❌ [stompClient] Error parsing call signal:', error);

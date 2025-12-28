@@ -25,6 +25,8 @@ import {
   MicrophoneIcon as HeroMicrophoneIcon,
   InformationCircleIcon as HeroInformationCircleIcon,
   CameraIcon as HeroCameraIcon,
+  VideoCameraSlashIcon as HeroVideoCameraSlashIcon,
+  ArrowPathIcon as HeroArrowPathIcon,
 } from 'react-native-heroicons/outline';
 import {
   ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
@@ -130,4 +132,16 @@ export const ChatBubbleLeftRightIcon: React.FC<IconProps> = ({ size = 24, color 
 
 export const CameraIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', style }) => (
   <HeroCameraIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const VideoCameraIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (
+  <HeroVideoCameraIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const VideoCameraSlashIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', style }) => (
+  <HeroVideoCameraSlashIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const ArrowPathIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', style }) => (
+  <HeroArrowPathIcon size={size} color={color} strokeWidth={2.5} style={style} />
 );

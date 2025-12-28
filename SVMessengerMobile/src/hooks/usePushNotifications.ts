@@ -30,28 +30,9 @@ export const usePushNotifications = () => {
     }, 500) // 500ms debounce
   ).current;
 
-  // Heartbeat за поддържане на online статус в базата данни
+  // Heartbeat (disabled – WebSocket се грижи за online статус; избягваме излишни 401)
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const heartbeatInterval = setInterval(async () => {
-      try {
-        // Изпрати heartbeat само ако app е active
-        if (AppState.currentState === 'active') {
-          await apiClient.post(API_CONFIG.ENDPOINTS.HEARTBEAT);
-          console.log('💓 Heartbeat sent - online status maintained');
-        }
-      } catch (error: any) {
-        // Тихо игнорирай - heartbeat не е критична операция
-        // WebSocket поддържа online статус автоматично, така че heartbeat е допълнителен механизъм
-        // Не логваме грешки защото endpoint-ът може да връща 401 ако не е правилно конфигуриран
-        if (error?.response?.status !== 401) {
-          console.debug('Heartbeat failed (non-critical):', error?.message);
-        }
-      }
-    }, 30000); // На всеки 30 секунди
-
-    return () => clearInterval(heartbeatInterval);
+    return () => {};
   }, [isAuthenticated]);
 
   /**
@@ -81,13 +62,42 @@ export const usePushNotifications = () => {
 
       const notificationType = data?.type;
       
-      // ✅ Обработка на INCOMING_CALL notifications
+      // ✅ Обработка на INCOMING_CALL notifications (foreground)
       if (notificationType === 'INCOMING_CALL' && conversationId) {
         console.log('📞 Incoming call notification received for conversation:', conversationId);
-        // Call handling се прави чрез WebSocket, но notification-ът гарантира че потребителят е уведомен
-        // WebSocket signal-ът ще отвори IncomingCallScreen автоматично
-        // Тук само refresh-ваме conversations за да се вижда актуализираната информация
-        debouncedRefreshConversations();
+
+        // Опитай да намериш участника от store / API
+        const { getConversation, conversations } = useConversationsStore.getState();
+        const findParticipant = async () => {
+          const existing = conversations.find((c) => c.id === conversationId);
+          if (existing?.participant) return existing.participant;
+          try {
+            const conv = await getConversation(conversationId);
+            return conv?.participant;
+          } catch {
+            return undefined;
+          }
+        };
+
+        findParticipant().then((participant) => {
+          const participantId = participant?.id ?? 0;
+          const participantName = data.callerName || participant?.fullName || participant?.username || 'Неизвестен потребител';
+          const participantImageUrl = participant?.imageUrl;
+
+          // Стартирай входящ разговор локално (UI + звук)
+          startCall(
+            conversationId,
+            participantId,
+            participantName,
+            participantImageUrl,
+            CallState.INCOMING
+          );
+          setCallState(CallState.INCOMING);
+          soundService.playIncomingCallSound();
+
+          // Refresh за актуални данни
+          debouncedRefreshConversations();
+        });
       }
       // ✅ Обработка на NEW_MESSAGE notifications
       else if (notificationType === 'NEW_MESSAGE' && conversationId) {
@@ -96,85 +106,23 @@ export const usePushNotifications = () => {
         console.log('📥 Fetching messages for conversation:', conversationId);
         fetchMessages(conversationId);
         
-        // Update unread count immediately if conversation is not currently open (exactly like web version)
-        const { selectedConversationId, conversations, updateConversationWithNewMessage, getConversation } = useConversationsStore.getState();
+        // Update conversation immediately from backend (за да вземем correct unread count)
+        const { selectedConversationId } = useConversationsStore.getState();
         
         if (selectedConversationId !== conversationId) {
-          // Conversation is not open - update unread count immediately (exactly like web version)
-          console.log('📥 Conversation not open, updating unread count immediately');
-          const conversationExists = conversations.some(c => c.id === conversationId);
-          
-          if (conversationExists) {
-            // Update existing conversation with incremented unreadCount (exactly like web version)
-            // We increment unreadCount immediately for instant UI update
-            console.log('📥 Incrementing unread count for existing conversation:', conversationId);
-            const { incrementUnreadCount } = useConversationsStore.getState();
-            incrementUnreadCount(conversationId);
-            
-            // Log updated state
-            const { totalUnreadCount: newTotal } = useConversationsStore.getState();
-            console.log('📥 Updated total unread count:', newTotal);
-            
-            // Also refresh conversations to get latest lastMessage (debounced)
-            debouncedRefreshConversations();
-          } else {
-            // Conversation doesn't exist - fetch and add it (exactly like web version)
-            console.log('📥 Conversation not found, fetching conversation details');
-            getConversation(conversationId).then(conv => {
-              if (conv) {
-                const { conversations: updatedConversations, addConversation } = useConversationsStore.getState();
-                const alreadyExists = updatedConversations.some(c => c.id === conv.id);
-                
-                if (!alreadyExists) {
-                  // Add new conversation with unreadCount incremented (exactly like web version)
-                  console.log('📥 Adding new conversation with incremented unread count');
-                  addConversation({
-                    ...conv,
-                    unreadCount: (conv.unreadCount || 0) + 1,
-                  });
-                  
-                  // Log updated state
-                  const { totalUnreadCount: newTotal } = useConversationsStore.getState();
-                  console.log('📥 Updated total unread count after adding conversation:', newTotal);
-                } else {
-                  console.log('📥 Conversation already exists, incrementing unread count');
-                  const { incrementUnreadCount } = useConversationsStore.getState();
-                  incrementUnreadCount(conversationId);
-                }
-              }
-            }).catch(error => {
-              console.error('Failed to fetch conversation:', error);
-              // Fallback: refresh all conversations
-              debouncedRefreshConversations();
-            });
-          }
-        } else {
-          // Conversation is open - still update lastMessage immediately so message appears in chat (exactly like web version)
-          console.log('📥 Conversation is open, updating lastMessage immediately');
-          const conversationExists = conversations.some(c => c.id === conversationId);
-          
-          if (conversationExists) {
-            // Update lastMessage immediately so it appears in the chat (even though unreadCount doesn't change)
-            // fetchMessages will load the actual message, but we update lastMessage for instant UI feedback
-            debouncedRefreshConversations();
-          }
-        }
-      } else if (conversationId) {
-        // Fallback: ако има conversationId но няма type, все пак fetch-ваме messages
-        console.log('📥 Fetching messages for conversation (fallback):', conversationId);
-        fetchMessages(conversationId);
-
-        // Update unread count immediately if conversation is not currently open
-        const { selectedConversationId, conversations, incrementUnreadCount } = useConversationsStore.getState();
-        if (selectedConversationId !== conversationId) {
-          const conversationExists = conversations.some(c => c.id === conversationId);
-          if (conversationExists) {
-            incrementUnreadCount(conversationId);
-          }
+          // Conversation is not open - fetch latest data from backend (НЕ increment-ваме ръчно!)
+          console.log('📥 Conversation not open, fetching latest data from backend');
           debouncedRefreshConversations();
         } else {
-          console.log('📥 Skipping conversations refresh (fallback) - conversation is currently open');
+          // Conversation is open - update lastMessage
+          console.log('📥 Conversation is open, updating lastMessage');
+          debouncedRefreshConversations();
         }
+      } else if (conversationId) {
+        // Fallback: ако има conversationId но няма type, fetch-ваме latest data from backend
+        console.log('📥 Fetching messages and data for conversation (fallback):', conversationId);
+        fetchMessages(conversationId);
+        debouncedRefreshConversations();
       } else {
         console.log('⚠️ Notification received but conversationId is missing or invalid:', conversationId);
       }
@@ -204,50 +152,34 @@ export const usePushNotifications = () => {
           
           // Намери conversation за да вземем participant информация
           await fetchConversations();
+
+          // Вземи актуализираните conversations / ако липсват – fetch по id
+          const { conversations, getConversation } = useConversationsStore.getState();
+          let participant = conversations.find((c) => c.id === conversationId)?.participant;
+          if (!participant) {
+            const conv = await getConversation(conversationId).catch(() => null);
+            participant = conv?.participant;
+          }
           
-          // Изчакай малко за да се заредят conversations
-          setTimeout(() => {
-            // Вземи актуализираните conversations от store
-            const { conversations } = useConversationsStore.getState();
-            const conversation = conversations.find((c) => c.id === conversationId);
-            const participant = conversation?.participant;
-            
-            if (participant) {
-              // Стартирай incoming call от notification data
-              console.log('📞 Starting incoming call from notification:', {
-                conversationId,
-                participantId: participant.id,
-                participantName: data.callerName || participant.fullName || 'Unknown',
-                participantImageUrl: participant.imageUrl,
-              });
-              
-              startCall(
-                conversationId,
-                participant.id,
-                data.callerName || participant.fullName || 'Unknown',
-                participant.imageUrl
-              );
-              setCallState(CallState.INCOMING);
-              
-              // Пусни звук за incoming call
-              soundService.playIncomingCallSound().catch(err => console.error('Error playing incoming call sound:', err));
-              
-              // Свържи WebSocket ако не е свързан (за да получим call signals)
-              if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {
-                console.log('📞 Connecting WebSocket for incoming call...');
-                // WebSocket ще се свърже автоматично от useWebSocket hook
-                // Но тук можем да се уверим че е свързан
-              }
-            } else {
-              console.warn('⚠️ Participant not found for conversation:', conversationId);
-              // Fallback: опитай да стартираш call само с данните от notification
-              if (data.callerName) {
-                // Трябва да имаме callerId в notification data за да работи правилно
-                // За сега само refresh-ваме conversations
-                console.log('⚠️ Cannot start call - missing participant data');
-              }
-            }
-          }, 500);
+          const participantId = participant?.id ?? 0;
+          const participantName = data.callerName || participant?.fullName || participant?.username || 'Неизвестен потребител';
+          const participantImageUrl = participant?.imageUrl;
+
+          // Стартирай incoming call от notification data (дори ако липсва participant, показваме име)
+          startCall(
+            conversationId,
+            participantId,
+            participantName,
+            participantImageUrl,
+            CallState.INCOMING
+          );
+          setCallState(CallState.INCOMING);
+          soundService.playIncomingCallSound();
+
+          // Свържи WebSocket ако не е свързан (за да получим call signals)
+          if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {
+            console.log('📞 Connecting WebSocket for incoming call...');
+          }
         } else {
           // NEW_MESSAGE или друг тип - fetch-ваме messages
           console.log('📥 Fetching messages for conversation:', conversationId);

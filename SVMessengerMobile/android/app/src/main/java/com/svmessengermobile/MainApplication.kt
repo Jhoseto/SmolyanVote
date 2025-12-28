@@ -6,6 +6,7 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.google.firebase.FirebaseApp
 
 class MainApplication : Application(), ReactApplication {
 
@@ -17,15 +18,18 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
           // Note: @livekit/react-native is auto-linked and initializes automatically
-          add(SoundPackage())
+          // Add custom sound player package
+          add(RNSoundPlayerPackage())
         },
     )
   }
 
   override fun onCreate() {
     super.onCreate()
-    // Create notification channels for Android 8.0+
-    NotificationChannelManager.createChannels(this)
+    
+    // Initialize Firebase - CRITICAL for push notifications!
+    FirebaseApp.initializeApp(this)
+    
     loadReactNative(this)
   }
 }

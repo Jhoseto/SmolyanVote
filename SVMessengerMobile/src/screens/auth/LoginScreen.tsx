@@ -115,6 +115,15 @@ export const LoginScreen: React.FC = () => {
               style={styles.loginButton}
             />
 
+            {/* Forgot Password Link */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword' as any)}
+              style={styles.forgotPasswordButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.forgotPasswordText}>Забравена парола?</Text>
+            </TouchableOpacity>
+
             {/* OAuth Buttons */}
             <OAuthButtons
               onSuccess={() => {
@@ -171,6 +180,16 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: Spacing.md,
+  },
+  forgotPasswordButton: {
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  forgotPasswordText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.green[500],
+    fontWeight: Typography.fontWeight.medium,
   },
   registerSection: {
     flexDirection: 'row',

@@ -65,9 +65,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     startCall(conversationId, participantId, participantName);
   };
 
-  const handleVideoCall = () => {
-    // TODO: Implement video call when ready
-    console.log('Video call not yet implemented');
+  const handleVideoCall = async () => {
+    if (!user) return;
+    // Start video call with isVideo flag
+    startCall(conversationId, participantId, participantName, undefined, undefined, true);
+    console.log('📞 Video call initiated - camera will be enabled automatically');
   };
 
   return (

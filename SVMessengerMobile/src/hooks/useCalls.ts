@@ -3,7 +3,7 @@
  * Hook за управление на voice calls
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useCallsStore } from '../store/callsStore';
 import { useAuthStore } from '../store/authStore';
 import { liveKitService } from '../services/calls/liveKitService';
@@ -11,12 +11,14 @@ import { soundService } from '../services/sounds/soundService';
 import { callPermissionsService } from '../services/permissions/callPermissionsService';
 import { CallState } from '../types/call';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
+import InCallManager from 'react-native-incall-manager';
 
 export const useCalls = () => {
   const {
     currentCall,
     callState,
     isMuted,
+    isVideoCall,
     startCall,
     answerCall,
     rejectCall,
@@ -25,6 +27,9 @@ export const useCalls = () => {
     toggleMute,
     clearCall,
   } = useCallsStore();
+
+  // Speaker state (local to this hook)
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
 
   // Initialize LiveKit event listeners
   useEffect(() => {
@@ -51,6 +56,28 @@ export const useCalls = () => {
       }
     });
   }, [setCallState, endCall]);
+
+  // Auto-enable camera for video calls
+  useEffect(() => {
+    const enableCameraForVideoCall = async () => {
+      if (callState === CallState.CONNECTED && isVideoCall && !liveKitService.isCameraEnabled()) {
+        console.log('📹 [useCalls] Auto-enabling camera for video call');
+        try {
+          const hasCameraPermission = await callPermissionsService.requestCameraPermission();
+          if (hasCameraPermission) {
+            await liveKitService.toggleCamera(true);
+            console.log('✅ [useCalls] Camera enabled successfully');
+          } else {
+            console.error('❌ [useCalls] Camera permission denied');
+          }
+        } catch (error) {
+          console.error('❌ [useCalls] Error enabling camera:', error);
+        }
+      }
+    };
+
+    enableCameraForVideoCall();
+  }, [callState, isVideoCall]);
 
   // Start outgoing call
   const handleStartCall = useCallback(
@@ -251,17 +278,39 @@ export const useCalls = () => {
     return liveKitService.isCameraEnabled();
   }, []);
 
+  // Flip camera (front/back)
+  const handleFlipCamera = useCallback(async () => {
+    if (callState !== CallState.CONNECTED || !liveKitService.isCameraEnabled()) {
+      console.warn('⚠️ Cannot flip camera - not in video call');
+      return false;
+    }
+    
+    const success = await liveKitService.flipCamera();
+    return success;
+  }, [callState]);
+
+  // Toggle speaker
+  const handleToggleSpeaker = useCallback(() => {
+    const newSpeakerState = !isSpeakerOn;
+    setIsSpeakerOn(newSpeakerState);
+    InCallManager.setSpeakerphoneOn(newSpeakerState);
+    console.log(`🔊 Speaker ${newSpeakerState ? 'ON' : 'OFF'}`);
+  }, [isSpeakerOn]);
+
   return {
     currentCall,
     callState,
     isMuted,
+    isSpeakerOn,
     isVideoEnabled: getIsVideoEnabled(),
     startCall: handleStartCall,
     answerCall: handleAnswerCall,
     rejectCall: handleRejectCall,
     endCall: handleEndCall,
     toggleMute: handleToggleMute,
+    toggleSpeaker: handleToggleSpeaker,
     toggleCamera: handleToggleCamera,
+    flipCamera: handleFlipCamera,
   };
 };
 

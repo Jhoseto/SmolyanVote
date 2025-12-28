@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Platform, Text, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
 import { SendIcon, FaceSmileIcon, PaperClipIcon, XMarkIcon } from '../common/Icons';
 import { EmojiPicker } from './EmojiPicker';
 import { Colors, Typography, Spacing } from '../../theme';
@@ -22,6 +23,7 @@ interface MessageInputProps {
   onSend: () => void;
   replyPreview?: ReplyPreview | null;
   onCancelReply?: () => void;
+  onFileSelect?: (file: { uri: string; type: string; name: string }) => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -30,6 +32,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   replyPreview,
   onCancelReply,
+  onFileSelect,
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -39,8 +42,71 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const handleAttachPress = () => {
-    // TODO: File attachments placeholder
-    console.log('File attachments - coming soon');
+    Alert.alert(
+      'Избери файл',
+      'Какъв тип файл искаш да изпратиш?',
+      [
+        {
+          text: 'Снимка/Видео',
+          onPress: handleMediaPick,
+        },
+        {
+          text: 'Отказ',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const handleMediaPick = async () => {
+    const options: ImageLibraryOptions = {
+      mediaType: 'mixed',
+      quality: 0.8,
+      includeBase64: false,
+    };
+
+    try {
+      const result = await launchImageLibrary(options);
+      
+      if (result.didCancel) {
+        console.log('User cancelled image picker');
+        return;
+      }
+
+      if (result.errorCode) {
+        Alert.alert('Грешка', 'Неуспешно избиране на файл');
+        console.error('ImagePicker Error:', result.errorMessage);
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        
+        if (asset.uri && asset.type && asset.fileName) {
+          const file = {
+            uri: asset.uri,
+            type: asset.type,
+            name: asset.fileName,
+          };
+          
+          // Call callback if provided
+          if (onFileSelect) {
+            onFileSelect(file);
+          } else {
+            // Fallback: Show alert that file attachments need backend support
+            Alert.alert(
+              'File Attachments',
+              'Файловете ще бъдат изпратени след имплементация на backend поддръжка.'
+            );
+          }
+          
+          console.log('File selected:', file);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Грешка', 'Неуспешно избиране на файл');
+    }
   };
 
   return (

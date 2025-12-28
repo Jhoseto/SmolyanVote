@@ -43,6 +43,7 @@ interface ConversationsStore extends ConversationsState {
   clearMissedCalls: (conversationId: number) => void;
   clearError: () => void;
   recalculateTotalUnreadCount: () => void;
+  clearConversations: () => void;
 }
 
 export const useConversationsStore = create<ConversationsStore>((set, get) => ({
@@ -281,6 +282,15 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   // Clear error
   clearError: () => {
     set({ error: null });
+  },
+
+  // Clear all conversations
+  clearConversations: () => {
+    set({
+      conversations: [],
+      totalUnreadCount: 0,
+      selectedConversationId: null,
+    });
   },
 }));
 

@@ -14,8 +14,11 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
+import { useConversationsStore } from '../../store/conversationsStore';
+import { useMessagesStore } from '../../store/messagesStore';
 import { 
   ChevronRightIcon,
   BellIcon,
@@ -94,7 +97,7 @@ export const SettingsScreen: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [language, setLanguage] = useState('bg');
 
-  const handleClearCache = () => {
+  const handleClearCache = async () => {
     Alert.alert(
       'Изчистване на кеша',
       'Сигурен ли си, че искаш да изчистиш кеша?',
@@ -103,9 +106,21 @@ export const SettingsScreen: React.FC = () => {
         {
           text: 'Изчисти',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement clear cache
-            Alert.alert('Успех', 'Кешът е изчистен');
+          onPress: async () => {
+            try {
+              // Clear AsyncStorage cache (excluding auth tokens)
+              const keys = await AsyncStorage.getAllKeys();
+              const keysToRemove = keys.filter(key => 
+                !key.includes('token') && 
+                !key.includes('auth') &&
+                !key.includes('fcm')
+              );
+              await AsyncStorage.multiRemove(keysToRemove);
+              Alert.alert('Успех', 'Кешът е изчистен');
+            } catch (error) {
+              console.error('Error clearing cache:', error);
+              Alert.alert('Грешка', 'Неуспешно изчистване на кеша');
+            }
           },
         },
       ]
@@ -121,9 +136,23 @@ export const SettingsScreen: React.FC = () => {
         {
           text: 'Изчисти',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement clear conversations
-            Alert.alert('Успех', 'Разговорите са изчистени');
+          onPress: async () => {
+            try {
+              // Clear conversations and messages from stores
+              const { clearConversations } = useConversationsStore.getState();
+              const { clearAllMessages } = useMessagesStore.getState();
+              
+              // Call API to delete conversations if needed
+              // await apiClient.delete('/api/svmessenger/conversations/all');
+              
+              clearConversations();
+              clearAllMessages();
+              
+              Alert.alert('Успех', 'Разговорите са изчистени');
+            } catch (error) {
+              console.error('Error clearing conversations:', error);
+              Alert.alert('Грешка', 'Неуспешно изчистване на разговорите');
+            }
           },
         },
       ]

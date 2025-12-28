@@ -1,14 +1,16 @@
 /**
- * Incoming Call Screen
- * Екран за входящо обаждане
+ * Incoming Call Screen - WORLD-CLASS PREMIUM VERSION
+ * Световен стандарт с 3D ефекти, ring waves, glossy buttons
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/common';
@@ -16,46 +18,348 @@ import { TelephoneIcon, XMarkIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 
+const { width } = Dimensions.get('window');
+
 export const IncomingCallScreen: React.FC = () => {
   const { currentCall, answerCall, rejectCall } = useCalls();
+  
+  // Анимации
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ring1Anim = useRef(new Animated.Value(0)).current;
+  const ring2Anim = useRef(new Animated.Value(0)).current;
+  const ring3Anim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideUpAnim = useRef(new Animated.Value(50)).current;
+  const acceptScaleAnim = useRef(new Animated.Value(1)).current;
+  const rejectScaleAnim = useRef(new Animated.Value(1)).current;
+  const acceptGlowAnim = useRef(new Animated.Value(0)).current;
+  const rejectGlowAnim = useRef(new Animated.Value(0)).current;
 
-  if (!currentCall) {
-    return null;
-  }
+  useEffect(() => {
+    // Fade in and slide up
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideUpAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse avatar
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.12,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+
+    // Ring waves
+    const ring1 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ring1Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring1Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const ring2 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.timing(ring2Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring2Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const ring3 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(ring3Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring3Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    // Button glows
+    const acceptGlow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(acceptGlowAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(acceptGlowAnim, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const rejectGlow = Animated.loop(
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(rejectGlowAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(rejectGlowAnim, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    ring1.start();
+    ring2.start();
+    ring3.start();
+    acceptGlow.start();
+    rejectGlow.start();
+
+    return () => {
+      pulse.stop();
+      ring1.stop();
+      ring2.stop();
+      ring3.stop();
+      acceptGlow.stop();
+      rejectGlow.stop();
+    };
+  }, []);
+
+  const handleAcceptPress = () => {
+    Animated.sequence([
+      Animated.timing(acceptScaleAnim, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(acceptScaleAnim, {
+        toValue: 1,
+        tension: 400,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start(() => answerCall());
+  };
+
+  const handleRejectPress = () => {
+    Animated.sequence([
+      Animated.timing(rejectScaleAnim, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(rejectScaleAnim, {
+        toValue: 1,
+        tension: 400,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start(() => rejectCall());
+  };
+
+  if (!currentCall) return null;
+
+  const ring1Scale = ring1Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const ring1Opacity = ring1Anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.7, 0.35, 0] });
+
+  const ring2Scale = ring2Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
+  const ring2Opacity = ring2Anim.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.5, 0.25, 0] });
+
+  const ring3Scale = ring3Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.9] });
+  const ring3Opacity = ring3Anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.4, 0.15, 0] });
+
+  const acceptGlowOpacity = acceptGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] });
+  const acceptGlowScale = acceptGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
+
+  const rejectGlowOpacity = rejectGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] });
+  const rejectGlowScale = rejectGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.participantSection}>
-          <Avatar
-            imageUrl={currentCall.participantImageUrl}
-            name={currentCall.participantName}
-            size={120}
-            isOnline={true}
-          />
-          <Text style={styles.participantName}>{currentCall.participantName}</Text>
-          <Text style={styles.callStatus}>Входящо обаждане</Text>
-        </View>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.background}>
+        {/* Animated stars background */}
+        <View style={styles.star1} />
+        <View style={styles.star2} />
+        <View style={styles.star3} />
 
-        <View style={styles.controlsSection}>
-          <TouchableOpacity
-            style={[styles.controlButton, styles.rejectButton]}
-            onPress={rejectCall}
-            activeOpacity={0.8}
-          >
-            <XMarkIcon size={28} color={Colors.text.inverse} />
-            <Text style={styles.controlButtonLabel}>Откажи</Text>
-          </TouchableOpacity>
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideUpAnim }],
+            },
+          ]}
+        >
+          {/* Avatar с premium ring waves */}
+          <View style={styles.avatarContainer}>
+            {/* Ring wave 3 */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring3Scale }],
+                  opacity: ring3Opacity,
+                  backgroundColor: '#059669',
+                },
+              ]}
+            />
+            {/* Ring wave 2 */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring2Scale }],
+                  opacity: ring2Opacity,
+                  backgroundColor: '#10b981',
+                },
+              ]}
+            />
+            {/* Ring wave 1 */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring1Scale }],
+                  opacity: ring1Opacity,
+                  backgroundColor: '#34d399',
+                },
+              ]}
+            />
+            
+            {/* Avatar with premium rings */}
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <View style={styles.avatarRing1} />
+              <View style={styles.avatarRing2} />
+              <Avatar
+                imageUrl={currentCall.participantImageUrl}
+                name={currentCall.participantName}
+                size={150}
+                isOnline={true}
+                style={styles.avatar}
+              />
+            </Animated.View>
+          </View>
 
-          <TouchableOpacity
-            style={[styles.controlButton, styles.answerButton]}
-            onPress={answerCall}
-            activeOpacity={0.8}
-          >
-            <TelephoneIcon size={28} color={Colors.text.inverse} />
-            <Text style={styles.controlButtonLabel}>Приеми</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Caller info */}
+          <View style={styles.callerInfo}>
+            <Text style={styles.callerName}>{currentCall.participantName}</Text>
+            <View style={styles.callingCard}>
+              <View style={styles.pulsingDot} />
+              <Text style={styles.callingText}>Входящо обаждане...</Text>
+            </View>
+          </View>
+
+          {/* Premium 3D Action buttons */}
+          <View style={styles.actionsContainer}>
+            {/* Reject button with 3D effect */}
+            <TouchableOpacity onPress={handleRejectPress} activeOpacity={0.9}>
+              <Animated.View style={{ transform: [{ scale: rejectScaleAnim }] }}>
+                {/* Glow layer */}
+                <Animated.View
+                  style={[
+                    styles.buttonGlow,
+                    {
+                      backgroundColor: '#ef4444',
+                      opacity: rejectGlowOpacity,
+                      transform: [{ scale: rejectGlowScale }],
+                    },
+                  ]}
+                />
+
+                {/* Shadow ring */}
+                <View style={[styles.buttonShadow, { backgroundColor: '#7f1d1d' }]} />
+
+                {/* Middle ring */}
+                <View style={[styles.buttonMiddle, { backgroundColor: '#b91c1c' }]} />
+
+                {/* Inner button */}
+                <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
+                  <View style={styles.buttonGloss} />
+                  <View style={styles.buttonIconContainer}>
+                    <XMarkIcon size={36} color="#fff" />
+                  </View>
+                  <View style={styles.buttonDepth} />
+                </View>
+
+                <Text style={styles.actionLabel}>Откажи</Text>
+              </Animated.View>
+            </TouchableOpacity>
+
+            {/* Accept button with 3D effect */}
+            <TouchableOpacity onPress={handleAcceptPress} activeOpacity={0.9}>
+              <Animated.View style={{ transform: [{ scale: acceptScaleAnim }] }}>
+                {/* Glow layer */}
+                <Animated.View
+                  style={[
+                    styles.buttonGlow,
+                    {
+                      backgroundColor: '#10b981',
+                      opacity: acceptGlowOpacity,
+                      transform: [{ scale: acceptGlowScale }],
+                    },
+                  ]}
+                />
+
+                {/* Shadow ring */}
+                <View style={[styles.buttonShadow, { backgroundColor: '#064e3b' }]} />
+
+                {/* Middle ring */}
+                <View style={[styles.buttonMiddle, { backgroundColor: '#047857' }]} />
+
+                {/* Inner button */}
+                <View style={[styles.buttonInner, { backgroundColor: '#10b981' }]}>
+                  <View style={styles.buttonGloss} />
+                  <View style={styles.buttonIconContainer}>
+                    <TelephoneIcon size={36} color="#fff" />
+                  </View>
+                  <View style={styles.buttonDepth} />
+                </View>
+
+                <Text style={styles.actionLabel}>Приеми</Text>
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -64,59 +368,201 @@ export const IncomingCallScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.dark,
+  },
+  background: {
+    flex: 1,
+    backgroundColor: '#0a0f1c',
+  },
+  star1: {
+    position: 'absolute',
+    top: 100,
+    left: 50,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  star2: {
+    position: 'absolute',
+    top: 200,
+    right: 80,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  star3: {
+    position: 'absolute',
+    bottom: 250,
+    left: 100,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: Spacing.xl,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    paddingVertical: 40,
   },
-  participantSection: {
-    flex: 1,
+  avatarContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginVertical: 32,
   },
-  participantName: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginTop: Spacing.lg,
+  ringWave: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
   },
-  callStatus: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginTop: Spacing.md,
+  avatarRing1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    top: -15,
+    left: -15,
   },
-  controlsSection: {
+  avatarRing2: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+    top: -25,
+    left: -25,
+  },
+  avatar: {
+    borderWidth: 5,
+    borderColor: 'rgba(16, 185, 129, 0.6)',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.8,
+    shadowRadius: 28,
+    elevation: 20,
+  },
+  callerInfo: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  callerName: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 16,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  callingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  pulsingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10b981',
+    marginRight: 10,
+  },
+  callingText: {
+    fontSize: 16,
+    color: '#34d399',
+    fontWeight: '700',
+  },
+  actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.xl,
-    paddingBottom: Spacing.xl,
+    alignItems: 'flex-start',
+    gap: 70,
+    paddingHorizontal: 24,
   },
-  controlButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: Colors.background.glass,
-    alignItems: 'center',
+  buttonGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    top: -8,
+    left: -8,
+  },
+  buttonShadow: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    position: 'absolute',
+    top: 4,
+    left: 4,
+  },
+  buttonMiddle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+  },
+  buttonInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  buttonGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+  },
+  buttonIconContainer: {
+    flex: 1,
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border.medium,
-    gap: Spacing.xs,
+    alignItems: 'center',
+    zIndex: 2,
   },
-  rejectButton: {
-    backgroundColor: Colors.semantic.error,
-    borderColor: Colors.semantic.error,
+  buttonDepth: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '35%',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
-  answerButton: {
-    backgroundColor: Colors.green[500],
-    borderColor: Colors.green[500],
-  },
-  controlButtonLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.inverse,
-    fontWeight: Typography.fontWeight.medium,
+  actionLabel: {
+    marginTop: 14,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });
-

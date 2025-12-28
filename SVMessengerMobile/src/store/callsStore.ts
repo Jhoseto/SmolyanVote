@@ -10,17 +10,21 @@ interface CallsState {
   currentCall: Call | null;
   callState: CallState;
   isMuted: boolean;
+  missedCallsCount: number;
+  isVideoCall: boolean; // Flag за video call
 }
 
 interface CallsStore extends CallsState {
   // Actions
-  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState) => void;
+  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => void;
   answerCall: () => void;
   rejectCall: () => void;
   endCall: () => void;
   setCallState: (state: CallState) => void;
   toggleMute: () => void;
   clearCall: () => void;
+  incrementMissedCalls: () => void;
+  resetMissedCalls: () => void;
 }
 
 export const useCallsStore = create<CallsStore>((set, get) => ({
@@ -28,15 +32,18 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
   currentCall: null,
   callState: CallState.IDLE,
   isMuted: false,
+  missedCallsCount: 0,
+  isVideoCall: false,
 
   // Start call
-  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState) => {
+  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => {
     console.log('📞 [callsStore] startCall called:', {
       conversationId,
       participantId,
       participantName,
       participantImageUrl,
       initialState,
+      isVideo,
     });
     
     const callState = initialState || CallState.OUTGOING;
@@ -56,11 +63,13 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
     set({
       currentCall: call,
       callState: callState,
+      isVideoCall: isVideo || false,
     });
     
     console.log('📞 [callsStore] Store updated. New state:', {
       currentCall: call,
       callState: callState,
+      isVideoCall: isVideo || false,
     });
   },
 
@@ -120,6 +129,21 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       currentCall: null,
       callState: CallState.IDLE,
       isMuted: false,
+      isVideoCall: false,
+    });
+  },
+
+  // Increment missed calls counter
+  incrementMissedCalls: () => {
+    set((state) => ({
+      missedCallsCount: state.missedCallsCount + 1,
+    }));
+  },
+
+  // Reset missed calls counter
+  resetMissedCalls: () => {
+    set({
+      missedCallsCount: 0,
     });
   },
 }));

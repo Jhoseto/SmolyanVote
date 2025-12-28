@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { OfflineIndicator } from './src/components/common/OfflineIndicator';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
+import { useWebSocket } from './src/hooks/useWebSocket';
 import { Colors } from './src/theme';
 
 class ErrorBoundary extends React.Component<
@@ -48,6 +49,9 @@ function App() {
   
   // Monitor network status
   useNetworkStatus();
+
+  // Initialize WebSocket connection - CRITICAL for real-time messaging and calls!
+  useWebSocket();
 
   // Note: Push notifications are handled in AppNavigator.tsx
 
