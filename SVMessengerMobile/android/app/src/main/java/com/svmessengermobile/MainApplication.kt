@@ -4,12 +4,15 @@ import android.app.Application
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
+import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.google.firebase.FirebaseApp
+import com.svmessengermobile.BuildConfig
 
 class MainApplication : Application(), ReactApplication {
 
+  // React Native 0.81.0 requires both reactHost and reactNativeHost
   override val reactHost: ReactHost by lazy {
     android.util.Log.d("MainApplication", "📦 Initializing ReactHost...")
     try {
@@ -30,9 +33,13 @@ class MainApplication : Application(), ReactApplication {
       }
       
       android.util.Log.d("MainApplication", "📦 Creating ReactHost with ${packages.size} packages...")
+      // Use explicit parameters to avoid overload resolution ambiguity
+      // Specify isHermesEnabled explicitly to resolve ambiguity
       val host = getDefaultReactHost(
         context = applicationContext,
         packageList = packages,
+        isHermesEnabled = true,
+        useDevSupport = true
       )
       android.util.Log.d("MainApplication", "✅ ReactHost created successfully")
       host
@@ -40,6 +47,29 @@ class MainApplication : Application(), ReactApplication {
       android.util.Log.e("MainApplication", "❌ CRITICAL: Failed to create ReactHost:", e)
       e.printStackTrace()
       throw e
+    }
+  }
+
+  // ReactApplication interface requires reactNativeHost for backward compatibility
+  // Create a custom ReactNativeHost implementation for React Native 0.81.0
+  override val reactNativeHost: ReactNativeHost = object : ReactNativeHost(this) {
+    override fun getPackages(): List<com.facebook.react.ReactPackage> {
+      val packages = PackageList(application).packages.apply {
+        try {
+          add(RNSoundPlayerPackage())
+        } catch (e: Exception) {
+          android.util.Log.e("MainApplication", "❌ Failed to add RNSoundPlayerPackage:", e)
+        }
+      }
+      return packages
+    }
+
+    override fun getJSMainModuleName(): String {
+      return "index"
+    }
+
+    override fun getUseDeveloperSupport(): Boolean {
+      return BuildConfig.DEBUG
     }
   }
 

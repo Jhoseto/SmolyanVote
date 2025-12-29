@@ -138,6 +138,22 @@ if (Test-Path $bundlePath) {
 
 # Clear Android build cache (important after adding native modules or version changes)
 Write-Host "Clearing Android build cache..." -ForegroundColor Yellow
+
+# Stop Gradle daemon first to unlock files
+Write-Host "Stopping Gradle daemon..." -ForegroundColor Gray
+try {
+    Set-Location "$PSScriptRoot\android"
+    if (Test-Path "gradlew.bat") {
+        .\gradlew.bat --stop 2>&1 | Out-Null
+    }
+    Set-Location $PSScriptRoot
+} catch {
+    # Ignore errors - daemon might not be running
+}
+
+# Wait a bit for files to unlock
+Start-Sleep -Seconds 1
+
 $androidBuildPaths = @(
     "$PSScriptRoot\android\app\build",
     "$PSScriptRoot\android\app\.cxx",

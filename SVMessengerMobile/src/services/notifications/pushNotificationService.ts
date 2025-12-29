@@ -15,6 +15,19 @@ try {
   console.warn('Firebase messaging not available:', error);
 }
 
+// Type for remote message - matches Firebase RemoteMessage structure
+interface RemoteMessage {
+  notification?: {
+    title?: string;
+    body?: string;
+    android?: any;
+    ios?: any;
+  };
+  data?: { [key: string]: string };
+  messageId?: string;
+  [key: string]: any;
+}
+
 const getMessaging = () => {
   if (!messaging) {
     console.warn('Firebase messaging is not initialized');
@@ -166,7 +179,7 @@ class PushNotificationService {
       }
       
       // Handle foreground notifications
-      messagingInstance.onMessage(async (remoteMessage) => {
+      messagingInstance.onMessage(async (remoteMessage: RemoteMessage | null) => {
         console.log('📬 Firebase foreground notification received:', {
           notification: remoteMessage?.notification,
           data: remoteMessage?.data,
@@ -179,7 +192,7 @@ class PushNotificationService {
       });
 
       // Handle background notifications (when app is in background)
-      messagingInstance.onNotificationOpenedApp((remoteMessage) => {
+      messagingInstance.onNotificationOpenedApp((remoteMessage: RemoteMessage | null) => {
         console.log('Notification opened app:', remoteMessage);
         if (onNotificationOpened) {
           onNotificationOpened(remoteMessage);
@@ -189,7 +202,7 @@ class PushNotificationService {
       // Handle notification that opened app from quit state
       messagingInstance
         .getInitialNotification()
-        .then((remoteMessage) => {
+        .then((remoteMessage: RemoteMessage | null) => {
           if (remoteMessage) {
             console.log('Notification opened app from quit state:', remoteMessage);
             if (onNotificationOpened) {
@@ -197,12 +210,12 @@ class PushNotificationService {
             }
           }
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           console.warn('Error getting initial notification:', error);
         });
 
       // Handle token refresh
-      messagingInstance.onTokenRefresh((token) => {
+      messagingInstance.onTokenRefresh((token: string) => {
         console.log('FCM token refreshed:', token);
         // Re-register token with backend
         const appVersion = require('../../../package.json').version || '0.0.1';

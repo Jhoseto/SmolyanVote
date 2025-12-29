@@ -14,6 +14,9 @@ const config = {
   resolver: {
     // Enable source map support
     sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
+    // Disable strict package exports checking to suppress event-target-shim warnings
+    // This allows Metro to use file-based resolution as fallback
+    unstable_enablePackageExports: false,
   },
 };
 
