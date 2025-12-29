@@ -1,4 +1,3 @@
-
 plugins {
 	id("java")
 	id("org.springframework.boot") version "3.4.4"
@@ -10,6 +9,7 @@ version = "1"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
 }
 
 repositories {
