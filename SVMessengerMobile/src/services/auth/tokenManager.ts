@@ -78,9 +78,14 @@ export class TokenManager {
    * Проверява дали има запазени tokens
    */
   async hasTokens(): Promise<boolean> {
-    const accessToken = await this.getAccessToken();
-    const refreshToken = await this.getRefreshToken();
-    return !!(accessToken && refreshToken);
+    try {
+      const accessToken = await this.getAccessToken();
+      const refreshToken = await this.getRefreshToken();
+      return !!(accessToken && refreshToken);
+    } catch (error) {
+      console.error('Error checking tokens:', error);
+      return false;
+    }
   }
 }
 

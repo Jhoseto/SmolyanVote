@@ -28,10 +28,25 @@ export interface LoginResponse {
 }
 
 class AuthService {
-  private tokenManager: TokenManager;
+  private tokenManager: TokenManager | null = null;
 
   constructor() {
-    this.tokenManager = new TokenManager();
+    // Lazy initialization to prevent crashes on module load
+    console.log('🔐 [AuthService] Constructor called');
+  }
+
+  private getTokenManager(): TokenManager {
+    if (!this.tokenManager) {
+      try {
+        console.log('🔐 [AuthService] Initializing TokenManager...');
+        this.tokenManager = new TokenManager();
+        console.log('✅ [AuthService] TokenManager initialized');
+      } catch (error) {
+        console.error('❌ [AuthService] Failed to initialize TokenManager:', error);
+        throw error;
+      }
+    }
+    return this.tokenManager;
   }
 
   /**
@@ -53,7 +68,7 @@ class AuthService {
       const { accessToken, refreshToken } = response.data;
 
       // Запазване на tokens
-      await this.tokenManager.setTokens(accessToken, refreshToken);
+      await this.getTokenManager().setTokens(accessToken, refreshToken);
       console.log('✅ [AuthService] Tokens saved successfully');
 
       return response.data;
@@ -81,7 +96,7 @@ class AuthService {
       // Продължаваме дори ако API call fail-не
     } finally {
       // Изчистване на tokens
-      await this.tokenManager.clearTokens();
+      await this.getTokenManager().clearTokens();
     }
   }
 
@@ -89,7 +104,7 @@ class AuthService {
    * Проверява дали user е authenticated
    */
   async isAuthenticated(): Promise<boolean> {
-    return await this.tokenManager.hasTokens();
+    return await this.getTokenManager().hasTokens();
   }
 
   /**
@@ -97,7 +112,7 @@ class AuthService {
    */
   async refreshToken(): Promise<string | null> {
     try {
-      const refreshToken = await this.tokenManager.getRefreshToken();
+      const refreshToken = await this.getTokenManager().getRefreshToken();
 
       if (!refreshToken) {
         return null;
@@ -111,12 +126,12 @@ class AuthService {
       const { accessToken, refreshToken: newRefreshToken } = response.data;
 
       // Запазване на новите tokens
-      await this.tokenManager.setTokens(accessToken, newRefreshToken);
+      await this.getTokenManager().setTokens(accessToken, newRefreshToken);
 
       return accessToken;
     } catch (error) {
       console.error('Token refresh error:', error);
-      await this.tokenManager.clearTokens();
+      await this.getTokenManager().clearTokens();
       return null;
     }
   }
@@ -125,7 +140,7 @@ class AuthService {
    * Get current access token
    */
   async getAccessToken(): Promise<string | null> {
-    return await this.tokenManager.getAccessToken();
+    return await this.getTokenManager().getAccessToken();
   }
 }
 

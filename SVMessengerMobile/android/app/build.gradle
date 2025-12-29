@@ -15,7 +15,7 @@ react {
     //   The folder where the react-native Codegen package is. Default is ../../node_modules/@react-native/codegen
     // codegenDir = file("../../node_modules/@react-native/codegen")
     //   The cli.js file which is the React Native CLI entrypoint. Default is ../../node_modules/react-native/cli.js
-    // cliFile = file("../../node_modules/react-native/cli.js")
+    // cliFile = file("../js/MyApplication.android.js")
 
     /* Variants */
     //   The list of variants to that are debuggable. For those we're going to
@@ -24,7 +24,7 @@ react {
     // debuggableVariants = ["liteDebug", "prodDebug"]
 
     /* Bundling */
-    //   A list containing the node command and its flags. Default is just 'node'.
+    //   A list containing the node command and its flags. By default is just 'node'.
     // nodeExecutableAndArgs = ["node"]
     //
     //   The command to run when bundling. By default is 'bundle'
@@ -86,7 +86,11 @@ android {
         versionCode 1
         versionName "1.0"
 
-        // Default React Native configuration for arm64-v8a
+        // Explicitly specify NDK architectures to ensure native libraries are built
+        // For React Native 0.81.0, use arm64-v8a for better compatibility
+        ndk {
+            abiFilters "arm64-v8a", "x86_64"
+        }
     }
     signingConfigs {
         debug {
@@ -115,6 +119,14 @@ android {
             shrinkResources true  // Remove unused resources
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+    
+    // Packaging options to handle duplicate native libraries
+    packagingOptions {
+        pickFirst 'lib/x86_64/libc++_shared.so'
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+        pickFirst 'lib/x86_64/libfbjni.so'
+        pickFirst 'lib/arm64-v8a/libfbjni.so'
     }
 }
 

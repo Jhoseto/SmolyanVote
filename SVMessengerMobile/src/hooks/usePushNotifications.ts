@@ -271,10 +271,15 @@ export const usePushNotifications = () => {
 
   // Setup notification handlers on mount
   useEffect(() => {
-    pushNotificationService.setupNotificationHandlers(
-      handleNotificationReceived,
-      handleNotificationOpened
-    );
+    try {
+      pushNotificationService.setupNotificationHandlers(
+        handleNotificationReceived,
+        handleNotificationOpened
+      );
+    } catch (error) {
+      console.error('Error setting up notification handlers:', error);
+      // Don't crash the app if notification setup fails
+    }
   }, [handleNotificationReceived, handleNotificationOpened]);
 
   // Track previous authentication state to detect logout

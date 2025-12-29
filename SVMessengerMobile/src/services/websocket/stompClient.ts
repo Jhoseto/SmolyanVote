@@ -21,6 +21,7 @@ class SVMobileWebSocketService {
   private currentCallbacks: any;
 
   constructor() {
+    console.log('🔌 [WebSocketService] Constructor called');
     this.client = null;
     this.connected = false;
     this.subscriptions = new Map();
@@ -28,7 +29,21 @@ class SVMobileWebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
     this.isConnecting = false; // Защита срещу множествени извиквания на connect
-    this.tokenManager = new TokenManager();
+    // Lazy initialization of TokenManager to prevent crashes
+    try {
+      this.tokenManager = new TokenManager();
+      console.log('✅ [WebSocketService] TokenManager initialized');
+    } catch (error) {
+      console.error('❌ [WebSocketService] Failed to initialize TokenManager:', error);
+      // Create a dummy token manager to prevent crash
+      this.tokenManager = {
+        getAccessToken: async () => null,
+        getRefreshToken: async () => null,
+        setTokens: async () => {},
+        clearTokens: async () => {},
+        hasTokens: async () => false,
+      } as any;
+    }
     this.currentCallbacks = null;
   }
 
@@ -510,6 +525,31 @@ class SVMobileWebSocketService {
   }
 }
 
-// Export singleton instance
-export const svMobileWebSocketService = new SVMobileWebSocketService();
+// Export singleton instance - lazy initialization
+let svMobileWebSocketServiceInstance: SVMobileWebSocketService | null = null;
+
+const getWebSocketService = (): SVMobileWebSocketService => {
+  if (!svMobileWebSocketServiceInstance) {
+    try {
+      console.log('🔌 [WebSocketService] Creating singleton instance...');
+      svMobileWebSocketServiceInstance = new SVMobileWebSocketService();
+      console.log('✅ [WebSocketService] Singleton instance created');
+    } catch (error) {
+      console.error('❌ [WebSocketService] Failed to create instance:', error);
+      throw error;
+    }
+  }
+  return svMobileWebSocketServiceInstance;
+};
+
+export const svMobileWebSocketService = new Proxy({} as SVMobileWebSocketService, {
+  get(target, prop) {
+    const instance = getWebSocketService();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  }
+});
 

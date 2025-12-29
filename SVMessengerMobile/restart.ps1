@@ -136,10 +136,11 @@ if (Test-Path $bundlePath) {
     Write-Host "Old bundle file removed" -ForegroundColor Gray
 }
 
-# Clear Android build cache (important after adding native modules)
+# Clear Android build cache (important after adding native modules or version changes)
 Write-Host "Clearing Android build cache..." -ForegroundColor Yellow
 $androidBuildPaths = @(
     "$PSScriptRoot\android\app\build",
+    "$PSScriptRoot\android\app\.cxx",
     "$PSScriptRoot\android\build",
     "$PSScriptRoot\android\.gradle"
 )

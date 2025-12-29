@@ -11,6 +11,10 @@ class RNSoundPlayerModule(reactContext: ReactApplicationContext) : ReactContextB
   private val mediaPlayers = mutableMapOf<String, MediaPlayer>()
   private var globalVolume: Float = 0.8f
 
+  init {
+    android.util.Log.d("RNSoundPlayerModule", "🔊 RNSoundPlayerModule initialized")
+  }
+
   override fun getName(): String {
     return "RNSoundPlayer"
   }

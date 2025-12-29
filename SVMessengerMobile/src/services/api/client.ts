@@ -167,7 +167,33 @@ class ApiClient {
   }
 }
 
-// Singleton instance
-export const apiClient = new ApiClient();
-export default apiClient.getInstance();
+// Singleton instance - lazy initialization to prevent crashes on module load
+let apiClientInstance: ApiClient | null = null;
+
+const getApiClient = (): ApiClient => {
+  if (!apiClientInstance) {
+    try {
+      console.log('🔧 [ApiClient] Creating singleton instance...');
+      apiClientInstance = new ApiClient();
+      console.log('✅ [ApiClient] Singleton instance created');
+    } catch (error) {
+      console.error('❌ [ApiClient] Failed to create instance:', error);
+      throw error;
+    }
+  }
+  return apiClientInstance;
+};
+
+export const apiClient = new Proxy({} as ApiClient, {
+  get(target, prop) {
+    const instance = getApiClient();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  }
+});
+
+export default getApiClient().getInstance();
 

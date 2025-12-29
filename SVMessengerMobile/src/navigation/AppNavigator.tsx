@@ -25,8 +25,10 @@ export const AppNavigator: React.FC = () => {
   const [callScreensLoaded, setCallScreensLoaded] = useState(false);
   const [CallScreenComponent, setCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Setup push notifications
+  // Setup push notifications - wrapped in error boundary by hook itself
   usePushNotifications();
 
   // Lazy load call screens when needed (only when call is active)
@@ -49,15 +51,25 @@ export const AppNavigator: React.FC = () => {
     // Проверяваме дали user е все още authenticated при стартиране
     const initializeAuth = async () => {
       try {
+        setHasError(false);
+        setErrorMessage(null);
         await refreshAuth();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error refreshing auth:', error);
+        setHasError(true);
+        setErrorMessage(error?.message || 'Грешка при инициализация');
+        // Still set initializing to false so app can continue
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initializeAuth();
+    // Add small delay to ensure stores are hydrated
+    const timer = setTimeout(() => {
+      initializeAuth();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [refreshAuth]);
 
   // Show call screens if call is active
@@ -91,8 +103,26 @@ export const AppNavigator: React.FC = () => {
     );
   }
 
+  // Show error screen if initialization failed
+  if (hasError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Грешка при стартиране</Text>
+        <Text style={styles.errorDetails}>{errorMessage}</Text>
+        <Text style={styles.errorDetails}>Моля, рестартирай приложението</Text>
+      </View>
+    );
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onReady={() => {
+        console.log('✅ NavigationContainer ready');
+      }}
+      onStateChange={() => {
+        // Navigation state changed
+      }}
+    >
       <View style={{ flex: 1 }}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {isAuthenticated ? (
@@ -132,6 +162,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background.primary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: Colors.background.primary,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: Colors.text.primary,
+  },
+  errorDetails: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 5,
   },
 });
 

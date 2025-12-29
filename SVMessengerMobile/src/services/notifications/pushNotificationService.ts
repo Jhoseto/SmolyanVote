@@ -17,9 +17,15 @@ try {
 
 const getMessaging = () => {
   if (!messaging) {
-    throw new Error('Firebase messaging is not initialized');
+    console.warn('Firebase messaging is not initialized');
+    return null;
   }
-  return messaging();
+  try {
+    return messaging();
+  } catch (error) {
+    console.warn('Error getting Firebase messaging instance:', error);
+    return null;
+  }
 };
 
 export interface DeviceTokenRequest {
@@ -40,8 +46,14 @@ class PushNotificationService {
         return false;
       }
       
+      const messagingInstance = getMessaging();
+      if (!messagingInstance) {
+        console.warn('Firebase messaging instance not available');
+        return false;
+      }
+      
       if (Platform.OS === 'ios') {
-        const authStatus = await getMessaging().requestPermission();
+        const authStatus = await messagingInstance.requestPermission();
         const enabled =
           authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
           authStatus === messaging.AuthorizationStatus.PROVISIONAL;
@@ -66,7 +78,13 @@ class PushNotificationService {
         return null;
       }
       
-      const token = await getMessaging().getToken();
+      const messagingInstance = getMessaging();
+      if (!messagingInstance) {
+        console.warn('Firebase messaging instance not available');
+        return null;
+      }
+      
+      const token = await messagingInstance.getToken();
       return token;
     } catch (error) {
       console.error('Error getting FCM token:', error);
@@ -141,8 +159,14 @@ class PushNotificationService {
     }
     
     try {
+      const messagingInstance = getMessaging();
+      if (!messagingInstance) {
+        console.warn('Firebase messaging instance not available, skipping notification handlers setup');
+        return;
+      }
+      
       // Handle foreground notifications
-      getMessaging().onMessage(async (remoteMessage) => {
+      messagingInstance.onMessage(async (remoteMessage) => {
         console.log('📬 Firebase foreground notification received:', {
           notification: remoteMessage?.notification,
           data: remoteMessage?.data,
@@ -155,7 +179,7 @@ class PushNotificationService {
       });
 
       // Handle background notifications (when app is in background)
-      getMessaging().onNotificationOpenedApp((remoteMessage) => {
+      messagingInstance.onNotificationOpenedApp((remoteMessage) => {
         console.log('Notification opened app:', remoteMessage);
         if (onNotificationOpened) {
           onNotificationOpened(remoteMessage);
@@ -163,7 +187,7 @@ class PushNotificationService {
       });
 
       // Handle notification that opened app from quit state
-      getMessaging()
+      messagingInstance
         .getInitialNotification()
         .then((remoteMessage) => {
           if (remoteMessage) {
@@ -178,7 +202,7 @@ class PushNotificationService {
         });
 
       // Handle token refresh
-      getMessaging().onTokenRefresh((token) => {
+      messagingInstance.onTokenRefresh((token) => {
         console.log('FCM token refreshed:', token);
         // Re-register token with backend
         const appVersion = require('../../../package.json').version || '0.0.1';
@@ -205,7 +229,13 @@ class PushNotificationService {
         return;
       }
       
-      await getMessaging().deleteToken();
+      const messagingInstance = getMessaging();
+      if (!messagingInstance) {
+        console.warn('Firebase messaging instance not available');
+        return;
+      }
+      
+      await messagingInstance.deleteToken();
       console.log('FCM token deleted');
     } catch (error) {
       console.error('Error deleting FCM token:', error);
