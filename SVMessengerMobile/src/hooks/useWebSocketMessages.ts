@@ -10,6 +10,7 @@ import { useMessagesStore } from '../store/messagesStore';
 import { useConversationsStore } from '../store/conversationsStore';
 import { soundService } from '../services/sounds/soundService';
 import { Message, MessageType } from '../types/message';
+import { safeConsoleError, safeErrorToString } from '../utils/safeLog';
 
 export const useWebSocketMessages = () => {
   const { user } = useAuthStore();
@@ -93,31 +94,34 @@ export const useWebSocketMessages = () => {
         } else {
           // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
           console.log('📨 Conversation not found, fetching conversation details');
-          // Wrap in Promise.resolve to ensure we always have a promise
-          Promise.resolve(getConversation(message.conversationId)).then(conv => {
-            if (conv) {
-              const alreadyExists = conversations.some(c => c.id === conv.id);
+          
+          // getConversation is async and always returns a Promise - call it directly
+          // No need to check if it's a promise - it always is
+          getConversation(message.conversationId)
+            .then((conv: any) => {
+              if (conv) {
+                const alreadyExists = conversations.some(c => c.id === conv.id);
 
-              if (alreadyExists) {
-                // Conversation already added, just update it
-                updateConversationWithNewMessage(conv.id, message.text, message.createdAt, true); // incrementUnread = true
-              } else {
-                // Add new conversation with unreadCount incremented (exactly like web version)
-                addConversation({
-                  ...conv,
-                  unreadCount: (conv.unreadCount || 0) + 1,
-                });
+                if (alreadyExists) {
+                  // Conversation already added, just update it
+                  updateConversationWithNewMessage(conv.id, message.text, message.createdAt, true); // incrementUnread = true
+                } else {
+                  // Add new conversation with unreadCount incremented (exactly like web version)
+                  addConversation({
+                    ...conv,
+                    unreadCount: (conv.unreadCount || 0) + 1,
+                  });
+                }
               }
-            }
-          }).catch((error: any) => {
-            const errorToLog = error instanceof Error ? error : (error != null ? String(error) : 'Unknown error');
-            console.error('Error fetching conversation details:', errorToLog);
-          });
+            })
+            .catch((error: any) => {
+              safeConsoleError('Error fetching conversation details:', error);
+            });
         }
       }
 
-      // Play notification sound for new messages
-      soundService.playSound('notification').catch(err => console.error('Error playing notification sound:', err));
+      // Play notification sound for new messages - fire and forget
+      soundService.playSound('notification');
     }
   }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation, sendReadReceipt]);
 

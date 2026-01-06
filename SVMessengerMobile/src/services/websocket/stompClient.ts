@@ -7,6 +7,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { API_CONFIG } from '../../config/api';
 import { TokenManager } from '../auth/tokenManager';
+import { safeErrorToString, safeConsoleError } from '../../utils/safeLog';
 
 class SVMobileWebSocketService {
   // Деклариране на properties (задължително в TypeScript)
@@ -34,7 +35,7 @@ class SVMobileWebSocketService {
       this.tokenManager = new TokenManager();
       console.log('✅ [WebSocketService] TokenManager initialized');
     } catch (error) {
-      console.error('❌ [WebSocketService] Failed to initialize TokenManager:', error);
+      safeConsoleError('❌ [WebSocketService] Failed to initialize TokenManager:', error);
       // Create a dummy token manager to prevent crash
       this.tokenManager = {
         getAccessToken: async () => null,
@@ -159,7 +160,7 @@ class SVMobileWebSocketService {
 
         // Connection error callback
         onStompError: (frame) => {
-          console.error('❌ STOMP connection error:', frame);
+          safeConsoleError('❌ STOMP connection error:', frame);
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onError(frame);
@@ -185,7 +186,7 @@ class SVMobileWebSocketService {
       this.client.activate();
 
     } catch (error) {
-      console.error('❌ Error setting up WebSocket connection:', error);
+      safeConsoleError('❌ Error setting up WebSocket connection:', error);
       this.connected = false;
       this.isConnecting = false;
       onError(error);
@@ -195,6 +196,7 @@ class SVMobileWebSocketService {
   /**
    * Helper function to safely call callbacks with error handling
    * Handles both sync and async callbacks, prevents unhandled promise rejections
+   * CRITICAL: Never calls .catch() on undefined - only on actual promises
    */
   private safeCallCallback(callback: any, data: any, callbackName: string): void {
     if (!callback || typeof callback !== 'function') {
@@ -202,24 +204,55 @@ class SVMobileWebSocketService {
     }
 
     try {
-      // Call callback and wrap result in Promise.resolve to handle both sync and async cases
+      // Call callback - it may return a promise or nothing
       const result = callback(data);
       
-      // Safely handle promise if callback returns one
-      // Use Promise.resolve to convert any value to a promise, then catch errors
-      Promise.resolve(result).catch((callbackError: any) => {
-        // Ensure error is always a valid value before logging
-        const errorToLog = callbackError instanceof Error 
-          ? callbackError 
-          : (callbackError != null ? String(callbackError) : 'Unknown error');
-        console.error(`❌ [stompClient] Error in ${callbackName} callback:`, errorToLog);
-      });
+      // ONLY handle promises - if result is not a promise, do nothing
+      // This prevents "Cannot read property 'catch' of undefined" errors
+      if (result != null && 
+          typeof result === 'object' && 
+          typeof result.then === 'function' && 
+          typeof result.catch === 'function') {
+        // It's a valid promise - attach error handler
+        result.catch((callbackError: any) => {
+          this.logErrorSafely(callbackError, `${callbackName} callback`);
+        });
+      }
+      // If result is not a promise, do nothing - no error handling needed
     } catch (callbackError) {
-      // Handle synchronous errors
-      const errorToLog = callbackError instanceof Error 
-        ? callbackError 
-        : (callbackError != null ? String(callbackError) : 'Unknown error');
-      console.error(`❌ [stompClient] Error executing ${callbackName} callback:`, errorToLog);
+      // Handle synchronous errors only
+      this.logErrorSafely(callbackError, `executing ${callbackName} callback`);
+    }
+  }
+
+  /**
+   * Safely log errors - ensures we never try to call .catch() on undefined
+   * CRITICAL: Never pass promises or objects with .catch() to console.error
+   */
+  private logErrorSafely(error: any, context: string): void {
+    try {
+      // Convert error to a safe string representation using helper function
+      const errorMessage = safeErrorToString(error);
+      const logMessage = `❌ [stompClient] Error in ${context}: ${errorMessage}`;
+      
+      // Use try-catch around console.error itself to prevent any issues
+      try {
+        console.error(logMessage);
+      } catch (consoleError) {
+        // If console.error itself fails, use a fallback that definitely won't fail
+        try {
+          console.warn('Failed to log error via console.error, using console.warn:', logMessage);
+        } catch {
+          // Absolute fallback - do nothing to prevent infinite loops
+        }
+      }
+    } catch (logError) {
+      // If even error conversion fails, use absolute minimal logging
+      try {
+        console.warn(`❌ [stompClient] Error in ${context}: [Failed to process error]`);
+      } catch {
+        // Do nothing - prevent infinite error loops
+      }
     }
   }
 
@@ -293,7 +326,7 @@ class SVMobileWebSocketService {
             }
           } catch (error) {
             // Safely log error without accessing potentially undefined properties
-            console.error('❌ [stompClient] Error processing message:', error);
+            safeConsoleError('❌ [stompClient] Error processing message:', error);
             try {
               console.error('❌ [stompClient] Message details:', {
                 hasMessage: !!message,
@@ -323,7 +356,7 @@ class SVMobileWebSocketService {
             const currentCallback = this.currentCallbacks?.onReadReceipt;
             this.safeCallCallback(currentCallback, data, 'onReadReceipt');
           } catch (error) {
-            console.error('❌ [stompClient] Error parsing receipt:', error);
+            safeConsoleError('❌ [stompClient] Error parsing receipt:', error);
           }
         }
       );
@@ -342,7 +375,7 @@ class SVMobileWebSocketService {
             const currentCallback = this.currentCallbacks?.onDeliveryReceipt;
             this.safeCallCallback(currentCallback, data, 'onDeliveryReceipt');
           } catch (error) {
-            console.error('❌ [stompClient] Error parsing delivery receipt:', error);
+            safeConsoleError('❌ [stompClient] Error parsing delivery receipt:', error);
           }
         }
       );
@@ -361,7 +394,7 @@ class SVMobileWebSocketService {
             const currentCallback = this.currentCallbacks?.onOnlineStatus;
             this.safeCallCallback(currentCallback, data, 'onOnlineStatus');
           } catch (error) {
-            console.error('❌ [stompClient] Error parsing status:', error);
+            safeConsoleError('❌ [stompClient] Error parsing status:', error);
           }
         }
       );
@@ -382,7 +415,7 @@ class SVMobileWebSocketService {
             const currentCallback = this.currentCallbacks?.onCallSignal;
             this.safeCallCallback(currentCallback, data, 'onCallSignal');
           } catch (error) {
-            console.error('❌ [stompClient] Error parsing call signal:', error);
+            safeConsoleError('❌ [stompClient] Error parsing call signal:', error);
           }
         }
       );
@@ -391,7 +424,7 @@ class SVMobileWebSocketService {
       console.log('✅ All WebSocket channels subscribed successfully');
 
     } catch (error) {
-      console.error('❌ Error subscribing to channels:', error);
+      safeConsoleError('❌ Error subscribing to channels:', error);
     }
   }
 
@@ -411,7 +444,7 @@ class SVMobileWebSocketService {
         const data = JSON.parse(message.body);
         callback(data);
       } catch (error) {
-        console.error('Error parsing typing status:', error);
+        safeConsoleError('Error parsing typing status:', error);
       }
     });
 
@@ -455,7 +488,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+      safeConsoleError('Error sending message:', error);
       return false;
     }
   }
@@ -478,7 +511,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      console.error('Error sending typing status:', error);
+      safeConsoleError('Error sending typing status:', error);
       return false;
     }
   }
@@ -499,7 +532,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      console.error('Error sending mark-read via WS:', error);
+      safeConsoleError('Error sending mark-read via WS:', error);
       return false;
     }
   }
@@ -585,7 +618,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      console.error('Error sending call signal:', error);
+      safeConsoleError('Error sending call signal:', error);
       return false;
     }
   }
@@ -601,7 +634,7 @@ const getWebSocketService = (): SVMobileWebSocketService => {
       svMobileWebSocketServiceInstance = new SVMobileWebSocketService();
       console.log('✅ [WebSocketService] Singleton instance created');
     } catch (error) {
-      console.error('❌ [WebSocketService] Failed to create instance:', error);
+      safeConsoleError('❌ [WebSocketService] Failed to create instance:', error);
       throw error;
     }
   }

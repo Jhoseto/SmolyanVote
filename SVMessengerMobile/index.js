@@ -137,9 +137,14 @@ try {
   console.log('📦 [index.js] Registering app component...');
   
   // Wrap App component in error boundary
+  let safeAppRenderCount = 0;
   const SafeApp = () => {
     try {
-      console.log('🚀 [index.js] SafeApp rendering...');
+      safeAppRenderCount++;
+      // Only log first few renders to avoid spam
+      if (safeAppRenderCount <= 3) {
+        console.log('🚀 [index.js] SafeApp rendering...', safeAppRenderCount);
+      }
       return App();
     } catch (error) {
       console.error('❌ [index.js] Error rendering App:', error);

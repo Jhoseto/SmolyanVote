@@ -40,15 +40,17 @@ class SoundService {
     }
   }
 
-  playMessageSound() {
+  async playMessageSound(): Promise<void> {
     if (!this.isEnabled) {
       console.log('🔇 [SoundService] Message sound disabled');
       return;
     }
 
-    this.callNativeMethod('playSound', 's1.mp3', false).catch((error) => {
-      console.error('❌ [SoundService] Failed to play message sound:', error);
-    });
+    try {
+      await this.callNativeMethod('playSound', 's1.mp3', false);
+    } catch (error) {
+      // Silently ignore sound errors - not critical
+    }
   }
 
   async playIncomingCallSound() {
@@ -76,16 +78,18 @@ class SoundService {
     }
   }
 
-  playOutgoingCallSound() {
+  async playOutgoingCallSound(): Promise<void> {
     if (!this.isEnabled) {
       console.log('🔇 [SoundService] Outgoing call sound disabled');
       return;
     }
 
     this.currentOutgoingSound = 'out_call.mp3';
-    this.callNativeMethod('playSound', 'out_call.mp3', true).catch((error) => {
-      console.error('❌ [SoundService] Failed to play outgoing call sound:', error);
-    });
+    try {
+      await this.callNativeMethod('playSound', 'out_call.mp3', true);
+    } catch (error) {
+      // Silently ignore sound errors - not critical
+    }
   }
 
   async stopOutgoingCallSound() {
@@ -100,8 +104,8 @@ class SoundService {
   }
 
   // Legacy methods for backward compatibility
-  playCallSound() {
-    this.playIncomingCallSound();
+  async playCallSound(): Promise<void> {
+    await this.playIncomingCallSound();
   }
 
   stopCallSound() {
@@ -109,17 +113,17 @@ class SoundService {
     this.stopOutgoingCallSound();
   }
 
-  playSound(soundType: string) {
+  async playSound(soundType: string): Promise<void> {
     switch (soundType) {
       case 'incoming':
-        this.playIncomingCallSound();
+        await this.playIncomingCallSound();
         break;
       case 'outgoing':
-        this.playOutgoingCallSound();
+        await this.playOutgoingCallSound();
         break;
       case 'message':
       case 'notification':
-        this.playMessageSound();
+        await this.playMessageSound();
         break;
       default:
         console.warn(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
