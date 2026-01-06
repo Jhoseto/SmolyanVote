@@ -3,7 +3,7 @@
  * Управление на push notifications чрез Firebase Cloud Messaging
  */
 
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
 
@@ -14,6 +14,11 @@ try {
 } catch (error) {
   console.warn('Firebase messaging not available:', error);
 }
+
+// Notification module for showing foreground notifications
+const NotificationModule = NativeModules.NotificationModule as {
+  showNotification: (title: string, body: string, data: any) => Promise<number>;
+} | undefined;
 
 // Type for remote message - matches Firebase RemoteMessage structure
 interface RemoteMessage {
@@ -72,8 +77,32 @@ class PushNotificationService {
           authStatus === messaging.AuthorizationStatus.PROVISIONAL;
         return enabled;
       } else {
-        // Android permissions are granted by default
-        return true;
+        // Android 13+ requires explicit POST_NOTIFICATIONS permission
+        if (Platform.Version >= 33) {
+          try {
+            const { PermissionsAndroid } = require('react-native');
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+              {
+                title: 'Разрешение за нотификации',
+                message: 'SVMessenger се нуждае от разрешение за показване на нотификации',
+                buttonNeutral: 'По-късно',
+                buttonNegative: 'Отказ',
+                buttonPositive: 'OK',
+              }
+            );
+            const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+            console.log('Android notification permission:', hasPermission ? 'granted' : 'denied');
+            return hasPermission;
+          } catch (error) {
+            console.error('Error requesting Android notification permission:', error);
+            // Fallback: assume permission is granted for older Android versions
+            return true;
+          }
+        } else {
+          // Android 12 and below - permissions are granted by default
+          return true;
+        }
       }
     } catch (error) {
       console.error('Error requesting permissions:', error);
@@ -185,6 +214,33 @@ class PushNotificationService {
           data: remoteMessage?.data,
           messageId: remoteMessage?.messageId,
         });
+        
+        // Show notification when app is in foreground
+        // Firebase doesn't show notifications automatically in foreground
+        if (remoteMessage?.notification || remoteMessage?.data) {
+          const title = remoteMessage?.notification?.title || remoteMessage?.data?.title || 'SVMessenger';
+          const body = remoteMessage?.notification?.body || remoteMessage?.data?.body || 'Ново съобщение';
+          
+          // Prepare data object for notification
+          const data: { [key: string]: string } = {};
+          if (remoteMessage?.data) {
+            Object.keys(remoteMessage.data).forEach(key => {
+              data[key] = String(remoteMessage.data[key]);
+            });
+          }
+          
+          // Show notification using native module (Android only)
+          if (Platform.OS === 'android' && NotificationModule?.showNotification) {
+            try {
+              await NotificationModule.showNotification(title, body, data);
+              console.log('✅ Foreground notification shown:', { title, body, data });
+            } catch (error) {
+              console.error('❌ Error showing foreground notification:', error);
+            }
+          } else {
+            console.warn('⚠️ NotificationModule not available, cannot show foreground notification');
+          }
+        }
         
         if (onNotificationReceived) {
           onNotificationReceived(remoteMessage);

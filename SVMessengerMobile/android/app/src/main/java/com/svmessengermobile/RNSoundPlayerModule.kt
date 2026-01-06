@@ -1,6 +1,9 @@
 package com.svmessengermobile
 
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.Build
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -43,8 +46,29 @@ class RNSoundPlayerModule(reactContext: ReactApplicationContext) : ReactContextB
         return
       }
 
+      // Set proper audio attributes for notification sounds
+      // This ensures sounds play correctly even when device is in silent/do-not-disturb mode
+      val audioAttributesBuilder = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+      
+      // FLAG_AUDIBILITY_ENFORCED is available from Android 10+ (API 29)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        audioAttributesBuilder.setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+      }
+      
+      val audioAttributes = audioAttributesBuilder.build()
+      mediaPlayer.setAudioAttributes(audioAttributes)
       mediaPlayer.setVolume(globalVolume, globalVolume)
       mediaPlayer.isLooping = loop
+      
+      // Set audio stream type for compatibility
+      try {
+        mediaPlayer.setAudioStreamType(AudioManager.STREAM_NOTIFICATION)
+      } catch (e: Exception) {
+        // Ignore - audio attributes should handle this
+        android.util.Log.w("RNSoundPlayerModule", "Could not set audio stream type: ${e.message}")
+      }
       
       mediaPlayer.setOnCompletionListener {
         if (!loop) {

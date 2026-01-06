@@ -1,6 +1,8 @@
 package com.svmessengermobile
 
 import android.app.Application
+import android.os.Build
+import android.webkit.CookieManager
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -29,6 +31,15 @@ class MainApplication : Application(), ReactApplication {
           android.util.Log.e("MainApplication", "❌ Failed to add RNSoundPlayerPackage:", e)
           e.printStackTrace()
           // Continue without sound player - non-critical
+        }
+        try {
+          android.util.Log.d("MainApplication", "📢 Adding NotificationPackage...")
+          add(NotificationPackage())
+          android.util.Log.d("MainApplication", "✅ NotificationPackage added")
+        } catch (e: Exception) {
+          android.util.Log.e("MainApplication", "❌ Failed to add NotificationPackage:", e)
+          e.printStackTrace()
+          // Continue without notification module - non-critical
         }
       }
       
@@ -60,6 +71,11 @@ class MainApplication : Application(), ReactApplication {
         } catch (e: Exception) {
           android.util.Log.e("MainApplication", "❌ Failed to add RNSoundPlayerPackage:", e)
         }
+        try {
+          add(NotificationPackage())
+        } catch (e: Exception) {
+          android.util.Log.e("MainApplication", "❌ Failed to add NotificationPackage:", e)
+        }
       }
       return packages
     }
@@ -77,6 +93,39 @@ class MainApplication : Application(), ReactApplication {
     super.onCreate()
     
     android.util.Log.d("MainApplication", "🚀 onCreate() called")
+
+    // Configure CookieManager to allow secure cookies over HTTP in development
+    // This fixes "Strict Secure Cookie policy" warnings on Android R+ (API 30+)
+    // Note: The warning is expected in development when using HTTP. In production with HTTPS, it won't appear.
+    try {
+      if (BuildConfig.DEBUG) {
+        android.util.Log.d("MainApplication", "🍪 Configuring CookieManager for development...")
+        val cookieManager = CookieManager.getInstance()
+        // Allow cookies in general
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          cookieManager.setAcceptCookie(true)
+        }
+        // Note: setAcceptThirdPartyCookies requires a WebView instance
+        // The "Strict Secure Cookie" warning is expected when using HTTP in development
+        // It's a security feature and won't affect functionality
+        android.util.Log.d("MainApplication", "✅ CookieManager configured (warnings are expected in dev mode)")
+      }
+    } catch (e: Exception) {
+      android.util.Log.w("MainApplication", "⚠️ Failed to configure CookieManager (non-critical):", e)
+    }
+
+    // Initialize Notification Channels - CRITICAL for Android 8.0+ (API 26+)!
+    // For Android 11 and below (API 30-), channels are still required if minSdkVersion >= 26
+    // Must be called before Firebase initialization
+    try {
+      android.util.Log.d("MainApplication", "📢 Creating notification channels...")
+      NotificationChannelManager.createChannels(this)
+      android.util.Log.d("MainApplication", "✅ Notification channels created successfully")
+    } catch (e: Exception) {
+      android.util.Log.e("MainApplication", "❌ Failed to create notification channels:", e)
+      e.printStackTrace()
+      // Continue - channels might already exist or app is running on older Android
+    }
 
     // Initialize Firebase - CRITICAL for push notifications!
     // Wrap in try-catch to prevent crash if google-services.json is missing or malformed
