@@ -269,7 +269,8 @@ class LiveKitService {
       
       // CRITICAL: After connection, check for already connected participants and subscribe to their video tracks
       // This is especially important when web calls mobile - web is already connected with video
-      setTimeout(() => {
+      // Check immediately and also after a short delay to catch tracks that might be loading
+      const checkExistingParticipants = () => {
         try {
           const remoteParticipants = Array.from(this.room!.remoteParticipants.values());
           console.log('📹 [LiveKit] Checking for existing participants after connection:', remoteParticipants.length);
@@ -308,16 +309,20 @@ class LiveKitService {
                 }
                 
                 console.log('📹 [LiveKit] Triggering callback for existing participant video track');
-                setTimeout(() => {
-                  this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
-                }, 200);
+                this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
               }
             });
           });
         } catch (error) {
           console.error('❌ [LiveKit] Error checking existing participants:', error);
         }
-      }, 500); // Wait 500ms after connection to ensure room is fully initialized
+      };
+      
+      // Check immediately
+      checkExistingParticipants();
+      // Also check after short delay for tracks that might still be loading
+      setTimeout(checkExistingParticipants, 300);
+      setTimeout(checkExistingParticipants, 800);
       
     } catch (error: any) {
       console.error('❌ [LiveKit] Connection error:', error);

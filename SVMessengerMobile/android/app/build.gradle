@@ -99,9 +99,8 @@ android {
         versionName "1.0"
 
         // Explicitly specify NDK architectures to ensure native libraries are built
+        // Default config - will be overridden by buildTypes for specific builds
         // For React Native 0.81.0, use arm64-v8a for better compatibility
-        // For production APK, only include arm64-v8a (most common on real devices)
-        // x86_64 is only needed for emulator
         ndk {
             abiFilters "arm64-v8a", "armeabi-v7a"
         }
@@ -126,12 +125,22 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            // For debug builds, include x86_64 for emulator support
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+            }
         }
         release {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds  // Only shrink if minify is enabled
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            
+            // CRITICAL: Explicitly set NDK abiFilters for release builds
+            // Only include arm64-v8a and armeabi-v7a for real devices (no x86_64)
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
             
             // Keep source files for better crash reports
             if (enableProguardInReleaseBuilds) {
@@ -141,7 +150,20 @@ android {
     }
     packagingOptions {
         jniLibs {
-            pickFirsts += ['lib/x86_64/libc++_shared.so', 'lib/arm64-v8a/libc++_shared.so', 'lib/x86_64/libfbjni.so', 'lib/arm64-v8a/libfbjni.so']
+            // Pick first for duplicate libraries (common in React Native)
+            pickFirsts += [
+                'lib/x86_64/libc++_shared.so', 
+                'lib/arm64-v8a/libc++_shared.so', 
+                'lib/armeabi-v7a/libc++_shared.so',
+                'lib/x86_64/libfbjni.so', 
+                'lib/arm64-v8a/libfbjni.so',
+                'lib/armeabi-v7a/libfbjni.so',
+                'lib/x86_64/libreactnative.so',
+                'lib/arm64-v8a/libreactnative.so',
+                'lib/armeabi-v7a/libreactnative.so'
+            ]
+            // CRITICAL: Do not exclude any architectures - we need all specified abiFilters
+            excludes = []
         }
     }
 
