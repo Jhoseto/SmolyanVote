@@ -9,7 +9,7 @@ apply plugin: "com.facebook.react"
 react {
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
-    // root = file("../../")
+    root = file("../../")
     //   The folder where the react-native NPM package is. Default is ../../node_modules/react-native
     // reactNativeDir = file("../../node_modules/react-native")
     //   The folder where the react-native Codegen package is. Default is ../../node_modules/@react-native/codegen
@@ -37,7 +37,9 @@ react {
     // bundleAssetName = "MyApplication.android.bundle"
     //
     //   The entry file for bundle generation. Default is 'index.android.js' or 'index.js'
-    // entryFile = file("../js/MyApplication.android.js")
+    // CRITICAL: Explicitly set entry file to ensure bundle is generated in release builds
+    // Use file() to create RegularFile object (required by Gradle)
+    entryFile = file("../../index.js")
     //
     //   A list of extra flags to pass to the 'bundle' commands.
     //   See https://github.com/react-native-community/cli/blob/main/docs/commands.md#bundle
@@ -79,17 +81,29 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.svmessengermobile"
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    
     defaultConfig {
         applicationId "com.svmessengermobile"
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 24  // Explicitly set to 24 (required by React Native 0.81.0)
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
         // Explicitly specify NDK architectures to ensure native libraries are built
         // For React Native 0.81.0, use arm64-v8a for better compatibility
+        // For production APK, only include arm64-v8a (most common on real devices)
+        // x86_64 is only needed for emulator
         ndk {
-            abiFilters "arm64-v8a", "x86_64"
+            abiFilters "arm64-v8a", "armeabi-v7a"
         }
     }
     signingConfigs {
@@ -116,8 +130,13 @@ android {
         release {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
-            shrinkResources true  // Remove unused resources
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            shrinkResources enableProguardInReleaseBuilds  // Only shrink if minify is enabled
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            
+            // Keep source files for better crash reports
+            if (enableProguardInReleaseBuilds) {
+                consumerProguardFiles "proguard-rules.pro"
+            }
         }
     }
     packagingOptions {
@@ -127,6 +146,107 @@ android {
     }
 
     // Packaging options to handle duplicate native libraries
+}
+
+// CRITICAL: Ensure JavaScript bundle is generated automatically for release builds
+// React Native Gradle plugin should handle this, but we add explicit task as backup
+def generateBundleTask = tasks.register("generateReleaseBundle", Exec) {
+    group = "react"
+    description = "Generate JavaScript bundle for release build"
+    
+    def reactNativeRoot = file("../../")
+    def assetsDir = file("${projectDir}/src/main/assets")
+    def bundleFile = file("${projectDir}/src/main/assets/index.android.bundle")
+    
+    // Create assets directory first
+    doFirst {
+        if (!assetsDir.exists()) {
+            assetsDir.mkdirs()
+        }
+        println "📦 Generating JavaScript bundle for release..."
+        println "   Entry file: ${reactNativeRoot}/index.js"
+        println "   Output: ${bundleFile.absolutePath}"
+    }
+    
+    workingDir = reactNativeRoot
+    
+    // Use node directly from node_modules to avoid npx issues
+    def nodeExecutable = "node"
+    def reactNativeCli = file("${reactNativeRoot}/node_modules/react-native/cli.js")
+    
+    if (reactNativeCli.exists()) {
+        commandLine = [
+            nodeExecutable,
+            reactNativeCli.absolutePath,
+            "bundle",
+            "--platform", "android",
+            "--dev", "false",
+            "--entry-file", "index.js",
+            "--bundle-output", bundleFile.absolutePath,
+            "--assets-dest", "${projectDir}/src/main/res",
+            "--minify", "true"
+        ]
+    } else {
+        // Fallback to npx
+        commandLine = [
+            "npx",
+            "react-native",
+            "bundle",
+            "--platform", "android",
+            "--dev", "false",
+            "--entry-file", "index.js",
+            "--bundle-output", bundleFile.absolutePath,
+            "--assets-dest", "${projectDir}/src/main/res",
+            "--minify", "true"
+        ]
+    }
+    
+    // Only run if bundle doesn't exist or is outdated
+    outputs.file(bundleFile)
+    inputs.files(
+        fileTree(dir: "${reactNativeRoot}/src", exclude: ["**/node_modules/**"]),
+        file("${reactNativeRoot}/index.js"),
+        file("${reactNativeRoot}/package.json")
+    )
+    
+    ignoreExitValue = false
+}
+
+// Ensure bundle is generated before assembling release APK
+project.afterEvaluate {
+    // Always ensure bundle is generated before assembleRelease
+    def assembleReleaseTask = tasks.findByName("assembleRelease")
+    if (assembleReleaseTask != null) {
+        // Check if React Native plugin already provides bundle task
+        def bundleReleaseJsAndAssets = tasks.findByName("bundleReleaseJsAndAssets")
+        if (bundleReleaseJsAndAssets != null) {
+            // React Native plugin handles it - make sure it runs
+            assembleReleaseTask.dependsOn(bundleReleaseJsAndAssets)
+        } else {
+            // Use custom task as fallback
+            assembleReleaseTask.dependsOn(generateBundleTask)
+        }
+    }
+    
+    def bundleReleaseTask = tasks.findByName("bundleRelease")
+    if (bundleReleaseTask != null) {
+        def bundleReleaseJsAndAssets = tasks.findByName("bundleReleaseJsAndAssets")
+        if (bundleReleaseJsAndAssets != null) {
+            bundleReleaseTask.dependsOn(bundleReleaseJsAndAssets)
+        } else {
+            bundleReleaseTask.dependsOn(generateBundleTask)
+        }
+    }
+    
+    // CRITICAL: Also hook into mergeReleaseAssets to ensure bundle is included
+    def mergeReleaseAssets = tasks.findByName("mergeReleaseAssets")
+    if (mergeReleaseAssets != null) {
+        def bundleReleaseJsAndAssets = tasks.findByName("bundleReleaseJsAndAssets")
+        if (bundleReleaseJsAndAssets == null) {
+            mergeReleaseAssets.dependsOn(generateBundleTask)
+            println "✅ mergeReleaseAssets will depend on generateReleaseBundle"
+        }
+    }
 }
 
 dependencies {

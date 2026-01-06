@@ -46,11 +46,12 @@ class MainApplication : Application(), ReactApplication {
       android.util.Log.d("MainApplication", "📦 Creating ReactHost with ${packages.size} packages...")
       // Use explicit parameters to avoid overload resolution ambiguity
       // Specify isHermesEnabled explicitly to resolve ambiguity
+      // CRITICAL: useDevSupport must be false in release builds to prevent crashes
       val host = getDefaultReactHost(
         context = applicationContext,
         packageList = packages,
         isHermesEnabled = true,
-        useDevSupport = true
+        useDevSupport = BuildConfig.DEBUG  // Only enable dev support in debug builds
       )
       android.util.Log.d("MainApplication", "✅ ReactHost created successfully")
       host
@@ -131,8 +132,13 @@ class MainApplication : Application(), ReactApplication {
     // Wrap in try-catch to prevent crash if google-services.json is missing or malformed
     try {
       android.util.Log.d("MainApplication", "🔥 Initializing Firebase...")
-      FirebaseApp.initializeApp(this)
-      android.util.Log.d("MainApplication", "✅ Firebase initialized successfully")
+      // Check if Firebase is already initialized (prevents duplicate initialization crash)
+      if (FirebaseApp.getApps(this).isEmpty()) {
+        FirebaseApp.initializeApp(this)
+        android.util.Log.d("MainApplication", "✅ Firebase initialized successfully")
+      } else {
+        android.util.Log.d("MainApplication", "✅ Firebase already initialized")
+      }
     } catch (e: Exception) {
       // Firebase initialization failed - app should still work without push notifications
       android.util.Log.e("MainApplication", "❌ Firebase initialization failed (non-critical):", e)

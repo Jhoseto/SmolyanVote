@@ -84,7 +84,36 @@ const VideoView: React.FC<{
     hasMediaStreamTrack: !!track.mediaStreamTrack,
     mediaStreamTrackId: track.mediaStreamTrack?.id,
     mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
+    mediaStreamTrackActive: track.mediaStreamTrack?.active,
+    mediaStreamTrackMuted: track.mediaStreamTrack?.muted,
   });
+
+  // Additional check: Ensure mediaStreamTrack is active
+  if (track.mediaStreamTrack && !track.mediaStreamTrack.active) {
+    console.warn('⚠️ [VideoView] MediaStreamTrack is not active, waiting...');
+    // Try to enable it
+    if (track.mediaStreamTrack.enabled !== undefined) {
+      track.mediaStreamTrack.enabled = true;
+    }
+  }
+
+  // Force enable track if it's disabled
+  if (!track.enabled) {
+    console.log('🔧 [VideoView] Track is disabled, attempting to enable...');
+    try {
+      if (track.setEnabled) {
+        track.setEnabled(true);
+      }
+    } catch (e) {
+      console.warn('⚠️ [VideoView] Could not enable track:', e);
+    }
+  }
+
+  // Ensure mediaStreamTrack is enabled
+  if (track.mediaStreamTrack && track.mediaStreamTrack.enabled === false) {
+    console.log('🔧 [VideoView] MediaStreamTrack is disabled, enabling...');
+    track.mediaStreamTrack.enabled = true;
+  }
 
   try {
     return (
@@ -96,11 +125,25 @@ const VideoView: React.FC<{
         objectFit="cover"
       />
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ [VideoView] Error rendering LiveKitVideoView:', error);
+    const errorMessage = error?.message || 'Unknown error';
+    
+    // Show helpful message for emulator
+    const isEmulator = __DEV__;
+    const placeholderText = isEmulator 
+      ? 'Камерата не работи на emulator\nТествай на реален телефон'
+      : 'Грешка при показване';
+    
     return (
       <View style={[style, styles.videoPlaceholder]}>
-        <Text style={styles.videoPlaceholderText}>Грешка при показване</Text>
+        <Text style={styles.videoPlaceholderText}>{placeholderText}</Text>
+        {isEmulator && (
+          <Text style={[styles.videoPlaceholderText, { fontSize: 12, marginTop: 8, opacity: 0.7 }]}>
+            Emulator-ите често имат проблеми с камерите.{'\n'}
+            На production телефон всичко ще работи правилно.
+          </Text>
+        )}
       </View>
     );
   }
@@ -249,6 +292,7 @@ export const CallScreen: React.FC = () => {
 
   const [remoteVideoTrack, setRemoteVideoTrack] = useState<LiveKitTrack | null>(null);
   const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null);
+  const [localVideoTrack, setLocalVideoTrack] = useState<LiveKitTrack | null>(null);
   const [callDuration, setCallDuration] = useState('00:00');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -375,6 +419,36 @@ export const CallScreen: React.FC = () => {
     }
   }, [callState, endCall]);
 
+  // Update local video track when camera state changes
+  useEffect(() => {
+    if (callState === CallState.CONNECTED) {
+      // Poll for local video track changes (since getLocalVideoTrack() is not reactive)
+      const checkLocalVideoTrack = () => {
+        const currentTrack = liveKitService.getLocalVideoTrack();
+        if (currentTrack !== localVideoTrack) {
+          console.log('📹 [CallScreen] Local video track changed:', {
+            hadTrack: !!localVideoTrack,
+            hasTrack: !!currentTrack,
+            trackEnabled: currentTrack?.enabled,
+            trackMuted: currentTrack?.isMuted,
+            hasMediaStream: !!currentTrack?.mediaStreamTrack,
+          });
+          setLocalVideoTrack(currentTrack);
+        }
+      };
+
+      // Check immediately
+      checkLocalVideoTrack();
+
+      // Poll every 500ms to catch track creation
+      const interval = setInterval(checkLocalVideoTrack, 500);
+
+      return () => clearInterval(interval);
+    } else {
+      setLocalVideoTrack(null);
+    }
+  }, [callState, isVideoEnabled, localVideoTrack]);
+
   useEffect(() => {
     if (callState !== CallState.CONNECTED) {
       setRemoteVideoTrack(null);
@@ -500,12 +574,11 @@ export const CallScreen: React.FC = () => {
   }, [callState, currentCall?.startTime]);
 
   if (!currentCall) return null;
-
-  const localVideoTrack = liveKitService.getLocalVideoTrack();
   
   // Debug logging for video tracks
   useEffect(() => {
     if (callState === CallState.CONNECTED) {
+      const isEmulator = __DEV__;
       console.log('📹 [CallScreen] Video state check:', {
         isVideoEnabled,
         hasLocalVideoTrack: !!localVideoTrack,
@@ -513,10 +586,19 @@ export const CallScreen: React.FC = () => {
         localTrackEnabled: localVideoTrack?.enabled,
         localTrackMuted: localVideoTrack?.isMuted,
         localTrackHasMediaStream: !!localVideoTrack?.mediaStreamTrack,
+        localTrackActive: localVideoTrack?.mediaStreamTrack?.active,
         remoteTrackEnabled: remoteVideoTrack?.enabled,
         remoteTrackMuted: remoteVideoTrack?.isMuted,
         remoteTrackHasMediaStream: !!remoteVideoTrack?.mediaStreamTrack,
+        remoteTrackActive: remoteVideoTrack?.mediaStreamTrack?.active,
+        isEmulator,
+        note: isEmulator ? '⚠️ На emulator камерите често не работят. Тествай на реален телефон.' : '✅ На реален телефон всичко ще работи правилно.',
       });
+      
+      // Warn if on emulator and no video tracks
+      if (isEmulator && isVideoEnabled && !localVideoTrack && !remoteVideoTrack) {
+        console.warn('⚠️ [CallScreen] Video call on emulator - камерите може да не работят. Тествай на реален телефон.');
+      }
     }
   }, [callState, isVideoEnabled, localVideoTrack, remoteVideoTrack]);
   

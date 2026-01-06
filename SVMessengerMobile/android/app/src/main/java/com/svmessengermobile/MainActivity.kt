@@ -31,12 +31,17 @@ class MainActivity : ReactActivity() {
    * Note: ReactActivity already provides getReactInstanceManager() method
    */
   override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-    if (keyCode == KeyEvent.KEYCODE_MENU) {
-      // Use the method from ReactActivity directly (not a property to avoid conflict)
-      val reactInstanceManager = getReactInstanceManager()
-      if (reactInstanceManager != null) {
-        reactInstanceManager.showDevOptionsDialog()
-        return true
+    // Only show dev menu in debug builds
+    if (keyCode == KeyEvent.KEYCODE_MENU && com.svmessengermobile.BuildConfig.DEBUG) {
+      try {
+        // Use the method from ReactActivity directly (not a property to avoid conflict)
+        val reactInstanceManager = getReactInstanceManager()
+        if (reactInstanceManager != null) {
+          reactInstanceManager.showDevOptionsDialog()
+          return true
+        }
+      } catch (e: Exception) {
+        android.util.Log.w("MainActivity", "⚠️ Failed to show dev menu (non-critical):", e)
       }
     }
     return super.onKeyUp(keyCode, event)

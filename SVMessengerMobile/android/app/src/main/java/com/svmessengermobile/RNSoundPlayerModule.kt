@@ -36,6 +36,7 @@ class RNSoundPlayerModule(reactContext: ReactApplicationContext) : ReactContextB
       )
 
       if (resourceId == 0) {
+        android.util.Log.w("RNSoundPlayerModule", "⚠️ Sound file not found: $soundName (this is non-critical)")
         promise.reject("SOUND_NOT_FOUND", "Sound file not found: $soundName")
         return
       }

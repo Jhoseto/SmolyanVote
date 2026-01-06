@@ -16,6 +16,7 @@ import {
   createLocalAudioTrack,
   createLocalVideoTrack
 } from 'livekit-client';
+import { Platform } from 'react-native';
 import { CallTokenResponse } from '../../types/call';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
@@ -128,16 +129,38 @@ class LiveKitService {
           participantId: participant.identity,
           hasMediaStreamTrack: !!track.mediaStreamTrack,
           enabled: track.enabled,
+          isMuted: track.isMuted,
+          mediaStreamTrackActive: track.mediaStreamTrack?.active,
+          mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
+          mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
         });
         
         if (track.kind === 'audio') {
           this.onTrackSubscribedCallback?.(track, participant);
         } else if (track.kind === 'video') {
-          // Ensure track is enabled
+          // CRITICAL: Ensure track is fully enabled and active
           if (track.mediaStreamTrack) {
             track.mediaStreamTrack.enabled = true;
+            // Force play if possible
+            if (track.mediaStreamTrack.readyState === 'live') {
+              console.log('✅ [LiveKit] Video track is live and ready');
+            }
           }
-          this.onVideoTrackSubscribedCallback?.(track, participant);
+          
+          // Enable track at LiveKit level too
+          if (!track.enabled && track.setEnabled) {
+            try {
+              track.setEnabled(true);
+              console.log('✅ [LiveKit] Enabled video track at LiveKit level');
+            } catch (e) {
+              console.warn('⚠️ [LiveKit] Could not enable track:', e);
+            }
+          }
+          
+          // Small delay to ensure track is fully ready before callback
+          setTimeout(() => {
+            this.onVideoTrackSubscribedCallback?.(track, participant);
+          }, 100);
         }
       });
 
@@ -175,27 +198,45 @@ class LiveKitService {
           }
         });
         
-        // Subscribe to existing video tracks immediately
+        // CRITICAL: Subscribe to ALL video tracks immediately, even if not subscribed yet
         participant.videoTrackPublications.forEach((publication) => {
           console.log('📹 [LiveKit] Found existing video publication:', {
             sid: publication.trackSid,
             isSubscribed: publication.isSubscribed,
             hasTrack: !!publication.track,
+            kind: publication.kind,
+            source: publication.source,
           });
           
-          // Force subscribe if not already subscribed
+          // ALWAYS force subscribe to video tracks (critical for web->mobile calls)
           if (!publication.isSubscribed) {
-            console.log('📹 [LiveKit] Subscribing to existing video track');
-            publication.setSubscribed(true);
+            console.log('📹 [LiveKit] Force subscribing to existing video track');
+            try {
+              publication.setSubscribed(true);
+            } catch (e) {
+              console.warn('⚠️ [LiveKit] Error subscribing to video track:', e);
+            }
           }
           
-          if (publication.track) {
+          // If track is already available, trigger callback immediately
+          if (publication.track && publication.track.mediaStreamTrack) {
             // Ensure track is enabled
-            if (publication.track.mediaStreamTrack) {
-              publication.track.mediaStreamTrack.enabled = true;
+            publication.track.mediaStreamTrack.enabled = true;
+            
+            // Enable at LiveKit level too
+            if (!publication.track.enabled && publication.track.setEnabled) {
+              try {
+                publication.track.setEnabled(true);
+              } catch (e) {
+                console.warn('⚠️ [LiveKit] Could not enable track:', e);
+              }
             }
-            console.log('📹 [LiveKit] Triggering callback for existing video track');
-            this.onVideoTrackSubscribedCallback?.(publication.track, participant);
+            
+            console.log('📹 [LiveKit] Triggering callback for existing video track immediately');
+            // Use setTimeout to ensure track is fully ready
+            setTimeout(() => {
+              this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
+            }, 150);
           } else {
             // Track not available yet, wait for TrackSubscribed event
             console.log('📹 [LiveKit] Video track not available yet, will be notified via TrackSubscribed');
@@ -225,6 +266,58 @@ class LiveKitService {
       
       await this.room.connect(wsUrl, token);
       console.log('✅ [LiveKit] Successfully connected to LiveKit room');
+      
+      // CRITICAL: After connection, check for already connected participants and subscribe to their video tracks
+      // This is especially important when web calls mobile - web is already connected with video
+      setTimeout(() => {
+        try {
+          const remoteParticipants = Array.from(this.room!.remoteParticipants.values());
+          console.log('📹 [LiveKit] Checking for existing participants after connection:', remoteParticipants.length);
+          
+          remoteParticipants.forEach((participant) => {
+            console.log('📹 [LiveKit] Processing existing participant:', participant.identity);
+            
+            participant.videoTrackPublications.forEach((publication) => {
+              console.log('📹 [LiveKit] Found video publication on existing participant:', {
+                sid: publication.trackSid,
+                isSubscribed: publication.isSubscribed,
+                hasTrack: !!publication.track,
+                kind: publication.kind,
+              });
+              
+              // Force subscribe if not already subscribed
+              if (!publication.isSubscribed) {
+                console.log('📹 [LiveKit] Force subscribing to video track from existing participant');
+                try {
+                  publication.setSubscribed(true);
+                } catch (e) {
+                  console.warn('⚠️ [LiveKit] Error subscribing to video track:', e);
+                }
+              }
+              
+              // If track is available, trigger callback
+              if (publication.track && publication.track.mediaStreamTrack) {
+                publication.track.mediaStreamTrack.enabled = true;
+                
+                if (!publication.track.enabled && publication.track.setEnabled) {
+                  try {
+                    publication.track.setEnabled(true);
+                  } catch (e) {
+                    console.warn('⚠️ [LiveKit] Could not enable track:', e);
+                  }
+                }
+                
+                console.log('📹 [LiveKit] Triggering callback for existing participant video track');
+                setTimeout(() => {
+                  this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
+                }, 200);
+              }
+            });
+          });
+        } catch (error) {
+          console.error('❌ [LiveKit] Error checking existing participants:', error);
+        }
+      }, 500); // Wait 500ms after connection to ensure room is fully initialized
       
     } catch (error: any) {
       console.error('❌ [LiveKit] Connection error:', error);
@@ -403,13 +496,44 @@ class LiveKitService {
         }
 
         // Create new video track using React Native API
-        this.localVideoTrack = await createLocalVideoTrack({
-          facingMode: this.isFrontCamera ? 'user' : 'environment',
-          resolution: {
-            width: 1280,
-            height: 720,
-          },
+        // Use lower resolution for emulator (better compatibility)
+        // Emulators often have issues with high resolution video
+        const isEmulator = __DEV__ && Platform.OS === 'android';
+        const resolution = isEmulator 
+          ? { width: 640, height: 480 } // Lower resolution for emulator
+          : { width: 1280, height: 720 }; // Higher resolution for real device
+        
+        console.log('🎥 [toggleCamera] Creating video track:', {
+          facingMode: this.isFrontCamera ? 'front' : 'back',
+          resolution,
+          isEmulator,
         });
+
+        try {
+          this.localVideoTrack = await createLocalVideoTrack({
+            facingMode: this.isFrontCamera ? 'user' : 'environment',
+            resolution,
+          });
+        } catch (error: any) {
+          console.error('❌ [toggleCamera] Failed to create video track:', error);
+          
+          // Fallback: Try with even lower resolution for emulator
+          if (isEmulator) {
+            console.log('🔄 [toggleCamera] Retrying with minimal resolution for emulator...');
+            try {
+              this.localVideoTrack = await createLocalVideoTrack({
+                facingMode: this.isFrontCamera ? 'user' : 'environment',
+                resolution: { width: 320, height: 240 }, // Minimal resolution
+              });
+              console.log('✅ [toggleCamera] Video track created with minimal resolution');
+            } catch (retryError: any) {
+              console.error('❌ [toggleCamera] Failed even with minimal resolution:', retryError);
+              throw new Error(`Camera not available: ${retryError?.message || 'Unknown error'}. На emulator камерите често не работят. Тествай на реален телефон.`);
+            }
+          } else {
+            throw error;
+          }
+        }
 
         console.log('🎥 [toggleCamera] Video track created:', {
           kind: this.localVideoTrack.kind,
