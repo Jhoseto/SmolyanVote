@@ -32,7 +32,7 @@ import { VideoView as LiveKitVideoView } from '@livekit/react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Video component wrapper
+// Video component wrapper with improved error handling
 const VideoView: React.FC<{
   track: LiveKitTrack | null;
   style: any;
@@ -47,11 +47,13 @@ const VideoView: React.FC<{
     );
   }
 
+  // Wait for mediaStreamTrack to be available
   if (!track.mediaStreamTrack) {
-    console.log('❌ [VideoView] Track has no mediaStreamTrack', {
+    console.log('⏳ [VideoView] Track has no mediaStreamTrack yet, waiting...', {
       kind: track.kind,
       sid: track.sid,
       enabled: track.enabled,
+      isMuted: track.isMuted,
     });
     return (
       <View style={[style, styles.videoPlaceholder]}>
@@ -60,21 +62,48 @@ const VideoView: React.FC<{
     );
   }
 
+  // Ensure track is enabled
+  if (!track.enabled || track.isMuted) {
+    console.log('⚠️ [VideoView] Track is disabled or muted', {
+      kind: track.kind,
+      sid: track.sid,
+      enabled: track.enabled,
+      isMuted: track.isMuted,
+    });
+    // Try to enable it
+    if (track.mediaStreamTrack) {
+      track.mediaStreamTrack.enabled = true;
+    }
+  }
+
   console.log('✅ [VideoView] Rendering video track', {
     kind: track.kind,
     sid: track.sid,
     enabled: track.enabled,
     muted: track.isMuted,
     hasMediaStreamTrack: !!track.mediaStreamTrack,
+    mediaStreamTrackId: track.mediaStreamTrack?.id,
+    mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
   });
 
-  return (
-    <LiveKitVideoView 
-      track={track} 
-      style={style} 
-      mirror={mirror}
-    />
-  );
+  try {
+    return (
+      <LiveKitVideoView 
+        track={track} 
+        style={style} 
+        mirror={mirror}
+        zOrder={0}
+        objectFit="cover"
+      />
+    );
+  } catch (error) {
+    console.error('❌ [VideoView] Error rendering LiveKitVideoView:', error);
+    return (
+      <View style={[style, styles.videoPlaceholder]}>
+        <Text style={styles.videoPlaceholderText}>Грешка при показване</Text>
+      </View>
+    );
+  }
 };
 
 // PREMIUM 3D BUTTON Component
@@ -355,23 +384,37 @@ export const CallScreen: React.FC = () => {
 
     console.log('📹 [CallScreen] Setting up video track listeners');
 
-    // Listen for NEW video tracks being published
-    liveKitService.onVideoTrackSubscribed((track: LiveKitTrack, participant: RemoteParticipant) => {
-      console.log('📹 [CallScreen] Video track subscribed:', {
+    // Listen for NEW video tracks being subscribed
+    const handleVideoTrackSubscribed = (track: LiveKitTrack, participant: RemoteParticipant) => {
+      console.log('📹 [CallScreen] Video track subscribed callback:', {
         kind: track.kind,
         sid: track.sid,
         participantId: participant.identity,
         hasMediaStreamTrack: !!track.mediaStreamTrack,
+        enabled: track.enabled,
+        isMuted: track.isMuted,
       });
       
-      if (track.kind === 'video') {
+      if (track.kind === 'video' && track.mediaStreamTrack) {
+        // Ensure track is enabled
+        if (track.mediaStreamTrack) {
+          track.mediaStreamTrack.enabled = true;
+        }
+        console.log('✅ [CallScreen] Setting remote video track');
         setRemoteVideoTrack(track);
         setRemoteParticipant(participant);
+      } else {
+        console.warn('⚠️ [CallScreen] Video track subscribed but not ready:', {
+          kind: track.kind,
+          hasMediaStreamTrack: !!track.mediaStreamTrack,
+        });
       }
-    });
+    };
+
+    liveKitService.onVideoTrackSubscribed(handleVideoTrackSubscribed);
 
     // Listen for participants joining
-    liveKitService.onParticipantConnected((participant: RemoteParticipant) => {
+    const handleParticipantConnected = (participant: RemoteParticipant) => {
       console.log('📹 [CallScreen] Participant connected, checking for video tracks:', participant.identity);
       
       // Check for existing video tracks
@@ -382,40 +425,58 @@ export const CallScreen: React.FC = () => {
           isSubscribed: publication.isSubscribed,
         });
         
-        if (publication.track && publication.track.kind === 'video') {
+        if (publication.track && publication.track.kind === 'video' && publication.track.mediaStreamTrack) {
+          // Ensure track is enabled
+          if (publication.track.mediaStreamTrack) {
+            publication.track.mediaStreamTrack.enabled = true;
+          }
+          console.log('✅ [CallScreen] Setting remote video track from existing publication');
           setRemoteVideoTrack(publication.track);
           setRemoteParticipant(participant);
         }
       });
-    });
+    };
+
+    liveKitService.onParticipantConnected(handleParticipantConnected);
 
     // Check for ALREADY CONNECTED participants (important!)
     const checkExistingParticipants = () => {
-      const room = liveKitService['room']; // Access private property
-      if (room) {
-        const participants = Array.from(room.remoteParticipants.values());
-        console.log('📹 [CallScreen] Checking existing participants:', participants.length);
-        
-        participants.forEach((participant) => {
-          participant.videoTrackPublications.forEach((publication) => {
-            if (publication.track && publication.track.kind === 'video') {
-              console.log('📹 [CallScreen] Found existing video track:', {
-                sid: publication.trackSid,
-                participantId: participant.identity,
-              });
-              setRemoteVideoTrack(publication.track);
-              setRemoteParticipant(participant);
-            }
+      try {
+        const room = (liveKitService as any)['room']; // Access private property
+        if (room) {
+          const participants = Array.from(room.remoteParticipants.values());
+          console.log('📹 [CallScreen] Checking existing participants:', participants.length);
+          
+          participants.forEach((participant) => {
+            participant.videoTrackPublications.forEach((publication) => {
+              if (publication.track && publication.track.kind === 'video' && publication.track.mediaStreamTrack) {
+                // Ensure track is enabled
+                if (publication.track.mediaStreamTrack) {
+                  publication.track.mediaStreamTrack.enabled = true;
+                }
+                console.log('✅ [CallScreen] Found existing video track:', {
+                  sid: publication.trackSid,
+                  participantId: participant.identity,
+                  hasMediaStreamTrack: !!publication.track.mediaStreamTrack,
+                });
+                setRemoteVideoTrack(publication.track);
+                setRemoteParticipant(participant);
+              }
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('❌ [CallScreen] Error checking existing participants:', error);
       }
     };
 
-    // Check immediately
+    // Check immediately and also after a short delay (for tracks that might be loading)
     checkExistingParticipants();
+    const timeoutId = setTimeout(checkExistingParticipants, 1000);
 
     return () => {
       console.log('📹 [CallScreen] Cleaning up video track listeners');
+      clearTimeout(timeoutId);
       setRemoteVideoTrack(null);
       setRemoteParticipant(null);
     };
@@ -441,6 +502,24 @@ export const CallScreen: React.FC = () => {
   if (!currentCall) return null;
 
   const localVideoTrack = liveKitService.getLocalVideoTrack();
+  
+  // Debug logging for video tracks
+  useEffect(() => {
+    if (callState === CallState.CONNECTED) {
+      console.log('📹 [CallScreen] Video state check:', {
+        isVideoEnabled,
+        hasLocalVideoTrack: !!localVideoTrack,
+        hasRemoteVideoTrack: !!remoteVideoTrack,
+        localTrackEnabled: localVideoTrack?.enabled,
+        localTrackMuted: localVideoTrack?.isMuted,
+        localTrackHasMediaStream: !!localVideoTrack?.mediaStreamTrack,
+        remoteTrackEnabled: remoteVideoTrack?.enabled,
+        remoteTrackMuted: remoteVideoTrack?.isMuted,
+        remoteTrackHasMediaStream: !!remoteVideoTrack?.mediaStreamTrack,
+      });
+    }
+  }, [callState, isVideoEnabled, localVideoTrack, remoteVideoTrack]);
+  
   // Show video mode if we have remote video OR if we have local video enabled
   const showVideo = remoteVideoTrack || (isVideoEnabled && localVideoTrack);
 

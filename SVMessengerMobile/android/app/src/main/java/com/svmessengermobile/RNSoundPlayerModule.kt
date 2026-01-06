@@ -40,14 +40,12 @@ class RNSoundPlayerModule(reactContext: ReactApplicationContext) : ReactContextB
         return
       }
 
-      val mediaPlayer = MediaPlayer.create(context, resourceId)
-      if (mediaPlayer == null) {
-        promise.reject("PLAYER_CREATE_FAILED", "Failed to create MediaPlayer for: $soundName")
-        return
-      }
-
-      // Set proper audio attributes for notification sounds
-      // This ensures sounds play correctly even when device is in silent/do-not-disturb mode
+      // Create MediaPlayer manually to set audio attributes BEFORE preparing
+      // MediaPlayer.create() prepares the player immediately, which can cause state issues
+      val mediaPlayer = MediaPlayer()
+      
+      // Set audio attributes FIRST, before setting data source
+      // This ensures proper audio routing for notification sounds
       val audioAttributesBuilder = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_NOTIFICATION)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -59,16 +57,22 @@ class RNSoundPlayerModule(reactContext: ReactApplicationContext) : ReactContextB
       
       val audioAttributes = audioAttributesBuilder.build()
       mediaPlayer.setAudioAttributes(audioAttributes)
+      
+      // Set data source and prepare
+      try {
+        val assetFileDescriptor = context.resources.openRawResourceFd(resourceId)
+        mediaPlayer.setDataSource(assetFileDescriptor.fileDescriptor, assetFileDescriptor.startOffset, assetFileDescriptor.length)
+        assetFileDescriptor.close()
+        mediaPlayer.prepare()
+      } catch (e: Exception) {
+        mediaPlayer.release()
+        promise.reject("PLAYER_PREPARE_FAILED", "Failed to prepare MediaPlayer: ${e.message}", e)
+        return
+      }
+      
+      // Configure player after preparation
       mediaPlayer.setVolume(globalVolume, globalVolume)
       mediaPlayer.isLooping = loop
-      
-      // Set audio stream type for compatibility
-      try {
-        mediaPlayer.setAudioStreamType(AudioManager.STREAM_NOTIFICATION)
-      } catch (e: Exception) {
-        // Ignore - audio attributes should handle this
-        android.util.Log.w("RNSoundPlayerModule", "Could not set audio stream type: ${e.message}")
-      }
       
       mediaPlayer.setOnCompletionListener {
         if (!loop) {

@@ -1,5 +1,6 @@
 package com.svmessengermobile
 
+import android.app.ActivityManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -23,7 +24,26 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     /**
+     * Check if app is in foreground
+     */
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val runningProcesses = activityManager.runningAppProcesses ?: return false
+        
+        val packageName = packageName
+        for (processInfo in runningProcesses) {
+            if (processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                processInfo.processName == packageName) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
      * Called when message is received in background or when app is closed
+     * CRITICAL: Only show notification if app is NOT in foreground
+     * When app is in foreground, foreground handler (onMessage) will show the notification
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
@@ -31,6 +51,13 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
         Log.d("SVMessengerFCM", "📬 Background notification received: ${remoteMessage.messageId}")
         Log.d("SVMessengerFCM", "📬 Notification data: ${remoteMessage.data}")
         Log.d("SVMessengerFCM", "📬 Notification payload: ${remoteMessage.notification}")
+
+        // CRITICAL: Don't show notification if app is in foreground
+        // Foreground handler will show it via NotificationModule
+        if (isAppInForeground()) {
+            Log.d("SVMessengerFCM", "⏭️ App is in foreground, skipping background notification (foreground handler will show it)")
+            return
+        }
 
         // Handle data-only messages (when notification payload is null)
         if (remoteMessage.notification == null && remoteMessage.data.isNotEmpty()) {

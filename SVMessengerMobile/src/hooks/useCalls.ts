@@ -81,7 +81,7 @@ export const useCalls = () => {
 
   // Start outgoing call
   const handleStartCall = useCallback(
-    async (conversationId: number, participantId: number, participantName: string) => {
+    async (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => {
       try {
         const { user } = useAuthStore.getState();
         if (!user) {
@@ -96,11 +96,21 @@ export const useCalls = () => {
           return;
         }
 
+        // Request camera permission for video calls
+        if (isVideo) {
+          const hasCameraPermission = await callPermissionsService.requestCameraPermission();
+          if (!hasCameraPermission) {
+            console.error('❌ Camera permission denied, cannot start video call');
+            clearCall();
+            return;
+          }
+        }
+
         // Generate call token
         const { token, roomName, serverUrl } = await liveKitService.generateCallToken(conversationId, participantId);
 
-        // Start call in store (will be updated with imageUrl if available)
-        startCall(conversationId, participantId, participantName);
+        // Start call in store with video flag
+        startCall(conversationId, participantId, participantName, participantImageUrl, initialState, isVideo);
 
         // Play outgoing call sound
         soundService.playOutgoingCallSound();
@@ -113,12 +123,14 @@ export const useCalls = () => {
             callerId: user.id,
             receiverId: participantId,
             roomName,
+            isVideo: isVideo || false,
           });
         }
 
         // Connect to LiveKit room
         await liveKitService.connect(token, roomName, serverUrl);
         // Note: outgoing call sound will be stopped in onConnected callback
+        // Camera will be enabled automatically in useEffect when callState becomes CONNECTED
       } catch (error) {
         console.error('Error starting call:', error);
         clearCall();

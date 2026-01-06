@@ -30,6 +30,13 @@ export const usePushNotifications = () => {
     }, 500) // 500ms debounce
   ).current;
 
+  // Оптимизация: Debounced fetch за messages (избягва излишни API calls)
+  const debouncedFetchMessages = useRef(
+    debounce((conversationId: number) => {
+      fetchMessages(conversationId);
+    }, 300) // 300ms debounce
+  ).current;
+
   // Heartbeat (disabled – WebSocket се грижи за online статус; избягваме излишни 401)
   useEffect(() => {
     return () => {};
@@ -101,27 +108,18 @@ export const usePushNotifications = () => {
       }
       // ✅ Обработка на NEW_MESSAGE notifications
       else if (notificationType === 'NEW_MESSAGE' && conversationId) {
-        // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation
+        // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation (с debounce)
         // Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
         console.log('📥 Fetching messages for conversation:', conversationId);
-        fetchMessages(conversationId);
+        debouncedFetchMessages(conversationId);
         
-        // Update conversation immediately from backend (за да вземем correct unread count)
-        const { selectedConversationId } = useConversationsStore.getState();
-        
-        if (selectedConversationId !== conversationId) {
-          // Conversation is not open - fetch latest data from backend (НЕ increment-ваме ръчно!)
-          console.log('📥 Conversation not open, fetching latest data from backend');
-          debouncedRefreshConversations();
-        } else {
-          // Conversation is open - update lastMessage
-          console.log('📥 Conversation is open, updating lastMessage');
-          debouncedRefreshConversations();
-        }
+        // Update conversation from backend (за да вземем correct unread count)
+        // Използваме debounce за да избегнем излишни заявки
+        debouncedRefreshConversations();
       } else if (conversationId) {
         // Fallback: ако има conversationId но няма type, fetch-ваме latest data from backend
         console.log('📥 Fetching messages and data for conversation (fallback):', conversationId);
-        fetchMessages(conversationId);
+        debouncedFetchMessages(conversationId);
         debouncedRefreshConversations();
       } else {
         console.log('⚠️ Notification received but conversationId is missing or invalid:', conversationId);
@@ -130,7 +128,7 @@ export const usePushNotifications = () => {
       // ВИНАГИ fetch-ваме съобщенията за да се виждат в реално време
       // Firebase автоматично показва notification дори когато app-ът е в foreground
     },
-    [debouncedRefreshConversations, fetchMessages]
+    [debouncedRefreshConversations, debouncedFetchMessages]
   );
 
   /**
@@ -181,14 +179,14 @@ export const usePushNotifications = () => {
             console.log('📞 Connecting WebSocket for incoming call...');
           }
         } else {
-          // NEW_MESSAGE или друг тип - fetch-ваме messages
+          // NEW_MESSAGE или друг тип - fetch-ваме messages (с debounce)
           console.log('📥 Fetching messages for conversation:', conversationId);
-          fetchConversations();
-          fetchMessages(conversationId);
+          debouncedFetchMessages(conversationId);
+          debouncedRefreshConversations();
         }
       }
     },
-    [fetchConversations, fetchMessages, startCall, setCallState, isAuthenticated, user]
+    [debouncedRefreshConversations, debouncedFetchMessages, startCall, setCallState, isAuthenticated, user]
   );
 
   /**

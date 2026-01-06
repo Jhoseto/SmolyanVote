@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Platform } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Avatar } from '../common';
-import { ArrowLeftIcon, TelephoneIcon, CameraVideoIcon, SearchIcon } from '../common/Icons';
+import { ArrowLeftIcon, TelephoneIcon, SearchIcon } from '../common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
@@ -63,13 +63,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const handleVoiceCall = () => {
     if (!user) return;
     startCall(conversationId, participantId, participantName);
-  };
-
-  const handleVideoCall = async () => {
-    if (!user) return;
-    // Start video call with isVideo flag
-    startCall(conversationId, participantId, participantName, undefined, undefined, true);
-    console.log('📞 Video call initiated - camera will be enabled automatically');
   };
 
   return (
@@ -145,17 +138,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             >
               <View style={styles.iconButton}>
                 <TelephoneIcon size={20} color={Colors.text.inverse} />
-              </View>
-            </TouchableOpacity>
-
-            {/* Video Call Button */}
-            <TouchableOpacity
-              onPress={handleVideoCall}
-              style={styles.actionButton}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconButton}>
-                <CameraVideoIcon size={20} color={Colors.text.inverse} />
               </View>
             </TouchableOpacity>
           </View>
