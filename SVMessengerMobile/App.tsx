@@ -47,6 +47,16 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Note: React Native automatically logs console.log/error/warn to Logcat
+// No need for custom logging hooks - they can cause type errors
+// For debugging: Use React Native Debugger (recommended) or Logcat
+if (__DEV__) {
+  console.log('🔧 [App] Development mode enabled');
+  console.log('💡 Tip: Use React Native Debugger (Dev Menu → Debug) - best for React Native');
+  console.log('💡 Tip: Use "adb logcat | Select-String ReactNativeJS" for native logs');
+  console.log('💡 Tip: Chrome DevTools may not work properly with React 19.1.0');
+}
+
 function App() {
   console.log('🎨 [App] Component rendering...');
   

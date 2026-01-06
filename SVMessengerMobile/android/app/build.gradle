@@ -120,14 +120,13 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
-    
-    // Packaging options to handle duplicate native libraries
     packagingOptions {
-        pickFirst 'lib/x86_64/libc++_shared.so'
-        pickFirst 'lib/arm64-v8a/libc++_shared.so'
-        pickFirst 'lib/x86_64/libfbjni.so'
-        pickFirst 'lib/arm64-v8a/libfbjni.so'
+        jniLibs {
+            pickFirsts += ['lib/x86_64/libc++_shared.so', 'lib/arm64-v8a/libc++_shared.so', 'lib/x86_64/libfbjni.so', 'lib/arm64-v8a/libfbjni.so']
+        }
     }
+
+    // Packaging options to handle duplicate native libraries
 }
 
 dependencies {

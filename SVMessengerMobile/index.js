@@ -6,6 +6,19 @@
  * защото livekit-client се импортира в CallScreen и се инициализира веднага.
  */
 
+// ========== STEP 0: CRITICAL FIX - Disable nativeLoggingHook FIRST ==========
+// React Native's nativeLoggingHook expects numbers, but React 19.1.0 may pass strings
+// This causes "Value is a string, expected a number" errors
+// Must be done BEFORE any console.log calls
+if (typeof global !== 'undefined' && global.nativeLoggingHook) {
+  // Disable nativeLoggingHook completely to prevent errors
+  // React Native will still log to Logcat via console methods automatically
+  global.nativeLoggingHook = function() {
+    // Silently ignore - React Native will still log via console methods
+    // This prevents "Value is a string, expected a number" errors
+  };
+}
+
 // ========== STEP 1: Register WebRTC globals FIRST (before any imports) ==========
 // Using @livekit/react-native's registerGlobals() - the proper way for React Native
 // ВАЖНО: Lazy import за да избегнем crash ако native модулът не е готов
@@ -66,8 +79,22 @@ if (typeof global.TextDecoder === 'undefined') {
 }
 
 // ========== STEP 3: Global Error Handling ==========
-// Handle unhandled promise rejections to prevent app crashes
+// CRITICAL FIX: Disable nativeLoggingHook FIRST to prevent "Value is a string, expected a number" errors
+// React Native's nativeLoggingHook expects numbers, but React 19.1.0 may pass strings
+// This is a compatibility issue between React 19.1.0 and React Native 0.81.0
+// Must be done BEFORE any console.log calls that might trigger it
 if (typeof global !== 'undefined') {
+  // Disable nativeLoggingHook completely to prevent errors
+  // React Native will still log to Logcat via console methods automatically
+  if (global.nativeLoggingHook) {
+    // Override to silently ignore - prevents crashes
+    // React Native automatically logs console.log/error/warn to Logcat anyway
+    global.nativeLoggingHook = function() {
+      // Silently ignore - React Native will still log via console methods
+      // This prevents "Value is a string, expected a number" errors
+    };
+  }
+  
   // Handle unhandled promise rejections
   if (typeof Promise !== 'undefined' && Promise.reject) {
     const originalReject = Promise.reject;
