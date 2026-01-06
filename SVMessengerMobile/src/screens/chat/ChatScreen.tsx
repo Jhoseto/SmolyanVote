@@ -226,13 +226,16 @@ export const ChatScreen: React.FC = () => {
       />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        enabled={Platform.OS === 'ios'}
       >
         <FlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={(item, index) => item?.id?.toString() || `message-${index}`}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
               renderItem={({ item }) => (
                 <MessageBubble
                   message={item}

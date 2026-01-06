@@ -6,7 +6,8 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
+import { enableScreens } from 'react-native-screens';
 import { RootStackParamList } from '../types/navigation';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
@@ -15,6 +16,12 @@ import { useCallsStore } from '../store/callsStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { CallState } from '../types/call';
 import { Colors } from '../theme';
+
+// Enable native screens for better performance
+// This must be called before any screen components are rendered
+if (Platform.OS === 'android' || Platform.OS === 'ios') {
+  enableScreens(true);
+}
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

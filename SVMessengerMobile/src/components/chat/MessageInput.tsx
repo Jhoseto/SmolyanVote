@@ -155,6 +155,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             placeholderTextColor={Colors.text.tertiary}
             multiline
             maxLength={1000}
+            blurOnSubmit={false}
+            returnKeyType="default"
           />
         </View>
 

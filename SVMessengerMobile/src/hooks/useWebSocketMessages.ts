@@ -93,7 +93,8 @@ export const useWebSocketMessages = () => {
         } else {
           // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
           console.log('📨 Conversation not found, fetching conversation details');
-          getConversation(message.conversationId).then(conv => {
+          // Wrap in Promise.resolve to ensure we always have a promise
+          Promise.resolve(getConversation(message.conversationId)).then(conv => {
             if (conv) {
               const alreadyExists = conversations.some(c => c.id === conv.id);
 
@@ -108,8 +109,9 @@ export const useWebSocketMessages = () => {
                 });
               }
             }
-          }).catch(error => {
-            console.error('Error fetching conversation details:', error);
+          }).catch((error: any) => {
+            const errorToLog = error instanceof Error ? error : (error != null ? String(error) : 'Unknown error');
+            console.error('Error fetching conversation details:', errorToLog);
           });
         }
       }

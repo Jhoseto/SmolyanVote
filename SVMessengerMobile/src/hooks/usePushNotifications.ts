@@ -196,7 +196,7 @@ export const usePushNotifications = () => {
    * Retry logic за да се справи с изтекъл token
    */
   const registerDeviceToken = useCallback(
-    async (deviceToken: string, retryCount = 0) => {
+    async (deviceToken: string, retryCount = 0): Promise<void> => {
       if (!isAuthenticated || !user) {
         console.log('Skipping device token registration - not authenticated');
         return;
@@ -223,7 +223,13 @@ export const usePushNotifications = () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Retry - interceptor-ът ще се опита да refresh-не token-а
-          return registerDeviceToken(deviceToken, retryCount + 1);
+          try {
+            return await registerDeviceToken(deviceToken, retryCount + 1);
+          } catch (retryError) {
+            console.error('Retry failed for device token registration:', retryError);
+            // Не хвърляй грешка - non-critical операция
+            return;
+          }
         }
         
         console.error('Failed to register device token:', error?.response?.status || error?.message);
@@ -294,12 +300,21 @@ export const usePushNotifications = () => {
     if (isNowAuthenticated) {
       // User logged in - register token
       const setupNotifications = async () => {
-        const hasPermission = await requestPermissions();
-        if (hasPermission) {
-          const token = await getFCMToken();
-          if (token) {
-            await registerDeviceToken(token);
+        try {
+          const hasPermission = await requestPermissions();
+          if (hasPermission) {
+            const token = await getFCMToken();
+            if (token) {
+              // Wrap in try-catch to prevent unhandled promise rejection
+              await registerDeviceToken(token).catch((error) => {
+                console.error('Unhandled error in registerDeviceToken:', error);
+                // Error already logged in registerDeviceToken, just prevent unhandled rejection
+              });
+            }
           }
+        } catch (error) {
+          console.error('Error in setupNotifications:', error);
+          // Don't throw - non-critical operation
         }
       };
 

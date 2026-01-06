@@ -183,7 +183,7 @@ if ($nodePath) {
     }
 }
 
-$metroCommand = "cd '$PSScriptRoot'; `$env:Path = '$metroPath'; Write-Host 'Metro Bundler Starting...' -ForegroundColor Green; Write-Host ''; npm start -- --reset-cache"
+$metroCommand = "cd '$PSScriptRoot'; `$env:Path = '$metroPath'; Write-Host 'Metro Bundler Starting...' -ForegroundColor Green; Write-Host ''; npm start -- --reset-cache --client-logs"
 $metroWindow = Start-Process powershell -ArgumentList "-NoExit", "-Command", $metroCommand -PassThru
 Write-Host "Metro started in new window (PID: $($metroWindow.Id))" -ForegroundColor Green
 

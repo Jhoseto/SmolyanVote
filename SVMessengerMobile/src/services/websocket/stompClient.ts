@@ -193,6 +193,37 @@ class SVMobileWebSocketService {
   }
 
   /**
+   * Helper function to safely call callbacks with error handling
+   * Handles both sync and async callbacks, prevents unhandled promise rejections
+   */
+  private safeCallCallback(callback: any, data: any, callbackName: string): void {
+    if (!callback || typeof callback !== 'function') {
+      return;
+    }
+
+    try {
+      // Call callback and wrap result in Promise.resolve to handle both sync and async cases
+      const result = callback(data);
+      
+      // Safely handle promise if callback returns one
+      // Use Promise.resolve to convert any value to a promise, then catch errors
+      Promise.resolve(result).catch((callbackError: any) => {
+        // Ensure error is always a valid value before logging
+        const errorToLog = callbackError instanceof Error 
+          ? callbackError 
+          : (callbackError != null ? String(callbackError) : 'Unknown error');
+        console.error(`❌ [stompClient] Error in ${callbackName} callback:`, errorToLog);
+      });
+    } catch (callbackError) {
+      // Handle synchronous errors
+      const errorToLog = callbackError instanceof Error 
+        ? callbackError 
+        : (callbackError != null ? String(callbackError) : 'Unknown error');
+      console.error(`❌ [stompClient] Error executing ${callbackName} callback:`, errorToLog);
+    }
+  }
+
+  /**
    * Subscribe to WebSocket channels
    */
   subscribeToChannels(callbacks) {
@@ -223,11 +254,36 @@ class SVMobileWebSocketService {
         '/user/queue/svmessenger-messages',
         (message) => {
           try {
-            const data = JSON.parse(message.body);
-            // Използваме текущия callback от instance променливата
+            // Validate message exists and has body
+            if (!message || !message.body) {
+              console.error('❌ [stompClient] Received message without body:', message);
+              return;
+            }
+
+            // Parse message body safely
+            let data;
+            try {
+              data = JSON.parse(message.body);
+            } catch (parseError) {
+              console.error('❌ [stompClient] Failed to parse message body as JSON:', {
+                error: parseError,
+                body: message.body,
+                bodyType: typeof message.body,
+                bodyLength: message.body?.length,
+              });
+              return;
+            }
+
+            // Validate parsed data
+            if (!data || typeof data !== 'object') {
+              console.error('❌ [stompClient] Parsed data is not an object:', data);
+              return;
+            }
+
+            // Get callback safely and call it using helper function
             const currentCallback = this.currentCallbacks?.onNewMessage;
             if (currentCallback && typeof currentCallback === 'function') {
-              currentCallback(data);
+              this.safeCallCallback(currentCallback, data, 'onNewMessage');
             } else {
               console.error('❌ [stompClient] onNewMessage callback is not available or not a function!', {
                 hasCallbacks: !!this.currentCallbacks,
@@ -236,10 +292,18 @@ class SVMobileWebSocketService {
               });
             }
           } catch (error) {
-            console.error('❌ [stompClient] Error parsing message:', error, {
-              body: message.body,
-              headers: message.headers,
-            });
+            // Safely log error without accessing potentially undefined properties
+            console.error('❌ [stompClient] Error processing message:', error);
+            try {
+              console.error('❌ [stompClient] Message details:', {
+                hasMessage: !!message,
+                hasBody: !!message?.body,
+                bodyType: typeof message?.body,
+                hasHeaders: !!message?.headers,
+              });
+            } catch (logError) {
+              console.error('❌ [stompClient] Failed to log message details:', logError);
+            }
           }
         }
       );
@@ -251,13 +315,15 @@ class SVMobileWebSocketService {
         '/user/queue/svmessenger-read-receipts',
         (message) => {
           try {
+            if (!message || !message.body) {
+              console.error('❌ [stompClient] Received receipt without body:', message);
+              return;
+            }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onReadReceipt;
-            if (currentCallback && typeof currentCallback === 'function') {
-              currentCallback(data);
-            }
+            this.safeCallCallback(currentCallback, data, 'onReadReceipt');
           } catch (error) {
-            console.error('Error parsing receipt:', error);
+            console.error('❌ [stompClient] Error parsing receipt:', error);
           }
         }
       );
@@ -268,13 +334,15 @@ class SVMobileWebSocketService {
         '/user/queue/svmessenger-delivery-receipts',
         (message) => {
           try {
+            if (!message || !message.body) {
+              console.error('❌ [stompClient] Received delivery receipt without body:', message);
+              return;
+            }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onDeliveryReceipt;
-            if (currentCallback && typeof currentCallback === 'function') {
-              currentCallback(data);
-            }
+            this.safeCallCallback(currentCallback, data, 'onDeliveryReceipt');
           } catch (error) {
-            console.error('Error parsing delivery receipt:', error);
+            console.error('❌ [stompClient] Error parsing delivery receipt:', error);
           }
         }
       );
@@ -285,13 +353,15 @@ class SVMobileWebSocketService {
         '/topic/svmessenger-online-status',
         (message) => {
           try {
+            if (!message || !message.body) {
+              console.error('❌ [stompClient] Received status without body:', message);
+              return;
+            }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onOnlineStatus;
-            if (currentCallback && typeof currentCallback === 'function') {
-              currentCallback(data);
-            }
+            this.safeCallCallback(currentCallback, data, 'onOnlineStatus');
           } catch (error) {
-            console.error('Error parsing status:', error);
+            console.error('❌ [stompClient] Error parsing status:', error);
           }
         }
       );
@@ -302,19 +372,15 @@ class SVMobileWebSocketService {
         '/user/queue/svmessenger-call-signals',
         (message) => {
           try {
+            if (!message || !message.body) {
+              console.error('❌ [stompClient] Received call signal without body:', message);
+              return;
+            }
             console.log('📞 [stompClient] Raw call signal received:', message.body);
             const data = JSON.parse(message.body);
             console.log('📞 [stompClient] Parsed call signal:', data);
             const currentCallback = this.currentCallbacks?.onCallSignal;
-            console.log('📞 [stompClient] onCallSignal type:', typeof currentCallback, 'is function:', typeof currentCallback === 'function');
-            
-            if (currentCallback && typeof currentCallback === 'function') {
-              console.log('📞 [stompClient] Calling onCallSignal with data:', data);
-              currentCallback(data);
-              console.log('📞 [stompClient] onCallSignal executed');
-            } else {
-              console.error('❌ [stompClient] onCallSignal is not a function:', typeof currentCallback);
-            }
+            this.safeCallCallback(currentCallback, data, 'onCallSignal');
           } catch (error) {
             console.error('❌ [stompClient] Error parsing call signal:', error);
           }

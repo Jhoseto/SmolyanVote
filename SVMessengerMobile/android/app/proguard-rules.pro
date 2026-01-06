@@ -56,6 +56,10 @@
 # Keep application classes
 -keep class com.svmessengermobile.** { *; }
 
+# Keep react-native-screens classes to prevent UIManager errors on destroy
+-keep class com.swmansion.rnscreens.** { *; }
+-dontwarn com.swmansion.rnscreens.**
+
 # Keep Parcelable implementations
 -keep class * implements android.os.Parcelable {
     public static final android.os.Parcelable$Creator *;

@@ -3,7 +3,7 @@
  * Root component
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { StatusBar, useColorScheme, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -55,36 +55,29 @@ if (__DEV__) {
   console.log('💡 Tip: Use React Native Debugger (Dev Menu → Debug) - best for React Native');
   console.log('💡 Tip: Use "adb logcat | Select-String ReactNativeJS" for native logs');
   console.log('💡 Tip: Chrome DevTools may not work properly with React 19.1.0');
+  console.log('💡 Tip: To open DevTools manually, go to: http://localhost:8081/debugger-ui/');
 }
 
 function App() {
-  console.log('🎨 [App] Component rendering...');
+  // Reduce console.log spam - only log once per mount
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current += 1;
+  
+  if (renderCountRef.current === 1 && __DEV__) {
+    console.log('🎨 [App] Component rendering (first render)');
+  }
   
   try {
     const isDarkMode = useColorScheme() === 'dark';
-    console.log('🎨 [App] Dark mode:', isDarkMode);
 
     // Monitor network status - hooks must be called unconditionally
-    try {
-      console.log('📡 [App] Initializing network status...');
-      useNetworkStatus();
-      console.log('✅ [App] Network status initialized');
-    } catch (error) {
-      console.error('❌ [App] Error initializing network status:', error);
-    }
+    useNetworkStatus();
 
     // Initialize WebSocket connection - CRITICAL for real-time messaging and calls!
     // Note: This hook will only connect when user is authenticated
-    try {
-      console.log('🔌 [App] Initializing WebSocket...');
-      useWebSocket();
-      console.log('✅ [App] WebSocket initialized');
-    } catch (error) {
-      console.error('❌ [App] Error initializing WebSocket:', error);
-    }
+    useWebSocket();
 
     // Note: Push notifications are handled in AppNavigator.tsx
-    console.log('🎨 [App] Rendering UI...');
 
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>

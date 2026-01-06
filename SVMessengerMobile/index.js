@@ -6,16 +6,31 @@
  * защото livekit-client се импортира в CallScreen и се инициализира веднага.
  */
 
-// ========== STEP 0: CRITICAL FIX - Disable nativeLoggingHook FIRST ==========
+// ========== STEP 0: CRITICAL FIX - Fix nativeLoggingHook for React 19.1.0 compatibility ==========
 // React Native's nativeLoggingHook expects numbers, but React 19.1.0 may pass strings
 // This causes "Value is a string, expected a number" errors
 // Must be done BEFORE any console.log calls
+// IMPORTANT: This fix allows Metro console (press 'j') to work properly
 if (typeof global !== 'undefined' && global.nativeLoggingHook) {
-  // Disable nativeLoggingHook completely to prevent errors
-  // React Native will still log to Logcat via console methods automatically
-  global.nativeLoggingHook = function() {
-    // Silently ignore - React Native will still log via console methods
-    // This prevents "Value is a string, expected a number" errors
+  const originalNativeLoggingHook = global.nativeLoggingHook;
+  const levelMap = { 'LOG': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'FATAL': 4 };
+  
+  // Fix: Convert string log levels to numbers for compatibility
+  // Also ensure logs are sent to Metro console properly
+  global.nativeLoggingHook = function(level, message) {
+    try {
+      const numericLevel = typeof level === 'string' ? (levelMap[level] ?? 0) : level;
+      if (typeof numericLevel === 'number' && typeof originalNativeLoggingHook === 'function') {
+        // Always call original hook to ensure Metro console receives logs
+        originalNativeLoggingHook(numericLevel, String(message || ''));
+      } else if (typeof originalNativeLoggingHook === 'function') {
+        // Fallback: try with original level if conversion fails
+        originalNativeLoggingHook(level, String(message || ''));
+      }
+    } catch (e) {
+      // Silently ignore - prevents crashes but logs still go to Logcat
+      // Metro console will work via standard console methods
+    }
   };
 }
 
@@ -79,22 +94,8 @@ if (typeof global.TextDecoder === 'undefined') {
 }
 
 // ========== STEP 3: Global Error Handling ==========
-// CRITICAL FIX: Disable nativeLoggingHook FIRST to prevent "Value is a string, expected a number" errors
-// React Native's nativeLoggingHook expects numbers, but React 19.1.0 may pass strings
-// This is a compatibility issue between React 19.1.0 and React Native 0.81.0
-// Must be done BEFORE any console.log calls that might trigger it
+// Handle unhandled promise rejections to prevent app crashes
 if (typeof global !== 'undefined') {
-  // Disable nativeLoggingHook completely to prevent errors
-  // React Native will still log to Logcat via console methods automatically
-  if (global.nativeLoggingHook) {
-    // Override to silently ignore - prevents crashes
-    // React Native automatically logs console.log/error/warn to Logcat anyway
-    global.nativeLoggingHook = function() {
-      // Silently ignore - React Native will still log via console methods
-      // This prevents "Value is a string, expected a number" errors
-    };
-  }
-  
   // Handle unhandled promise rejections
   if (typeof Promise !== 'undefined' && Promise.reject) {
     const originalReject = Promise.reject;
