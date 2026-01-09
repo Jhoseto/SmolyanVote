@@ -65,8 +65,14 @@ export const useCalls = () => {
         try {
           const hasCameraPermission = await callPermissionsService.requestCameraPermission();
           if (hasCameraPermission) {
-            await liveKitService.toggleCamera(true);
-            console.log('✅ [useCalls] Camera enabled successfully');
+            // Add small delay to ensure room is fully ready
+            await new Promise(resolve => setTimeout(resolve, 300));
+            const success = await liveKitService.toggleCamera(true);
+            if (success) {
+              console.log('✅ [useCalls] Camera enabled successfully');
+            } else {
+              console.error('❌ [useCalls] Failed to enable camera');
+            }
           } else {
             console.error('❌ [useCalls] Camera permission denied');
           }
@@ -76,7 +82,11 @@ export const useCalls = () => {
       }
     };
 
-    enableCameraForVideoCall();
+    // Add delay to ensure connection is fully established
+    if (callState === CallState.CONNECTED) {
+      const timeoutId = setTimeout(enableCameraForVideoCall, 500);
+      return () => clearTimeout(timeoutId);
+    }
   }, [callState, isVideoCall]);
 
   // Start outgoing call

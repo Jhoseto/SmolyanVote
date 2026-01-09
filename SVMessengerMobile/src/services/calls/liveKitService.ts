@@ -138,29 +138,58 @@ class LiveKitService {
         if (track.kind === 'audio') {
           this.onTrackSubscribedCallback?.(track, participant);
         } else if (track.kind === 'video') {
-          // CRITICAL: Ensure track is fully enabled and active
+          // CRITICAL: Force enable track at all levels for mobile-web compatibility
+          console.log('📹 [LiveKit] Processing video track subscription:', {
+            sid: track.sid,
+            enabled: track.enabled,
+            hasMediaStreamTrack: !!track.mediaStreamTrack,
+            mediaStreamTrackActive: track.mediaStreamTrack?.active,
+            mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
+            readyState: track.mediaStreamTrack?.readyState,
+          });
+          
+          // Enable mediaStreamTrack first
           if (track.mediaStreamTrack) {
             track.mediaStreamTrack.enabled = true;
+            console.log('✅ [LiveKit] Enabled mediaStreamTrack');
+            
             // Force play if possible
             if (track.mediaStreamTrack.readyState === 'live') {
               console.log('✅ [LiveKit] Video track is live and ready');
             }
           }
           
-          // Enable track at LiveKit level too
-          if (!track.enabled && track.setEnabled) {
+          // CRITICAL: Force enable track at LiveKit level
+          // track.enabled can be undefined, so we need to check and set it
+          if (track.enabled !== true) {
             try {
-              track.setEnabled(true);
-              console.log('✅ [LiveKit] Enabled video track at LiveKit level');
+              // Try setEnabled first (preferred method)
+              if (typeof track.setEnabled === 'function') {
+                track.setEnabled(true);
+                console.log('✅ [LiveKit] Called track.setEnabled(true)');
+              }
+              // Also try direct assignment as fallback
+              if (track.enabled !== true) {
+                (track as any).enabled = true;
+                console.log('✅ [LiveKit] Set track.enabled = true directly');
+              }
             } catch (e) {
               console.warn('⚠️ [LiveKit] Could not enable track:', e);
             }
+          } else {
+            console.log('✅ [LiveKit] Track already enabled');
           }
           
           // Small delay to ensure track is fully ready before callback
           setTimeout(() => {
+            console.log('📹 [LiveKit] Triggering video track subscribed callback:', {
+              sid: track.sid,
+              enabled: track.enabled,
+              hasMediaStreamTrack: !!track.mediaStreamTrack,
+              mediaStreamTrackActive: track.mediaStreamTrack?.active,
+            });
             this.onVideoTrackSubscribedCallback?.(track, participant);
-          }, 100);
+          }, 150);
         }
       });
 
@@ -177,13 +206,50 @@ class LiveKitService {
         // Subscribe to video tracks immediately when published (for remote participants)
         if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
           console.log('📹 [LiveKit] Auto-subscribing to remote video track');
-          publication.setSubscribed(true);
+          try {
+            publication.setSubscribed(true);
+          } catch (e) {
+            console.warn('⚠️ [LiveKit] Error subscribing to published track:', e);
+          }
           
           // Also trigger callback immediately if track is already available
           if (publication.track && publication.track.mediaStreamTrack) {
             console.log('📹 [LiveKit] Remote video track available immediately, triggering callback');
-            this.onVideoTrackSubscribedCallback?.(publication.track, participant);
+            // Small delay to ensure track is fully ready
+            setTimeout(() => {
+              this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
+            }, 150);
+          } else {
+            // Track not ready yet, wait for TrackSubscribed event
+            console.log('📹 [LiveKit] Video track published but not ready yet, waiting for TrackSubscribed event');
           }
+        }
+      });
+
+      // Handle TrackUnpublished event - clear remote video when track is unpublished
+      this.room.on(RoomEvent.TrackUnpublished, (publication, participant: RemoteParticipant) => {
+        console.log('📹 [LiveKit] Track unpublished:', {
+          kind: publication.kind,
+          sid: publication.trackSid,
+          participantId: participant.identity,
+        });
+        
+        // If video track is unpublished, notify callback (will be handled by CallScreen)
+        if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
+          console.log('📹 [LiveKit] Remote video track unpublished - this might be temporary for mobile-web compatibility');
+          // Don't immediately clear - wait a bit in case it's republished
+          // Some mobile-web connections have temporary unpublish/republish cycles
+          setTimeout(() => {
+            // Check if track is still unpublished
+            const stillUnpublished = !Array.from(participant.videoTrackPublications.values())
+              .some(pub => pub.trackSid === publication.trackSid && pub.track);
+            if (stillUnpublished) {
+              console.log('📹 [LiveKit] Track still unpublished after delay, clearing');
+              this.onVideoTrackSubscribedCallback?.(null as any, participant);
+            } else {
+              console.log('📹 [LiveKit] Track was republished, keeping it');
+            }
+          }, 1000);
         }
       });
 
@@ -560,6 +626,22 @@ class LiveKitService {
 
         this.isVideoEnabled = true;
         console.log('✅ [toggleCamera] Camera enabled - VIDEO TRACK PUBLISHED');
+        
+        // CRITICAL: Ensure track is fully ready before returning
+        // Wait a bit for track to be fully initialized
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verify track is ready
+        if (this.localVideoTrack && this.localVideoTrack.mediaStreamTrack) {
+          console.log('✅ [toggleCamera] Video track is ready:', {
+            enabled: this.localVideoTrack.enabled,
+            hasMediaStreamTrack: !!this.localVideoTrack.mediaStreamTrack,
+            mediaStreamTrackActive: this.localVideoTrack.mediaStreamTrack.active,
+            mediaStreamTrackEnabled: this.localVideoTrack.mediaStreamTrack.enabled,
+          });
+        } else {
+          console.warn('⚠️ [toggleCamera] Video track created but mediaStreamTrack not available yet');
+        }
       } else {
         console.log('🎥 [toggleCamera] DISABLING camera...');
         
