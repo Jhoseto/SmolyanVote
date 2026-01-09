@@ -1,7 +1,7 @@
 /**
  * SplashScreen Component
- * Премиум splash screen с Lottie анимация като loading overlay
- * Показва се докато се зарежда приложението
+ * Премиум splash screen с Lottie анимация
+ * Изпълнява се веднъж за точно 3 секунди
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -11,40 +11,37 @@ import { Colors } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
+const ANIMATION_DURATION = 3000; // 3 секунди
+
 interface SplashScreenProps {
   onFinish: () => void;
-  isLoading: boolean; // Дали приложението все още се зарежда
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ 
-  onFinish,
-  isLoading 
+  onFinish
 }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const lottieRef = useRef<LottieView>(null);
+  const startTime = useRef(Date.now());
 
   useEffect(() => {
     // Стартираме анимацията веднага
     lottieRef.current?.play();
-  }, []);
+    startTime.current = Date.now();
 
-  useEffect(() => {
-    // Когато зареждането приключи, fade out и скриваме
-    if (!isLoading) {
+    // След точно 3 секунди скриваме анимацията
+    const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 500,
+        duration: 400,
         useNativeDriver: true,
       }).start(() => {
         onFinish();
       });
-    }
-  }, [isLoading, fadeAnim, onFinish]);
+    }, ANIMATION_DURATION);
 
-  // Не показваме нищо ако не се зарежда
-  if (!isLoading && fadeAnim._value === 0) {
-    return null;
-  }
+    return () => clearTimeout(timer);
+  }, [fadeAnim, onFinish]);
 
   return (
     <Animated.View 
@@ -54,14 +51,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           opacity: fadeAnim,
         },
       ]}
-      pointerEvents={isLoading ? 'auto' : 'none'}
+      pointerEvents="auto"
     >
       <View style={styles.container}>
         <LottieView
           ref={lottieRef}
           source={require('../assets/animations/animation .json')}
           autoPlay
-          loop={true}
+          loop={false}
           style={styles.lottie}
           resizeMode="contain"
           speed={1}

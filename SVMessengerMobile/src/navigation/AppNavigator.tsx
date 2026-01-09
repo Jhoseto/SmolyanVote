@@ -151,14 +151,15 @@ export const AppNavigator: React.FC = () => {
           </View>
         </NavigationContainer>
       ) : (
-        // Празен екран докато се зарежда (анимацията е overlay отгоре)
-        <View style={styles.loadingContainer} />
+        // Loading spinner - показва се ако след 3 секунди все още се зарежда
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.green[500]} />
+        </View>
       )}
       
-      {/* Splash Screen Overlay - показва се докато се зарежда */}
+      {/* Splash Screen Overlay - показва се точно 3 секунди */}
       {showSplash && (
         <SplashScreen 
-          isLoading={isInitializing}
           onFinish={() => {
             setShowSplash(false);
           }}
