@@ -56,7 +56,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       <View style={styles.container}>
         <LottieView
           ref={lottieRef}
-          source={require('../assets/animations/animation .json')}
+          source={require('../assets/animations/animation.json')}
           autoPlay
           loop={false}
           style={styles.lottie}
