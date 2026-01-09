@@ -384,10 +384,14 @@ export const CallScreen: React.FC = () => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   
-  // PiP position state - MATCH WEB VERSION: bottom: 20px, right: 20px
-  const pipPosition = useRef({ x: width - 180, y: height - 160 }); // Default bottom-right (160px width + 20px margin)
+  // PiP position state - Positioned higher up, not too low
+  // Default: right side, positioned higher (about 1/3 from bottom instead of very bottom)
+  const pipPosition = useRef({ x: width - 180, y: height - 300 }); // Higher position (160px width + 20px margin, but higher Y)
   const pipX = useRef(new Animated.Value(width - 180)).current;
-  const pipY = useRef(new Animated.Value(height - 160)).current;
+  const pipY = useRef(new Animated.Value(height - 300)).current;
+  
+  // Track if we're currently dragging to disable floating animation
+  const [isDragging, setIsDragging] = useState(false);
   
   // PanResponder for draggable PiP
   const panResponder = useRef(
@@ -395,9 +399,12 @@ export const CallScreen: React.FC = () => {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
-        // Stop floating animation while dragging
+        // Mark as dragging and stop all animations
+        setIsDragging(true);
         floatAnim.stopAnimation();
         pulseAnim.stopAnimation();
+        // Set floatAnim to 0 to avoid conflicts
+        floatAnim.setValue(0);
         // Get current position
         pipX.flattenOffset();
         pipY.flattenOffset();
@@ -433,24 +440,26 @@ export const CallScreen: React.FC = () => {
             friction: 7,
           }),
           Animated.spring(pipY, {
-            toValue: newY - (height - 160), // Offset from default bottom position
+            toValue: newY - (height - 300), // Offset from default position (updated to match new initial position)
             useNativeDriver: false,
             tension: 50,
             friction: 7,
           }),
         ]).start(() => {
-          // Resume floating animation
+          // Mark as not dragging and resume floating animation
+          setIsDragging(false);
+          // Resume floating animation - MUST use useNativeDriver: false to work with pipY
           Animated.loop(
             Animated.sequence([
               Animated.timing(floatAnim, {
                 toValue: -8,
                 duration: 2000,
-                useNativeDriver: true,
+                useNativeDriver: false, // CRITICAL: Must be false to work with pipY
               }),
               Animated.timing(floatAnim, {
                 toValue: 0,
                 duration: 2000,
-                useNativeDriver: true,
+                useNativeDriver: false, // CRITICAL: Must be false to work with pipY
               }),
             ])
           ).start();
@@ -463,36 +472,38 @@ export const CallScreen: React.FC = () => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: true,
+      useNativeDriver: true, // fadeAnim can use native driver - it's only used for opacity
     }).start();
 
+    // CRITICAL: pulseAnim MUST use useNativeDriver: false because it's used with pipY and floatAnim
+    // which also use false. Mixing native and JS drivers causes conflicts.
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.08,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false, // CRITICAL: Must be false to work with pipY and floatAnim
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false, // CRITICAL: Must be false to work with pipY and floatAnim
         }),
       ])
     ).start();
 
-    // Floating animation for PiP
+    // Floating animation for PiP - MUST use useNativeDriver: false to work with drag
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: -8,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false, // CRITICAL: Must be false to work with pipY (which uses false)
         }),
         Animated.timing(floatAnim, {
           toValue: 0,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false, // CRITICAL: Must be false to work with pipY (which uses false)
         }),
       ])
     ).start();
@@ -804,6 +815,7 @@ export const CallScreen: React.FC = () => {
                   {
                     transform: [
                       { translateX: pipX },
+                      // Add floatAnim - it will be stopped during drag to avoid conflicts
                       { translateY: Animated.add(pipY, floatAnim) },
                       { scale: pulseAnim },
                     ],
