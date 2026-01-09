@@ -16,6 +16,7 @@ import { useCallsStore } from '../store/callsStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { CallState } from '../types/call';
 import { Colors } from '../theme';
+import { SplashScreen } from '../components/SplashScreen';
 
 // Enable native screens for better performance
 // This must be called before any screen components are rendered
@@ -29,6 +30,7 @@ export const AppNavigator: React.FC = () => {
   const { isAuthenticated, refreshAuth } = useAuthStore();
   const { callState, currentCall } = useCallsStore();
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [callScreensLoaded, setCallScreensLoaded] = useState(false);
   const [CallScreenComponent, setCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
@@ -54,8 +56,8 @@ export const AppNavigator: React.FC = () => {
     }
   }, [callState, callScreensLoaded]);
 
+  // Инициализация на auth при стартиране
   useEffect(() => {
-    // Проверяваме дали user е все още authenticated при стартиране
     const initializeAuth = async () => {
       try {
         setHasError(false);
@@ -65,13 +67,12 @@ export const AppNavigator: React.FC = () => {
         console.error('Error refreshing auth:', error);
         setHasError(true);
         setErrorMessage(error?.message || 'Грешка при инициализация');
-        // Still set initializing to false so app can continue
       } finally {
         setIsInitializing(false);
       }
     };
 
-    // Add small delay to ensure stores are hydrated
+    // Стартираме инициализацията веднага
     const timer = setTimeout(() => {
       initializeAuth();
     }, 100);
@@ -101,65 +102,69 @@ export const AppNavigator: React.FC = () => {
     });
   }, [callState, currentCall, showCallScreen]);
 
-  // Show loading screen while initializing auth
-  if (isInitializing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.green[500]} />
-      </View>
-    );
-  }
-
-  // Show error screen if initialization failed
-  if (hasError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Грешка при стартиране</Text>
-        <Text style={styles.errorDetails}>{errorMessage}</Text>
-        <Text style={styles.errorDetails}>Моля, рестартирай приложението</Text>
-      </View>
-    );
-  }
-
   return (
-    <NavigationContainer
-      onReady={() => {
-        console.log('✅ NavigationContainer ready');
-      }}
-      onStateChange={() => {
-        // Navigation state changed
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {isAuthenticated ? (
-            <Stack.Screen name="Main" component={MainNavigator} />
-          ) : (
-            <Stack.Screen name="Auth" component={AuthNavigator} />
-          )}
-        </Stack.Navigator>
+    <View style={{ flex: 1 }}>
+      {/* Основно съдържание - зарежда се отзад, дори докато се показва splash */}
+      {hasError ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Грешка при стартиране</Text>
+          <Text style={styles.errorDetails}>{errorMessage}</Text>
+          <Text style={styles.errorDetails}>Моля, рестартирай приложението</Text>
+        </View>
+      ) : !isInitializing ? (
+        <NavigationContainer
+          onReady={() => {
+            console.log('✅ NavigationContainer ready');
+          }}
+          onStateChange={() => {
+            // Navigation state changed
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              {isAuthenticated ? (
+                <Stack.Screen name="Main" component={MainNavigator} />
+              ) : (
+                <Stack.Screen name="Auth" component={AuthNavigator} />
+              )}
+            </Stack.Navigator>
 
-        {/* Call Screens Overlay */}
-        {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-            }}
-          >
-            {callState === CallState.INCOMING ? (
-              <IncomingCallScreenComponent />
-            ) : (
-              <CallScreenComponent />
+            {/* Call Screens Overlay */}
+            {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 9999,
+                }}
+              >
+                {callState === CallState.INCOMING ? (
+                  <IncomingCallScreenComponent />
+                ) : (
+                  <CallScreenComponent />
+                )}
+              </View>
             )}
           </View>
-        )}
-      </View>
-    </NavigationContainer>
+        </NavigationContainer>
+      ) : (
+        // Празен екран докато се зарежда (анимацията е overlay отгоре)
+        <View style={styles.loadingContainer} />
+      )}
+      
+      {/* Splash Screen Overlay - показва се докато се зарежда */}
+      {showSplash && (
+        <SplashScreen 
+          isLoading={isInitializing}
+          onFinish={() => {
+            setShowSplash(false);
+          }}
+        />
+      )}
+    </View>
   );
 };
 
