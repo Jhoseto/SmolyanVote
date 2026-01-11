@@ -180,10 +180,17 @@ public class SVMessengerWebSocketController {
                     String callerName = sender.getRealName() != null && !sender.getRealName().isBlank()
                             ? sender.getRealName()
                             : sender.getUsername();
+                    // CRITICAL: Изпращаме participantId и callerImageUrl за правилно показване на call UI
+                    // participantId се използва за accept/reject call actions
+                    // callerImageUrl се използва за показване на аватар в IncomingCallActivity
+                    Long participantId = sender.getId();
+                    String callerImageUrl = sender.getImageUrl();
                     pushNotificationService.sendIncomingCallNotification(
                             recipientUserId,
                             callerName,
-                            signal.getConversationId()
+                            signal.getConversationId(),
+                            participantId,
+                            callerImageUrl
                     );
                 } catch (Exception pushError) {
                     log.error("❌ Failed to send push notification for incoming call: {}", pushError.getMessage());

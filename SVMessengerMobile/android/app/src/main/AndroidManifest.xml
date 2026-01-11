@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Full Screen Intent permission - REQUIRED for incoming call UI when app is closed -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     
     <!-- Permissions for voice and video calls -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -81,10 +83,23 @@
         </intent-filter>
       </activity>
       
+      <!-- Incoming Call Activity - Full Screen Intent для входящи обаждания когато app-ът е затворен -->
+      <activity
+        android:name=".IncomingCallActivity"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        android:launchMode="singleTop"
+        android:excludeFromRecents="true"
+        android:exported="false"
+        android:showWhenLocked="true"
+        android:turnScreenOn="true" />
+      
       <!-- Firebase Messaging Service for background notifications -->
+      <!-- Оптимизирано като Facebook Messenger - Firebase автоматично показва нотификации
+           без постоянно работещ background service (не харчи батерия) -->
       <service
         android:name=".SVMessengerFirebaseMessagingService"
-        android:exported="false">
+        android:exported="false"
+        android:directBootAware="true">
         <intent-filter>
           <action android:name="com.google.firebase.MESSAGING_EVENT" />
         </intent-filter>

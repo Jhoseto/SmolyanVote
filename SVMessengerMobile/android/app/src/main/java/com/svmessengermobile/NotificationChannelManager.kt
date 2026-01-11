@@ -44,6 +44,7 @@ object NotificationChannelManager {
             val callsSoundUri = getSoundUri(context, "incoming_call")
             
             // Calls channel
+            // CRITICAL: IMPORTANCE_HIGH is required for Full Screen Intent to work
             val callsChannel = NotificationChannel(
                 CALLS_CHANNEL_ID,
                 "Обаждания",

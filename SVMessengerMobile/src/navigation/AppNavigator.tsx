@@ -17,6 +17,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import { CallState } from '../types/call';
 import { Colors } from '../theme';
 import { SplashScreen } from '../components/SplashScreen';
+import { navigationRef } from './navigationRef';
 
 // Enable native screens for better performance
 // This must be called before any screen components are rendered
@@ -113,6 +114,7 @@ export const AppNavigator: React.FC = () => {
         </View>
       ) : !isInitializing ? (
         <NavigationContainer
+          ref={navigationRef}
           onReady={() => {
             console.log('✅ NavigationContainer ready');
           }}

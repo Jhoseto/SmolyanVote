@@ -150,8 +150,16 @@ export const useCalls = () => {
   );
 
   // Answer incoming call
+  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
+  // This ensures that even if currentCall is initialized after the callback is created,
+  // the function will still access the latest value from the store
   const handleAnswerCall = useCallback(async () => {
-    if (!currentCall) return;
+    // Read currentCall from store to get latest value (not from closure)
+    const latestCurrentCall = useCallsStore.getState().currentCall;
+    if (!latestCurrentCall) {
+      console.warn('⚠️ [useCalls] Cannot answer call: currentCall is null');
+      return;
+    }
 
     try {
       // Request microphone permission before answering call
@@ -168,8 +176,8 @@ export const useCalls = () => {
 
       // Generate call token
       console.log('📞 [useCalls] Generating call token for answer:', {
-        conversationId: currentCall.conversationId,
-        participantId: currentCall.participantId,
+        conversationId: latestCurrentCall.conversationId,
+        participantId: latestCurrentCall.participantId,
       });
       
       let token: string;
@@ -178,8 +186,8 @@ export const useCalls = () => {
       
       try {
         const tokenResponse = await liveKitService.generateCallToken(
-          currentCall.conversationId,
-          currentCall.participantId
+          latestCurrentCall.conversationId,
+          latestCurrentCall.participantId
         );
         token = tokenResponse.token;
         roomName = tokenResponse.roomName;
@@ -206,8 +214,8 @@ export const useCalls = () => {
       if (svMobileWebSocketService.isConnected() && user) {
         svMobileWebSocketService.sendCallSignal({
           eventType: 'CALL_ACCEPT', // ✅ Съответства на backend enum SVCallEventType.CALL_ACCEPT
-          conversationId: currentCall.conversationId,
-          callerId: currentCall.participantId,
+          conversationId: latestCurrentCall.conversationId,
+          callerId: latestCurrentCall.participantId,
           receiverId: user.id,
           roomName,
         });
@@ -222,21 +230,26 @@ export const useCalls = () => {
         error,
         message: error?.message,
         stack: error?.stack,
-        currentCall,
+        currentCall: latestCurrentCall,
       });
       clearCall();
     }
-  }, [currentCall, answerCall, clearCall]);
+  }, [answerCall, clearCall]); // Removed currentCall from dependencies since we read it from store
 
   // Reject call
+  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
+  // This ensures that even if currentCall is initialized after the callback is created,
+  // the function will still access the latest value from the store
   const handleRejectCall = useCallback(() => {
+    // Read currentCall from store to get latest value (not from closure)
+    const latestCurrentCall = useCallsStore.getState().currentCall;
     const { user } = useAuthStore.getState();
-    if (currentCall && svMobileWebSocketService.isConnected() && user) {
+    if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
       // Send reject signal via WebSocket
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
-        conversationId: currentCall.conversationId,
-        callerId: currentCall.participantId,
+        conversationId: latestCurrentCall.conversationId,
+        callerId: latestCurrentCall.participantId,
         receiverId: user.id,
       });
     }
@@ -245,18 +258,23 @@ export const useCalls = () => {
     soundService.stopIncomingCallSound();
     rejectCall();
     liveKitService.disconnect();
-  }, [currentCall, rejectCall]);
+  }, [rejectCall]); // Removed currentCall from dependencies since we read it from store
 
   // End call
+  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
+  // This ensures that even if currentCall is initialized after the callback is created,
+  // the function will still access the latest value from the store
   const handleEndCall = useCallback(() => {
     console.log('🛑 [useCalls] handleEndCall called', new Error().stack);
+    // Read currentCall from store to get latest value (not from closure)
+    const latestCurrentCall = useCallsStore.getState().currentCall;
     const { user } = useAuthStore.getState();
-    if (currentCall && svMobileWebSocketService.isConnected() && user) {
+    if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
       // Send end signal via WebSocket
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
-        conversationId: currentCall.conversationId,
-        callerId: currentCall.participantId,
+        conversationId: latestCurrentCall.conversationId,
+        callerId: latestCurrentCall.participantId,
         receiverId: user.id,
       });
     }
@@ -266,7 +284,7 @@ export const useCalls = () => {
     soundService.stopOutgoingCallSound();
     liveKitService.disconnect();
     endCall();
-  }, [currentCall, endCall]);
+  }, [endCall]); // Removed currentCall from dependencies since we read it from store
 
   // Toggle mute
   const handleToggleMute = useCallback(async () => {

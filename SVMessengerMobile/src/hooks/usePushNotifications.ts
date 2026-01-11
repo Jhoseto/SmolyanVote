@@ -6,7 +6,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { pushNotificationService } from '../services/notifications/pushNotificationService';
-import { Platform, AppState } from 'react-native';
+import { Platform, AppState, DeviceEventEmitter } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { useCallsStore } from '../store/callsStore';
@@ -16,12 +16,16 @@ import { debounce } from '../utils/constants';
 import { soundService } from '../services/sounds/soundService';
 import apiClient from '../services/api/client';
 import { API_CONFIG } from '../config/api';
+import { CommonActions } from '@react-navigation/native';
+import { navigationRef } from '../navigation/navigationRef';
+import { useCalls } from './useCalls';
 
 export const usePushNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { fetchConversations } = useConversationsStore();
   const { fetchMessages } = useMessagesStore();
-  const { startCall, setCallState } = useCallsStore();
+  const { startCall, setCallState, currentCall } = useCallsStore();
+  const { answerCall, rejectCall } = useCalls();
   
   // Оптимизация: Debounced refresh за conversations (избягва излишни API calls)
   const debouncedRefreshConversations = useRef(
@@ -134,11 +138,15 @@ export const usePushNotifications = () => {
   /**
    * Handle notification opened
    * Когато app-ът се отвори от notification (затворен или в background)
+   * Оптимизирано като Facebook Messenger - автоматично навигира към правилния conversation
    */
   const handleNotificationOpened = useCallback(
     async (notification: any) => {
       console.log('📬 Notification opened:', notification);
       const data = notification.data || notification;
+
+      // Изчакай малко за да се инициализира navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Navigate based on notification type
       if (data?.conversationId) {
@@ -179,14 +187,97 @@ export const usePushNotifications = () => {
             console.log('📞 Connecting WebSocket for incoming call...');
           }
         } else {
-          // NEW_MESSAGE или друг тип - fetch-ваме messages (с debounce)
-          console.log('📥 Fetching messages for conversation:', conversationId);
+          // NEW_MESSAGE или друг тип - навигирай към conversation и fetch-вай messages
+          console.log('📥 Opening conversation from notification:', conversationId);
+          
+          // Fetch conversations за да имаме актуални данни
+          await fetchConversations();
+          
+          // Вземи conversation за participant name
+          const { conversations, getConversation, selectConversation } = useConversationsStore.getState();
+          let conversation = conversations.find((c) => c.id === conversationId);
+          if (!conversation) {
+            conversation = await getConversation(conversationId).catch(() => null);
+          }
+          
+          const participantName = conversation?.participant?.fullName || data.senderName || 'Потребител';
+          
+          // Select conversation в store
+          selectConversation(conversationId);
+          
+          // Навигирай към Chat screen и изчакай навигацията да завърши
+          // преди да fetch-нем messages (избягваме race condition)
+          const navigateToChat = (): Promise<void> => {
+            return new Promise((resolve) => {
+              const MAX_RETRIES = 20; // Максимум 20 опита (10 секунди)
+              const RETRY_INTERVAL = 500; // 500ms между опитите
+              const MAX_WAIT_TIME = 10000; // Максимум 10 секунди общо време
+              
+              let retryCount = 0;
+              const startTime = Date.now();
+              
+              const attemptNavigation = () => {
+                // Проверка за максимално време
+                if (Date.now() - startTime > MAX_WAIT_TIME) {
+                  console.warn('⚠️ Navigation timeout: navigationRef not ready after 10 seconds, proceeding anyway');
+                  resolve(); // Resolve за да не блокира целия процес
+                  return;
+                }
+                
+                // Проверка за максимален брой опити
+                if (retryCount >= MAX_RETRIES) {
+                  console.warn('⚠️ Navigation failed: max retries reached, proceeding anyway');
+                  resolve(); // Resolve за да не блокира целия процес
+                  return;
+                }
+                
+                if (navigationRef.isReady()) {
+                  try {
+                    navigationRef.dispatch(
+                      CommonActions.navigate({
+                        name: 'Main',
+                        params: {
+                          screen: 'Conversations',
+                          params: {
+                            screen: 'Chat',
+                            params: {
+                              conversationId,
+                              participantName,
+                            },
+                          },
+                        },
+                      })
+                    );
+                    console.log('✅ Navigated to conversation:', conversationId);
+                    // Изчакай малко за да се инициализира Chat screen
+                    setTimeout(resolve, 300);
+                  } catch (error) {
+                    console.error('❌ Error navigating to conversation:', error);
+                    // Resolve за да не блокира целия процес дори ако навигацията fail-не
+                    resolve();
+                  }
+                } else {
+                  retryCount++;
+                  // Опитай отново след RETRY_INTERVAL
+                  setTimeout(attemptNavigation, RETRY_INTERVAL);
+                }
+              };
+              
+              // Стартирай първия опит
+              attemptNavigation();
+            });
+          };
+          
+          // Изчакай навигацията да завърши преди да fetch-нем messages
+          await navigateToChat();
+          
+          // Fetch messages (с debounce) - само след като навигацията е завършила
           debouncedFetchMessages(conversationId);
           debouncedRefreshConversations();
         }
       }
     },
-    [debouncedRefreshConversations, debouncedFetchMessages, startCall, setCallState, isAuthenticated, user]
+    [debouncedRefreshConversations, debouncedFetchMessages, startCall, setCallState, isAuthenticated, user, fetchConversations]
   );
 
   /**
@@ -394,6 +485,141 @@ export const usePushNotifications = () => {
       subscription.remove();
     };
   }, [isAuthenticated, debouncedRefreshConversations, ensureOnlineStatus]);
+
+  // Handle incoming call actions from IncomingCallActivity (Android Full Screen Intent)
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !isAuthenticated) {
+      return;
+    }
+
+    // Listen to native events using DeviceEventEmitter
+    // MainActivity emits events via RCTDeviceEventEmitter.emit() which is accessible via DeviceEventEmitter
+    // 
+    // CRITICAL FIX: Read currentCall from store inside the listener closure instead of capturing
+    // it from the effect's dependency array. This ensures we always check the latest currentCall
+    // state, not a stale value from when the listener was attached.
+    // answerCall and rejectCall from useCalls() are stable references that use Zustand's get()
+    // internally, so they always access the latest state. We only need to check currentCall
+    // to avoid calling them when there's no call, so we read it fresh inside the listener.
+    const subscription = DeviceEventEmitter.addListener('IncomingCallAction', async (event: any) => {
+      console.log('📞 IncomingCallAction received:', event);
+      
+      // CRITICAL FIX: Destructure without default value for participantId to distinguish between
+      // missing (undefined) and valid 0. The native code now always includes participantId if it
+      // was provided in the intent, even if it's 0, allowing us to distinguish between:
+      // - participantId === undefined: not provided in intent (should not happen in normal flow)
+      // - participantId === 0: valid participant ID of 0
+      // conversationId is required for call initialization, so we validate it explicitly
+      const { action, conversationId, participantId } = event;
+      
+      // Read currentCall from store inside listener to get latest state
+      // This prevents stale closure issues when currentCall updates
+      // CRITICAL FIX: Use direct assignment instead of destructuring
+      // getState() returns the store state object which has a currentCall property
+      // Direct assignment is clearer and avoids potential destructuring issues
+      let latestCurrentCall = useCallsStore.getState().currentCall;
+      
+      // CRITICAL FIX: If currentCall is not initialized (app launched from Full Screen Intent),
+      // initialize it from the event data before processing accept/reject actions.
+      // This ensures the call UI works correctly even when the app launches directly from notification.
+      // CRITICAL: Validate conversationId exists and is a valid number before using it
+      // CRITICAL: participantId can be undefined (not provided) or a number (including 0)
+      // CRITICAL: Read fetchConversations and startCall from stores inside listener to avoid stale closures
+      if (!latestCurrentCall && conversationId) {
+        // CRITICAL: Validate conversationId is a valid number to prevent NaN
+        // If conversationId is missing or invalid, we cannot initialize the call
+        const conversationIdNum = Number(conversationId);
+        if (isNaN(conversationIdNum) || conversationIdNum <= 0) {
+          console.error('❌ Invalid conversationId in IncomingCallAction:', conversationId);
+          return; // Cannot initialize call without valid conversationId
+        }
+        
+        // CRITICAL: Validate participantId if provided
+        // If participantId is undefined, we'll try to get it from the conversation
+        // If participantId is provided (including 0), we use it directly
+        let participantIdNum: number;
+        if (participantId !== undefined) {
+          participantIdNum = Number(participantId);
+          if (isNaN(participantIdNum)) {
+            console.error('❌ Invalid participantId in IncomingCallAction:', participantId);
+            return; // Cannot initialize call with invalid participantId
+          }
+          // participantIdNum is valid (including 0, which is a valid ID)
+        } else {
+          // participantId not provided - we'll try to get it from conversation
+          participantIdNum = 0; // Temporary value, will be updated from conversation
+        }
+        
+        console.log('📞 Initializing currentCall from IncomingCallAction event data');
+        try {
+          // Read functions from stores inside listener to get latest references
+          // This prevents stale closure issues if function references change between renders
+          const { fetchConversations: latestFetchConversations } = useConversationsStore.getState();
+          const { startCall: latestStartCall } = useCallsStore.getState();
+          
+          // Fetch conversation to get participant details
+          await latestFetchConversations();
+          const { conversations, getConversation } = useConversationsStore.getState();
+          let conversation = conversations.find((c) => c.id === conversationIdNum);
+          if (!conversation) {
+            const fetchedConversation = await getConversation(conversationIdNum).catch(() => null);
+            conversation = fetchedConversation || undefined;
+          }
+          
+          const participantName = conversation?.participant?.fullName || conversation?.participant?.username || 'Потребител';
+          const participantImageUrl = conversation?.participant?.imageUrl;
+          
+          // Use participantId from event if provided, otherwise use from conversation
+          // CRITICAL: If participantId was provided in event (including 0), use it
+          // Otherwise, fall back to conversation participant ID
+          const finalParticipantId = (participantId !== undefined) 
+            ? participantIdNum 
+            : (conversation?.participant?.id || 0);
+          
+          // Initialize the call in the store using latest function reference
+          // CRITICAL: Use validated conversationIdNum and finalParticipantId
+          latestStartCall(
+            conversationIdNum,
+            finalParticipantId,
+            participantName,
+            participantImageUrl,
+            CallState.INCOMING
+          );
+          
+          // Read the newly initialized call
+          latestCurrentCall = useCallsStore.getState().currentCall;
+          console.log('✅ currentCall initialized from event data:', latestCurrentCall);
+        } catch (error) {
+          console.error('❌ Error initializing currentCall from event data:', error);
+        }
+      }
+      
+      if (action === 'accept_call') {
+        console.log('📞 Accepting call from IncomingCallActivity');
+        if (latestCurrentCall) {
+          answerCall();
+        } else {
+          console.error('❌ Cannot accept call: currentCall not initialized and could not be created from event data');
+        }
+      } else if (action === 'reject_call') {
+        console.log('📞 Rejecting call from IncomingCallActivity');
+        // For reject, we can still process it even if currentCall wasn't initialized
+        // because rejectCall() clears the call state, which is safe to call
+        if (latestCurrentCall) {
+          rejectCall();
+        } else {
+          // If no currentCall, just clear any potential call state
+          const { clearCall } = useCallsStore.getState();
+          clearCall();
+          console.log('✅ Call state cleared (no currentCall to reject)');
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated, answerCall, rejectCall]); // Removed currentCall from deps - read it inside listener instead
 
   return {
     registerDeviceToken,

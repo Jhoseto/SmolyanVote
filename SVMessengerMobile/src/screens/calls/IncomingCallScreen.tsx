@@ -232,36 +232,36 @@ export const IncomingCallScreen: React.FC = () => {
         >
           {/* Avatar с premium ring waves */}
           <View style={styles.avatarContainer}>
-            {/* Ring wave 3 */}
+            {/* Ring wave 3 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring3Scale }],
                   opacity: ring3Opacity,
-                  backgroundColor: '#059669',
+                  backgroundColor: '#15803d', // Darker green for white background
                 },
               ]}
             />
-            {/* Ring wave 2 */}
+            {/* Ring wave 2 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring2Scale }],
                   opacity: ring2Opacity,
-                  backgroundColor: '#10b981',
+                  backgroundColor: '#16a34a', // Medium green
                 },
               ]}
             />
-            {/* Ring wave 1 */}
+            {/* Ring wave 1 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring1Scale }],
                   opacity: ring1Opacity,
-                  backgroundColor: '#34d399',
+                  backgroundColor: '#22c55e', // Primary green
                 },
               ]}
             />
@@ -307,10 +307,10 @@ export const IncomingCallScreen: React.FC = () => {
                 />
 
                 {/* Shadow ring */}
-                <View style={[styles.buttonShadow, { backgroundColor: '#7f1d1d' }]} />
+                <View style={[styles.buttonShadow, { backgroundColor: '#dc2626' }]} />
 
                 {/* Middle ring */}
-                <View style={[styles.buttonMiddle, { backgroundColor: '#b91c1c' }]} />
+                <View style={[styles.buttonMiddle, { backgroundColor: '#f87171' }]} />
 
                 {/* Inner button */}
                 <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
@@ -333,7 +333,7 @@ export const IncomingCallScreen: React.FC = () => {
                   style={[
                     styles.buttonGlow,
                     {
-                      backgroundColor: '#10b981',
+                      backgroundColor: '#22c55e',
                       opacity: acceptGlowOpacity,
                       transform: [{ scale: acceptGlowScale }],
                     },
@@ -341,13 +341,13 @@ export const IncomingCallScreen: React.FC = () => {
                 />
 
                 {/* Shadow ring */}
-                <View style={[styles.buttonShadow, { backgroundColor: '#064e3b' }]} />
+                <View style={[styles.buttonShadow, { backgroundColor: '#16a34a' }]} />
 
                 {/* Middle ring */}
-                <View style={[styles.buttonMiddle, { backgroundColor: '#047857' }]} />
+                <View style={[styles.buttonMiddle, { backgroundColor: '#4ade80' }]} />
 
                 {/* Inner button */}
-                <View style={[styles.buttonInner, { backgroundColor: '#10b981' }]}>
+                <View style={[styles.buttonInner, { backgroundColor: '#22c55e' }]}>
                   <View style={styles.buttonGloss} />
                   <View style={styles.buttonIconContainer}>
                     <TelephoneIcon size={36} color="#fff" />
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-    backgroundColor: '#0a0f1c',
+    backgroundColor: '#ffffff', // Premium white background
   },
   star1: {
     position: 'absolute',
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 90,
     borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(34, 197, 94, 0.4)', // Premium green
     top: -15,
     left: -15,
   },
@@ -433,58 +433,58 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: 'rgba(34, 197, 94, 0.2)', // Premium green
     top: -25,
     left: -25,
   },
   avatar: {
-    borderWidth: 5,
-    borderColor: 'rgba(16, 185, 129, 0.6)',
-    shadowColor: '#10b981',
+    borderWidth: 6,
+    borderColor: '#22c55e', // Premium green border
+    shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.3,
     shadowRadius: 28,
-    elevation: 20,
+    elevation: 16,
   },
   callerInfo: {
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   callerName: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: '800',
-    color: '#fff',
-    marginBottom: 16,
+    color: '#111827', // Dark text on white background
+    marginBottom: 20,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   callingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    shadowColor: '#10b981',
+    backgroundColor: '#ffffff', // White background
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#E5E7EB', // Light gray border
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 8,
   },
   pulsingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#10b981',
-    marginRight: 10,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#22c55e', // Premium green
+    marginRight: 12,
   },
   callingText: {
-    fontSize: 16,
-    color: '#34d399',
+    fontSize: 17,
+    color: '#15803d', // Dark green text
     fontWeight: '700',
   },
   actionsContainer: {

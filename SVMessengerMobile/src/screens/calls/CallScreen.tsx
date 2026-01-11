@@ -940,7 +940,7 @@ export const CallScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0f1c',
+    backgroundColor: '#ffffff', // Premium white background
   },
   content: {
     flex: 1,

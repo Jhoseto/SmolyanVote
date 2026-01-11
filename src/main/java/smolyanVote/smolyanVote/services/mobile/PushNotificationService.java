@@ -104,6 +104,8 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща FCM notification за Android
+     * Оптимизирано като Facebook Messenger - използва Firebase FCM автоматично показване на нотификации
+     * без постоянно работещ background service (не харчи батерия)
      */
     private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
@@ -112,14 +114,28 @@ public class PushNotificationService implements MobilePushNotificationService {
         }
 
         try {
+            // CRITICAL: Използваме notification payload + Android config с priority: "high"
+            // Това гарантира че Firebase автоматично показва нотификациите дори когато app-ът е затворен
+            // БЕЗ да се нуждаем от постоянно работещ background service (оптимизация на батерията)
             Message.Builder messageBuilder = Message.builder()
                     .setToken(deviceToken)
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
+                            .build())
+                    // Android config с priority: "high" - критично за background notifications
+                    .setAndroidConfig(com.google.firebase.messaging.AndroidConfig.builder()
+                            .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH)
+                            .setNotification(com.google.firebase.messaging.AndroidNotification.builder()
+                                    .setTitle(title)
+                                    .setBody(body)
+                                    .setSound("default")
+                                    .setChannelId(getNotificationChannelId(data))
+                                    .setPriority(com.google.firebase.messaging.AndroidNotification.Priority.HIGH)
+                                    .build())
                             .build());
 
-            // Добавяне на data payload
+            // Добавяне на data payload за app логика
             if (data != null && !data.isEmpty()) {
                 messageBuilder.putAllData(data);
             }
@@ -247,14 +263,53 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща notification за входящо обаждане
+     * @param userId ID на получателя на нотификацията
+     * @param callerName Име на звънящия
+     * @param conversationId ID на разговора
+     * @param participantId ID на участника (звънящия) - използва се за accept/reject call
+     * @param callerImageUrl URL на аватара на звънящия - използва се за показване в call UI
      */
-    public void sendIncomingCallNotification(Long userId, String callerName, Long conversationId) {
+    public void sendIncomingCallNotification(Long userId, String callerName, Long conversationId, Long participantId, String callerImageUrl) {
+        // CRITICAL FIX: Validate required parameters to prevent NullPointerException
+        if (userId == null) {
+            log.error("❌ Cannot send incoming call notification: userId is null");
+            return;
+        }
+        if (conversationId == null) {
+            log.error("❌ Cannot send incoming call notification: conversationId is null for userId {}", userId);
+            return;
+        }
+        // callerName can be null, use default value
+        String safeCallerName = (callerName != null && !callerName.trim().isEmpty()) 
+            ? callerName 
+            : "Потребител";
+        
         Map<String, String> data = new HashMap<>();
         data.put("type", "INCOMING_CALL");
-        data.put("conversationId", conversationId.toString());
-        data.put("callerName", callerName);
+        data.put("conversationId", conversationId.toString()); // Safe now - conversationId is validated above
+        data.put("callerName", safeCallerName);
+        // CRITICAL: participantId и callerImageUrl са необходими за правилно показване на call UI
+        // participantId се използва за accept/reject call actions
+        // callerImageUrl се използва за показване на аватар в IncomingCallActivity
+        if (participantId != null) {
+            data.put("participantId", participantId.toString());
+        }
+        if (callerImageUrl != null && !callerImageUrl.trim().isEmpty()) {
+            data.put("callerImageUrl", callerImageUrl.trim());
+        }
 
-        sendNotificationToUser(userId, "Входящо обаждане", callerName + " те вика", data);
+        sendNotificationToUser(userId, "Входящо обаждане", safeCallerName + " те вика", data);
+    }
+
+    /**
+     * Определя notification channel ID според типа на нотификацията
+     * За да се използват правилните звуци и настройки
+     */
+    private String getNotificationChannelId(Map<String, String> data) {
+        if (data != null && "INCOMING_CALL".equals(data.get("type"))) {
+            return "svmessenger_calls"; // Calls channel
+        }
+        return "svmessenger_messages"; // Messages channel (default)
     }
 }
 
