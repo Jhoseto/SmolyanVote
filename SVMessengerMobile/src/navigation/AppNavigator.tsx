@@ -19,6 +19,16 @@ import { Colors } from '../theme';
 import { SplashScreen } from '../components/SplashScreen';
 import { navigationRef } from './navigationRef';
 import { logger } from '../utils/logger';
+import { appPermissionsService } from '../services/permissions/appPermissionsService';
+
+// Safe import with fallback - use default export
+let PermissionsRequestScreen: React.ComponentType<any> | null = null;
+try {
+  const PermissionsModule = require('../components/permissions/PermissionsRequestScreen');
+  PermissionsRequestScreen = PermissionsModule.default || PermissionsModule.PermissionsRequestScreen || null;
+} catch (error) {
+  logger.error('Failed to load PermissionsRequestScreen:', error);
+}
 
 // Enable native screens for better performance
 // This must be called before any screen components are rendered
@@ -38,6 +48,8 @@ export const AppNavigator: React.FC = () => {
   const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPermissionsScreen, setShowPermissionsScreen] = useState(false);
+  const [checkingPermissions, setCheckingPermissions] = useState(true);
   
   // Setup push notifications - wrapped in error boundary by hook itself
   usePushNotifications();
@@ -57,6 +69,30 @@ export const AppNavigator: React.FC = () => {
       }
     }
   }, [callState, callScreensLoaded]);
+
+  // Check permissions on first launch
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (Platform.OS !== 'android') {
+        setCheckingPermissions(false);
+        return;
+      }
+
+      try {
+        const hasRequestedBefore = await appPermissionsService.hasRequestedPermissionsBefore();
+        if (!hasRequestedBefore) {
+          // Show permissions screen on first launch
+          setShowPermissionsScreen(true);
+        }
+        setCheckingPermissions(false);
+      } catch (error) {
+        logger.error('Error checking permissions status:', error);
+        setCheckingPermissions(false);
+      }
+    };
+
+    checkPermissions();
+  }, []);
 
   // Инициализация на auth при стартиране
   useEffect(() => {
@@ -90,6 +126,26 @@ export const AppNavigator: React.FC = () => {
   React.useEffect(() => {
     // Call screen visibility is managed by showCallScreen variable
   }, [callState, currentCall, showCallScreen]);
+
+  // Show permissions screen if needed (only on Android, first launch)
+  if (Platform.OS === 'android' && showPermissionsScreen && !checkingPermissions) {
+    if (!PermissionsRequestScreen) {
+      // Fallback if component failed to load
+      logger.error('PermissionsRequestScreen component not available');
+      setShowPermissionsScreen(false);
+      return null;
+    }
+    return (
+      <View style={{ flex: 1 }}>
+        <PermissionsRequestScreen
+          onComplete={(allGranted) => {
+            setShowPermissionsScreen(false);
+            // Continue with normal app flow
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>

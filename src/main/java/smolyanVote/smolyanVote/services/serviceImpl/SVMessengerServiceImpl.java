@@ -12,15 +12,18 @@ import org.springframework.transaction.annotation.Isolation;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVConversationEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
+import smolyanVote.smolyanVote.models.svmessenger.CallHistoryEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVConversationRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVMessageRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.CallHistoryRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.CallHistoryDTO;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
 import java.time.LocalDateTime;
@@ -40,6 +43,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
     private final SVConversationRepository conversationRepo;
     private final SVMessageRepository messageRepo;
+    private final CallHistoryRepository callHistoryRepo;
     private final UserRepository userRepo;
     private final SVMessengerWebSocketHandler webSocketHandler;
     private final FollowService followService;
@@ -60,12 +64,14 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     public SVMessengerServiceImpl(
             SVConversationRepository conversationRepo,
             SVMessageRepository messageRepo,
+            CallHistoryRepository callHistoryRepo,
             UserRepository userRepo,
             SVMessengerWebSocketHandler webSocketHandler,
             FollowService followService,
             smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService pushNotificationService) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
+        this.callHistoryRepo = callHistoryRepo;
         this.userRepo = userRepo;
         this.webSocketHandler = webSocketHandler;
         this.followService = followService;
@@ -664,6 +670,91 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         } catch (Exception e) {
             log.error("Error generating LiveKit call token for conversation {}: {}", conversationId, e.getMessage(), e);
             throw new RuntimeException("Failed to generate call token", e);
+        }
+    }
+
+    // ========== CALL HISTORY ==========
+
+    @Override
+    @Transactional
+    public void saveCallHistory(Long conversationId, Long callerId, Long receiverId,
+                               java.time.Instant startTime, java.time.Instant endTime,
+                               String status, Boolean isVideoCall) {
+        try {
+            CallHistoryEntity callHistory = new CallHistoryEntity();
+            callHistory.setConversationId(conversationId);
+            callHistory.setCallerId(callerId);
+            callHistory.setReceiverId(receiverId);
+            callHistory.setStartTime(startTime);
+            callHistory.setEndTime(endTime);
+            callHistory.setIsVideoCall(isVideoCall != null ? isVideoCall : false);
+
+            // Parse status
+            CallHistoryEntity.CallStatus callStatus;
+            try {
+                callStatus = CallHistoryEntity.CallStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid call status: {}, defaulting to MISSED", status);
+                callStatus = CallHistoryEntity.CallStatus.MISSED;
+            }
+            callHistory.setStatus(callStatus);
+
+            // Calculate duration if call was accepted and has end time
+            if (callStatus == CallHistoryEntity.CallStatus.ACCEPTED && endTime != null && startTime != null) {
+                long durationSeconds = java.time.Duration.between(startTime, endTime).getSeconds();
+                callHistory.setDurationSeconds(durationSeconds);
+            }
+
+            callHistoryRepo.save(callHistory);
+            log.debug("Saved call history for conversation {}: caller={}, receiver={}, status={}", 
+                     conversationId, callerId, receiverId, status);
+        } catch (Exception e) {
+            log.error("Error saving call history: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to save call history", e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CallHistoryDTO> getCallHistory(Long conversationId, UserEntity currentUser) {
+        try {
+            // Validate user is participant
+            SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                    .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+            
+            if (!conversation.isParticipant(currentUser)) {
+                throw new IllegalArgumentException("User is not a participant in this conversation");
+            }
+
+            // Get call history
+            List<CallHistoryEntity> callHistoryList = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(conversationId);
+
+            // Get other user for participant info
+            UserEntity otherUser = conversation.getOtherUser(currentUser);
+
+            // Map to DTOs
+            return callHistoryList.stream()
+                    .map(callHistory -> {
+                        // Determine caller and receiver names/images
+                        UserEntity caller = userRepo.findById(callHistory.getCallerId()).orElse(null);
+                        UserEntity receiver = userRepo.findById(callHistory.getReceiverId()).orElse(null);
+                        
+                        String callerName = caller != null ? 
+                                (caller.getRealName() != null && !caller.getRealName().isBlank() ? caller.getRealName() : caller.getUsername()) 
+                                : "Unknown";
+                        String callerImageUrl = caller != null ? caller.getImageUrl() : null;
+                        
+                        String receiverName = receiver != null ? 
+                                (receiver.getRealName() != null && !receiver.getRealName().isBlank() ? receiver.getRealName() : receiver.getUsername()) 
+                                : "Unknown";
+                        String receiverImageUrl = receiver != null ? receiver.getImageUrl() : null;
+
+                        return CallHistoryDTO.Mapper.toDTO(callHistory, callerName, callerImageUrl, receiverName, receiverImageUrl);
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting call history for conversation {}: {}", conversationId, e.getMessage(), e);
+            throw new RuntimeException("Failed to get call history", e);
         }
     }
 

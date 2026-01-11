@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.CallHistoryDTO;
 
 import java.util.List;
 
@@ -211,4 +212,30 @@ public interface SVMessengerService {
      * @return SVCallTokenResponse с token, room name, etc.
      */
     SVCallTokenResponse generateCallToken(Long conversationId, UserEntity currentUser);
+
+    // ========== CALL HISTORY ==========
+
+    /**
+     * Запази call history запис
+     *
+     * @param conversationId ID на разговора
+     * @param callerId ID на caller-а
+     * @param receiverId ID на receiver-а
+     * @param startTime Време на стартиране на обаждането
+     * @param endTime Време на приключване на обаждането (null ако е rejected/missed)
+     * @param status Статус на обаждането (ACCEPTED, REJECTED, MISSED, CANCELLED)
+     * @param isVideoCall Дали е video call
+     */
+    void saveCallHistory(Long conversationId, Long callerId, Long receiverId,
+                         java.time.Instant startTime, java.time.Instant endTime,
+                         String status, Boolean isVideoCall);
+
+    /**
+     * Вземи call history за разговор
+     *
+     * @param conversationId ID на разговора
+     * @param currentUser Текущият user (за валидация)
+     * @return List от CallHistoryDTO
+     */
+    List<CallHistoryDTO> getCallHistory(Long conversationId, UserEntity currentUser);
 }

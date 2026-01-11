@@ -291,41 +291,7 @@ export const IncomingCallScreen: React.FC = () => {
 
           {/* Premium 3D Action buttons */}
           <View style={styles.actionsContainer}>
-            {/* Reject button with 3D effect */}
-            <TouchableOpacity onPress={handleRejectPress} activeOpacity={0.9}>
-              <Animated.View style={{ transform: [{ scale: rejectScaleAnim }] }}>
-                {/* Glow layer */}
-                <Animated.View
-                  style={[
-                    styles.buttonGlow,
-                    {
-                      backgroundColor: '#ef4444',
-                      opacity: rejectGlowOpacity,
-                      transform: [{ scale: rejectGlowScale }],
-                    },
-                  ]}
-                />
-
-                {/* Shadow ring */}
-                <View style={[styles.buttonShadow, { backgroundColor: '#dc2626' }]} />
-
-                {/* Middle ring */}
-                <View style={[styles.buttonMiddle, { backgroundColor: '#f87171' }]} />
-
-                {/* Inner button */}
-                <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
-                  <View style={styles.buttonGloss} />
-                  <View style={styles.buttonIconContainer}>
-                    <XMarkIcon size={36} color="#fff" />
-                  </View>
-                  <View style={styles.buttonDepth} />
-                </View>
-
-                <Text style={styles.actionLabel}>Откажи</Text>
-              </Animated.View>
-            </TouchableOpacity>
-
-            {/* Accept button with 3D effect */}
+            {/* Accept button with 3D effect - зелена слушалка отляво */}
             <TouchableOpacity onPress={handleAcceptPress} activeOpacity={0.9}>
               <Animated.View style={{ transform: [{ scale: acceptScaleAnim }] }}>
                 {/* Glow layer */}
@@ -356,6 +322,40 @@ export const IncomingCallScreen: React.FC = () => {
                 </View>
 
                 <Text style={styles.actionLabel}>Приеми</Text>
+              </Animated.View>
+            </TouchableOpacity>
+
+            {/* Reject button with 3D effect - червена слушалка отдясно */}
+            <TouchableOpacity onPress={handleRejectPress} activeOpacity={0.9}>
+              <Animated.View style={{ transform: [{ scale: rejectScaleAnim }] }}>
+                {/* Glow layer */}
+                <Animated.View
+                  style={[
+                    styles.buttonGlow,
+                    {
+                      backgroundColor: '#ef4444',
+                      opacity: rejectGlowOpacity,
+                      transform: [{ scale: rejectGlowScale }],
+                    },
+                  ]}
+                />
+
+                {/* Shadow ring */}
+                <View style={[styles.buttonShadow, { backgroundColor: '#dc2626' }]} />
+
+                {/* Middle ring */}
+                <View style={[styles.buttonMiddle, { backgroundColor: '#f87171' }]} />
+
+                {/* Inner button */}
+                <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
+                  <View style={styles.buttonGloss} />
+                  <View style={styles.buttonIconContainer}>
+                    <XMarkIcon size={36} color="#fff" />
+                  </View>
+                  <View style={styles.buttonDepth} />
+                </View>
+
+                <Text style={styles.actionLabel}>Откажи</Text>
               </Animated.View>
             </TouchableOpacity>
           </View>

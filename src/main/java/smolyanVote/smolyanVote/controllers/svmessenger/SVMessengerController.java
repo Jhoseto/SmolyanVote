@@ -13,6 +13,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.*;
+import java.util.List;
 
 import java.util.HashMap;
 import java.util.List;
@@ -578,6 +579,29 @@ public class SVMessengerController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             log.error("Error generating call token (GET)", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * GET /api/svmessenger/conversations/{id}/call-history
+     * Вземи call history за разговор
+     * 
+     * Response: List<CallHistoryDTO>
+     */
+    @GetMapping("/conversations/{id}/call-history")
+    public ResponseEntity<List<CallHistoryDTO>> getCallHistory(
+            @PathVariable Long id,
+            Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            List<CallHistoryDTO> callHistory = messengerService.getCallHistory(id, currentUser);
+            return ResponseEntity.ok(callHistory);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid call history request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error getting call history", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

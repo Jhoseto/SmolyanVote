@@ -242,27 +242,50 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
                 .setSmallIcon(android.R.drawable.ic_dialog_info) // TODO: Use custom icon
                 .setContentTitle(title ?: "SVMessenger")
                 .setContentText(body ?: "Ново съобщение")
-                .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             
-            // For incoming calls, set Full Screen Intent to show call UI panel
-            // This shows the call UI in the top of the screen even when app is closed
-            if (isIncomingCall && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                notificationBuilder.setFullScreenIntent(pendingIntent, true)
-                Log.d("SVMessengerFCM", "📞 Full Screen Intent set for incoming call")
+            // CRITICAL: For incoming calls, behavior differs by Android version
+            if (isIncomingCall) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    // Android Q+ (API 29+): Show ONLY Full Screen Intent, NO visible notification
+                    // Full Screen Intent directly shows IncomingCallActivity on full screen
+                    // Activity handles UI and sound - notification is minimal and hidden
+                    notificationBuilder.setFullScreenIntent(pendingIntent, true)
+                    // CRITICAL: Remove sound/vibration from notification - activity handles sound
+                    notificationBuilder.setSound(null)
+                    notificationBuilder.setVibrate(null)
+                    notificationBuilder.setLights(0, 0, 0)
+                    // Set minimal priority - notification is just a carrier for Full Screen Intent
+                    notificationBuilder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                    notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
+                    notificationBuilder.setOngoing(true)
+                    notificationBuilder.setAutoCancel(false)
+                    // Show minimal notification (required for Full Screen Intent to work)
+                    // This notification is automatically hidden when Full Screen Intent shows activity
+                    notificationManager.notify(notificationId, notificationBuilder.build())
+                    Log.d("SVMessengerFCM", "📞 Full Screen Intent set for incoming call (Android Q+) - activity shown directly, notification hidden")
+                } else {
+                    // Android P and below: Show notification (Full Screen Intent not available)
+                    // User taps notification to open IncomingCallActivity
+                    notificationBuilder.setAutoCancel(false)
+                    notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
+                    notificationBuilder.setOngoing(true)
+                    notificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX)
+                    notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    notificationBuilder.setDefaults(NotificationCompat.DEFAULT_ALL)
+                    notificationManager.notify(notificationId, notificationBuilder.build())
+                    Log.d("SVMessengerFCM", "📞 Notification shown for incoming call (Android P and below)")
+                }
+            } else {
+                // Regular messages: Show normal notification
+                notificationBuilder.setAutoCancel(true)
+                notificationManager.notify(notificationId, notificationBuilder.build())
+                Log.d("SVMessengerFCM", "✅ Notification shown: id=$notificationId, channel=$channelId")
             }
-
-            // Sound is handled by notification channel settings
-            // Don't override - let the channel sound play
-            // The channel already has custom sound configured in NotificationChannelManager
-
-            // Show notification (notificationId was already generated above)
-            notificationManager.notify(notificationId, notificationBuilder.build())
-            
-            Log.d("SVMessengerFCM", "✅ Notification shown: id=$notificationId, channel=$channelId")
         } catch (e: Exception) {
             Log.e("SVMessengerFCM", "❌ Error showing notification:", e)
             e.printStackTrace()

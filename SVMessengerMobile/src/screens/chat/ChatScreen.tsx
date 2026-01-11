@@ -3,7 +3,7 @@
  * Екран за чат с конкретен потребител
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -17,7 +17,9 @@ import {
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { ConversationsStackParamList } from '../../types/navigation';
 import { useMessages } from '../../hooks/useMessages';
+import { useCallHistory } from '../../hooks/useCallHistory';
 import { MessageBubble } from '../../components/chat/MessageBubble';
+import { CallHistoryBubble } from '../../components/chat/CallHistoryBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
 import { ChatHeader } from '../../components/chat/ChatHeader';
 import { MessageSearchBar } from '../../components/chat/MessageSearchBar';
@@ -27,6 +29,7 @@ import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
 import { Message } from '../../types/message';
+import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
 
 type ChatScreenRouteProp = RouteProp<ConversationsStackParamList, 'Chat'>;
@@ -54,15 +57,46 @@ export const ChatScreen: React.FC = () => {
     isLoadingMore,
   } = useMessages(conversationId);
 
+  const { callHistory } = useCallHistory(conversationId);
+
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<number[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [replyToMessage, setReplyToMessage] = useState<{ id: number; text: string; senderName: string } | null>(null);
-  const flatListRef = useRef<FlatList<Message>>(null);
+  const flatListRef = useRef<FlatList<Message | CallHistory>>(null);
   const scrollOffsetRef = useRef(0);
   const hasScrolledRef = useRef(false);
+
+  // Combine messages and call history, sorted by time
+  type ChatItem = { type: 'message'; data: Message } | { type: 'callHistory'; data: CallHistory };
+  const chatItems: ChatItem[] = React.useMemo(() => {
+    const items: ChatItem[] = [];
+    
+    // Add messages
+    messages.forEach(msg => {
+      items.push({ type: 'message', data: msg });
+    });
+    
+    // Add call history
+    callHistory.forEach(call => {
+      items.push({ type: 'callHistory', data: call });
+    });
+    
+    // Sort by time (newest first)
+    items.sort((a, b) => {
+      const timeA = a.type === 'message' 
+        ? new Date(a.data.createdAt).getTime()
+        : new Date(a.data.startTime).getTime();
+      const timeB = b.type === 'message'
+        ? new Date(b.data.createdAt).getTime()
+        : new Date(b.data.startTime).getTime();
+      return timeB - timeA; // Descending order (newest first)
+    });
+    
+    return items;
+  }, [messages, callHistory]);
 
   // Track last message ID to detect new messages
   const lastMessageIdRef = useRef<number | null>(null);
@@ -136,29 +170,38 @@ export const ChatScreen: React.FC = () => {
     setReplyToMessage(null);
   };
 
-  // Search functionality - use refs to track changes and avoid infinite loops
-  const prevSearchQueryRef = useRef('');
-  const prevMessagesCountRef = useRef(0);
+  // Search functionality - CRITICAL FIX: Search in chatItems instead of messages
+  // use refs to track changes and avoid infinite loops
+  const prevSearchQueryRef = useRef<string>('');
+  const prevChatItemsCountRef = useRef(0);
   const prevLastMessageIdRef = useRef<number | null>(null);
   
   useEffect(() => {
     const searchQueryTrimmed = searchQuery.trim();
-    const messagesCount = messages.length;
+    const chatItemsCount = chatItems.length;
     const lastMessage = messages[messages.length - 1];
     const lastMessageId = lastMessage?.id || null;
     
-    // Only recalculate if search query changed or messages actually changed
+    // Only recalculate if search query changed or chatItems actually changed
     const searchChanged = searchQueryTrimmed !== prevSearchQueryRef.current;
-    const messagesChanged = messagesCount !== prevMessagesCountRef.current || lastMessageId !== prevLastMessageIdRef.current;
+    const chatItemsChanged = chatItemsCount !== prevChatItemsCountRef.current || lastMessageId !== prevLastMessageIdRef.current;
     
-    if (searchChanged || messagesChanged) {
+    if (searchChanged || chatItemsChanged) {
       prevSearchQueryRef.current = searchQueryTrimmed;
-      prevMessagesCountRef.current = messagesCount;
+      prevChatItemsCountRef.current = chatItemsCount;
       prevLastMessageIdRef.current = lastMessageId;
       
       if (searchQueryTrimmed.length > 0) {
-        const results = messages
-          .map((msg, index) => (msg.text.toLowerCase().includes(searchQueryTrimmed.toLowerCase()) ? index : -1))
+        // CRITICAL FIX: Search in chatItems and find indices in chatItems array
+        // Only search in messages (not call history)
+        const results = chatItems
+          .map((item, index) => {
+            // Only search in messages, skip call history items
+            if (item.type === 'message' && item.data.text.toLowerCase().includes(searchQueryTrimmed.toLowerCase())) {
+              return index;
+            }
+            return -1;
+          })
           .filter((index) => index !== -1);
         setSearchResults(results);
         setCurrentSearchIndex(0);
@@ -167,7 +210,7 @@ export const ChatScreen: React.FC = () => {
         setCurrentSearchIndex(0);
       }
     }
-  }, [searchQuery, messages.length, messages[messages.length - 1]?.id]);
+  }, [searchQuery, chatItems, messages.length, messages[messages.length - 1]?.id]);
 
   const handleSearchNext = () => {
     if (currentSearchIndex < searchResults.length - 1) {
@@ -184,12 +227,24 @@ export const ChatScreen: React.FC = () => {
   };
 
   const scrollToMessage = (index: number) => {
-    if (flatListRef.current && messages[index]) {
-      flatListRef.current.scrollToIndex({
-        index,
-        animated: true,
-        viewPosition: 0.5,
-      });
+    // CRITICAL FIX: index is now in chatItems array, not messages array
+    if (flatListRef.current && chatItems[index] && chatItems[index].type === 'message') {
+      try {
+        flatListRef.current.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      } catch (error) {
+        // Fallback: scroll to offset if scrollToIndex fails (e.g., item not rendered yet)
+        logger.error('Error scrolling to search result:', error);
+        // Try to estimate scroll position based on item height
+        const estimatedOffset = index * 80; // Approximate height per item
+        flatListRef.current.scrollToOffset({
+          offset: estimatedOffset,
+          animated: true,
+        });
+      }
     }
   };
 
@@ -232,21 +287,33 @@ export const ChatScreen: React.FC = () => {
       >
         <FlatList
         ref={flatListRef}
-        data={messages}
-        keyExtractor={(item, index) => item?.id?.toString() || `message-${index}`}
+        data={chatItems}
+        keyExtractor={(item, index) => {
+          if (item.type === 'message') {
+            return `message-${item.data.id}`;
+          } else {
+            return `call-${item.data.id}`;
+          }
+        }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-              renderItem={({ item }) => (
-                <MessageBubble
-                  message={item}
-                  participantImageUrl={participant?.imageUrl}
-                  participantName={participant?.fullName || participantName}
-                  onReply={handleReply}
-                />
-              )}
+              renderItem={({ item }) => {
+                if (item.type === 'message') {
+                  return (
+                    <MessageBubble
+                      message={item.data}
+                      participantImageUrl={participant?.imageUrl}
+                      participantName={participant?.fullName || participantName}
+                      onReply={handleReply}
+                    />
+                  );
+                } else {
+                  return <CallHistoryBubble callHistory={item.data} />;
+                }
+              }}
         contentContainerStyle={[
           styles.messagesContainer,
-          messages.length === 0 && styles.emptyContainer,
+          chatItems.length === 0 && styles.emptyContainer,
         ]}
         inverted={false}
         ListHeaderComponent={
@@ -283,14 +350,14 @@ export const ChatScreen: React.FC = () => {
           
           // Load more messages when scrolling near the top (offsetY < 200)
           // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
-          if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && messages.length > 0) {
+          if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
             loadMoreMessages();
           }
         }}
         scrollEventThrottle={400}
         onContentSizeChange={() => {
           // Auto-scroll to bottom when content size changes (only if not loading more)
-          if (messages.length > 0 && !isLoadingMore) {
+          if (chatItems.length > 0 && !isLoadingMore) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
             }, 50);
@@ -298,7 +365,7 @@ export const ChatScreen: React.FC = () => {
         }}
         onLayout={() => {
           // Scroll to bottom on layout (only if not loading more)
-          if (messages.length > 0 && !isLoadingMore) {
+          if (chatItems.length > 0 && !isLoadingMore) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
             }, 100);

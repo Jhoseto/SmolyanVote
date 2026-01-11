@@ -41,6 +41,15 @@ class MainApplication : Application(), ReactApplication {
           e.printStackTrace()
           // Continue without notification module - non-critical
         }
+        try {
+          android.util.Log.d("MainApplication", "🔐 Adding PermissionsPackage...")
+          add(PermissionsPackage())
+          android.util.Log.d("MainApplication", "✅ PermissionsPackage added")
+        } catch (e: Exception) {
+          android.util.Log.e("MainApplication", "❌ Failed to add PermissionsPackage:", e)
+          e.printStackTrace()
+          // Continue without permissions module - non-critical
+        }
       }
       
       android.util.Log.d("MainApplication", "📦 Creating ReactHost with ${packages.size} packages...")
@@ -76,6 +85,11 @@ class MainApplication : Application(), ReactApplication {
           add(NotificationPackage())
         } catch (e: Exception) {
           android.util.Log.e("MainApplication", "❌ Failed to add NotificationPackage:", e)
+        }
+        try {
+          add(PermissionsPackage())
+        } catch (e: Exception) {
+          android.util.Log.e("MainApplication", "❌ Failed to add PermissionsPackage:", e)
         }
       }
       return packages

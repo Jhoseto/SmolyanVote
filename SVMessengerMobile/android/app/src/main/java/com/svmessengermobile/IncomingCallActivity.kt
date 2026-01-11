@@ -2,6 +2,8 @@ package com.svmessengermobile
 
 import android.app.Activity
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -13,13 +15,15 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import java.io.IOException
 
 /**
  * Incoming Call Activity
- * Показва full screen call UI панел в горния край на екрана
+ * Показва full screen call UI панел на целия екран
  * когато app-ът е затворен и има входящо обаждане
  * 
  * Използва Full Screen Intent за да се покаже дори когато app-ът е напълно затворен
+ * Възпроизвежда звук постоянно докато не се приключи обаждането
  */
 class IncomingCallActivity : Activity() {
 
@@ -27,6 +31,9 @@ class IncomingCallActivity : Activity() {
     private lateinit var callerAvatar: ImageView
     private lateinit var acceptButton: Button
     private lateinit var rejectButton: Button
+    
+    // MediaPlayer за възпроизвеждане на звука за входящо обаждане
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,12 +67,17 @@ class IncomingCallActivity : Activity() {
         
         // Setup button listeners
         setupButtonListeners(conversationId, participantId, participantIdProvided)
+        
+        // CRITICAL: Start playing incoming call sound continuously
+        startIncomingCallSound()
     }
 
     /**
      * Setup window for full screen
+     * CRITICAL: Must be full screen to work properly with Full Screen Intent
      */
     private fun setupWindow() {
+        // CRITICAL: Enable showing over lockscreen and turning screen on
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -76,10 +88,13 @@ class IncomingCallActivity : Activity() {
             )
         }
         
+        // CRITICAL: Keep screen on, dismiss keyguard, full screen
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
         
         // Full screen - cover entire screen
@@ -88,13 +103,77 @@ class IncomingCallActivity : Activity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
         
-        // Hide system UI for immersive experience
+        // Hide system UI for immersive experience (like a real phone call)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             window.decorView.systemUiVisibility = (
                 android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
                 android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             )
+        }
+    }
+    
+    /**
+     * Start playing incoming call sound continuously
+     * CRITICAL: This plays the sound in the Activity, not just in notification
+     * This ensures the sound continues even if notification is dismissed
+     */
+    private fun startIncomingCallSound() {
+        try {
+            // Release any existing MediaPlayer
+            stopIncomingCallSound()
+            
+            // Create new MediaPlayer
+            mediaPlayer = MediaPlayer()
+            
+            // Set audio attributes for call sound (USAGE_VOICE_COMMUNICATION for calls)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            
+            mediaPlayer?.setAudioAttributes(audioAttributes)
+            
+            // Load sound from raw resources
+            val assetFileDescriptor = resources.openRawResourceFd(R.raw.incoming_call)
+            mediaPlayer?.setDataSource(
+                assetFileDescriptor.fileDescriptor,
+                assetFileDescriptor.startOffset,
+                assetFileDescriptor.length
+            )
+            assetFileDescriptor.close()
+            
+            // Prepare and start playing
+            mediaPlayer?.prepare()
+            mediaPlayer?.isLooping = true // Loop continuously
+            mediaPlayer?.setVolume(1.0f, 1.0f) // Full volume
+            mediaPlayer?.start()
+            
+            Log.d("IncomingCallActivity", "📞 Incoming call sound started")
+        } catch (e: IOException) {
+            Log.e("IncomingCallActivity", "❌ Error starting incoming call sound:", e)
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ Error starting incoming call sound:", e)
+        }
+    }
+    
+    /**
+     * Stop playing incoming call sound
+     */
+    private fun stopIncomingCallSound() {
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.release()
+            }
+            mediaPlayer = null
+            Log.d("IncomingCallActivity", "📞 Incoming call sound stopped")
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ Error stopping incoming call sound:", e)
         }
     }
 
@@ -254,9 +333,9 @@ class IncomingCallActivity : Activity() {
             )
         }
         
-        // Reject button (left)
-        rejectButton = createPremiumButton("Откажи", 0xFFef4444.toInt())
-        buttonsContainer.addView(rejectButton)
+        // Accept button (left) - зелена слушалка отляво
+        acceptButton = createPremiumButton("Приеми", 0xFF10b981.toInt())
+        buttonsContainer.addView(acceptButton)
         
         // Spacer
         val spacer = View(this).apply {
@@ -267,9 +346,9 @@ class IncomingCallActivity : Activity() {
         }
         buttonsContainer.addView(spacer)
         
-        // Accept button (right)
-        acceptButton = createPremiumButton("Приеми", 0xFF10b981.toInt())
-        buttonsContainer.addView(acceptButton)
+        // Reject button (right) - червена слушалка отдясно
+        rejectButton = createPremiumButton("Откажи", 0xFFef4444.toInt())
+        buttonsContainer.addView(rejectButton)
         
         contentContainer.addView(buttonsContainer)
         mainContainer.addView(contentContainer)
@@ -544,6 +623,8 @@ class IncomingCallActivity : Activity() {
     private fun setupButtonListeners(conversationId: String?, participantId: Long?, participantIdProvided: Boolean) {
         acceptButton.setOnClickListener {
             Log.d("IncomingCallActivity", "📞 Accept button clicked")
+            // CRITICAL: Stop sound before navigating
+            stopIncomingCallSound()
             // Open app and accept call
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -561,6 +642,8 @@ class IncomingCallActivity : Activity() {
         
         rejectButton.setOnClickListener {
             Log.d("IncomingCallActivity", "📞 Reject button clicked")
+            // CRITICAL: Stop sound before navigating
+            stopIncomingCallSound()
             // Open app and reject call
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -585,9 +668,23 @@ class IncomingCallActivity : Activity() {
         return (dp * density).toInt()
     }
 
+    override fun onPause() {
+        super.onPause()
+        // CRITICAL: Don't stop sound on pause - keep playing even if user switches apps
+        // Only stop when activity is destroyed or call is accepted/rejected
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
+        // CRITICAL: Stop sound when activity is destroyed
+        stopIncomingCallSound()
         Log.d("IncomingCallActivity", "📞 IncomingCallActivity destroyed")
+    }
+    
+    override fun onBackPressed() {
+        // CRITICAL: Prevent back button from dismissing call screen
+        // User must accept or reject the call
+        Log.d("IncomingCallActivity", "📞 Back button pressed - ignoring (user must accept/reject call)")
     }
 }
 

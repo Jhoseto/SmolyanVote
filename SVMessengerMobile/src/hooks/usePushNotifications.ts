@@ -127,8 +127,27 @@ export const usePushNotifications = () => {
     async (notification: any) => {
       const data = notification.data || notification;
 
-      // Изчакай малко за да се инициализира navigation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // CRITICAL FIX: Изчакай докато приложението се инициализира напълно
+      // Когато приложението не е стартирано и се получи notification,
+      // трябва да изчакаме докато navigation и auth са готови
+      let retryCount = 0;
+      const MAX_RETRIES = 20; // Максимум 20 опита (10 секунди)
+      const RETRY_INTERVAL = 500; // 500ms между опитите
+      
+      while (retryCount < MAX_RETRIES) {
+        // Проверка дали navigation е готов
+        const isNavigationReady = navigationRef.isReady();
+        // Проверка дали потребителят е аутентикиран (за INCOMING_CALL notifications)
+        const currentAuthState = useAuthStore.getState();
+        const isAuthReady = currentAuthState.isAuthenticated && currentAuthState.user;
+        
+        if (isNavigationReady && (data?.type !== 'INCOMING_CALL' || isAuthReady)) {
+          break; // Готово за обработка
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+        retryCount++;
+      }
 
       // Navigate based on notification type
       if (data?.conversationId) {
@@ -136,6 +155,13 @@ export const usePushNotifications = () => {
         const notificationType = data?.type;
         
         if (notificationType === 'INCOMING_CALL') {
+          // CRITICAL FIX: Проверка дали потребителят е аутентикиран
+          const currentAuthState = useAuthStore.getState();
+          if (!currentAuthState.isAuthenticated || !currentAuthState.user) {
+            logger.error('❌ Cannot handle INCOMING_CALL notification: user not authenticated');
+            return; // Не можем да обработим повикването без аутентикация
+          }
+
           // Намери conversation за да вземем participant информация
           await fetchConversations();
 
@@ -163,7 +189,8 @@ export const usePushNotifications = () => {
           soundService.playIncomingCallSound();
 
           // Свържи WebSocket ако не е свързан (за да получим call signals)
-          if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {
+          const currentAuth = useAuthStore.getState();
+          if (!svMobileWebSocketService.isConnected() && currentAuth.isAuthenticated && currentAuth.user) {
             // WebSocket will auto-connect
           }
         } else {

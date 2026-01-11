@@ -44,7 +44,13 @@ object NotificationChannelManager {
             val callsSoundUri = getSoundUri(context, "incoming_call")
             
             // Calls channel
-            // CRITICAL: IMPORTANCE_HIGH is required for Full Screen Intent to work
+            // CRITICAL: IMPORTANCE_HIGH is required for Full Screen Intent to work on Android Q+
+            // IMPORTANCE_MAX is not available, but IMPORTANCE_HIGH is sufficient
+            // Full Screen Intent will work when:
+            // 1. Notification channel has IMPORTANCE_HIGH
+            // 2. Notification has setFullScreenIntent() called
+            // 3. Notification has setCategory(CATEGORY_CALL)
+            // 4. Notification has setOngoing(true)
             val callsChannel = NotificationChannel(
                 CALLS_CHANNEL_ID,
                 "Обаждания",
@@ -54,6 +60,11 @@ object NotificationChannelManager {
                 enableVibration(true)
                 enableLights(true)
                 setShowBadge(true)
+                // CRITICAL: Set bypass DND (Do Not Disturb) for calls
+                // This ensures calls are always shown even in DND mode
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setBypassDnd(true)
+                }
                 // Set custom sound for calls
                 if (callsSoundUri != null) {
                     setSound(callsSoundUri, audioAttributes)

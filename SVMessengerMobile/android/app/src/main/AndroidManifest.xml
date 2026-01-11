@@ -84,14 +84,22 @@
       </activity>
       
       <!-- Incoming Call Activity - Full Screen Intent для входящи обаждания когато app-ът е затворен -->
+      <!-- CRITICAL: This activity must be able to show on lockscreen and turn screen on -->
+      <!-- It uses Full Screen Intent to display call UI when app is closed -->
+      <!-- CRITICAL FIX: android:exported="true" is REQUIRED on Android 12+ (API 31+) -->
+      <!-- Activities launched by system intents (like Full Screen Intent from Firebase) must be exported -->
+      <!-- Without this, the system may fail to launch the activity, preventing incoming calls from being displayed -->
       <activity
         android:name=".IncomingCallActivity"
         android:theme="@android:style/Theme.Translucent.NoTitleBar"
         android:launchMode="singleTop"
         android:excludeFromRecents="true"
-        android:exported="false"
+        android:exported="true"
         android:showWhenLocked="true"
-        android:turnScreenOn="true" />
+        android:turnScreenOn="true"
+        android:taskAffinity=""
+        android:allowEmbedded="false"
+        android:resizeableActivity="false" />
       
       <!-- Firebase Messaging Service for background notifications -->
       <!-- Оптимизирано като Facebook Messenger - Firebase автоматично показва нотификации

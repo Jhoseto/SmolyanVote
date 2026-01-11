@@ -57,6 +57,7 @@ export const API_CONFIG = {
     
     // Messenger
     MESSENGER: {
+      CALL_HISTORY: (conversationId: number) => `/api/svmessenger/conversations/${conversationId}/call-history`,
       CONVERSATIONS: '/api/svmessenger/conversations',
       GET_CONVERSATION: '/api/svmessenger/conversations/:id', // GET /api/svmessenger/conversations/{id}
       DELETE_CONVERSATION: '/api/svmessenger/conversations/:id', // DELETE /api/svmessenger/conversations/{id}
