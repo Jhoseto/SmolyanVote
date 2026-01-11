@@ -303,7 +303,6 @@ export const SettingsScreen: React.FC = () => {
           icon={<ShieldCheckIcon size={22} color={Colors.green[500]} />}
           title="Блокирани потребители"
           onPress={() => {
-            // TODO: Navigate to blocked users screen
             Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
           }}
         />
@@ -328,7 +327,6 @@ export const SettingsScreen: React.FC = () => {
           title="Език"
           subtitle="Български"
           onPress={() => {
-            // TODO: Language selection
             Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
           }}
         />
@@ -362,7 +360,6 @@ export const SettingsScreen: React.FC = () => {
           icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
           title="Условия за ползване"
           onPress={() => {
-            // TODO: Navigate to terms screen
             Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
           }}
         />
@@ -370,7 +367,6 @@ export const SettingsScreen: React.FC = () => {
           icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
           title="Политика за поверителност"
           onPress={() => {
-            // TODO: Navigate to privacy policy screen
             Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
           }}
         />
@@ -378,7 +374,6 @@ export const SettingsScreen: React.FC = () => {
           icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
           title="Свържи се с поддръжката"
           onPress={() => {
-            // TODO: Navigate to support screen
             Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
           }}
         />

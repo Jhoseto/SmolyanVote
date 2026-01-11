@@ -4,8 +4,10 @@
  */
 
 // Development - Choose based on your setup
-// ВАЖНО: Промени DEV_DEVICE_IP на реалния IP адрес на компютъра ти в локалната мрежа
-const DEV_DEVICE_IP = '192.168.1.100'; // ⚠️ ПРОМЕНИ ТОВА! Намери IP с: ipconfig (Windows) или ifconfig (Mac/Linux)
+// Използвай environment variable или fallback стойности
+// За да зададеш DEV_DEVICE_IP, създай .env файл с: DEV_DEVICE_IP=192.168.1.100
+// Или използвай react-native-config за по-добра поддръжка на environment variables
+const DEV_DEVICE_IP = (process.env.DEV_DEVICE_IP as string) || '192.168.1.100'; // Fallback стойност
 
 // За Android Studio Emulator използвай 10.0.2.2 (специален IP който сочи към localhost на host машината)
 const DEV_EMULATOR_API_URL = 'http://10.0.2.2:2662'; // Android Emulator IP за localhost
@@ -14,8 +16,9 @@ const DEV_EMULATOR_API_URL = 'http://10.0.2.2:2662'; // Android Emulator IP за
 const DEV_DEVICE_API_URL = `http://${DEV_DEVICE_IP}:2662`; // Реален IP за физическо устройство
 
 // Auto-detect: Emulator или физическо устройство
-// Можеш да промениш USE_EMULATOR на false за да тествате на физическо устройство
-const USE_EMULATOR = true; // ⚙️ Промени на false за физическо устройство
+// Можеш да зададеш USE_EMULATOR в .env файл: USE_EMULATOR=false за физическо устройство
+// Default: true (emulator) - задай USE_EMULATOR=false за да използваш физическо устройство
+const USE_EMULATOR = process.env.USE_EMULATOR !== 'false'; // Default: true (emulator), set to 'false' to disable
 
 const DEV_API_URL = USE_EMULATOR ? DEV_EMULATOR_API_URL : DEV_DEVICE_API_URL;
 
@@ -24,11 +27,6 @@ const PROD_API_URL = 'https://smolyanvote.com';
 
 // Determine environment
 const isDevelopment = __DEV__;
-
-console.log('⚙️ [API_CONFIG] Loading configuration...');
-console.log('⚙️ [API_CONFIG] Environment:', isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION');
-console.log('⚙️ [API_CONFIG] Using:', USE_EMULATOR ? 'EMULATOR' : 'PHYSICAL DEVICE');
-console.log('⚙️ [API_CONFIG] API URL:', isDevelopment ? DEV_API_URL : PROD_API_URL);
 
 export const API_CONFIG = {
   BASE_URL: isDevelopment ? DEV_API_URL : PROD_API_URL,

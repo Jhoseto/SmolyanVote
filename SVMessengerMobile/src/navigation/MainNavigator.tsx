@@ -16,6 +16,7 @@ import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { Colors } from '../theme';
 import { ChatIcon, SearchIcon, PersonIcon, ChatIconSolid, SearchIconSolid, PersonIconSolid } from '../components/common/Icons';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const ConversationsStack = createNativeStackNavigator<ConversationsStackParamList>();
@@ -24,7 +25,8 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 // Conversations Stack Navigator
 const ConversationsNavigator: React.FC = () => {
   return (
-    <ConversationsStack.Navigator
+    <ErrorBoundary>
+      <ConversationsStack.Navigator
       screenOptions={{
         headerStyle: {
           backgroundColor: Colors.green[500],
@@ -48,13 +50,15 @@ const ConversationsNavigator: React.FC = () => {
         }}
       />
     </ConversationsStack.Navigator>
+    </ErrorBoundary>
   );
 };
 
 // Profile Stack Navigator
 const ProfileNavigator: React.FC = () => {
   return (
-    <ProfileStack.Navigator
+    <ErrorBoundary>
+      <ProfileStack.Navigator
       screenOptions={{
         headerStyle: {
           backgroundColor: Colors.green[500],
@@ -81,6 +85,7 @@ const ProfileNavigator: React.FC = () => {
         options={{ title: 'Редактирай профил' }}
       />
     </ProfileStack.Navigator>
+    </ErrorBoundary>
   );
 };
 

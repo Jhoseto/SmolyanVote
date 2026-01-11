@@ -7,6 +7,7 @@ import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { XMarkIcon } from '../common/Icons';
+import { logger } from '../../utils/logger';
 
 // Error Boundary for EmojiSelector
 class EmojiSelectorErrorBoundary extends Component<
@@ -47,7 +48,7 @@ try {
   EmojiSelector = require('react-native-emoji-selector').default;
   EmojiSelectorLoaded = true;
 } catch (error) {
-  console.warn('Failed to load react-native-emoji-selector:', error);
+  logger.error('Failed to load react-native-emoji-selector:', error);
   EmojiSelectorLoaded = false;
 }
 

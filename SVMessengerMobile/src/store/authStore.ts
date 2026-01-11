@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 import { AuthState, User, LoginResponse } from '../types/auth';
 import { authService } from '../services/auth/authService';
 
@@ -24,7 +25,7 @@ const safeAsyncStorage = {
     try {
       return await AsyncStorage.getItem(key);
     } catch (error) {
-      console.warn('AsyncStorage getItem error:', error);
+      logger.error('AsyncStorage getItem error:', error);
       return null;
     }
   },
@@ -32,14 +33,14 @@ const safeAsyncStorage = {
     try {
       await AsyncStorage.setItem(key, value);
     } catch (error) {
-      console.warn('AsyncStorage setItem error:', error);
+      logger.error('AsyncStorage setItem error:', error);
     }
   },
   removeItem: async (key: string) => {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.warn('AsyncStorage removeItem error:', error);
+      logger.error('AsyncStorage removeItem error:', error);
     }
   },
 };
@@ -143,11 +144,8 @@ export const useAuthStore = create<AuthStore>()(
       skipHydration: false, // Allow hydration but handle errors gracefully
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.warn('Error rehydrating auth store:', error);
-          return;
+          logger.error('Error rehydrating auth store:', error);
         }
-        // Called after rehydration - safe to use AsyncStorage here
-        console.log('Auth store rehydrated:', state);
       },
     }
   )

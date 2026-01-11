@@ -34,7 +34,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/mobile/auth")
-@CrossOrigin(origins = "*") // За development; production: конкретни домейни
 @Slf4j
 public class MobileAuthController {
 
@@ -79,6 +78,12 @@ public class MobileAuthController {
 
             UserEntity user = userOptional.get();
 
+            // Проверка за account lockout
+            if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(Instant.now())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Акаунтът е временно заключен поради множество неуспешни опити за вход. Опитайте отново след: " + user.getAccountLockedUntil()));
+            }
+
             // Проверка за статус
             if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -98,6 +103,10 @@ public class MobileAuthController {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // Успешен login - reset failed attempts и unlock account
+                user.setFailedLoginAttempts(0);
+                user.setAccountLockedUntil(null);
 
                 // Обновяване на online status
                 user.setLastOnline(Instant.now());
@@ -125,8 +134,26 @@ public class MobileAuthController {
 
             } catch (BadCredentialsException e) {
                 log.warn("Mobile login failed - invalid credentials for: {}", normalizedEmail);
+                
+                // Увеличаване на failed login attempts
+                int failedAttempts = user.getFailedLoginAttempts() + 1;
+                user.setFailedLoginAttempts(failedAttempts);
+                
+                // Account lockout след 5 неуспешни опита за 30 минути
+                if (failedAttempts >= 5) {
+                    Instant lockUntil = Instant.now().plusSeconds(30 * 60); // 30 минути
+                    user.setAccountLockedUntil(lockUntil);
+                    log.warn("Account locked for user: {} until: {}", normalizedEmail, lockUntil);
+                }
+                
+                userRepository.save(user);
+                
+                String errorMessage = failedAttempts >= 5 
+                    ? "Акаунтът е временно заключен поради множество неуспешни опити. Опитайте отново след 30 минути."
+                    : "Невалиден email или парола. Остават " + (5 - failedAttempts) + " опита преди заключване.";
+                
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(createErrorResponse("Невалиден email или парола"));
+                        .body(createErrorResponse(errorMessage));
             }
 
         } catch (Exception e) {

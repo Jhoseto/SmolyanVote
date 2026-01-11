@@ -9,6 +9,7 @@ import { useCallsStore } from '../store/callsStore';
 import { useConversationsStore } from '../store/conversationsStore';
 import { soundService } from '../services/sounds/soundService';
 import { CallState } from '../types/call';
+import { logger } from '../utils/logger';
 
 export const useWebSocketCalls = () => {
   const { setCallState, startCall, incrementMissedCalls } = useCallsStore();
@@ -16,9 +17,6 @@ export const useWebSocketCalls = () => {
 
   // Handle call signals
   const handleCallSignal = useCallback(async (data: any) => {
-    console.log('📞 [useWebSocketCalls] handleCallSignal called with:', data);
-    console.log('📞 [useWebSocketCalls] Data type:', typeof data, 'Keys:', data ? Object.keys(data) : 'null');
-
     try {
       const signal = data;
       // Backend използва 'eventType', не 'type'
@@ -26,21 +24,13 @@ export const useWebSocketCalls = () => {
 
       switch (eventType) {
         case 'CALL_REQUEST':
-          console.log('📞 [useWebSocketCalls] Incoming call request received:', {
-            conversationId: signal.conversationId,
-            callerId: signal.callerId,
-            callerName: signal.callerName,
-            callerAvatar: signal.callerAvatar,
-            fullSignal: signal,
-          });
-          
           try {
             // Уверете се че данните са правилни типове
             const conversationId = Number(signal.conversationId);
             const callerId = Number(signal.callerId);
             
             if (!conversationId || !callerId) {
-              console.error('❌ [useWebSocketCalls] Invalid conversationId or callerId:', {
+              logger.error('❌ [useWebSocketCalls] Invalid conversationId or callerId:', {
                 conversationId: signal.conversationId,
                 callerId: signal.callerId,
               });
@@ -67,52 +57,42 @@ export const useWebSocketCalls = () => {
               CallState.INCOMING // Задай state директно при създаване
             );
             
-            console.log('✅ [useWebSocketCalls] startCall executed successfully:', {
-              conversationId,
-              callerId,
-              callerName: participantName,
-            });
-            
             // Play ringtone - fire and forget
             soundService.playIncomingCallSound();
           } catch (error) {
-            console.error('❌ [useWebSocketCalls] Error handling CALL_REQUEST:', error);
+            logger.error('❌ [useWebSocketCalls] Error handling CALL_REQUEST:', error);
           }
           break;
 
         case 'CALL_ACCEPT':
         case 'CALL_ACCEPTED':
-          console.log('📞 Call accepted');
           setCallState(CallState.CONNECTED);
           soundService.stopIncomingCallSound();
           break;
 
         case 'CALL_REJECT':
         case 'CALL_REJECTED':
-          console.log('📞 Call rejected');
           setCallState(CallState.IDLE);
           soundService.stopIncomingCallSound();
           break;
 
         case 'CALL_END':
         case 'CALL_ENDED':
-          console.log('📞 Call ended');
           setCallState(CallState.IDLE);
           soundService.stopIncomingCallSound();
           break;
 
         case 'CALL_MISSED':
-          console.log('📞 Call missed');
           setCallState(CallState.IDLE);
           incrementMissedCalls();
           soundService.stopIncomingCallSound();
           break;
 
         default:
-          console.warn('Unknown call signal eventType:', eventType, 'Full signal:', signal);
+          logger.error('Unknown call signal eventType:', eventType, 'Full signal:', signal);
       }
     } catch (error) {
-      console.error('Error handling call signal:', error);
+      logger.error('Error handling call signal:', error);
     }
   }, [setCallState, startCall, incrementMissedCalls]);
 

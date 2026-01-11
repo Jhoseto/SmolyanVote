@@ -30,10 +30,6 @@ export const useWebSocket = () => {
 
   // Enhanced connect function that includes all callbacks
   const enhancedConnectWebSocket = useCallback(async () => {
-    console.log('📞 [useWebSocket] Connecting with callbacks:', {
-      hasHandleCallSignal: !!handleCallSignal,
-      handleCallSignalType: typeof handleCallSignal,
-    });
     return connectWebSocket({
       onNewMessage: handleNewMessage,
       onReadReceipt: handleReadReceipt,
@@ -48,7 +44,6 @@ export const useWebSocket = () => {
   const { isAuthenticated, user } = useAuthStore();
   React.useEffect(() => {
     if (isAuthenticated && user && !isConnected && !svMobileWebSocketService.getIsConnecting()) {
-      console.log('📞 [useWebSocket] Auto-connecting WebSocket with callbacks...');
       enhancedConnectWebSocket();
     }
   }, [isAuthenticated, user, isConnected, enhancedConnectWebSocket]);

@@ -11,6 +11,7 @@ import { useConversationsStore } from '../store/conversationsStore';
 import { soundService } from '../services/sounds/soundService';
 import { Message, MessageType } from '../types/message';
 import { safeConsoleError, safeErrorToString } from '../utils/safeLog';
+import { logger } from '../utils/logger';
 
 export const useWebSocketMessages = () => {
   const { user } = useAuthStore();
@@ -37,14 +38,6 @@ export const useWebSocketMessages = () => {
   const handleNewMessage = useCallback((data: any) => {
     if (!user) return;
 
-    console.log('📨 WebSocket: New message received via WebSocket');
-    console.log('📨 Message data:', {
-      id: data.id,
-      conversationId: data.conversationId,
-      senderId: data.senderId,
-      text: data.text?.substring(0, 50) + '...',
-    });
-
     // Parse message from backend DTO format to mobile Message format
     const message: Message = {
       id: data.id,
@@ -61,8 +54,6 @@ export const useWebSocketMessages = () => {
       parentMessageText: data.parentMessageText,
     };
 
-    console.log('📨 Adding message to store:', message.id, 'for conversation:', message.conversationId);
-
     // Add message to store (will trigger UI update)
     addMessage(message.conversationId, message);
 
@@ -73,7 +64,6 @@ export const useWebSocketMessages = () => {
     if (message.senderId !== user.id) {
       if (selectedConversationId === message.conversationId) {
         // Conversation is currently open - update lastMessage but don't increment unread count
-        console.log('📨 Message received for currently open conversation, marking as read');
         if (conversationExists) {
           updateConversation(message.conversationId, {
             lastMessage: {
@@ -86,14 +76,12 @@ export const useWebSocketMessages = () => {
         sendReadReceipt(message.conversationId);
       } else {
         // Conversation is not open - update lastMessage AND increment unread count (exactly like web version)
-        console.log('📨 Message received for closed conversation, updating and incrementing unread count');
 
         if (conversationExists) {
           // Conversation exists - update last message and increment unread count
           updateConversationWithNewMessage(message.conversationId, message.text, message.createdAt, true); // incrementUnread = true
         } else {
           // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
-          console.log('📨 Conversation not found, fetching conversation details');
           
           // getConversation is async and always returns a Promise - call it directly
           // No need to check if it's a promise - it always is
@@ -115,7 +103,7 @@ export const useWebSocketMessages = () => {
               }
             })
             .catch((error: any) => {
-              safeConsoleError('Error fetching conversation details:', error);
+              logger.error('Error fetching conversation details:', error);
             });
         }
       }
@@ -127,8 +115,6 @@ export const useWebSocketMessages = () => {
 
   // Handle delivery receipts
   const handleDeliveryReceipt = useCallback((data: any) => {
-    console.log('📬 WebSocket: Delivery receipt received:', data);
-
     // Mark message as delivered
     updateMessage(data.conversationId, data.messageId, {
       isDelivered: true,
@@ -138,11 +124,8 @@ export const useWebSocketMessages = () => {
 
   // Handle read receipts
   const handleReadReceipt = useCallback((data: any) => {
-    console.log('📖 WebSocket: Read receipt received:', data);
-
     if (data.conversationId) {
       // Conversation-level read receipt (mark entire conversation as read)
-      console.log('📖 Marking entire conversation as read:', data.conversationId);
 
       // Reset unread count and recalculate total (exactly like web version)
       const updated = conversations.map(c =>

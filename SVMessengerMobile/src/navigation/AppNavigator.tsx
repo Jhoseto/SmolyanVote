@@ -18,6 +18,7 @@ import { CallState } from '../types/call';
 import { Colors } from '../theme';
 import { SplashScreen } from '../components/SplashScreen';
 import { navigationRef } from './navigationRef';
+import { logger } from '../utils/logger';
 
 // Enable native screens for better performance
 // This must be called before any screen components are rendered
@@ -85,22 +86,9 @@ export const AppNavigator: React.FC = () => {
   const showCallScreen =
     callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
 
-  // Debug logging - log ALL state changes
+  // State tracking for call screen visibility
   React.useEffect(() => {
-    console.log('📞 [AppNavigator] State update:', {
-      callState,
-      hasCurrentCall: !!currentCall,
-      currentCall: currentCall ? {
-        id: currentCall.id,
-        conversationId: currentCall.conversationId,
-        participantId: currentCall.participantId,
-        participantName: currentCall.participantName,
-        state: currentCall.state,
-      } : null,
-      showCallScreen,
-      shouldShowIncoming: callState === CallState.INCOMING,
-      shouldShowCall: callState !== CallState.IDLE && callState !== CallState.DISCONNECTED,
-    });
+    // Call screen visibility is managed by showCallScreen variable
   }, [callState, currentCall, showCallScreen]);
 
   return (
@@ -116,7 +104,7 @@ export const AppNavigator: React.FC = () => {
         <NavigationContainer
           ref={navigationRef}
           onReady={() => {
-            console.log('✅ NavigationContainer ready');
+            // Navigation container ready
           }}
           onStateChange={() => {
             // Navigation state changed

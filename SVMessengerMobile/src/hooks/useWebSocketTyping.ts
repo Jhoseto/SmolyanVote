@@ -12,8 +12,6 @@ export const useWebSocketTyping = () => {
 
   // Handle typing status updates
   const handleTypingStatus = useCallback((data: any) => {
-    console.log('⌨️ WebSocket: Typing status update:', data);
-
     if (data.conversationId && typeof data.isTyping === 'boolean') {
       setTyping(data.conversationId, data.userId, data.isTyping);
     }

@@ -5,6 +5,7 @@
 
 import { Platform, Alert, Linking } from 'react-native';
 import { check, request, PERMISSIONS, RESULTS, Permission } from 'react-native-permissions';
+import { logger } from '../../utils/logger';
 
 class CallPermissionsService {
   /**
@@ -21,12 +22,10 @@ class CallPermissionsService {
       const checkResult = await check(permission);
 
       if (checkResult === RESULTS.GRANTED) {
-        console.log('✅ Microphone permission already granted');
         return true;
       }
 
       if (checkResult === RESULTS.BLOCKED) {
-        console.warn('⚠️ Microphone permission is blocked');
         this.showPermissionAlert('Микрофон', 'За да използвате аудио разговори, моля разрешете достъп до микрофона в настройките на приложението.');
         return false;
       }
@@ -35,15 +34,13 @@ class CallPermissionsService {
       const requestResult = await request(permission);
 
       if (requestResult === RESULTS.GRANTED) {
-        console.log('✅ Microphone permission granted');
         return true;
       } else {
-        console.warn('⚠️ Microphone permission denied:', requestResult);
         this.showPermissionAlert('Микрофон', 'За да използвате аудио разговори, моля разрешете достъп до микрофона.');
         return false;
       }
     } catch (error) {
-      console.error('❌ Error requesting microphone permission:', error);
+      logger.error('❌ Error requesting microphone permission:', error);
       return false;
     }
   }
@@ -62,12 +59,10 @@ class CallPermissionsService {
       const checkResult = await check(permission);
 
       if (checkResult === RESULTS.GRANTED) {
-        console.log('✅ Camera permission already granted');
         return true;
       }
 
       if (checkResult === RESULTS.BLOCKED) {
-        console.warn('⚠️ Camera permission is blocked');
         this.showPermissionAlert('Камера', 'За да използвате видео разговори, моля разрешете достъп до камерата в настройките на приложението.');
         return false;
       }
@@ -76,15 +71,13 @@ class CallPermissionsService {
       const requestResult = await request(permission);
 
       if (requestResult === RESULTS.GRANTED) {
-        console.log('✅ Camera permission granted');
         return true;
       } else {
-        console.warn('⚠️ Camera permission denied:', requestResult);
         this.showPermissionAlert('Камера', 'За да използвате видео разговори, моля разрешете достъп до камерата.');
         return false;
       }
     } catch (error) {
-      console.error('❌ Error requesting camera permission:', error);
+      logger.error('❌ Error requesting camera permission:', error);
       return false;
     }
   }
@@ -116,7 +109,7 @@ class CallPermissionsService {
       const result = await check(permission);
       return result === RESULTS.GRANTED;
     } catch (error) {
-      console.error('❌ Error checking microphone permission:', error);
+      logger.error('❌ Error checking microphone permission:', error);
       return false;
     }
   }
@@ -134,7 +127,7 @@ class CallPermissionsService {
       const result = await check(permission);
       return result === RESULTS.GRANTED;
     } catch (error) {
-      console.error('❌ Error checking camera permission:', error);
+      logger.error('❌ Error checking camera permission:', error);
       return false;
     }
   }

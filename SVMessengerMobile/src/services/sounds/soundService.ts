@@ -7,6 +7,7 @@
  */
 
 import { NativeModules, Platform } from 'react-native';
+import { logger } from '../../utils/logger';
 
 // Native module interface (will be implemented in Android)
 interface SoundModule {
@@ -25,7 +26,6 @@ class SoundService {
 
   private async callNativeMethod(method: keyof SoundModule, ...args: any[]): Promise<void> {
     if (!this.isEnabled) {
-      console.log(`🔇 [SoundService] Sound disabled: ${method}`);
       return;
     }
 
@@ -33,16 +33,13 @@ class SoundService {
       try {
         await RNSoundPlayer[method](...args);
       } catch (error) {
-        console.error(`❌ [SoundService] Error calling ${method}:`, error);
+        logger.error(`❌ [SoundService] Error calling ${method}:`, error);
       }
-    } else {
-      console.log(`🔇 [SoundService] Native module not available (${Platform.OS})`);
     }
   }
 
   async playMessageSound(): Promise<void> {
     if (!this.isEnabled) {
-      console.log('🔇 [SoundService] Message sound disabled');
       return;
     }
 
@@ -55,7 +52,6 @@ class SoundService {
 
   async playIncomingCallSound() {
     if (!this.isEnabled) {
-      console.log('🔇 [SoundService] Incoming call sound disabled');
       return;
     }
 
@@ -63,7 +59,7 @@ class SoundService {
     try {
       await this.callNativeMethod('playSound', 'incoming_call.mp3', true);
     } catch (error) {
-      console.error('❌ [SoundService] Failed to play incoming call sound:', error);
+      logger.error('❌ [SoundService] Failed to play incoming call sound:', error);
     }
   }
 
@@ -72,7 +68,7 @@ class SoundService {
       try {
         await this.callNativeMethod('stopSound', this.currentIncomingSound);
       } catch (error) {
-        console.error('❌ [SoundService] Failed to stop incoming call sound:', error);
+        logger.error('❌ [SoundService] Failed to stop incoming call sound:', error);
       }
       this.currentIncomingSound = null;
     }
@@ -80,7 +76,6 @@ class SoundService {
 
   async playOutgoingCallSound(): Promise<void> {
     if (!this.isEnabled) {
-      console.log('🔇 [SoundService] Outgoing call sound disabled');
       return;
     }
 
@@ -97,7 +92,7 @@ class SoundService {
       try {
         await this.callNativeMethod('stopSound', this.currentOutgoingSound);
       } catch (error) {
-        console.error('❌ [SoundService] Failed to stop outgoing call sound:', error);
+        logger.error('❌ [SoundService] Failed to stop outgoing call sound:', error);
       }
       this.currentOutgoingSound = null;
     }
@@ -126,7 +121,7 @@ class SoundService {
         await this.playMessageSound();
         break;
       default:
-        console.warn(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
+        logger.error(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
     }
   }
 
@@ -139,7 +134,7 @@ class SoundService {
         this.stopOutgoingCallSound();
         break;
       default:
-        console.warn(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
+        logger.error(`⚠️ [SoundService] Unknown sound type: ${soundType}`);
     }
   }
 

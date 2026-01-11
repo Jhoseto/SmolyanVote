@@ -23,7 +23,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/mobile/device")
-@CrossOrigin(origins = "*")
+// ✅ CORS е конфигуриран глобално в ApplicationSecurityConfiguration
 @Slf4j
 public class MobileDeviceController {
 

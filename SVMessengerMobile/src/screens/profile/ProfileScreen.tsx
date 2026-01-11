@@ -80,7 +80,6 @@ export const ProfileScreen: React.FC = () => {
           style={styles.settingItem} 
           activeOpacity={0.7}
           onPress={() => {
-            // TODO: Navigate to EditProfileScreen
             navigation.navigate('EditProfile');
           }}
         >

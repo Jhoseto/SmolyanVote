@@ -7,6 +7,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 
 export const useWebSocketConnection = () => {
   const { isAuthenticated, user } = useAuthStore();
@@ -24,13 +25,13 @@ export const useWebSocketConnection = () => {
     const handleError = (error: any) => {
       // Handle different error types
       if (error?.message?.includes('timeout')) {
-        console.error('⏰ Connection timed out - network issues or server unreachable');
+        logger.error('⏰ Connection timed out - network issues or server unreachable');
       } else if (error?.message?.includes('401') || error?.message?.includes('403')) {
-        console.error('🔐 Authentication failed - token may be expired');
+        logger.error('🔐 Authentication failed - token may be expired');
       } else if (error?.message?.includes('404')) {
-        console.error('🔗 WebSocket endpoint not found - check server configuration');
+        logger.error('🔗 WebSocket endpoint not found - check server configuration');
       } else {
-        console.error('🌐 Network or server error:', error?.message || error);
+        logger.error('🌐 Network or server error:', error?.message || error);
       }
 
       // Schedule retry with exponential backoff
@@ -42,14 +43,12 @@ export const useWebSocketConnection = () => {
       reconnectAttemptsRef.current++;
 
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log(`🔄 Retrying WebSocket connection (attempt ${reconnectAttemptsRef.current})...`);
         isConnectingRef.current = false; // Reset before retry
         connectWebSocket();
       }, retryDelay);
     };
 
     try {
-      console.log('🔄 Connecting WebSocket for user:', user.email);
 
       // Reset reconnect attempts on successful connection start
       reconnectAttemptsRef.current = 0;
@@ -59,7 +58,6 @@ export const useWebSocketConnection = () => {
         svMobileWebSocketService.connect({
           ...callbacks,
           onConnect: () => {
-            console.log('✅ WebSocket connected successfully');
             reconnectAttemptsRef.current = 0; // Reset attempts on success
             isConnectingRef.current = false;
             if (callbacks.onConnect) callbacks.onConnect();
@@ -94,7 +92,6 @@ export const useWebSocketConnection = () => {
 
     try {
       svMobileWebSocketService.disconnect();
-      console.log('✅ WebSocket disconnected');
     } catch (error) {
       console.error('❌ Error disconnecting WebSocket:', error);
     }
@@ -102,10 +99,8 @@ export const useWebSocketConnection = () => {
 
   // Handle app state changes
   // NOTE: Reconnection should be handled by useWebSocket hook with proper callbacks
-  // This is kept for logging purposes only
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      console.log('📱 App state changed:', nextAppState);
       // Reconnection is handled by useWebSocket hook
     };
 

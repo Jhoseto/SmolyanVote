@@ -22,7 +22,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/mobile/profile")
-@CrossOrigin(origins = "*") // За development; production: конкретни домейни
+// ✅ CORS е конфигуриран глобално в ApplicationSecurityConfiguration
 @Slf4j
 public class MobileProfileController {
 

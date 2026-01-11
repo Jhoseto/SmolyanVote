@@ -10,6 +10,7 @@ import { useWebSocket } from './useWebSocket';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useAuthStore } from '../store/authStore';
 import { soundService } from '../services/sounds/soundService';
+import { logger } from '../utils/logger';
 
 export const useMessages = (conversationId: number) => {
   const {
@@ -40,9 +41,8 @@ export const useMessages = (conversationId: number) => {
       const conversation = conversations.find(c => c.id === conversationId);
       
       if (conversation && (conversation.unreadCount || 0) > 0) {
-        console.log('📖 Chat opened with unread messages, marking as read immediately');
         markAsRead(conversationId).catch(error => {
-          console.error('Failed to mark as read:', error);
+          logger.error('Failed to mark as read:', error);
         });
         sendReadReceipt(conversationId);
       }
@@ -61,7 +61,6 @@ export const useMessages = (conversationId: number) => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         // App стана active - refresh messages за да се виждат новите съобщения
-        console.log('📱 App became active, refreshing messages for conversation:', conversationId);
         fetchMessages(conversationId);
       }
     };
@@ -90,9 +89,8 @@ export const useMessages = (conversationId: number) => {
       );
 
       if (hasUnreadMessages) {
-        console.log('📖 Unread messages detected after loading, marking as read');
         markAsRead(conversationId).catch(error => {
-          console.error('Failed to mark as read:', error);
+          logger.error('Failed to mark as read:', error);
         });
         sendReadReceipt(conversationId);
       }
@@ -133,7 +131,7 @@ export const useMessages = (conversationId: number) => {
             // Това гарантира че няма дубликати и че всички данни са правилни
             return null; // Message ще дойде през WebSocket
           } catch (error) {
-            console.error('WebSocket send failed, using REST:', error);
+            logger.error('WebSocket send failed, using REST:', error);
             // Fallback to REST API
             return await sendMessage(conversationId, text, parentMessageId);
           }
@@ -142,7 +140,7 @@ export const useMessages = (conversationId: number) => {
           return await sendMessage(conversationId, text, parentMessageId);
         }
       } catch (error) {
-        console.error('Error sending message:', error);
+        logger.error('Error sending message:', error);
         // Fallback to REST API
         return await sendMessage(conversationId, text, parentMessageId);
       }

@@ -225,7 +225,6 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     try {
       const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.MARK_AS_READ.replace(':id', conversationId.toString());
       await apiClient.put(endpoint);
-      console.log('✅ Marked conversation as read via REST API:', conversationId);
     } catch (error: any) {
       console.error('❌ Failed to mark conversation as read via REST API:', error);
       // Don't revert local state - UI should still show as read even if API call fails

@@ -20,6 +20,7 @@ import { Platform } from 'react-native';
 import { CallTokenResponse } from '../../types/call';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
+import { logger } from '../../utils/logger';
 
 export type CallEventCallback = () => void;
 export type ParticipantEventCallback = (participant: RemoteParticipant) => void;
@@ -47,29 +48,14 @@ class LiveKitService {
    */
   async generateCallToken(conversationId: number, otherUserId: number): Promise<CallTokenResponse> {
     try {
-      console.log('🔑 [LiveKit] Requesting call token from backend:', {
-        endpoint: API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
-        conversationId,
-        otherUserId,
-      });
-      
       const response = await apiClient.post<CallTokenResponse>(
         API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
         { conversationId, otherUserId }
       );
       
-      console.log('🔑 [LiveKit] Call token response received:', {
-        hasToken: !!response.data?.token,
-        hasRoomName: !!response.data?.roomName,
-        hasServerUrl: !!response.data?.serverUrl,
-        tokenLength: response.data?.token?.length || 0,
-        roomName: response.data?.roomName,
-        serverUrl: response.data?.serverUrl,
-      });
-      
       return response.data;
     } catch (error: any) {
-      console.error('❌ [LiveKit] Error generating call token:', {
+      logger.error('❌ [LiveKit] Error generating call token:', {
         error,
         message: error?.message,
         response: error?.response?.data,
@@ -104,59 +90,30 @@ class LiveKitService {
 
       // Setup event listeners
       this.room.on(RoomEvent.Connected, () => {
-        console.log('LiveKit room connected');
         this.isConnected = true;
         this.onConnectedCallback?.();
         this.publishAudio();
       });
 
       this.room.on(RoomEvent.Disconnected, () => {
-        console.log('LiveKit room disconnected');
         this.isConnected = false;
         this.onDisconnectedCallback?.();
       });
 
 
       this.room.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-        console.log('Participant disconnected:', participant.identity);
         this.onParticipantDisconnectedCallback?.(participant);
       });
 
       this.room.on(RoomEvent.TrackSubscribed, (track: Track, publication, participant: RemoteParticipant) => {
-        console.log('📹 [LiveKit] Track subscribed:', {
-          kind: track.kind,
-          sid: track.sid,
-          participantId: participant.identity,
-          hasMediaStreamTrack: !!track.mediaStreamTrack,
-          enabled: track.enabled,
-          isMuted: track.isMuted,
-          mediaStreamTrackActive: track.mediaStreamTrack?.active,
-          mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
-          mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
-        });
-        
         if (track.kind === 'audio') {
           this.onTrackSubscribedCallback?.(track, participant);
         } else if (track.kind === 'video') {
           // CRITICAL: Force enable track at all levels for mobile-web compatibility
-          console.log('📹 [LiveKit] Processing video track subscription:', {
-            sid: track.sid,
-            enabled: track.enabled,
-            hasMediaStreamTrack: !!track.mediaStreamTrack,
-            mediaStreamTrackActive: track.mediaStreamTrack?.active,
-            mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
-            readyState: track.mediaStreamTrack?.readyState,
-          });
           
           // Enable mediaStreamTrack first
           if (track.mediaStreamTrack) {
             track.mediaStreamTrack.enabled = true;
-            console.log('✅ [LiveKit] Enabled mediaStreamTrack');
-            
-            // Force play if possible
-            if (track.mediaStreamTrack.readyState === 'live') {
-              console.log('✅ [LiveKit] Video track is live and ready');
-            }
           }
           
           // CRITICAL: Force enable track at LiveKit level
@@ -166,28 +123,18 @@ class LiveKitService {
               // Try setEnabled first (preferred method)
               if (typeof track.setEnabled === 'function') {
                 track.setEnabled(true);
-                console.log('✅ [LiveKit] Called track.setEnabled(true)');
               }
               // Also try direct assignment as fallback
               if (track.enabled !== true) {
                 (track as any).enabled = true;
-                console.log('✅ [LiveKit] Set track.enabled = true directly');
               }
             } catch (e) {
-              console.warn('⚠️ [LiveKit] Could not enable track:', e);
+              logger.error('⚠️ [LiveKit] Could not enable track:', e);
             }
-          } else {
-            console.log('✅ [LiveKit] Track already enabled');
           }
           
           // Small delay to ensure track is fully ready before callback
           setTimeout(() => {
-            console.log('📹 [LiveKit] Triggering video track subscribed callback:', {
-              sid: track.sid,
-              enabled: track.enabled,
-              hasMediaStreamTrack: !!track.mediaStreamTrack,
-              mediaStreamTrackActive: track.mediaStreamTrack?.active,
-            });
             this.onVideoTrackSubscribedCallback?.(track, participant);
           }, 150);
         }
@@ -195,48 +142,28 @@ class LiveKitService {
 
       // Handle TrackPublished event - subscribe immediately when track is published
       this.room.on(RoomEvent.TrackPublished, (publication, participant: RemoteParticipant) => {
-        console.log('📹 [LiveKit] Track published:', {
-          kind: publication.kind,
-          sid: publication.trackSid,
-          participantId: participant.identity,
-          source: publication.source,
-          isLocal: participant === this.room?.localParticipant,
-        });
-        
         // Subscribe to video tracks immediately when published (for remote participants)
         if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
-          console.log('📹 [LiveKit] Auto-subscribing to remote video track');
           try {
             publication.setSubscribed(true);
           } catch (e) {
-            console.warn('⚠️ [LiveKit] Error subscribing to published track:', e);
+            logger.error('⚠️ [LiveKit] Error subscribing to published track:', e);
           }
           
           // Also trigger callback immediately if track is already available
           if (publication.track && publication.track.mediaStreamTrack) {
-            console.log('📹 [LiveKit] Remote video track available immediately, triggering callback');
             // Small delay to ensure track is fully ready
             setTimeout(() => {
               this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
             }, 150);
-          } else {
-            // Track not ready yet, wait for TrackSubscribed event
-            console.log('📹 [LiveKit] Video track published but not ready yet, waiting for TrackSubscribed event');
           }
         }
       });
 
       // Handle TrackUnpublished event - clear remote video when track is unpublished
       this.room.on(RoomEvent.TrackUnpublished, (publication, participant: RemoteParticipant) => {
-        console.log('📹 [LiveKit] Track unpublished:', {
-          kind: publication.kind,
-          sid: publication.trackSid,
-          participantId: participant.identity,
-        });
-        
         // If video track is unpublished, notify callback (will be handled by CallScreen)
         if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
-          console.log('📹 [LiveKit] Remote video track unpublished - this might be temporary for mobile-web compatibility');
           // Don't immediately clear - wait a bit in case it's republished
           // Some mobile-web connections have temporary unpublish/republish cycles
           setTimeout(() => {
@@ -244,10 +171,7 @@ class LiveKitService {
             const stillUnpublished = !Array.from(participant.videoTrackPublications.values())
               .some(pub => pub.trackSid === publication.trackSid && pub.track);
             if (stillUnpublished) {
-              console.log('📹 [LiveKit] Track still unpublished after delay, clearing');
               this.onVideoTrackSubscribedCallback?.(null as any, participant);
-            } else {
-              console.log('📹 [LiveKit] Track was republished, keeping it');
             }
           }, 1000);
         }
@@ -255,8 +179,6 @@ class LiveKitService {
 
       // Handle existing participants' tracks when connecting
       this.room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-        console.log('📹 [LiveKit] Participant connected:', participant.identity);
-        
         // Subscribe to existing audio tracks
         participant.audioTrackPublications.forEach((publication) => {
           if (publication.track) {
@@ -266,21 +188,12 @@ class LiveKitService {
         
         // CRITICAL: Subscribe to ALL video tracks immediately, even if not subscribed yet
         participant.videoTrackPublications.forEach((publication) => {
-          console.log('📹 [LiveKit] Found existing video publication:', {
-            sid: publication.trackSid,
-            isSubscribed: publication.isSubscribed,
-            hasTrack: !!publication.track,
-            kind: publication.kind,
-            source: publication.source,
-          });
-          
           // ALWAYS force subscribe to video tracks (critical for web->mobile calls)
           if (!publication.isSubscribed) {
-            console.log('📹 [LiveKit] Force subscribing to existing video track');
             try {
               publication.setSubscribed(true);
             } catch (e) {
-              console.warn('⚠️ [LiveKit] Error subscribing to video track:', e);
+              logger.error('⚠️ [LiveKit] Error subscribing to video track:', e);
             }
           }
           
@@ -294,18 +207,14 @@ class LiveKitService {
               try {
                 publication.track.setEnabled(true);
               } catch (e) {
-                console.warn('⚠️ [LiveKit] Could not enable track:', e);
+                logger.error('⚠️ [LiveKit] Could not enable track:', e);
               }
             }
             
-            console.log('📹 [LiveKit] Triggering callback for existing video track immediately');
             // Use setTimeout to ensure track is fully ready
             setTimeout(() => {
               this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
             }, 150);
-          } else {
-            // Track not available yet, wait for TrackSubscribed event
-            console.log('📹 [LiveKit] Video track not available yet, will be notified via TrackSubscribed');
           }
         });
         
@@ -328,10 +237,7 @@ class LiveKitService {
         wsUrl = wsUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
       }
       
-      console.log('🔌 [LiveKit] Connecting to:', wsUrl, 'Room:', roomName);
-      
       await this.room.connect(wsUrl, token);
-      console.log('✅ [LiveKit] Successfully connected to LiveKit room');
       
       // CRITICAL: After connection, check for already connected participants and subscribe to their video tracks
       // This is especially important when web calls mobile - web is already connected with video
@@ -339,26 +245,15 @@ class LiveKitService {
       const checkExistingParticipants = () => {
         try {
           const remoteParticipants = Array.from(this.room!.remoteParticipants.values());
-          console.log('📹 [LiveKit] Checking for existing participants after connection:', remoteParticipants.length);
           
           remoteParticipants.forEach((participant) => {
-            console.log('📹 [LiveKit] Processing existing participant:', participant.identity);
-            
             participant.videoTrackPublications.forEach((publication) => {
-              console.log('📹 [LiveKit] Found video publication on existing participant:', {
-                sid: publication.trackSid,
-                isSubscribed: publication.isSubscribed,
-                hasTrack: !!publication.track,
-                kind: publication.kind,
-              });
-              
               // Force subscribe if not already subscribed
               if (!publication.isSubscribed) {
-                console.log('📹 [LiveKit] Force subscribing to video track from existing participant');
                 try {
                   publication.setSubscribed(true);
                 } catch (e) {
-                  console.warn('⚠️ [LiveKit] Error subscribing to video track:', e);
+                  logger.error('⚠️ [LiveKit] Error subscribing to video track:', e);
                 }
               }
               
@@ -370,17 +265,16 @@ class LiveKitService {
                   try {
                     publication.track.setEnabled(true);
                   } catch (e) {
-                    console.warn('⚠️ [LiveKit] Could not enable track:', e);
+                    logger.error('⚠️ [LiveKit] Could not enable track:', e);
                   }
                 }
                 
-                console.log('📹 [LiveKit] Triggering callback for existing participant video track');
                 this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
               }
             });
           });
         } catch (error) {
-          console.error('❌ [LiveKit] Error checking existing participants:', error);
+          logger.error('❌ [LiveKit] Error checking existing participants:', error);
         }
       };
       
@@ -391,12 +285,11 @@ class LiveKitService {
       setTimeout(checkExistingParticipants, 800);
       
     } catch (error: any) {
-      console.error('❌ [LiveKit] Connection error:', error);
+      logger.error('❌ [LiveKit] Connection error:', error);
       this.isConnected = false;
       
       // Retry logic
       if (retryCount < MAX_RETRIES) {
-        console.log(`🔄 [LiveKit] Retrying connection (${retryCount + 1}/${MAX_RETRIES})...`);
         await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
         return this.connect(token, roomName, serverUrl, retryCount + 1);
       }
@@ -438,9 +331,8 @@ class LiveKitService {
 
       // Publish to room
       await this.room.localParticipant.publishTrack(this.localAudioTrack);
-      console.log('Audio track published');
     } catch (error) {
-      console.error('Error publishing audio:', error);
+      logger.error('Error publishing audio:', error);
     }
   }
 
@@ -469,9 +361,8 @@ class LiveKitService {
 
       this.isConnected = false;
       this.currentRoomName = null;
-      console.log('Disconnected from LiveKit room');
     } catch (error) {
-      console.error('Error disconnecting from LiveKit room:', error);
+      logger.error('Error disconnecting from LiveKit room:', error);
     }
   }
 
@@ -511,28 +402,82 @@ class LiveKitService {
   /**
    * Event listeners
    */
-  onConnected(callback: CallEventCallback): void {
+  /**
+   * Register callback за connected event
+   * @returns Cleanup function за премахване на callback
+   */
+  onConnected(callback: CallEventCallback): () => void {
     this.onConnectedCallback = callback;
+    return () => {
+      if (this.onConnectedCallback === callback) {
+        this.onConnectedCallback = null;
+      }
+    };
   }
 
-  onDisconnected(callback: CallEventCallback): void {
+  /**
+   * Register callback за disconnected event
+   * @returns Cleanup function за премахване на callback
+   */
+  onDisconnected(callback: CallEventCallback): () => void {
     this.onDisconnectedCallback = callback;
+    return () => {
+      if (this.onDisconnectedCallback === callback) {
+        this.onDisconnectedCallback = null;
+      }
+    };
   }
 
-  onParticipantConnected(callback: ParticipantEventCallback): void {
+  /**
+   * Register callback за participant connected event
+   * @returns Cleanup function за премахване на callback
+   */
+  onParticipantConnected(callback: ParticipantEventCallback): () => void {
     this.onParticipantConnectedCallback = callback;
+    return () => {
+      if (this.onParticipantConnectedCallback === callback) {
+        this.onParticipantConnectedCallback = null;
+      }
+    };
   }
 
-  onParticipantDisconnected(callback: ParticipantEventCallback): void {
+  /**
+   * Register callback за participant disconnected event
+   * @returns Cleanup function за премахване на callback
+   */
+  onParticipantDisconnected(callback: ParticipantEventCallback): () => void {
     this.onParticipantDisconnectedCallback = callback;
+    return () => {
+      if (this.onParticipantDisconnectedCallback === callback) {
+        this.onParticipantDisconnectedCallback = null;
+      }
+    };
   }
 
-  onTrackSubscribed(callback: TrackEventCallback): void {
+  /**
+   * Register callback за track subscribed event
+   * @returns Cleanup function за премахване на callback
+   */
+  onTrackSubscribed(callback: TrackEventCallback): () => void {
     this.onTrackSubscribedCallback = callback;
+    return () => {
+      if (this.onTrackSubscribedCallback === callback) {
+        this.onTrackSubscribedCallback = null;
+      }
+    };
   }
 
-  onVideoTrackSubscribed(callback: TrackEventCallback): void {
+  /**
+   * Register callback за video track subscribed event
+   * @returns Cleanup function за премахване на callback
+   */
+  onVideoTrackSubscribed(callback: TrackEventCallback): () => void {
     this.onVideoTrackSubscribedCallback = callback;
+    return () => {
+      if (this.onVideoTrackSubscribedCallback === callback) {
+        this.onVideoTrackSubscribedCallback = null;
+      }
+    };
   }
 
   /**
@@ -540,17 +485,12 @@ class LiveKitService {
    * COST OPTIMIZATION: Unpublishes video track when disabled to save money
    */
   async toggleCamera(enabled: boolean): Promise<boolean> {
-    console.log('🎥 [toggleCamera] START', { enabled, hasRoom: !!this.room, isConnected: this.isConnected });
-    
     if (!this.room || !this.isConnected) {
-      console.warn('⚠️ [toggleCamera] Cannot toggle camera - not in a call');
       return false;
     }
 
     try {
       if (enabled) {
-        console.log('🎥 [toggleCamera] ENABLING camera...');
-        
         // Unpublish existing video tracks first
         const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
         for (const publication of existingVideoTracks) {
@@ -573,12 +513,6 @@ class LiveKitService {
         const resolution = isEmulator 
           ? { width: 640, height: 480 } // Lower resolution for emulator
           : { width: 1280, height: 720 }; // Higher resolution for real device
-        
-        console.log('🎥 [toggleCamera] Creating video track:', {
-          facingMode: this.isFrontCamera ? 'front' : 'back',
-          resolution,
-          isEmulator,
-        });
 
         try {
           this.localVideoTrack = await createLocalVideoTrack({
@@ -586,19 +520,17 @@ class LiveKitService {
             resolution,
           });
         } catch (error: any) {
-          console.error('❌ [toggleCamera] Failed to create video track:', error);
+          logger.error('❌ [toggleCamera] Failed to create video track:', error);
           
           // Fallback: Try with even lower resolution for emulator
           if (isEmulator) {
-            console.log('🔄 [toggleCamera] Retrying with minimal resolution for emulator...');
             try {
               this.localVideoTrack = await createLocalVideoTrack({
                 facingMode: this.isFrontCamera ? 'user' : 'environment',
                 resolution: { width: 320, height: 240 }, // Minimal resolution
               });
-              console.log('✅ [toggleCamera] Video track created with minimal resolution');
             } catch (retryError: any) {
-              console.error('❌ [toggleCamera] Failed even with minimal resolution:', retryError);
+              logger.error('❌ [toggleCamera] Failed even with minimal resolution:', retryError);
               throw new Error(`Camera not available: ${retryError?.message || 'Unknown error'}. На emulator камерите често не работят. Тествай на реален телефон.`);
             }
           } else {
@@ -606,45 +538,18 @@ class LiveKitService {
           }
         }
 
-        console.log('🎥 [toggleCamera] Video track created:', {
-          kind: this.localVideoTrack.kind,
-          enabled: this.localVideoTrack.enabled,
-          muted: this.localVideoTrack.isMuted,
-          facingMode: this.isFrontCamera ? 'front' : 'back',
-        });
-
         // Publish video track (this starts billing as video call)
-        const publication = await this.room.localParticipant.publishTrack(this.localVideoTrack, {
+        await this.room.localParticipant.publishTrack(this.localVideoTrack, {
           source: 'camera',
           videoCodec: 'vp8', // Better compatibility
         });
 
-        console.log('🎥 [toggleCamera] Video track published:', {
-          sid: publication.trackSid,
-          source: publication.source,
-        });
-
         this.isVideoEnabled = true;
-        console.log('✅ [toggleCamera] Camera enabled - VIDEO TRACK PUBLISHED');
         
         // CRITICAL: Ensure track is fully ready before returning
         // Wait a bit for track to be fully initialized
         await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Verify track is ready
-        if (this.localVideoTrack && this.localVideoTrack.mediaStreamTrack) {
-          console.log('✅ [toggleCamera] Video track is ready:', {
-            enabled: this.localVideoTrack.enabled,
-            hasMediaStreamTrack: !!this.localVideoTrack.mediaStreamTrack,
-            mediaStreamTrackActive: this.localVideoTrack.mediaStreamTrack.active,
-            mediaStreamTrackEnabled: this.localVideoTrack.mediaStreamTrack.enabled,
-          });
-        } else {
-          console.warn('⚠️ [toggleCamera] Video track created but mediaStreamTrack not available yet');
-        }
       } else {
-        console.log('🎥 [toggleCamera] DISABLING camera...');
-        
         // Unpublish all video tracks
         const existingVideoTracks = Array.from(this.room.localParticipant.videoTrackPublications.values());
         for (const publication of existingVideoTracks) {
@@ -655,7 +560,7 @@ class LiveKitService {
                 publication.track.stop();
               }
             } catch (error) {
-              console.warn('⚠️ [toggleCamera] Error unpublishing track:', error);
+              logger.error('⚠️ [toggleCamera] Error unpublishing track:', error);
             }
           }
         }
@@ -667,17 +572,16 @@ class LiveKitService {
               this.localVideoTrack.stop();
             }
           } catch (error) {
-            console.warn('⚠️ [toggleCamera] Error stopping local video track:', error);
+            logger.error('⚠️ [toggleCamera] Error stopping local video track:', error);
           }
           this.localVideoTrack = null;
         }
 
         this.isVideoEnabled = false;
-        console.log('✅ [toggleCamera] Camera disabled - now billing as audio-only call');
       }
       return true;
     } catch (error) {
-      console.error('❌ [toggleCamera] Failed to toggle camera:', error);
+      logger.error('❌ [toggleCamera] Failed to toggle camera:', error);
       return false;
     }
   }
@@ -702,13 +606,10 @@ class LiveKitService {
    */
   async flipCamera(): Promise<boolean> {
     if (!this.room || !this.isConnected || !this.isVideoEnabled) {
-      console.warn('⚠️ Cannot flip camera - camera is not enabled');
       return false;
     }
 
     try {
-      console.log('🔄 [flipCamera] Flipping camera...');
-      
       // Toggle camera facing mode
       this.isFrontCamera = !this.isFrontCamera;
       
@@ -716,10 +617,9 @@ class LiveKitService {
       await this.toggleCamera(false); // Disable first
       await this.toggleCamera(true);  // Re-enable with new facing mode
       
-      console.log(`✅ [flipCamera] Switched to ${this.isFrontCamera ? 'front' : 'back'} camera`);
       return true;
     } catch (error) {
-      console.error('❌ [flipCamera] Failed to flip camera:', error);
+      logger.error('❌ [flipCamera] Failed to flip camera:', error);
       // Restore previous facing mode on error
       this.isFrontCamera = !this.isFrontCamera;
       return false;

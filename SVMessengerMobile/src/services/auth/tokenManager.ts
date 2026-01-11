@@ -5,6 +5,7 @@
 
 import * as Keychain from 'react-native-keychain';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import { logger } from '../../utils/logger';
 
 const ACCESS_TOKEN_KEY = 'svmessenger_access_token';
 const REFRESH_TOKEN_KEY = 'svmessenger_refresh_token';
@@ -24,7 +25,7 @@ export class TokenManager {
       // Refresh token в EncryptedStorage
       await EncryptedStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     } catch (error) {
-      console.error('Error saving tokens:', error);
+      logger.error('Error saving tokens:', error);
       throw error;
     }
   }
@@ -44,7 +45,7 @@ export class TokenManager {
 
       return null;
     } catch (error) {
-      console.error('Error getting access token:', error);
+      logger.error('Error getting access token:', error);
       return null;
     }
   }
@@ -57,7 +58,7 @@ export class TokenManager {
       const token = await EncryptedStorage.getItem(REFRESH_TOKEN_KEY);
       return token;
     } catch (error) {
-      console.error('Error getting refresh token:', error);
+      logger.error('Error getting refresh token:', error);
       return null;
     }
   }
@@ -70,7 +71,7 @@ export class TokenManager {
       await Keychain.resetGenericPassword({ service: ACCESS_TOKEN_KEY });
       await EncryptedStorage.removeItem(REFRESH_TOKEN_KEY);
     } catch (error) {
-      console.error('Error clearing tokens:', error);
+      logger.error('Error clearing tokens:', error);
     }
   }
 
@@ -83,7 +84,7 @@ export class TokenManager {
       const refreshToken = await this.getRefreshToken();
       return !!(accessToken && refreshToken);
     } catch (error) {
-      console.error('Error checking tokens:', error);
+      logger.error('Error checking tokens:', error);
       return false;
     }
   }

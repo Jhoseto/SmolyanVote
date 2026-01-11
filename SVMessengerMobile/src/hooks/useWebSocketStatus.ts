@@ -12,11 +12,8 @@ export const useWebSocketStatus = () => {
 
   // Handle online status updates
   const handleOnlineStatus = useCallback((data: any) => {
-    console.log('🌐 WebSocket: Online status update:', data);
-
     if (data.userId && data.status) {
       // Update conversation participant online status
-      let updated = false;
       conversations.forEach((conv) => {
         if (conv.participant?.id === data.userId) {
           updateConversation(conv.id, {
@@ -26,13 +23,8 @@ export const useWebSocketStatus = () => {
               lastSeen: data.lastSeen,
             },
           });
-          updated = true;
         }
       });
-
-      if (updated) {
-        console.log('✅ Updated online status for user:', data.userId, 'status:', data.status);
-      }
     }
   }, [conversations, updateConversation]);
 

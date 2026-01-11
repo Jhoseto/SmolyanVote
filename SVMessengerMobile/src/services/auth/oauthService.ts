@@ -7,6 +7,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
 import { TokenManager } from './tokenManager';
+import { logger } from '../../utils/logger';
 
 // Facebook SDK - lazy load only when needed
 let FBSDK: any = null;
@@ -65,11 +66,9 @@ class OAuthService {
         forceCodeForRefreshToken: false, // Changed to false
       });
       
-      console.log('Google Sign-In configured successfully with webClientId:', webClientId);
-      
       this.isGoogleConfigured = true;
     } catch (error) {
-      console.error('Error initializing Google Sign-In:', error);
+      logger.error('Error initializing Google Sign-In:', error);
       // Не хвърляме грешка, за да не спре приложението
       // Маркираме като конфигуриран за да не опитваме отново
       this.isGoogleConfigured = true;
@@ -96,19 +95,7 @@ class OAuthService {
       // Sign in
       const userInfo = await GoogleSignin.signIn();
       
-      console.log('Google Sign-In userInfo:', {
-        id: userInfo.user?.id,
-        email: userInfo.user?.email,
-        name: userInfo.user?.name,
-        hasIdToken: !!userInfo.idToken,
-        hasServerAuthCode: !!userInfo.serverAuthCode,
-      });
-      
       if (!userInfo.idToken) {
-        // Опитай да получиш ID token чрез serverAuthCode
-        if (userInfo.serverAuthCode) {
-          console.log('No ID token, but serverAuthCode available. This might indicate SHA-1 is not properly configured.');
-        }
         throw new Error('Google Sign-In failed: No ID token received. Please ensure SHA-1 fingerprint is added to Google Cloud Console Android OAuth Client ID.');
       }
 
@@ -127,7 +114,7 @@ class OAuthService {
 
       return response.data;
     } catch (error: any) {
-      console.error('Google Sign-In error details:', {
+      logger.error('Google Sign-In error details:', {
         code: error.code,
         message: error.message,
         error: error,
@@ -193,7 +180,7 @@ class OAuthService {
 
       return response.data;
     } catch (error: any) {
-      console.error('Facebook Sign-In error:', error);
+      logger.error('Facebook Sign-In error:', error);
       throw new Error(error.message || 'Facebook Sign-In failed');
     }
   }
@@ -246,7 +233,7 @@ class OAuthService {
     try {
       await GoogleSignin.signOut();
     } catch (error) {
-      console.error('Error signing out from Google:', error);
+      logger.error('Error signing out from Google:', error);
     }
   }
 
@@ -260,7 +247,7 @@ class OAuthService {
         fbSDK.LoginManager.logOut();
       }
     } catch (error) {
-      console.error('Error signing out from Facebook:', error);
+      logger.error('Error signing out from Facebook:', error);
     }
   }
 }

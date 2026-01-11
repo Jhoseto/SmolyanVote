@@ -19,6 +19,7 @@ import { API_CONFIG } from '../config/api';
 import { CommonActions } from '@react-navigation/native';
 import { navigationRef } from '../navigation/navigationRef';
 import { useCalls } from './useCalls';
+import { logger } from '../utils/logger';
 
 export const usePushNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
@@ -53,29 +54,15 @@ export const usePushNotifications = () => {
    */
   const handleNotificationReceived = useCallback(
     (notification: any) => {
-      console.log('📬 Notification received:', {
-        notification: notification?.notification,
-        data: notification?.data,
-        messageId: notification?.messageId,
-      });
-      
       const data = notification.data || notification;
 
       const isAppInForeground = AppState.currentState === 'active';
       const conversationId = data?.conversationId ? Number(data.conversationId) : null;
 
-      console.log('📬 Notification details:', {
-        isAppInForeground,
-        conversationId,
-        type: data?.type,
-        hasData: !!data,
-      });
-
       const notificationType = data?.type;
       
       // ✅ Обработка на INCOMING_CALL notifications (foreground)
       if (notificationType === 'INCOMING_CALL' && conversationId) {
-        console.log('📞 Incoming call notification received for conversation:', conversationId);
 
         // Опитай да намериш участника от store / API
         const { getConversation, conversations } = useConversationsStore.getState();
@@ -114,7 +101,6 @@ export const usePushNotifications = () => {
       else if (notificationType === 'NEW_MESSAGE' && conversationId) {
         // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation (с debounce)
         // Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
-        console.log('📥 Fetching messages for conversation:', conversationId);
         debouncedFetchMessages(conversationId);
         
         // Update conversation from backend (за да вземем correct unread count)
@@ -122,11 +108,8 @@ export const usePushNotifications = () => {
         debouncedRefreshConversations();
       } else if (conversationId) {
         // Fallback: ако има conversationId но няма type, fetch-ваме latest data from backend
-        console.log('📥 Fetching messages and data for conversation (fallback):', conversationId);
         debouncedFetchMessages(conversationId);
         debouncedRefreshConversations();
-      } else {
-        console.log('⚠️ Notification received but conversationId is missing or invalid:', conversationId);
       }
 
       // ВИНАГИ fetch-ваме съобщенията за да се виждат в реално време
@@ -142,7 +125,6 @@ export const usePushNotifications = () => {
    */
   const handleNotificationOpened = useCallback(
     async (notification: any) => {
-      console.log('📬 Notification opened:', notification);
       const data = notification.data || notification;
 
       // Изчакай малко за да се инициализира navigation
@@ -154,8 +136,6 @@ export const usePushNotifications = () => {
         const notificationType = data?.type;
         
         if (notificationType === 'INCOMING_CALL') {
-          console.log('📞 Incoming call notification opened for conversation:', conversationId);
-          
           // Намери conversation за да вземем participant информация
           await fetchConversations();
 
@@ -184,11 +164,10 @@ export const usePushNotifications = () => {
 
           // Свържи WebSocket ако не е свързан (за да получим call signals)
           if (!svMobileWebSocketService.isConnected() && isAuthenticated && user) {
-            console.log('📞 Connecting WebSocket for incoming call...');
+            // WebSocket will auto-connect
           }
         } else {
           // NEW_MESSAGE или друг тип - навигирай към conversation и fetch-вай messages
-          console.log('📥 Opening conversation from notification:', conversationId);
           
           // Fetch conversations за да имаме актуални данни
           await fetchConversations();
@@ -219,14 +198,12 @@ export const usePushNotifications = () => {
               const attemptNavigation = () => {
                 // Проверка за максимално време
                 if (Date.now() - startTime > MAX_WAIT_TIME) {
-                  console.warn('⚠️ Navigation timeout: navigationRef not ready after 10 seconds, proceeding anyway');
                   resolve(); // Resolve за да не блокира целия процес
                   return;
                 }
                 
                 // Проверка за максимален брой опити
                 if (retryCount >= MAX_RETRIES) {
-                  console.warn('⚠️ Navigation failed: max retries reached, proceeding anyway');
                   resolve(); // Resolve за да не блокира целия процес
                   return;
                 }
@@ -248,11 +225,10 @@ export const usePushNotifications = () => {
                         },
                       })
                     );
-                    console.log('✅ Navigated to conversation:', conversationId);
                     // Изчакай малко за да се инициализира Chat screen
                     setTimeout(resolve, 300);
                   } catch (error) {
-                    console.error('❌ Error navigating to conversation:', error);
+                    logger.error('❌ Error navigating to conversation:', error);
                     // Resolve за да не блокира целия процес дори ако навигацията fail-не
                     resolve();
                   }
@@ -287,7 +263,6 @@ export const usePushNotifications = () => {
   const registerDeviceToken = useCallback(
     async (deviceToken: string, retryCount = 0): Promise<void> => {
       if (!isAuthenticated || !user) {
-        console.log('Skipping device token registration - not authenticated');
         return;
       }
 
@@ -306,8 +281,6 @@ export const usePushNotifications = () => {
       } catch (error: any) {
         // Ако получим 401 или 405 (вероятно изтекъл token), опитай да refresh-неш token и retry
         if ((error?.response?.status === 401 || error?.response?.status === 405) && retryCount < 2) {
-          console.log(`Device token registration failed (${error?.response?.status}), attempting token refresh and retry...`);
-          
           // Изчакай малко преди retry
           await new Promise(resolve => setTimeout(resolve, 1000));
           
@@ -315,13 +288,13 @@ export const usePushNotifications = () => {
           try {
             return await registerDeviceToken(deviceToken, retryCount + 1);
           } catch (retryError) {
-            console.error('Retry failed for device token registration:', retryError);
+            logger.error('Retry failed for device token registration:', retryError);
             // Не хвърляй грешка - non-critical операция
             return;
           }
         }
         
-        console.error('Failed to register device token:', error?.response?.status || error?.message);
+        logger.error('Failed to register device token:', error?.response?.status || error?.message);
         // Не хвърляй грешка - non-critical операция
       }
     },
@@ -336,7 +309,7 @@ export const usePushNotifications = () => {
       await pushNotificationService.unregisterDeviceToken(deviceToken);
       await pushNotificationService.deleteToken();
     } catch (error) {
-      console.error('Failed to unregister device token:', error);
+      logger.error('Failed to unregister device token:', error);
     }
   }, []);
 
@@ -433,20 +406,17 @@ export const usePushNotifications = () => {
   // Heartbeat endpoint има проблеми с JWT authentication, затова разчитаме основно на WebSocket
   const ensureOnlineStatus = useCallback(async () => {
     if (!isAuthenticated) {
-      console.log('💓 Skipping online status update - user not authenticated');
       return;
     }
     
     // WebSocket connection автоматично обновява online статуса когато се свърже
     // Проверяваме дали WebSocket е connected
     if (svMobileWebSocketService.isConnected()) {
-      console.log('💓 WebSocket is connected - online status maintained automatically by backend');
       return;
     }
     
     // Ако WebSocket не е connected, опитваме се да се reconnect-нем
     // WebSocket reconnect ще обновява online статуса автоматично
-    console.log('💓 WebSocket not connected - will reconnect automatically (online status will be updated on connect)');
     // WebSocket reconnect се случва автоматично от useWebSocket hook при app state change
   }, [isAuthenticated]);
 
@@ -466,11 +436,8 @@ export const usePushNotifications = () => {
         // Refresh само ако няма отворен чат
         if (!selectedConversationId) {
         debouncedRefreshConversations();
-        } else {
-          console.log('⏭️ Skipping conversations refresh on app active - chat is open');
         }
       } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-        console.log('⏸️ App went to background');
         // WebSocket остава активен в background за real-time нотификации
         // Backend автоматично маркира като offline след 2 минути неактивност
       }
@@ -502,8 +469,6 @@ export const usePushNotifications = () => {
     // internally, so they always access the latest state. We only need to check currentCall
     // to avoid calling them when there's no call, so we read it fresh inside the listener.
     const subscription = DeviceEventEmitter.addListener('IncomingCallAction', async (event: any) => {
-      console.log('📞 IncomingCallAction received:', event);
-      
       // CRITICAL FIX: Destructure without default value for participantId to distinguish between
       // missing (undefined) and valid 0. The native code now always includes participantId if it
       // was provided in the intent, even if it's 0, allowing us to distinguish between:
@@ -530,7 +495,7 @@ export const usePushNotifications = () => {
         // If conversationId is missing or invalid, we cannot initialize the call
         const conversationIdNum = Number(conversationId);
         if (isNaN(conversationIdNum) || conversationIdNum <= 0) {
-          console.error('❌ Invalid conversationId in IncomingCallAction:', conversationId);
+          logger.error('❌ Invalid conversationId in IncomingCallAction:', conversationId);
           return; // Cannot initialize call without valid conversationId
         }
         
@@ -541,7 +506,7 @@ export const usePushNotifications = () => {
         if (participantId !== undefined) {
           participantIdNum = Number(participantId);
           if (isNaN(participantIdNum)) {
-            console.error('❌ Invalid participantId in IncomingCallAction:', participantId);
+            logger.error('❌ Invalid participantId in IncomingCallAction:', participantId);
             return; // Cannot initialize call with invalid participantId
           }
           // participantIdNum is valid (including 0, which is a valid ID)
@@ -549,8 +514,6 @@ export const usePushNotifications = () => {
           // participantId not provided - we'll try to get it from conversation
           participantIdNum = 0; // Temporary value, will be updated from conversation
         }
-        
-        console.log('📞 Initializing currentCall from IncomingCallAction event data');
         try {
           // Read functions from stores inside listener to get latest references
           // This prevents stale closure issues if function references change between renders
@@ -588,21 +551,18 @@ export const usePushNotifications = () => {
           
           // Read the newly initialized call
           latestCurrentCall = useCallsStore.getState().currentCall;
-          console.log('✅ currentCall initialized from event data:', latestCurrentCall);
         } catch (error) {
-          console.error('❌ Error initializing currentCall from event data:', error);
+          logger.error('❌ Error initializing currentCall from event data:', error);
         }
       }
       
       if (action === 'accept_call') {
-        console.log('📞 Accepting call from IncomingCallActivity');
         if (latestCurrentCall) {
           answerCall();
         } else {
-          console.error('❌ Cannot accept call: currentCall not initialized and could not be created from event data');
+          logger.error('❌ Cannot accept call: currentCall not initialized and could not be created from event data');
         }
       } else if (action === 'reject_call') {
-        console.log('📞 Rejecting call from IncomingCallActivity');
         // For reject, we can still process it even if currentCall wasn't initialized
         // because rejectCall() clears the call state, which is safe to call
         if (latestCurrentCall) {
@@ -611,7 +571,6 @@ export const usePushNotifications = () => {
           // If no currentCall, just clear any potential call state
           const { clearCall } = useCallsStore.getState();
           clearCall();
-          console.log('✅ Call state cleared (no currentCall to reject)');
         }
       }
     });

@@ -7,7 +7,9 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { API_CONFIG } from '../../config/api';
 import { TokenManager } from '../auth/tokenManager';
-import { safeErrorToString, safeConsoleError } from '../../utils/safeLog';
+import { safeErrorToString } from '../../utils/safeLog';
+import { logger } from '../../utils/logger';
+import { WebSocketCallbacks, CallSignal } from '../../types/websocket';
 
 class SVMobileWebSocketService {
   // Деклариране на properties (задължително в TypeScript)
@@ -19,10 +21,10 @@ class SVMobileWebSocketService {
   private reconnectDelay: number;
   private isConnecting: boolean;
   private tokenManager: TokenManager;
-  private currentCallbacks: any;
+  private currentCallbacks: WebSocketCallbacks | null = null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null; // Debouncing за reconnection
 
   constructor() {
-    console.log('🔌 [WebSocketService] Constructor called');
     this.client = null;
     this.connected = false;
     this.subscriptions = new Map();
@@ -33,9 +35,8 @@ class SVMobileWebSocketService {
     // Lazy initialization of TokenManager to prevent crashes
     try {
       this.tokenManager = new TokenManager();
-      console.log('✅ [WebSocketService] TokenManager initialized');
     } catch (error) {
-      safeConsoleError('❌ [WebSocketService] Failed to initialize TokenManager:', error);
+      logger.error('❌ [WebSocketService] Failed to initialize TokenManager:', error);
       // Create a dummy token manager to prevent crash
       this.tokenManager = {
         getAccessToken: async () => null,
@@ -51,10 +52,9 @@ class SVMobileWebSocketService {
   /**
    * Connect към WebSocket server
    */
-  async connect(callbacks = {}) {
+  async connect(callbacks: WebSocketCallbacks = {}) {
     // Защита срещу множествени извиквания - ако вече се connect-ва, не прави нищо
     if (this.isConnecting || (this.client && this.client.connected)) {
-      console.log('⚠️ WebSocket already connecting or connected, skipping duplicate connect call');
       return;
     }
 
@@ -74,7 +74,6 @@ class SVMobileWebSocketService {
 
     // Премахни стария client преди да създадеш нов (предотвратява дублиране на subscriptions)
     if (this.client) {
-      console.log('⚠️ Disconnecting existing WebSocket client before creating new one');
       try {
         // Unsubscribe от всички channels
         this.subscriptions.forEach(sub => {
@@ -91,7 +90,7 @@ class SVMobileWebSocketService {
           this.client.deactivate();
         }
       } catch (error) {
-        console.warn('Error disconnecting old client:', error);
+        logger.error('Error disconnecting old client:', error);
       }
       this.client = null;
       this.connected = false;
@@ -104,11 +103,8 @@ class SVMobileWebSocketService {
         throw new Error('No access token available for WebSocket connection');
       }
 
-      console.log('🔐 WebSocket token available, connecting...');
-
       // Create plain WebSocket connection URL with token
       const wsUrl = API_CONFIG.WS_URL;
-      console.log('🔌 Connecting to plain WebSocket endpoint:', wsUrl);
 
       // Create STOMP client with SockJS (standard approach за React Native + Spring Boot)
       this.client = new Client({
@@ -119,11 +115,9 @@ class SVMobileWebSocketService {
           'Authorization': `Bearer ${token}`
         },
 
-        // Debug logging само в development
-        debug: (str) => {
-          if (__DEV__) {
-            console.log('🔍 STOMP debug:', str);
-          }
+        // Debug logging disabled - само грешки се логват
+        debug: () => {
+          // No debug logging
         },
 
         // Reconnect settings
@@ -135,15 +129,12 @@ class SVMobileWebSocketService {
         onConnect: () => {
           // Защита срещу множествени извиквания на onConnect
           if (this.connected) {
-            console.log('⚠️ onConnect called but already connected, skipping duplicate subscription');
             return;
           }
 
           this.connected = true;
           this.isConnecting = false; // Reset connecting flag
           this.reconnectAttempts = 0;
-
-          console.log('✅ WebSocket STOMP connected, subscribing to channels...');
 
           // Subscribe to channels
           this.subscribeToChannels({
@@ -160,7 +151,7 @@ class SVMobileWebSocketService {
 
         // Connection error callback
         onStompError: (frame) => {
-          safeConsoleError('❌ STOMP connection error:', frame);
+          logger.error('❌ STOMP connection error:', frame);
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onError(frame);
@@ -171,7 +162,6 @@ class SVMobileWebSocketService {
 
         // WebSocket close callback
         onWebSocketClose: () => {
-          console.log('⚠️ WebSocket connection closed');
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onDisconnect();
@@ -182,11 +172,10 @@ class SVMobileWebSocketService {
       });
 
       // Activate connection
-      console.log('🚀 Activating STOMP client...');
       this.client.activate();
 
     } catch (error) {
-      safeConsoleError('❌ Error setting up WebSocket connection:', error);
+      logger.error('❌ Error setting up WebSocket connection:', error);
       this.connected = false;
       this.isConnecting = false;
       onError(error);
@@ -198,7 +187,7 @@ class SVMobileWebSocketService {
    * Handles both sync and async callbacks, prevents unhandled promise rejections
    * CRITICAL: Never calls .catch() on undefined - only on actual promises
    */
-  private safeCallCallback(callback: any, data: any, callbackName: string): void {
+  private safeCallCallback(callback: ((data: unknown) => void | Promise<void>) | undefined, data: unknown, callbackName: string): void {
     if (!callback || typeof callback !== 'function') {
       return;
     }
@@ -227,29 +216,20 @@ class SVMobileWebSocketService {
 
   /**
    * Safely log errors - ensures we never try to call .catch() on undefined
-   * CRITICAL: Never pass promises or objects with .catch() to console.error
+   * CRITICAL: Never pass promises or objects with .catch() to logger.error
    */
-  private logErrorSafely(error: any, context: string): void {
+  private logErrorSafely(error: unknown, context: string): void {
     try {
       // Convert error to a safe string representation using helper function
       const errorMessage = safeErrorToString(error);
       const logMessage = `❌ [stompClient] Error in ${context}: ${errorMessage}`;
       
-      // Use try-catch around console.error itself to prevent any issues
-      try {
-        console.error(logMessage);
-      } catch (consoleError) {
-        // If console.error itself fails, use a fallback that definitely won't fail
-        try {
-          console.warn('Failed to log error via console.error, using console.warn:', logMessage);
-        } catch {
-          // Absolute fallback - do nothing to prevent infinite loops
-        }
-      }
+      // Use logger.error which handles errors safely
+      logger.error(logMessage);
     } catch (logError) {
       // If even error conversion fails, use absolute minimal logging
       try {
-        console.warn(`❌ [stompClient] Error in ${context}: [Failed to process error]`);
+        logger.error(`❌ [stompClient] Error in ${context}: [Failed to process error]`);
       } catch {
         // Do nothing - prevent infinite error loops
       }
@@ -259,7 +239,7 @@ class SVMobileWebSocketService {
   /**
    * Subscribe to WebSocket channels
    */
-  subscribeToChannels(callbacks) {
+  subscribeToChannels(callbacks: WebSocketCallbacks) {
     const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
 
     // ВАЖНО: Запазваме callbacks в instance променливи за да избегнем stale closures
@@ -274,11 +254,16 @@ class SVMobileWebSocketService {
         try {
           oldSub.unsubscribe();
         } catch (error) {
-          console.warn('Error unsubscribing old subscription:', key, error);
+          logger.error('Error unsubscribing old subscription:', key, error);
         }
         this.subscriptions.delete(key);
       }
     });
+
+    if (!this.client) {
+      logger.error('❌ [stompClient] Cannot subscribe - client is null');
+      return;
+    }
 
     try {
       // 1. Private messages channel
@@ -289,7 +274,7 @@ class SVMobileWebSocketService {
           try {
             // Validate message exists and has body
             if (!message || !message.body) {
-              console.error('❌ [stompClient] Received message without body:', message);
+              logger.error('❌ [stompClient] Received message without body:', message);
               return;
             }
 
@@ -298,7 +283,7 @@ class SVMobileWebSocketService {
             try {
               data = JSON.parse(message.body);
             } catch (parseError) {
-              console.error('❌ [stompClient] Failed to parse message body as JSON:', {
+              logger.error('❌ [stompClient] Failed to parse message body as JSON:', {
                 error: parseError,
                 body: message.body,
                 bodyType: typeof message.body,
@@ -309,7 +294,7 @@ class SVMobileWebSocketService {
 
             // Validate parsed data
             if (!data || typeof data !== 'object') {
-              console.error('❌ [stompClient] Parsed data is not an object:', data);
+              logger.error('❌ [stompClient] Parsed data is not an object:', data);
               return;
             }
 
@@ -318,7 +303,7 @@ class SVMobileWebSocketService {
             if (currentCallback && typeof currentCallback === 'function') {
               this.safeCallCallback(currentCallback, data, 'onNewMessage');
             } else {
-              console.error('❌ [stompClient] onNewMessage callback is not available or not a function!', {
+              logger.error('❌ [stompClient] onNewMessage callback is not available or not a function!', {
                 hasCallbacks: !!this.currentCallbacks,
                 hasOnNewMessage: !!this.currentCallbacks?.onNewMessage,
                 type: typeof this.currentCallbacks?.onNewMessage,
@@ -326,114 +311,111 @@ class SVMobileWebSocketService {
             }
           } catch (error) {
             // Safely log error without accessing potentially undefined properties
-            safeConsoleError('❌ [stompClient] Error processing message:', error);
+            logger.error('❌ [stompClient] Error processing message:', error);
             try {
-              console.error('❌ [stompClient] Message details:', {
+              logger.error('❌ [stompClient] Message details:', {
                 hasMessage: !!message,
                 hasBody: !!message?.body,
                 bodyType: typeof message?.body,
                 hasHeaders: !!message?.headers,
               });
             } catch (logError) {
-              console.error('❌ [stompClient] Failed to log message details:', logError);
+              logger.error('❌ [stompClient] Failed to log message details:', logError);
             }
           }
         }
       );
       this.subscriptions.set('messages', messagesSub);
-      console.log('✅ [stompClient] Subscribed to /user/queue/svmessenger-messages');
 
       // 2. Read receipts channel
-      const receiptsSub = this.client.subscribe(
+      const receiptsSub = this.client!.subscribe(
         '/user/queue/svmessenger-read-receipts',
         (message) => {
           try {
             if (!message || !message.body) {
-              console.error('❌ [stompClient] Received receipt without body:', message);
+              logger.error('❌ [stompClient] Received receipt without body:', message);
               return;
             }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onReadReceipt;
             this.safeCallCallback(currentCallback, data, 'onReadReceipt');
           } catch (error) {
-            safeConsoleError('❌ [stompClient] Error parsing receipt:', error);
+            logger.error('❌ [stompClient] Error parsing receipt:', error);
           }
         }
       );
       this.subscriptions.set('receipts', receiptsSub);
 
       // 3. Delivery receipts channel
-      const deliverySub = this.client.subscribe(
+      const deliverySub = this.client!.subscribe(
         '/user/queue/svmessenger-delivery-receipts',
         (message) => {
           try {
             if (!message || !message.body) {
-              console.error('❌ [stompClient] Received delivery receipt without body:', message);
+              logger.error('❌ [stompClient] Received delivery receipt without body:', message);
               return;
             }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onDeliveryReceipt;
             this.safeCallCallback(currentCallback, data, 'onDeliveryReceipt');
           } catch (error) {
-            safeConsoleError('❌ [stompClient] Error parsing delivery receipt:', error);
+            logger.error('❌ [stompClient] Error parsing delivery receipt:', error);
           }
         }
       );
       this.subscriptions.set('delivery', deliverySub);
 
       // 4. Online status channel
-      const statusSub = this.client.subscribe(
+      const statusSub = this.client!.subscribe(
         '/topic/svmessenger-online-status',
         (message) => {
           try {
             if (!message || !message.body) {
-              console.error('❌ [stompClient] Received status without body:', message);
+              logger.error('❌ [stompClient] Received status without body:', message);
               return;
             }
             const data = JSON.parse(message.body);
             const currentCallback = this.currentCallbacks?.onOnlineStatus;
             this.safeCallCallback(currentCallback, data, 'onOnlineStatus');
           } catch (error) {
-            safeConsoleError('❌ [stompClient] Error parsing status:', error);
+            logger.error('❌ [stompClient] Error parsing status:', error);
           }
         }
       );
       this.subscriptions.set('status', statusSub);
 
       // 5. Call signals channel
-      const callSignalsSub = this.client.subscribe(
+      const callSignalsSub = this.client!.subscribe(
         '/user/queue/svmessenger-call-signals',
         (message) => {
           try {
             if (!message || !message.body) {
-              console.error('❌ [stompClient] Received call signal without body:', message);
+              logger.error('❌ [stompClient] Received call signal without body:', message);
               return;
             }
-            console.log('📞 [stompClient] Raw call signal received:', message.body);
-            const data = JSON.parse(message.body);
-            console.log('📞 [stompClient] Parsed call signal:', data);
+            const data = JSON.parse(message.body) as CallSignal;
             const currentCallback = this.currentCallbacks?.onCallSignal;
-            this.safeCallCallback(currentCallback, data, 'onCallSignal');
+            if (currentCallback && typeof currentCallback === 'function') {
+              // Use safeCallCallback for consistent error handling like other handlers
+              this.safeCallCallback(currentCallback as (data: unknown) => void | Promise<void>, data, 'onCallSignal');
+            }
           } catch (error) {
-            safeConsoleError('❌ [stompClient] Error parsing call signal:', error);
+            logger.error('❌ [stompClient] Error parsing call signal:', error);
           }
         }
       );
       this.subscriptions.set('callSignals', callSignalsSub);
 
-      console.log('✅ All WebSocket channels subscribed successfully');
-
     } catch (error) {
-      safeConsoleError('❌ Error subscribing to channels:', error);
+      logger.error('❌ Error subscribing to channels:', error);
     }
   }
 
   /**
    * Subscribe to typing status за конкретен conversation
    */
-  subscribeToTyping(conversationId, callback) {
+  subscribeToTyping(conversationId: number, callback: (data: unknown) => void) {
     if (!this.connected || !this.client) {
-      console.warn('Cannot subscribe to typing - not connected');
       return null;
     }
 
@@ -444,7 +426,7 @@ class SVMobileWebSocketService {
         const data = JSON.parse(message.body);
         callback(data);
       } catch (error) {
-        safeConsoleError('Error parsing typing status:', error);
+        logger.error('Error parsing typing status:', error);
       }
     });
 
@@ -458,7 +440,7 @@ class SVMobileWebSocketService {
   /**
    * Unsubscribe от typing status
    */
-  unsubscribeFromTyping(conversationId) {
+  unsubscribeFromTyping(conversationId: number) {
     const key = `typing-${conversationId}`;
     const subscription = this.subscriptions.get(key);
 
@@ -471,9 +453,8 @@ class SVMobileWebSocketService {
   /**
    * Изпрати съобщение през WebSocket
    */
-  sendMessage(conversationId, text, messageType = 'TEXT') {
+  sendMessage(conversationId: number, text: string, messageType: string = 'TEXT') {
     if (!this.connected || !this.client) {
-      console.warn('Cannot send message - not connected');
       return false;
     }
 
@@ -488,7 +469,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      safeConsoleError('Error sending message:', error);
+      logger.error('Error sending message:', error);
       return false;
     }
   }
@@ -496,7 +477,7 @@ class SVMobileWebSocketService {
   /**
    * Изпрати typing status
    */
-  sendTypingStatus(conversationId, isTyping) {
+  sendTypingStatus(conversationId: number, isTyping: boolean) {
     if (!this.connected || !this.client) {
       return false;
     }
@@ -511,7 +492,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      safeConsoleError('Error sending typing status:', error);
+      logger.error('Error sending typing status:', error);
       return false;
     }
   }
@@ -519,9 +500,8 @@ class SVMobileWebSocketService {
   /**
    * Маркирай разговор като прочетен през WebSocket
    */
-  sendReadReceipt(conversationId) {
+  sendReadReceipt(conversationId: number) {
     if (!this.connected || !this.client) {
-      console.warn('Cannot send mark-read - not connected');
       return false;
     }
 
@@ -532,30 +512,48 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      safeConsoleError('Error sending mark-read via WS:', error);
+      logger.error('Error sending mark-read via WS:', error);
       return false;
     }
   }
 
   /**
-   * Handle reconnection logic
+   * Handle reconnection logic с debouncing
    */
   handleReconnect() {
+    // Debouncing: Ако вече има scheduled reconnect, не прави нов
+    if (this.reconnectTimeout) {
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnect attempts reached, giving up');
+      logger.error('Max reconnect attempts reached, giving up');
+      return;
+    }
+
+    // Ако вече се connect-ва, не прави reconnect
+    if (this.isConnecting || this.connected) {
       return;
     }
 
     this.reconnectAttempts++;
 
-    // Exponential backoff
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    // Exponential backoff с debouncing
+    const delay = Math.min(
+      this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+      30000 // Max delay: 30 seconds
+    );
 
-    console.log(`🔄 Scheduling WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts})`);
-
-    setTimeout(() => {
-      console.log(`🔄 Attempting WebSocket reconnection (attempt ${this.reconnectAttempts})`);
-      // The client will auto-reconnect, but we can trigger a manual reconnect if needed
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      
+      // Проверка дали все още не е connected преди reconnect
+      if (!this.connected && !this.isConnecting) {
+        // Trigger reconnect чрез connect() method
+        this.connect(this.currentCallbacks || {}).catch((error) => {
+          logger.error('Reconnection attempt failed:', error);
+        });
+      }
     }, delay);
   }
 
@@ -563,7 +561,15 @@ class SVMobileWebSocketService {
    * Disconnect от WebSocket
    */
   disconnect() {
+    // Cancel any pending reconnection attempts
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    
     this.isConnecting = false; // Reset connecting flag
+    this.reconnectAttempts = 0; // Reset reconnect attempts
+    
     if (this.client) {
       // Unsubscribe от всички channels
       this.subscriptions.forEach(sub => {
@@ -605,9 +611,8 @@ class SVMobileWebSocketService {
   /**
    * Изпрати call signal през WebSocket
    */
-  sendCallSignal(signal) {
+  sendCallSignal(signal: CallSignal): boolean {
     if (!this.connected || !this.client) {
-      console.warn('Cannot send call signal - not connected');
       return false;
     }
 
@@ -618,7 +623,7 @@ class SVMobileWebSocketService {
       });
       return true;
     } catch (error) {
-      safeConsoleError('Error sending call signal:', error);
+      logger.error('Error sending call signal:', error);
       return false;
     }
   }
@@ -630,11 +635,9 @@ let svMobileWebSocketServiceInstance: SVMobileWebSocketService | null = null;
 const getWebSocketService = (): SVMobileWebSocketService => {
   if (!svMobileWebSocketServiceInstance) {
     try {
-      console.log('🔌 [WebSocketService] Creating singleton instance...');
       svMobileWebSocketServiceInstance = new SVMobileWebSocketService();
-      console.log('✅ [WebSocketService] Singleton instance created');
     } catch (error) {
-      safeConsoleError('❌ [WebSocketService] Failed to create instance:', error);
+      logger.error('❌ [WebSocketService] Failed to create instance:', error);
       throw error;
     }
   }
@@ -642,9 +645,9 @@ const getWebSocketService = (): SVMobileWebSocketService => {
 };
 
 export const svMobileWebSocketService = new Proxy({} as SVMobileWebSocketService, {
-  get(target, prop) {
+  get(target, prop: keyof SVMobileWebSocketService) {
     const instance = getWebSocketService();
-    const value = (instance as any)[prop];
+    const value = instance[prop];
     if (typeof value === 'function') {
       return value.bind(instance);
     }

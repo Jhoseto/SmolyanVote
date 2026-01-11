@@ -28,6 +28,7 @@ import { useCalls } from '../../hooks/useCalls';
 import { CallState } from '../../types/call';
 import { liveKitService } from '../../services/calls/liveKitService';
 import { RemoteParticipant, Track as LiveKitTrack } from 'livekit-client';
+import { logger } from '../../utils/logger';
 import { VideoView as LiveKitVideoView } from '@livekit/react-native';
 import { useCallsStore } from '../../store/callsStore';
 
@@ -71,7 +72,6 @@ const VideoView: React.FC<{
   }, [track?.sid, track?.mediaStreamTrack?.id, track?.mediaStreamTrack?.active]);
   
   if (!track) {
-    console.log('❌ [VideoView] No track provided');
     return (
       <View style={[style, styles.videoPlaceholder]}>
         <Text style={styles.videoPlaceholderText}>Няма видео</Text>
@@ -81,12 +81,6 @@ const VideoView: React.FC<{
 
   // Wait for mediaStreamTrack to be available
   if (!track.mediaStreamTrack) {
-    console.log('⏳ [VideoView] Track has no mediaStreamTrack yet, waiting...', {
-      kind: track.kind,
-      sid: track.sid,
-      enabled: track.enabled,
-      isMuted: track.isMuted,
-    });
     return (
       <View style={[style, styles.videoPlaceholder]}>
         <Text style={styles.videoPlaceholderText}>Зарежда се...</Text>
@@ -97,23 +91,17 @@ const VideoView: React.FC<{
   // CRITICAL: Force enable track at LiveKit level
   // track.enabled can be undefined, so we need to check and set it explicitly
   if (track.enabled !== true) {
-    console.log('🔧 [VideoView] Track is not enabled, forcing enable...', {
-      currentEnabled: track.enabled,
-      hasSetEnabled: typeof track.setEnabled === 'function',
-    });
     try {
       // Try setEnabled first (preferred method)
       if (typeof track.setEnabled === 'function') {
         track.setEnabled(true);
-        console.log('✅ [VideoView] Called track.setEnabled(true)');
       }
       // Also try direct assignment as fallback
       if (track.enabled !== true) {
         (track as any).enabled = true;
-        console.log('✅ [VideoView] Set track.enabled = true directly');
       }
     } catch (e) {
-      console.warn('⚠️ [VideoView] Could not enable track:', e);
+      logger.error('⚠️ [VideoView] Could not enable track:', e);
     }
   }
 
@@ -121,9 +109,6 @@ const VideoView: React.FC<{
   if (track.mediaStreamTrack) {
     // Always ensure enabled is true
     if (track.mediaStreamTrack.enabled !== true) {
-      console.log('🔧 [VideoView] MediaStreamTrack is disabled, enabling...', {
-        currentEnabled: track.mediaStreamTrack.enabled,
-      });
       track.mediaStreamTrack.enabled = true;
     }
     
@@ -133,34 +118,10 @@ const VideoView: React.FC<{
     const isTrackReady = track.mediaStreamTrack.readyState === 'live' && track.mediaStreamTrack.enabled;
     
     if (!isTrackReady) {
-      console.log('⏳ [VideoView] MediaStreamTrack is not ready yet', {
-        readyState: track.mediaStreamTrack.readyState,
-        enabled: track.mediaStreamTrack.enabled,
-        active: track.mediaStreamTrack.active, // May be undefined in RN WebRTC
-        id: track.mediaStreamTrack.id,
-      });
       // Still render - native view will handle activation
-    } else {
-      console.log('✅ [VideoView] MediaStreamTrack is ready!', {
-        readyState: track.mediaStreamTrack.readyState,
-        enabled: track.mediaStreamTrack.enabled,
-        active: track.mediaStreamTrack.active, // May be undefined in RN WebRTC
-        id: track.mediaStreamTrack.id,
-      });
     }
   }
 
-  console.log('✅ [VideoView] Rendering video track', {
-    kind: track.kind,
-    sid: track.sid,
-    enabled: track.enabled,
-    muted: track.isMuted,
-    hasMediaStreamTrack: !!track.mediaStreamTrack,
-    mediaStreamTrackId: track.mediaStreamTrack?.id,
-    mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
-    mediaStreamTrackActive: track.mediaStreamTrack?.active,
-    mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
-  });
 
   try {
     // CRITICAL: Always render LiveKitVideoView even if track seems inactive
@@ -180,17 +141,6 @@ const VideoView: React.FC<{
         flex: 1, // CRITICAL: Ensure it takes full space
       },
     ];
-    
-    console.log('🎬 [VideoView] Rendering LiveKitVideoView with key:', viewKey, {
-      trackSid: track.sid,
-      trackEnabled: track.enabled,
-      hasMediaStreamTrack: !!track.mediaStreamTrack,
-      mediaStreamTrackId: track.mediaStreamTrack?.id,
-      mediaStreamTrackActive: track.mediaStreamTrack?.active,
-      mediaStreamTrackEnabled: track.mediaStreamTrack?.enabled,
-      mediaStreamTrackReadyState: track.mediaStreamTrack?.readyState,
-      style: finalStyle,
-    });
     
     // CRITICAL: Wrap in View container like web version does
     // In web: video element is appended to remoteVideoRef.current container
@@ -525,16 +475,6 @@ export const CallScreen: React.FC = () => {
         
         // Always update if track changed (even if not fully ready - VideoView will handle it)
         if (trackChanged) {
-          console.log('📹 [CallScreen] Local video track changed:', {
-            hadTrack: !!localVideoTrack,
-            hasTrack: !!currentTrack,
-            trackEnabled: currentTrack?.enabled,
-            trackMuted: currentTrack?.isMuted,
-            hasMediaStream: !!currentTrack?.mediaStreamTrack,
-            mediaStreamTrackActive: currentTrack?.mediaStreamTrack?.active,
-            mediaStreamTrackEnabled: currentTrack?.mediaStreamTrack?.enabled,
-          });
-          
           // Always update state - even if track is not fully ready, VideoView will handle it
           setLocalVideoTrack(currentTrack);
         } else if (currentTrack && currentTrack !== localVideoTrack) {
@@ -562,25 +502,13 @@ export const CallScreen: React.FC = () => {
       return;
     }
 
-    console.log('📹 [CallScreen] Setting up video track listeners');
-
     // Listen for NEW video tracks being subscribed
     const handleVideoTrackSubscribed = (track: LiveKitTrack | null, participant: RemoteParticipant) => {
       // Handle track being unpublished (null track)
       if (!track) {
-        console.log('📹 [CallScreen] Remote video track unpublished');
         setRemoteVideoTrack(null);
         return;
       }
-      
-      console.log('📹 [CallScreen] Video track subscribed callback:', {
-        kind: track.kind,
-        sid: track.sid,
-        participantId: participant.identity,
-        hasMediaStreamTrack: !!track.mediaStreamTrack,
-        enabled: track.enabled,
-        isMuted: track.isMuted,
-      });
       
       if (track.kind === 'video') {
         // If track has mediaStreamTrack, use it immediately
@@ -593,16 +521,14 @@ export const CallScreen: React.FC = () => {
             try {
               track.setEnabled(true);
             } catch (e) {
-              console.warn('⚠️ [CallScreen] Could not enable track:', e);
+              logger.error('⚠️ [CallScreen] Could not enable track:', e);
             }
           }
           
-          console.log('✅ [CallScreen] Setting remote video track');
           setRemoteVideoTrack(track);
           setRemoteParticipant(participant);
         } else {
           // Track exists but mediaStreamTrack not ready yet - wait a bit and try again
-          console.log('⏳ [CallScreen] Video track subscribed but mediaStreamTrack not ready yet, waiting...');
           setTimeout(() => {
             if (track.mediaStreamTrack) {
               track.mediaStreamTrack.enabled = true;
@@ -610,51 +536,37 @@ export const CallScreen: React.FC = () => {
                 try {
                   track.setEnabled(true);
                 } catch (e) {
-                  console.warn('⚠️ [CallScreen] Could not enable track:', e);
+                  logger.error('⚠️ [CallScreen] Could not enable track:', e);
                 }
               }
-              console.log('✅ [CallScreen] Setting remote video track (delayed)');
               setRemoteVideoTrack(track);
               setRemoteParticipant(participant);
-            } else {
-              console.warn('⚠️ [CallScreen] Video track still not ready after delay');
             }
           }, 300);
         }
-      } else {
-        console.warn('⚠️ [CallScreen] Track subscribed but not video:', {
-          kind: track.kind,
-        });
       }
     };
 
-    liveKitService.onVideoTrackSubscribed(handleVideoTrackSubscribed);
+    // ✅ FIX: Store cleanup functions for proper unregistration
+    const cleanupVideoTrackSubscribed = liveKitService.onVideoTrackSubscribed(handleVideoTrackSubscribed);
 
     // Listen for participants joining
     const handleParticipantConnected = (participant: RemoteParticipant) => {
-      console.log('📹 [CallScreen] Participant connected, checking for video tracks:', participant.identity);
-      
       // Check for existing video tracks
       participant.videoTrackPublications.forEach((publication) => {
-        console.log('📹 [CallScreen] Found video publication:', {
-          sid: publication.trackSid,
-          hasTrack: !!publication.track,
-          isSubscribed: publication.isSubscribed,
-        });
-        
         if (publication.track && publication.track.kind === 'video' && publication.track.mediaStreamTrack) {
           // Ensure track is enabled
           if (publication.track.mediaStreamTrack) {
             publication.track.mediaStreamTrack.enabled = true;
           }
-          console.log('✅ [CallScreen] Setting remote video track from existing publication');
           setRemoteVideoTrack(publication.track);
           setRemoteParticipant(participant);
         }
       });
     };
 
-    liveKitService.onParticipantConnected(handleParticipantConnected);
+    // ✅ FIX: Store cleanup function for proper unregistration
+    const cleanupParticipantConnected = liveKitService.onParticipantConnected(handleParticipantConnected);
 
     // Check for ALREADY CONNECTED participants (important!)
     // Also poll periodically to catch tracks that might be published later
@@ -663,7 +575,6 @@ export const CallScreen: React.FC = () => {
         const room = (liveKitService as any)['room']; // Access private property
         if (room) {
           const participants = Array.from(room.remoteParticipants.values());
-          console.log('📹 [CallScreen] Checking existing participants:', participants.length);
           
           participants.forEach((participant) => {
             participant.videoTrackPublications.forEach((publication) => {
@@ -671,11 +582,10 @@ export const CallScreen: React.FC = () => {
               if (publication.track && publication.track.kind === 'video') {
                 // If not subscribed, try to subscribe
                 if (!publication.isSubscribed) {
-                  console.log('📹 [CallScreen] Video track not subscribed, subscribing...');
                   try {
                     publication.setSubscribed(true);
                   } catch (e) {
-                    console.warn('⚠️ [CallScreen] Error subscribing to video track:', e);
+                    logger.error('⚠️ [CallScreen] Error subscribing to video track:', e);
                   }
                 }
                 
@@ -689,31 +599,19 @@ export const CallScreen: React.FC = () => {
                     try {
                       publication.track.setEnabled(true);
                     } catch (e) {
-                      console.warn('⚠️ [CallScreen] Could not enable track:', e);
+                      logger.error('⚠️ [CallScreen] Could not enable track:', e);
                     }
                   }
                   
-                  console.log('✅ [CallScreen] Found existing video track:', {
-                    sid: publication.trackSid,
-                    participantId: participant.identity,
-                    hasMediaStreamTrack: !!publication.track.mediaStreamTrack,
-                    isSubscribed: publication.isSubscribed,
-                    enabled: publication.track.enabled,
-                  });
                   setRemoteVideoTrack(publication.track);
                   setRemoteParticipant(participant);
-                } else {
-                  console.log('⏳ [CallScreen] Video track exists but mediaStreamTrack not ready yet:', {
-                    sid: publication.trackSid,
-                    participantId: participant.identity,
-                  });
                 }
               }
             });
           });
         }
       } catch (error) {
-        console.error('❌ [CallScreen] Error checking existing participants:', error);
+        logger.error('❌ [CallScreen] Error checking existing participants:', error);
       }
     };
 
@@ -727,7 +625,9 @@ export const CallScreen: React.FC = () => {
     const pollInterval = setInterval(checkExistingParticipants, 2000);
 
     return () => {
-      console.log('📹 [CallScreen] Cleaning up video track listeners');
+      // ✅ FIX: Cleanup event listeners to prevent memory leaks
+      cleanupVideoTrackSubscribed?.();
+      cleanupParticipantConnected?.();
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
       clearTimeout(timeoutId3);
@@ -759,27 +659,7 @@ export const CallScreen: React.FC = () => {
   // Debug logging for video tracks
   useEffect(() => {
     if (callState === CallState.CONNECTED) {
-      const isEmulator = __DEV__;
-      console.log('📹 [CallScreen] Video state check:', {
-        isVideoEnabled,
-        hasLocalVideoTrack: !!localVideoTrack,
-        hasRemoteVideoTrack: !!remoteVideoTrack,
-        localTrackEnabled: localVideoTrack?.enabled,
-        localTrackMuted: localVideoTrack?.isMuted,
-        localTrackHasMediaStream: !!localVideoTrack?.mediaStreamTrack,
-        localTrackActive: localVideoTrack?.mediaStreamTrack?.active,
-        remoteTrackEnabled: remoteVideoTrack?.enabled,
-        remoteTrackMuted: remoteVideoTrack?.isMuted,
-        remoteTrackHasMediaStream: !!remoteVideoTrack?.mediaStreamTrack,
-        remoteTrackActive: remoteVideoTrack?.mediaStreamTrack?.active,
-        isEmulator,
-        note: isEmulator ? '⚠️ На emulator камерите често не работят. Тествай на реален телефон.' : '✅ На реален телефон всичко ще работи правилно.',
-      });
-      
-      // Warn if on emulator and no video tracks
-      if (isEmulator && isVideoEnabled && !localVideoTrack && !remoteVideoTrack) {
-        console.warn('⚠️ [CallScreen] Video call on emulator - камерите може да не работят. Тествай на реален телефон.');
-      }
+      // Video state is managed by localVideoTrack and remoteVideoTrack state variables
     }
   }, [callState, isVideoEnabled, localVideoTrack, remoteVideoTrack]);
   

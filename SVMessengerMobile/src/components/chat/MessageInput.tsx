@@ -10,6 +10,7 @@ import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-pick
 import { SendIcon, FaceSmileIcon, PaperClipIcon, XMarkIcon } from '../common/Icons';
 import { EmojiPicker } from './EmojiPicker';
 import { Colors, Typography, Spacing } from '../../theme';
+import { logger } from '../../utils/logger';
 
 interface ReplyPreview {
   messageId: number;
@@ -69,13 +70,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       const result = await launchImageLibrary(options);
       
       if (result.didCancel) {
-        console.log('User cancelled image picker');
         return;
       }
 
       if (result.errorCode) {
         Alert.alert('Грешка', 'Неуспешно избиране на файл');
-        console.error('ImagePicker Error:', result.errorMessage);
+        logger.error('ImagePicker Error:', result.errorMessage);
         return;
       }
 
@@ -99,12 +99,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               'Файловете ще бъдат изпратени след имплементация на backend поддръжка.'
             );
           }
-          
-          console.log('File selected:', file);
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Грешка', 'Неуспешно избиране на файл');
     }
   };

@@ -39,8 +39,6 @@ export const useConversations = () => {
       // Refresh само ако няма отворен чат
       if (!selectedConversationId) {
         debouncedRefresh();
-      } else {
-        console.log('⏭️ Skipping conversations refresh on WebSocket connect - chat is open');
       }
     }
   }, [isConnected, selectedConversationId, debouncedRefresh]);

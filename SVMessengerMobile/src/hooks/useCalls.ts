@@ -12,6 +12,7 @@ import { callPermissionsService } from '../services/permissions/callPermissionsS
 import { CallState } from '../types/call';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import InCallManager from 'react-native-incall-manager';
+import { logger } from '../utils/logger';
 
 export const useCalls = () => {
   const {
@@ -31,53 +32,53 @@ export const useCalls = () => {
   // Speaker state (local to this hook)
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
 
-  // Initialize LiveKit event listeners
+  // Initialize LiveKit event listeners with proper cleanup
   useEffect(() => {
-    liveKitService.onConnected(() => {
+    // ✅ FIX: Register callbacks and store cleanup functions
+    const cleanupConnected = liveKitService.onConnected(() => {
       setCallState(CallState.CONNECTED);
       // Stop outgoing call sound when connected
       soundService.stopOutgoingCallSound();
     });
 
-    liveKitService.onDisconnected(() => {
+    const cleanupDisconnected = liveKitService.onDisconnected(() => {
       endCall();
     });
 
-    liveKitService.onParticipantConnected(() => {
-      console.log('Participant joined the call');
+    const cleanupParticipantConnected = liveKitService.onParticipantConnected(() => {
+      // Participant joined
     });
 
-    liveKitService.onParticipantDisconnected(() => {
-      console.log('Participant left the call');
+    const cleanupParticipantDisconnected = liveKitService.onParticipantDisconnected(() => {
       // If no participants left, end call
       const participants = liveKitService.getParticipants();
       if (participants.length === 0) {
         endCall();
       }
     });
+
+    // ✅ FIX: Cleanup callbacks on unmount
+    return () => {
+      cleanupConnected?.();
+      cleanupDisconnected?.();
+      cleanupParticipantConnected?.();
+      cleanupParticipantDisconnected?.();
+    };
   }, [setCallState, endCall]);
 
   // Auto-enable camera for video calls
   useEffect(() => {
     const enableCameraForVideoCall = async () => {
       if (callState === CallState.CONNECTED && isVideoCall && !liveKitService.isCameraEnabled()) {
-        console.log('📹 [useCalls] Auto-enabling camera for video call');
         try {
           const hasCameraPermission = await callPermissionsService.requestCameraPermission();
           if (hasCameraPermission) {
             // Add small delay to ensure room is fully ready
             await new Promise(resolve => setTimeout(resolve, 300));
-            const success = await liveKitService.toggleCamera(true);
-            if (success) {
-              console.log('✅ [useCalls] Camera enabled successfully');
-            } else {
-              console.error('❌ [useCalls] Failed to enable camera');
-            }
-          } else {
-            console.error('❌ [useCalls] Camera permission denied');
+            await liveKitService.toggleCamera(true);
           }
         } catch (error) {
-          console.error('❌ [useCalls] Error enabling camera:', error);
+          logger.error('❌ [useCalls] Error enabling camera:', error);
         }
       }
     };
@@ -101,7 +102,7 @@ export const useCalls = () => {
         // Request microphone permission before starting call
         const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
         if (!hasAudioPermission) {
-          console.error('❌ Microphone permission denied, cannot start call');
+          logger.error('❌ Microphone permission denied, cannot start call');
           clearCall();
           return;
         }
@@ -110,7 +111,7 @@ export const useCalls = () => {
         if (isVideo) {
           const hasCameraPermission = await callPermissionsService.requestCameraPermission();
           if (!hasCameraPermission) {
-            console.error('❌ Camera permission denied, cannot start video call');
+            logger.error('❌ Camera permission denied, cannot start video call');
             clearCall();
             return;
           }
@@ -142,7 +143,7 @@ export const useCalls = () => {
         // Note: outgoing call sound will be stopped in onConnected callback
         // Camera will be enabled automatically in useEffect when callState becomes CONNECTED
       } catch (error) {
-        console.error('Error starting call:', error);
+        logger.error('Error starting call:', error);
         clearCall();
       }
     },
@@ -157,7 +158,6 @@ export const useCalls = () => {
     // Read currentCall from store to get latest value (not from closure)
     const latestCurrentCall = useCallsStore.getState().currentCall;
     if (!latestCurrentCall) {
-      console.warn('⚠️ [useCalls] Cannot answer call: currentCall is null');
       return;
     }
 
@@ -165,7 +165,7 @@ export const useCalls = () => {
       // Request microphone permission before answering call
       const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
       if (!hasAudioPermission) {
-        console.error('❌ Microphone permission denied, cannot answer call');
+        logger.error('❌ Microphone permission denied, cannot answer call');
         clearCall();
         return;
       }
@@ -175,11 +175,6 @@ export const useCalls = () => {
       answerCall();
 
       // Generate call token
-      console.log('📞 [useCalls] Generating call token for answer:', {
-        conversationId: latestCurrentCall.conversationId,
-        participantId: latestCurrentCall.participantId,
-      });
-      
       let token: string;
       let roomName: string;
       let serverUrl: string;
@@ -192,15 +187,8 @@ export const useCalls = () => {
         token = tokenResponse.token;
         roomName = tokenResponse.roomName;
         serverUrl = tokenResponse.serverUrl;
-        
-        console.log('📞 [useCalls] Call token received:', {
-          roomName,
-          serverUrl,
-          hasToken: !!token,
-          tokenLength: token?.length || 0,
-        });
       } catch (tokenError: any) {
-        console.error('❌ [useCalls] Error generating call token:', {
+        logger.error('❌ [useCalls] Error generating call token:', {
           error: tokenError,
           message: tokenError?.message,
           response: tokenError?.response?.data,
@@ -222,11 +210,9 @@ export const useCalls = () => {
       }
 
       // Connect to LiveKit room
-      console.log('📞 [useCalls] Connecting to LiveKit room...');
       await liveKitService.connect(token, roomName, serverUrl);
-      console.log('✅ [useCalls] Successfully connected to LiveKit room');
     } catch (error: any) {
-      console.error('❌ [useCalls] Error answering call:', {
+      logger.error('❌ [useCalls] Error answering call:', {
         error,
         message: error?.message,
         stack: error?.stack,
@@ -265,7 +251,6 @@ export const useCalls = () => {
   // This ensures that even if currentCall is initialized after the callback is created,
   // the function will still access the latest value from the store
   const handleEndCall = useCallback(() => {
-    console.log('🛑 [useCalls] handleEndCall called', new Error().stack);
     // Read currentCall from store to get latest value (not from closure)
     const latestCurrentCall = useCallsStore.getState().currentCall;
     const { user } = useAuthStore.getState();
@@ -304,7 +289,7 @@ export const useCalls = () => {
     if (wantsToEnable) {
       const hasCameraPermission = await callPermissionsService.requestCameraPermission();
       if (!hasCameraPermission) {
-        console.error('❌ Camera permission denied, cannot enable camera');
+        logger.error('❌ Camera permission denied, cannot enable camera');
         return false;
       }
     }
@@ -321,7 +306,6 @@ export const useCalls = () => {
   // Flip camera (front/back)
   const handleFlipCamera = useCallback(async () => {
     if (callState !== CallState.CONNECTED || !liveKitService.isCameraEnabled()) {
-      console.warn('⚠️ Cannot flip camera - not in video call');
       return false;
     }
     
@@ -334,7 +318,6 @@ export const useCalls = () => {
     const newSpeakerState = !isSpeakerOn;
     setIsSpeakerOn(newSpeakerState);
     InCallManager.setSpeakerphoneOn(newSpeakerState);
-    console.log(`🔊 Speaker ${newSpeakerState ? 'ON' : 'OFF'}`);
   }, [isSpeakerOn]);
 
   return {

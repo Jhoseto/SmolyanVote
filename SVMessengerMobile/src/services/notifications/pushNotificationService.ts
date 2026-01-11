@@ -6,13 +6,14 @@
 import { Platform, NativeModules } from 'react-native';
 import apiClient from '../api/client';
 import { API_CONFIG } from '../../config/api';
+import { logger } from '../../utils/logger';
 
 // Safe Firebase messaging import
 let messaging: any = null;
 try {
   messaging = require('@react-native-firebase/messaging').default;
 } catch (error) {
-  console.warn('Firebase messaging not available:', error);
+  // Firebase messaging not available - silently continue
 }
 
 // Notification module for showing foreground notifications
@@ -35,13 +36,12 @@ interface RemoteMessage {
 
 const getMessaging = () => {
   if (!messaging) {
-    console.warn('Firebase messaging is not initialized');
     return null;
   }
   try {
     return messaging();
   } catch (error) {
-    console.warn('Error getting Firebase messaging instance:', error);
+    logger.error('Error getting Firebase messaging instance:', error);
     return null;
   }
 };
@@ -60,13 +60,11 @@ class PushNotificationService {
   async requestPermissions(): Promise<boolean> {
     try {
       if (!messaging) {
-        console.warn('Firebase messaging not available');
         return false;
       }
       
       const messagingInstance = getMessaging();
       if (!messagingInstance) {
-        console.warn('Firebase messaging instance not available');
         return false;
       }
       
@@ -92,10 +90,9 @@ class PushNotificationService {
               }
             );
             const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
-            console.log('Android notification permission:', hasPermission ? 'granted' : 'denied');
             return hasPermission;
           } catch (error) {
-            console.error('Error requesting Android notification permission:', error);
+            logger.error('Error requesting Android notification permission:', error);
             // Fallback: assume permission is granted for older Android versions
             return true;
           }
@@ -105,7 +102,7 @@ class PushNotificationService {
         }
       }
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      logger.error('Error requesting permissions:', error);
       return false;
     }
   }
@@ -116,20 +113,18 @@ class PushNotificationService {
   async getFCMToken(): Promise<string | null> {
     try {
       if (!messaging) {
-        console.warn('Firebase messaging not available');
         return null;
       }
       
       const messagingInstance = getMessaging();
       if (!messagingInstance) {
-        console.warn('Firebase messaging instance not available');
         return null;
       }
       
       const token = await messagingInstance.getToken();
       return token;
     } catch (error) {
-      console.error('Error getting FCM token:', error);
+      logger.error('Error getting FCM token:', error);
       return null;
     }
   }
@@ -139,15 +134,14 @@ class PushNotificationService {
    */
   async registerDeviceToken(request: DeviceTokenRequest): Promise<void> {
     try {
-      const response = await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.REGISTER, request);
-      console.log('Device token registered successfully:', response.data);
+      await apiClient.post(API_CONFIG.ENDPOINTS.DEVICE.REGISTER, request);
     } catch (error: any) {
       const status = error?.response?.status;
       const statusText = error?.response?.statusText;
       const message = error?.message;
       
       // Логване на подробна информация за грешката
-      console.error('Error registering device token:', {
+      logger.error('Error registering device token:', {
         status,
         statusText,
         message,
@@ -162,7 +156,6 @@ class PushNotificationService {
       }
       
       // За други грешки, не хвърляй - това е non-critical операция
-      console.warn('Device token registration failed (non-critical), continuing...');
     }
   }
 
@@ -177,11 +170,10 @@ class PushNotificationService {
       await apiClient.delete(API_CONFIG.ENDPOINTS.DEVICE.UNREGISTER, {
         data: { deviceToken },
       });
-      console.log('Device token unregistered successfully');
     } catch (error: any) {
       // Не хвърляй грешка - това е "best effort" операция
       // Токенът може да липсва, да е вече изтрит, user да не е логнат, backend да е спрян
-      console.warn('Error unregistering device token (non-critical):', error?.response?.status || error?.message);
+      logger.error('Error unregistering device token (non-critical):', error?.response?.status || error?.message);
       // Не хвърляй error - просто лог
     }
   }
@@ -196,25 +188,17 @@ class PushNotificationService {
     onNotificationOpened?: (notification: any) => void
   ): void {
     if (!messaging) {
-      console.warn('Firebase messaging not available, skipping notification handlers setup');
       return;
     }
     
     try {
       const messagingInstance = getMessaging();
       if (!messagingInstance) {
-        console.warn('Firebase messaging instance not available, skipping notification handlers setup');
         return;
       }
       
       // Handle foreground notifications
       messagingInstance.onMessage(async (remoteMessage: RemoteMessage | null) => {
-        console.log('📬 Firebase foreground notification received:', {
-          notification: remoteMessage?.notification,
-          data: remoteMessage?.data,
-          messageId: remoteMessage?.messageId,
-        });
-        
         // Show notification when app is in foreground
         // Firebase doesn't show notifications automatically in foreground
         if (remoteMessage?.notification || remoteMessage?.data) {
@@ -233,12 +217,9 @@ class PushNotificationService {
           if (Platform.OS === 'android' && NotificationModule?.showNotification) {
             try {
               await NotificationModule.showNotification(title, body, data);
-              console.log('✅ Foreground notification shown:', { title, body, data });
             } catch (error) {
-              console.error('❌ Error showing foreground notification:', error);
+              logger.error('❌ Error showing foreground notification:', error);
             }
-          } else {
-            console.warn('⚠️ NotificationModule not available, cannot show foreground notification');
           }
         }
         
@@ -249,7 +230,6 @@ class PushNotificationService {
 
       // Handle background notifications (when app is in background)
       messagingInstance.onNotificationOpenedApp((remoteMessage: RemoteMessage | null) => {
-        console.log('Notification opened app:', remoteMessage);
         if (onNotificationOpened) {
           onNotificationOpened(remoteMessage);
         }
@@ -260,19 +240,17 @@ class PushNotificationService {
         .getInitialNotification()
         .then((remoteMessage: RemoteMessage | null) => {
           if (remoteMessage) {
-            console.log('Notification opened app from quit state:', remoteMessage);
             if (onNotificationOpened) {
               onNotificationOpened(remoteMessage);
             }
           }
         })
         .catch((error: unknown) => {
-          console.warn('Error getting initial notification:', error);
+          logger.error('Error getting initial notification:', error);
         });
 
       // Handle token refresh
       messagingInstance.onTokenRefresh((token: string) => {
-        console.log('FCM token refreshed:', token);
         // Re-register token with backend
         const appVersion = require('../../../package.json').version || '0.0.1';
         this.registerDeviceToken({
@@ -280,11 +258,11 @@ class PushNotificationService {
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
           appVersion,
         }).catch((error) => {
-          console.error('Error re-registering token:', error);
+          logger.error('Error re-registering token:', error);
         });
       });
     } catch (error) {
-      console.error('Error setting up notification handlers:', error);
+      logger.error('Error setting up notification handlers:', error);
     }
   }
 
@@ -294,20 +272,17 @@ class PushNotificationService {
   async deleteToken(): Promise<void> {
     try {
       if (!messaging) {
-        console.warn('Firebase messaging not available');
         return;
       }
       
       const messagingInstance = getMessaging();
       if (!messagingInstance) {
-        console.warn('Firebase messaging instance not available');
         return;
       }
       
       await messagingInstance.deleteToken();
-      console.log('FCM token deleted');
     } catch (error) {
-      console.error('Error deleting FCM token:', error);
+      logger.error('Error deleting FCM token:', error);
     }
   }
 }

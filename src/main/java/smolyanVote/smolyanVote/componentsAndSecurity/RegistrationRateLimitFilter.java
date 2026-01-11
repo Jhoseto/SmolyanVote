@@ -19,13 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class RegistrationRateLimitFilter extends OncePerRequestFilter {
 
-    // Отделни bucket-и за IP адреси (глобален и регистрация)
+    // Отделни bucket-и за IP адреси (глобален, регистрация и mobile login)
     private final Map<String, Bucket> registrationBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> globalPostBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> mobileLoginBuckets = new ConcurrentHashMap<>();
 
     // Лимит за регистрация: 5 опита на 10 минути
     private Bucket createRegistrationBucket() {
-        Bandwidth limit = Bandwidth.classic(5, Refill.intervally(3, Duration.ofMinutes(10)));
+        Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(10)));
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
@@ -33,7 +34,15 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
 
     // Глобален лимит за всички POST: 20 заявки на минута
     private Bucket createGlobalPostBucket() {
-        Bandwidth limit = Bandwidth.classic(20, Refill.intervally(100, Duration.ofMinutes(1)));
+        Bandwidth limit = Bandwidth.classic(20, Refill.intervally(20, Duration.ofMinutes(1)));
+        return Bucket.builder()
+                .addLimit(limit)
+                .build();
+    }
+
+    // Лимит за mobile login: 5 опита на 15 минути
+    private Bucket createMobileLoginBucket() {
+        Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(15)));
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
@@ -45,6 +54,10 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
 
     private Bucket resolveGlobalPostBucket(String ip) {
         return globalPostBuckets.computeIfAbsent(ip, k -> createGlobalPostBucket());
+    }
+
+    private Bucket resolveMobileLoginBucket(String ip) {
+        return mobileLoginBuckets.computeIfAbsent(ip, k -> createMobileLoginBucket());
     }
 
     @Override
@@ -92,6 +105,19 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
                     if (!response.isCommitted()) {
                         request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
                         response.sendRedirect("/register");
+                    }
+                    return;
+                }
+            }
+
+            // Rate limiting за mobile login endpoint
+            if ("/api/mobile/auth/login".equals(requestURI)) {
+                Bucket loginBucket = resolveMobileLoginBucket(ip);
+                if (!loginBucket.tryConsume(1)) {
+                    if (!response.isCommitted()) {
+                        response.setStatus(429); // Too Many Requests
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Прекалено много опити за вход. Моля, опитайте след 15 минути.\"}");
                     }
                     return;
                 }

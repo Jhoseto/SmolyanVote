@@ -6,6 +6,7 @@
 import apiClient from '../api/client';
 import { TokenManager } from './tokenManager';
 import { API_CONFIG } from '../../config/api';
+import { logger } from '../../utils/logger';
 
 export interface LoginCredentials {
   email: string;
@@ -32,17 +33,14 @@ class AuthService {
 
   constructor() {
     // Lazy initialization to prevent crashes on module load
-    console.log('🔐 [AuthService] Constructor called');
   }
 
   private getTokenManager(): TokenManager {
     if (!this.tokenManager) {
       try {
-        console.log('🔐 [AuthService] Initializing TokenManager...');
         this.tokenManager = new TokenManager();
-        console.log('✅ [AuthService] TokenManager initialized');
       } catch (error) {
-        console.error('❌ [AuthService] Failed to initialize TokenManager:', error);
+        logger.error('❌ [AuthService] Failed to initialize TokenManager:', error);
         throw error;
       }
     }
@@ -50,30 +48,54 @@ class AuthService {
   }
 
   /**
+   * Валидира email формат
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Валидира login credentials
+   */
+  private validateCredentials(credentials: LoginCredentials): void {
+    if (!credentials.email || !credentials.password) {
+      throw new Error('Email и парола са задължителни');
+    }
+
+    if (!this.isValidEmail(credentials.email.trim())) {
+      throw new Error('Невалиден email формат');
+    }
+
+    if (credentials.password.length < 6) {
+      throw new Error('Паролата трябва да е поне 6 символа');
+    }
+  }
+
+  /**
    * Login с email и password
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      console.log('🔐 [AuthService] Attempting login for:', credentials.email);
-      console.log('🔐 [AuthService] Login endpoint:', API_CONFIG.ENDPOINTS.AUTH.LOGIN);
-      console.log('🔐 [AuthService] Base URL:', API_CONFIG.BASE_URL);
+      // ✅ Валидация на credentials преди изпращане
+      this.validateCredentials(credentials);
       
       const response = await apiClient.post<LoginResponse>(
         API_CONFIG.ENDPOINTS.AUTH.LOGIN,
-        credentials
+        {
+          email: credentials.email.trim().toLowerCase(),
+          password: credentials.password,
+        }
       );
-
-      console.log('✅ [AuthService] Login successful, status:', response.status);
       
       const { accessToken, refreshToken } = response.data;
 
       // Запазване на tokens
       await this.getTokenManager().setTokens(accessToken, refreshToken);
-      console.log('✅ [AuthService] Tokens saved successfully');
 
       return response.data;
     } catch (error: any) {
-      console.error('❌ [AuthService] Login error:', {
+      logger.error('❌ [AuthService] Login error:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -92,7 +114,7 @@ class AuthService {
       // Извикване на logout endpoint
       await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
     } catch (error) {
-      console.error('Logout API error:', error);
+      logger.error('Logout API error:', error);
       // Продължаваме дори ако API call fail-не
     } finally {
       // Изчистване на tokens
@@ -130,7 +152,7 @@ class AuthService {
 
       return accessToken;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error);
       await this.getTokenManager().clearTokens();
       return null;
     }

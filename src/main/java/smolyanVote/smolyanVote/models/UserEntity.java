@@ -51,6 +51,12 @@ public class UserEntity extends BaseEntity {
     @Column(name = "ban_date")
     private Instant banDate;
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "account_locked_until")
+    private Instant accountLockedUntil;
+
     @Column(length = 1000)
     private String imageUrl;
 
@@ -255,6 +261,24 @@ public class UserEntity extends BaseEntity {
 
     public void setSignalsCount(int signalsCount) {
         this.signalsCount = signalsCount;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public UserEntity setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+        return this;
+    }
+
+    public Instant getAccountLockedUntil() {
+        return accountLockedUntil;
+    }
+
+    public UserEntity setAccountLockedUntil(Instant accountLockedUntil) {
+        this.accountLockedUntil = accountLockedUntil;
+        return this;
     }
 
     public AuthProvider getAuthProvider() {
