@@ -39,7 +39,8 @@ const VideoView: React.FC<{
   track: LiveKitTrack | null;
   style: any;
   mirror?: boolean;
-}> = ({ track, style, mirror = false }) => {
+  objectFit?: 'cover' | 'contain';
+}> = ({ track, style, mirror = false, objectFit = 'contain' }) => {
   // Use track.sid as key to force re-render when track changes
   const trackKey = track?.sid || 'no-track';
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -131,7 +132,7 @@ const VideoView: React.FC<{
     const viewKey = `${trackKey}-${forceUpdate}`;
     
     // CRITICAL: Match web version exactly - video element should fill container
-    // In web: videoElement.style.width = '100%', height = '100%', objectFit = 'cover'
+    // Use objectFit prop to control how video is displayed (contain shows full video, cover fills screen)
     const finalStyle = [
       style,
       { 
@@ -154,12 +155,12 @@ const VideoView: React.FC<{
           style={{ flex: 1, width: '100%', height: '100%' }}
           mirror={mirror}
           zOrder={0}
-          objectFit="cover" // Match web: objectFit: 'cover' for remote video
+          objectFit={objectFit} // Use prop: 'contain' for remote video (shows full video), 'cover' for PiP
         />
       </View>
     );
   } catch (error: any) {
-    console.error('❌ [VideoView] Error rendering LiveKitVideoView:', error);
+    logger.error('❌ [VideoView] Error rendering LiveKitVideoView:', error);
     const errorMessage = error?.message || 'Unknown error';
     
     // Show helpful message for emulator
@@ -676,7 +677,7 @@ export const CallScreen: React.FC = () => {
             <View style={styles.remoteVideo}>
               {/* Show remote video if available, otherwise show placeholder */}
               {remoteVideoTrack ? (
-                <VideoView track={remoteVideoTrack} style={{ flex: 1, width: '100%', height: '100%' }} mirror={false} />
+                <VideoView track={remoteVideoTrack} style={{ flex: 1, width: '100%', height: '100%' }} mirror={false} objectFit="contain" />
               ) : (
                 // Show placeholder if no remote video yet - centered like web version
                 <View style={styles.videoPlaceholder}>
@@ -705,7 +706,7 @@ export const CallScreen: React.FC = () => {
               >
                 <View style={styles.pipShadow} />
                 <View style={styles.pipBorder}>
-                  <VideoView track={localVideoTrack} style={styles.pipVideo} mirror={true} />
+                  <VideoView track={localVideoTrack} style={styles.pipVideo} mirror={true} objectFit="cover" />
                   <View style={styles.pipGloss} />
                 </View>
               </Animated.View>

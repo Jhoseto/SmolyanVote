@@ -269,6 +269,29 @@ project.afterEvaluate {
             println "✅ mergeReleaseAssets will depend on generateReleaseBundle"
         }
     }
+    
+    // Fix for lintVitalAnalyzeRelease dependency issue
+    // Use mustRunAfter instead of dependsOn to maintain correct task order
+    // Lint should run after bundle generation if both are executed, but not block bundle
+    def lintVitalAnalyzeRelease = tasks.findByName("lintVitalAnalyzeRelease")
+    if (lintVitalAnalyzeRelease != null) {
+        def generateReleaseBundle = tasks.findByName("generateReleaseBundle")
+        if (generateReleaseBundle != null) {
+            lintVitalAnalyzeRelease.mustRunAfter(generateReleaseBundle)
+            println "✅ lintVitalAnalyzeRelease will run after generateReleaseBundle"
+        }
+    }
+    
+    // Fix for generateReleaseLintVitalReportModel dependency issue
+    // Use mustRunAfter to maintain correct task execution order
+    def generateReleaseLintVitalReportModel = tasks.findByName("generateReleaseLintVitalReportModel")
+    if (generateReleaseLintVitalReportModel != null) {
+        def generateReleaseBundle = tasks.findByName("generateReleaseBundle")
+        if (generateReleaseBundle != null) {
+            generateReleaseLintVitalReportModel.mustRunAfter(generateReleaseBundle)
+            println "✅ generateReleaseLintVitalReportModel will run after generateReleaseBundle"
+        }
+    }
 }
 
 dependencies {
