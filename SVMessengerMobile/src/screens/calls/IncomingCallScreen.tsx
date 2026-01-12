@@ -316,7 +316,7 @@ export const IncomingCallScreen: React.FC = () => {
                 <View style={[styles.buttonInner, { backgroundColor: '#22c55e' }]}>
                   <View style={styles.buttonGloss} />
                   <View style={styles.buttonIconContainer}>
-                    <TelephoneIcon size={36} color="#fff" />
+                    <TelephoneIcon size={28} color="#fff" />
                   </View>
                   <View style={styles.buttonDepth} />
                 </View>
@@ -350,7 +350,7 @@ export const IncomingCallScreen: React.FC = () => {
                 <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
                   <View style={styles.buttonGloss} />
                   <View style={styles.buttonIconContainer}>
-                    <XMarkIcon size={36} color="#fff" />
+                    <XMarkIcon size={28} color="#fff" />
                   </View>
                   <View style={styles.buttonDepth} />
                 </View>
@@ -451,12 +451,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   callerName: {
-    fontSize: 42,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '300', // Premium thin font weight for elegant look
     color: '#111827', // Dark text on white background
     marginBottom: 20,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    letterSpacing: 0.5, // Premium letter spacing for elegant typography
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -491,43 +492,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    gap: 70,
+    gap: 60,
     paddingHorizontal: 24,
   },
   buttonGlow: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    top: -8,
-    left: -8,
-  },
-  buttonShadow: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    position: 'absolute',
-    top: 4,
-    left: 4,
-  },
-  buttonMiddle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-  },
-  buttonInner: {
     width: 80,
     height: 80,
     borderRadius: 40,
+    top: -6,
+    left: -6,
+  },
+  buttonShadow: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    position: 'absolute',
+    top: 3,
+    left: 3,
+  },
+  buttonMiddle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  buttonInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     position: 'absolute',
     top: 2,
     left: 2,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 12,
   },
   buttonGloss: {
     position: 'absolute',
@@ -536,8 +537,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: '50%',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
   },
   buttonIconContainer: {
     flex: 1,
@@ -552,17 +553,18 @@ const styles = StyleSheet.create({
     right: 0,
     height: '35%',
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   actionLabel: {
-    marginTop: 14,
-    fontSize: 15,
-    fontWeight: '800',
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
     color: '#fff',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });

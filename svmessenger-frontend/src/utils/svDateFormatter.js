@@ -95,47 +95,82 @@ export const formatRelativeTime = (timestamp) => {
 };
 
 /**
- * Групира съобщения по дата
+ * Групира съобщения и call history по дата
+ * Поддържа както messages (с sentAt), така и callHistory (с startTime)
  */
-export const groupMessagesByDate = (messages) => {
-  if (!messages || messages.length === 0) return [];
+export const groupMessagesByDate = (messages, callHistory = []) => {
+  const allItems = [];
   
-  // Филтрирай невалидни съобщения
-  const validMessages = messages.filter(msg => 
-    msg && 
-    msg.id && 
-    msg.sentAt && 
-    (typeof msg === 'object')
-  );
+  // Добави съобщения
+  if (messages && Array.isArray(messages)) {
+    messages.forEach(msg => {
+      if (msg && msg.id && msg.sentAt) {
+        allItems.push({
+          type: 'message',
+          data: msg,
+          timestamp: msg.sentAt
+        });
+      }
+    });
+  }
   
-  if (validMessages.length === 0) return [];
+  // Добави call history
+  if (callHistory && Array.isArray(callHistory)) {
+    callHistory.forEach(call => {
+      if (call && call.id && call.startTime) {
+        allItems.push({
+          type: 'callHistory',
+          data: call,
+          timestamp: call.startTime
+        });
+      }
+    });
+  }
   
+  if (allItems.length === 0) return [];
+  
+  // Сортирай всички items по timestamp (ascending - oldest first)
+  allItems.sort((a, b) => {
+    const timeA = a.timestamp ? (typeof a.timestamp === 'string' ? parseISO(a.timestamp).getTime() : new Date(a.timestamp).getTime()) : 0;
+    const timeB = b.timestamp ? (typeof b.timestamp === 'string' ? parseISO(b.timestamp).getTime() : new Date(b.timestamp).getTime()) : 0;
+    return timeA - timeB;
+  });
+  
+  // Групирай по дата
   const grouped = [];
   let currentDate = null;
   
-  validMessages.forEach((message, index) => {
-    if (!message || !message.sentAt) return;
+  allItems.forEach((item) => {
+    if (!item || !item.timestamp) return;
     
     try {
-      const messageDate = typeof message.sentAt === 'string' ? parseISO(message.sentAt) : new Date(message.sentAt);
-      const dateKey = format(messageDate, 'yyyy-MM-dd');
+      const itemDate = typeof item.timestamp === 'string' ? parseISO(item.timestamp) : new Date(item.timestamp);
+      const dateKey = format(itemDate, 'yyyy-MM-dd');
       
       if (dateKey !== currentDate) {
         grouped.push({
           type: 'date',
-          date: messageDate,
+          date: itemDate,
           dateKey: dateKey,
-          formattedDate: formatDateSeparator(messageDate)
+          formattedDate: formatDateSeparator(itemDate)
         });
         currentDate = dateKey;
       }
       
-      grouped.push({
-        type: 'message',
-        message: message
-      });
+      // Добави item (message или callHistory)
+      if (item.type === 'message') {
+        grouped.push({
+          type: 'message',
+          message: item.data
+        });
+      } else if (item.type === 'callHistory') {
+        grouped.push({
+          type: 'callHistory',
+          callHistory: item.data
+        });
+      }
     } catch (error) {
-      console.warn('Error processing message in groupMessagesByDate:', error, message);
+      console.warn('Error processing item in groupMessagesByDate:', error, item);
     }
   });
   

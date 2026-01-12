@@ -45,7 +45,9 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       participantName,
       participantImageUrl,
       state: callState,
-      startTime: new Date(),
+      // CRITICAL FIX: Don't set startTime here - it should only be set when call becomes CONNECTED
+      // This ensures timer starts counting only after the other party answers
+      startTime: undefined,
     };
 
     set({
@@ -90,12 +92,27 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
 
   // Set call state
   setCallState: (state: CallState) => {
-    set((currentState) => ({
-      callState: state,
-      currentCall: currentState.currentCall
-        ? { ...currentState.currentCall, state }
-        : null,
-    }));
+    set((currentState) => {
+      const currentCall = currentState.currentCall;
+      
+      // CRITICAL FIX: Set startTime when call becomes CONNECTED (other party answered)
+      // This ensures timer starts counting only after the other party answers, not when call is initiated
+      const shouldSetStartTime = state === CallState.CONNECTED && 
+                                  currentCall && 
+                                  !currentCall.startTime;
+      
+      return {
+        callState: state,
+        currentCall: currentCall
+          ? { 
+              ...currentCall, 
+              state,
+              // Set startTime only when becoming CONNECTED and it's not already set
+              startTime: shouldSetStartTime ? new Date() : currentCall.startTime,
+            }
+          : null,
+      };
+    });
   },
 
   // Toggle mute

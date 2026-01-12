@@ -257,5 +257,14 @@ export const svMessengerAPI = {
       method: 'POST',
       body: JSON.stringify({ conversationId, isTyping })
     });
+  },
+
+  // ========== CALL HISTORY ==========
+
+  /**
+   * Вземи call history за конкретен разговор
+   */
+  getCallHistory: async (conversationId) => {
+    return fetchAPI(`${BASE_URL}/call-history/${conversationId}`);
   }
 };

@@ -316,13 +316,14 @@ export const usePushNotifications = () => {
             return await registerDeviceToken(deviceToken, retryCount + 1);
           } catch (retryError) {
             logger.error('Retry failed for device token registration:', retryError);
-            // Не хвърляй грешка - non-critical операция
-            return;
+            // CRITICAL FIX: Throw error after retry fails to prevent false positive success log
+            throw retryError;
           }
         }
         
         logger.error('Failed to register device token:', error?.response?.status || error?.message);
-        // Не хвърляй грешка - non-critical операция
+        // CRITICAL FIX: Throw error to prevent false positive success log
+        throw error;
       }
     },
     [isAuthenticated, user]
@@ -390,19 +391,38 @@ export const usePushNotifications = () => {
       // User logged in - register token
       const setupNotifications = async () => {
         try {
+          logger.info('🔔 [usePushNotifications] Setting up push notifications...');
           const hasPermission = await requestPermissions();
+          logger.info(`🔔 [usePushNotifications] Permission granted: ${hasPermission}`);
           if (hasPermission) {
             const token = await getFCMToken();
             if (token) {
-              // Wrap in try-catch to prevent unhandled promise rejection
-              await registerDeviceToken(token).catch((error) => {
-                console.error('Unhandled error in registerDeviceToken:', error);
+              logger.info('🔔 [usePushNotifications] FCM token obtained, registering with backend...');
+              // CRITICAL FIX Bug 1: Track registration success to prevent false positive success logs
+              let registrationSucceeded = false;
+              try {
+                await registerDeviceToken(token);
+                registrationSucceeded = true;
+              } catch (error) {
                 // Error already logged in registerDeviceToken, just prevent unhandled rejection
-              });
+                logger.error('❌ [usePushNotifications] Unhandled error in registerDeviceToken:', error);
+                registrationSucceeded = false;
+              }
+              
+              // Only log success if registration actually succeeded
+              if (registrationSucceeded) {
+                logger.info('✅ [usePushNotifications] Device token registered successfully');
+              } else {
+                logger.warn('⚠️ [usePushNotifications] Device token registration failed');
+              }
+            } else {
+              logger.warn('⚠️ [usePushNotifications] FCM token is null - notifications may not work');
             }
+          } else {
+            logger.warn('⚠️ [usePushNotifications] Notification permission not granted - notifications will not work');
           }
         } catch (error) {
-          console.error('Error in setupNotifications:', error);
+          logger.error('❌ [usePushNotifications] Error in setupNotifications:', error);
           // Don't throw - non-critical operation
         }
       };

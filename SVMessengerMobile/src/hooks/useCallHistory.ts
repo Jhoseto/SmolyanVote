@@ -15,7 +15,9 @@ export const useCallHistory = (conversationId: number | null) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchCallHistory = useCallback(async () => {
-    if (!conversationId) {
+    // CRITICAL FIX: Use == null to check for null/undefined, not !conversationId
+    // This ensures conversationId 0 (a valid ID) is not treated as falsy
+    if (conversationId == null) {
       setCallHistory([]);
       return;
     }
@@ -25,10 +27,13 @@ export const useCallHistory = (conversationId: number | null) => {
 
     try {
       const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.CALL_HISTORY(conversationId);
+      logger.info(`📞 [useCallHistory] Fetching call history for conversation ${conversationId}`);
       const response = await apiClient.get<CallHistory[]>(endpoint);
-      setCallHistory(response.data || []);
+      const callHistoryData = response.data || [];
+      logger.info(`✅ [useCallHistory] Loaded ${callHistoryData.length} call history entries for conversation ${conversationId}`);
+      setCallHistory(callHistoryData);
     } catch (err: any) {
-      logger.error('Failed to fetch call history:', err);
+      logger.error('❌ [useCallHistory] Failed to fetch call history:', err);
       setError(err.message || 'Failed to load call history');
       setCallHistory([]);
     } finally {

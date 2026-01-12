@@ -180,8 +180,9 @@ class PushNotificationService {
 
   /**
    * Setup notification handlers
-   * ВИНАГИ показваме notification дори когато app-ът е в foreground
-   * Това гарантира че потребителят винаги получава notification за нови съобщения
+   * CRITICAL FIX: НЕ показваме notifications във foreground (когато app-ът е отворен)
+   * Notifications се показват само когато app-ът е в background или затворен
+   * Това предотвратява излишни notifications докато потребителят вече използва app-а
    */
   setupNotificationHandlers(
     onNotificationReceived?: (notification: any) => void,
@@ -199,30 +200,13 @@ class PushNotificationService {
       
       // Handle foreground notifications
       messagingInstance.onMessage(async (remoteMessage: RemoteMessage | null) => {
-        // Show notification when app is in foreground
-        // Firebase doesn't show notifications automatically in foreground
-        if (remoteMessage?.notification || remoteMessage?.data) {
-          const title = remoteMessage?.notification?.title || remoteMessage?.data?.title || 'SVMessenger';
-          const body = remoteMessage?.notification?.body || remoteMessage?.data?.body || 'Ново съобщение';
-          
-          // Prepare data object for notification
-          const data: { [key: string]: string } = {};
-          if (remoteMessage?.data) {
-            Object.keys(remoteMessage.data).forEach(key => {
-              data[key] = String(remoteMessage.data[key]);
-            });
-          }
-          
-          // Show notification using native module (Android only)
-          if (Platform.OS === 'android' && NotificationModule?.showNotification) {
-            try {
-              await NotificationModule.showNotification(title, body, data);
-            } catch (error) {
-              logger.error('❌ Error showing foreground notification:', error);
-            }
-          }
-        }
+        // CRITICAL FIX: НЕ показваме notification във foreground
+        // Firebase не показва notifications автоматично във foreground, но ние също не ги показваме
+        // Notifications се показват само когато app-ът е в background или затворен
+        // Това предотвратява излишни notifications докато потребителят вече използва app-а
         
+        // Въпреки че не показваме notification, все пак извикваме callback-а
+        // за да може app-ът да обработи данните (например за обаждания)
         if (onNotificationReceived) {
           onNotificationReceived(remoteMessage);
         }

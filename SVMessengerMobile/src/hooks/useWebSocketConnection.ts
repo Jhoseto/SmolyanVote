@@ -3,7 +3,7 @@
  * Управление на WebSocket connection lifecycle
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import { useAuthStore } from '../store/authStore';
@@ -14,6 +14,9 @@ export const useWebSocketConnection = () => {
   const reconnectTimeoutRef = useRef<number | null>(null);
   const isConnectingRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
+  
+  // Use state to track connection status reactively
+  const [isConnected, setIsConnected] = useState(false);
 
   const connectWebSocket = useCallback(async (callbacks = {}) => {
     if (!user || isConnectingRef.current) {
@@ -21,6 +24,11 @@ export const useWebSocketConnection = () => {
     }
 
     isConnectingRef.current = true;
+
+    // CRITICAL FIX Bug 1: Capture callbacks in closure for retry
+    // This ensures retry uses the original callbacks from the failed attempt,
+    // not whatever callbacks are in the ref when retry fires
+    const capturedCallbacks = { ...callbacks };
 
     const handleError = (error: any) => {
       // Handle different error types
@@ -44,7 +52,14 @@ export const useWebSocketConnection = () => {
 
       reconnectTimeoutRef.current = setTimeout(() => {
         isConnectingRef.current = false; // Reset before retry
-        connectWebSocket();
+        // CRITICAL FIX Bug 1: Use captured callbacks from closure, not mutable ref
+        // This ensures callback continuity - retry uses the same callbacks as the original failed attempt
+        // CRITICAL FIX: Handle promise rejection to prevent unhandled promise rejections
+        connectWebSocket(capturedCallbacks).catch((retryError) => {
+          // Error is already handled by handleError callback in connectWebSocket
+          // This catch prevents unhandled promise rejection
+          logger.error('❌ [useWebSocketConnection] Retry connection failed:', retryError);
+        });
       }, retryDelay);
     };
 
@@ -60,12 +75,14 @@ export const useWebSocketConnection = () => {
           onConnect: () => {
             reconnectAttemptsRef.current = 0; // Reset attempts on success
             isConnectingRef.current = false;
+            setIsConnected(true); // Update connection status
             if (callbacks.onConnect) callbacks.onConnect();
             resolve();
           },
           onError: (error: any) => {
             console.error('❌ WebSocket connection error:', error);
             isConnectingRef.current = false;
+            setIsConnected(false); // Update connection status
             if (callbacks.onError) callbacks.onError(error);
             reject(error);
           }
@@ -80,6 +97,7 @@ export const useWebSocketConnection = () => {
     } catch (error: any) {
       console.error('❌ WebSocket connection failed:', error);
       isConnectingRef.current = false;
+      setIsConnected(false); // Update connection status
       handleError(error);
     }
   }, [user]);
@@ -92,8 +110,10 @@ export const useWebSocketConnection = () => {
 
     try {
       svMobileWebSocketService.disconnect();
+      setIsConnected(false); // Update connection status
     } catch (error) {
       console.error('❌ Error disconnecting WebSocket:', error);
+      setIsConnected(false); // Update connection status even on error
     }
   }, []);
 
@@ -124,9 +144,38 @@ export const useWebSocketConnection = () => {
     };
   }, []);
 
+  // Check connection status periodically and on mount
+  // CRITICAL FIX Bug 2: Don't update state if connection is in progress to prevent race conditions
+  useEffect(() => {
+    const checkConnection = () => {
+      // Don't update state if we're currently connecting - this prevents race conditions
+      // where polling reports disconnected while async connection is in progress
+      if (isConnectingRef.current) {
+        return; // Skip update during connection attempts
+      }
+      
+      const connected = svMobileWebSocketService.isConnected();
+      setIsConnected((prevConnected) => {
+        // Only update if state actually changed to avoid unnecessary re-renders
+        if (prevConnected !== connected) {
+          return connected;
+        }
+        return prevConnected;
+      });
+    };
+
+    // Check immediately
+    checkConnection();
+
+    // Check periodically (every 2 seconds)
+    const interval = setInterval(checkConnection, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return {
     connectWebSocket,
     disconnectWebSocket,
-    isConnected: svMobileWebSocketService.isConnected(),
+    isConnected,
   };
 };

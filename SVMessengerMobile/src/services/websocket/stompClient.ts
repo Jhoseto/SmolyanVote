@@ -453,19 +453,28 @@ class SVMobileWebSocketService {
   /**
    * Изпрати съобщение през WebSocket
    */
-  sendMessage(conversationId: number, text: string, messageType: string = 'TEXT') {
+  sendMessage(conversationId: number, text: string, messageType: string = 'TEXT', parentMessageId?: number) {
     if (!this.connected || !this.client) {
       return false;
     }
 
     try {
+      const messageBody: any = {
+        conversationId,
+        text,
+        messageType
+      };
+      
+      // CRITICAL FIX Bug 2: Include parentMessageId if provided (for reply functionality)
+      // Use != null check to properly handle 0 as a valid message ID (0 is falsy but valid)
+      // This ensures replies work even when parent message has ID 0
+      if (parentMessageId != null) {
+        messageBody.parentMessageId = parentMessageId;
+      }
+      
       this.client.publish({
         destination: '/app/svmessenger/send',
-        body: JSON.stringify({
-          conversationId,
-          text,
-          messageType
-        })
+        body: JSON.stringify(messageBody)
       });
       return true;
     } catch (error) {

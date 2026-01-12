@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useLayoutEffect } from 'react';
 import { useSVMessenger } from '../context/SVMessengerContext';
 import SVMessageItem from './SVMessageItem';
+import SVCallHistoryItem from './SVCallHistoryItem';
 import SVTypingIndicator from './SVTypingIndicator';
 import { useSVInfiniteScroll } from '../hooks/useSVInfiniteScroll';
 import { scrollToBottom, isScrolledToBottom } from '../utils/svHelpers';
@@ -8,14 +9,18 @@ import { groupMessagesByDate } from '../utils/svDateFormatter';
 
 /**
  * Message Thread компонент
- * Показва списък с съобщения и поддържа infinite scroll
+ * Показва списък с съобщения и call history, поддържа infinite scroll
  */
 const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   const {
     messagesByConversation,
+    callHistoryByConversation,
     loadingMessages,
+    loadingCallHistory,
     typingUsers,
-    loadMessages
+    loadMessages,
+    loadCallHistory,
+    currentUser
   } = useSVMessenger();
 
   const allMessages = Array.isArray(messagesByConversation[conversationId])
@@ -28,10 +33,24 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
         message.text && message.text.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : allMessages;
+  
+  // Get call history for this conversation
+  const callHistory = Array.isArray(callHistoryByConversation[conversationId])
+    ? callHistoryByConversation[conversationId]
+    : [];
+  
   const isLoading = loadingMessages[conversationId] || false;
+  const isLoadingCallHistory = loadingCallHistory[conversationId] || false;
   const isTyping = typingUsers[conversationId];
   const messagesEndRef = useRef(null);
   const threadRef = useRef(null);
+  
+  // Load call history when conversation changes
+  useEffect(() => {
+    if (conversationId) {
+      loadCallHistory(conversationId);
+    }
+  }, [conversationId, loadCallHistory]);
 
   // Infinite scroll hook - disabled for now to prevent infinite loading
   // const { lastMessageRef } = useSVInfiniteScroll(
@@ -62,19 +81,19 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
     }
   }, [messages.length, isLoading]);
 
-  // Group messages by date
-  const groupedItems = groupMessagesByDate(messages);
+  // Group messages and call history by date
+  const groupedItems = groupMessagesByDate(messages, callHistory);
 
   return (
     <div className="svmessenger-message-thread" ref={threadRef}>
       {/* Loading indicator at top */}
-      {isLoading && (
+      {(isLoading || isLoadingCallHistory) && (
         <div className="svmessenger-loading-messages">
           <div className="svmessenger-spinner"></div>
         </div>
       )}
 
-      {/* Messages with date separators */}
+      {/* Messages and call history with date separators */}
       <div className="svmessenger-messages">
           {groupedItems.map((item, index) => {
           if (item.type === 'date') {
@@ -88,8 +107,14 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
           } else if (item.type === 'message' && item.message && item.message.id) {
             const isLast = index === groupedItems.length - 1;
             return (
-              <div key={item.message.id} ref={isLast ? lastMessageRef : null}>
+              <div key={`message-${item.message.id}`} ref={isLast ? lastMessageRef : null}>
                 <SVMessageItem message={item.message} searchQuery={searchQuery} />
+              </div>
+            );
+          } else if (item.type === 'callHistory' && item.callHistory && item.callHistory.id) {
+            return (
+              <div key={`call-${item.callHistory.id}`}>
+                <SVCallHistoryItem callHistory={item.callHistory} currentUserId={currentUser?.id} />
               </div>
             );
           }

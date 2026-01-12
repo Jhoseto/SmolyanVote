@@ -46,6 +46,7 @@ export const AppNavigator: React.FC = () => {
   const [callScreensLoaded, setCallScreensLoaded] = useState(false);
   const [CallScreenComponent, setCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
+  const [OutgoingCallScreenComponent, setOutgoingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPermissionsScreen, setShowPermissionsScreen] = useState(false);
@@ -55,18 +56,43 @@ export const AppNavigator: React.FC = () => {
   usePushNotifications();
 
   // Lazy load call screens when needed (only when call is active)
+  // CRITICAL FIX: Load each module separately with individual error handling
+  // This ensures critical components (CallScreen, IncomingCallScreen) are loaded even if optional component (OutgoingCallScreen) fails
   useEffect(() => {
     const showCallScreen = callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
     if (showCallScreen && !callScreensLoaded) {
+      // Load CallScreen (critical - required for all call states)
       try {
         const callScreenModule = require('../screens/calls/CallScreen');
-        const incomingCallScreenModule = require('../screens/calls/IncomingCallScreen');
         setCallScreenComponent(() => callScreenModule.CallScreen);
-        setIncomingCallScreenComponent(() => incomingCallScreenModule.IncomingCallScreen);
-        setCallScreensLoaded(true);
       } catch (error) {
-        console.error('Failed to load call screens:', error);
+        console.error('❌ Failed to load CallScreen:', error);
+        // Don't set callScreensLoaded if critical component fails
+        return;
       }
+
+      // Load IncomingCallScreen (critical - required for incoming calls)
+      try {
+        const incomingCallScreenModule = require('../screens/calls/IncomingCallScreen');
+        setIncomingCallScreenComponent(() => incomingCallScreenModule.IncomingCallScreen);
+      } catch (error) {
+        console.error('❌ Failed to load IncomingCallScreen:', error);
+        // Don't set callScreensLoaded if critical component fails
+        return;
+      }
+
+      // Load OutgoingCallScreen (optional - fallback to CallScreen if it fails)
+      try {
+        const outgoingCallScreenModule = require('../screens/calls/OutgoingCallScreen');
+        setOutgoingCallScreenComponent(() => outgoingCallScreenModule.OutgoingCallScreen);
+      } catch (error) {
+        console.warn('⚠️ Failed to load OutgoingCallScreen (optional, will use CallScreen as fallback):', error);
+        // OutgoingCallScreen is optional - don't prevent call overlay from rendering
+        setOutgoingCallScreenComponent(null);
+      }
+
+      // Mark as loaded only if critical components succeeded
+      setCallScreensLoaded(true);
     }
   }, [callState, callScreensLoaded]);
 
@@ -176,6 +202,9 @@ export const AppNavigator: React.FC = () => {
             </Stack.Navigator>
 
             {/* Call Screens Overlay */}
+            {/* CRITICAL FIX Bug 1: Only require CallScreenComponent and IncomingCallScreenComponent
+                OutgoingCallScreenComponent is optional - if it fails to load, use CallScreenComponent as fallback
+                This ensures call overlay always renders even if one component fails to load */}
             {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
               <View
                 style={{
@@ -189,6 +218,8 @@ export const AppNavigator: React.FC = () => {
               >
                 {callState === CallState.INCOMING ? (
                   <IncomingCallScreenComponent />
+                ) : ((callState === CallState.OUTGOING || callState === CallState.CONNECTING) && OutgoingCallScreenComponent) ? (
+                  <OutgoingCallScreenComponent />
                 ) : (
                   <CallScreenComponent />
                 )}
@@ -197,13 +228,19 @@ export const AppNavigator: React.FC = () => {
           </View>
         </NavigationContainer>
       ) : (
-        // Loading spinner - показва се ако след 3 секунди все още се зарежда
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.green[500]} />
-        </View>
+        // CRITICAL FIX: Don't show loading spinner if splash screen is visible
+        // This prevents showing ugly loading screen before splash screen appears
+        // Show loading spinner only if splash screen is not visible (shouldn't happen normally)
+        !showSplash && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.green[500]} />
+          </View>
+        )
       )}
       
       {/* Splash Screen Overlay - показва се точно 3 секунди */}
+      {/* CRITICAL FIX: Show splash screen during initialization to prevent ugly loading screen flash */}
+      {/* Splash screen has higher zIndex and will cover any loading indicators */}
       {showSplash && (
         <SplashScreen 
           onFinish={() => {

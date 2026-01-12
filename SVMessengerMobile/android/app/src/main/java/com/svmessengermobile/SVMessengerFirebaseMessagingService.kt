@@ -68,15 +68,28 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
         Log.d("SVMessengerFCM", "📬 Notification data: ${remoteMessage.data}")
         Log.d("SVMessengerFCM", "📬 Notification payload: ${remoteMessage.notification}")
 
-        // ВАЖНО: Когато Firebase получава message с notification payload + priority: "high",
-        // той автоматично показва нотификацията дори когато app-ът е затворен.
-        // Този метод се извиква само когато app-ът НЕ е в foreground.
+        // CRITICAL FIX: For incoming calls, ALWAYS show Full Screen Intent regardless of app state
+        // This ensures incoming calls are displayed on full screen even when app is closed or minimized
+        val isIncomingCall = remoteMessage.data["type"] == "INCOMING_CALL"
         
-        // Проверка дали app-ът е в foreground
-        // Ако е в foreground, foreground handler ще покаже нотификацията чрез NotificationModule
+        // CRITICAL FIX: For incoming calls, always show Full Screen Intent
+        // This works even when app is closed, minimized, or phone is locked
+        if (isIncomingCall) {
+            Log.d("SVMessengerFCM", "📞 Incoming call received - showing Full Screen Intent (app state: ${if (isAppInForeground()) "foreground" else "background/closed"})")
+            // CRITICAL: Always show notification with Full Screen Intent for incoming calls
+            // This ensures the call UI is displayed on full screen even when app is closed or minimized
+            val callerName = remoteMessage.data["callerName"] ?: "Потребител"
+            showNotification(
+                "Входящо обаждане",
+                callerName,
+                remoteMessage.data
+            )
+            return
+        }
+        
+        // For other notifications, skip if app is in foreground (no need to show notification)
         if (isAppInForeground()) {
-            Log.d("SVMessengerFCM", "⏭️ App is in foreground - foreground handler will show notification")
-            // Не показваме тук - foreground handler ще се грижи
+            Log.d("SVMessengerFCM", "⏭️ App is in foreground - skipping notification (not an incoming call)")
             return
         }
 
@@ -193,16 +206,26 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
             // CRITICAL: Use notificationId as request code to ensure each notification has unique PendingIntent
             val pendingIntent = if (isIncomingCall) {
                 // Full Screen Intent for incoming calls - показва call UI панел в горния край
+                // CRITICAL FIX Bug 1: Capture notification data in local variable to avoid conflict with Intent's data property
+                val notificationData = data
                 val fullScreenIntent = Intent(this, IncomingCallActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    data["conversationId"]?.let { putExtra("conversationId", it) }
-                    data["callerName"]?.let { putExtra("callerName", it) }
-                    data["callerImageUrl"]?.let { putExtra("callerImageUrl", it) }
+                    // CRITICAL FIX: Add all necessary flags for lock screen and full screen display
+                    // FLAG_ACTIVITY_NEW_TASK - Required for starting activity from background
+                    // FLAG_ACTIVITY_CLEAR_TOP - Clear any existing instances
+                    // FLAG_ACTIVITY_SINGLE_TOP - Don't create new instance if already on top
+                    // FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS - Don't show in recent apps
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                    notificationData["conversationId"]?.let { putExtra("conversationId", it) }
+                    notificationData["callerName"]?.let { putExtra("callerName", it) }
+                    notificationData["callerImageUrl"]?.let { putExtra("callerImageUrl", it) }
                     // CRITICAL FIX: Only add participantId if it can be successfully parsed
                     // If parsing fails (toLongOrNull() returns null), don't add the extra at all
                     // This preserves the protocol where hasExtra("participantId") only returns true
                     // when a valid participantId was actually provided
-                    data["participantId"]?.toLongOrNull()?.let { parsedParticipantId ->
+                    notificationData["participantId"]?.toLongOrNull()?.let { parsedParticipantId ->
                         putExtra("participantId", parsedParticipantId)
                     }
                 }
@@ -215,10 +238,12 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
                 )
             } else {
                 // Regular intent for messages
+                // CRITICAL FIX Bug 1: Capture notification data in local variable to avoid conflict with Intent's data property
+                val notificationData = data
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    data["conversationId"]?.let { putExtra("conversationId", it) }
-                    data["type"]?.let { putExtra("notificationType", it) }
+                    notificationData["conversationId"]?.let { putExtra("conversationId", it) }
+                    notificationData["type"]?.let { putExtra("notificationType", it) }
                 }
                 
                 PendingIntent.getActivity(
@@ -247,38 +272,77 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             
-            // CRITICAL: For incoming calls, behavior differs by Android version
+            // CRITICAL: For incoming calls, use Full Screen Intent to show call UI on full screen
+            // This works even when app is closed or phone is locked
             if (isIncomingCall) {
+                // CRITICAL FIX: Use Full Screen Intent for all Android versions that support it (API 29+)
+                // For older versions, try to launch activity directly with proper flags
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Android Q+ (API 29+): Show ONLY Full Screen Intent, NO visible notification
+                    // Android Q+ (API 29+): Use Full Screen Intent
                     // Full Screen Intent directly shows IncomingCallActivity on full screen
-                    // Activity handles UI and sound - notification is minimal and hidden
+                    // CRITICAL FIX: Full Screen Intent works on lock screen and when app is minimized
+                    // The activity must have showWhenLocked and turnScreenOn flags set (already done in AndroidManifest and Activity)
                     notificationBuilder.setFullScreenIntent(pendingIntent, true)
-                    // CRITICAL: Remove sound/vibration from notification - activity handles sound
+                    // CRITICAL: Set MAX priority - required for Full Screen Intent to work on lock screen
+                    notificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX)
+                    notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
+                    notificationBuilder.setOngoing(true)
+                    notificationBuilder.setAutoCancel(false)
+                    // CRITICAL FIX: Create minimal notification for Full Screen Intent
+                    // Android requires a notification for Full Screen Intent, but it will be hidden automatically
+                    // when the activity is shown. Use meaningful content in case notification is briefly visible
+                    notificationBuilder.setContentTitle("Входящо обаждане")
+                    notificationBuilder.setContentText(data["callerName"] ?: "Потребител")
+                    notificationBuilder.setSmallIcon(android.R.drawable.ic_dialog_info)
+                    // CRITICAL: Remove sound/vibration - activity handles sound
                     notificationBuilder.setSound(null)
                     notificationBuilder.setVibrate(null)
                     notificationBuilder.setLights(0, 0, 0)
-                    // Set minimal priority - notification is just a carrier for Full Screen Intent
-                    notificationBuilder.setPriority(NotificationCompat.PRIORITY_HIGH)
-                    notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
-                    notificationBuilder.setOngoing(true)
-                    notificationBuilder.setAutoCancel(false)
-                    // Show minimal notification (required for Full Screen Intent to work)
-                    // This notification is automatically hidden when Full Screen Intent shows activity
+                    // Post notification - Full Screen Intent will show activity immediately
+                    // Notification will be automatically hidden when activity is displayed
                     notificationManager.notify(notificationId, notificationBuilder.build())
-                    Log.d("SVMessengerFCM", "📞 Full Screen Intent set for incoming call (Android Q+) - activity shown directly, notification hidden")
+                    Log.d("SVMessengerFCM", "📞 Full Screen Intent set for incoming call (Android Q+) - will show on lock screen and when app minimized")
                 } else {
-                    // Android P and below: Show notification (Full Screen Intent not available)
-                    // User taps notification to open IncomingCallActivity
-                    notificationBuilder.setAutoCancel(false)
-                    notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
-                    notificationBuilder.setOngoing(true)
-                    notificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX)
-                    notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    notificationBuilder.setDefaults(NotificationCompat.DEFAULT_ALL)
-                    notificationManager.notify(notificationId, notificationBuilder.build())
-                    Log.d("SVMessengerFCM", "📞 Notification shown for incoming call (Android P and below)")
+                    // Android P and below (API < 29): Full Screen Intent not available
+                    // CRITICAL FIX: Try to launch IncomingCallActivity directly with proper flags
+                    // This allows the activity to show on lockscreen even on older Android versions
+                    var directLaunchSucceeded = false
+                    try {
+                        // CRITICAL FIX Bug 1: Capture notification data in local variable to avoid conflict with Intent's data property
+                        val notificationData = data
+                        val directIntent = Intent(this, IncomingCallActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            notificationData["conversationId"]?.let { putExtra("conversationId", it) }
+                            notificationData["callerName"]?.let { putExtra("callerName", it) }
+                            notificationData["callerImageUrl"]?.let { putExtra("callerImageUrl", it) }
+                            notificationData["participantId"]?.toLongOrNull()?.let { parsedParticipantId ->
+                                putExtra("participantId", parsedParticipantId)
+                            }
+                        }
+                        // CRITICAL: Start activity directly - this may work on some devices even without Full Screen Intent
+                        startActivity(directIntent)
+                        directLaunchSucceeded = true
+                        Log.d("SVMessengerFCM", "📞 Successfully launched IncomingCallActivity directly (Android P and below) - no notification needed")
+                    } catch (e: Exception) {
+                        Log.e("SVMessengerFCM", "❌ Failed to launch IncomingCallActivity directly:", e)
+                        // Fallback: Show notification (user must tap to open)
+                    }
+                    
+                    // CRITICAL FIX: Only show notification if direct launch failed
+                    // If direct launch succeeded, no notification is needed
+                    if (!directLaunchSucceeded) {
+                        notificationBuilder.setAutoCancel(false)
+                        notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
+                        notificationBuilder.setOngoing(true)
+                        notificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX)
+                        notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        notificationBuilder.setDefaults(NotificationCompat.DEFAULT_ALL)
+                        notificationManager.notify(notificationId, notificationBuilder.build())
+                        Log.d("SVMessengerFCM", "📞 Notification shown for incoming call (Android P and below) - direct launch failed, user can tap to open")
+                    }
                 }
             } else {
                 // Regular messages: Show normal notification

@@ -15,7 +15,7 @@ import { logger } from '../utils/logger';
 
 export const useWebSocketMessages = () => {
   const { user } = useAuthStore();
-  const { addMessage, updateMessage } = useMessagesStore();
+  const { addMessage, updateMessage, removeMessage } = useMessagesStore();
   const {
     updateConversation,
     updateConversationWithNewMessage,
@@ -53,6 +53,53 @@ export const useWebSocketMessages = () => {
       parentMessageId: data.parentMessageId,
       parentMessageText: data.parentMessageText,
     };
+
+    // CRITICAL FIX: Remove optimistic message if it exists before adding real message
+    // Optimistic messages have negative IDs, so we check for messages with same text and senderId
+    // CRITICAL FIX Bug 1: Match oldest optimistic message (lowest negative ID) to prevent incorrect matching
+    // when user sends identical text twice rapidly - real message should match first optimistic message
+    if (message.senderId === user.id) {
+      // Access current messages from store without adding as dependency
+      const storeState = useMessagesStore.getState();
+      const conversationMessages = storeState.messages[message.conversationId] || [];
+      // Find optimistic message with same text, senderId, and parentMessageId (oldest one - least negative ID)
+      // This ensures that if user sends identical text twice rapidly, first real message matches first optimistic
+      // CRITICAL FIX Bug 2: Also match by parentMessageId to prevent incorrect matching when user sends
+      // identical text as replies to different messages
+      // CRITICAL FIX Bug 1: Sort descending (b.id - a.id) to get least negative (oldest) first
+      // Since temp IDs use -Date.now(), newer messages have lower (more negative) values
+      // Example: -1000 (oldest) vs -2000 (newest)
+      // Ascending: a.id - b.id = -1000 - (-2000) = 1000 (positive) → -2000 comes before -1000 ✗ (newest first)
+      // Descending: b.id - a.id = -2000 - (-1000) = -1000 (negative) → -1000 comes before -2000 ✓ (oldest first)
+      // CRITICAL FIX Bug 1: Match parentMessageId correctly - use strict null/undefined check
+      // Treat undefined/null as "no parent", but allow 0 as valid parent ID
+      // This prevents incorrect matching when message ID 0 is a valid parent
+      const matchingOptimistic = conversationMessages.filter((m) => 
+        m.id < 0 && 
+        m.text === message.text && 
+        m.senderId === message.senderId &&
+        (m.parentMessageId === message.parentMessageId || 
+         (m.parentMessageId == null && message.parentMessageId == null))
+      );
+      
+      // CRITICAL FIX Bug 2: Find oldest optimistic message (least negative ID)
+      // Since temp IDs use -Date.now(), older messages have less negative values (e.g., -1000)
+      // and newer messages have more negative values (e.g., -2000)
+      // We want the oldest (greatest/least negative ID), so use reduce to find max ID
+      const optimisticMessage = matchingOptimistic.length > 0
+        ? matchingOptimistic.reduce((oldest, current) => current.id > oldest.id ? current : oldest)
+        : undefined;
+      
+      if (optimisticMessage) {
+        // Remove optimistic message before adding real one
+        removeMessage(message.conversationId, optimisticMessage.id);
+        
+        // CRITICAL FIX: Note that timeout cleanup is handled in useMessages hook
+        // The timeout will check if real message already exists before retrying via REST
+        // This prevents race condition where timeout fires after real message arrives
+        logger.debug(`✅ [useWebSocketMessages] Real message ${message.id} arrived, replaced optimistic message ${optimisticMessage.id}`);
+      }
+    }
 
     // Add message to store (will trigger UI update)
     addMessage(message.conversationId, message);
@@ -154,8 +201,9 @@ export const useWebSocketMessages = () => {
   }, [conversations, updateConversation, updateMessage]);
 
   // Send message
+  // CRITICAL FIX Bug 2: Pass parentMessageId to WebSocket service for reply functionality
   const sendMessage = useCallback((conversationId: number, text: string, parentMessageId?: number) => {
-    return svMobileWebSocketService.sendMessage(conversationId, text);
+    return svMobileWebSocketService.sendMessage(conversationId, text, 'TEXT', parentMessageId);
   }, []);
 
   // Send typing status

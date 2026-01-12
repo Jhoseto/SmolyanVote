@@ -10,6 +10,9 @@ import {
   MagnifyingGlassIcon as HeroMagnifyingGlassIcon,
   UserIcon as HeroUserIcon,
   ArrowLeftIcon as HeroArrowLeftIcon,
+  ArrowRightIcon as HeroArrowRightIcon,
+  ArrowUpIcon as HeroArrowUpIcon,
+  ArrowDownIcon as HeroArrowDownIcon,
   PhoneIcon as HeroPhoneIcon,
   VideoCameraIcon as HeroVideoCameraIcon,
   PaperAirplaneIcon as HeroPaperAirplaneIcon,
@@ -56,6 +59,18 @@ export const PersonIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', 
 
 export const ArrowLeftIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (
   <HeroArrowLeftIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const ArrowRightIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (
+  <HeroArrowRightIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const ArrowUpIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (
+  <HeroArrowUpIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const ArrowDownIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (
+  <HeroArrowDownIcon size={size} color={color} strokeWidth={2.5} style={style} />
 );
 
 export const TelephoneIcon: React.FC<IconProps> = ({ size = 24, color = '#ffffff', style }) => (

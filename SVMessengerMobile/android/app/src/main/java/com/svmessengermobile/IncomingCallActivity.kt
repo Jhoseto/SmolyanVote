@@ -75,12 +75,25 @@ class IncomingCallActivity : Activity() {
     /**
      * Setup window for full screen
      * CRITICAL: Must be full screen to work properly with Full Screen Intent
+     * CRITICAL FIX: Enhanced for lock screen and minimized app scenarios
      */
     private fun setupWindow() {
         // CRITICAL: Enable showing over lockscreen and turning screen on
+        // This MUST be called before setContentView() for it to work properly
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
+            // CRITICAL FIX: Also request to unlock device if possible
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                try {
+                    val keyguardManager = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        keyguardManager.requestDismissKeyguard(this, null)
+                    }
+                } catch (e: Exception) {
+                    Log.e("IncomingCallActivity", "Failed to dismiss keyguard:", e)
+                }
+            }
         } else {
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
@@ -89,6 +102,7 @@ class IncomingCallActivity : Activity() {
         }
         
         // CRITICAL: Keep screen on, dismiss keyguard, full screen
+        // These flags ensure the activity shows on lock screen and turns screen on
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
@@ -103,6 +117,12 @@ class IncomingCallActivity : Activity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
         
+        // CRITICAL FIX: Set window to be shown on lock screen
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        
         // Hide system UI for immersive experience (like a real phone call)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             window.decorView.systemUiVisibility = (
@@ -113,6 +133,8 @@ class IncomingCallActivity : Activity() {
                 android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             )
         }
+        
+        Log.d("IncomingCallActivity", "✅ Window configured for full screen display on lock screen")
     }
     
     /**

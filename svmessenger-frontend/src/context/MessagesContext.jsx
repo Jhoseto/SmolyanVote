@@ -26,9 +26,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
     // Messages by conversation ID
     const [messagesByConversation, setMessagesByConversation] = useState({});
 
+    // Call history by conversation ID
+    const [callHistoryByConversation, setCallHistoryByConversation] = useState({});
+
     // Loading states
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const [loadingMessages, setLoadingMessages] = useState({});
+    const [loadingCallHistory, setLoadingCallHistory] = useState({});
 
     // Typing indicators
     const [typingUsers, setTypingUsers] = useState({});
@@ -567,6 +571,36 @@ export const MessagesProvider = ({ children, currentUser }) => {
         }
     }, []);
 
+    // ========== CALL HISTORY ==========
+
+    /**
+     * Зареди call history за конкретен разговор
+     */
+    const loadCallHistory = useCallback(async (conversationId) => {
+        // CRITICAL FIX Bug 1: Use == null to check for null/undefined, not !conversationId
+        // This ensures conversationId 0 (a valid ID) is not treated as falsy
+        // CRITICAL FIX Bug 2: Skip state update entirely when conversationId is invalid
+        // This prevents creating state entries with "null" or "undefined" as string keys
+        if (conversationId == null) {
+            return;
+        }
+
+        setLoadingCallHistory(prev => ({ ...prev, [conversationId]: true }));
+
+        try {
+            const callHistory = await svMessengerAPI.getCallHistory(conversationId);
+            setCallHistoryByConversation(prev => ({
+                ...prev,
+                [conversationId]: Array.isArray(callHistory) ? callHistory : []
+            }));
+        } catch (error) {
+            console.error('Failed to load call history:', error);
+            setCallHistoryByConversation(prev => ({ ...prev, [conversationId]: [] }));
+        } finally {
+            setLoadingCallHistory(prev => ({ ...prev, [conversationId]: false }));
+        }
+    }, []);
+
     // ========== HELPER METHODS ==========
 
     const requestNotificationPermission = () => {
@@ -616,8 +650,10 @@ export const MessagesProvider = ({ children, currentUser }) => {
         currentUser,
         conversations,
         messagesByConversation,
+        callHistoryByConversation,
         isLoadingConversations,
         loadingMessages,
+        loadingCallHistory,
         typingUsers,
         totalUnreadCount,
         isWebSocketConnected,
@@ -625,6 +661,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
         // Methods
         loadConversations,
         loadMessages,
+        loadCallHistory,
         sendMessage,
         startConversation,
         markAsRead,

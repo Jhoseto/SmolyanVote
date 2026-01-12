@@ -28,6 +28,8 @@ import { Loading } from '../../components/common';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
+import { useCallsStore } from '../../store/callsStore';
+import { CallState } from '../../types/call';
 import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
@@ -57,7 +59,48 @@ export const ChatScreen: React.FC = () => {
     isLoadingMore,
   } = useMessages(conversationId);
 
-  const { callHistory } = useCallHistory(conversationId);
+  const { callHistory, refreshCallHistory } = useCallHistory(conversationId);
+  const { callState, currentCall } = useCallsStore();
+  
+  // CRITICAL FIX: Store conversationId in ref when call is active
+  // This ensures we can check if call was for this conversation even after currentCall is cleared
+  const activeCallConversationIdRef = useRef<number | null>(null);
+  
+  // Update ref when call becomes active
+  useEffect(() => {
+    if (currentCall?.conversationId && 
+        (callState === CallState.INCOMING || 
+         callState === CallState.OUTGOING || 
+         callState === CallState.CONNECTING || 
+         callState === CallState.CONNECTED)) {
+      activeCallConversationIdRef.current = currentCall.conversationId;
+    }
+  }, [callState, currentCall?.conversationId]);
+  
+  // CRITICAL FIX: Refresh call history when call ends to show new call in chat
+  // This ensures call history is updated immediately after a call completes
+  const prevCallStateRef = useRef(callState);
+  useEffect(() => {
+    // Refresh call history when call transitions from active (CONNECTED, CONNECTING, OUTGOING, INCOMING) to IDLE/DISCONNECTED
+    const wasActive = prevCallStateRef.current !== CallState.IDLE && prevCallStateRef.current !== CallState.DISCONNECTED;
+    const isNowIdle = callState === CallState.IDLE || callState === CallState.DISCONNECTED;
+    
+    // CRITICAL FIX: Use ref to check conversationId instead of currentCall
+    // currentCall is cleared by clearCall() after 1 second, so it may be null when this effect runs
+    // The ref preserves the conversationId from when the call was active
+    const isCallForThisConversation = activeCallConversationIdRef.current === conversationId;
+    
+    if (wasActive && isNowIdle && isCallForThisConversation) {
+      // Small delay to ensure backend has processed the call end
+      setTimeout(() => {
+        refreshCallHistory();
+        // Clear ref after refresh
+        activeCallConversationIdRef.current = null;
+      }, 1000);
+    }
+    
+    prevCallStateRef.current = callState;
+  }, [callState, conversationId, refreshCallHistory]);
 
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,11 +123,17 @@ export const ChatScreen: React.FC = () => {
     });
     
     // Add call history
-    callHistory.forEach(call => {
-      items.push({ type: 'callHistory', data: call });
-    });
+    // CRITICAL FIX: Ensure call history is properly added to chat items
+    if (callHistory && Array.isArray(callHistory) && callHistory.length > 0) {
+      callHistory.forEach(call => {
+        if (call && call.id && call.startTime) {
+          items.push({ type: 'callHistory', data: call });
+        }
+      });
+    }
     
-    // Sort by time (newest first)
+    // CRITICAL FIX: Sort by time ascending (oldest first, newest last)
+    // FlatList is inverted={false}, so newest messages should be at the bottom
     items.sort((a, b) => {
       const timeA = a.type === 'message' 
         ? new Date(a.data.createdAt).getTime()
@@ -92,7 +141,7 @@ export const ChatScreen: React.FC = () => {
       const timeB = b.type === 'message'
         ? new Date(b.data.createdAt).getTime()
         : new Date(b.data.startTime).getTime();
-      return timeB - timeA; // Descending order (newest first)
+      return timeA - timeB; // Ascending order (oldest first, newest last)
     });
     
     return items;
@@ -123,15 +172,37 @@ export const ChatScreen: React.FC = () => {
     }
   }, [messages.length, messages[messages.length - 1]?.id]);
 
-  // Scroll to bottom when component mounts with messages
+  // CRITICAL FIX Bug 3: Reset scroll flag immediately when conversation changes
+  // This ensures auto-scroll handlers work correctly even when switching conversations during loading
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      hasScrolledRef.current = false; // Reset scroll flag when conversation changes
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 300);
-    }
+    hasScrolledRef.current = false; // Reset scroll flag when conversation changes
   }, [conversationId]);
+
+  // Scroll to bottom when component mounts with messages or when messages finish loading
+  // CRITICAL FIX Bug 2 & 3: Set hasScrolledRef to true after initial scroll to prevent aggressive auto-scrolling
+  // CRITICAL FIX Bug 2: Add cleanup function to cancel timeout when dependencies change
+  // CRITICAL FIX Bug 1: Check hasScrolledRef before scrolling to prevent redundant scrolls
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current && !isLoading) {
+      // Wait for layout to complete before scrolling
+      const timeoutId = setTimeout(() => {
+        // CRITICAL FIX Bug 1: Check if already scrolled by onLayout/onContentSizeChange handlers
+        // This prevents redundant scroll operations if handlers already scrolled
+        if (!hasScrolledRef.current && flatListRef.current) {
+          flatListRef.current.scrollToEnd({ animated: false });
+          // CRITICAL FIX: Mark as scrolled after initial scroll completes
+          // This prevents onContentSizeChange and onLayout from triggering more scrolls
+          hasScrolledRef.current = true;
+        }
+      }, 500); // Increased timeout to ensure messages are rendered
+      
+      // CRITICAL FIX Bug 2: Cleanup timeout when conversation changes or component unmounts
+      // This prevents pending timeouts from previous conversations from scrolling in new conversation
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [conversationId, isLoading, messages.length]);
 
   const handleInputChange = (text: string) => {
     setInputText(text);
@@ -356,19 +427,26 @@ export const ChatScreen: React.FC = () => {
         }}
         scrollEventThrottle={400}
         onContentSizeChange={() => {
-          // Auto-scroll to bottom when content size changes (only if not loading more)
-          if (chatItems.length > 0 && !isLoadingMore) {
+          // CRITICAL FIX Bug 2 & 3: Only auto-scroll on initial load, not on every content change
+          // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+          // This allows users to scroll up and read older messages without being forced back to bottom
+          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
-            }, 50);
+              // Mark as scrolled after initial scroll
+              hasScrolledRef.current = true;
+            }, 100);
           }
         }}
         onLayout={() => {
-          // Scroll to bottom on layout (only if not loading more)
-          if (chatItems.length > 0 && !isLoadingMore) {
+          // CRITICAL FIX Bug 2 & 3: Only auto-scroll on initial load, not on every layout change
+          // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current) {
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
-            }, 100);
+              // Mark as scrolled after initial scroll
+              hasScrolledRef.current = true;
+            }, 150);
           }
         }}
       />

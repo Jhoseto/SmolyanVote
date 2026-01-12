@@ -1,5 +1,6 @@
 package com.svmessengermobile
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -45,12 +46,13 @@ object NotificationChannelManager {
             
             // Calls channel
             // CRITICAL: IMPORTANCE_HIGH is required for Full Screen Intent to work on Android Q+
-            // IMPORTANCE_MAX is not available, but IMPORTANCE_HIGH is sufficient
+            // IMPORTANCE_MAX is deprecated, IMPORTANCE_HIGH is the maximum available
             // Full Screen Intent will work when:
             // 1. Notification channel has IMPORTANCE_HIGH
             // 2. Notification has setFullScreenIntent() called
             // 3. Notification has setCategory(CATEGORY_CALL)
             // 4. Notification has setOngoing(true)
+            // 5. Notification has setPriority(PRIORITY_MAX)
             val callsChannel = NotificationChannel(
                 CALLS_CHANNEL_ID,
                 "Обаждания",
@@ -65,6 +67,9 @@ object NotificationChannelManager {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     setBypassDnd(true)
                 }
+                // CRITICAL FIX: Set lockscreen visibility to PUBLIC for lock screen display
+                // This ensures the notification can be shown on lock screen
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 // Set custom sound for calls
                 if (callsSoundUri != null) {
                     setSound(callsSoundUri, audioAttributes)

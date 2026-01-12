@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CallHistory } from '../../types/callHistory';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
-import { PhoneIcon, VideoCameraIcon } from '../common/Icons';
+import { PhoneIcon, VideoCameraIcon, ArrowRightIcon, ArrowLeftIcon } from '../common/Icons';
 
 interface CallHistoryBubbleProps {
   callHistory: CallHistory;
@@ -60,27 +60,32 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
   let statusText: string;
   let statusColor: string;
   let iconColor: string;
+  let durationText: string = '';
 
   switch (callHistory.status) {
     case 'ACCEPTED':
-      statusText = callHistory.durationSeconds 
-        ? formatDuration(callHistory.durationSeconds)
-        : 'Прието';
+      // CRITICAL FIX: Show duration if call was answered and completed
+      if (callHistory.durationSeconds && callHistory.durationSeconds > 0) {
+        durationText = formatDuration(callHistory.durationSeconds);
+        statusText = `Разговор: ${durationText}`;
+      } else {
+        statusText = 'Прието';
+      }
       statusColor = Colors.green[600];
       iconColor = Colors.green[600];
       break;
     case 'REJECTED':
-      statusText = 'Отказано';
+      statusText = isIncomingCall ? 'Отказано от теб' : 'Отказано';
       statusColor = Colors.red[600];
       iconColor = Colors.red[600];
       break;
     case 'MISSED':
-      statusText = isIncomingCall ? 'Пропуснато' : 'Неотговорено';
+      statusText = isIncomingCall ? 'Пропуснато от теб' : 'Неотговорено';
       statusColor = Colors.red[600];
       iconColor = Colors.red[600];
       break;
     case 'CANCELLED':
-      statusText = 'Отменено';
+      statusText = isOwnCall ? 'Отменено от теб' : 'Отменено';
       statusColor = Colors.gray[600];
       iconColor = Colors.gray[600];
       break;
@@ -90,10 +95,11 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
       iconColor = Colors.gray[600];
   }
 
-  // Determine call direction text
+  // CRITICAL FIX: Show clear call direction - who called whom
+  // Format: "Ти звънна на [Name]" or "[Name] звънна на теб"
   const callDirectionText = isOwnCall 
-    ? `Обаждане до ${callHistory.receiverName}`
-    : `Обаждане от ${callHistory.callerName}`;
+    ? `Ти звънна на ${callHistory.receiverName}`
+    : `${callHistory.callerName} звънна на теб`;
 
   // Format time
   const callTime = new Date(callHistory.startTime).toLocaleTimeString('bg-BG', {
@@ -101,24 +107,50 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
     minute: '2-digit',
   });
 
+  // Format date
+  const callDate = formatDate(callHistory.startTime);
+
+  // CRITICAL FIX: Determine arrow icon and direction based on call type
+  // Outgoing call (isOwnCall) → ArrowRightIcon (→)
+  // Incoming call (!isOwnCall) → ArrowLeftIcon (←)
+  const ArrowIcon = isOwnCall ? ArrowRightIcon : ArrowLeftIcon;
+  
+  // Determine arrow color based on status
+  // Green for accepted calls, red for missed/rejected, gray for cancelled
+  const arrowColor = callHistory.status === 'ACCEPTED' 
+    ? Colors.green[600] 
+    : callHistory.status === 'MISSED' || callHistory.status === 'REJECTED'
+    ? Colors.red[600]
+    : Colors.gray[600];
+
   return (
     <View style={styles.container}>
-      <View style={styles.bubble}>
+      <View style={[styles.bubble, { borderColor: statusColor + '40' }]}>
+        {/* Main icon (phone/video) with arrow indicator */}
         <View style={styles.iconContainer}>
-          {callHistory.isVideoCall ? (
-            <VideoCameraIcon size={20} color={iconColor} />
-          ) : (
-            <PhoneIcon size={20} color={iconColor} />
-          )}
+          <View style={[styles.iconWrapper, { backgroundColor: iconColor + '15' }]}>
+            {callHistory.isVideoCall ? (
+              <VideoCameraIcon size={18} color={iconColor} />
+            ) : (
+              <PhoneIcon size={18} color={iconColor} />
+            )}
+          </View>
+          {/* Arrow indicator showing call direction */}
+          <View style={[styles.arrowContainer, { backgroundColor: arrowColor + '20' }]}>
+            <ArrowIcon size={14} color={arrowColor} />
+          </View>
         </View>
         <View style={styles.content}>
           <Text style={styles.callDirectionText}>{callDirectionText}</Text>
           <View style={styles.statusRow}>
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {statusText}
-            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {statusText}
+              </Text>
+            </View>
             <Text style={styles.timeText}> • {callTime}</Text>
           </View>
+          <Text style={styles.dateText}>{callDate}</Text>
         </View>
       </View>
     </View>
@@ -138,11 +170,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: 20,
     maxWidth: '80%',
-    borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   iconContainer: {
     marginRight: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  iconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  arrowContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: -2,
+    right: -4,
+    borderWidth: 1.5,
+    borderColor: Colors.background.primary,
   },
   content: {
     flex: 1,
@@ -150,19 +209,35 @@ const styles = StyleSheet.create({
   callDirectionText: {
     ...Typography.body.sm,
     color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.medium,
-    marginBottom: 2,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: 4,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginRight: 4,
   },
   statusText: {
     ...Typography.body.xs,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 11,
   },
   timeText: {
     ...Typography.body.xs,
     color: Colors.text.secondary,
+    fontSize: 11,
+  },
+  dateText: {
+    ...Typography.body.xs,
+    color: Colors.text.secondary,
+    marginTop: 2,
+    fontStyle: 'italic',
+    fontSize: 10,
   },
 });

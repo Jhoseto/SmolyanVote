@@ -2223,6 +2223,103 @@
   scroll-behavior: smooth;
 } */
 
+/* ========== CALL HISTORY ========== */
+
+.svmessenger-call-history-item {
+    margin: var(--svm-space-1) 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: messageSlideIn 0.3s var(--svm-transition-base);
+}
+
+.svmessenger-call-history-bubble {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--svm-bg-secondary);
+    padding: var(--svm-space-2) var(--svm-space-3);
+    border-radius: 20px;
+    max-width: 80%;
+    border-width: 1.5px;
+    border-style: solid;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.svmessenger-call-history-icon-container {
+    margin-right: var(--svm-space-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.svmessenger-call-history-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.svmessenger-call-history-arrow-container {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    bottom: -2px;
+    right: -4px;
+    border-width: 1.5px;
+    border-style: solid;
+    border-color: var(--svm-bg-primary);
+}
+
+.svmessenger-call-history-content {
+    flex: 1;
+}
+
+.svmessenger-call-history-direction-text {
+    font-size: var(--svm-font-size-sm);
+    color: var(--svm-text-primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.svmessenger-call-history-status-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.svmessenger-call-history-status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-right: 4px;
+}
+
+.svmessenger-call-history-status-text {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.svmessenger-call-history-time-text {
+    font-size: 11px;
+    color: var(--svm-text-secondary);
+}
+
+.svmessenger-call-history-date-text {
+    font-size: 10px;
+    color: var(--svm-text-secondary);
+    margin-top: 2px;
+    font-style: italic;
+}
+
 /* ========== PRINT STYLES ========== */
 @media print {
   .svmessenger-widget {

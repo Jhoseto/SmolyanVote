@@ -715,10 +715,21 @@ export const CallScreen: React.FC = () => {
             {/* Premium gradient overlay at top */}
             <View style={styles.topGradient}>
               <Text style={styles.participantNameVideo}>{currentCall.participantName}</Text>
-              <View style={styles.liveTimer}>
-                <View style={styles.livePulse} />
-                <Text style={styles.timerText}>{callDuration}</Text>
-              </View>
+              {/* CRITICAL FIX: Show timer ONLY when call is CONNECTED and has startTime */}
+              {/* NO timer during dialing/connecting - timer starts only after the other party answers */}
+              {callState === CallState.CONNECTED && currentCall?.startTime && (
+                <View style={styles.liveTimer}>
+                  <View style={styles.livePulse} />
+                  <Text style={styles.timerText}>{callDuration}</Text>
+                </View>
+              )}
+              {/* CRITICAL FIX: Show connecting status when call is connecting (no timer, just status) */}
+              {callState === CallState.CONNECTING && (
+                <View style={styles.liveTimer}>
+                  <View style={styles.livePulse} />
+                  <Text style={styles.timerText}>Свързване...</Text>
+                </View>
+              )}
             </View>
           </View>
         ) : (
@@ -741,13 +752,16 @@ export const CallScreen: React.FC = () => {
             <Text style={styles.participantName}>{currentCall.participantName}</Text>
 
             <View style={styles.statusCard}>
+              {/* CRITICAL FIX: Show connecting status when call is connecting (no timer, just status) */}
               {callState === CallState.CONNECTING && (
                 <>
                   <View style={[styles.statusDot, styles.connectingDot]} />
                   <Text style={styles.statusText}>Свързване...</Text>
                 </>
               )}
-              {callState === CallState.CONNECTED && (
+              {/* CRITICAL FIX: Show timer ONLY when call is CONNECTED and has startTime */}
+              {/* NO timer during dialing/connecting - timer starts only after the other party answers */}
+              {callState === CallState.CONNECTED && currentCall?.startTime && (
                 <>
                   <View style={[styles.statusDot, styles.connectedDot]} />
                   <Text style={styles.statusText}>{callDuration}</Text>
