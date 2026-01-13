@@ -11,6 +11,10 @@ export interface CallSignal {
   roomName?: string;
   callerName?: string;
   callerAvatar?: string;
+  // Call history fields
+  startTime?: string; // ISO string format for call start time
+  endTime?: string;   // ISO string format for call end time
+  isVideoCall?: boolean; // Whether this is a video call
 }
 
 export interface WebSocketCallbacks {

@@ -32,5 +32,8 @@ export interface Call {
   startTime?: Date;
   endTime?: Date;
   isVideoEnabled?: boolean;
+  // CRITICAL: Track if this is an outgoing call (current user initiated it)
+  // This is needed to determine caller/receiver when saving call history
+  isOutgoing?: boolean;
 }
 

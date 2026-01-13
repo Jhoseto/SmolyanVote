@@ -105,7 +105,6 @@ class SVMobileWebSocketService {
 
       // Create plain WebSocket connection URL with token
       const wsUrl = API_CONFIG.WS_URL;
-      logger.info(`🔌 [stompClient] Connecting to WebSocket: ${wsUrl}`);
 
       // Create STOMP client with SockJS (standard approach за React Native + Spring Boot)
       // CRITICAL FIX: Disable automatic reconnection in STOMP client - we handle it in useWebSocketConnection
@@ -171,7 +170,6 @@ class SVMobileWebSocketService {
 
         // WebSocket close callback
         onWebSocketClose: () => {
-          logger.info('🔌 [stompClient] WebSocket closed');
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onDisconnect();

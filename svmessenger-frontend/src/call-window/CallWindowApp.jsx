@@ -11,15 +11,14 @@ import svLiveKitService from '../services/svLiveKitService';
 import '../styles/call-video.css';
 
 const CallWindowApp = ({ callData }) => {
-    // Only log once on mount, not on every render
-    useEffect(() => {
-        console.log('🎬 CallWindowApp component mounted with callState:', callData.callState);
-    }, []); // Empty dependency array - only run once
     
     const [callState, setCallState] = useState(callData.callState); // 'outgoing', 'incoming', 'connected', 'rejected', 'ended'
     const [callDuration, setCallDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    
+    // CRITICAL: Track call start time for call history
+    const callStartTimeRef = useRef(null);
 
     // Video state
     const [isVideoEnabled, setIsVideoEnabled] = useState(false);
@@ -41,6 +40,7 @@ const CallWindowApp = ({ callData }) => {
     const durationIntervalRef = useRef(null);
     const callSoundRef = useRef(null);
     const isDisconnectingRef = useRef(false); // Flag to prevent multiple disconnect calls
+    const callEndSignalSentRef = useRef(false); // CRITICAL: Flag to prevent duplicate CALL_END signals
 
     // Video refs
     const localVideoRef = useRef(null);
@@ -77,39 +77,34 @@ const CallWindowApp = ({ callData }) => {
 
             // Setup event listeners
             room.on(RoomEvent.Connected, () => {
-                console.log('✅ Room connected event fired');
                 setIsConnected(true);
                 setCallState('connected');
-                
-                console.log('Room connected, participants:', room.participants?.size || 0);
-                console.log('Local participant identity:', room.localParticipant.identity);
+                // CRITICAL: Reset call end signal flag when call connects
+                callEndSignalSentRef.current = false;
+                // CRITICAL: Set call start time when room becomes connected
+                if (!callStartTimeRef.current) {
+                    callStartTimeRef.current = new Date();
+                }
                 
                 // Subscribe to existing participants' audio tracks
                 // Follow the same logic as svLiveKitService
                 if (room.participants && room.participants.size > 0) {
-                    console.log('Found existing participants:', room.participants.size);
                     room.participants.forEach((participant, identity) => {
                         participant.audioTrackPublications.forEach((publication) => {
                             if (publication.track) {
-                                console.log('  - ✅ Attaching existing track for:', identity);
                                 attachRemoteAudioTrack(publication.track, identity);
                             }
                         });
                     });
-                } else {
-                    console.log('No existing participants in room - we are the first');
                 }
             });
 
             room.on(RoomEvent.Disconnected, (reason) => {
-                console.log('Room disconnected event:', reason);
-                console.log('  - isDisconnectingRef:', isDisconnectingRef.current);
                 setIsConnected(false);
                 
                 // Don't auto-close on disconnect unless it's a real disconnect (not an error)
                 // Only close if we're not already disconnecting and it's not an error
                 if (!isDisconnectingRef.current && reason !== 'CLIENT_REQUESTED') {
-                    console.log('  - Unexpected disconnect, but not closing popup automatically');
                     // Don't close - let user manually close or retry
                 }
             });
@@ -117,41 +112,25 @@ const CallWindowApp = ({ callData }) => {
             room.on(RoomEvent.ParticipantConnected, (participant) => {
                 // With autoSubscribe: true, LiveKit automatically subscribes to all tracks
                 // We only need to attach tracks that are ALREADY available when participant connects
-                console.log('👤 Participant connected:', participant.identity);
-                console.log('  - Audio track publications:', participant.audioTrackPublications.size);
-                console.log('  - Video track publications:', participant.videoTrackPublications.size);
 
                 // Attach already-available audio tracks (if any exist)
                 participant.audioTrackPublications.forEach((publication, trackSid) => {
                     if (publication.track) {
-                        console.log('  - ✅ Attaching existing audio track:', trackSid);
                         attachRemoteAudioTrack(publication.track, participant.identity);
-                    } else {
-                        console.log('  - ⏳ Audio track not ready yet, will attach via TrackSubscribed event');
                     }
                 });
 
                 // Attach already-available video tracks (if any exist)
                 participant.videoTrackPublications.forEach((publication, trackSid) => {
                     if (publication.track) {
-                        console.log('  - ✅ Attaching existing video track:', trackSid);
                         attachRemoteVideoTrack(publication.track, participant.identity);
-                    } else {
-                        console.log('  - ⏳ Video track not ready yet, will attach via TrackSubscribed event');
                     }
                 });
             });
 
             room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-                console.log('Participant disconnected:', participant.identity);
-                console.log('  - Local participant identity:', room.localParticipant?.identity);
-                console.log('  - Disconnected participant identity:', participant.identity);
-                console.log('  - Are they the same?', participant.identity === room.localParticipant?.identity);
-                console.log('  - isDisconnectingRef:', isDisconnectingRef.current);
-                
                 // Don't process disconnect if we're already disconnecting (prevents race conditions)
                 if (isDisconnectingRef.current) {
-                    console.log('  - Already disconnecting, ignoring ParticipantDisconnected event');
                     return;
                 }
                 
@@ -165,7 +144,6 @@ const CallWindowApp = ({ callData }) => {
                 // Note: participant.identity is a string, need to compare properly
                 const localIdentity = room.localParticipant?.identity;
                 if (localIdentity && participant.identity !== localIdentity) {
-                    console.log('⚠️ Other party disconnected, waiting before ending call...');
                     // Wait longer before ending to see if it's a temporary disconnect (especially during camera toggle)
                     setTimeout(() => {
                         // Check if room is still connected and participant is still gone
@@ -174,64 +152,34 @@ const CallWindowApp = ({ callData }) => {
                                 .some(p => p.identity === participant.identity);
                             
                             if (!stillConnected) {
-                                console.log('✅ Participant still disconnected after delay, ending call');
-                                // Send CALL_END signal before ending
-                                try {
-                                    const signal = {
-                                        eventType: 'CALL_END',
-                                        conversationId: callData.conversationId,
-                                        callerId: callData.currentUserId,
-                                        receiverId: callData.otherUserId,
-                                        roomName: callData.roomName,
-                                        timestamp: new Date().toISOString()
-                                    };
-                                    svWebSocketService.sendCallSignal(signal);
-                                } catch (error) {
-                                    console.error('Failed to send CALL_END on participant disconnect:', error);
-                                }
+                                // CRITICAL: handleEndCall() will send CALL_END signal, so don't send it here
+                                // This prevents duplicate signals
                                 handleEndCall();
-                            } else {
-                                console.log('Participant reconnected, not ending call');
                             }
                         }
                     }, 8000); // Wait 8 seconds before ending (allows for temporary disconnects during camera toggle and track publishing)
-                } else {
-                    console.log('Local participant disconnected or identity mismatch - not ending call');
                 }
             });
 
             room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
                 const isLocal = participant === room.localParticipant;
                 
-                console.log('✅ [TrackSubscribed] Track subscribed:', {
-                    kind: track.kind,
-                    participant: participant.identity,
-                    trackSid: track.sid,
-                    isLocal: isLocal
-                });
-                
                 if (track.kind === 'audio') {
                     // Audio tracks are always remote (we don't subscribe to our own audio)
-                    console.log('  - 🔊 Attaching remote audio track');
                     attachRemoteAudioTrack(track, participant.identity);
                     
                 } else if (track.kind === 'video') {
                     if (isLocal) {
                         // Local video track - attach to local preview
-                        console.log('  - 📹 Attaching local video to preview');
                         if (localVideoRef.current) {
                             try {
                                 track.attach(localVideoRef.current);
-                                console.log('  - ✅ Local video preview attached');
                             } catch (error) {
-                                console.error('  - ❌ Error attaching local video:', error);
+                                console.error('Error attaching local video:', error);
                             }
-                        } else {
-                            console.warn('  - ⚠️ localVideoRef not available');
                         }
                     } else {
                         // Remote video track - attach to remote video container
-                        console.log('  - 🎬 Attaching remote video track');
                         attachRemoteVideoTrack(track, participant.identity);
                     }
                 }
@@ -239,63 +187,22 @@ const CallWindowApp = ({ callData }) => {
 
             // Listen for TrackPublished event to attach local video immediately
             room.on(RoomEvent.LocalTrackPublished, (publication, participant) => {
-                console.log('🎬 [LocalTrackPublished] Event fired:', {
-                    hasTrack: !!publication.track,
-                    trackKind: publication.track?.kind,
-                    trackSid: publication.trackSid,
-                    source: publication.source,
-                    participantIdentity: participant?.identity
-                });
-                
                 if (publication.track && publication.track.kind === 'video') {
-                    console.log('🎬 [LocalTrackPublished] Video track detected:', {
-                        trackSid: publication.trackSid,
-                        source: publication.source,
-                        trackId: publication.track.id,
-                        trackEnabled: publication.track.isEnabled
-                    });
-                    
                     // Attach to local preview immediately
                     if (localVideoRef.current && publication.track) {
                         try {
-                            console.log('🎬 [LocalTrackPublished] Attaching to localVideoRef...');
                             publication.track.attach(localVideoRef.current);
-                            console.log('✅ [LocalTrackPublished] Local video preview attached from event');
-                            console.log('🎬 [LocalTrackPublished] Video element after attach:', {
-                                srcObject: !!localVideoRef.current.srcObject,
-                                videoWidth: localVideoRef.current.videoWidth,
-                                videoHeight: localVideoRef.current.videoHeight
-                            });
                         } catch (attachError) {
-                            console.error('❌ [LocalTrackPublished] Error attaching:', attachError);
+                            console.error('Error attaching local video:', attachError);
                         }
-                    } else {
-                        console.warn('⚠️ [LocalTrackPublished] Missing localVideoRef or track:', {
-                            hasRef: !!localVideoRef.current,
-                            hasTrack: !!publication.track
-                        });
                     }
-                } else {
-                    console.log('🎬 [LocalTrackPublished] Not a video track, ignoring');
                 }
             });
 
-            // Listen for TrackPublished event - for logging only
+            // Listen for TrackPublished event
             // With autoSubscribe: true, LiveKit handles subscription automatically
             room.on(RoomEvent.TrackPublished, (publication, participant) => {
-                const isLocal = participant === room.localParticipant;
-                console.log('📢 [TrackPublished] Track published:', {
-                    kind: publication.kind,
-                    participant: participant.identity,
-                    trackSid: publication.trackSid,
-                    source: publication.source,
-                    isLocal: isLocal
-                });
-                
                 // No manual subscription needed - LiveKit will trigger TrackSubscribed automatically
-                if (!isLocal) {
-                    console.log('  - Remote track will be auto-subscribed by LiveKit');
-                }
             });
 
             room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
@@ -307,17 +214,7 @@ const CallWindowApp = ({ callData }) => {
             });
 
             // Connect to room
-            console.log('🔌 Connecting to LiveKit room:', callData.roomName, 'with token length:', callData.token?.length || 0);
-            console.log('🔌 Token preview:', callData.token?.substring(0, 50) + '...');
-            
             await room.connect('wss://smolyanvote-nq17fbx3.livekit.cloud', callData.token);
-            console.log('✅ Successfully connected to LiveKit room');
-            console.log('✅ Room state:', {
-                isConnected: room.isConnected,
-                name: room.name,
-                localParticipant: room.localParticipant?.identity,
-                participants: room.participants?.size || 0
-            });
             
             // After connection, ensure microphone is published
             // Wait a bit more for room to be fully ready (same as svLiveKitService)
@@ -345,14 +242,12 @@ const CallWindowApp = ({ callData }) => {
                         await room.localParticipant.publishTrack(localAudioTrack, {
                             source: 'microphone'
                         });
-                        console.log('✅ Microphone published successfully from existing stream');
                     }
                 } catch (publishError) {
                     console.error('Failed to publish microphone from stream:', publishError);
                     // Fallback to default microphone
                     try {
                         await room.localParticipant.setMicrophoneEnabled(true);
-                        console.log('✅ Enabled default microphone as fallback');
                     } catch (fallbackError) {
                         console.error('Failed to enable default microphone:', fallbackError);
                     }
@@ -361,7 +256,6 @@ const CallWindowApp = ({ callData }) => {
                 // If no microphone selected, enable default (same as svLiveKitService)
                 try {
                     await room.localParticipant.setMicrophoneEnabled(true);
-                    console.log('✅ Enabled default microphone (no selection)');
                 } catch (error) {
                     console.error('Failed to enable default microphone:', error);
                 }
@@ -387,14 +281,12 @@ const CallWindowApp = ({ callData }) => {
                         await room.localParticipant.publishTrack(localAudioTrack, {
                             source: 'microphone'
                         });
-                        console.log('✅ Microphone published successfully from new stream');
                     }
                 } catch (error) {
                     console.error('Failed to get and publish microphone:', error);
                     // Fallback to default microphone
                     try {
                         await room.localParticipant.setMicrophoneEnabled(true);
-                        console.log('✅ Enabled default microphone as fallback');
                     } catch (fallbackError) {
                         console.error('Failed to enable default microphone:', fallbackError);
                     }
@@ -421,21 +313,13 @@ const CallWindowApp = ({ callData }) => {
 
     // Publish microphone
     const publishMicrophone = useCallback(async () => {
-        console.log('🎤 publishMicrophone called');
-        console.log('  - roomRef.current:', !!roomRef.current);
-        console.log('  - isConnected:', roomRef.current?.isConnected);
-        console.log('  - room name:', roomRef.current?.name);
-        
         if (!roomRef.current) {
-            console.error('❌ Cannot publish microphone: roomRef.current is null');
+            console.error('Cannot publish microphone: roomRef.current is null');
             return;
         }
         
         if (!roomRef.current.isConnected) {
-            console.error('❌ Cannot publish microphone: room not connected', {
-                isConnected: roomRef.current.isConnected,
-                roomName: roomRef.current.name
-            });
+            console.error('Cannot publish microphone: room not connected');
             return;
         }
 
@@ -460,9 +344,7 @@ const CallWindowApp = ({ callData }) => {
             let stream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
-                console.log('Got user media stream with', stream.getAudioTracks().length, 'audio tracks');
             } catch (error) {
-                console.warn('Failed to get user media with device:', error);
                 // Fallback to default
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({
@@ -472,13 +354,11 @@ const CallWindowApp = ({ callData }) => {
                             autoGainControl: true
                         }
                     });
-                    console.log('Got fallback user media stream');
                 } catch (fallbackError) {
                     console.error('Failed to get fallback user media:', fallbackError);
                     // Last resort - try to enable default microphone
                     try {
                         await roomRef.current.localParticipant.setMicrophoneEnabled(true);
-                        console.log('Enabled default microphone via setMicrophoneEnabled');
                     } catch (enableError) {
                         console.error('Failed to enable default microphone:', enableError);
                     }
@@ -491,24 +371,16 @@ const CallWindowApp = ({ callData }) => {
             
             if (audioTracks.length > 0) {
                 const mediaStreamTrack = audioTracks[0];
-                console.log('Creating LocalAudioTrack from MediaStreamTrack:', mediaStreamTrack.id);
                 const localAudioTrack = new LocalAudioTrack(mediaStreamTrack);
                 
                 await roomRef.current.localParticipant.publishTrack(localAudioTrack, {
                     source: 'microphone'
                 });
-                console.log('✅ Microphone published successfully!');
-                console.log('  - Track SID:', localAudioTrack.sid);
-                console.log('  - Track kind:', localAudioTrack.kind);
-                console.log('  - Track enabled:', localAudioTrack.isEnabled);
-                console.log('  - Track muted:', localAudioTrack.isMuted);
-                console.log('  - Local participant publications:', roomRef.current.localParticipant.audioTrackPublications.size);
             } else {
                 console.error('No audio tracks in stream');
                 // Try default microphone as fallback
                 try {
                     await roomRef.current.localParticipant.setMicrophoneEnabled(true);
-                    console.log('Enabled default microphone as fallback');
                 } catch (fallbackError) {
                     console.error('Failed to enable default microphone:', fallbackError);
                 }
@@ -518,7 +390,6 @@ const CallWindowApp = ({ callData }) => {
             // Try default microphone as fallback
             try {
                 await roomRef.current.localParticipant.setMicrophoneEnabled(true);
-                console.log('Enabled default microphone after error');
             } catch (fallbackError) {
                 console.error('Failed to enable default microphone:', fallbackError);
             }
@@ -528,23 +399,14 @@ const CallWindowApp = ({ callData }) => {
     // Attach remote audio track
     const attachRemoteAudioTrack = useCallback((track, participantIdentity) => {
         try {
-            console.log('🔊 Attaching remote audio track:', {
-                participant: participantIdentity,
-                trackSid: track.sid,
-                trackKind: track.kind,
-                isMuted: track.isMuted,
-                isEnabled: track.isEnabled
-            });
-            
             // Check if we already have an audio element for this participant
             const existingElement = remoteAudioElementsRef.current.get(participantIdentity);
             if (existingElement) {
-                console.log('Removing existing audio element for:', participantIdentity);
                 // Detach old track and remove element
                 try {
                     track.detach(existingElement);
                 } catch (e) {
-                    console.warn('Error detaching old track:', e);
+                    // Ignore detach errors
                 }
                 existingElement.pause();
                 existingElement.srcObject = null;
@@ -557,62 +419,26 @@ const CallWindowApp = ({ callData }) => {
             audioElement.volume = 1.0;
 
             if (selectedSpeakerRef.current && 'setSinkId' in HTMLAudioElement.prototype) {
-                audioElement.setSinkId(selectedSpeakerRef.current).then(() => {
-                    console.log('Speaker set to:', selectedSpeakerRef.current);
-                }).catch((err) => {
-                    console.warn('Failed to set speaker:', err);
+                audioElement.setSinkId(selectedSpeakerRef.current).catch(() => {
+                    // Ignore speaker set errors
                 });
-            } else {
-                console.log('Using default speaker (setSinkId not available or no speaker selected)');
             }
 
             track.attach(audioElement);
             remoteAudioElementsRef.current.set(participantIdentity, audioElement);
             
-            console.log('✅ Remote audio track attached for participant:', participantIdentity);
-            console.log('Audio element properties:', {
-                autoplay: audioElement.autoplay,
-                volume: audioElement.volume,
-                paused: audioElement.paused,
-                readyState: audioElement.readyState,
-                src: audioElement.src
-            });
-
+            // Set up audio event listeners
             audioElement.addEventListener('error', (e) => {
-                console.error('❌ Remote audio error:', e, {
-                    error: audioElement.error,
-                    networkState: audioElement.networkState,
-                    readyState: audioElement.readyState
-                });
-            });
-
-            audioElement.addEventListener('loadedmetadata', () => {
-                console.log('📊 Remote audio metadata loaded for:', participantIdentity, {
-                    duration: audioElement.duration,
-                    readyState: audioElement.readyState
-                });
-            });
-
-            audioElement.addEventListener('canplay', () => {
-                console.log('▶️ Remote audio can play for:', participantIdentity);
-            });
-
-            audioElement.addEventListener('playing', () => {
-                console.log('🎵 Remote audio is playing for:', participantIdentity);
+                console.error('Remote audio error:', e);
             });
 
             const playPromise = audioElement.play();
             if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('✅ Remote audio playing for:', participantIdentity);
-                }).catch((error) => {
-                    console.warn('⚠️ Autoplay prevented for remote audio:', error);
+                playPromise.catch((error) => {
                     // Add click listener to try playing again
                     const tryPlay = () => {
-                        audioElement.play().then(() => {
-                            console.log('✅ Remote audio started after user interaction');
-                        }).catch((err) => {
-                            console.error('❌ Failed to play after user interaction:', err);
+                        audioElement.play().catch((err) => {
+                            console.error('Failed to play after user interaction:', err);
                         });
                     };
                     document.addEventListener('click', tryPlay, { once: true });
@@ -640,10 +466,6 @@ const CallWindowApp = ({ callData }) => {
     // Attach remote video track
     const attachRemoteVideoTrack = useCallback((track, participantIdentity) => {
         try {
-            console.log('📹 Attaching remote video track:', {
-                participant: participantIdentity,
-                trackSid: track.sid
-            });
 
             // Store track reference for cleanup
             if (!remoteVideoElementRef.current) {
@@ -688,20 +510,16 @@ const CallWindowApp = ({ callData }) => {
             if (remoteVideoRef.current) {
                 remoteVideoRef.current.appendChild(videoElement);
                 setRemoteVideoVisible(true);
-                console.log('✅ Remote video displayed in UI');
             }
         } catch (error) {
-            console.error('❌ Error attaching remote video track:', error);
+            console.error('Error attaching remote video track:', error);
             // Don't re-throw - this should not cause disconnect or crash
             // The track might attach later via TrackSubscribed event
-            console.warn('⚠️ Remote video track attachment failed, but will retry via TrackSubscribed event');
         }
     }, []);
 
     // Detach remote video track
     const detachRemoteVideoTrack = useCallback((participantIdentity) => {
-        console.log('📹 Detaching remote video track for:', participantIdentity);
-        
         // Detach track from element
         if (remoteVideoElementRef.current) {
             const trackData = remoteVideoElementRef.current.get(participantIdentity);
@@ -717,11 +535,10 @@ const CallWindowApp = ({ callData }) => {
                         try {
                             trackData.element.remove();
                         } catch (e) {
-                            console.warn('⚠️ Error removing element (non-critical):', e.message);
+                            // Ignore remove errors
                         }
                     }
                 } catch (e) {
-                    console.warn('⚠️ Error detaching track (non-critical):', e.message);
                     // Don't throw - this is cleanup, errors are acceptable
                 }
                 remoteVideoElementRef.current.delete(participantIdentity);
@@ -732,7 +549,7 @@ const CallWindowApp = ({ callData }) => {
         try {
             svLiveKitService.detachRemoteVideoTrack(participantIdentity);
         } catch (e) {
-            console.warn('⚠️ Error in service detach (non-critical):', e.message);
+            // Ignore service detach errors
         }
         
         setRemoteVideoVisible(false);
@@ -746,20 +563,15 @@ const CallWindowApp = ({ callData }) => {
     // Helper function to toggle camera on a room (similar to svLiveKitService.toggleCamera)
     const toggleCameraOnRoom = useCallback(async (room, enabled, selectedCameraId) => {
         if (!room || !isConnected) {
-            console.warn('⚠️ [toggleCameraOnRoom] Cannot toggle camera - not connected');
             return false;
         }
 
         try {
             if (enabled) {
-                console.log('🎥 [toggleCameraOnRoom] ENABLING camera...');
-                
                 // Unpublish existing video tracks first
                 const existingVideoTracks = Array.from(room.localParticipant.videoTrackPublications.values());
-                console.log('🎥 [toggleCameraOnRoom] Existing video tracks:', existingVideoTracks.length);
                 for (const publication of existingVideoTracks) {
                     if (publication.track) {
-                        console.log('🎥 [toggleCameraOnRoom] Unpublishing existing track:', publication.trackSid);
                         await room.localParticipant.unpublishTrack(publication.track);
                         publication.track.stop();
                     }
@@ -775,107 +587,53 @@ const CallWindowApp = ({ callData }) => {
 
                 if (selectedCameraId) {
                     videoConstraints.deviceId = { exact: selectedCameraId };
-                    console.log('🎥 [toggleCameraOnRoom] Using selected camera:', selectedCameraId);
-                } else {
-                    console.log('🎥 [toggleCameraOnRoom] No camera selected, using default');
                 }
-
-                console.log('🎥 [toggleCameraOnRoom] Requesting getUserMedia with constraints:', videoConstraints);
                 
                 // Get video stream from getUserMedia
                 const videoStream = await navigator.mediaDevices.getUserMedia({
                     video: videoConstraints
                 });
 
-                console.log('🎥 [toggleCameraOnRoom] getUserMedia success, stream:', {
-                    id: videoStream.id,
-                    active: videoStream.active,
-                    tracks: videoStream.getVideoTracks().length
-                });
-
                 // Get video track from stream
                 const videoTracks = videoStream.getVideoTracks();
-                console.log('🎥 [toggleCameraOnRoom] Video tracks in stream:', videoTracks.length);
                 
                 if (videoTracks.length === 0) {
                     throw new Error('No video track in stream');
                 }
 
                 const mediaStreamTrack = videoTracks[0];
-                console.log('🎥 [toggleCameraOnRoom] MediaStreamTrack:', {
-                    id: mediaStreamTrack.id,
-                    kind: mediaStreamTrack.kind,
-                    label: mediaStreamTrack.label,
-                    enabled: mediaStreamTrack.enabled,
-                    readyState: mediaStreamTrack.readyState
-                });
                 
                 // Create LocalVideoTrack from MediaStreamTrack
-                console.log('🎥 [toggleCameraOnRoom] Creating LocalVideoTrack...');
                 const videoTrack = new LocalVideoTrack(mediaStreamTrack);
-                console.log('🎥 [toggleCameraOnRoom] LocalVideoTrack created:', {
-                    sid: videoTrack.sid,
-                    kind: videoTrack.kind,
-                    isMuted: videoTrack.isMuted,
-                    isEnabled: videoTrack.isEnabled
-                });
 
                 // Publish video track
-                console.log('🎥 [toggleCameraOnRoom] Publishing video track...');
                 try {
                     await room.localParticipant.publishTrack(videoTrack, {
                         source: 'camera'
                     });
-                    console.log('🎥 [toggleCameraOnRoom] Video track published successfully');
                 } catch (publishError) {
-                    console.error('❌ [toggleCameraOnRoom] Error publishing video track:', publishError);
+                    console.error('Error publishing video track:', publishError);
                     // Stop the video track if publish failed
                     videoTrack.stop();
                     throw publishError;
                 }
-
-                // Log final state
-                const publishedTracks = Array.from(room.localParticipant.videoTrackPublications.values());
-                console.log('🎥 [toggleCameraOnRoom] Published tracks count:', publishedTracks.length);
-                publishedTracks.forEach((pub, idx) => {
-                    console.log(`  Track ${idx + 1}:`, {
-                        trackSid: pub.trackSid,
-                        source: pub.source,
-                        hasTrack: !!pub.track,
-                        trackId: pub.track?.id
-                    });
-                });
                 
                 return true;
             } else {
-                console.log('🎥 [toggleCameraOnRoom] DISABLING camera...');
-                
                 // Unpublish all video tracks
                 const existingVideoTracks = Array.from(room.localParticipant.videoTrackPublications.values());
-                console.log('🎥 [toggleCameraOnRoom] Unpublishing', existingVideoTracks.length, 'video tracks');
                 
                 for (const publication of existingVideoTracks) {
                     if (publication.track) {
-                        console.log('🎥 [toggleCameraOnRoom] Unpublishing track:', publication.trackSid);
                         await room.localParticipant.unpublishTrack(publication.track);
                         publication.track.stop();
                     }
                 }
 
-                console.log('✅ [toggleCameraOnRoom] Camera disabled - now billing as audio-only call');
                 return true;
             }
         } catch (error) {
-            const errorDetails = {
-                name: error.name,
-                message: error.message,
-                stack: error.stack,
-                timestamp: new Date().toISOString(),
-                location: 'toggleCameraOnRoom'
-            };
-            
-            console.error('❌ [toggleCameraOnRoom] Failed to toggle camera:', error);
-            console.error('❌ [toggleCameraOnRoom] Error details:', errorDetails);
+            console.error('Failed to toggle camera:', error);
             
             // Send error to main window via BroadcastChannel
             if (callChannelRef.current) {
@@ -1219,15 +977,10 @@ const CallWindowApp = ({ callData }) => {
     const handleEndCall = useCallback(async () => {
         // Prevent multiple calls to handleEndCall
         if (isDisconnectingRef.current) {
-            console.log('📞 handleEndCall already in progress, ignoring');
             return;
         }
         
         isDisconnectingRef.current = true;
-        console.log('📞 handleEndCall called');
-        console.log('  - Current callState:', callState);
-        console.log('  - Current isConnected:', isConnected);
-        console.log('  - Conversation ID:', callData.conversationId);
         
         // Stop call sound
         if (callSoundRef.current) {
@@ -1238,20 +991,50 @@ const CallWindowApp = ({ callData }) => {
         
         // Send CALL_END signal via WebSocket (if we have connection info)
         // We need to send this before closing to notify the other party
-        try {
-            const signal = {
-                eventType: 'CALL_END',
-                conversationId: callData.conversationId,
-                callerId: callData.currentUserId,
-                receiverId: callData.otherUserId,
-                roomName: callData.roomName,
-                timestamp: new Date().toISOString()
-            };
-            console.log('📤 Sending CALL_END signal:', signal);
-            svWebSocketService.sendCallSignal(signal);
-            console.log('✅ CALL_END signal sent from popup');
-        } catch (error) {
-            console.error('❌ Failed to send CALL_END signal:', error);
+        // CRITICAL: Check if CALL_END signal was already sent to prevent duplicates
+        if (!callEndSignalSentRef.current) {
+            try {
+                // CRITICAL: Determine caller and receiver based on initial call state
+                // If callState was 'outgoing', currentUserId is the caller
+                // If callState was 'incoming', otherUserId is the caller
+                const isCaller = callData.callState === 'outgoing';
+                const callerId = isCaller ? callData.currentUserId : callData.otherUserId;
+                const receiverId = isCaller ? callData.otherUserId : callData.currentUserId;
+                
+                // CRITICAL: Get startTime and endTime for call history
+                // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
+                // But we still need valid timestamps for database
+                const now = new Date();
+                const startTime = callStartTimeRef.current 
+                    ? new Date(callStartTimeRef.current).toISOString() 
+                    : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
+                const endTime = now.toISOString();
+                
+                // CRITICAL: Determine if this is a video call (from callType in callData)
+                const isVideoCall = callData.callType === 'video' || false;
+                
+                const signal = {
+                    eventType: 'CALL_END',
+                    conversationId: callData.conversationId,
+                    callerId: callerId,
+                    receiverId: receiverId,
+                    roomName: callData.roomName,
+                    timestamp: new Date().toISOString(),
+                    // CRITICAL: Add call history fields
+                    startTime: startTime,
+                    endTime: endTime,
+                    isVideoCall: isVideoCall
+                };
+                
+                // CRITICAL: Mark as sent to prevent duplicates
+                callEndSignalSentRef.current = true;
+                svWebSocketService.sendCallSignal(signal);
+                
+                // Reset call start time
+                callStartTimeRef.current = null;
+            } catch (error) {
+                console.error('❌ Failed to send CALL_END signal:', error);
+            }
         }
         
         await disconnectFromLiveKit();
@@ -1263,8 +1046,6 @@ const CallWindowApp = ({ callData }) => {
                 data: { conversationId: callData.conversationId }
             });
         }
-
-        console.log('🚪 Closing popup window');
         // Close popup
         window.close();
     }, [callData, disconnectFromLiveKit, callState, isConnected]);
@@ -1489,9 +1270,11 @@ const CallWindowApp = ({ callData }) => {
                         callSoundRef.current.currentTime = 0;
                         callSoundRef.current = null;
                     }
-                    // Close after 3 seconds
+                    // CRITICAL: DO NOT call handleEndCall() here - it sends CALL_END signal back!
+                    // Just close the window after showing animation
                     setTimeout(() => {
-                        handleEndCall();
+                        console.log('📞 Closing popup after CALL_END animation');
+                        window.close();
                     }, 3000);
                 }
             } else if (signal.eventType === 'CALL_REJECT') {
@@ -1640,9 +1423,11 @@ const CallWindowApp = ({ callData }) => {
                         callSoundRef.current.currentTime = 0;
                         callSoundRef.current = null;
                     }
-                    // Close after 3 seconds
+                    // CRITICAL: DO NOT call handleEndCall() - it sends CALL_END signal back!
+                    // Just close the window after showing animation
                     setTimeout(() => {
-                        handleEndCall();
+                        console.log('📞 Closing popup after CALL_ENDED animation');
+                        window.close();
                     }, 3000);
                     break;
                 case 'CALL_REJECTED':

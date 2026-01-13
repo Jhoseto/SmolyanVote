@@ -89,7 +89,6 @@ export const UIProvider = ({ children, currentUser }) => {
         }
 
         if (!conversation) {
-            console.warn('Conversation not found:', conversationId);
             // Try to fetch from API
             svMessengerAPI.getConversation(conversationId).then(conv => {
                 if (conv) {

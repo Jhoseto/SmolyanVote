@@ -2225,99 +2225,91 @@
 
 /* ========== CALL HISTORY ========== */
 
+/* Premium minimal call history design - no bubbles, just elegant text with icons */
 .svmessenger-call-history-item {
-    margin: var(--svm-space-1) 0;
+    margin: 4px 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    animation: messageSlideIn 0.3s var(--svm-transition-base);
-}
-
-.svmessenger-call-history-bubble {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    background-color: var(--svm-bg-secondary);
-    padding: var(--svm-space-2) var(--svm-space-3);
-    border-radius: 20px;
-    max-width: 80%;
-    border-width: 1.5px;
-    border-style: solid;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.svmessenger-call-history-icon-container {
-    margin-right: var(--svm-space-2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-
-.svmessenger-call-history-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 4px;
-}
-
-.svmessenger-call-history-arrow-container {
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    bottom: -2px;
-    right: -4px;
-    border-width: 1.5px;
-    border-style: solid;
-    border-color: var(--svm-bg-primary);
+    padding: 4px 0;
 }
 
 .svmessenger-call-history-content {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-.svmessenger-call-history-direction-text {
-    font-size: var(--svm-font-size-sm);
-    color: var(--svm-text-primary);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.svmessenger-call-history-status-row {
+.svmessenger-call-history-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-bottom: 2px;
+    justify-content: center;
+    gap: 6px;
 }
 
-.svmessenger-call-history-status-badge {
-    padding: 3px 8px;
-    border-radius: 12px;
+.svmessenger-call-history-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+}
+
+.svmessenger-call-history-arrow-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-right: 4px;
+    opacity: 0.7; /* Subtle arrow appearance */
 }
 
-.svmessenger-call-history-status-text {
-    font-size: 11px;
-    font-weight: 600;
+.svmessenger-call-history-type-text {
+    font-size: 13px;
+    font-weight: 400; /* Thin font (regular, not semibold) */
+    letter-spacing: 0.5px; /* Premium letter spacing for elegance */
+    color: var(--svm-text-secondary);
 }
 
 .svmessenger-call-history-time-text {
-    font-size: 11px;
-    color: var(--svm-text-secondary);
+    font-size: 13px;
+    font-weight: 400; /* Thin font */
+    color: var(--svm-text-tertiary);
+    letter-spacing: 0.3px;
+    margin-left: 4px;
 }
 
 .svmessenger-call-history-date-text {
-    font-size: 10px;
-    color: var(--svm-text-secondary);
+    font-size: 11px;
+    font-weight: 400; /* Thin font */
+    color: var(--svm-text-tertiary);
+    margin-top: 3px;
+    letter-spacing: 0.2px;
+    opacity: 0.7; /* Subtle appearance */
+}
+
+.svmessenger-call-history-accepted-details {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.svmessenger-call-history-detail-text {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--svm-text-tertiary);
     margin-top: 2px;
-    font-style: italic;
+    letter-spacing: 0.2px;
+}
+
+.svmessenger-call-history-duration-text {
+    font-size: 12px;
+    font-weight: 500; /* Slightly bolder for duration */
+    color: #16a34a; /* green-600 */
+    margin-top: 4px;
+    letter-spacing: 0.3px;
 }
 
 /* ========== PRINT STYLES ========== */

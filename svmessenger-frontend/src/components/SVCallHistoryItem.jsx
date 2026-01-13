@@ -9,6 +9,11 @@ import React from 'react';
  * Format duration in seconds to human-readable format (e.g., "5:23" or "1:05:30")
  */
 const formatDuration = (seconds) => {
+  // CRITICAL: Safety check for invalid duration
+  if (!seconds || seconds < 0 || isNaN(seconds)) {
+    return '0:00';
+  }
+  
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -46,116 +51,154 @@ const SVCallHistoryItem = ({ callHistory, currentUserId }) => {
   const isOwnCall = callHistory.callerId === currentUserId;
   const isIncomingCall = callHistory.receiverId === currentUserId;
 
-  // Determine call status text and icon color
-  let statusText;
-  let statusColor;
-  let iconColor;
+  // Determine call type text and premium graphics
+  let callTypeText;
+  let callTypeColor;
   let durationText = '';
+  let showArrow = false;
+  let arrowDirection = null;
 
-  switch (callHistory.status) {
-    case 'ACCEPTED':
-      // Show duration if call was answered and completed
-      if (callHistory.durationSeconds && callHistory.durationSeconds > 0) {
-        durationText = formatDuration(callHistory.durationSeconds);
-        statusText = `Разговор: ${durationText}`;
-      } else {
-        statusText = 'Прието';
-      }
-      statusColor = '#16a34a'; // green-600
-      iconColor = '#16a34a';
-      break;
-    case 'REJECTED':
-      statusText = isIncomingCall ? 'Отказано от теб' : 'Отказано';
-      statusColor = '#dc2626'; // red-600
-      iconColor = '#dc2626';
-      break;
-    case 'MISSED':
-      statusText = isIncomingCall ? 'Пропуснато от теб' : 'Неотговорено';
-      statusColor = '#dc2626'; // red-600
-      iconColor = '#dc2626';
-      break;
-    case 'CANCELLED':
-      statusText = isOwnCall ? 'Отменено от теб' : 'Отменено';
-      statusColor = '#6b7280'; // gray-600
-      iconColor = '#6b7280';
-      break;
-    default:
-      statusText = 'Неизвестно';
-      statusColor = '#6b7280';
-      iconColor = '#6b7280';
+  if (callHistory.status === 'ACCEPTED') {
+    // For accepted calls, show "Разговор" with duration
+    // CRITICAL: Only show duration if it's greater than 0 (avoid showing "Разговор 0:00")
+    if (callHistory.durationSeconds && callHistory.durationSeconds > 0) {
+      durationText = formatDuration(callHistory.durationSeconds);
+      callTypeText = `Разговор ${durationText}`;
+    } else {
+      // If duration is 0 or null, just show "Разговор" without duration
+      // This prevents showing "Разговор 0:00" for calls that were rejected but somehow marked as ACCEPTED
+      callTypeText = 'Разговор';
+    }
+    callTypeColor = '#16a34a'; // green-600
+    // No arrow for accepted calls (both parties connected)
+  } else if (callHistory.status === 'REJECTED') {
+    // For rejected calls, show "Отказано"
+    callTypeText = 'Отказано';
+    callTypeColor = '#dc2626'; // red-500
+    showArrow = true;
+    arrowDirection = isOwnCall ? 'right' : 'left'; // Outgoing rejected → right, Incoming rejected → left
+  } else {
+    // For missed/cancelled calls, show direction (Входящо/Изходящо)
+    if (isOwnCall) {
+      callTypeText = 'Изходящо';
+      showArrow = true;
+      arrowDirection = 'right'; // Outgoing → right arrow
+    } else {
+      callTypeText = 'Входящо';
+      showArrow = true;
+      arrowDirection = 'left'; // Incoming → left arrow
+    }
+    // Gray for missed/cancelled calls
+    callTypeColor = '#6b7280'; // gray-500
   }
 
-  // Show clear call direction - who called whom
-  // Format: "Ти звънна на [Name]" or "[Name] звънна на теб"
-  const callDirectionText = isOwnCall 
-    ? `Ти звънна на ${callHistory.receiverName}`
-    : `${callHistory.callerName} звънна на теб`;
-
-  // Format time
+  // Format start time as HH:mm (e.g., "22:30" or "15:36")
   const callTime = new Date(callHistory.startTime).toLocaleTimeString('bg-BG', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false, // 24-hour format
   });
 
-  // Format date
+  // Format start date
   const callDate = formatDate(callHistory.startTime);
+  
+  // Format end time for accepted calls
+  // CRITICAL: Add safety checks for invalid dates (same as mobile version)
+  let endTime = '';
+  let endDate = '';
+  if (callHistory.status === 'ACCEPTED' && callHistory.endTime) {
+    try {
+      const date = new Date(callHistory.endTime);
+      if (!isNaN(date.getTime())) {
+        const timeString = date.toLocaleTimeString('bg-BG', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false, // 24-hour format
+        });
+        const dateString = formatDate(callHistory.endTime);
+        
+        // CRITICAL: Check if strings are valid and not "Invalid Date"
+        if (timeString && 
+            timeString !== 'Invalid Date' && 
+            !timeString.includes('Invalid') &&
+            dateString && 
+            dateString !== 'Invalid Date' &&
+            !dateString.includes('Invalid')) {
+          endTime = timeString;
+          endDate = dateString;
+        }
+      }
+    } catch (e) {
+      // Invalid date - use fallback
+      endTime = '';
+      endDate = '';
+    }
+  }
 
-  // Determine arrow icon and direction based on call type
-  // Outgoing call (isOwnCall) → ArrowRightIcon (→)
-  // Incoming call (!isOwnCall) → ArrowLeftIcon (←)
-  const ArrowIcon = isOwnCall 
-    ? () => (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={statusColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      )
-    : () => (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={statusColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      );
+  // Premium arrow icons
+  const ArrowRightIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={callTypeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+      <path d="M5 12h14M12 5l7 7-7 7"/>
+    </svg>
+  );
 
-  // Determine arrow color based on status
-  // Green for accepted calls, red for missed/rejected, gray for cancelled
-  const arrowColor = callHistory.status === 'ACCEPTED' 
-    ? '#16a34a' 
-    : callHistory.status === 'MISSED' || callHistory.status === 'REJECTED'
-    ? '#dc2626'
-    : '#6b7280';
+  const ArrowLeftIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={callTypeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+  );
 
   return (
     <div className="svmessenger-call-history-item">
-      <div className="svmessenger-call-history-bubble" style={{ borderColor: statusColor + '66' }}>
-        {/* Main icon (phone/video) with arrow indicator */}
-        <div className="svmessenger-call-history-icon-container">
-          <div className="svmessenger-call-history-icon-wrapper" style={{ backgroundColor: iconColor + '26' }}>
+      <div className="svmessenger-call-history-content">
+        {/* Premium minimal design with icons and arrows */}
+        <div className="svmessenger-call-history-row">
+          {/* Premium icon (phone/video) */}
+          <div className="svmessenger-call-history-icon-container">
             {callHistory.isVideoCall ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={callTypeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 10l2-2v8l-2-2M14 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/>
               </svg>
             ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={callTypeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.33L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.33-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
               </svg>
             )}
           </div>
-          {/* Arrow indicator showing call direction */}
-          <div className="svmessenger-call-history-arrow-container" style={{ backgroundColor: arrowColor + '33' }}>
-            <ArrowIcon />
-          </div>
-        </div>
-        <div className="svmessenger-call-history-content">
-          <div className="svmessenger-call-history-direction-text">{callDirectionText}</div>
-          <div className="svmessenger-call-history-status-row">
-            <div className="svmessenger-call-history-status-badge" style={{ backgroundColor: statusColor + '26' }}>
-              <span className="svmessenger-call-history-status-text" style={{ color: statusColor }}>
-                {statusText}
-              </span>
+          
+          {/* Arrow indicator for direction (premium graphics) */}
+          {showArrow && arrowDirection && (
+            <div className="svmessenger-call-history-arrow-container">
+              {arrowDirection === 'right' ? <ArrowRightIcon /> : <ArrowLeftIcon />}
             </div>
-            <span className="svmessenger-call-history-time-text"> • {callTime}</span>
-          </div>
-          <div className="svmessenger-call-history-date-text">{callDate}</div>
+          )}
+          
+          {/* Call type text (Входящо, Изходящо, Отказано, Разговор) */}
+          <span className="svmessenger-call-history-type-text" style={{ color: callTypeColor }}>
+            {callTypeText}
+          </span>
+          
+          {/* Date and time together */}
+          <span className="svmessenger-call-history-time-text"> • {callDate} {callTime}</span>
         </div>
+        
+        {/* For accepted calls - show end time and duration */}
+        {callHistory.status === 'ACCEPTED' && (
+          <div className="svmessenger-call-history-accepted-details">
+            {/* End time */}
+            {endTime && endDate && (
+              <div className="svmessenger-call-history-detail-text">
+                Приключи: {endDate} {endTime}
+              </div>
+            )}
+            {/* Duration */}
+            {callHistory.durationSeconds && callHistory.durationSeconds > 0 && (
+              <div className="svmessenger-call-history-duration-text">
+                Продължителност: {formatDuration(callHistory.durationSeconds)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

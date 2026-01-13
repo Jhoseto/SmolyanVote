@@ -27,15 +27,42 @@ export const useCallHistory = (conversationId: number | null) => {
 
     try {
       const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.CALL_HISTORY(conversationId);
-      logger.info(`📞 [useCallHistory] Fetching call history for conversation ${conversationId}`);
       const response = await apiClient.get<CallHistory[]>(endpoint);
-      const callHistoryData = response.data || [];
-      logger.info(`✅ [useCallHistory] Loaded ${callHistoryData.length} call history entries for conversation ${conversationId}`);
+      const rawData = response.data || [];
       
-      // CRITICAL: Log first few entries for debugging
-      if (callHistoryData.length > 0) {
-        logger.info(`📞 [useCallHistory] First entry: id=${callHistoryData[0]?.id}, startTime=${callHistoryData[0]?.startTime}, status=${callHistoryData[0]?.status}`);
-      }
+      // CRITICAL: Validate and normalize call history data before setting state
+      // This ensures all required fields are present and properly typed
+      const callHistoryData: CallHistory[] = rawData
+        .filter((item: any) => {
+          // Filter out invalid entries
+          return item && 
+                 typeof item === 'object' && 
+                 item.id != null && 
+                 item.startTime != null &&
+                 typeof item.startTime === 'string' &&
+                 item.status != null &&
+                 typeof item.status === 'string' &&
+                 item.callerId != null &&
+                 item.receiverId != null;
+        })
+        .map((item: any) => {
+          // Normalize and ensure all fields are properly typed
+          return {
+            id: Number(item.id),
+            conversationId: Number(item.conversationId || conversationId),
+            callerId: Number(item.callerId),
+            callerName: String(item.callerName || 'Потребител'),
+            callerImageUrl: item.callerImageUrl ? String(item.callerImageUrl) : undefined,
+            receiverId: Number(item.receiverId),
+            receiverName: String(item.receiverName || 'Потребител'),
+            receiverImageUrl: item.receiverImageUrl ? String(item.receiverImageUrl) : undefined,
+            startTime: String(item.startTime), // Ensure it's a string
+            endTime: item.endTime ? String(item.endTime) : undefined,
+            durationSeconds: item.durationSeconds != null ? Number(item.durationSeconds) : undefined,
+            status: String(item.status) as 'ACCEPTED' | 'REJECTED' | 'MISSED' | 'CANCELLED',
+            isVideoCall: Boolean(item.isVideoCall || false),
+          } as CallHistory;
+        });
       
       setCallHistory(callHistoryData);
     } catch (err: any) {

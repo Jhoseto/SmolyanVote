@@ -40,6 +40,8 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
   // Start call
   startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => {
     const callState = initialState || CallState.OUTGOING;
+    // CRITICAL: Determine if this is an outgoing call (current user initiated it)
+    const isOutgoing = callState === CallState.OUTGOING;
     const call: Call = {
       id: `call-${Date.now()}`,
       conversationId,
@@ -50,6 +52,8 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       // CRITICAL FIX: Don't set startTime here - it should only be set when call becomes CONNECTED
       // This ensures timer starts counting only after the other party answers
       startTime: undefined,
+      // CRITICAL: Track if this is an outgoing call to determine caller/receiver later
+      isOutgoing: isOutgoing,
     };
 
     set({
@@ -90,12 +94,22 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
 
   // End call
   endCall: () => {
-    set((state) => ({
-      callState: CallState.DISCONNECTED,
-      currentCall: state.currentCall
-        ? { ...state.currentCall, state: CallState.DISCONNECTED, endTime: new Date() }
-        : null,
-    }));
+    set((state) => {
+      const now = new Date();
+      return {
+        callState: CallState.DISCONNECTED,
+        currentCall: state.currentCall
+          ? { 
+              ...state.currentCall, 
+              state: CallState.DISCONNECTED, 
+              endTime: now,
+              // CRITICAL: Ensure startTime is set if it wasn't set before (fallback)
+              // This prevents duration calculation issues
+              startTime: state.currentCall.startTime || now
+            }
+          : null,
+      };
+    });
     
     // CRITICAL: Send broadcast to close IncomingCallActivity
     if (Platform.OS === 'android') {
@@ -110,9 +124,9 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
     }
 
     // Clear call after a delay
-    setTimeout(() => {
-      get().clearCall();
-    }, 1000);
+           setTimeout(() => {
+             get().clearCallState();
+           }, 1000);
   },
 
   // Set call state
@@ -148,6 +162,16 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
   },
 
   // Clear call
+  // CRITICAL: Separate method for clearing call state without triggering broadcast
+  clearCallState: () => {
+    set({
+      currentCall: null,
+      callState: CallState.IDLE,
+      isMuted: false,
+      isVideoCall: false,
+    });
+  },
+
   clearCall: () => {
     set({
       currentCall: null,

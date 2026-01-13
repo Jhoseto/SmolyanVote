@@ -99,6 +99,10 @@ const SVMessageItem = ({ message, searchQuery = '' }) => {
                 {/* Message Time and Status */}
                 <div className="svmessenger-message-meta">
           <span className="svmessenger-message-time-only">
+            {new Date(message.sentAt).toLocaleDateString('bg-BG', {
+              day: '2-digit',
+              month: '2-digit',
+            })}{' '}
             {formatMessageTimeOnly(message.sentAt)}
           </span>
 

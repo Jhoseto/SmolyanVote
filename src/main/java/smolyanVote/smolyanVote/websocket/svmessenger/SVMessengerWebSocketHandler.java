@@ -250,4 +250,39 @@ public class SVMessengerWebSocketHandler {
             log.error("Failed to send call signal to principal {}: {}", recipientPrincipalName, e.getMessage(), e);
         }
     }
+
+    // ========== CALL HISTORY ==========
+
+    /**
+     * Изпрати call history update notification към participants в conversation
+     * Извиква се след записване на call history в базата данни
+     *
+     * @param participantPrincipalName Principal name на participant (email или username)
+     * @param conversationId ID на разговора
+     */
+    public void sendCallHistoryUpdate(String participantPrincipalName, Long conversationId) {
+        if (participantPrincipalName == null || participantPrincipalName.isBlank() || conversationId == null) {
+            log.error("Invalid call history update parameters: participantPrincipalName={}, conversationId={}", 
+                     participantPrincipalName, conversationId);
+            return;
+        }
+
+        try {
+            Map<String, Object> update = new HashMap<>();
+            update.put("type", "CALL_HISTORY_UPDATED");
+            update.put("conversationId", conversationId);
+            update.put("timestamp", Instant.now());
+
+            messagingTemplate.convertAndSendToUser(
+                    participantPrincipalName,
+                    "/queue/svmessenger-messages",
+                    update
+            );
+            log.debug("✅ Sent call history update notification to {} for conversation {}", 
+                     participantPrincipalName, conversationId);
+        } catch (Exception e) {
+            log.error("Failed to send call history update to principal {}: {}", 
+                     participantPrincipalName, e.getMessage(), e);
+        }
+    }
 }

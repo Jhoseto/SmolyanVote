@@ -75,9 +75,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
           <View style={styles.footer}>
             <Text style={styles.time}>
+              {new Date(message.createdAt).toLocaleDateString('bg-BG', {
+                day: '2-digit',
+                month: '2-digit',
+              })}{' '}
               {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
                 hour: '2-digit',
                 minute: '2-digit',
+                hour12: false, // 24-hour format
               })}
             </Text>
             <TouchableOpacity

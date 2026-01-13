@@ -279,7 +279,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                         messagePreview, 
                         conversationId
                 );
-                log.info("✅ Push notification sent to user: {}", otherUser.getId());
             } catch (Exception pushError) {
                 log.error("❌ Failed to send push notification: {}", pushError.getMessage());
             }
@@ -682,6 +681,36 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                                java.time.Instant startTime, java.time.Instant endTime,
                                String status, Boolean isVideoCall) {
         try {
+            // CRITICAL FIX: Check for duplicate call history entries
+            // Prevent saving duplicate entries for the same call (same conversation, caller, receiver, startTime within 5 seconds)
+            // This prevents issues when both CALL_REJECT and CALL_END signals are sent
+            java.time.Instant fiveSecondsAgo = startTime.minusSeconds(5);
+            java.time.Instant fiveSecondsLater = startTime.plusSeconds(5);
+            
+            List<CallHistoryEntity> existingEntries = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(conversationId);
+            // CRITICAL FIX: Check for duplicate entries with the same status
+            // This prevents duplicate ACCEPTED entries when both participants send CALL_END
+            // Also check reverse caller/receiver (in case participants are swapped)
+            boolean duplicateExists = existingEntries.stream()
+                    .anyMatch(existing -> 
+                            // Check same caller/receiver
+                            ((existing.getCallerId().equals(callerId) &&
+                              existing.getReceiverId().equals(receiverId)) ||
+                             // OR check reverse caller/receiver (in case participants are swapped)
+                             (existing.getCallerId().equals(receiverId) &&
+                              existing.getReceiverId().equals(callerId))) &&
+                            existing.getStartTime().isAfter(fiveSecondsAgo) &&
+                            existing.getStartTime().isBefore(fiveSecondsLater) &&
+                            existing.getStatus() != null &&
+                            existing.getStatus().toString().equals(status)
+                    );
+            
+            if (duplicateExists) {
+                log.warn("⚠️ Duplicate call history entry detected for conversation {}: caller={}, receiver={}, startTime={}. Skipping save.", 
+                        conversationId, callerId, receiverId, startTime);
+                return; // Skip saving duplicate entry
+            }
+            
             CallHistoryEntity callHistory = new CallHistoryEntity();
             callHistory.setConversationId(conversationId);
             callHistory.setCallerId(callerId);
@@ -700,15 +729,80 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
             callHistory.setStatus(callStatus);
 
-            // Calculate duration if call was accepted and has end time
-            if (callStatus == CallHistoryEntity.CallStatus.ACCEPTED && endTime != null && startTime != null) {
-                long durationSeconds = java.time.Duration.between(startTime, endTime).getSeconds();
-                callHistory.setDurationSeconds(durationSeconds);
+            // CRITICAL FIX: Calculate duration if call has both start and end time
+            // Calculate for all calls (not just ACCEPTED) to have complete information
+            if (endTime != null && startTime != null) {
+                try {
+                    // CRITICAL: Use ChronoUnit.SECONDS.between() for more reliable calculation
+                    long durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(startTime, endTime);
+
+                    // CRITICAL: Only set duration if it's non-negative (endTime >= startTime)
+                    // Negative duration would indicate data corruption or incorrect timestamps
+                    if (durationSeconds >= 0) {
+                        callHistory.setDurationSeconds(durationSeconds);
+                        log.info("✅ Call duration CALCULATED and SET: {}s (startTime={}, endTime={}, status={})",
+                                durationSeconds, startTime, endTime, status);
+                    } else {
+                        log.warn("⚠️ Negative duration calculated for call history: startTime={}, endTime={}, duration={}s. Setting to 0.",
+                                startTime, endTime, durationSeconds);
+                        callHistory.setDurationSeconds(0L);
+                    }
+                } catch (Exception e) {
+                    log.error("❌ Error calculating duration: startTime={}, endTime={}, error={}", startTime, endTime, e.getMessage());
+                    callHistory.setDurationSeconds(null);
+                }
+            } else {
+                // If endTime is null, duration cannot be calculated
+                log.warn("⚠️ Cannot calculate duration: startTime={}, endTime={}, status={}", startTime, endTime, status);
+                callHistory.setDurationSeconds(null);
             }
 
-            callHistoryRepo.save(callHistory);
-            log.debug("Saved call history for conversation {}: caller={}, receiver={}, status={}", 
-                     conversationId, callerId, receiverId, status);
+            // CRITICAL: Save the call history to database
+            try {
+                CallHistoryEntity savedEntity = callHistoryRepo.save(callHistory);
+                log.info("✅ Call history SAVED to database: id={}, durationSeconds={}, status={}",
+                        savedEntity.getId(), savedEntity.getDurationSeconds(), savedEntity.getStatus());
+
+                // CRITICAL: Verify the saved entity has duration
+                if (savedEntity.getDurationSeconds() != null) {
+                    log.info("✅ Duration VERIFIED in saved entity: {}s", savedEntity.getDurationSeconds());
+                } else {
+                    log.error("❌ Duration is NULL in saved entity! startTime={}, endTime={}",
+                            savedEntity.getStartTime(), savedEntity.getEndTime());
+                }
+            } catch (Exception e) {
+                log.error("❌ Failed to save call history: {}", e.getMessage(), e);
+                return; // Don't send notifications if save failed
+            }
+            
+            // CRITICAL: Notify participants about call history update via WebSocket
+            try {
+                SVConversationEntity conversation = conversationRepo.findById(conversationId).orElse(null);
+                if (conversation != null) {
+                    // Get both participants and send WebSocket notification
+                    UserEntity caller = userRepo.findById(callerId).orElse(null);
+                    UserEntity receiver = userRepo.findById(receiverId).orElse(null);
+                    
+                    // Send notification to caller
+                    if (caller != null) {
+                        String callerPrincipal = caller.getEmail() != null && !caller.getEmail().isBlank()
+                                ? caller.getEmail().toLowerCase()
+                                : caller.getUsername().toLowerCase();
+                        webSocketHandler.sendCallHistoryUpdate(callerPrincipal, conversationId);
+                    }
+                    
+                    // Send notification to receiver
+                    if (receiver != null) {
+                        String receiverPrincipal = receiver.getEmail() != null && !receiver.getEmail().isBlank()
+                                ? receiver.getEmail().toLowerCase()
+                                : receiver.getUsername().toLowerCase();
+                        webSocketHandler.sendCallHistoryUpdate(receiverPrincipal, conversationId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to send call history update notification: {}", e.getMessage());
+                // Don't throw - this is a non-critical operation
+            }
         } catch (Exception e) {
             log.error("Error saving call history: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to save call history", e);
@@ -779,6 +873,51 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 return;
             }
 
+            // CRITICAL FIX: Check if a REJECTED entry already exists for this call
+            // If CALL_REJECT was already processed, don't process CALL_END (which would create ACCEPTED with duration 0)
+            // This prevents showing both "Отказано" and "Разговор 0:00" for the same call
+            if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END) {
+                // Parse startTime to check for existing entries (REJECTED or ACCEPTED)
+                java.time.Instant checkStartTime;
+                if (signal.getStartTime() != null && !signal.getStartTime().isBlank()) {
+                    try {
+                        checkStartTime = java.time.Instant.parse(signal.getStartTime());
+                    } catch (Exception e) {
+                        checkStartTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
+                    }
+                } else {
+                    checkStartTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
+                }
+                
+                // Check if there's already ANY entry (REJECTED or ACCEPTED) for this call (within 5 seconds of startTime)
+                // This prevents duplicate entries when both participants send CALL_END
+                java.time.Instant fiveSecondsAgo = checkStartTime.minusSeconds(5);
+                java.time.Instant fiveSecondsLater = checkStartTime.plusSeconds(5);
+                
+                List<CallHistoryEntity> existingEntries = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(signal.getConversationId());
+                // CRITICAL FIX: Check for ANY existing entry (REJECTED or ACCEPTED) with same caller/receiver
+                // This prevents duplicate entries when both participants send CALL_END
+                // Also check reverse caller/receiver (in case participants are swapped)
+                boolean entryExists = existingEntries.stream()
+                        .anyMatch(existing -> 
+                                // Check same caller/receiver
+                                ((existing.getCallerId().equals(signal.getCallerId()) &&
+                                  existing.getReceiverId().equals(signal.getReceiverId())) ||
+                                 // OR check reverse caller/receiver (in case participants are swapped)
+                                 (existing.getCallerId().equals(signal.getReceiverId()) &&
+                                  existing.getReceiverId().equals(signal.getCallerId()))) &&
+                                existing.getStartTime().isAfter(fiveSecondsAgo) &&
+                                existing.getStartTime().isBefore(fiveSecondsLater) &&
+                                existing.getStatus() != null &&
+                                (existing.getStatus() == CallHistoryEntity.CallStatus.REJECTED ||
+                                 existing.getStatus() == CallHistoryEntity.CallStatus.ACCEPTED)
+                        );
+                
+                if (entryExists) {
+                    return; // Don't create duplicate entry if REJECTED or ACCEPTED already exists
+                }
+            }
+
             // Determine call status based on event type
             String callStatus;
             if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END) {
@@ -790,20 +929,52 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
 
             // Parse timestamps from signal
-            // Use timestamp as fallback if startTime/endTime are not provided
-            java.time.Instant startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
-            java.time.Instant endTime;
-            
-            // For ACCEPTED calls, endTime should be now
-            // For REJECTED calls, endTime can be same as startTime
-            if (callStatus.equals("ACCEPTED")) {
-                endTime = java.time.Instant.now();
+            // CRITICAL FIX: Use startTime from signal if provided, otherwise use timestamp or now
+            java.time.Instant startTime;
+            if (signal.getStartTime() != null && !signal.getStartTime().isBlank()) {
+                try {
+                    startTime = java.time.Instant.parse(signal.getStartTime());
+                } catch (Exception e) {
+                    log.warn("Failed to parse startTime from signal: {}, using timestamp or now", signal.getStartTime());
+                    startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
+                }
             } else {
-                endTime = startTime; // Same as startTime for non-accepted calls
+                startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
+            }
+            
+            // CRITICAL FIX: Use endTime from signal if provided, otherwise calculate based on status
+            // IMPORTANT: For ACCEPTED calls, we MUST use endTime from signal to get accurate duration
+            // If endTime is not provided, use now() as fallback, but log a warning
+            java.time.Instant endTime;
+            if (signal.getEndTime() != null && !signal.getEndTime().isBlank()) {
+                try {
+                    endTime = java.time.Instant.parse(signal.getEndTime());
+                    log.debug("✅ Using endTime from signal: {}", endTime);
+                } catch (Exception e) {
+                    log.warn("⚠️ Failed to parse endTime from signal: {}, using calculated value", signal.getEndTime());
+                    // For ACCEPTED calls, endTime should be now
+                    // For REJECTED calls, endTime can be same as startTime
+                    if (callStatus.equals("ACCEPTED")) {
+                        endTime = java.time.Instant.now();
+                        log.warn("⚠️ Using Instant.now() as endTime fallback for ACCEPTED call - duration may be inaccurate");
+                    } else {
+                        endTime = startTime; // Same as startTime for non-accepted calls
+                    }
+                }
+            } else {
+                // CRITICAL: If endTime is not provided in signal, we need to calculate it
+                // For ACCEPTED calls, use now() but log warning that duration may be inaccurate
+                // For REJECTED calls, endTime can be same as startTime
+                if (callStatus.equals("ACCEPTED")) {
+                    endTime = java.time.Instant.now();
+                    log.warn("⚠️ endTime not provided in CALL_END signal, using Instant.now() - duration may be inaccurate. startTime={}, endTime={}", startTime, endTime);
+                } else {
+                    endTime = startTime; // Same as startTime for non-accepted calls
+                }
             }
 
-            // Determine if it's a video call (default to false if not specified)
-            Boolean isVideoCall = false; // Default to false for now
+            // CRITICAL FIX: Use isVideoCall from signal if provided, otherwise default to false
+            Boolean isVideoCall = signal.getIsVideoCall() != null ? signal.getIsVideoCall() : false;
 
             // Save call history
             saveCallHistory(
@@ -815,10 +986,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     callStatus,
                     isVideoCall
             );
-
-            log.info("✅ Saved call history: conversationId={}, callerId={}, receiverId={}, status={}, startTime={}, endTime={}",
-                    signal.getConversationId(), signal.getCallerId(), signal.getReceiverId(),
-                    callStatus, startTime, endTime);
         } catch (Exception e) {
             log.error("❌ Failed to handle call signal for history: {}", e.getMessage(), e);
             // Don't throw - this is a non-critical operation

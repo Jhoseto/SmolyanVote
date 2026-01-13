@@ -33,7 +33,7 @@ public class CallHistoryEntity extends BaseEntity {
     @Column(name = "end_time", columnDefinition = "TIMESTAMP")
     private Instant endTime;
 
-    @Column(name = "duration_seconds")
+    @Column(name = "duration_seconds", nullable = true)
     private Long durationSeconds; // Duration in seconds (null if call was rejected/missed)
 
     @Enumerated(EnumType.STRING)

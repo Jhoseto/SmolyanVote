@@ -50,9 +50,12 @@ export const useCalls = () => {
     });
 
     const cleanupParticipantDisconnected = liveKitService.onParticipantDisconnected(() => {
-      // If no participants left, end call
+      // If no participants left, end call locally (don't send CALL_END signal)
       const participants = liveKitService.getParticipants();
       if (participants.length === 0) {
+        // CRITICAL: Use endCall() from store, not handleEndCall()
+        // handleEndCall() sends CALL_END signal, but this is already triggered by the other participant
+        // We just need to update local state
         endCall();
       }
     });
@@ -231,12 +234,27 @@ export const useCalls = () => {
     const latestCurrentCall = useCallsStore.getState().currentCall;
     const { user } = useAuthStore.getState();
     if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
-      // Send reject signal via WebSocket
+      // CRITICAL FIX: For incoming calls, current user is the receiver
+      // participantId is the caller (the one who initiated the call)
+      const callerId = latestCurrentCall.participantId; // The one who called
+      const receiverId = user.id; // Current user is rejecting
+      
+      // CRITICAL: Get startTime from currentCall (when call was received)
+      // For rejected calls, endTime is same as startTime (no conversation happened)
+      const startTime = latestCurrentCall.startTime 
+        ? latestCurrentCall.startTime.toISOString() 
+        : new Date().toISOString(); // Fallback to now if startTime not set
+      const endTime = startTime; // Same as startTime for rejected calls
+      
+      // Send reject signal via WebSocket with call history data
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
         conversationId: latestCurrentCall.conversationId,
-        callerId: latestCurrentCall.participantId,
-        receiverId: user.id,
+        callerId: callerId,
+        receiverId: receiverId,
+        startTime: startTime,
+        endTime: endTime,
+        isVideoCall: false, // Default to false for now
       });
     }
 
@@ -251,16 +269,60 @@ export const useCalls = () => {
   // This ensures that even if currentCall is initialized after the callback is created,
   // the function will still access the latest value from the store
   const handleEndCall = useCallback(() => {
-    // Read currentCall from store to get latest value (not from closure)
-    const latestCurrentCall = useCallsStore.getState().currentCall;
+    // Read currentCall and callState from store to get latest value (not from closure)
+    const { currentCall: latestCurrentCall, isVideoCall } = useCallsStore.getState();
     const { user } = useAuthStore.getState();
     if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
-      // Send end signal via WebSocket
+      // CRITICAL FIX: Determine caller and receiver based on isOutgoing flag
+      // If isOutgoing is true, current user is the caller
+      // If isOutgoing is false/undefined, current user is the receiver (incoming call)
+      const isOutgoingCall = latestCurrentCall.isOutgoing === true;
+      
+      const callerId = isOutgoingCall ? user.id : latestCurrentCall.participantId;
+      const receiverId = isOutgoingCall ? latestCurrentCall.participantId : user.id;
+      
+      // CRITICAL: Get startTime and endTime from currentCall
+      // startTime should be set when call becomes CONNECTED
+      // endTime should be set when call ends (in endCall() method)
+      // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
+      // But we still need valid timestamps for database
+      const now = new Date();
+      const startTime = latestCurrentCall.startTime 
+        ? latestCurrentCall.startTime.toISOString() 
+        : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
+      // CRITICAL: endTime should be set in endCall() method, but if not, use now()
+      // This ensures accurate duration calculation
+      const endTime = latestCurrentCall.endTime 
+        ? latestCurrentCall.endTime.toISOString()
+        : now.toISOString(); // Use now() as fallback to ensure we have an endTime
+      
+      // CRITICAL: Log warning if startTime is not set (call was never connected)
+      if (!latestCurrentCall.startTime) {
+      }
+      
+      // CRITICAL: Log call history data before sending
+      const durationSeconds = latestCurrentCall.startTime && latestCurrentCall.endTime
+        ? Math.floor((latestCurrentCall.endTime.getTime() - latestCurrentCall.startTime.getTime()) / 1000)
+        : null;
+      logger.debug('📞 [handleEndCall] Sending CALL_END signal:', {
+        conversationId: latestCurrentCall.conversationId,
+        callerId,
+        receiverId,
+        startTime,
+        endTime,
+        durationSeconds,
+        isVideoCall,
+      });
+      
+      // Send end signal via WebSocket with call history data
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
         conversationId: latestCurrentCall.conversationId,
-        callerId: latestCurrentCall.participantId,
-        receiverId: user.id,
+        callerId: callerId,
+        receiverId: receiverId,
+        startTime: startTime,
+        endTime: endTime,
+        isVideoCall: isVideoCall,
       });
     }
 

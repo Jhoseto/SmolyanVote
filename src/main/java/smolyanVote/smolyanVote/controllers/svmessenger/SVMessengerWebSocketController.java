@@ -199,8 +199,37 @@ public class SVMessengerWebSocketController {
             }
 
             // ✅ CRITICAL: Handle call signal for history (save to database)
-            // This ensures call history is recorded in the database for display in chat
-            messengerService.handleCallSignalForHistory(signal);
+            // IMPORTANT: Only save call history when the signal is sent by the user who initiated the action
+            // For CALL_END: Only save when sent by the user who pressed "end call" (not when forwarded to the other participant)
+            // For CALL_REJECT: Only save when sent by the user who rejected the call
+            // This prevents duplicate entries when both participants send signals
+            if (signal.getEventType() == SVCallEventType.CALL_END || signal.getEventType() == SVCallEventType.CALL_REJECT) {
+                // CRITICAL: Only save call history if the sender is the one who initiated the action
+                // For CALL_END: sender must be either caller or receiver (whoever pressed "end call")
+                // For CALL_REJECT: sender must be the receiver (who rejected the call)
+                boolean shouldSaveHistory = false;
+                if (signal.getEventType() == SVCallEventType.CALL_END) {
+                    // For CALL_END, save history only if sender is the one who sent the signal (not forwarded)
+                    // The signal is sent by the user who pressed "end call", so we save it
+                    shouldSaveHistory = true;
+                } else if (signal.getEventType() == SVCallEventType.CALL_REJECT) {
+                    // For CALL_REJECT, save history only if sender is the receiver (who rejected)
+                    shouldSaveHistory = sender.getId().equals(signal.getReceiverId());
+                }
+
+                
+                if (shouldSaveHistory) {
+                    messengerService.handleCallSignalForHistory(signal);
+                    log.debug("✅ Saving call history for signal: type={}, sender={}, conversation={}",
+                            signal.getEventType(), sender.getId(), signal.getConversationId());
+                } else {
+                    log.debug("⏭️ Skipping call history save: signal type={}, sender={}, caller={}, receiver={}",
+                            signal.getEventType(), sender.getId(), signal.getCallerId(), signal.getReceiverId());
+                }
+            } else {
+                // For other signal types (CALL_REQUEST, CALL_ACCEPT, etc.), don't save call history
+                // Call history is only saved for CALL_END and CALL_REJECT
+            }
 
         } catch (Exception e) {
             log.error("Error handling call signal via WebSocket", e);

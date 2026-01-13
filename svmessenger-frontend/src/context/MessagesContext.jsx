@@ -49,6 +49,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
     const conversationsRef = useRef(conversations);
     const messagesByConversationRef = useRef(messagesByConversation);
     const processedMessageIds = useRef(new Set()); // ✅ Защита срещу дублиране - track обработени съобщения
+    const loadCallHistoryRef = useRef(null); // Ref for loadCallHistory to avoid circular dependency
 
     // Preload message sound
     useEffect(() => {
@@ -83,9 +84,17 @@ export const MessagesProvider = ({ children, currentUser }) => {
     }, []);
 
     const handleNewMessage = useCallback((message, activeChats = []) => {
+        // CRITICAL: Check if this is a call history update notification
+        if (message && message.type === 'CALL_HISTORY_UPDATED' && message.conversationId) {
+            // Reload call history for this conversation using ref to avoid circular dependency
+            if (loadCallHistoryRef.current) {
+                loadCallHistoryRef.current(message.conversationId);
+            }
+            return;
+        }
+        
         // Валидация на съобщението
         if (!message || !message.id || !message.text || !message.conversationId || !message.sentAt) {
-            console.warn('handleNewMessage: Invalid message received', message);
             return;
         }
 
@@ -356,7 +365,6 @@ export const MessagesProvider = ({ children, currentUser }) => {
             try {
                 await svMessengerAPI.markAllUndeliveredAsDelivered();
             } catch (error) {
-                console.warn('Failed to mark messages as delivered:', error);
             }
         } catch (error) {
             console.error('Failed to load conversations:', error);
@@ -471,7 +479,6 @@ export const MessagesProvider = ({ children, currentUser }) => {
 
     const sendMessage = useCallback(async (conversationId, text) => {
         if (!text.trim() || !isWebSocketConnected) {
-            console.warn('Cannot send message: empty text or not connected');
             return;
         }
 
@@ -588,14 +595,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
         setLoadingCallHistory(prev => ({ ...prev, [conversationId]: true }));
 
         try {
-            console.log(`📞 [MessagesContext] Loading call history for conversation ${conversationId}`);
-            const callHistory = await svMessengerAPI.getCallHistory(conversationId);
-            console.log(`✅ [MessagesContext] Loaded ${Array.isArray(callHistory) ? callHistory.length : 0} call history entries for conversation ${conversationId}`);
-            
-            // CRITICAL: Log first few entries for debugging
-            if (Array.isArray(callHistory) && callHistory.length > 0) {
-                console.log(`📞 [MessagesContext] First entry: id=${callHistory[0]?.id}, startTime=${callHistory[0]?.startTime}, status=${callHistory[0]?.status}`);
-            }
+                   const callHistory = await svMessengerAPI.getCallHistory(conversationId);
             
             setCallHistoryByConversation(prev => ({
                 ...prev,
@@ -609,6 +609,11 @@ export const MessagesProvider = ({ children, currentUser }) => {
             setLoadingCallHistory(prev => ({ ...prev, [conversationId]: false }));
         }
     }, []);
+    
+    // CRITICAL: Update ref when loadCallHistory changes to avoid circular dependency
+    useEffect(() => {
+        loadCallHistoryRef.current = loadCallHistory;
+    }, [loadCallHistory]);
 
     // ========== HELPER METHODS ==========
 

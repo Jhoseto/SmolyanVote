@@ -125,21 +125,18 @@ export const ChatScreen: React.FC = () => {
     
     // Add call history
     // CRITICAL FIX: Ensure call history is properly added to chat items
-    logger.info(`📞 [ChatScreen] Processing call history: ${callHistory?.length || 0} entries`);
     if (callHistory && Array.isArray(callHistory) && callHistory.length > 0) {
       callHistory.forEach((call, index) => {
-        logger.info(`📞 [ChatScreen] Call ${index}: id=${call?.id}, startTime=${call?.startTime}, status=${call?.status}`);
         // CRITICAL FIX: Check if call has required fields - id and startTime are required
         // startTime can be string (ISO format) or Date object
-        if (call && call.id != null && call.startTime != null) {
+        if (call && 
+            typeof call === 'object' &&
+            call.id != null && 
+            call.startTime != null &&
+            typeof call.startTime === 'string') {
           items.push({ type: 'callHistory', data: call });
-          logger.info(`✅ [ChatScreen] Added call history item ${index} to chat items`);
-        } else {
-          logger.warn(`⚠️ [ChatScreen] Skipping call history item ${index}: missing required fields (id=${call?.id}, startTime=${call?.startTime})`);
         }
       });
-    } else {
-      logger.info(`📞 [ChatScreen] No call history to add: callHistory=${callHistory}, isArray=${Array.isArray(callHistory)}, length=${callHistory?.length || 0}`);
     }
     
     // CRITICAL FIX: Sort by time ascending (oldest first, newest last)
@@ -171,7 +168,6 @@ export const ChatScreen: React.FC = () => {
       lastMessageIdRef.current = null;
       lastMessageCountRef.current = 0;
       previousConversationIdRef.current = conversationId;
-      logger.debug(`📜 [ChatScreen] Conversation changed to ${conversationId} - reset scroll refs`);
     }
   }, [conversationId]);
 
@@ -179,7 +175,6 @@ export const ChatScreen: React.FC = () => {
   // This ensures chat always opens at the bottom showing the latest messages
   useEffect(() => {
     if (!isLoading && messages.length > 0 && flatListRef.current && !hasScrolledRef.current) {
-      logger.debug(`📜 [ChatScreen] Messages loaded (${messages.length} messages) - scrolling to bottom`);
       
       // Use multiple attempts to ensure scroll happens after layout
       const scrollToBottom = () => {
@@ -187,7 +182,6 @@ export const ChatScreen: React.FC = () => {
           try {
             flatListRef.current.scrollToEnd({ animated: false });
             hasScrolledRef.current = true;
-            logger.debug('✅ [ChatScreen] Scrolled to bottom successfully');
           } catch (error) {
             logger.error('❌ [ChatScreen] Error scrolling to bottom:', error);
           }
@@ -229,7 +223,6 @@ export const ChatScreen: React.FC = () => {
       requestAnimationFrame(() => {
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
-          logger.debug('📜 [ChatScreen] New message arrived - scrolled to bottom');
         }, 100);
       });
     } else if (messages.length > 0) {
@@ -396,9 +389,11 @@ export const ChatScreen: React.FC = () => {
         data={chatItems}
         keyExtractor={(item, index) => {
           if (item.type === 'message') {
-            return `message-${item.data.id}`;
+            const id = item.data?.id != null ? String(item.data.id) : `msg-${index}`;
+            return `message-${id}`;
           } else {
-            return `call-${item.data.id}`;
+            const id = item.data?.id != null ? String(item.data.id) : `call-${index}`;
+            return `call-${id}`;
           }
         }}
         keyboardShouldPersistTaps="handled"
@@ -413,9 +408,14 @@ export const ChatScreen: React.FC = () => {
                       onReply={handleReply}
                     />
                   );
-                } else {
+                } else if (item.type === 'callHistory') {
+                  // CRITICAL: Ensure callHistory data is valid before rendering
+                  if (!item.data || typeof item.data !== 'object') {
+                    return null;
+                  }
                   return <CallHistoryBubble callHistory={item.data} />;
                 }
+                return null;
               }}
         contentContainerStyle={[
           styles.messagesContainer,
@@ -470,7 +470,6 @@ export const ChatScreen: React.FC = () => {
               try {
                 flatListRef.current?.scrollToEnd({ animated: false });
                 hasScrolledRef.current = true;
-                logger.debug('✅ [ChatScreen] Scrolled to bottom via onContentSizeChange');
               } catch (error) {
                 logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
               }
@@ -485,7 +484,6 @@ export const ChatScreen: React.FC = () => {
               try {
                 flatListRef.current?.scrollToEnd({ animated: false });
                 hasScrolledRef.current = true;
-                logger.debug('✅ [ChatScreen] Scrolled to bottom via onLayout');
               } catch (error) {
                 logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
               }

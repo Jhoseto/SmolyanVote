@@ -78,6 +78,8 @@ export const useWebSocketCalls = () => {
 
         case 'CALL_END':
         case 'CALL_ENDED':
+          // CRITICAL: Only set call state to IDLE, DO NOT send CALL_END signal back
+          // The call history should only be saved by the user who pressed "end call" in UI
           setCallState(CallState.IDLE);
           soundService.stopIncomingCallSound();
           break;

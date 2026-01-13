@@ -4,11 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { CallHistory } from '../../types/callHistory';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
-import { PhoneIcon, VideoCameraIcon, ArrowRightIcon, ArrowLeftIcon } from '../common/Icons';
+import { TelephoneIcon as PhoneIcon, VideoCameraIcon, ArrowRightIcon, ArrowLeftIcon } from '../common/Icons';
 
 interface CallHistoryBubbleProps {
   callHistory: CallHistory;
@@ -17,7 +17,12 @@ interface CallHistoryBubbleProps {
 /**
  * Format duration in seconds to human-readable format (e.g., "5:23" or "1:05:30")
  */
-const formatDuration = (seconds: number): string => {
+const formatDuration = (seconds: number | undefined | null): string => {
+  // CRITICAL: Safety check for invalid duration
+  if (!seconds || seconds < 0 || isNaN(seconds)) {
+    return '0:00';
+  }
+  
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -30,128 +35,234 @@ const formatDuration = (seconds: number): string => {
 
 /**
  * Format date to relative time (e.g., "Today", "Yesterday", "Jan 15")
+ * CRITICAL: Add safety checks for invalid dates
  */
 const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const callDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  if (!dateString) {
+    return '';
+  }
   
-  const diffTime = today.getTime() - callDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const callDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffTime = today.getTime() - callDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) {
-    return 'Днес';
-  } else if (diffDays === 1) {
-    return 'Вчера';
-  } else if (diffDays < 7) {
-    return date.toLocaleDateString('bg-BG', { weekday: 'long' });
-  } else {
-    return date.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
+    if (diffDays === 0) {
+      return 'Днес';
+    } else if (diffDays === 1) {
+      return 'Вчера';
+    } else if (diffDays < 7) {
+      const weekday = date.toLocaleDateString('bg-BG', { weekday: 'long' });
+      return weekday || '';
+    } else {
+      const formatted = date.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
+      return formatted || '';
+    }
+  } catch (e) {
+    // Invalid date - return empty string
+    return '';
   }
 };
 
 export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistory }) => {
+  // CRITICAL: Safety check for null/undefined callHistory
+  if (!callHistory) {
+    return null;
+  }
+  
   const { user } = useAuthStore();
-  const isOwnCall = callHistory.callerId === user?.id;
-  const isIncomingCall = callHistory.receiverId === user?.id;
+  // CRITICAL: Add null safety checks to prevent crashes
+  // If user is null/undefined or user.id is null/undefined, default to false
+  const userId = user?.id ?? null;
+  const isOwnCall = userId !== null && callHistory?.callerId !== null && callHistory.callerId === userId;
+  const isIncomingCall = userId !== null && callHistory?.receiverId !== null && callHistory.receiverId === userId;
 
-  // Determine call status text and icon color
-  let statusText: string;
-  let statusColor: string;
-  let iconColor: string;
+  // Determine call type text and premium graphics
+  // CRITICAL: Initialize with default values to prevent undefined
+  let callTypeText: string = 'Обаждане';
+  let callTypeColor: string = Colors.text?.secondary || '#6b7280';
   let durationText: string = '';
+  let showArrow: boolean = false;
+  let arrowDirection: 'left' | 'right' | null = null;
 
-  switch (callHistory.status) {
-    case 'ACCEPTED':
-      // CRITICAL FIX: Show duration if call was answered and completed
-      if (callHistory.durationSeconds && callHistory.durationSeconds > 0) {
-        durationText = formatDuration(callHistory.durationSeconds);
-        statusText = `Разговор: ${durationText}`;
-      } else {
-        statusText = 'Прието';
-      }
-      statusColor = Colors.green[600];
-      iconColor = Colors.green[600];
-      break;
-    case 'REJECTED':
-      statusText = isIncomingCall ? 'Отказано от теб' : 'Отказано';
-      statusColor = Colors.red[600];
-      iconColor = Colors.red[600];
-      break;
-    case 'MISSED':
-      statusText = isIncomingCall ? 'Пропуснато от теб' : 'Неотговорено';
-      statusColor = Colors.red[600];
-      iconColor = Colors.red[600];
-      break;
-    case 'CANCELLED':
-      statusText = isOwnCall ? 'Отменено от теб' : 'Отменено';
-      statusColor = Colors.gray[600];
-      iconColor = Colors.gray[600];
-      break;
-    default:
-      statusText = 'Неизвестно';
-      statusColor = Colors.gray[600];
-      iconColor = Colors.gray[600];
+  if (callHistory?.status === 'ACCEPTED') {
+    // For accepted calls, show "Разговор" with duration
+    // CRITICAL: Only show duration if it's greater than 0 (avoid showing "Разговор 0:00")
+    if (callHistory.durationSeconds && callHistory.durationSeconds > 0) {
+      durationText = formatDuration(callHistory.durationSeconds);
+      callTypeText = `Разговор ${durationText}`;
+    } else {
+      // If duration is 0 or null, just show "Разговор" without duration
+      // This prevents showing "Разговор 0:00" for calls that were rejected but somehow marked as ACCEPTED
+      callTypeText = 'Разговор';
+    }
+    callTypeColor = Colors.green?.[600] || '#16a34a';
+    // No arrow for accepted calls (both parties connected)
+  } else if (callHistory?.status === 'REJECTED') {
+    // For rejected calls, show "Отказано" with direction
+    callTypeText = 'Отказано';
+    callTypeColor = Colors.red?.[500] || '#dc2626';
+    showArrow = true;
+    arrowDirection = isOwnCall ? 'right' : 'left'; // Outgoing rejected → right, Incoming rejected → left
+  } else {
+    // For missed/cancelled calls, show direction (Входящо/Изходящо)
+    if (isOwnCall) {
+      callTypeText = 'Изходящо';
+      showArrow = true;
+      arrowDirection = 'right'; // Outgoing → right arrow
+    } else {
+      callTypeText = 'Входящо';
+      showArrow = true;
+      arrowDirection = 'left'; // Incoming → left arrow
+    }
+    // Gray for missed/cancelled calls
+    callTypeColor = Colors.text?.secondary || '#6b7280';
+  }
+  
+  // CRITICAL: Ensure callTypeText and callTypeColor are always valid strings
+  if (!callTypeText || typeof callTypeText !== 'string') {
+    callTypeText = 'Обаждане';
+  }
+  if (!callTypeColor || typeof callTypeColor !== 'string') {
+    callTypeColor = '#6b7280';
   }
 
-  // CRITICAL FIX: Show clear call direction - who called whom
-  // Format: "Ти звънна на [Name]" or "[Name] звънна на теб"
-  const callDirectionText = isOwnCall 
-    ? `Ти звънна на ${callHistory.receiverName}`
-    : `${callHistory.callerName} звънна на теб`;
-
-  // Format time
-  const callTime = new Date(callHistory.startTime).toLocaleTimeString('bg-BG', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  // Format date
-  const callDate = formatDate(callHistory.startTime);
-
-  // CRITICAL FIX: Determine arrow icon and direction based on call type
-  // Outgoing call (isOwnCall) → ArrowRightIcon (→)
-  // Incoming call (!isOwnCall) → ArrowLeftIcon (←)
-  const ArrowIcon = isOwnCall ? ArrowRightIcon : ArrowLeftIcon;
+  // Format time as HH:mm (e.g., "22:30" or "15:36")
+  // CRITICAL: Add safety checks for invalid dates
+  let callTime = '';
+  let callDate = '';
+  let endTime = '';
+  let endDate = '';
   
-  // Determine arrow color based on status
-  // Green for accepted calls, red for missed/rejected, gray for cancelled
-  const arrowColor = callHistory.status === 'ACCEPTED' 
-    ? Colors.green[600] 
-    : callHistory.status === 'MISSED' || callHistory.status === 'REJECTED'
-    ? Colors.red[600]
-    : Colors.gray[600];
+  if (callHistory?.startTime) {
+    try {
+      const date = new Date(callHistory.startTime);
+      if (!isNaN(date.getTime())) {
+        const timeString = date.toLocaleTimeString('bg-BG', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false, // 24-hour format
+        });
+        const dateString = formatDate(callHistory.startTime);
+        
+        // CRITICAL: Check if strings are valid and not "Invalid Date"
+        if (timeString && 
+            timeString !== 'Invalid Date' && 
+            !timeString.includes('Invalid') &&
+            dateString && 
+            dateString !== 'Invalid Date' &&
+            !dateString.includes('Invalid')) {
+          callTime = timeString;
+          callDate = dateString;
+        }
+      }
+    } catch (e) {
+      // Invalid date - use fallback
+      callTime = '';
+      callDate = '';
+    }
+  }
+  
+  // Format end time for accepted calls
+  if (callHistory?.status === 'ACCEPTED' && callHistory?.endTime) {
+    try {
+      const date = new Date(callHistory.endTime);
+      if (!isNaN(date.getTime())) {
+        const timeString = date.toLocaleTimeString('bg-BG', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false, // 24-hour format
+        });
+        const dateString = formatDate(callHistory.endTime);
+        
+        if (timeString && 
+            timeString !== 'Invalid Date' && 
+            !timeString.includes('Invalid') &&
+            dateString && 
+            dateString !== 'Invalid Date' &&
+            !dateString.includes('Invalid')) {
+          endTime = timeString;
+          endDate = dateString;
+        }
+      }
+    } catch (e) {
+      // Invalid date - use fallback
+      endTime = '';
+      endDate = '';
+    }
+  }
+
+  // CRITICAL: Ensure all values are valid strings before rendering
+  const safeCallTypeText = String(callTypeText || 'Обаждане');
+  const safeCallTypeColor = String(callTypeColor || '#6b7280');
+  const safeCallDate = String(callDate || '');
+  const safeCallTime = String(callTime || '');
+  const hasValidDateTime = safeCallDate !== '' && safeCallTime !== '';
+
+  // CRITICAL: Determine icon component - must be a valid React component, not a string
+  const IconComponent = callHistory?.isVideoCall === true ? VideoCameraIcon : PhoneIcon;
+  
+  // CRITICAL: Determine arrow component - must be a valid React component or null
+  // Add extra safety check to prevent crashes
+  const ArrowComponent = (showArrow === true && arrowDirection !== null && (arrowDirection === 'right' || arrowDirection === 'left'))
+    ? (arrowDirection === 'right' ? ArrowRightIcon : ArrowLeftIcon)
+    : null;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.bubble, { borderColor: statusColor + '40' }]}>
-        {/* Main icon (phone/video) with arrow indicator */}
-        <View style={styles.iconContainer}>
-          <View style={[styles.iconWrapper, { backgroundColor: iconColor + '15' }]}>
-            {callHistory.isVideoCall ? (
-              <VideoCameraIcon size={18} color={iconColor} />
-            ) : (
-              <PhoneIcon size={18} color={iconColor} />
+      <View style={styles.content}>
+        {/* Premium minimal design with icons and arrows */}
+        <View style={styles.row}>
+          {/* Premium icon (phone/video) */}
+          <View style={styles.iconContainer}>
+            <IconComponent size={14} color={safeCallTypeColor} />
+          </View>
+          
+          {/* Arrow indicator for direction (premium graphics) */}
+          {ArrowComponent !== null && (
+            <View style={styles.arrowContainer}>
+              <ArrowComponent size={12} color={safeCallTypeColor} />
+            </View>
+          )}
+          
+          {/* Call type text (Входящо, Изходящо, Отказано, Разговор) */}
+          <Text style={[styles.callTypeText, { color: safeCallTypeColor }]}>
+            {safeCallTypeText}
+          </Text>
+          
+          {/* Date and time together - only show if valid */}
+          {hasValidDateTime ? (
+            <Text style={styles.timeText}> • {safeCallDate} {safeCallTime}</Text>
+          ) : null}
+        </View>
+        
+        {/* For accepted calls - show end time and duration */}
+        {callHistory?.status === 'ACCEPTED' ? (
+          <View style={styles.acceptedCallDetails}>
+            {/* End time */}
+            {endTime !== '' && endDate !== '' && (
+              <Text style={styles.detailText}>
+                Приключи: {endDate} {endTime}
+              </Text>
+            )}
+            {/* Duration */}
+            {callHistory?.durationSeconds && callHistory.durationSeconds > 0 && (
+              <Text style={styles.durationText}>
+                Продължителност: {String(formatDuration(callHistory.durationSeconds) || '0:00')}
+              </Text>
             )}
           </View>
-          {/* Arrow indicator showing call direction */}
-          <View style={[styles.arrowContainer, { backgroundColor: arrowColor + '20' }]}>
-            <ArrowIcon size={14} color={arrowColor} />
-          </View>
-        </View>
-        <View style={styles.content}>
-          <Text style={styles.callDirectionText}>{callDirectionText}</Text>
-          <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {statusText}
-              </Text>
-            </View>
-            <Text style={styles.timeText}> • {callTime}</Text>
-          </View>
-          <Text style={styles.dateText}>{callDate}</Text>
-        </View>
+        ) : null}
       </View>
     </View>
   );
@@ -159,85 +270,68 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: Spacing.xs,
+    marginVertical: Spacing.xs / 2, // Minimal spacing
     alignItems: 'center',
-  },
-  bubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.secondary,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 20,
-    maxWidth: '80%',
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  iconContainer: {
-    marginRight: Spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  arrowContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    bottom: -2,
-    right: -4,
-    borderWidth: 1.5,
-    borderColor: Colors.background.primary,
+    paddingVertical: 4, // Very minimal padding
   },
   content: {
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  callDirectionText: {
-    ...Typography.body.sm,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: 4,
-  },
-  statusRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    justifyContent: 'center',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+  iconContainer: {
+    marginRight: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowContainer: {
     marginRight: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.7, // Subtle arrow appearance
   },
-  statusText: {
-    ...Typography.body.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    fontSize: 11,
+  callTypeText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.regular, // Thin font (regular, not semibold)
+    letterSpacing: 0.5, // Premium letter spacing for elegance
+    color: Colors.text?.secondary || '#6b7280',
   },
   timeText: {
-    ...Typography.body.xs,
-    color: Colors.text.secondary,
-    fontSize: 11,
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.regular, // Thin font
+    color: Colors.text?.tertiary || '#9ca3af',
+    letterSpacing: 0.3,
+    marginLeft: 4,
   },
   dateText: {
-    ...Typography.body.xs,
-    color: Colors.text.secondary,
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.regular, // Thin font
+    color: Colors.text?.tertiary || '#9ca3af',
+    marginTop: 3,
+    letterSpacing: 0.2,
+    opacity: 0.7, // Subtle appearance
+  },
+  acceptedCallDetails: {
+    marginTop: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailText: {
+    fontSize: 11,
+    fontWeight: Typography.fontWeight.regular,
+    color: Colors.text?.tertiary || '#9ca3af',
     marginTop: 2,
-    fontStyle: 'italic',
-    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: Typography.fontWeight.medium, // Slightly bolder for duration
+    color: Colors.green?.[600] || '#16a34a',
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
 });
