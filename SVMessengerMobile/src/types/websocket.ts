@@ -15,6 +15,7 @@ export interface CallSignal {
   startTime?: string; // ISO string format for call start time
   endTime?: string;   // ISO string format for call end time
   isVideoCall?: boolean; // Whether this is a video call
+  wasConnected?: boolean;
 }
 
 export interface WebSocketCallbacks {

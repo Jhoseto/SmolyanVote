@@ -48,10 +48,19 @@ export const CallProvider = ({ children, currentUser }) => {
     const incomingCallSoundRef = useRef(null);
     const popupCheckIntervalRef = useRef(null); // CRITICAL FIX: Ref to store interval ID
 
+    // CRITICAL: Track call state in ref to avoid stale closures in setInterval/endCall
+    const callStateRef = useRef('idle');
+
+    // Keep callStateRef in sync
+    useEffect(() => {
+        callStateRef.current = callState;
+    }, [callState]);
+
     // ========== CALL METHODS ==========
 
     const buildCallWindowUrl = useCallback((params) => {
         const baseUrl = window.location.origin;
+        // ... (rest of function)
         const queryParams = new URLSearchParams({
             token: params.token,
             roomName: params.roomName,
@@ -67,6 +76,8 @@ export const CallProvider = ({ children, currentUser }) => {
         });
         return `${baseUrl}/svmessenger/call-window.html?${queryParams.toString()}`;
     }, []);
+
+
 
     const proceedWithCallStart = useCallback(async (conversationId, otherUserId, conversation) => {
         try {
@@ -86,7 +97,9 @@ export const CallProvider = ({ children, currentUser }) => {
                 roomName: tokenResponse.roomName,
                 conversation: conversation,
                 // CRITICAL: Set startTime when outgoing call is initiated
-                startTime: new Date()
+                startTime: new Date(),
+                // CRITICAL: Track if this is an incoming call (false for outgoing)
+                isIncoming: false
             };
             // CRITICAL: Reset call end signal flag for new call
             callEndSignalSentRef.current = false;
@@ -437,21 +450,31 @@ export const CallProvider = ({ children, currentUser }) => {
 
         // Send CALL_END signal
         if (currentCall) {
-            const isCaller = callState === 'outgoing';
+            // CRITICAL FIX: Determine who initiated the call reliably
+            // callState checks are unreliable because state changes to 'connected' for both
+            const isCaller = currentCall.isIncoming !== undefined
+                ? !currentCall.isIncoming
+                : callStateRef.current === 'outgoing'; // Use Ref
 
             // CRITICAL: Get startTime and endTime for call history
             // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
             // But we still need valid timestamps for database
             const now = new Date();
+            // CRITICAL: Use callStartTimeRef.current (set when Room connected or synced from popup)
             const startTime = callStartTimeRef.current
                 ? new Date(callStartTimeRef.current).toISOString()
-                : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
+                : now.toISOString();
             const endTime = now.toISOString();
 
             // CRITICAL: Calculate duration for logging
             const durationSeconds = callStartTimeRef.current && now
                 ? Math.floor((now.getTime() - new Date(callStartTimeRef.current).getTime()) / 1000)
                 : null;
+
+            // CRITICAL: Determine status
+            // Use REF to get the TRUE current state, avoiding stale closures from setInterval
+            // FINAL SAFEGUARD: If we have duration > 0, it WAS connected, regardless of callState
+            const wasConnected = callStateRef.current === 'connected' || (durationSeconds !== null && durationSeconds > 0);
 
             const signal = {
                 eventType: 'CALL_END',
@@ -463,7 +486,8 @@ export const CallProvider = ({ children, currentUser }) => {
                 // CRITICAL: Add call history fields
                 startTime: startTime,
                 endTime: endTime,
-                isVideoCall: false // Default to false for now
+                isVideoCall: false, // Default to false for now
+                wasConnected: wasConnected // CRITICAL: Send explicit connection status from Ref OR duration
             };
 
             console.log('📞 [Web endCall] Sending CALL_END signal:', {
@@ -473,6 +497,7 @@ export const CallProvider = ({ children, currentUser }) => {
                 startTime,
                 endTime,
                 durationSeconds,
+                wasConnected: signal.wasConnected
             });
 
             // CRITICAL: Mark as sent to prevent duplicates
@@ -492,7 +517,7 @@ export const CallProvider = ({ children, currentUser }) => {
         setTimeout(() => {
             callEndSignalSentRef.current = false;
         }, 5000);
-    }, [currentUser]);
+    }, [currentUser, currentCall, callState]);
 
     const rejectCall = useCallback(() => {
         // Stop incoming call sound
@@ -659,7 +684,9 @@ export const CallProvider = ({ children, currentUser }) => {
                             conversation: conversation,
                             // CRITICAL: Set startTime when incoming call is received (not when connected)
                             // This ensures duration calculation works even if call is rejected immediately
-                            startTime: new Date()
+                            startTime: new Date(),
+                            // CRITICAL: Track if this is an incoming call (true for incoming)
+                            isIncoming: true
                         };
                         // CRITICAL: Reset call end signal flag for new incoming call
                         callEndSignalSentRef.current = false;
@@ -849,12 +876,24 @@ export const CallProvider = ({ children, currentUser }) => {
                     if (data && data.startTime) {
                         callStartTimeRef.current = new Date(data.startTime);
                         console.log('📞 [CallContext] Call start time synced from popup:', callStartTimeRef.current.toISOString());
+
+                        // CRITICAL: Update state to connected so if main window handles endCall (fallback),
+                        // it knows the call was connected and sends correct wasConnected=true
+                        setCallState('connected');
                     }
                     break;
                 case 'CALL_ENDED_FROM_POPUP':
                     // CRITICAL: CALL_END signal was already sent from popup window
                     // Just update local state, don't send another signal
                     console.log('📞 CALL_ENDED_FROM_POPUP received - call was ended from popup');
+
+                    // CRITICAL FIX: Clear the interval to prevent main window from triggering endCall
+                    if (popupCheckIntervalRef.current) {
+                        clearInterval(popupCheckIntervalRef.current);
+                        popupCheckIntervalRef.current = null;
+                        console.log('🛑 [CallContext] Cleared popup check interval on BROADCAST');
+                    }
+
                     setCallState('idle');
                     setCurrentCall(null);
                     setCallWindowRef(null);

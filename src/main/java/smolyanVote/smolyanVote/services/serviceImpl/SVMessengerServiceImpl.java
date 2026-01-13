@@ -909,34 +909,27 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 durationSeconds = 0; // Rejected calls have 0 duration
             } else {
                 // It's CALL_END / CALL_ENDED
-                if (durationSeconds > 0) {
-                    // Actual conversation happened
+                Boolean wasConnected = signal.getWasConnected();
+
+                if (Boolean.TRUE.equals(wasConnected)) {
+                    // Call was connected -> ACCEPTED
+                    callStatus = "ACCEPTED";
+                    // Ensure duration is at least 1s if it was connected but duration calc is 0
+                    if (durationSeconds == 0)
+                        durationSeconds = 1;
+                } else if (durationSeconds > 0) {
+                    // Fallback: if no flag but duration > 0 -> ACCEPTED
                     callStatus = "ACCEPTED";
                 } else {
-                    // Duration is 0, meaning call was never answered/connected
+                    // Duration is 0 and not connected
                     // If Caller ended it -> CANCELLED
-                    // If Receiver ended it -> MISSED (should technically be REJECTED but if no
-                    // REJECT signal sent, treat as MISSED/CANCELLED)
+                    // If Receiver ended it -> MISSED
 
                     if (signal.getCallerId().equals(signal.getReceiverId())) {
-                        // Should not happen, but fallback
                         callStatus = "MISSED";
                     } else {
-                        // We need to know who "Caller" of the signal is.
-                        // The signal object has callerId (the one who initiated the CALL request) and
-                        // receiverId.
-                        // BUT, we don't know who SENT this specific signal (SVCallSignalDTO doesn't
-                        // store "senderId" explicitly in common fields,
-                        // but handleCallSignal in controller verifies sender).
-
-                        // However, let's assume standard behavior:
-                        // If duration is 0, it means `endCall()` was called before `acceptCall()` (or
-                        // `callStartTimeRef` was null).
-                        // This usually happens when the caller hangs up before answer.
+                        // Assumption: CALL_END with 0 duration and not connected = Cancelled by Caller
                         callStatus = "CANCELLED";
-
-                        // Note: If receiver declined, we usually get CALL_REJECT event instead.
-                        // So CALL_END with 0 duration is almost always "Caller hung up".
                     }
                 }
             }

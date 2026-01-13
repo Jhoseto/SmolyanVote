@@ -56,6 +56,13 @@ export const WebSocketManager = () => {
         };
     }, []); // Empty deps - only initialize once
 
+    // CRITICAL FIX: Ensure call signal handler is always up to date
+    // This prevents stale closures where handleCallSignal uses old state (like callWindowRef = null)
+    useEffect(() => {
+        // Update the handler in the service whenever it changes
+        svWebSocketService.updateCallSignalHandler(call.handleCallSignal);
+    }, [call.handleCallSignal]);
+
     // Subscribe to typing status for active chats
     useEffect(() => {
         ui.activeChats.forEach(chat => {

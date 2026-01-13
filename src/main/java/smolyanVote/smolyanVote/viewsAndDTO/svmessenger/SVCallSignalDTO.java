@@ -27,8 +27,9 @@ public class SVCallSignalDTO {
 
     // Call history fields
     private String startTime; // ISO string format for call start time
-    private String endTime;   // ISO string format for call end time
+    private String endTime; // ISO string format for call end time
     private Boolean isVideoCall; // Whether this is a video call
+    private Boolean wasConnected; // CRITICAL: Track if call was actually connected (answered)
 
     // Simplified constructor
     public SVCallSignalDTO(SVCallEventType eventType, Long conversationId, Long callerId, Long receiverId) {
@@ -40,7 +41,8 @@ public class SVCallSignalDTO {
     }
 
     // Constructor with room name
-    public SVCallSignalDTO(SVCallEventType eventType, Long conversationId, Long callerId, Long receiverId, String roomName) {
+    public SVCallSignalDTO(SVCallEventType eventType, Long conversationId, Long callerId, Long receiverId,
+            String roomName) {
         this(eventType, conversationId, callerId, receiverId);
         this.roomName = roomName;
     }

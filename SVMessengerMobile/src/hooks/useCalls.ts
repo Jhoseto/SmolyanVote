@@ -181,7 +181,7 @@ export const useCalls = () => {
       let token: string;
       let roomName: string;
       let serverUrl: string;
-      
+
       try {
         const tokenResponse = await liveKitService.generateCallToken(
           latestCurrentCall.conversationId,
@@ -238,14 +238,14 @@ export const useCalls = () => {
       // participantId is the caller (the one who initiated the call)
       const callerId = latestCurrentCall.participantId; // The one who called
       const receiverId = user.id; // Current user is rejecting
-      
+
       // CRITICAL: Get startTime from currentCall (when call was received)
       // For rejected calls, endTime is same as startTime (no conversation happened)
-      const startTime = latestCurrentCall.startTime 
-        ? latestCurrentCall.startTime.toISOString() 
+      const startTime = latestCurrentCall.startTime
+        ? latestCurrentCall.startTime.toISOString()
         : new Date().toISOString(); // Fallback to now if startTime not set
       const endTime = startTime; // Same as startTime for rejected calls
-      
+
       // Send reject signal via WebSocket with call history data
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
@@ -277,29 +277,29 @@ export const useCalls = () => {
       // If isOutgoing is true, current user is the caller
       // If isOutgoing is false/undefined, current user is the receiver (incoming call)
       const isOutgoingCall = latestCurrentCall.isOutgoing === true;
-      
+
       const callerId = isOutgoingCall ? user.id : latestCurrentCall.participantId;
       const receiverId = isOutgoingCall ? latestCurrentCall.participantId : user.id;
-      
+
       // CRITICAL: Get startTime and endTime from currentCall
       // startTime should be set when call becomes CONNECTED
       // endTime should be set when call ends (in endCall() method)
       // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
       // But we still need valid timestamps for database
       const now = new Date();
-      const startTime = latestCurrentCall.startTime 
-        ? latestCurrentCall.startTime.toISOString() 
+      const startTime = latestCurrentCall.startTime
+        ? latestCurrentCall.startTime.toISOString()
         : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
       // CRITICAL: endTime should be set in endCall() method, but if not, use now()
       // This ensures accurate duration calculation
-      const endTime = latestCurrentCall.endTime 
+      const endTime = latestCurrentCall.endTime
         ? latestCurrentCall.endTime.toISOString()
         : now.toISOString(); // Use now() as fallback to ensure we have an endTime
-      
+
       // CRITICAL: Log warning if startTime is not set (call was never connected)
       if (!latestCurrentCall.startTime) {
       }
-      
+
       // CRITICAL: Log call history data before sending
       const durationSeconds = latestCurrentCall.startTime && latestCurrentCall.endTime
         ? Math.floor((latestCurrentCall.endTime.getTime() - latestCurrentCall.startTime.getTime()) / 1000)
@@ -313,7 +313,7 @@ export const useCalls = () => {
         durationSeconds,
         isVideoCall,
       });
-      
+
       // Send end signal via WebSocket with call history data
       svMobileWebSocketService.sendCallSignal({
         eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
@@ -323,6 +323,7 @@ export const useCalls = () => {
         startTime: startTime,
         endTime: endTime,
         isVideoCall: isVideoCall,
+        wasConnected: callState === CallState.CONNECTED // CRITICAL: Send explicit connection status
       });
     }
 
@@ -343,7 +344,7 @@ export const useCalls = () => {
   // Toggle camera
   const handleToggleCamera = useCallback(async () => {
     if (callState !== CallState.CONNECTED) return false;
-    
+
     const currentVideoState = liveKitService.isCameraEnabled();
     const wantsToEnable = !currentVideoState;
 
@@ -355,7 +356,7 @@ export const useCalls = () => {
         return false;
       }
     }
-    
+
     const newVideoState = await liveKitService.toggleCamera(wantsToEnable);
     return newVideoState;
   }, [callState]);
@@ -370,7 +371,7 @@ export const useCalls = () => {
     if (callState !== CallState.CONNECTED || !liveKitService.isCameraEnabled()) {
       return false;
     }
-    
+
     const success = await liveKitService.flipCamera();
     return success;
   }, [callState]);

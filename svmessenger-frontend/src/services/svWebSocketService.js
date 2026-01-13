@@ -15,8 +15,19 @@ class SVWebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
     this.isConnecting = false; // ✅ Защита срещу множествени извиквания на connect
+    this.callSignalHandler = null; // Handler for call signals (updatable)
   }
-  
+
+  /**
+   * Update the call signal handler dynamically
+   * Ensures we don't use stale closures
+   */
+  updateCallSignalHandler(handler) {
+    if (handler && typeof handler === 'function') {
+      this.callSignalHandler = handler;
+    }
+  }
+
   /**
    * Connect към WebSocket server
    */
@@ -26,21 +37,21 @@ class SVWebSocketService {
       console.log('⚠️ WebSocket already connecting or connected, skipping duplicate connect call');
       return;
     }
-    
+
     this.isConnecting = true;
-    
+
     const {
-      onConnect = () => {},
-      onDisconnect = () => {},
-      onError = () => {},
-      onNewMessage = () => {},
-      onTypingStatus = () => {},
-      onReadReceipt = () => {},
-      onDeliveryReceipt = () => {},
-      onOnlineStatus = () => {},
-      onCallSignal = () => {}
+      onConnect = () => { },
+      onDisconnect = () => { },
+      onError = () => { },
+      onNewMessage = () => { },
+      onTypingStatus = () => { },
+      onReadReceipt = () => { },
+      onDeliveryReceipt = () => { },
+      onOnlineStatus = () => { },
+      onCallSignal = () => { }
     } = callbacks;
-    
+
     // ✅ КРИТИЧНО: Премахни стария client преди да създадеш нов (предотвратява дублиране на subscriptions)
     if (this.client) {
       console.log('⚠️ Disconnecting existing WebSocket client before creating new one');
@@ -54,7 +65,7 @@ class SVWebSocketService {
           }
         });
         this.subscriptions.clear();
-        
+
         // Deactivate стария client
         if (this.client.connected) {
           this.client.deactivate();
@@ -65,25 +76,25 @@ class SVWebSocketService {
       this.client = null;
       this.connected = false;
     }
-    
+
     // Create SockJS instance
     const socket = new SockJS('/ws-svmessenger');
-    
+
     // Create STOMP client
     this.client = new Client({
       webSocketFactory: () => socket,
-      
+
       // Disable debug logging в production
       debug: (str) => {
         if (process.env.NODE_ENV === 'development') {
         }
       },
-      
+
       // Reconnect settings
       reconnectDelay: this.reconnectDelay,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
-      
+
       // Connection success callback
       onConnect: () => {
         // ✅ Защита срещу множествени извиквания на onConnect (може да се случи при auto-reconnect)
@@ -91,7 +102,7 @@ class SVWebSocketService {
           console.log('⚠️ onConnect called but already connected, skipping duplicate subscription');
           return;
         }
-        
+
         this.connected = true;
         this.isConnecting = false; // ✅ Reset connecting flag
         this.reconnectAttempts = 0;
@@ -100,49 +111,49 @@ class SVWebSocketService {
 
         // Subscribe to channels
         this.subscribeToChannels({
-            onNewMessage,
-            onTypingStatus,
-            onReadReceipt,
-            onDeliveryReceipt,
-            onOnlineStatus,
-            onCallSignal
+          onNewMessage,
+          onTypingStatus,
+          onReadReceipt,
+          onDeliveryReceipt,
+          onOnlineStatus,
+          onCallSignal
         });
 
         onConnect();
       },
-      
+
       // Connection error callback
       onStompError: (frame) => {
         console.error('STOMP error:', frame);
         this.connected = false;
         this.isConnecting = false; // ✅ Reset connecting flag
         onError(frame);
-        
+
         // Retry connection
         this.handleReconnect();
       },
-      
+
       // WebSocket close callback
       onWebSocketClose: () => {
         this.connected = false;
         this.isConnecting = false; // ✅ Reset connecting flag
         onDisconnect();
-        
+
         // Retry connection
         this.handleReconnect();
       }
     });
-    
+
     // Activate connection
     this.client.activate();
   }
-  
+
   /**
    * Subscribe to WebSocket channels
    */
   subscribeToChannels(callbacks) {
     const { onNewMessage, onTypingStatus, onReadReceipt, onDeliveryReceipt, onOnlineStatus, onCallSignal } = callbacks;
-    
+
     // ✅ Премахни старите subscriptions преди да създадеш нови (предотвратява дублиране)
     const coreSubscriptionKeys = ['messages', 'receipts', 'delivery', 'status', 'callSignals'];
     coreSubscriptionKeys.forEach(key => {
@@ -156,21 +167,21 @@ class SVWebSocketService {
         this.subscriptions.delete(key);
       }
     });
-    
-        // 1. Private messages channel
-        const messagesSub = this.client.subscribe(
-          '/user/queue/svmessenger-messages',
-          (message) => {
-            try {
-              const data = JSON.parse(message.body);
-              onNewMessage(data);
-            } catch (error) {
-              console.error('Error parsing message:', error);
-            }
-          }
-        );
-        this.subscriptions.set('messages', messagesSub);
-    
+
+    // 1. Private messages channel
+    const messagesSub = this.client.subscribe(
+      '/user/queue/svmessenger-messages',
+      (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          onNewMessage(data);
+        } catch (error) {
+          console.error('Error parsing message:', error);
+        }
+      }
+    );
+    this.subscriptions.set('messages', messagesSub);
+
     // 2. Read receipts channel
     const receiptsSub = this.client.subscribe(
       '/user/queue/svmessenger-read-receipts',
@@ -214,26 +225,30 @@ class SVWebSocketService {
     this.subscriptions.set('status', statusSub);
 
     // 5. Call signals channel
-      const callSignalsSub = this.client.subscribe(
-          '/user/queue/svmessenger-call-signals',
-          (message) => {
-              try {
-                  const data = JSON.parse(message.body);
+    const callSignalsSub = this.client.subscribe(
+      '/user/queue/svmessenger-call-signals',
+      (message) => {
+        try {
+          const data = JSON.parse(message.body);
 
-
-                  if (onCallSignal && typeof onCallSignal === 'function') {
-                      onCallSignal(data);
-                  } else {
-                      console.error('onCallSignal is not a function:', typeof onCallSignal);
-                  }
-              } catch (error) {
-                  console.error('Error parsing call signal:', error);
-              }
+          // Priority: check instance handler first (updated one), then initial callback
+          if (this.callSignalHandler && typeof this.callSignalHandler === 'function') {
+            this.callSignalHandler(data);
+          } else if (onCallSignal && typeof onCallSignal === 'function') {
+            onCallSignal(data);
+          } else {
+            console.debug('No call signal handler registered');
           }
-      );
-      this.subscriptions.set('callSignals', callSignalsSub);
+        } catch (error) {
+          console.error('Error parsing call signal:', error);
+        }
+      }
+    );
+    this.subscriptions.set('callSignals', callSignalsSub);
   }
-  
+
+
+
   /**
    * Subscribe to typing status за конкретен conversation
    */
@@ -242,9 +257,9 @@ class SVWebSocketService {
       console.warn('Cannot subscribe to typing - not connected');
       return null;
     }
-    
+
     const destination = `/topic/svmessenger-typing/${conversationId}`;
-    
+
     const subscription = this.client.subscribe(destination, (message) => {
       try {
         const data = JSON.parse(message.body);
@@ -253,27 +268,27 @@ class SVWebSocketService {
         console.error('Error parsing typing status:', error);
       }
     });
-    
+
     // Store subscription
     const key = `typing-${conversationId}`;
     this.subscriptions.set(key, subscription);
-    
+
     return subscription;
   }
-  
+
   /**
    * Unsubscribe от typing status
    */
   unsubscribeFromTyping(conversationId) {
     const key = `typing-${conversationId}`;
     const subscription = this.subscriptions.get(key);
-    
+
     if (subscription) {
       subscription.unsubscribe();
       this.subscriptions.delete(key);
     }
   }
-  
+
   /**
    * Изпрати съобщение през WebSocket
    */
@@ -299,7 +314,7 @@ class SVWebSocketService {
       return false;
     }
   }
-  
+
   /**
    * Изпрати typing status
    */
@@ -307,7 +322,7 @@ class SVWebSocketService {
     if (!this.connected || !this.client) {
       return false;
     }
-    
+
     try {
       this.client.publish({
         destination: '/app/svmessenger/typing',
@@ -344,7 +359,7 @@ class SVWebSocketService {
       return false;
     }
   }
-  
+
   /**
    * Handle reconnection logic
    */
@@ -353,12 +368,12 @@ class SVWebSocketService {
       console.error('Max reconnect attempts reached');
       return;
     }
-    
+
     this.reconnectAttempts++;
-    
+
     // Client auto-reconnects, но можем да добавим custom logic
   }
-  
+
   /**
    * Disconnect от WebSocket
    */
@@ -374,7 +389,7 @@ class SVWebSocketService {
         }
       });
       this.subscriptions.clear();
-      
+
       // Deactivate client
       try {
         if (this.client.connected) {
@@ -387,7 +402,7 @@ class SVWebSocketService {
       this.connected = false;
     }
   }
-  
+
   /**
    * Check дали е connected
    */

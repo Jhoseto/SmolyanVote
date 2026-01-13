@@ -3,7 +3,7 @@
  * Maintains all original functionality while adding new features
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize all components
     initializeStatisticsAnimation();
     initializeDynamicText();
@@ -198,7 +198,9 @@ function initializeMotivationPanels() {
 
     // Close panels when clicking outside
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.motivation-panel')) {
+        // Fix: Ensure target is an element before calling closest
+        // (react-native-webview or some extensions might trigger events where target is not an element)
+        if (e.target && e.target.closest && !e.target.closest('.motivation-panel')) {
             panels.forEach(panel => {
                 panel.classList.remove('expanded');
                 const header = panel.querySelector('.panel-header');

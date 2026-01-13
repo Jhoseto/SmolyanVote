@@ -42,7 +42,7 @@ export const ChatScreen: React.FC = () => {
   const navigation = useNavigation();
   const { conversationId, participantName } = route.params;
   const { conversations } = useConversationsStore();
-  
+
   const conversation = conversations.find((c) => c.id === conversationId);
   const participant = conversation?.participant;
   const missedCalls = conversation?.missedCalls || 0;
@@ -62,22 +62,22 @@ export const ChatScreen: React.FC = () => {
 
   const { callHistory, refreshCallHistory } = useCallHistory(conversationId);
   const { callState, currentCall } = useCallsStore();
-  
+
   // CRITICAL FIX: Store conversationId in ref when call is active
   // This ensures we can check if call was for this conversation even after currentCall is cleared
   const activeCallConversationIdRef = useRef<number | null>(null);
-  
+
   // Update ref when call becomes active
   useEffect(() => {
-    if (currentCall?.conversationId && 
-        (callState === CallState.INCOMING || 
-         callState === CallState.OUTGOING || 
-         callState === CallState.CONNECTING || 
-         callState === CallState.CONNECTED)) {
+    if (currentCall?.conversationId &&
+      (callState === CallState.INCOMING ||
+        callState === CallState.OUTGOING ||
+        callState === CallState.CONNECTING ||
+        callState === CallState.CONNECTED)) {
       activeCallConversationIdRef.current = currentCall.conversationId;
     }
   }, [callState, currentCall?.conversationId]);
-  
+
   // CRITICAL FIX: Refresh call history when call ends to show new call in chat
   // This ensures call history is updated immediately after a call completes
   const prevCallStateRef = useRef(callState);
@@ -85,12 +85,12 @@ export const ChatScreen: React.FC = () => {
     // Refresh call history when call transitions from active (CONNECTED, CONNECTING, OUTGOING, INCOMING) to IDLE/DISCONNECTED
     const wasActive = prevCallStateRef.current !== CallState.IDLE && prevCallStateRef.current !== CallState.DISCONNECTED;
     const isNowIdle = callState === CallState.IDLE || callState === CallState.DISCONNECTED;
-    
+
     // CRITICAL FIX: Use ref to check conversationId instead of currentCall
     // currentCall is cleared by clearCall() after 1 second, so it may be null when this effect runs
     // The ref preserves the conversationId from when the call was active
     const isCallForThisConversation = activeCallConversationIdRef.current === conversationId;
-    
+
     if (wasActive && isNowIdle && isCallForThisConversation) {
       // Small delay to ensure backend has processed the call end
       setTimeout(() => {
@@ -99,7 +99,7 @@ export const ChatScreen: React.FC = () => {
         activeCallConversationIdRef.current = null;
       }, 1000);
     }
-    
+
     prevCallStateRef.current = callState;
   }, [callState, conversationId, refreshCallHistory]);
 
@@ -117,40 +117,84 @@ export const ChatScreen: React.FC = () => {
   type ChatItem = { type: 'message'; data: Message } | { type: 'callHistory'; data: CallHistory };
   const chatItems: ChatItem[] = React.useMemo(() => {
     const items: ChatItem[] = [];
-    
+
     // Add messages
     messages.forEach(msg => {
       items.push({ type: 'message', data: msg });
     });
-    
+
     // Add call history
     // CRITICAL FIX: Ensure call history is properly added to chat items
     if (callHistory && Array.isArray(callHistory) && callHistory.length > 0) {
       callHistory.forEach((call, index) => {
         // CRITICAL FIX: Check if call has required fields - id and startTime are required
         // startTime can be string (ISO format) or Date object
-        if (call && 
-            typeof call === 'object' &&
-            call.id != null && 
-            call.startTime != null &&
-            typeof call.startTime === 'string') {
+        if (call &&
+          typeof call === 'object' &&
+          call.id != null &&
+          call.startTime != null &&
+          typeof call.startTime === 'string') {
           items.push({ type: 'callHistory', data: call });
         }
       });
     }
-    
+
+    // CRITICAL FIX: Safe date parser that handles various formats (ISO, SQL, arrays)
+    // Returns timestamp in milliseconds, or 0 if invalid
+    const parseSortableTimestamp = (dateInput: string | number | number[] | Date | undefined): number => {
+      if (!dateInput) return 0;
+
+      try {
+        // If it's already a number (timestamp), return it
+        if (typeof dateInput === 'number') {
+          return dateInput;
+        }
+
+        // If it's a Date object
+        if (dateInput instanceof Date) {
+          return dateInput.getTime();
+        }
+
+        // If it's a string
+        if (typeof dateInput === 'string') {
+          // Handle SQL-like format (replace space with T)
+          const isoString = dateInput.replace(' ', 'T');
+          const time = new Date(isoString).getTime();
+          return isNaN(time) ? 0 : time;
+        }
+
+        // If it's an array (local date time), create date from parts
+        if (Array.isArray(dateInput)) {
+          // [year, month, day, hour, minute, second, nano]
+          // Note: Month in JS Date is 0-indexed, but usually 1-indexed in arrays from backend
+          const year = dateInput[0] || 0;
+          const month = (dateInput[1] || 1) - 1; // 1-indexed -> 0-indexed
+          const day = dateInput[2] || 1;
+          const hour = dateInput[3] || 0;
+          const minute = dateInput[4] || 0;
+          const second = dateInput[5] || 0;
+          return new Date(year, month, day, hour, minute, second).getTime();
+        }
+
+        return 0;
+      } catch (e) {
+        logger.error('Error parsing date for sorting:', e);
+        return 0;
+      }
+    };
+
     // CRITICAL FIX: Sort by time ascending (oldest first, newest last)
     // FlatList is inverted={false}, so newest messages should be at the bottom
     items.sort((a, b) => {
-      const timeA = a.type === 'message' 
-        ? new Date(a.data.createdAt).getTime()
-        : new Date(a.data.startTime).getTime();
-      const timeB = b.type === 'message'
-        ? new Date(b.data.createdAt).getTime()
-        : new Date(b.data.startTime).getTime();
+      const timeA = parseSortableTimestamp(
+        a.type === 'message' ? a.data.createdAt : a.data.startTime
+      );
+      const timeB = parseSortableTimestamp(
+        b.type === 'message' ? b.data.createdAt : b.data.startTime
+      );
       return timeA - timeB; // Ascending order (oldest first, newest last)
     });
-    
+
     return items;
   }, [messages, callHistory]);
 
@@ -175,7 +219,7 @@ export const ChatScreen: React.FC = () => {
   // This ensures chat always opens at the bottom showing the latest messages
   useEffect(() => {
     if (!isLoading && messages.length > 0 && flatListRef.current && !hasScrolledRef.current) {
-      
+
       // Use multiple attempts to ensure scroll happens after layout
       const scrollToBottom = () => {
         if (flatListRef.current && !hasScrolledRef.current) {
@@ -190,13 +234,13 @@ export const ChatScreen: React.FC = () => {
 
       // Try immediately
       scrollToBottom();
-      
+
       // Try after a short delay (for layout)
       const timeout1 = setTimeout(scrollToBottom, 100);
-      
+
       // Try after longer delay (for content size)
       const timeout2 = setTimeout(scrollToBottom, 300);
-      
+
       return () => {
         clearTimeout(timeout1);
         clearTimeout(timeout2);
@@ -215,10 +259,10 @@ export const ChatScreen: React.FC = () => {
     // AND we've already done the initial scroll (hasScrolledRef.current === true)
     // This prevents scrolling during initial load (handled by previous effect)
     if (messages.length > 0 && flatListRef.current && hasScrolledRef.current &&
-        (messageCount !== lastMessageCountRef.current || lastMessageId !== lastMessageIdRef.current)) {
+      (messageCount !== lastMessageCountRef.current || lastMessageId !== lastMessageIdRef.current)) {
       lastMessageIdRef.current = lastMessageId;
       lastMessageCountRef.current = messageCount;
-      
+
       // Use requestAnimationFrame for better performance
       requestAnimationFrame(() => {
         setTimeout(() => {
@@ -247,7 +291,7 @@ export const ChatScreen: React.FC = () => {
 
     // Send message - it will arrive via WebSocket
     await sendMessage(text, parentMessageId);
-    
+
     // Scroll to bottom after sending
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -274,22 +318,22 @@ export const ChatScreen: React.FC = () => {
   const prevSearchQueryRef = useRef<string>('');
   const prevChatItemsCountRef = useRef(0);
   const prevLastMessageIdRef = useRef<number | null>(null);
-  
+
   useEffect(() => {
     const searchQueryTrimmed = searchQuery.trim();
     const chatItemsCount = chatItems.length;
     const lastMessage = messages[messages.length - 1];
     const lastMessageId = lastMessage?.id || null;
-    
+
     // Only recalculate if search query changed or chatItems actually changed
     const searchChanged = searchQueryTrimmed !== prevSearchQueryRef.current;
     const chatItemsChanged = chatItemsCount !== prevChatItemsCountRef.current || lastMessageId !== prevLastMessageIdRef.current;
-    
+
     if (searchChanged || chatItemsChanged) {
       prevSearchQueryRef.current = searchQueryTrimmed;
       prevChatItemsCountRef.current = chatItemsCount;
       prevLastMessageIdRef.current = lastMessageId;
-      
+
       if (searchQueryTrimmed.length > 0) {
         // CRITICAL FIX: Search in chatItems and find indices in chatItems array
         // Only search in messages (not call history)
@@ -385,124 +429,124 @@ export const ChatScreen: React.FC = () => {
         enabled={Platform.OS === 'ios'}
       >
         <FlatList
-        ref={flatListRef}
-        data={chatItems}
-        keyExtractor={(item, index) => {
-          if (item.type === 'message') {
-            const id = item.data?.id != null ? String(item.data.id) : `msg-${index}`;
-            return `message-${id}`;
-          } else {
-            const id = item.data?.id != null ? String(item.data.id) : `call-${index}`;
-            return `call-${id}`;
-          }
-        }}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-              renderItem={({ item }) => {
-                if (item.type === 'message') {
-                  return (
-                    <MessageBubble
-                      message={item.data}
-                      participantImageUrl={participant?.imageUrl}
-                      participantName={participant?.fullName || participantName}
-                      onReply={handleReply}
-                    />
-                  );
-                } else if (item.type === 'callHistory') {
-                  // CRITICAL: Ensure callHistory data is valid before rendering
-                  if (!item.data || typeof item.data !== 'object') {
-                    return null;
-                  }
-                  return <CallHistoryBubble callHistory={item.data} />;
-                }
+          ref={flatListRef}
+          data={chatItems}
+          keyExtractor={(item, index) => {
+            if (item.type === 'message') {
+              const id = item.data?.id != null ? String(item.data.id) : `msg-${index}`;
+              return `message-${id}`;
+            } else {
+              const id = item.data?.id != null ? String(item.data.id) : `call-${index}`;
+              return `call-${id}`;
+            }
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          renderItem={({ item }) => {
+            if (item.type === 'message') {
+              return (
+                <MessageBubble
+                  message={item.data}
+                  participantImageUrl={participant?.imageUrl}
+                  participantName={participant?.fullName || participantName}
+                  onReply={handleReply}
+                />
+              );
+            } else if (item.type === 'callHistory') {
+              // CRITICAL: Ensure callHistory data is valid before rendering
+              if (!item.data || typeof item.data !== 'object') {
                 return null;
-              }}
-        contentContainerStyle={[
-          styles.messagesContainer,
-          chatItems.length === 0 && styles.emptyContainer,
-        ]}
-        inverted={false}
-        ListHeaderComponent={
-          missedCalls > 0 ? (
-            <View style={styles.missedCallsContainer}>
-              <TelephoneIcon size={18} color={Colors.red[500]} />
-              <Text style={styles.missedCallsText}>
-                {missedCalls === 1 
-                  ? 'Пропуснато обаждане' 
-                  : `${missedCalls} пропуснати обаждания`}
-              </Text>
-              <TouchableOpacity
-                onPress={() => clearMissedCalls(conversationId)}
-                style={styles.clearMissedCallsButton}
-              >
-                <Text style={styles.clearMissedCallsText}>×</Text>
-              </TouchableOpacity>
-            </View>
-          ) : isLoadingMore ? (
-            <View style={styles.loadingMoreContainer}>
-              <ActivityIndicator size="small" color={Colors.green[500]} />
-              <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
-            </View>
-          ) : null
-        }
-        onScroll={(event) => {
-          const offsetY = event.nativeEvent.contentOffset.y;
-          scrollOffsetRef.current = offsetY;
-          
-          // Mark that user has scrolled
-          if (offsetY > 50) {
-            hasScrolledRef.current = true;
-          }
-          
-          // Load more messages when scrolling near the top (offsetY < 200)
-          // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
-          if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
-            loadMoreMessages();
-          }
-        }}
-        scrollEventThrottle={400}
-        onContentSizeChange={() => {
-          // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
-          // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-          // This allows users to scroll up and read older messages without being forced back to bottom
-          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
-            setTimeout(() => {
-              try {
-                flatListRef.current?.scrollToEnd({ animated: false });
-                hasScrolledRef.current = true;
-              } catch (error) {
-                logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
               }
-            }, 100);
+              return <CallHistoryBubble callHistory={item.data} />;
+            }
+            return null;
+          }}
+          contentContainerStyle={[
+            styles.messagesContainer,
+            chatItems.length === 0 && styles.emptyContainer,
+          ]}
+          inverted={false}
+          ListHeaderComponent={
+            missedCalls > 0 ? (
+              <View style={styles.missedCallsContainer}>
+                <TelephoneIcon size={18} color={Colors.red[500]} />
+                <Text style={styles.missedCallsText}>
+                  {missedCalls === 1
+                    ? 'Пропуснато обаждане'
+                    : `${missedCalls} пропуснати обаждания`}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => clearMissedCalls(conversationId)}
+                  style={styles.clearMissedCallsButton}
+                >
+                  <Text style={styles.clearMissedCallsText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ) : isLoadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color={Colors.green[500]} />
+                <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
+              </View>
+            ) : null
           }
-        }}
-        onLayout={() => {
-          // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
-          // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
-            setTimeout(() => {
-              try {
-                flatListRef.current?.scrollToEnd({ animated: false });
-                hasScrolledRef.current = true;
-              } catch (error) {
-                logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
-              }
-            }, 150);
-          }
-        }}
-      />
-            {isTyping && <TypingIndicator name={participantName} />}
-            <MessageInput
-              value={inputText}
-              onChangeText={handleInputChange}
-              onSend={handleSend}
-              replyPreview={replyToMessage ? {
-                messageId: replyToMessage.id,
-                text: replyToMessage.text,
-                senderName: replyToMessage.senderName,
-              } : null}
-              onCancelReply={handleCancelReply}
-            />
+          onScroll={(event) => {
+            const offsetY = event.nativeEvent.contentOffset.y;
+            scrollOffsetRef.current = offsetY;
+
+            // Mark that user has scrolled
+            if (offsetY > 50) {
+              hasScrolledRef.current = true;
+            }
+
+            // Load more messages when scrolling near the top (offsetY < 200)
+            // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
+            if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
+              loadMoreMessages();
+            }
+          }}
+          scrollEventThrottle={400}
+          onContentSizeChange={() => {
+            // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
+            // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+            // This allows users to scroll up and read older messages without being forced back to bottom
+            if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
+              setTimeout(() => {
+                try {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                  hasScrolledRef.current = true;
+                } catch (error) {
+                  logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
+                }
+              }, 100);
+            }
+          }}
+          onLayout={() => {
+            // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
+            // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+            if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
+              setTimeout(() => {
+                try {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                  hasScrolledRef.current = true;
+                } catch (error) {
+                  logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
+                }
+              }, 150);
+            }
+          }}
+        />
+        {isTyping && <TypingIndicator name={participantName} />}
+        <MessageInput
+          value={inputText}
+          onChangeText={handleInputChange}
+          onSend={handleSend}
+          replyPreview={replyToMessage ? {
+            messageId: replyToMessage.id,
+            text: replyToMessage.text,
+            senderName: replyToMessage.senderName,
+          } : null}
+          onCancelReply={handleCancelReply}
+        />
       </KeyboardAvoidingView>
     </View>
   );
