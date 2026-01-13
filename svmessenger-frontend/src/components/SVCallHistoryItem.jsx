@@ -78,18 +78,17 @@ const SVCallHistoryItem = ({ callHistory, currentUserId }) => {
     showArrow = true;
     arrowDirection = isOwnCall ? 'right' : 'left'; // Outgoing rejected → right, Incoming rejected → left
   } else {
-    // For missed/cancelled calls, show direction (Входящо/Изходящо)
+    // For missed/cancelled calls, show detailed status
     if (isOwnCall) {
-      callTypeText = 'Изходящо';
+      callTypeText = 'Без отговор'; // Outgoing but not answered
       showArrow = true;
       arrowDirection = 'right'; // Outgoing → right arrow
     } else {
-      callTypeText = 'Входящо';
+      callTypeText = 'Пропуснато'; // Incoming missed
+      callTypeColor = '#ef4444'; // red-500 for missed calls (more attention)
       showArrow = true;
       arrowDirection = 'left'; // Incoming → left arrow
     }
-    // Gray for missed/cancelled calls
-    callTypeColor = '#6b7280'; // gray-500
   }
 
   // Format start time as HH:mm (e.g., "22:30" or "15:36")

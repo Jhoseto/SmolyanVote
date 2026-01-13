@@ -646,7 +646,9 @@ class SVMobileWebSocketService {
   }
 }
 
-// Export singleton instance - lazy initialization
+// Use proxy singleton instance
+
+// Lazy initialization for proxy
 let svMobileWebSocketServiceInstance: SVMobileWebSocketService | null = null;
 
 const getWebSocketService = (): SVMobileWebSocketService => {

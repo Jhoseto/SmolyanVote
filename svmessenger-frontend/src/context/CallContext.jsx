@@ -31,10 +31,10 @@ export const CallProvider = ({ children, currentUser }) => {
 
     const [liveKitToken, setLiveKitToken] = useState(null);
     const [liveKitRoom, setLiveKitRoom] = useState(null);
-    
+
     // CRITICAL: Track call start time for call history
     const callStartTimeRef = useRef(null);
-    
+
     // CRITICAL: Track if CALL_END signal was already sent to prevent duplicates
     const callEndSignalSentRef = useRef(false);
 
@@ -46,6 +46,7 @@ export const CallProvider = ({ children, currentUser }) => {
     // Refs
     const callChannelRef = useRef(null);
     const incomingCallSoundRef = useRef(null);
+    const popupCheckIntervalRef = useRef(null); // CRITICAL FIX: Ref to store interval ID
 
     // ========== CALL METHODS ==========
 
@@ -77,13 +78,15 @@ export const CallProvider = ({ children, currentUser }) => {
             try {
                 window.__sv_livekit_token = tokenResponse.token;
                 window.liveKitToken = tokenResponse.token;
-            } catch (e) {}
+            } catch (e) { }
 
             const callData = {
                 conversationId,
                 otherUserId,
                 roomName: tokenResponse.roomName,
-                conversation: conversation
+                conversation: conversation,
+                // CRITICAL: Set startTime when outgoing call is initiated
+                startTime: new Date()
             };
             // CRITICAL: Reset call end signal flag for new call
             callEndSignalSentRef.current = false;
@@ -96,6 +99,7 @@ export const CallProvider = ({ children, currentUser }) => {
                 roomName: tokenResponse.roomName,
                 conversationId,
                 otherUserId,
+                otherUserId: otherUserId,
                 otherUserName: conversation.otherUser?.realName || conversation.otherUser?.username || 'Потребител',
                 otherUserAvatar: conversation.otherUser?.imageUrl || '',
                 currentUserId: currentUser.id,
@@ -114,10 +118,19 @@ export const CallProvider = ({ children, currentUser }) => {
             if (popup) {
                 setCallWindowRef(popup);
 
+                // Clear any existing interval
+                if (popupCheckIntervalRef.current) {
+                    clearInterval(popupCheckIntervalRef.current);
+                }
+
                 // Monitor if popup is closed
-                const checkClosed = setInterval(() => {
+                // CRITICAL FIX: Store interval in ref so we can clear it in endCall
+                popupCheckIntervalRef.current = setInterval(() => {
                     if (popup.closed) {
-                        clearInterval(checkClosed);
+                        if (popupCheckIntervalRef.current) {
+                            clearInterval(popupCheckIntervalRef.current);
+                            popupCheckIntervalRef.current = null;
+                        }
                         setCallWindowRef(null);
                         endCall();
                     }
@@ -167,7 +180,7 @@ export const CallProvider = ({ children, currentUser }) => {
                     // Fallback към стария ключ (svmessenger-audio-settings)
                     savedSettings = localStorage.getItem('svmessenger-audio-settings');
                 }
-                
+
                 if (savedSettings) {
                     try {
                         const parsed = JSON.parse(savedSettings);
@@ -271,10 +284,19 @@ export const CallProvider = ({ children, currentUser }) => {
             if (popup) {
                 setCallWindowRef(popup);
 
+                // Clear any existing interval
+                if (popupCheckIntervalRef.current) {
+                    clearInterval(popupCheckIntervalRef.current);
+                }
+
                 // Monitor if popup is closed
-                const checkClosed = setInterval(() => {
+                // CRITICAL FIX: Store interval in ref so we can clear it in endCall
+                popupCheckIntervalRef.current = setInterval(() => {
                     if (popup.closed) {
-                        clearInterval(checkClosed);
+                        if (popupCheckIntervalRef.current) {
+                            clearInterval(popupCheckIntervalRef.current);
+                            popupCheckIntervalRef.current = null;
+                        }
                         setCallWindowRef(null);
                         endCall();
                     }
@@ -313,7 +335,7 @@ export const CallProvider = ({ children, currentUser }) => {
                     // Fallback към стария ключ (svmessenger-audio-settings)
                     savedSettings = localStorage.getItem('svmessenger-audio-settings');
                 }
-                
+
                 if (savedSettings) {
                     try {
                         const parsed = JSON.parse(savedSettings);
@@ -383,12 +405,18 @@ export const CallProvider = ({ children, currentUser }) => {
             setCurrentCall(null);
             return;
         }
-        
+
         // Stop incoming call sound
         if (incomingCallSoundRef.current) {
             incomingCallSoundRef.current.pause();
             incomingCallSoundRef.current.currentTime = 0;
             incomingCallSoundRef.current = null;
+        }
+
+        // Stop checking for popup closed
+        if (popupCheckIntervalRef.current) {
+            clearInterval(popupCheckIntervalRef.current);
+            popupCheckIntervalRef.current = null;
         }
 
         // Close popup window
@@ -408,71 +436,58 @@ export const CallProvider = ({ children, currentUser }) => {
         }
 
         // Send CALL_END signal
-        setCurrentCall(currentCallValue => {
-            if (currentCallValue) {
-                setCallState(currentState => {
-                    const isCaller = currentState === 'outgoing';
+        if (currentCall) {
+            const isCaller = callState === 'outgoing';
 
-                    // CRITICAL: Get startTime and endTime for call history
-                    // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
-                    // But we still need valid timestamps for database
-                    const now = new Date();
-                    const startTime = callStartTimeRef.current 
-                        ? new Date(callStartTimeRef.current).toISOString() 
-                        : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
-                    const endTime = now.toISOString();
-                    
-                    // CRITICAL: Log warning if startTime is not set (call was never connected)
-                    if (!callStartTimeRef.current) {
-                    }
-                    
-                    // CRITICAL: Calculate duration for logging
-                    const durationSeconds = callStartTimeRef.current && now
-                        ? Math.floor((now.getTime() - new Date(callStartTimeRef.current).getTime()) / 1000)
-                        : null;
-                    
-                    const signal = {
-                        eventType: 'CALL_END',
-                        conversationId: currentCallValue.conversationId,
-                        callerId: isCaller ? currentUser.id : currentCallValue.otherUserId,
-                        receiverId: isCaller ? currentCallValue.otherUserId : currentUser.id,
-                        roomName: currentCallValue.roomName,
-                        timestamp: now.toISOString(),
-                        // CRITICAL: Add call history fields
-                        startTime: startTime,
-                        endTime: endTime,
-                        isVideoCall: false // Default to false for now
-                    };
-                    
-                    // CRITICAL: Log call history data before sending
-                    console.log('📞 [endCall] Sending CALL_END signal:', {
-                        conversationId: currentCallValue.conversationId,
-                        callerId: signal.callerId,
-                        receiverId: signal.receiverId,
-                        startTime,
-                        endTime,
-                        durationSeconds,
-                    });
-                    
-                    // CRITICAL: Mark as sent to prevent duplicates
-                    callEndSignalSentRef.current = true;
-                    svWebSocketService.sendCallSignal(signal);
-                    
-                    // Reset call start time
-                    callStartTimeRef.current = null;
+            // CRITICAL: Get startTime and endTime for call history
+            // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
+            // But we still need valid timestamps for database
+            const now = new Date();
+            const startTime = callStartTimeRef.current
+                ? new Date(callStartTimeRef.current).toISOString()
+                : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
+            const endTime = now.toISOString();
 
-                    return 'idle';
-                });
-            }
+            // CRITICAL: Calculate duration for logging
+            const durationSeconds = callStartTimeRef.current && now
+                ? Math.floor((now.getTime() - new Date(callStartTimeRef.current).getTime()) / 1000)
+                : null;
 
-            return null;
-        });
+            const signal = {
+                eventType: 'CALL_END',
+                conversationId: currentCall.conversationId,
+                callerId: isCaller ? currentUser.id : currentCall.otherUserId,
+                receiverId: isCaller ? currentCall.otherUserId : currentUser.id,
+                roomName: currentCall.roomName,
+                timestamp: now.toISOString(),
+                // CRITICAL: Add call history fields
+                startTime: startTime,
+                endTime: endTime,
+                isVideoCall: false // Default to false for now
+            };
+
+            console.log('📞 [Web endCall] Sending CALL_END signal:', {
+                conversationId: currentCall.conversationId,
+                callerId: signal.callerId,
+                receiverId: signal.receiverId,
+                startTime,
+                endTime,
+                durationSeconds,
+            });
+
+            // CRITICAL: Mark as sent to prevent duplicates
+            callEndSignalSentRef.current = true;
+            svWebSocketService.sendCallSignal(signal);
+
+            // Reset call start time
+            callStartTimeRef.current = null;
+        }
 
         // Reset state
         setCallState('idle');
         setLiveKitToken(null);
         setLiveKitRoom(null);
-        
+
         // CRITICAL: Reset flag after a delay to allow for new calls
         setTimeout(() => {
             callEndSignalSentRef.current = false;
@@ -489,7 +504,7 @@ export const CallProvider = ({ children, currentUser }) => {
 
         // CRITICAL: For rejected calls, startTime and endTime are the same (no conversation happened)
         const rejectTime = new Date().toISOString();
-        
+
         // Send CALL_REJECT signal
         const signal = {
             eventType: 'CALL_REJECT',
@@ -498,8 +513,8 @@ export const CallProvider = ({ children, currentUser }) => {
             receiverId: currentUser.id,
             roomName: currentCall.roomName,
             timestamp: rejectTime,
-            // CRITICAL: Add call history fields
-            startTime: rejectTime, // Same as endTime for rejected calls
+            // CRITICAL: Use startTime from call data, not rejectTime
+            startTime: currentCall.startTime ? new Date(currentCall.startTime).toISOString() : rejectTime,
             endTime: rejectTime,
             isVideoCall: false // Default to false for rejected calls
         };
@@ -567,13 +582,13 @@ export const CallProvider = ({ children, currentUser }) => {
                     if (settings.camera) {
                         svLiveKitService.selectedCamera = settings.camera;
                     }
-                } catch (settingsError) {}
+                } catch (settingsError) { }
             } else {
                 try {
                     if (svLiveKitService.room && svLiveKitService.isConnected) {
                         await svLiveKitService.room.localParticipant.setMicrophoneEnabled(true);
                     }
-                } catch (error) {}
+                } catch (error) { }
             }
         } catch (error) {
             console.error('Failed to connect to LiveKit:', error);
@@ -641,7 +656,10 @@ export const CallProvider = ({ children, currentUser }) => {
                             conversationId: signal.conversationId,
                             otherUserId: signal.callerId,
                             roomName: signal.roomName,
-                            conversation: conversation
+                            conversation: conversation,
+                            // CRITICAL: Set startTime when incoming call is received (not when connected)
+                            // This ensures duration calculation works even if call is rejected immediately
+                            startTime: new Date()
                         };
                         // CRITICAL: Reset call end signal flag for new incoming call
                         callEndSignalSentRef.current = false;
@@ -685,8 +703,10 @@ export const CallProvider = ({ children, currentUser }) => {
 
             case 'CALL_ACCEPT':
                 // CRITICAL: Set call start time when call is accepted (becomes connected)
+                // This is when the conversation actually starts
                 if (!callStartTimeRef.current) {
                     callStartTimeRef.current = new Date();
+                    console.log('📞 [CallContext] Call start time set on CALL_ACCEPT:', callStartTimeRef.current.toISOString());
                 }
                 setCurrentCall(currentCallValue => {
                     setCallState(currentState => {
@@ -823,6 +843,13 @@ export const CallProvider = ({ children, currentUser }) => {
 
             switch (type) {
                 case 'POPUP_LOG':
+                    break;
+                case 'CALL_START_TIME':
+                    // CRITICAL: Sync call start time from popup window
+                    if (data && data.startTime) {
+                        callStartTimeRef.current = new Date(data.startTime);
+                        console.log('📞 [CallContext] Call start time synced from popup:', callStartTimeRef.current.toISOString());
+                    }
                     break;
                 case 'CALL_ENDED_FROM_POPUP':
                     // CRITICAL: CALL_END signal was already sent from popup window

@@ -189,20 +189,20 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             // Create message
             SVMessageEntity message = new SVMessageEntity(conversation, sender, text.trim());
-            
+
             // Set parent message if this is a reply
             if (parentMessageId != null) {
                 SVMessageEntity parentMessage = messageRepo.findById(parentMessageId)
                         .orElseThrow(() -> new IllegalArgumentException("Parent message not found"));
-                
+
                 // Validate parent message is in the same conversation
                 if (!parentMessage.getConversation().getId().equals(conversationId)) {
                     throw new IllegalArgumentException("Parent message must be in the same conversation");
                 }
-                
+
                 message.setParentMessage(parentMessage);
             }
-            
+
             message = messageRepo.save(message);
 
             // Update conversation
@@ -224,7 +224,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Convert to DTO
             SVMessageDTO messageDTO = SVMessageDTO.Mapper.toDTO(message);
 
-            // ✅ FACEBOOK MESSENGER STYLE: Изпращане на съобщението до И двамата (sender и recipient)
+            // ✅ FACEBOOK MESSENGER STYLE: Изпращане на съобщението до И двамата (sender и
+            // recipient)
             // Това гарантира реално време синхронизация на всички устройства (web и mobile)
             String recipientPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
                     ? otherUser.getEmail().toLowerCase()
@@ -242,11 +243,12 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 log.warn("WebSocket message failed for recipient {}: {}", recipientPrincipal, e.getMessage());
             }
 
-            // 2. Изпращане до изпращача (за реално време синхронизация на всички негови устройства)
+            // 2. Изпращане до изпращача (за реално време синхронизация на всички негови
+            // устройства)
             try {
                 webSocketHandler.sendPrivateMessageToUsername(senderPrincipal, messageDTO);
             } catch (Exception e) {
-                log.warn("WebSocket message failed for sender {}: {}", senderPrincipal, e.getMessage());
+                log.error("WebSocket message failed for sender {}", senderPrincipal, e);
             }
 
             // 3. Маркиране като delivered ако recipient е получил съобщението
@@ -254,11 +256,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 message.markAsDelivered();
                 messageRepo.save(message);
                 messageDTO.setIsDelivered(true);
-                messageDTO.setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                messageDTO
+                        .setDeliveredAt(message.getDeliveredAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
 
                 // Изпращане на delivery receipt до изпращача
                 try {
-                    webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(), message.getConversation().getId());
+                    webSocketHandler.sendDeliveryReceipt(senderPrincipal, message.getId(),
+                            message.getConversation().getId());
                 } catch (Exception e) {
                     log.error("Failed to send delivery receipt for message {}: {}", message.getId(), e.getMessage());
                 }
@@ -266,19 +270,20 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 messageDTO.setIsDelivered(false);
             }
 
-            // 4. ✅ ВИНАГИ изпращане на push notification (независимо дали WebSocket работи или не)
-            // Това гарантира че потребителят получава нотификация дори ако е offline или в background
+            // 4. ✅ ВИНАГИ изпращане на push notification (независимо дали WebSocket работи
+            // или не)
+            // Това гарантира че потребителят получава нотификация дори ако е offline или в
+            // background
             try {
-                String senderName = sender.getRealName() != null && !sender.getRealName().isBlank() 
-                        ? sender.getRealName() 
+                String senderName = sender.getRealName() != null && !sender.getRealName().isBlank()
+                        ? sender.getRealName()
                         : sender.getUsername();
                 String messagePreview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
                 pushNotificationService.sendNewMessageNotification(
-                        otherUser.getId(), 
-                        senderName, 
-                        messagePreview, 
-                        conversationId
-                );
+                        otherUser.getId(),
+                        senderName,
+                        messagePreview,
+                        conversationId);
             } catch (Exception pushError) {
                 log.error("❌ Failed to send push notification: {}", pushError.getMessage());
             }
@@ -324,12 +329,9 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     // ✅ FIX: Proper transaction
     @Override
     @Transactional
-    @org.springframework.retry.annotation.Retryable(
-            retryFor = {org.springframework.dao.CannotAcquireLockException.class, 
-                       org.hibernate.exception.LockAcquisitionException.class},
-            maxAttempts = 3,
-            backoff = @org.springframework.retry.annotation.Backoff(delay = 100, multiplier = 2, maxDelay = 1000)
-    )
+    @org.springframework.retry.annotation.Retryable(retryFor = {
+            org.springframework.dao.CannotAcquireLockException.class,
+            org.hibernate.exception.LockAcquisitionException.class }, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 100, multiplier = 2, maxDelay = 1000))
     public void markAllAsRead(Long conversationId, UserEntity reader) {
         try {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
@@ -342,7 +344,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             messageRepo.markAllAsRead(conversationId, reader.getId(), LocalDateTime.now());
             conversationRepo.resetUnreadCount(conversationId, reader.getId());
 
-
             // Send bulk read receipt (по principal name - нормализирано на lowercase)
             UserEntity otherUser = conversation.getOtherUser(reader);
             if (otherUser != null) {
@@ -353,13 +354,13 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     if (otherPrincipal != null && !otherPrincipal.isBlank()) {
                         webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
                     } else {
-                        log.warn("Cannot send read receipt: other user has no valid principal name");
+                        // Skip - other user has no valid principal name
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to send read receipt: {}", e.getMessage());
+                    log.error("Failed to send read receipt", e);
                 }
             } else {
-                log.warn("Cannot send read receipt: other user is null");
+                // Skip - other user is null
             }
 
         } catch (Exception e) {
@@ -371,18 +372,19 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     // Continue implementation...
     // (Останалите методи с подобни fixes)
 
-
     @Override
     @Transactional
     public void markAllUndeliveredAsDeliveredForUser(UserEntity user) {
         try {
             // Намери всички conversations които имат не-delivered съобщения за този user
-            List<Long> affectedConversations = messageRepo.findConversationsWithUndeliveredMessagesForUser(user.getId());
+            List<Long> affectedConversations = messageRepo
+                    .findConversationsWithUndeliveredMessagesForUser(user.getId());
 
             // Маркирай всички не-delivered съобщения като delivered
             messageRepo.markAllUndeliveredAsDeliveredForUser(user.getId(), LocalDateTime.now());
 
-            // Изпрати bulk delivery receipt ако има засегнати conversations (по principal name - нормализирано на lowercase)
+            // Изпрати bulk delivery receipt ако има засегнати conversations (по principal
+            // name - нормализирано на lowercase)
             if (!affectedConversations.isEmpty()) {
                 String userPrincipal = user.getEmail() != null && !user.getEmail().isBlank()
                         ? user.getEmail().toLowerCase()
@@ -390,7 +392,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 webSocketHandler.sendBulkDeliveryReceipt(userPrincipal, affectedConversations);
             }
         } catch (Exception e) {
-            log.error("Error marking undelivered messages as delivered for user {}: {}", user.getId(), e.getMessage(), e);
+            log.error("Error marking undelivered messages as delivered for user {}: {}", user.getId(), e.getMessage(),
+                    e);
         }
     }
 
@@ -488,7 +491,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         try {
             webSocketHandler.broadcastTypingStatus(conversationId, user.getId(), user.getUsername(), isTyping);
         } catch (Exception e) {
-            log.warn("Failed to broadcast typing status: {}", e.getMessage());
+            log.error("Failed to broadcast typing status", e);
         }
 
         if (isTyping) {
@@ -521,17 +524,16 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     public List<SVUserMinimalDTO> searchUsers(String query, UserEntity currentUser) {
         try {
             String searchQuery = (query == null) ? "" : query.trim();
-            
+
             if (searchQuery.isEmpty() || searchQuery.length() < 2) {
                 // За празен или много кратък query, връщаме първите 20 активни потребители
                 // Използваме Pageable за по-добра производителност
-                org.springframework.data.domain.Pageable pageable = 
-                    org.springframework.data.domain.PageRequest.of(0, 20, 
+                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                        20,
                         org.springframework.data.domain.Sort.by("username").ascending());
-                
-                org.springframework.data.domain.Page<UserEntity> userPage = 
-                    userRepo.findAll(pageable);
-                
+
+                org.springframework.data.domain.Page<UserEntity> userPage = userRepo.findAll(pageable);
+
                 return userPage.getContent().stream()
                         .filter(user -> !user.getId().equals(currentUser.getId()))
                         .map(SVUserMinimalDTO.Mapper::toDTO)
@@ -539,7 +541,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
 
             // Search by username and real name for longer queries (2+ characters)
-            List<UserEntity> users = userRepo.findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(searchQuery);
+            List<UserEntity> users = userRepo
+                    .findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCase(searchQuery);
 
             return users.stream()
                     .filter(user -> !user.getId().equals(currentUser.getId()))
@@ -557,10 +560,10 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Transactional(readOnly = true)
     public List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser) {
         try {
-            
+
             // Get following users using existing follow service
             List<Object[]> followingData;
-            
+
             if (query == null || query.trim().isEmpty()) {
                 // Get all following users
                 followingData = followService.getFollowing(currentUser.getId(), 0, 50);
@@ -568,25 +571,24 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 // Search in following users
                 followingData = followService.searchFollowing(currentUser.getId(), query.trim(), 0, 50);
             }
-            
+
             // Convert to UserEntity and then to DTO
             List<Long> userIds = followingData.stream()
                     .map(row -> (Long) row[0])
                     .collect(Collectors.toList());
-            
-            
+
             if (userIds.isEmpty()) {
                 return List.of();
             }
-            
+
             List<UserEntity> users = userRepo.findAllById(userIds);
-            
+
             List<SVUserMinimalDTO> result = users.stream()
                     .map(SVUserMinimalDTO.Mapper::toDTO)
                     .collect(Collectors.toList());
-            
+
             return result;
-                    
+
         } catch (Exception e) {
             log.error("Error searching following users: {}", e.getMessage(), e);
             return List.of();
@@ -608,8 +610,10 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     }
 
     private String truncateText(String text, int maxLength) {
-        if (text == null) return "";
-        if (text.length() <= maxLength) return text;
+        if (text == null)
+            return "";
+        if (text.length() <= maxLength)
+            return text;
         return text.substring(0, maxLength) + "...";
     }
 
@@ -626,7 +630,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             message.markAsDelivered();
             messageRepo.save(message);
-
 
         } catch (Exception e) {
             log.error("Error marking message as delivered: {}", e.getMessage(), e);
@@ -664,8 +667,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     jwtToken,
                     roomName,
                     liveKitWebSocketUrl,
-                    conversationId
-            );
+                    conversationId);
 
         } catch (Exception e) {
             log.error("Error generating LiveKit call token for conversation {}: {}", conversationId, e.getMessage(), e);
@@ -678,39 +680,39 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Override
     @Transactional
     public void saveCallHistory(Long conversationId, Long callerId, Long receiverId,
-                               java.time.Instant startTime, java.time.Instant endTime,
-                               String status, Boolean isVideoCall) {
+            java.time.Instant startTime, java.time.Instant endTime,
+            String status, Boolean isVideoCall) {
         try {
             // CRITICAL FIX: Check for duplicate call history entries
-            // Prevent saving duplicate entries for the same call (same conversation, caller, receiver, startTime within 5 seconds)
+            // Prevent saving duplicate entries for the same call (same conversation,
+            // caller, receiver, startTime within 5 seconds)
             // This prevents issues when both CALL_REJECT and CALL_END signals are sent
             java.time.Instant fiveSecondsAgo = startTime.minusSeconds(5);
             java.time.Instant fiveSecondsLater = startTime.plusSeconds(5);
-            
-            List<CallHistoryEntity> existingEntries = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(conversationId);
+
+            List<CallHistoryEntity> existingEntries = callHistoryRepo
+                    .findByConversationIdOrderByStartTimeDesc(conversationId);
             // CRITICAL FIX: Check for duplicate entries with the same status
             // This prevents duplicate ACCEPTED entries when both participants send CALL_END
             // Also check reverse caller/receiver (in case participants are swapped)
             boolean duplicateExists = existingEntries.stream()
-                    .anyMatch(existing -> 
-                            // Check same caller/receiver
-                            ((existing.getCallerId().equals(callerId) &&
-                              existing.getReceiverId().equals(receiverId)) ||
-                             // OR check reverse caller/receiver (in case participants are swapped)
-                             (existing.getCallerId().equals(receiverId) &&
-                              existing.getReceiverId().equals(callerId))) &&
+                    .anyMatch(existing ->
+                    // Check same caller/receiver
+                    ((existing.getCallerId().equals(callerId) &&
+                            existing.getReceiverId().equals(receiverId)) ||
+                    // OR check reverse caller/receiver (in case participants are swapped)
+                            (existing.getCallerId().equals(receiverId) &&
+                                    existing.getReceiverId().equals(callerId)))
+                            &&
                             existing.getStartTime().isAfter(fiveSecondsAgo) &&
                             existing.getStartTime().isBefore(fiveSecondsLater) &&
                             existing.getStatus() != null &&
-                            existing.getStatus().toString().equals(status)
-                    );
-            
+                            existing.getStatus().toString().equals(status));
+
             if (duplicateExists) {
-                log.warn("⚠️ Duplicate call history entry detected for conversation {}: caller={}, receiver={}, startTime={}. Skipping save.", 
-                        conversationId, callerId, receiverId, startTime);
                 return; // Skip saving duplicate entry
             }
-            
+
             CallHistoryEntity callHistory = new CallHistoryEntity();
             callHistory.setConversationId(conversationId);
             callHistory.setCallerId(callerId);
@@ -724,7 +726,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             try {
                 callStatus = CallHistoryEntity.CallStatus.valueOf(status.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid call status: {}, defaulting to MISSED", status);
+                log.error("Invalid call status: {}, defaulting to MISSED", status, e);
                 callStatus = CallHistoryEntity.CallStatus.MISSED;
             }
             callHistory.setStatus(callStatus);
@@ -740,41 +742,28 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     // Negative duration would indicate data corruption or incorrect timestamps
                     if (durationSeconds >= 0) {
                         callHistory.setDurationSeconds(durationSeconds);
-                        log.info("✅ Call duration CALCULATED and SET: {}s (startTime={}, endTime={}, status={})",
-                                durationSeconds, startTime, endTime, status);
                     } else {
-                        log.warn("⚠️ Negative duration calculated for call history: startTime={}, endTime={}, duration={}s. Setting to 0.",
+                        log.error(
+                                "Negative duration calculated for call history: startTime={}, endTime={}, duration={}s",
                                 startTime, endTime, durationSeconds);
                         callHistory.setDurationSeconds(0L);
                     }
                 } catch (Exception e) {
-                    log.error("❌ Error calculating duration: startTime={}, endTime={}, error={}", startTime, endTime, e.getMessage());
+                    log.error("Error calculating duration: startTime={}, endTime={}", startTime, endTime, e);
                     callHistory.setDurationSeconds(null);
                 }
             } else {
-                // If endTime is null, duration cannot be calculated
-                log.warn("⚠️ Cannot calculate duration: startTime={}, endTime={}, status={}", startTime, endTime, status);
                 callHistory.setDurationSeconds(null);
             }
 
             // CRITICAL: Save the call history to database
             try {
-                CallHistoryEntity savedEntity = callHistoryRepo.save(callHistory);
-                log.info("✅ Call history SAVED to database: id={}, durationSeconds={}, status={}",
-                        savedEntity.getId(), savedEntity.getDurationSeconds(), savedEntity.getStatus());
-
-                // CRITICAL: Verify the saved entity has duration
-                if (savedEntity.getDurationSeconds() != null) {
-                    log.info("✅ Duration VERIFIED in saved entity: {}s", savedEntity.getDurationSeconds());
-                } else {
-                    log.error("❌ Duration is NULL in saved entity! startTime={}, endTime={}",
-                            savedEntity.getStartTime(), savedEntity.getEndTime());
-                }
+                callHistoryRepo.save(callHistory);
             } catch (Exception e) {
-                log.error("❌ Failed to save call history: {}", e.getMessage(), e);
+                log.error("Failed to save call history", e);
                 return; // Don't send notifications if save failed
             }
-            
+
             // CRITICAL: Notify participants about call history update via WebSocket
             try {
                 SVConversationEntity conversation = conversationRepo.findById(conversationId).orElse(null);
@@ -782,7 +771,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     // Get both participants and send WebSocket notification
                     UserEntity caller = userRepo.findById(callerId).orElse(null);
                     UserEntity receiver = userRepo.findById(receiverId).orElse(null);
-                    
+
                     // Send notification to caller
                     if (caller != null) {
                         String callerPrincipal = caller.getEmail() != null && !caller.getEmail().isBlank()
@@ -790,7 +779,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                                 : caller.getUsername().toLowerCase();
                         webSocketHandler.sendCallHistoryUpdate(callerPrincipal, conversationId);
                     }
-                    
+
                     // Send notification to receiver
                     if (receiver != null) {
                         String receiverPrincipal = receiver.getEmail() != null && !receiver.getEmail().isBlank()
@@ -800,7 +789,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     }
                 }
             } catch (Exception e) {
-                log.warn("Failed to send call history update notification: {}", e.getMessage());
+                log.error("Failed to send call history update notification", e);
                 // Don't throw - this is a non-critical operation
             }
         } catch (Exception e) {
@@ -816,13 +805,14 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Validate user is participant
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-            
+
             if (!conversation.isParticipant(currentUser)) {
                 throw new IllegalArgumentException("User is not a participant in this conversation");
             }
 
             // Get call history
-            List<CallHistoryEntity> callHistoryList = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(conversationId);
+            List<CallHistoryEntity> callHistoryList = callHistoryRepo
+                    .findByConversationIdOrderByStartTimeDesc(conversationId);
 
             // Get other user for participant info
             UserEntity otherUser = conversation.getOtherUser(currentUser);
@@ -833,18 +823,23 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                         // Determine caller and receiver names/images
                         UserEntity caller = userRepo.findById(callHistory.getCallerId()).orElse(null);
                         UserEntity receiver = userRepo.findById(callHistory.getReceiverId()).orElse(null);
-                        
-                        String callerName = caller != null ? 
-                                (caller.getRealName() != null && !caller.getRealName().isBlank() ? caller.getRealName() : caller.getUsername()) 
+
+                        String callerName = caller != null
+                                ? (caller.getRealName() != null && !caller.getRealName().isBlank()
+                                        ? caller.getRealName()
+                                        : caller.getUsername())
                                 : "Unknown";
                         String callerImageUrl = caller != null ? caller.getImageUrl() : null;
-                        
-                        String receiverName = receiver != null ? 
-                                (receiver.getRealName() != null && !receiver.getRealName().isBlank() ? receiver.getRealName() : receiver.getUsername()) 
+
+                        String receiverName = receiver != null
+                                ? (receiver.getRealName() != null && !receiver.getRealName().isBlank()
+                                        ? receiver.getRealName()
+                                        : receiver.getUsername())
                                 : "Unknown";
                         String receiverImageUrl = receiver != null ? receiver.getImageUrl() : null;
 
-                        return CallHistoryDTO.Mapper.toDTO(callHistory, callerName, callerImageUrl, receiverName, receiverImageUrl);
+                        return CallHistoryDTO.Mapper.toDTO(callHistory, callerName, callerImageUrl, receiverName,
+                                receiverImageUrl);
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
@@ -863,117 +858,122 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
 
             smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType eventType = signal.getEventType();
-            
+
             // Determine if this event requires call history to be saved
-            // Note: CALL_CANCEL and CALL_MISSED may not exist in enum yet, so we check for what exists
+            // Handle both web (CALL_END/CALL_REJECT) and mobile (CALL_ENDED/CALL_REJECTED)
+            // signals
             if (eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END &&
-                eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT) {
-                // For now, only handle CALL_END and CALL_REJECT
-                // CALL_CANCEL and CALL_MISSED can be added later if needed
+                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT &&
+                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_ENDED &&
+                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECTED) {
                 return;
             }
 
-            // CRITICAL FIX: Check if a REJECTED entry already exists for this call
-            // If CALL_REJECT was already processed, don't process CALL_END (which would create ACCEPTED with duration 0)
-            // This prevents showing both "Отказано" and "Разговор 0:00" for the same call
-            if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END) {
-                // Parse startTime to check for existing entries (REJECTED or ACCEPTED)
-                java.time.Instant checkStartTime;
-                if (signal.getStartTime() != null && !signal.getStartTime().isBlank()) {
-                    try {
-                        checkStartTime = java.time.Instant.parse(signal.getStartTime());
-                    } catch (Exception e) {
-                        checkStartTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
-                    }
-                } else {
-                    checkStartTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
-                }
-                
-                // Check if there's already ANY entry (REJECTED or ACCEPTED) for this call (within 5 seconds of startTime)
-                // This prevents duplicate entries when both participants send CALL_END
-                java.time.Instant fiveSecondsAgo = checkStartTime.minusSeconds(5);
-                java.time.Instant fiveSecondsLater = checkStartTime.plusSeconds(5);
-                
-                List<CallHistoryEntity> existingEntries = callHistoryRepo.findByConversationIdOrderByStartTimeDesc(signal.getConversationId());
-                // CRITICAL FIX: Check for ANY existing entry (REJECTED or ACCEPTED) with same caller/receiver
-                // This prevents duplicate entries when both participants send CALL_END
-                // Also check reverse caller/receiver (in case participants are swapped)
-                boolean entryExists = existingEntries.stream()
-                        .anyMatch(existing -> 
-                                // Check same caller/receiver
-                                ((existing.getCallerId().equals(signal.getCallerId()) &&
-                                  existing.getReceiverId().equals(signal.getReceiverId())) ||
-                                 // OR check reverse caller/receiver (in case participants are swapped)
-                                 (existing.getCallerId().equals(signal.getReceiverId()) &&
-                                  existing.getReceiverId().equals(signal.getCallerId()))) &&
-                                existing.getStartTime().isAfter(fiveSecondsAgo) &&
-                                existing.getStartTime().isBefore(fiveSecondsLater) &&
-                                existing.getStatus() != null &&
-                                (existing.getStatus() == CallHistoryEntity.CallStatus.REJECTED ||
-                                 existing.getStatus() == CallHistoryEntity.CallStatus.ACCEPTED)
-                        );
-                
-                if (entryExists) {
-                    return; // Don't create duplicate entry if REJECTED or ACCEPTED already exists
-                }
-            }
-
-            // Determine call status based on event type
-            String callStatus;
-            if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END) {
-                callStatus = "ACCEPTED";
-            } else if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT) {
-                callStatus = "REJECTED";
-            } else {
-                return; // Unknown event type
-            }
-
-            // Parse timestamps from signal
-            // CRITICAL FIX: Use startTime from signal if provided, otherwise use timestamp or now
+            // Parse timestamps
             java.time.Instant startTime;
-            if (signal.getStartTime() != null && !signal.getStartTime().isBlank()) {
-                try {
+            java.time.Instant endTime;
+
+            try {
+                if (signal.getStartTime() != null && !signal.getStartTime().isBlank()) {
                     startTime = java.time.Instant.parse(signal.getStartTime());
-                } catch (Exception e) {
-                    log.warn("Failed to parse startTime from signal: {}, using timestamp or now", signal.getStartTime());
+                } else {
                     startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
                 }
-            } else {
-                startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
-            }
-            
-            // CRITICAL FIX: Use endTime from signal if provided, otherwise calculate based on status
-            // IMPORTANT: For ACCEPTED calls, we MUST use endTime from signal to get accurate duration
-            // If endTime is not provided, use now() as fallback, but log a warning
-            java.time.Instant endTime;
-            if (signal.getEndTime() != null && !signal.getEndTime().isBlank()) {
-                try {
+
+                if (signal.getEndTime() != null && !signal.getEndTime().isBlank()) {
                     endTime = java.time.Instant.parse(signal.getEndTime());
-                    log.debug("✅ Using endTime from signal: {}", endTime);
-                } catch (Exception e) {
-                    log.warn("⚠️ Failed to parse endTime from signal: {}, using calculated value", signal.getEndTime());
-                    // For ACCEPTED calls, endTime should be now
-                    // For REJECTED calls, endTime can be same as startTime
-                    if (callStatus.equals("ACCEPTED")) {
-                        endTime = java.time.Instant.now();
-                        log.warn("⚠️ Using Instant.now() as endTime fallback for ACCEPTED call - duration may be inaccurate");
-                    } else {
-                        endTime = startTime; // Same as startTime for non-accepted calls
-                    }
-                }
-            } else {
-                // CRITICAL: If endTime is not provided in signal, we need to calculate it
-                // For ACCEPTED calls, use now() but log warning that duration may be inaccurate
-                // For REJECTED calls, endTime can be same as startTime
-                if (callStatus.equals("ACCEPTED")) {
-                    endTime = java.time.Instant.now();
-                    log.warn("⚠️ endTime not provided in CALL_END signal, using Instant.now() - duration may be inaccurate. startTime={}, endTime={}", startTime, endTime);
                 } else {
-                    endTime = startTime; // Same as startTime for non-accepted calls
+                    endTime = java.time.Instant.now();
+                }
+            } catch (Exception e) {
+                log.error("Error parsing timestamps for call history", e);
+                startTime = java.time.Instant.now();
+                endTime = java.time.Instant.now();
+            }
+
+            // Calculate duration in seconds
+            long durationSeconds = 0;
+            if (startTime != null && endTime != null) {
+                durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(startTime, endTime);
+                if (durationSeconds < 0)
+                    durationSeconds = 0;
+            }
+
+            // CRITICAL FIX: Determine correct status based on Event Type AND Duration
+            String callStatus;
+
+            if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT ||
+                    eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECTED) {
+                // If explicitly rejected, it's REJECTED
+                callStatus = "REJECTED";
+                durationSeconds = 0; // Rejected calls have 0 duration
+            } else {
+                // It's CALL_END / CALL_ENDED
+                if (durationSeconds > 0) {
+                    // Actual conversation happened
+                    callStatus = "ACCEPTED";
+                } else {
+                    // Duration is 0, meaning call was never answered/connected
+                    // If Caller ended it -> CANCELLED
+                    // If Receiver ended it -> MISSED (should technically be REJECTED but if no
+                    // REJECT signal sent, treat as MISSED/CANCELLED)
+
+                    if (signal.getCallerId().equals(signal.getReceiverId())) {
+                        // Should not happen, but fallback
+                        callStatus = "MISSED";
+                    } else {
+                        // We need to know who "Caller" of the signal is.
+                        // The signal object has callerId (the one who initiated the CALL request) and
+                        // receiverId.
+                        // BUT, we don't know who SENT this specific signal (SVCallSignalDTO doesn't
+                        // store "senderId" explicitly in common fields,
+                        // but handleCallSignal in controller verifies sender).
+
+                        // However, let's assume standard behavior:
+                        // If duration is 0, it means `endCall()` was called before `acceptCall()` (or
+                        // `callStartTimeRef` was null).
+                        // This usually happens when the caller hangs up before answer.
+                        callStatus = "CANCELLED";
+
+                        // Note: If receiver declined, we usually get CALL_REJECT event instead.
+                        // So CALL_END with 0 duration is almost always "Caller hung up".
+                    }
                 }
             }
 
-            // CRITICAL FIX: Use isVideoCall from signal if provided, otherwise default to false
+            // CRITICAL FIX: Check for duplicate entries
+            // 1. If we are about to save CANCELLED/MISSED, check if there is already a
+            // REJECTED/ACCEPTED entry for this call
+            // 2. If we are about to save ACCEPTED, check if there is already an entry
+
+            // INCREASED WINDOW to 10 seconds to catch slower race conditions
+            java.time.Instant fiveSecondsAgo = startTime.minusSeconds(10);
+            java.time.Instant fiveSecondsLater = startTime.plusSeconds(10);
+
+            List<CallHistoryEntity> existingEntries = callHistoryRepo
+                    .findByConversationIdOrderByStartTimeDesc(signal.getConversationId());
+            boolean entryExists = existingEntries.stream()
+                    .anyMatch(existing ->
+                    // Check same conversation and participants
+                    ((existing.getCallerId().equals(signal.getCallerId()) &&
+                            existing.getReceiverId().equals(signal.getReceiverId())) ||
+                            (existing.getCallerId().equals(signal.getReceiverId()) &&
+                                    existing.getReceiverId().equals(signal.getCallerId())))
+                            &&
+                            // Check time window
+                            existing.getStartTime().isAfter(fiveSecondsAgo) &&
+                            existing.getStartTime().isBefore(fiveSecondsLater)
+                    // REMOVED STATUS LOGIC: If ANY entry exists in this small window, assume it's
+                    // the same call termination.
+                    // This is safer to avoid duplicates.
+                    );
+
+            if (entryExists) {
+                return; // Duplicate avoided
+            }
+
+            // CRITICAL FIX: Use isVideoCall from signal if provided, otherwise default to
+            // false
             Boolean isVideoCall = signal.getIsVideoCall() != null ? signal.getIsVideoCall() : false;
 
             // Save call history
@@ -984,11 +984,9 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     startTime,
                     endTime,
                     callStatus,
-                    isVideoCall
-            );
+                    isVideoCall);
         } catch (Exception e) {
-            log.error("❌ Failed to handle call signal for history: {}", e.getMessage(), e);
-            // Don't throw - this is a non-critical operation
+            log.error("Failed to handle call signal for history", e);
         }
     }
 

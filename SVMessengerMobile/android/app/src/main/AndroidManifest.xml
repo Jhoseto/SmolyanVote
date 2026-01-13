@@ -17,7 +17,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- FOREGROUND_SERVICE_PHONE_CALL permission - Required for phone call foreground service on Android 14+ (API 34+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
-    
+
     <!-- Permissions for voice and video calls -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />

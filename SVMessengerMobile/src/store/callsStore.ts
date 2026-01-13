@@ -7,6 +7,8 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import { NativeModules } from 'react-native';
 import { Call, CallState } from '../types/call';
+import { CallSignal } from '../types/websocket';
+import { useAuthStore } from './authStore';
 
 interface CallsState {
   currentCall: Call | null;
@@ -84,7 +86,7 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       try {
         const { NotificationModule } = NativeModules;
         if (NotificationModule?.sendCallStateBroadcast) {
-          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => {});
+          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => { });
         }
       } catch (e) {
         // Ignore errors - broadcast is optional
@@ -94,61 +96,63 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
 
   // End call
   endCall: () => {
-    set((state) => {
-      const now = new Date();
-      return {
-        callState: CallState.DISCONNECTED,
-        currentCall: state.currentCall
-          ? { 
-              ...state.currentCall, 
-              state: CallState.DISCONNECTED, 
-              endTime: now,
-              // CRITICAL: Ensure startTime is set if it wasn't set before (fallback)
-              // This prevents duration calculation issues
-              startTime: state.currentCall.startTime || now
-            }
-          : null,
-      };
-    });
-    
+    const now = new Date();
+
+    // We don't send WebSocket signal here anymore - it is handled in useCalls hook
+    // This prevents duplicate CALL_END signals since the hook was also sending one
+
+    set((state) => ({
+      callState: CallState.DISCONNECTED,
+      currentCall: state.currentCall
+        ? {
+          ...state.currentCall,
+          state: CallState.DISCONNECTED,
+          endTime: now,
+          // CRITICAL: Ensure startTime is set if it wasn't set before (fallback)
+          // This prevents duration calculation issues
+          startTime: state.currentCall.startTime || now
+        }
+        : null,
+    }));
+
     // CRITICAL: Send broadcast to close IncomingCallActivity
     if (Platform.OS === 'android') {
       try {
         const { NotificationModule } = NativeModules;
         if (NotificationModule?.sendCallStateBroadcast) {
-          NotificationModule.sendCallStateBroadcast('DISCONNECTED').catch(() => {});
+          NotificationModule.sendCallStateBroadcast('DISCONNECTED').catch(() => { });
         }
       } catch (e) {
         // Ignore errors - broadcast is optional
       }
     }
 
-    // Clear call after a delay
-           setTimeout(() => {
-             get().clearCallState();
-           }, 1000);
+    // Clear call after a delay (without triggering broadcast)
+    setTimeout(() => {
+      get().clearCallState();
+    }, 1000);
   },
 
   // Set call state
   setCallState: (state: CallState) => {
     set((currentState) => {
       const currentCall = currentState.currentCall;
-      
+
       // CRITICAL FIX: Set startTime when call becomes CONNECTED (other party answered)
       // This ensures timer starts counting only after the other party answers, not when call is initiated
-      const shouldSetStartTime = state === CallState.CONNECTED && 
-                                  currentCall && 
-                                  !currentCall.startTime;
-      
+      const shouldSetStartTime = state === CallState.CONNECTED &&
+        currentCall &&
+        !currentCall.startTime;
+
       return {
         callState: state,
         currentCall: currentCall
-          ? { 
-              ...currentCall, 
-              state,
-              // Set startTime only when becoming CONNECTED and it's not already set
-              startTime: shouldSetStartTime ? new Date() : currentCall.startTime,
-            }
+          ? {
+            ...currentCall,
+            state,
+            // Set startTime only when becoming CONNECTED and it's not already set
+            startTime: shouldSetStartTime ? new Date() : currentCall.startTime,
+          }
           : null,
       };
     });
@@ -184,7 +188,7 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       try {
         const { NotificationModule } = NativeModules;
         if (NotificationModule?.sendCallStateBroadcast) {
-          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => {});
+          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => { });
         }
       } catch (e) {
         // Ignore errors - broadcast is optional

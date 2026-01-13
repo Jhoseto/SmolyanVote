@@ -84,6 +84,17 @@ const CallWindowApp = ({ callData }) => {
                 // CRITICAL: Set call start time when room becomes connected
                 if (!callStartTimeRef.current) {
                     callStartTimeRef.current = new Date();
+                    console.log('📞 [CallWindow] Call start time set on RoomEvent.Connected:', callStartTimeRef.current.toISOString());
+                    
+                    // CRITICAL: Notify main window about call start time via BroadcastChannel
+                    if (callChannelRef.current) {
+                        callChannelRef.current.postMessage({
+                            type: 'CALL_START_TIME',
+                            data: {
+                                startTime: callStartTimeRef.current.toISOString()
+                            }
+                        });
+                    }
                 }
                 
                 // Subscribe to existing participants' audio tracks
@@ -1005,9 +1016,13 @@ const CallWindowApp = ({ callData }) => {
                 // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
                 // But we still need valid timestamps for database
                 const now = new Date();
+                // CRITICAL: Use callStartTimeRef.current (set when room connected)
+                // If not set, the call was never connected (rejected before accept)
                 const startTime = callStartTimeRef.current 
                     ? new Date(callStartTimeRef.current).toISOString() 
-                    : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
+                    : now.toISOString();
+                
+                console.log('📞 [CallWindow handleEndCall] startTime:', startTime, 'callStartTimeRef:', callStartTimeRef.current ? new Date(callStartTimeRef.current).toISOString() : 'null'); // Fallback to now if startTime not set (call was never connected)
                 const endTime = now.toISOString();
                 
                 // CRITICAL: Determine if this is a video call (from callType in callData)

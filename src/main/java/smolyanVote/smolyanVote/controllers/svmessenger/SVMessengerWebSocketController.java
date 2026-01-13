@@ -94,7 +94,7 @@ public class SVMessengerWebSocketController {
             UserEntity user = getUserFromPrincipal(principal);
             
             if (user == null) {
-                log.warn("Cannot update typing status: user not found from principal");
+                log.error("Cannot update typing status: user not found from principal");
                 return;
             }
             
@@ -122,7 +122,7 @@ public class SVMessengerWebSocketController {
             UserEntity currentUser = getUserFromPrincipal(principal);
             
             if (currentUser == null) {
-                log.warn("Cannot mark conversation as read: user not found from principal");
+                log.error("Cannot mark conversation as read: user not found from principal");
                 return;
             }
             
@@ -148,12 +148,12 @@ public class SVMessengerWebSocketController {
             UserEntity sender = getUserFromPrincipal(principal);
 
             if (sender == null) {
-                log.warn("Cannot handle call signal: user not found from principal");
+                log.error("Cannot handle call signal: user not found from principal");
                 return;
             }
 
             if (!sender.getId().equals(signal.getCallerId()) && !sender.getId().equals(signal.getReceiverId())) {
-                log.warn("Unauthorized call signal attempt by user {}", sender.getId());
+                log.error("Unauthorized call signal attempt by user {}", sender.getId());
                 return;
             }
 
@@ -203,16 +203,17 @@ public class SVMessengerWebSocketController {
             // For CALL_END: Only save when sent by the user who pressed "end call" (not when forwarded to the other participant)
             // For CALL_REJECT: Only save when sent by the user who rejected the call
             // This prevents duplicate entries when both participants send signals
-            if (signal.getEventType() == SVCallEventType.CALL_END || signal.getEventType() == SVCallEventType.CALL_REJECT) {
+            if (signal.getEventType() == SVCallEventType.CALL_END || signal.getEventType() == SVCallEventType.CALL_REJECT ||
+                signal.getEventType() == SVCallEventType.CALL_ENDED || signal.getEventType() == SVCallEventType.CALL_REJECTED) {
                 // CRITICAL: Only save call history if the sender is the one who initiated the action
                 // For CALL_END: sender must be either caller or receiver (whoever pressed "end call")
                 // For CALL_REJECT: sender must be the receiver (who rejected the call)
                 boolean shouldSaveHistory = false;
-                if (signal.getEventType() == SVCallEventType.CALL_END) {
+                if (signal.getEventType() == SVCallEventType.CALL_END || signal.getEventType() == SVCallEventType.CALL_ENDED) {
                     // For CALL_END, save history only if sender is the one who sent the signal (not forwarded)
                     // The signal is sent by the user who pressed "end call", so we save it
                     shouldSaveHistory = true;
-                } else if (signal.getEventType() == SVCallEventType.CALL_REJECT) {
+                } else if (signal.getEventType() == SVCallEventType.CALL_REJECT || signal.getEventType() == SVCallEventType.CALL_REJECTED) {
                     // For CALL_REJECT, save history only if sender is the receiver (who rejected)
                     shouldSaveHistory = sender.getId().equals(signal.getReceiverId());
                 }
@@ -220,11 +221,6 @@ public class SVMessengerWebSocketController {
                 
                 if (shouldSaveHistory) {
                     messengerService.handleCallSignalForHistory(signal);
-                    log.debug("✅ Saving call history for signal: type={}, sender={}, conversation={}",
-                            signal.getEventType(), sender.getId(), signal.getConversationId());
-                } else {
-                    log.debug("⏭️ Skipping call history save: signal type={}, sender={}, caller={}, receiver={}",
-                            signal.getEventType(), sender.getId(), signal.getCallerId(), signal.getReceiverId());
                 }
             } else {
                 // For other signal types (CALL_REQUEST, CALL_ACCEPT, etc.), don't save call history
@@ -251,8 +247,7 @@ public class SVMessengerWebSocketController {
             Principal principal = headerAccessor.getUser();
             
             if (principal == null) {
-                log.warn("⚠️ WebSocket connected but Principal is NULL - JWT authentication may have failed");
-                log.warn("⚠️ Session ID: {}, Headers: {}", headerAccessor.getSessionId(), headerAccessor.toMap());
+                log.error("WebSocket connected but Principal is NULL - JWT authentication may have failed. Session ID: {}", headerAccessor.getSessionId());
                 return;
             }
             
@@ -260,7 +255,7 @@ public class SVMessengerWebSocketController {
             UserEntity user = getUserFromPrincipal(principal);
             
             if (user == null) {
-                log.warn("⚠️ WebSocket connected but UserEntity is NULL for principal: {}", principal.getName());
+                log.error("WebSocket connected but UserEntity is NULL for principal: {}", principal.getName());
                 return;
             }
             
@@ -277,13 +272,9 @@ public class SVMessengerWebSocketController {
             
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
-            log.warn("⚠️ User not found during WebSocket connect (likely logged out): {}", e.getMessage());
-            log.warn("⚠️ Session ID: {}", headerAccessor.getSessionId());
+            log.error("User not found during WebSocket connect. Session ID: {}", headerAccessor.getSessionId(), e);
         } catch (Exception e) {
-            log.error("❌ Error handling WebSocket connect", e);
-            log.error("❌ Session ID: {}, Principal: {}", 
-                    headerAccessor.getSessionId(), 
-                    headerAccessor.getUser() != null ? headerAccessor.getUser().getName() : "NULL");
+            log.error("Error handling WebSocket connect. Session ID: {}", headerAccessor.getSessionId(), e);
         }
     }
     
@@ -310,17 +301,15 @@ public class SVMessengerWebSocketController {
                     // ✅ СЛЕД ТОВА: Broadcast че е офлайн
                     wsHandler.broadcastOnlineStatus(user.getId(), false);
                 } else {
-                    log.warn("WebSocket disconnected but user not found for principal: {}", principal.getName());
+                    log.error("WebSocket disconnected but user not found for principal: {}", principal.getName());
                 }
             } else {
                 // Principal може да липсва при някои нормални случаи (например connection timeout, network issues)
                 // Това не е грешка, затова логваме на debug ниво
-                log.debug("WebSocket disconnected but no principal found (likely connection timeout or network issue)");
             }
         } catch (IllegalStateException e) {
             // Потребителят не е намерен - вероятно е излязъл или сесията е изтекла
             // Това е нормално при logout, затова само логваме на debug ниво
-            log.debug("User not found during WebSocket disconnect (likely logged out): {}", e.getMessage());
         } catch (Exception e) {
             log.error("Error handling WebSocket disconnect", e);
         }
@@ -363,7 +352,6 @@ public class SVMessengerWebSocketController {
             }
             
             if (identifier == null || identifier.isEmpty()) {
-                log.debug("User identifier not found in principal");
                 return null;
             }
             
@@ -375,7 +363,6 @@ public class SVMessengerWebSocketController {
             // (вероятно е излязъл). В този случай просто връщаме null.
             if (normalizedIdentifier.matches("^\\d+$") && normalizedIdentifier.length() > 15) {
                 // Вероятно е OAuth2 ID (sub от Google) - потребителят вече не е наличен след logout
-                log.debug("Principal contains OAuth2 ID instead of email, user likely logged out: {}", normalizedIdentifier);
                 return null;
             }
             
@@ -383,7 +370,7 @@ public class SVMessengerWebSocketController {
                     .or(() -> userRepository.findByUsername(normalizedIdentifier))
                     .orElse(null);
         } catch (Exception e) {
-            log.debug("Error extracting user from principal: {}", e.getMessage());
+            log.error("Error extracting user from principal", e);
             return null;
         }
     }
