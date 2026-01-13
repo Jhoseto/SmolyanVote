@@ -4,6 +4,8 @@
  */
 
 import { create } from 'zustand';
+import { Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { Call, CallState } from '../types/call';
 
 interface CallsState {
@@ -73,6 +75,17 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       currentCall: null,
       callState: CallState.IDLE,
     });
+    // CRITICAL: Send broadcast to close IncomingCallActivity
+    if (Platform.OS === 'android') {
+      try {
+        const { NotificationModule } = NativeModules;
+        if (NotificationModule?.sendCallStateBroadcast) {
+          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => {});
+        }
+      } catch (e) {
+        // Ignore errors - broadcast is optional
+      }
+    }
   },
 
   // End call
@@ -83,6 +96,18 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
         ? { ...state.currentCall, state: CallState.DISCONNECTED, endTime: new Date() }
         : null,
     }));
+    
+    // CRITICAL: Send broadcast to close IncomingCallActivity
+    if (Platform.OS === 'android') {
+      try {
+        const { NotificationModule } = NativeModules;
+        if (NotificationModule?.sendCallStateBroadcast) {
+          NotificationModule.sendCallStateBroadcast('DISCONNECTED').catch(() => {});
+        }
+      } catch (e) {
+        // Ignore errors - broadcast is optional
+      }
+    }
 
     // Clear call after a delay
     setTimeout(() => {
@@ -130,6 +155,17 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
       isMuted: false,
       isVideoCall: false,
     });
+    // CRITICAL: Send broadcast to close IncomingCallActivity
+    if (Platform.OS === 'android') {
+      try {
+        const { NotificationModule } = NativeModules;
+        if (NotificationModule?.sendCallStateBroadcast) {
+          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => {});
+        }
+      } catch (e) {
+        // Ignore errors - broadcast is optional
+      }
+    }
   },
 
   // Increment missed calls counter

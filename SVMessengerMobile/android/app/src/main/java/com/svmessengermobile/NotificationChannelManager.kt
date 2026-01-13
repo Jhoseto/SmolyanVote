@@ -59,9 +59,11 @@ object NotificationChannelManager {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Нотификации за входящи обаждания"
-                enableVibration(true)
-                enableLights(true)
-                setShowBadge(true)
+                // CRITICAL: Disable vibration, lights, badge for calls channel
+                // We don't want notification to appear in bar - only Full Screen Intent
+                enableVibration(false)
+                enableLights(false)
+                setShowBadge(false)
                 // CRITICAL: Set bypass DND (Do Not Disturb) for calls
                 // This ensures calls are always shown even in DND mode
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -70,10 +72,9 @@ object NotificationChannelManager {
                 // CRITICAL FIX: Set lockscreen visibility to PUBLIC for lock screen display
                 // This ensures the notification can be shown on lock screen
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                // Set custom sound for calls
-                if (callsSoundUri != null) {
-                    setSound(callsSoundUri, audioAttributes)
-                }
+                // CRITICAL: Don't set sound - activity handles sound
+                // Setting sound here would cause notification to appear in bar
+                setSound(null, null)
             }
             
             notificationManager.createNotificationChannel(messagesChannel)

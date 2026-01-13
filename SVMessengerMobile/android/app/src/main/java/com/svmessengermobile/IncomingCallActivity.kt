@@ -1,11 +1,15 @@
 package com.svmessengermobile
 
 import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
@@ -13,6 +17,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import java.io.IOException
@@ -34,42 +39,72 @@ class IncomingCallActivity : Activity() {
     
     // MediaPlayer за възпроизвеждане на звука за входящо обаждане
     private var mediaPlayer: MediaPlayer? = null
+    
+    // CRITICAL: Wake Lock за да се гарантира че екранът остава включен
+    // Това е критично за входящи обаждания - екранът трябва да свети дори когато телефонът е заключен
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+    
+    // CRITICAL: BroadcastReceiver за автоматично затваряне когато call е приключил
+    // Това предотвратява показването на IncomingCallActivity след като call е приключил
+    private var callStateReceiver: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         Log.d("IncomingCallActivity", "📞 IncomingCallActivity created")
         
-        // Set up full screen overlay window
-        setupWindow()
-        
-        // Set content view
-        setContentView(createCallUI())
-        
-        // Get call data from intent
-        val conversationId = intent.getStringExtra("conversationId")
-        val callerName = intent.getStringExtra("callerName") ?: "Потребител"
-        val callerImageUrl = intent.getStringExtra("callerImageUrl")
-        // CRITICAL FIX: Check if participantId was actually provided in the intent
-        // If it wasn't provided, we should not include it in the response intent to MainActivity
-        // This allows MainActivity to distinguish between missing participantId and valid 0
-        val participantIdProvided = intent.hasExtra("participantId")
-        val participantId = if (participantIdProvided) {
-            intent.getLongExtra("participantId", 0L)
-        } else {
-            null
+        // CRITICAL: Wrap everything in try-catch to prevent crashes
+        try {
+            // CRITICAL: Acquire Wake Lock FIRST before anything else
+            // This ensures screen stays on even when phone is locked
+            acquireWakeLock()
+            
+            // Set up full screen overlay window
+            setupWindow()
+            
+            // Set content view
+            setContentView(createCallUI())
+            
+            // Get call data from intent
+            val conversationId = intent.getStringExtra("conversationId")
+            val callerName = intent.getStringExtra("callerName") ?: "Потребител"
+            val callerImageUrl = intent.getStringExtra("callerImageUrl")
+            // CRITICAL FIX: Check if participantId was actually provided in the intent
+            // If it wasn't provided, we should not include it in the response intent to MainActivity
+            // This allows MainActivity to distinguish between missing participantId and valid 0
+            val participantIdProvided = intent.hasExtra("participantId")
+            val participantId = if (participantIdProvided) {
+                intent.getLongExtra("participantId", 0L)
+            } else {
+                null
+            }
+            
+            Log.d("IncomingCallActivity", "📞 Call data: conversationId=$conversationId, callerName=$callerName, participantId=$participantId (provided=$participantIdProvided)")
+            
+            // Setup UI
+            setupUI(callerName, callerImageUrl)
+            
+            // Setup button listeners
+            setupButtonListeners(conversationId, participantId, participantIdProvided)
+            
+            // CRITICAL: Start playing incoming call sound continuously
+            startIncomingCallSound()
+            
+            // CRITICAL: Register BroadcastReceiver to listen for call state changes
+            // This allows IncomingCallActivity to automatically close when call ends
+            registerCallStateReceiver()
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ CRITICAL ERROR in onCreate - finishing activity to prevent crash:", e)
+            e.printStackTrace()
+            // CRITICAL: Release resources and finish activity to prevent crash
+            try {
+                releaseWakeLock()
+                stopIncomingCallSound()
+            } catch (cleanupError: Exception) {
+                Log.e("IncomingCallActivity", "❌ Error during cleanup:", cleanupError)
+            }
+            finish()
         }
-        
-        Log.d("IncomingCallActivity", "📞 Call data: conversationId=$conversationId, callerName=$callerName, participantId=$participantId (provided=$participantIdProvided)")
-        
-        // Setup UI
-        setupUI(callerName, callerImageUrl)
-        
-        // Setup button listeners
-        setupButtonListeners(conversationId, participantId, participantIdProvided)
-        
-        // CRITICAL: Start playing incoming call sound continuously
-        startIncomingCallSound()
     }
 
     /**
@@ -645,6 +680,13 @@ class IncomingCallActivity : Activity() {
     private fun setupButtonListeners(conversationId: String?, participantId: Long?, participantIdProvided: Boolean) {
         acceptButton.setOnClickListener {
             Log.d("IncomingCallActivity", "📞 Accept button clicked")
+            // CRITICAL: Stop foreground service when call is accepted
+            try {
+                IncomingCallService.stopService(this)
+                Log.d("IncomingCallActivity", "📞 Foreground service stopped (call accepted)")
+            } catch (e: Exception) {
+                Log.e("IncomingCallActivity", "❌ Error stopping foreground service:", e)
+            }
             // CRITICAL: Stop sound before navigating
             stopIncomingCallSound()
             // Open app and accept call
@@ -664,6 +706,13 @@ class IncomingCallActivity : Activity() {
         
         rejectButton.setOnClickListener {
             Log.d("IncomingCallActivity", "📞 Reject button clicked")
+            // CRITICAL: Stop foreground service when call is rejected
+            try {
+                IncomingCallService.stopService(this)
+                Log.d("IncomingCallActivity", "📞 Foreground service stopped (call rejected)")
+            } catch (e: Exception) {
+                Log.e("IncomingCallActivity", "❌ Error stopping foreground service:", e)
+            }
             // CRITICAL: Stop sound before navigating
             stopIncomingCallSound()
             // Open app and reject call
@@ -698,9 +747,118 @@ class IncomingCallActivity : Activity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        // CRITICAL: Unregister BroadcastReceiver
+        unregisterCallStateReceiver()
+        // CRITICAL: Release Wake Lock when activity is destroyed
+        releaseWakeLock()
         // CRITICAL: Stop sound when activity is destroyed
         stopIncomingCallSound()
         Log.d("IncomingCallActivity", "📞 IncomingCallActivity destroyed")
+    }
+    
+    /**
+     * Register BroadcastReceiver to listen for call state changes
+     * CRITICAL: This allows IncomingCallActivity to automatically close when call ends
+     */
+    private fun registerCallStateReceiver() {
+        callStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val action = intent?.action
+                val state = intent?.getStringExtra("state")
+                Log.d("IncomingCallActivity", "📞 BroadcastReceiver received action: $action, state: $state")
+                
+                // CRITICAL: Close activity when call ends (IDLE, DISCONNECTED, REJECTED, ENDED)
+                // Check both action and state for compatibility
+                val shouldClose = action == "com.svmessengermobile.CALL_ENDED" ||
+                        action == "com.svmessengermobile.CALL_REJECTED" ||
+                        action == "com.svmessengermobile.CALL_IDLE" ||
+                        action == "com.svmessengermobile.CALL_STATE_CHANGED" && 
+                        (state == "IDLE" || state == "DISCONNECTED" || state == "REJECTED" || state == "ENDED")
+                
+                if (shouldClose) {
+                    Log.d("IncomingCallActivity", "📞 Call ended (action=$action, state=$state) - closing IncomingCallActivity")
+                    // Stop sound before closing
+                    stopIncomingCallSound()
+                    // Release wake lock
+                    releaseWakeLock()
+                    // Finish activity
+                    finish()
+                }
+            }
+        }
+        
+        // Register receiver for local broadcasts
+        val filter = IntentFilter().apply {
+            addAction("com.svmessengermobile.CALL_ENDED")
+            addAction("com.svmessengermobile.CALL_REJECTED")
+            addAction("com.svmessengermobile.CALL_IDLE")
+            addAction("com.svmessengermobile.CALL_STATE_CHANGED") // CRITICAL: Also listen for CALL_STATE_CHANGED
+        }
+        
+        try {
+            LocalBroadcastManager.getInstance(this).registerReceiver(callStateReceiver!!, filter)
+            Log.d("IncomingCallActivity", "✅ BroadcastReceiver registered for call state changes")
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ Error registering BroadcastReceiver:", e)
+        }
+    }
+    
+    /**
+     * Unregister BroadcastReceiver
+     */
+    private fun unregisterCallStateReceiver() {
+        callStateReceiver?.let {
+            try {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(it)
+                Log.d("IncomingCallActivity", "✅ BroadcastReceiver unregistered")
+            } catch (e: Exception) {
+                Log.e("IncomingCallActivity", "❌ Error unregistering BroadcastReceiver:", e)
+            }
+        }
+        callStateReceiver = null
+    }
+    
+    /**
+     * Acquire Wake Lock to keep screen on
+     * CRITICAL: This is essential for incoming calls - screen must stay on even when phone is locked
+     */
+    private fun acquireWakeLock() {
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            // CRITICAL: Use FULL_WAKE_LOCK with ACQUIRE_CAUSES_WAKEUP and ON_AFTER_RELEASE
+            // This ensures screen turns on and stays on for incoming calls
+            @Suppress("DEPRECATION")
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                PowerManager.ON_AFTER_RELEASE,
+                "SVMessenger:IncomingCallWakeLock"
+            )
+            // Acquire wake lock for maximum 2 minutes (120 seconds)
+            // This prevents battery drain if user never answers
+            wakeLock?.acquire(120000) // 2 minutes timeout
+            Log.d("IncomingCallActivity", "✅ Wake Lock acquired - screen will stay on")
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ Failed to acquire Wake Lock:", e)
+        }
+    }
+    
+    /**
+     * Release Wake Lock
+     * CRITICAL: Always release wake lock to prevent battery drain
+     */
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d("IncomingCallActivity", "✅ Wake Lock released")
+                }
+            }
+            wakeLock = null
+        } catch (e: Exception) {
+            Log.e("IncomingCallActivity", "❌ Error releasing Wake Lock:", e)
+        }
     }
     
     override fun onBackPressed() {

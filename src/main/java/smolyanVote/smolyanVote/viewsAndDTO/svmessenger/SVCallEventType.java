@@ -8,5 +8,7 @@ public enum SVCallEventType {
     CALL_ACCEPT,
     CALL_REJECT,
     CALL_END,
-    CALL_BUSY
+    CALL_BUSY,
+    CALL_CANCEL,
+    CALL_MISSED
 }

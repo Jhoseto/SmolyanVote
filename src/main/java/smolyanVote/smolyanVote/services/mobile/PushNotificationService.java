@@ -104,8 +104,9 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща FCM notification за Android
-     * Оптимизирано като Facebook Messenger - използва Firebase FCM автоматично показване на нотификации
-     * без постоянно работещ background service (не харчи батерия)
+     * CRITICAL: За входящи обаждания използваме DATA-ONLY payload (без notification payload)
+     * Това позволява на app-а да покаже Full Screen Intent вместо notification в лентата
+     * За други notifications използваме notification payload за автоматично показване от Firebase
      */
     private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
@@ -114,35 +115,77 @@ public class PushNotificationService implements MobilePushNotificationService {
         }
 
         try {
-            // CRITICAL: Използваме notification payload + Android config с priority: "high"
-            // Това гарантира че Firebase автоматично показва нотификациите дори когато app-ът е затворен
-            // БЕЗ да се нуждаем от постоянно работещ background service (оптимизация на батерията)
+            // CRITICAL FIX: Проверка дали е входящо обаждане
+            // За входящи обаждания изпращаме САМО data payload (БЕЗ notification payload)
+            // Това позволява на app-а да покаже Full Screen Intent на целия екран
+            // вместо notification в лентата
+            boolean isIncomingCall = data != null && "INCOMING_CALL".equals(data.get("type"));
+            
+            // CRITICAL: Log what we're sending for debugging
+            if (isIncomingCall) {
+                log.info("📞 INCOMING CALL - Sending DATA-ONLY payload (NO notification payload, NO AndroidNotification)");
+            } else {
+                log.info("📬 Regular notification - Sending with notification payload and AndroidNotification");
+            }
+            
             Message.Builder messageBuilder = Message.builder()
-                    .setToken(deviceToken)
-                    .setNotification(Notification.builder()
-                            .setTitle(title)
-                            .setBody(body)
-                            .build())
-                    // Android config с priority: "high" - критично за background notifications
-                    .setAndroidConfig(com.google.firebase.messaging.AndroidConfig.builder()
-                            .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH)
-                            .setNotification(com.google.firebase.messaging.AndroidNotification.builder()
-                                    .setTitle(title)
-                                    .setBody(body)
-                                    .setSound("default")
-                                    .setChannelId(getNotificationChannelId(data))
-                                    .setPriority(com.google.firebase.messaging.AndroidNotification.Priority.HIGH)
-                                    .build())
-                            .build());
+                    .setToken(deviceToken);
+            
+            // CRITICAL: За входящи обаждания НЕ добавяме notification payload
+            // За всички останали notifications добавяме notification payload за автоматично показване от Firebase
+            if (!isIncomingCall) {
+                // За обикновени notifications (не обаждания) използваме notification payload
+                // Firebase автоматично ги показва дори когато app-ът е затворен (оптимизация на батерията)
+                messageBuilder.setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build());
+                log.debug("✅ Added Notification payload: title={}, body={}", title, body);
+            } else {
+                log.info("✅ SKIPPED Notification payload for incoming call (DATA-ONLY mode)");
+            }
+            
+            // Android config с priority: "high" - критично за background notifications
+            com.google.firebase.messaging.AndroidConfig.Builder androidConfigBuilder = com.google.firebase.messaging.AndroidConfig.builder()
+                    .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH);
+            
+            // CRITICAL: За входящи обаждания НЕ добавяме AndroidNotification ИЗОБЩО
+            // Firebase НЕ трябва да показва notification - app-ът ще покаже Full Screen Intent
+            // За всички останали notifications добавяме AndroidNotification
+            if (!isIncomingCall) {
+                androidConfigBuilder.setNotification(com.google.firebase.messaging.AndroidNotification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .setSound("default")
+                        .setChannelId(getNotificationChannelId(data))
+                        .setPriority(com.google.firebase.messaging.AndroidNotification.Priority.HIGH)
+                        .build());
+                log.debug("✅ Added AndroidNotification: title={}, body={}, channelId={}", title, body, getNotificationChannelId(data));
+            } else {
+                log.info("✅ SKIPPED AndroidNotification for incoming call (DATA-ONLY mode)");
+            }
+            // CRITICAL FIX: За входящи обаждания НЕ добавяме AndroidNotification изобщо
+            // Това гарантира че Firebase НЕ ще покаже notification в лентата
+            // App-ът ще получи само data payload и ще покаже Full Screen Intent
+            
+            messageBuilder.setAndroidConfig(androidConfigBuilder.build());
 
             // Добавяне на data payload за app логика
             if (data != null && !data.isEmpty()) {
                 messageBuilder.putAllData(data);
+                log.debug("✅ Added data payload: {}", data);
             }
 
             Message message = messageBuilder.build();
             String response = firebaseMessaging.send(message);
-            log.info("✅ FCM notification sent successfully: token={}, response={}", deviceToken, response);
+            
+            // CRITICAL: Log what was actually sent
+            if (isIncomingCall) {
+                log.info("✅ FCM DATA-ONLY notification sent successfully for INCOMING CALL: token={}, response={}", deviceToken, response);
+                log.info("📞 VERIFICATION: This message has NO notification payload and NO AndroidNotification - Firebase will NOT show notification in bar");
+            } else {
+                log.info("✅ FCM notification sent successfully: token={}, response={}", deviceToken, response);
+            }
 
         } catch (FirebaseMessagingException e) {
             log.error("❌ Failed to send FCM notification: token={}, error={}, errorCode={}", 

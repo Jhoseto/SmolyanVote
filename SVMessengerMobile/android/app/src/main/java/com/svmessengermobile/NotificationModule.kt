@@ -9,6 +9,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -101,5 +102,184 @@ class NotificationModule(reactContext: ReactApplicationContext) : ReactContextBa
             promise.reject("NOTIFICATION_ERROR", "Error showing notification: ${e.message}", e)
         }
     }
+    
+    /**
+     * Send broadcast when call state changes
+     * CRITICAL: This allows IncomingCallActivity to automatically close when call ends
+     */
+    @ReactMethod
+    fun sendCallStateBroadcast(callState: String, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            
+            // CRITICAL: Send both specific action AND CALL_STATE_CHANGED with state in extra
+            // This ensures compatibility with both old and new broadcast receivers
+            val stateUpper = callState.uppercase()
+            
+            // Send specific action broadcast (for compatibility)
+            val specificIntent = Intent().apply {
+                when (stateUpper) {
+                    "IDLE" -> action = "com.svmessengermobile.CALL_IDLE"
+                    "DISCONNECTED" -> action = "com.svmessengermobile.CALL_ENDED"
+                    "REJECTED" -> action = "com.svmessengermobile.CALL_REJECTED"
+                    else -> {
+                        // For unknown states, still send CALL_STATE_CHANGED
+                    }
+                }
+            }
+            if (specificIntent.action != null) {
+                LocalBroadcastManager.getInstance(context).sendBroadcast(specificIntent)
+                Log.d("NotificationModule", "✅ Specific call state broadcast sent: ${specificIntent.action}")
+            }
+            
+            // CRITICAL: Also send CALL_STATE_CHANGED with state in extra (for new receivers)
+            val stateIntent = Intent("com.svmessengermobile.CALL_STATE_CHANGED").apply {
+                putExtra("state", stateUpper)
+            }
+            LocalBroadcastManager.getInstance(context).sendBroadcast(stateIntent)
+            Log.d("NotificationModule", "✅ CALL_STATE_CHANGED broadcast sent: state=$stateUpper")
+            
+            promise.resolve(true)
+        } catch (e: Exception) {
+            Log.e("NotificationModule", "❌ Error sending call state broadcast:", e)
+            e.printStackTrace()
+            promise.reject("BROADCAST_ERROR", "Error sending broadcast: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Show Full Screen Intent for incoming call from React Native background handler
+     * CRITICAL: This is called when app is closed and Firebase doesn't call onMessageReceived
+     * This method replicates the logic from SVMessengerFirebaseMessagingService.showNotification
+     */
+    @ReactMethod
+    fun showIncomingCallFullScreenIntent(data: ReadableMap, promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            Log.d("NotificationModule", "📞 showIncomingCallFullScreenIntent called from React Native background handler")
+            
+            // Extract call data
+            val conversationId = data.getString("conversationId")
+            val callerName = data.getString("callerName") ?: "Потребител"
+            val callerImageUrl = data.getString("callerImageUrl")
+            val participantId = data.getString("participantId")?.toLongOrNull()
+            
+            Log.d("NotificationModule", "📞 Call data: conversationId=$conversationId, callerName=$callerName, participantId=$participantId")
+            
+            // CRITICAL: Start foreground service to keep app alive
+            // This is ESSENTIAL for showing Full Screen Intent when app is completely closed
+            try {
+                IncomingCallService.startService(context, callerName)
+                Log.d("NotificationModule", "✅ Foreground service started for incoming call")
+            } catch (e: Exception) {
+                Log.e("NotificationModule", "❌ Failed to start foreground service:", e)
+                // Continue anyway - try to show Full Screen Intent even without service
+            }
+            
+            // CRITICAL: Use the same logic as SVMessengerFirebaseMessagingService.showNotification
+            // This ensures consistency and proper Full Screen Intent display
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channelId = NotificationChannelManager.CALLS_CHANNEL_ID
+            
+            // Generate unique notification ID (same logic as SVMessengerFirebaseMessagingService)
+            val timestamp = System.currentTimeMillis()
+            val notificationId = (timestamp and 0x7FFFFFFF).toInt() // Use timestamp as ID
+            
+            // Create Full Screen Intent
+            val fullScreenIntent = Intent(context, IncomingCallActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+                conversationId?.let { putExtra("conversationId", it) }
+                putExtra("callerName", callerName)
+                callerImageUrl?.let { putExtra("callerImageUrl", it) }
+                participantId?.let { putExtra("participantId", it) }
+            }
+            
+            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                notificationId,
+                fullScreenIntent,
+                pendingIntentFlags
+            )
+            
+            // Build notification with Full Screen Intent
+            val notificationBuilder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationCompat.Builder(context, channelId)
+            } else {
+                NotificationCompat.Builder(context)
+            }
+            
+            // CRITICAL: For Android Q+ (API 29+), use Full Screen Intent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                notificationBuilder.setFullScreenIntent(pendingIntent, true)
+                notificationBuilder.setPriority(NotificationCompat.PRIORITY_MAX)
+                notificationBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                notificationBuilder.setCategory(NotificationCompat.CATEGORY_CALL)
+                notificationBuilder.setOngoing(true)
+                notificationBuilder.setAutoCancel(false)
+                // Hide notification from bar - only show Full Screen Intent
+                notificationBuilder.setContentTitle("")
+                notificationBuilder.setContentText("")
+                notificationBuilder.setSmallIcon(android.R.drawable.ic_dialog_info)
+                notificationBuilder.setSound(null)
+                notificationBuilder.setVibrate(null)
+                notificationBuilder.setLights(0, 0, 0)
+                notificationBuilder.setShowWhen(false)
+                
+                // Post notification
+                val notification = notificationBuilder.build()
+                notificationManager.notify(notificationId, notification)
+                Log.d("NotificationModule", "✅ Full Screen Intent notification posted from React Native background handler")
+                
+                // Cancel notification after posting (same as SVMessengerFirebaseMessagingService)
+                val cancelDelays = intArrayOf(1, 5, 10, 25, 50, 100, 200, 500)
+                cancelDelays.forEach { delay ->
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        try {
+                            notificationManager.cancel(notificationId)
+                            notificationManager.cancelAll()
+                        } catch (e: Exception) {
+                            // Ignore errors
+                        }
+                    }, delay.toLong())
+                }
+                
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    try {
+                        notificationManager.cancelAll()
+                        Log.d("NotificationModule", "✅ Final safety cancel - removed ALL notifications")
+                    } catch (e: Exception) {
+                        // Ignore errors
+                    }
+                }, 1000)
+            } else {
+                // Android P and below - try to launch activity directly
+                try {
+                    context.startActivity(fullScreenIntent)
+                    Log.d("NotificationModule", "📞 Launched IncomingCallActivity directly (Android P-)")
+                } catch (e: Exception) {
+                    Log.e("NotificationModule", "❌ Failed to launch IncomingCallActivity directly:", e)
+                    promise.reject("LAUNCH_ERROR", "Failed to launch IncomingCallActivity: ${e.message}", e)
+                    return
+                }
+            }
+            
+            promise.resolve(notificationId)
+        } catch (e: Exception) {
+            Log.e("NotificationModule", "❌ Error showing Full Screen Intent:", e)
+            e.printStackTrace()
+            promise.reject("FULL_SCREEN_INTENT_ERROR", "Error showing Full Screen Intent: ${e.message}", e)
+        }
+    }
 }
+
+
 

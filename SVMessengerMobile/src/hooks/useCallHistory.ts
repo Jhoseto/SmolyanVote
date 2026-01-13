@@ -31,9 +31,16 @@ export const useCallHistory = (conversationId: number | null) => {
       const response = await apiClient.get<CallHistory[]>(endpoint);
       const callHistoryData = response.data || [];
       logger.info(`✅ [useCallHistory] Loaded ${callHistoryData.length} call history entries for conversation ${conversationId}`);
+      
+      // CRITICAL: Log first few entries for debugging
+      if (callHistoryData.length > 0) {
+        logger.info(`📞 [useCallHistory] First entry: id=${callHistoryData[0]?.id}, startTime=${callHistoryData[0]?.startTime}, status=${callHistoryData[0]?.status}`);
+      }
+      
       setCallHistory(callHistoryData);
     } catch (err: any) {
       logger.error('❌ [useCallHistory] Failed to fetch call history:', err);
+      logger.error('❌ [useCallHistory] Error details:', err.response?.data || err.message);
       setError(err.message || 'Failed to load call history');
       setCallHistory([]);
     } finally {

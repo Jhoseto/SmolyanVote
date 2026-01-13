@@ -8,6 +8,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import { useAuthStore } from '../store/authStore';
 import { logger } from '../utils/logger';
+import { API_CONFIG } from '../config/api';
 
 export const useWebSocketConnection = () => {
   const { isAuthenticated, user } = useAuthStore();
@@ -31,9 +32,28 @@ export const useWebSocketConnection = () => {
     const capturedCallbacks = { ...callbacks };
 
     const handleError = (error: any) => {
+      // CRITICAL FIX: Check if connection actually succeeded before showing error
+      // Sometimes timeout fires but connection succeeds shortly after
+      // This prevents false error messages when connection is actually working
+      const isActuallyConnected = svMobileWebSocketService.isConnected();
+      
+      if (isActuallyConnected) {
+        // Connection succeeded - don't show error or retry
+        logger.debug('✅ [useWebSocketConnection] Connection succeeded despite timeout - ignoring error');
+        isConnectingRef.current = false;
+        setIsConnected(true);
+        return;
+      }
+
       // Handle different error types
       if (error?.message?.includes('timeout')) {
-        logger.error('⏰ Connection timed out - network issues or server unreachable');
+        // CRITICAL FIX: Only log timeout as warning, not error, if we haven't exceeded max retries
+        // This reduces noise in logs when connection is retrying
+        if (reconnectAttemptsRef.current < 3) {
+          logger.warn('⏰ Connection timed out - retrying...');
+        } else {
+          logger.error('⏰ Connection timed out after multiple attempts - network issues or server unreachable');
+        }
       } else if (error?.message?.includes('401') || error?.message?.includes('403')) {
         logger.error('🔐 Authentication failed - token may be expired');
       } else if (error?.message?.includes('404')) {
@@ -51,6 +71,16 @@ export const useWebSocketConnection = () => {
       reconnectAttemptsRef.current++;
 
       reconnectTimeoutRef.current = setTimeout(() => {
+        // CRITICAL FIX: Check again if connection succeeded before retrying
+        // This prevents unnecessary retry attempts if connection succeeded during timeout
+        if (svMobileWebSocketService.isConnected()) {
+          logger.debug('✅ [useWebSocketConnection] Connection succeeded during retry delay - cancelling retry');
+          isConnectingRef.current = false;
+          setIsConnected(true);
+          reconnectAttemptsRef.current = 0; // Reset attempts on success
+          return;
+        }
+
         isConnectingRef.current = false; // Reset before retry
         // CRITICAL FIX Bug 1: Use captured callbacks from closure, not mutable ref
         // This ensures callback continuity - retry uses the same callbacks as the original failed attempt
@@ -64,6 +94,8 @@ export const useWebSocketConnection = () => {
     };
 
     try {
+      // Log connection attempt with URL for debugging
+      logger.info(`🔌 [useWebSocketConnection] Attempting WebSocket connection to: ${API_CONFIG.WS_URL}`);
 
       // Reset reconnect attempts on successful connection start
       reconnectAttemptsRef.current = 0;
@@ -73,6 +105,7 @@ export const useWebSocketConnection = () => {
         svMobileWebSocketService.connect({
           ...callbacks,
           onConnect: () => {
+            logger.info('✅ [useWebSocketConnection] WebSocket connected successfully');
             reconnectAttemptsRef.current = 0; // Reset attempts on success
             isConnectingRef.current = false;
             setIsConnected(true); // Update connection status
@@ -80,7 +113,7 @@ export const useWebSocketConnection = () => {
             resolve();
           },
           onError: (error: any) => {
-            console.error('❌ WebSocket connection error:', error);
+            logger.error('❌ [useWebSocketConnection] WebSocket connection error:', error);
             isConnectingRef.current = false;
             setIsConnected(false); // Update connection status
             if (callbacks.onError) callbacks.onError(error);
@@ -89,13 +122,27 @@ export const useWebSocketConnection = () => {
         });
       });
 
+      // CRITICAL FIX: Increased timeout to 30s for SockJS connections
+      // SockJS can take longer to establish, especially on slow networks or when server is starting
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('WebSocket connection timeout')), 10000);
+        setTimeout(() => reject(new Error('WebSocket connection timeout')), 30000);
       });
 
       await Promise.race([connectionPromise, timeoutPromise]);
     } catch (error: any) {
-      console.error('❌ WebSocket connection failed:', error);
+      // CRITICAL FIX: Check if connection actually succeeded before handling error
+      // Sometimes timeout fires but connection succeeds shortly after
+      const isActuallyConnected = svMobileWebSocketService.isConnected();
+      
+      if (isActuallyConnected) {
+        // Connection succeeded - don't show error or retry
+        logger.debug('✅ [useWebSocketConnection] Connection succeeded despite timeout - ignoring error');
+        isConnectingRef.current = false;
+        setIsConnected(true);
+        return;
+      }
+
+      logger.error('❌ [useWebSocketConnection] WebSocket connection failed:', error);
       isConnectingRef.current = false;
       setIsConnected(false); // Update connection status
       handleError(error);
@@ -103,16 +150,22 @@ export const useWebSocketConnection = () => {
   }, [user]);
 
   const disconnectWebSocket = useCallback(() => {
+    // CRITICAL FIX: Cancel any pending retry attempts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
 
+    // CRITICAL FIX: Reset connection state
+    isConnectingRef.current = false;
+    reconnectAttemptsRef.current = 0;
+
     try {
       svMobileWebSocketService.disconnect();
       setIsConnected(false); // Update connection status
+      logger.debug('✅ [useWebSocketConnection] WebSocket disconnected');
     } catch (error) {
-      console.error('❌ Error disconnecting WebSocket:', error);
+      logger.error('❌ [useWebSocketConnection] Error disconnecting WebSocket:', error);
       setIsConnected(false); // Update connection status even on error
     }
   }, []);
@@ -158,6 +211,13 @@ export const useWebSocketConnection = () => {
       setIsConnected((prevConnected) => {
         // Only update if state actually changed to avoid unnecessary re-renders
         if (prevConnected !== connected) {
+          // CRITICAL FIX: Reset reconnect attempts when connection succeeds
+          if (connected) {
+            reconnectAttemptsRef.current = 0;
+            logger.debug('✅ [useWebSocketConnection] Connection status updated: connected');
+          } else {
+            logger.debug('⚠️ [useWebSocketConnection] Connection status updated: disconnected');
+          }
           return connected;
         }
         return prevConnected;
@@ -167,8 +227,8 @@ export const useWebSocketConnection = () => {
     // Check immediately
     checkConnection();
 
-    // Check periodically (every 2 seconds)
-    const interval = setInterval(checkConnection, 2000);
+    // Check periodically (every 5 seconds - reduced frequency to avoid battery drain)
+    const interval = setInterval(checkConnection, 5000);
 
     return () => clearInterval(interval);
   }, []);

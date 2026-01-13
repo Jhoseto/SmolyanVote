@@ -264,7 +264,11 @@ export const svMessengerAPI = {
   /**
    * Вземи call history за конкретен разговор
    */
+  /**
+   * Вземи call history за разговор
+   * CRITICAL FIX: Endpoint must match backend: /conversations/{id}/call-history
+   */
   getCallHistory: async (conversationId) => {
-    return fetchAPI(`${BASE_URL}/call-history/${conversationId}`);
+    return fetchAPI(`${BASE_URL}/conversations/${conversationId}/call-history`);
   }
 };

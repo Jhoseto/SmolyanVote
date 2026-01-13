@@ -33,6 +33,7 @@ import { CallState } from '../../types/call';
 import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
+import { logger } from '../../utils/logger';
 
 type ChatScreenRouteProp = RouteProp<ConversationsStackParamList, 'Chat'>;
 
@@ -124,12 +125,21 @@ export const ChatScreen: React.FC = () => {
     
     // Add call history
     // CRITICAL FIX: Ensure call history is properly added to chat items
+    logger.info(`📞 [ChatScreen] Processing call history: ${callHistory?.length || 0} entries`);
     if (callHistory && Array.isArray(callHistory) && callHistory.length > 0) {
-      callHistory.forEach(call => {
-        if (call && call.id && call.startTime) {
+      callHistory.forEach((call, index) => {
+        logger.info(`📞 [ChatScreen] Call ${index}: id=${call?.id}, startTime=${call?.startTime}, status=${call?.status}`);
+        // CRITICAL FIX: Check if call has required fields - id and startTime are required
+        // startTime can be string (ISO format) or Date object
+        if (call && call.id != null && call.startTime != null) {
           items.push({ type: 'callHistory', data: call });
+          logger.info(`✅ [ChatScreen] Added call history item ${index} to chat items`);
+        } else {
+          logger.warn(`⚠️ [ChatScreen] Skipping call history item ${index}: missing required fields (id=${call?.id}, startTime=${call?.startTime})`);
         }
       });
+    } else {
+      logger.info(`📞 [ChatScreen] No call history to add: callHistory=${callHistory}, isArray=${Array.isArray(callHistory)}, length=${callHistory?.length || 0}`);
     }
     
     // CRITICAL FIX: Sort by time ascending (oldest first, newest last)
@@ -150,15 +160,67 @@ export const ChatScreen: React.FC = () => {
   // Track last message ID to detect new messages
   const lastMessageIdRef = useRef<number | null>(null);
   const lastMessageCountRef = useRef(0);
+  const previousConversationIdRef = useRef<number | null>(null);
 
-  // Auto-scroll to bottom when messages change
+  // CRITICAL FIX: Reset all scroll refs when conversation changes
+  // This ensures auto-scroll works correctly when opening a new chat
+  useEffect(() => {
+    if (previousConversationIdRef.current !== conversationId) {
+      // Conversation changed - reset all scroll tracking
+      hasScrolledRef.current = false;
+      lastMessageIdRef.current = null;
+      lastMessageCountRef.current = 0;
+      previousConversationIdRef.current = conversationId;
+      logger.debug(`📜 [ChatScreen] Conversation changed to ${conversationId} - reset scroll refs`);
+    }
+  }, [conversationId]);
+
+  // CRITICAL FIX: Auto-scroll to bottom when messages finish loading for the first time
+  // This ensures chat always opens at the bottom showing the latest messages
+  useEffect(() => {
+    if (!isLoading && messages.length > 0 && flatListRef.current && !hasScrolledRef.current) {
+      logger.debug(`📜 [ChatScreen] Messages loaded (${messages.length} messages) - scrolling to bottom`);
+      
+      // Use multiple attempts to ensure scroll happens after layout
+      const scrollToBottom = () => {
+        if (flatListRef.current && !hasScrolledRef.current) {
+          try {
+            flatListRef.current.scrollToEnd({ animated: false });
+            hasScrolledRef.current = true;
+            logger.debug('✅ [ChatScreen] Scrolled to bottom successfully');
+          } catch (error) {
+            logger.error('❌ [ChatScreen] Error scrolling to bottom:', error);
+          }
+        }
+      };
+
+      // Try immediately
+      scrollToBottom();
+      
+      // Try after a short delay (for layout)
+      const timeout1 = setTimeout(scrollToBottom, 100);
+      
+      // Try after longer delay (for content size)
+      const timeout2 = setTimeout(scrollToBottom, 300);
+      
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+      };
+    }
+  }, [isLoading, messages.length, conversationId]);
+
+  // Auto-scroll to bottom when new messages arrive (after initial load)
+  // This handles new messages that arrive while user is viewing the chat
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     const lastMessageId = lastMessage?.id || null;
     const messageCount = messages.length;
 
     // Only scroll if we have new messages (count changed or last message ID changed)
-    if (messages.length > 0 && flatListRef.current && 
+    // AND we've already done the initial scroll (hasScrolledRef.current === true)
+    // This prevents scrolling during initial load (handled by previous effect)
+    if (messages.length > 0 && flatListRef.current && hasScrolledRef.current &&
         (messageCount !== lastMessageCountRef.current || lastMessageId !== lastMessageIdRef.current)) {
       lastMessageIdRef.current = lastMessageId;
       lastMessageCountRef.current = messageCount;
@@ -167,42 +229,15 @@ export const ChatScreen: React.FC = () => {
       requestAnimationFrame(() => {
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
+          logger.debug('📜 [ChatScreen] New message arrived - scrolled to bottom');
         }, 100);
       });
+    } else if (messages.length > 0) {
+      // Update refs even if we don't scroll (for tracking)
+      lastMessageIdRef.current = lastMessageId;
+      lastMessageCountRef.current = messageCount;
     }
   }, [messages.length, messages[messages.length - 1]?.id]);
-
-  // CRITICAL FIX Bug 3: Reset scroll flag immediately when conversation changes
-  // This ensures auto-scroll handlers work correctly even when switching conversations during loading
-  useEffect(() => {
-    hasScrolledRef.current = false; // Reset scroll flag when conversation changes
-  }, [conversationId]);
-
-  // Scroll to bottom when component mounts with messages or when messages finish loading
-  // CRITICAL FIX Bug 2 & 3: Set hasScrolledRef to true after initial scroll to prevent aggressive auto-scrolling
-  // CRITICAL FIX Bug 2: Add cleanup function to cancel timeout when dependencies change
-  // CRITICAL FIX Bug 1: Check hasScrolledRef before scrolling to prevent redundant scrolls
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current && !isLoading) {
-      // Wait for layout to complete before scrolling
-      const timeoutId = setTimeout(() => {
-        // CRITICAL FIX Bug 1: Check if already scrolled by onLayout/onContentSizeChange handlers
-        // This prevents redundant scroll operations if handlers already scrolled
-        if (!hasScrolledRef.current && flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: false });
-          // CRITICAL FIX: Mark as scrolled after initial scroll completes
-          // This prevents onContentSizeChange and onLayout from triggering more scrolls
-          hasScrolledRef.current = true;
-        }
-      }, 500); // Increased timeout to ensure messages are rendered
-      
-      // CRITICAL FIX Bug 2: Cleanup timeout when conversation changes or component unmounts
-      // This prevents pending timeouts from previous conversations from scrolling in new conversation
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [conversationId, isLoading, messages.length]);
 
   const handleInputChange = (text: string) => {
     setInputText(text);
@@ -427,25 +462,33 @@ export const ChatScreen: React.FC = () => {
         }}
         scrollEventThrottle={400}
         onContentSizeChange={() => {
-          // CRITICAL FIX Bug 2 & 3: Only auto-scroll on initial load, not on every content change
+          // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
           // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
           // This allows users to scroll up and read older messages without being forced back to bottom
-          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current) {
+          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
             setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-              // Mark as scrolled after initial scroll
-              hasScrolledRef.current = true;
+              try {
+                flatListRef.current?.scrollToEnd({ animated: false });
+                hasScrolledRef.current = true;
+                logger.debug('✅ [ChatScreen] Scrolled to bottom via onContentSizeChange');
+              } catch (error) {
+                logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
+              }
             }, 100);
           }
         }}
         onLayout={() => {
-          // CRITICAL FIX Bug 2 & 3: Only auto-scroll on initial load, not on every layout change
+          // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
           // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current) {
+          if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
             setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-              // Mark as scrolled after initial scroll
-              hasScrolledRef.current = true;
+              try {
+                flatListRef.current?.scrollToEnd({ animated: false });
+                hasScrolledRef.current = true;
+                logger.debug('✅ [ChatScreen] Scrolled to bottom via onLayout');
+              } catch (error) {
+                logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
+              }
             }, 150);
           }
         }}

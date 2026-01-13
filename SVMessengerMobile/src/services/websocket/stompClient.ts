@@ -105,8 +105,11 @@ class SVMobileWebSocketService {
 
       // Create plain WebSocket connection URL with token
       const wsUrl = API_CONFIG.WS_URL;
+      logger.info(`🔌 [stompClient] Connecting to WebSocket: ${wsUrl}`);
 
       // Create STOMP client with SockJS (standard approach за React Native + Spring Boot)
+      // CRITICAL FIX: Disable automatic reconnection in STOMP client - we handle it in useWebSocketConnection
+      // This prevents conflicts between STOMP's reconnect and our custom retry logic
       this.client = new Client({
         webSocketFactory: () => new SockJS(wsUrl),
 
@@ -120,8 +123,10 @@ class SVMobileWebSocketService {
           // No debug logging
         },
 
-        // Reconnect settings
-        reconnectDelay: this.reconnectDelay,
+        // CRITICAL FIX: Disable automatic reconnection - we handle it in useWebSocketConnection
+        // Setting reconnectDelay to 0 disables STOMP's automatic reconnection
+        // This prevents conflicts with our custom retry logic in useWebSocketConnection
+        reconnectDelay: 0, // Disable STOMP auto-reconnect
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
 
@@ -151,23 +156,28 @@ class SVMobileWebSocketService {
 
         // Connection error callback
         onStompError: (frame) => {
-          logger.error('❌ STOMP connection error:', frame);
+          logger.error('❌ [stompClient] STOMP connection error:', {
+            command: frame?.command,
+            headers: frame?.headers,
+            body: frame?.body?.substring(0, 200), // Limit body length for logging
+          });
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onError(frame);
 
-          // Retry connection
-          this.handleReconnect();
+          // CRITICAL FIX: Don't call handleReconnect here - let useWebSocketConnection handle retries
+          // This prevents duplicate retry attempts and conflicts
         },
 
         // WebSocket close callback
         onWebSocketClose: () => {
+          logger.info('🔌 [stompClient] WebSocket closed');
           this.connected = false;
           this.isConnecting = false; // Reset connecting flag
           onDisconnect();
 
-          // Retry connection
-          this.handleReconnect();
+          // CRITICAL FIX: Don't call handleReconnect here - let useWebSocketConnection handle retries
+          // This prevents duplicate retry attempts and conflicts
         }
       });
 

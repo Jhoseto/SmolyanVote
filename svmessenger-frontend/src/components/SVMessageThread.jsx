@@ -82,7 +82,13 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   }, [messages.length, isLoading]);
 
   // Group messages and call history by date
+  console.log(`📞 [SVMessageThread] Processing: ${messages.length} messages, ${callHistory.length} call history entries`);
   const groupedItems = groupMessagesByDate(messages, callHistory);
+  console.log(`📞 [SVMessageThread] Grouped items: ${groupedItems.length} total items (including date separators)`);
+  
+  // Log call history items
+  const callHistoryItems = groupedItems.filter(item => item.type === 'callHistory');
+  console.log(`📞 [SVMessageThread] Call history items in grouped: ${callHistoryItems.length}`);
 
   return (
     <div className="svmessenger-message-thread" ref={threadRef}>

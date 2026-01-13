@@ -231,6 +231,14 @@ public interface SVMessengerService {
                          String status, Boolean isVideoCall);
 
     /**
+     * Обработи call signal и запази call history ако е необходимо
+     * Този метод обработва WebSocket call signals и записва call history в базата данни
+     *
+     * @param signal Call signal от WebSocket
+     */
+    void handleCallSignalForHistory(smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO signal);
+
+    /**
      * Вземи call history за разговор
      *
      * @param conversationId ID на разговора

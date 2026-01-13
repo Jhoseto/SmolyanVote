@@ -25,6 +25,11 @@ public class SVCallSignalDTO {
     private String callerName;
     private String callerAvatar;
 
+    // Call history fields
+    private String startTime; // ISO string format for call start time
+    private String endTime;   // ISO string format for call end time
+    private Boolean isVideoCall; // Whether this is a video call
+
     // Simplified constructor
     public SVCallSignalDTO(SVCallEventType eventType, Long conversationId, Long callerId, Long receiverId) {
         this.eventType = eventType;

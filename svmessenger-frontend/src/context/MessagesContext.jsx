@@ -588,13 +588,22 @@ export const MessagesProvider = ({ children, currentUser }) => {
         setLoadingCallHistory(prev => ({ ...prev, [conversationId]: true }));
 
         try {
+            console.log(`📞 [MessagesContext] Loading call history for conversation ${conversationId}`);
             const callHistory = await svMessengerAPI.getCallHistory(conversationId);
+            console.log(`✅ [MessagesContext] Loaded ${Array.isArray(callHistory) ? callHistory.length : 0} call history entries for conversation ${conversationId}`);
+            
+            // CRITICAL: Log first few entries for debugging
+            if (Array.isArray(callHistory) && callHistory.length > 0) {
+                console.log(`📞 [MessagesContext] First entry: id=${callHistory[0]?.id}, startTime=${callHistory[0]?.startTime}, status=${callHistory[0]?.status}`);
+            }
+            
             setCallHistoryByConversation(prev => ({
                 ...prev,
                 [conversationId]: Array.isArray(callHistory) ? callHistory : []
             }));
         } catch (error) {
-            console.error('Failed to load call history:', error);
+            console.error('❌ [MessagesContext] Failed to load call history:', error);
+            console.error('❌ [MessagesContext] Error details:', error.response?.data || error.message);
             setCallHistoryByConversation(prev => ({ ...prev, [conversationId]: [] }));
         } finally {
             setLoadingCallHistory(prev => ({ ...prev, [conversationId]: false }));

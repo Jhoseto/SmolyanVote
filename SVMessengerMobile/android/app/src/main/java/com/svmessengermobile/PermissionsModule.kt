@@ -1,6 +1,7 @@
 package com.svmessengermobile
 
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,25 +27,60 @@ class PermissionsModule(reactContext: ReactApplicationContext) : ReactContextBas
 
     /**
      * Check if Full Screen Intent permission is granted
-     * This permission can't be requested runtime - user must enable it in Settings
+     * CRITICAL: On Android 12+ (API 31+), USE_FULL_SCREEN_INTENT is a special permission
+     * that can be checked but not requested runtime. User must enable it in Settings.
+     * On Android 11 and below, it's granted automatically if declared in manifest.
      */
     @ReactMethod
     fun checkFullScreenIntentPermission(promise: Promise) {
         try {
-            // Full Screen Intent permission is granted if app can show notifications
-            // We can't directly check this, but we can check if notifications are enabled
             val notificationManager = reactApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            
             val result = Arguments.createMap()
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val areNotificationsEnabled = notificationManager.areNotificationsEnabled()
-                result.putBoolean("granted", areNotificationsEnabled)
-                result.putBoolean("canRequest", false) // Can't request runtime
+            // CRITICAL FIX: Check notifications first - Full Screen Intent requires notifications to be enabled
+            val areNotificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                notificationManager.areNotificationsEnabled()
             } else {
-                // Android 6 and below - assume granted
+                true // Android 6 and below - assume enabled
+            }
+            
+            if (!areNotificationsEnabled) {
+                // Notifications are disabled - Full Screen Intent won't work
+                result.putBoolean("granted", false)
+                result.putBoolean("canRequest", false)
+                result.putString("reason", "Notifications are disabled")
+                promise.resolve(result)
+                return
+            }
+            
+            // CRITICAL FIX: On Android 12+ (API 31+), check if app can use Full Screen Intent
+            // This requires checking notification channel importance and system settings
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+ (API 31+): Full Screen Intent permission is granted if:
+                // 1. Notifications are enabled (already checked)
+                // 2. App is not restricted by system
+                // We can't directly check USE_FULL_SCREEN_INTENT, but we can check if notifications work
+                // If notifications work and channel has IMPORTANCE_HIGH, Full Screen Intent should work
+                val callsChannel = notificationManager.getNotificationChannel(NotificationChannelManager.CALLS_CHANNEL_ID)
+                val channelImportance = callsChannel?.importance ?: NotificationManager.IMPORTANCE_DEFAULT
+                
+                // Full Screen Intent requires IMPORTANCE_HIGH or higher
+                val hasHighImportance = channelImportance >= NotificationManager.IMPORTANCE_HIGH
+                
+                result.putBoolean("granted", hasHighImportance)
+                result.putBoolean("canRequest", false) // Can't request runtime on Android 12+
+                result.putString("reason", if (hasHighImportance) "Granted" else "Notification channel importance too low")
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10-11 (API 29-30): Full Screen Intent is granted if notifications are enabled
+                // and app has USE_FULL_SCREEN_INTENT in manifest (already declared)
                 result.putBoolean("granted", true)
                 result.putBoolean("canRequest", false)
+                result.putString("reason", "Granted (Android 10-11)")
+            } else {
+                // Android 9 and below - granted automatically if in manifest
+                result.putBoolean("granted", true)
+                result.putBoolean("canRequest", false)
+                result.putString("reason", "Granted (Android 9 and below)")
             }
             
             promise.resolve(result)

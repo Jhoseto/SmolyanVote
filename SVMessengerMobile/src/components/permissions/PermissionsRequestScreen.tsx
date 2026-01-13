@@ -240,10 +240,36 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
         appPermissionsService.showBlockedPermissionsAlert(blockedPermissions);
       }
 
-      // Complete regardless of result - user can enable later in settings
+      // CRITICAL: Check if ALL permissions are granted - MANDATORY
       const allGranted = await appPermissionsService.areAllCriticalPermissionsGranted();
       const batteryOk = batteryStatus.isIgnoring;
-      onComplete(allGranted && batteryOk);
+      
+      // CRITICAL: Only complete if ALL permissions are granted
+      // If any permission is missing, show alert and don't allow to continue
+      if (!allGranted || !batteryOk) {
+        // Show alert explaining which permissions are missing
+        const missingPermissions: string[] = [];
+        if (!status.notifications.granted) missingPermissions.push('Нотификации');
+        if (!status.microphone.granted) missingPermissions.push('Микрофон');
+        if (!status.camera.granted) missingPermissions.push('Камера');
+        if (!batteryOk) missingPermissions.push('Оптимизация на батерията');
+        
+        if (missingPermissions.length > 0) {
+          // Show alert with missing permissions
+          const { Alert } = require('react-native');
+          Alert.alert(
+            'Задължителни разрешения',
+            `Следните разрешения са задължителни:\n\n${missingPermissions.join('\n')}\n\nМоля, разрешете всички разрешения за да продължите.`,
+            [{ text: 'Разбрах', onPress: () => {} }]
+          );
+        }
+        
+        // Don't complete - user must grant all permissions
+        return;
+      }
+      
+      // All permissions granted - allow to continue
+      onComplete(true);
     } catch (error) {
       logger.error('Error requesting permissions:', error);
       onComplete(false);
@@ -252,18 +278,9 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
     }
   };
 
-  const handleSkip = async () => {
-    // CRITICAL FIX: Mark permissions as requested even when user skips
-    // This prevents the permissions screen from showing repeatedly on every app launch
-    // User can still grant permissions later in Settings if needed
-    try {
-      await appPermissionsService.markPermissionsRequested();
-    } catch (error) {
-      logger.error('Error marking permissions as requested:', error);
-    }
-    // Allow user to skip - permissions can be requested later
-    onComplete(false);
-  };
+  // CRITICAL: Removed handleSkip - permissions are now MANDATORY
+  // User MUST grant all permissions before app can continue
+  // This ensures incoming calls work properly when app is closed/minimized
 
   if (loading) {
     return (
@@ -354,14 +371,26 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
           </View>
         </View>
 
-        {/* Warning Box - Critical */}
+        {/* Warning Box - Critical - MANDATORY */}
         <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>⚠️ ВАЖНО</Text>
+          <Text style={styles.warningTitle}>⚠️ ЗАДЪЛЖИТЕЛНО</Text>
           <Text style={styles.warningText}>
-            Без тези разрешения приложението <Text style={styles.warningBold}>НЯМА ДА РАБОТИ ПРАВИЛНО</Text>. Може да не получавате нотификации, да не можете да правите обаждания или да не виждате входящи обаждания когато приложението е затворено.
+            Без тези разрешения приложението <Text style={styles.warningBold}>НЕ МОЖЕ ДА РАБОТИ</Text>. Всички разрешения са <Text style={styles.warningBold}>ЗАДЪЛЖИТЕЛНИ</Text> за да работи приложението правилно.
+          </Text>
+          <Text style={styles.warningText}>
+            Без разрешенията:
+          </Text>
+          <Text style={styles.warningText}>
+            • Няма да получавате нотификации за нови съобщения
+          </Text>
+          <Text style={styles.warningText}>
+            • Няма да можете да правите обаждания
+          </Text>
+          <Text style={styles.warningText}>
+            • <Text style={styles.warningBold}>НЯМА ДА ВИЖДЕТЕ ВХОДЯЩИ ОБАЖДАНИЯ когато приложението е затворено или телефонът е заключен</Text>
           </Text>
           <Text style={styles.warningSubtext}>
-            Моля, разрешете всички разрешения за оптимална работа на приложението.
+            Моля, разрешете ВСИЧКИ разрешения за да продължите. Без тях приложението не може да работи.
           </Text>
         </View>
 
@@ -378,13 +407,8 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton, styles.secondaryButtonMargin]}
-            onPress={handleSkip}
-            disabled={requesting}
-          >
-            <Text style={[styles.buttonText, styles.secondaryButtonText]}>По-късно</Text>
-          </TouchableOpacity>
+          {/* CRITICAL: Remove "Skip" button - permissions are MANDATORY for app to work */}
+          {/* User MUST grant all permissions before continuing */}
         </View>
       </View>
     </ScrollView>

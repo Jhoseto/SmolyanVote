@@ -222,7 +222,29 @@ try {
   if (messaging) {
     messaging().setBackgroundMessageHandler(async (remoteMessage) => {
       console.log('Background notification received:', remoteMessage);
-      // Handle background notification here
+      
+      // CRITICAL: Handle incoming calls when app is closed
+      // When app is closed, Firebase may not call onMessageReceived even for data-only messages
+      // We need to show Full Screen Intent from React Native background handler
+      if (remoteMessage?.data?.type === 'INCOMING_CALL') {
+        console.log('📞 Incoming call received in background handler - showing Full Screen Intent');
+        
+        try {
+          // Import NativeModules dynamically (it's available in background handler)
+          const { NativeModules } = require('react-native');
+          const { NotificationModule } = NativeModules;
+          
+          if (NotificationModule?.showIncomingCallFullScreenIntent) {
+            await NotificationModule.showIncomingCallFullScreenIntent(remoteMessage.data);
+            console.log('✅ Full Screen Intent shown from background handler');
+          } else {
+            console.error('❌ NotificationModule.showIncomingCallFullScreenIntent not available');
+          }
+        } catch (error) {
+          console.error('❌ Error showing Full Screen Intent from background handler:', error);
+        }
+      }
+      
       // Note: This runs in a separate thread, so you can't use React hooks or navigation here
     });
     console.log('✅ Firebase background message handler registered');

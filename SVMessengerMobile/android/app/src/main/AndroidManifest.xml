@@ -9,6 +9,14 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Full Screen Intent permission - REQUIRED for incoming call UI when app is closed -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- SCHEDULE_EXACT_ALARM permission for Android 12+ (API 31+) - Required for precise notifications -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS - Required for reliable background notifications -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- FOREGROUND_SERVICE permission - Required for foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- FOREGROUND_SERVICE_PHONE_CALL permission - Required for phone call foreground service on Android 14+ (API 34+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     
     <!-- Permissions for voice and video calls -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -112,5 +120,14 @@
           <action android:name="com.google.firebase.MESSAGING_EVENT" />
         </intent-filter>
       </service>
+      
+      <!-- Incoming Call Foreground Service -->
+      <!-- CRITICAL: Foreground service за входящи обаждания когато app-ът е затворен
+           Това гарантира че app-ът остава жив достатъчно дълго за да покаже Full Screen Intent
+           Professional Best Practice: Използван от WhatsApp, Telegram, Facebook Messenger -->
+      <service
+        android:name=".IncomingCallService"
+        android:exported="false"
+        android:foregroundServiceType="phoneCall" />
     </application>
 </manifest>

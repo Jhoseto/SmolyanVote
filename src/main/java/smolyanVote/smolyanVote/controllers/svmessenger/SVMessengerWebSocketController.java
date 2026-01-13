@@ -198,6 +198,10 @@ public class SVMessengerWebSocketController {
                 }
             }
 
+            // ✅ CRITICAL: Handle call signal for history (save to database)
+            // This ensures call history is recorded in the database for display in chat
+            messengerService.handleCallSignalForHistory(signal);
+
         } catch (Exception e) {
             log.error("Error handling call signal via WebSocket", e);
         }

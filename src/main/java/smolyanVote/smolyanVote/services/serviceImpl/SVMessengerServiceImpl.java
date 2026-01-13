@@ -26,6 +26,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.CallHistoryDTO;
 import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -755,6 +756,72 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         } catch (Exception e) {
             log.error("Error getting call history for conversation {}: {}", conversationId, e.getMessage(), e);
             throw new RuntimeException("Failed to get call history", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void handleCallSignalForHistory(smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO signal) {
+        try {
+            // Only handle signals that require call history to be saved
+            if (signal.getEventType() == null) {
+                return;
+            }
+
+            smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType eventType = signal.getEventType();
+            
+            // Determine if this event requires call history to be saved
+            // Note: CALL_CANCEL and CALL_MISSED may not exist in enum yet, so we check for what exists
+            if (eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END &&
+                eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT) {
+                // For now, only handle CALL_END and CALL_REJECT
+                // CALL_CANCEL and CALL_MISSED can be added later if needed
+                return;
+            }
+
+            // Determine call status based on event type
+            String callStatus;
+            if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END) {
+                callStatus = "ACCEPTED";
+            } else if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT) {
+                callStatus = "REJECTED";
+            } else {
+                return; // Unknown event type
+            }
+
+            // Parse timestamps from signal
+            // Use timestamp as fallback if startTime/endTime are not provided
+            java.time.Instant startTime = signal.getTimestamp() != null ? signal.getTimestamp() : java.time.Instant.now();
+            java.time.Instant endTime;
+            
+            // For ACCEPTED calls, endTime should be now
+            // For REJECTED calls, endTime can be same as startTime
+            if (callStatus.equals("ACCEPTED")) {
+                endTime = java.time.Instant.now();
+            } else {
+                endTime = startTime; // Same as startTime for non-accepted calls
+            }
+
+            // Determine if it's a video call (default to false if not specified)
+            Boolean isVideoCall = false; // Default to false for now
+
+            // Save call history
+            saveCallHistory(
+                    signal.getConversationId(),
+                    signal.getCallerId(),
+                    signal.getReceiverId(),
+                    startTime,
+                    endTime,
+                    callStatus,
+                    isVideoCall
+            );
+
+            log.info("✅ Saved call history: conversationId={}, callerId={}, receiverId={}, status={}, startTime={}, endTime={}",
+                    signal.getConversationId(), signal.getCallerId(), signal.getReceiverId(),
+                    callStatus, startTime, endTime);
+        } catch (Exception e) {
+            log.error("❌ Failed to handle call signal for history: {}", e.getMessage(), e);
+            // Don't throw - this is a non-critical operation
         }
     }
 
