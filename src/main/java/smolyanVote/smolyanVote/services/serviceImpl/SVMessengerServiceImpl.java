@@ -899,6 +899,12 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     durationSeconds = 0;
             }
 
+            // CRITICAL: Log call history data for debugging
+            log.debug("📞 [handleCallSignalForHistory] Processing call history: conversationId={}, callerId={}, receiverId={}, " +
+                            "startTime={}, endTime={}, durationSeconds={}, wasConnected={}, eventType={}",
+                    signal.getConversationId(), signal.getCallerId(), signal.getReceiverId(),
+                    startTime, endTime, durationSeconds, signal.getWasConnected(), eventType);
+
             // CRITICAL FIX: Determine correct status based on Event Type AND Duration
             String callStatus;
 
@@ -911,17 +917,27 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 // It's CALL_END / CALL_ENDED
                 Boolean wasConnected = signal.getWasConnected();
 
-                if (Boolean.TRUE.equals(wasConnected)) {
+                // CRITICAL FIX: Improved logic to determine if call was successful
+                // A call is ACCEPTED if:
+                // 1. wasConnected flag is explicitly true, OR
+                // 2. duration is > 1 second (indicating actual conversation happened)
+                // This prevents false MISSED/CANCELLED status when wasConnected flag is missing but call was successful
+                boolean isAccepted = Boolean.TRUE.equals(wasConnected) || durationSeconds > 1;
+
+                if (isAccepted) {
                     // Call was connected -> ACCEPTED
                     callStatus = "ACCEPTED";
-                    // Ensure duration is at least 1s if it was connected but duration calc is 0
-                    if (durationSeconds == 0)
+                    // Ensure duration is at least 1s if it was connected but duration calc is 0 or negative
+                    if (durationSeconds <= 0)
                         durationSeconds = 1;
-                } else if (durationSeconds > 0) {
-                    // Fallback: if no flag but duration > 0 -> ACCEPTED
-                    callStatus = "ACCEPTED";
+                    log.debug("📞 [handleCallSignalForHistory] Call marked as ACCEPTED: conversationId={}, duration={}s, wasConnected={}",
+                            signal.getConversationId(), durationSeconds, wasConnected);
                 } else {
-                    // Duration is 0 and not connected
+                    log.debug("📞 [handleCallSignalForHistory] Call marked as {}: conversationId={}, duration={}s, wasConnected={}",
+                            (signal.getCallerId().equals(signal.getReceiverId()) ? "MISSED" : "CANCELLED"),
+                            signal.getConversationId(), durationSeconds, wasConnected);
+                    // Duration is <= 1 second and not connected
+                    // This means call was never actually connected (rejected before accept or cancelled immediately)
                     // If Caller ended it -> CANCELLED
                     // If Receiver ended it -> MISSED
 

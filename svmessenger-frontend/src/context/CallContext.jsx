@@ -279,6 +279,11 @@ export const CallProvider = ({ children, currentUser }) => {
             };
             svWebSocketService.sendCallSignal(signal);
 
+            // CRITICAL: Reset call end signal flag for new call
+            callEndSignalSentRef.current = false;
+            // CRITICAL: Reset connection tracker
+            hasEverConnectedRef.current = false;
+
             // Open popup window
             const popupUrl = buildCallWindowUrl({
                 token: tokenResponse.token,
@@ -905,6 +910,9 @@ export const CallProvider = ({ children, currentUser }) => {
                     // CRITICAL: CALL_END signal was already sent from popup window
                     // Just update local state, don't send another signal
                     console.log('📞 CALL_ENDED_FROM_POPUP received - call was ended from popup');
+
+                    // CRITICAL: Set flag to prevent main window from sending duplicate signal
+                    callEndSignalSentRef.current = true;
 
                     // CRITICAL FIX: Clear the interval to prevent main window from triggering endCall
                     if (popupCheckIntervalRef.current) {

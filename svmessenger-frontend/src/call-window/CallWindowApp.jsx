@@ -67,27 +67,6 @@ const CallWindowApp = ({ callData }) => {
         }
     }, []);
 
-    // CRITICAL: Helper to mark call as connected and set start time
-    // This should ONLY be called when we are sure a conversation has started (participant joined/track subscribed)
-    const markCallAsConnected = useCallback(() => {
-        hasConnectedParticipantRef.current = true;
-
-        if (!callStartTimeRef.current) {
-            callStartTimeRef.current = new Date();
-            console.log('📞 [CallWindow] Conversation started (Participant/Track detected). Start time:', callStartTimeRef.current.toISOString());
-
-            // CRITICAL: Notify main window about call start time via BroadcastChannel
-            if (callChannelRef.current) {
-                callChannelRef.current.postMessage({
-                    type: 'CALL_START_TIME',
-                    data: {
-                        startTime: callStartTimeRef.current.toISOString()
-                    }
-                });
-            }
-        }
-    }, []);
-
     // Connect to LiveKit room
     const connectToLiveKit = useCallback(async () => {
         try {
@@ -113,7 +92,16 @@ const CallWindowApp = ({ callData }) => {
                 if (room.participants && room.participants.size > 0) {
                     // CRITICAL: If there are already participants, mark as connected
                     console.log('✅ [CallWindow] Found existing participants, marking as connected');
-                    markCallAsConnected();
+                    hasConnectedParticipantRef.current = true;
+                    if (!callStartTimeRef.current) {
+                        callStartTimeRef.current = new Date();
+                        if (callChannelRef.current) {
+                            callChannelRef.current.postMessage({
+                                type: 'CALL_START_TIME',
+                                data: { startTime: callStartTimeRef.current.toISOString() }
+                            });
+                        }
+                    }
 
                     room.participants.forEach((participant, identity) => {
                         participant.audioTrackPublications.forEach((publication) => {
@@ -148,7 +136,16 @@ const CallWindowApp = ({ callData }) => {
 
                 // CRITICAL: Mark as connected when a participant joins
                 console.log('✅ [CallWindow] Participant connected, marking as connected');
-                markCallAsConnected();
+                hasConnectedParticipantRef.current = true;
+                if (!callStartTimeRef.current) {
+                    callStartTimeRef.current = new Date();
+                    if (callChannelRef.current) {
+                        callChannelRef.current.postMessage({
+                            type: 'CALL_START_TIME',
+                            data: { startTime: callStartTimeRef.current.toISOString() }
+                        });
+                    }
+                }
 
                 // Attach already-available video tracks (if any exist)
                 participant.videoTrackPublications.forEach((publication, trackSid) => {
@@ -198,7 +195,16 @@ const CallWindowApp = ({ callData }) => {
                     // CRITICAL: Mark as connected when we subscribe to a remote track (audio/video)
                     // This is a definitive sign that the other party is present
                     console.log('✅ [CallWindow] Track subscribed, marking as connected');
-                    markCallAsConnected();
+                    hasConnectedParticipantRef.current = true;
+                    if (!callStartTimeRef.current) {
+                        callStartTimeRef.current = new Date();
+                        if (callChannelRef.current) {
+                            callChannelRef.current.postMessage({
+                                type: 'CALL_START_TIME',
+                                data: { startTime: callStartTimeRef.current.toISOString() }
+                            });
+                        }
+                    }
                 }
 
                 if (track.kind === 'audio') {
@@ -1490,9 +1496,11 @@ const CallWindowApp = ({ callData }) => {
                         callSoundRef.current.currentTime = 0;
                         callSoundRef.current = null;
                     }
-                    // Close after 3 seconds
+                    // CRITICAL: DO NOT send CALL_END signal - receiver already sent CALL_REJECT
+                    // Just close window after animation
                     setTimeout(() => {
-                        handleEndCall();
+                        console.log('📞 Closing popup after CALL_REJECTED animation');
+                        window.close();
                     }, 3000);
                     break;
                 case 'CALL_ACCEPTED':
