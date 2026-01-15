@@ -1,7 +1,7 @@
 /**
  * Outgoing Call Screen - WORLD-CLASS PREMIUM VERSION
  * Световен стандарт с 3D ефекти, ring waves, glossy buttons
- * Същият стил като IncomingCallScreen, но за изходящи обаждания
+ * EXACTLY matching IncomingCallScreen design
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -23,9 +23,12 @@ const { width } = Dimensions.get('window');
 
 export const OutgoingCallScreen: React.FC = () => {
   const { currentCall, endCall } = useCalls();
-  
-  // Анимации
-  // CRITICAL FIX: Removed pulse and ring wave animations - they were ugly and distracting
+
+  // Анимации - same as IncomingCallScreen
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ring1Anim = useRef(new Animated.Value(0)).current;
+  const ring2Anim = useRef(new Animated.Value(0)).current;
+  const ring3Anim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
   const endScaleAnim = useRef(new Animated.Value(1)).current;
@@ -47,6 +50,71 @@ export const OutgoingCallScreen: React.FC = () => {
       }),
     ]).start();
 
+    // Pulse avatar
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.12,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+
+    // Ring waves - blue for outgoing
+    const ring1 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ring1Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring1Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const ring2 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.timing(ring2Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring2Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const ring3 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(ring3Anim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(ring3Anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
     // Button glow
     const endGlow = Animated.loop(
       Animated.sequence([
@@ -63,9 +131,16 @@ export const OutgoingCallScreen: React.FC = () => {
       ])
     );
 
+    ring1.start();
+    ring2.start();
+    ring3.start();
     endGlow.start();
 
     return () => {
+      pulse.stop();
+      ring1.stop();
+      ring2.stop();
+      ring3.stop();
       endGlow.stop();
     };
   }, []);
@@ -88,6 +163,15 @@ export const OutgoingCallScreen: React.FC = () => {
 
   if (!currentCall) return null;
 
+  const ring1Scale = ring1Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const ring1Opacity = ring1Anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.7, 0.35, 0] });
+
+  const ring2Scale = ring2Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
+  const ring2Opacity = ring2Anim.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.5, 0.25, 0] });
+
+  const ring3Scale = ring3Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.9] });
+  const ring3Opacity = ring3Anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.4, 0.15, 0] });
+
   const endGlowOpacity = endGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] });
   const endGlowScale = endGlowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
 
@@ -108,15 +192,54 @@ export const OutgoingCallScreen: React.FC = () => {
             },
           ]}
         >
-          {/* Avatar - CRITICAL FIX: Removed ugly pulsing blue circles and pulse animation */}
+          {/* Avatar с premium ring waves - SAME AS INCOMING */}
           <View style={styles.avatarContainer}>
-            <Avatar
-              imageUrl={currentCall.participantImageUrl}
-              name={currentCall.participantName}
-              size={150}
-              isOnline={true}
-              style={styles.avatar}
+            {/* Ring wave 3 - Premium blue gradient */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring3Scale }],
+                  opacity: ring3Opacity,
+                  backgroundColor: '#1e40af', // Darker blue for white background
+                },
+              ]}
             />
+            {/* Ring wave 2 - Premium blue gradient */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring2Scale }],
+                  opacity: ring2Opacity,
+                  backgroundColor: '#2563eb', // Medium blue
+                },
+              ]}
+            />
+            {/* Ring wave 1 - Premium blue gradient */}
+            <Animated.View
+              style={[
+                styles.ringWave,
+                {
+                  transform: [{ scale: ring1Scale }],
+                  opacity: ring1Opacity,
+                  backgroundColor: '#3b82f6', // Primary blue
+                },
+              ]}
+            />
+
+            {/* Avatar with premium rings - NO GREEN DOT */}
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <View style={styles.avatarRing1} />
+              <View style={styles.avatarRing2} />
+              <Avatar
+                imageUrl={currentCall.participantImageUrl}
+                name={currentCall.participantName}
+                size={150}
+                isOnline={false}
+                style={styles.avatar}
+              />
+            </Animated.View>
           </View>
 
           {/* Participant info */}
@@ -155,7 +278,7 @@ export const OutgoingCallScreen: React.FC = () => {
                 <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
                   <View style={styles.buttonGloss} />
                   <View style={styles.buttonIconContainer}>
-                    <XMarkIcon size={36} color="#fff" />
+                    <XMarkIcon size={28} color="#fff" />
                   </View>
                   <View style={styles.buttonDepth} />
                 </View>
@@ -216,25 +339,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 32,
   },
+  ringWave: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+  },
+  avatarRing1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.4)', // Premium blue
+    top: -15,
+    left: -15,
+  },
+  avatarRing2: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)', // Premium blue
+    top: -25,
+    left: -25,
+  },
   avatar: {
-    // CRITICAL FIX: Removed ugly blue border and excessive shadows
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 6,
+    borderColor: '#3b82f6', // Premium blue border
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 28,
+    elevation: 16,
   },
   participantInfo: {
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   participantName: {
-    fontSize: 42,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '300', // Premium thin font weight for elegant look
     color: '#111827', // Dark text on white background
     marginBottom: 20,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    letterSpacing: 0.5, // Premium letter spacing for elegant typography
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -273,38 +424,38 @@ const styles = StyleSheet.create({
   },
   buttonGlow: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    top: -8,
-    left: -8,
-  },
-  buttonShadow: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    position: 'absolute',
-    top: 4,
-    left: 4,
-  },
-  buttonMiddle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-  },
-  buttonInner: {
     width: 80,
     height: 80,
     borderRadius: 40,
+    top: -6,
+    left: -6,
+  },
+  buttonShadow: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    position: 'absolute',
+    top: 3,
+    left: 3,
+  },
+  buttonMiddle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  buttonInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     position: 'absolute',
     top: 2,
     left: 2,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 12,
   },
   buttonGloss: {
     position: 'absolute',
@@ -313,8 +464,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: '50%',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
   },
   buttonIconContainer: {
     flex: 1,
@@ -329,17 +480,18 @@ const styles = StyleSheet.create({
     right: 0,
     height: '35%',
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   actionLabel: {
-    marginTop: 14,
-    fontSize: 15,
-    fontWeight: '800',
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
     color: '#fff',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });

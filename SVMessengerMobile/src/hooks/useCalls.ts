@@ -25,6 +25,7 @@ export const useCalls = () => {
     rejectCall,
     endCall,
     setCallState,
+    setCallStartTime,
     toggleMute,
     clearCall,
   } = useCallsStore();
@@ -36,8 +37,9 @@ export const useCalls = () => {
   useEffect(() => {
     // ✅ FIX: Register callbacks and store cleanup functions
     const cleanupConnected = liveKitService.onConnected(() => {
-      setCallState(CallState.CONNECTED);
-      // Stop outgoing call sound when connected
+      // CRITICAL: Do NOT set CONNECTED here - this fires when LiveKit room connects
+      // which happens BEFORE the other participant answers
+      // Only stop outgoing sound here
       soundService.stopOutgoingCallSound();
     });
 
@@ -46,7 +48,12 @@ export const useCalls = () => {
     });
 
     const cleanupParticipantConnected = liveKitService.onParticipantConnected(() => {
-      // Participant joined
+      // CRITICAL: Set CONNECTED state when participant actually joins
+      // This ensures we show CallScreen only when the call is actually connected
+      setCallState(CallState.CONNECTED);
+      // CRITICAL: Set startTime when participant connects
+      setCallStartTime();
+      logger.debug('✅ [useCalls] Participant connected, setting CONNECTED state and startTime');
     });
 
     const cleanupParticipantDisconnected = liveKitService.onParticipantDisconnected(() => {
@@ -67,7 +74,7 @@ export const useCalls = () => {
       cleanupParticipantConnected?.();
       cleanupParticipantDisconnected?.();
     };
-  }, [setCallState, endCall]);
+  }, [setCallState, setCallStartTime, endCall]);
 
   // Auto-enable camera for video calls
   useEffect(() => {
@@ -300,30 +307,50 @@ export const useCalls = () => {
       if (!latestCurrentCall.startTime) {
       }
 
-      // CRITICAL: Log call history data before sending
+      // CRITICAL: Calculate duration for logging
       const durationSeconds = latestCurrentCall.startTime && latestCurrentCall.endTime
         ? Math.floor((latestCurrentCall.endTime.getTime() - latestCurrentCall.startTime.getTime()) / 1000)
         : null;
-      logger.debug('📞 [handleEndCall] Sending CALL_END signal:', {
+
+      // CRITICAL: Determine if call was connected
+      // Use liveKitService's hasParticipantEverConnected() method AND duration check
+      const hasParticipantConnected = liveKitService.hasParticipantEverConnected();
+      const hasDuration = durationSeconds !== null && durationSeconds > 0;
+      const wasConnected = hasParticipantConnected || hasDuration;
+
+      // CRITICAL: Get current callState to determine event type
+      const { callState: currentCallState } = useCallsStore.getState();
+
+      // CRITICAL: If call was not connected (OUTGOING/CONNECTING), send CALL_CANCEL instead of CALL_ENDED
+      // This notifies the other party to stop ringing
+      const isUnconnectedOutgoing = isOutgoingCall && (currentCallState === CallState.OUTGOING || currentCallState === CallState.CONNECTING);
+      const eventType = isUnconnectedOutgoing ? 'CALL_CANCEL' : 'CALL_ENDED';
+
+      logger.debug(`📞 [handleEndCall] Sending ${eventType} signal:`, {
         conversationId: latestCurrentCall.conversationId,
         callerId,
         receiverId,
         startTime,
         endTime,
         durationSeconds,
+        hasParticipantConnected,
+        hasDuration,
+        wasConnected,
         isVideoCall,
+        currentCallState,
+        isUnconnectedOutgoing,
       });
 
-      // Send end signal via WebSocket with call history data
+      // Send end/cancel signal via WebSocket with call history data
       svMobileWebSocketService.sendCallSignal({
-        eventType: 'CALL_END', // ✅ Съответства на backend enum SVCallEventType.CALL_END
+        eventType: eventType,
         conversationId: latestCurrentCall.conversationId,
         callerId: callerId,
         receiverId: receiverId,
         startTime: startTime,
         endTime: endTime,
         isVideoCall: isVideoCall,
-        wasConnected: callState === CallState.CONNECTED // CRITICAL: Send explicit connection status
+        wasConnected: wasConnected // CRITICAL: Send wasConnected based on participant tracking AND duration
       });
     }
 

@@ -22,7 +22,7 @@ const { width } = Dimensions.get('window');
 
 export const IncomingCallScreen: React.FC = () => {
   const { currentCall, answerCall, rejectCall } = useCalls();
-  
+
   // Анимации
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const ring1Anim = useRef(new Animated.Value(0)).current;
@@ -265,8 +265,8 @@ export const IncomingCallScreen: React.FC = () => {
                 },
               ]}
             />
-            
-            {/* Avatar with premium rings */}
+
+            {/* Avatar with premium rings - NO GREEN DOT */}
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <View style={styles.avatarRing1} />
               <View style={styles.avatarRing2} />
@@ -274,7 +274,7 @@ export const IncomingCallScreen: React.FC = () => {
                 imageUrl={currentCall.participantImageUrl}
                 name={currentCall.participantName}
                 size={150}
-                isOnline={true}
+                isOnline={false}
                 style={styles.avatar}
               />
             </Animated.View>

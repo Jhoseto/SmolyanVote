@@ -1333,6 +1333,24 @@ const CallWindowApp = ({ callData }) => {
                         window.close();
                     }, 3000);
                 }
+            } else if (signal.eventType === 'CALL_CANCEL') {
+                console.log('📞 CALL_CANCEL received in popup:', signal);
+                // Check if this CALL_CANCEL is for our call
+                if (signal.conversationId === callData.conversationId) {
+                    console.log('📞 CALL_CANCEL matches our call - caller cancelled before answer');
+                    // Show rejection animation and close after 3 seconds
+                    setCallState('rejected');
+                    // Stop call sound
+                    if (callSoundRef.current) {
+                        callSoundRef.current.pause();
+                        callSoundRef.current.currentTime = 0;
+                        callSoundRef.current = null;
+                    }
+                    // Close after 3 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                }
             } else if (signal.eventType === 'CALL_REJECT') {
                 console.log('📞 CALL_REJECT received in popup:', signal);
                 // Check if this CALL_REJECT is for our call

@@ -30,6 +30,9 @@ try {
   logger.error('Failed to load PermissionsRequestScreen:', error);
 }
 
+// Import OutgoingCallScreen directly to prevent visual flash
+import { OutgoingCallScreen } from '../screens/calls/OutgoingCallScreen';
+
 // Enable native screens for better performance
 // This must be called before any screen components are rendered
 if (Platform.OS === 'android' || Platform.OS === 'ios') {
@@ -46,7 +49,7 @@ export const AppNavigator: React.FC = () => {
   const [callScreensLoaded, setCallScreensLoaded] = useState(false);
   const [CallScreenComponent, setCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
   const [IncomingCallScreenComponent, setIncomingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
-  const [OutgoingCallScreenComponent, setOutgoingCallScreenComponent] = useState<React.ComponentType<any> | null>(null);
+  // OutgoingCallScreen is now imported directly - no need for state
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPermissionsScreen, setShowPermissionsScreen] = useState(false);
@@ -79,16 +82,6 @@ export const AppNavigator: React.FC = () => {
         console.error('❌ Failed to load IncomingCallScreen:', error);
         // Don't set callScreensLoaded if critical component fails
         return;
-      }
-
-      // Load OutgoingCallScreen (optional - fallback to CallScreen if it fails)
-      try {
-        const outgoingCallScreenModule = require('../screens/calls/OutgoingCallScreen');
-        setOutgoingCallScreenComponent(() => outgoingCallScreenModule.OutgoingCallScreen);
-      } catch (error) {
-        console.warn('⚠️ Failed to load OutgoingCallScreen (optional, will use CallScreen as fallback):', error);
-        // OutgoingCallScreen is optional - don't prevent call overlay from rendering
-        setOutgoingCallScreenComponent(null);
       }
 
       // Mark as loaded only if critical components succeeded
@@ -219,9 +212,8 @@ export const AppNavigator: React.FC = () => {
             </Stack.Navigator>
 
             {/* Call Screens Overlay */}
-            {/* CRITICAL FIX Bug 1: Only require CallScreenComponent and IncomingCallScreenComponent
-                OutgoingCallScreenComponent is optional - if it fails to load, use CallScreenComponent as fallback
-                This ensures call overlay always renders even if one component fails to load */}
+            {/* CRITICAL FIX: OutgoingCallScreen is now imported directly to prevent visual flash
+                CallScreenComponent and IncomingCallScreenComponent are still lazy-loaded */}
             {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
               <View
                 style={{
@@ -235,8 +227,8 @@ export const AppNavigator: React.FC = () => {
               >
                 {callState === CallState.INCOMING ? (
                   <IncomingCallScreenComponent />
-                ) : ((callState === CallState.OUTGOING || callState === CallState.CONNECTING) && OutgoingCallScreenComponent) ? (
-                  <OutgoingCallScreenComponent />
+                ) : (callState === CallState.OUTGOING || callState === CallState.CONNECTING) ? (
+                  <OutgoingCallScreen />
                 ) : (
                   <CallScreenComponent />
                 )}

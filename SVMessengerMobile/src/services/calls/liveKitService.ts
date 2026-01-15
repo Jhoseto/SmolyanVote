@@ -6,12 +6,12 @@
  * Room, Track, и други класове идват от livekit-client пакета.
  */
 
-import { 
-  Room, 
-  RoomEvent, 
-  Track, 
-  LocalAudioTrack, 
-  LocalVideoTrack, 
+import {
+  Room,
+  RoomEvent,
+  Track,
+  LocalAudioTrack,
+  LocalVideoTrack,
   RemoteParticipant,
   createLocalAudioTrack,
   createLocalVideoTrack
@@ -35,6 +35,9 @@ class LiveKitService {
   private isVideoEnabled: boolean = false;
   private isFrontCamera: boolean = true; // Front camera by default
 
+  // CRITICAL: Track if any participant has ever connected (sticky flag)
+  private hasConnectedParticipant: boolean = false;
+
   // Event callbacks
   private onConnectedCallback: CallEventCallback | null = null;
   private onDisconnectedCallback: CallEventCallback | null = null;
@@ -52,7 +55,7 @@ class LiveKitService {
         API_CONFIG.ENDPOINTS.MESSENGER.CALL_TOKEN,
         { conversationId, otherUserId }
       );
-      
+
       return response.data;
     } catch (error: any) {
       logger.error('❌ [LiveKit] Error generating call token:', {
@@ -73,7 +76,7 @@ class LiveKitService {
    */
   async connect(token: string, roomName: string, serverUrl: string, retryCount = 0): Promise<void> {
     const MAX_RETRIES = 2;
-    
+
     try {
       if (this.room && this.isConnected) {
         await this.disconnect();
@@ -93,6 +96,14 @@ class LiveKitService {
         this.isConnected = true;
         this.onConnectedCallback?.();
         this.publishAudio();
+
+        // CRITICAL: Check if there are already participants in the room
+        // If yes, mark as connected immediately
+        const participants = Array.from(this.room!.remoteParticipants.values());
+        if (participants.length > 0) {
+          this.hasConnectedParticipant = true;
+          logger.debug('✅ [LiveKit] Found existing participants on connect, marking as connected');
+        }
       });
 
       this.room.on(RoomEvent.Disconnected, () => {
@@ -106,16 +117,20 @@ class LiveKitService {
       });
 
       this.room.on(RoomEvent.TrackSubscribed, (track: Track, publication, participant: RemoteParticipant) => {
+        // CRITICAL: Mark that a participant track was subscribed (conversation started)
+        this.hasConnectedParticipant = true;
+        logger.debug('✅ [LiveKit] Track subscribed, marking hasConnectedParticipant = true');
+
         if (track.kind === 'audio') {
           this.onTrackSubscribedCallback?.(track, participant);
         } else if (track.kind === 'video') {
           // CRITICAL: Force enable track at all levels for mobile-web compatibility
-          
+
           // Enable mediaStreamTrack first
           if (track.mediaStreamTrack) {
             track.mediaStreamTrack.enabled = true;
           }
-          
+
           // CRITICAL: Force enable track at LiveKit level
           // track.enabled can be undefined, so we need to check and set it
           if (track.enabled !== true) {
@@ -132,7 +147,7 @@ class LiveKitService {
               logger.error('⚠️ [LiveKit] Could not enable track:', e);
             }
           }
-          
+
           // Small delay to ensure track is fully ready before callback
           setTimeout(() => {
             this.onVideoTrackSubscribedCallback?.(track, participant);
@@ -149,7 +164,7 @@ class LiveKitService {
           } catch (e) {
             logger.error('⚠️ [LiveKit] Error subscribing to published track:', e);
           }
-          
+
           // Also trigger callback immediately if track is already available
           if (publication.track && publication.track.mediaStreamTrack) {
             // Small delay to ensure track is fully ready
@@ -179,13 +194,17 @@ class LiveKitService {
 
       // Handle existing participants' tracks when connecting
       this.room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+        // CRITICAL: Mark that a participant has connected
+        this.hasConnectedParticipant = true;
+        logger.debug('✅ [LiveKit] Participant connected, marking hasConnectedParticipant = true');
+
         // Subscribe to existing audio tracks
         participant.audioTrackPublications.forEach((publication) => {
           if (publication.track) {
             this.onTrackSubscribedCallback?.(publication.track, participant);
           }
         });
-        
+
         // CRITICAL: Subscribe to ALL video tracks immediately, even if not subscribed yet
         participant.videoTrackPublications.forEach((publication) => {
           // ALWAYS force subscribe to video tracks (critical for web->mobile calls)
@@ -196,12 +215,12 @@ class LiveKitService {
               logger.error('⚠️ [LiveKit] Error subscribing to video track:', e);
             }
           }
-          
+
           // If track is already available, trigger callback immediately
           if (publication.track && publication.track.mediaStreamTrack) {
             // Ensure track is enabled
             publication.track.mediaStreamTrack.enabled = true;
-            
+
             // Enable at LiveKit level too
             if (!publication.track.enabled && publication.track.setEnabled) {
               try {
@@ -210,42 +229,42 @@ class LiveKitService {
                 logger.error('⚠️ [LiveKit] Could not enable track:', e);
               }
             }
-            
+
             // Use setTimeout to ensure track is fully ready
             setTimeout(() => {
               this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
             }, 150);
           }
         });
-        
+
         this.onParticipantConnectedCallback?.(participant);
       });
 
       // Connect to room - simplified URL handling for LiveKit Cloud
       let wsUrl = serverUrl;
-      
+
       // Check if this is a LiveKit Cloud URL
       const isLiveKitCloud = wsUrl.includes('.livekit.cloud') || wsUrl.includes('livekit.cloud');
-      
+
       // Ensure URL has proper protocol (wss:// for LiveKit Cloud, ws:// for local dev)
       if (!wsUrl.startsWith('wss://') && !wsUrl.startsWith('ws://') && !wsUrl.startsWith('https://') && !wsUrl.startsWith('http://')) {
         wsUrl = isLiveKitCloud ? `wss://${wsUrl}` : (__DEV__ ? `ws://${wsUrl}` : `wss://${wsUrl}`);
       }
-      
+
       // For local development, replace localhost with Android emulator IP
       if (__DEV__ && !isLiveKitCloud && (wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1'))) {
         wsUrl = wsUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
       }
-      
+
       await this.room.connect(wsUrl, token);
-      
+
       // CRITICAL: After connection, check for already connected participants and subscribe to their video tracks
       // This is especially important when web calls mobile - web is already connected with video
       // Check immediately and also after a short delay to catch tracks that might be loading
       const checkExistingParticipants = () => {
         try {
           const remoteParticipants = Array.from(this.room!.remoteParticipants.values());
-          
+
           remoteParticipants.forEach((participant) => {
             participant.videoTrackPublications.forEach((publication) => {
               // Force subscribe if not already subscribed
@@ -256,11 +275,11 @@ class LiveKitService {
                   logger.error('⚠️ [LiveKit] Error subscribing to video track:', e);
                 }
               }
-              
+
               // If track is available, trigger callback
               if (publication.track && publication.track.mediaStreamTrack) {
                 publication.track.mediaStreamTrack.enabled = true;
-                
+
                 if (!publication.track.enabled && publication.track.setEnabled) {
                   try {
                     publication.track.setEnabled(true);
@@ -268,7 +287,7 @@ class LiveKitService {
                     logger.error('⚠️ [LiveKit] Could not enable track:', e);
                   }
                 }
-                
+
                 this.onVideoTrackSubscribedCallback?.(publication.track!, participant);
               }
             });
@@ -277,26 +296,26 @@ class LiveKitService {
           logger.error('❌ [LiveKit] Error checking existing participants:', error);
         }
       };
-      
+
       // Check immediately
       checkExistingParticipants();
       // Also check after short delay for tracks that might still be loading
       setTimeout(checkExistingParticipants, 300);
       setTimeout(checkExistingParticipants, 800);
-      
+
     } catch (error: any) {
       logger.error('❌ [LiveKit] Connection error:', error);
       this.isConnected = false;
-      
+
       // Retry logic
       if (retryCount < MAX_RETRIES) {
         await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
         return this.connect(token, roomName, serverUrl, retryCount + 1);
       }
-      
+
       // Generate user-friendly error message
       let userMessage = 'Неуспешно свързване с LiveKit server';
-      
+
       if (error?.message?.includes('timeout') || error?.message?.includes('timed out')) {
         userMessage = 'Връзката изтече. Провери интернет свързаността си.';
       } else if (error?.message?.includes('404')) {
@@ -308,7 +327,7 @@ class LiveKitService {
       } else if (error?.message?.includes('WebRTC')) {
         userMessage = 'Проблем с WebRTC инициализацията. Рестартирай приложението.';
       }
-      
+
       // Add user message to error
       error.userMessage = userMessage;
       throw error;
@@ -361,6 +380,8 @@ class LiveKitService {
 
       this.isConnected = false;
       this.currentRoomName = null;
+      // CRITICAL: Reset hasConnectedParticipant flag for next call
+      this.hasConnectedParticipant = false;
     } catch (error) {
       logger.error('Error disconnecting from LiveKit room:', error);
     }
@@ -510,7 +531,7 @@ class LiveKitService {
         // Use lower resolution for emulator (better compatibility)
         // Emulators often have issues with high resolution video
         const isEmulator = __DEV__ && Platform.OS === 'android';
-        const resolution = isEmulator 
+        const resolution = isEmulator
           ? { width: 640, height: 480 } // Lower resolution for emulator
           : { width: 1280, height: 720 }; // Higher resolution for real device
 
@@ -521,7 +542,7 @@ class LiveKitService {
           });
         } catch (error: any) {
           logger.error('❌ [toggleCamera] Failed to create video track:', error);
-          
+
           // Fallback: Try with even lower resolution for emulator
           if (isEmulator) {
             try {
@@ -545,7 +566,7 @@ class LiveKitService {
         });
 
         this.isVideoEnabled = true;
-        
+
         // CRITICAL: Ensure track is fully ready before returning
         // Wait a bit for track to be fully initialized
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -612,11 +633,11 @@ class LiveKitService {
     try {
       // Toggle camera facing mode
       this.isFrontCamera = !this.isFrontCamera;
-      
+
       // Re-enable camera with new facing mode
       await this.toggleCamera(false); // Disable first
       await this.toggleCamera(true);  // Re-enable with new facing mode
-      
+
       return true;
     } catch (error) {
       logger.error('❌ [flipCamera] Failed to flip camera:', error);
@@ -631,6 +652,20 @@ class LiveKitService {
    */
   isFrontCameraActive(): boolean {
     return this.isFrontCamera;
+  }
+
+  /**
+   * Check if any participant has ever connected (for call history)
+   */
+  hasParticipantEverConnected(): boolean {
+    return this.hasConnectedParticipant;
+  }
+
+  /**
+   * Reset hasConnectedParticipant flag (for new call)
+   */
+  resetConnectionTracking(): void {
+    this.hasConnectedParticipant = false;
   }
 }
 

@@ -4,7 +4,7 @@
  */
 
 export interface CallSignal {
-  eventType: 'CALL_REQUEST' | 'CALL_ACCEPT' | 'CALL_ACCEPTED' | 'CALL_REJECT' | 'CALL_REJECTED' | 'CALL_END' | 'CALL_ENDED';
+  eventType: 'CALL_REQUEST' | 'CALL_ACCEPT' | 'CALL_ACCEPTED' | 'CALL_REJECT' | 'CALL_REJECTED' | 'CALL_END' | 'CALL_ENDED' | 'CALL_CANCEL';
   conversationId: number;
   callerId: number;
   receiverId?: number;

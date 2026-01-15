@@ -25,10 +25,12 @@ interface CallsStore extends CallsState {
   rejectCall: () => void;
   endCall: () => void;
   setCallState: (state: CallState) => void;
+  setCallStartTime: () => void; // CRITICAL: Set startTime manually when participant connects
   toggleMute: () => void;
   clearCall: () => void;
   incrementMissedCalls: () => void;
   resetMissedCalls: () => void;
+  clearCallState: () => void; // Add missing method
 }
 
 export const useCallsStore = create<CallsStore>((set, get) => ({
@@ -67,11 +69,12 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
 
   // Answer call
   answerCall: () => {
+    // CRITICAL: Do NOT set callState to CONNECTING here
+    // For incoming calls, we should stay in INCOMING state until LiveKit participant connects
+    // Then onParticipantConnected callback will set it to CONNECTED
+    // Setting CONNECTING here causes OutgoingCallScreen to show incorrectly
     set((state) => ({
-      callState: CallState.CONNECTING,
-      currentCall: state.currentCall
-        ? { ...state.currentCall, state: CallState.CONNECTING }
-        : null,
+      currentCall: state.currentCall,
     }));
   },
 
@@ -138,11 +141,9 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
     set((currentState) => {
       const currentCall = currentState.currentCall;
 
-      // CRITICAL FIX: Set startTime when call becomes CONNECTED (other party answered)
-      // This ensures timer starts counting only after the other party answers, not when call is initiated
-      const shouldSetStartTime = state === CallState.CONNECTED &&
-        currentCall &&
-        !currentCall.startTime;
+      // CRITICAL: DON'T automatically set startTime here
+      // startTime should only be set by useCalls when liveKitService confirms participant connected
+      // This prevents counting ringing time as call duration
 
       return {
         callState: state,
@@ -150,10 +151,27 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
           ? {
             ...currentCall,
             state,
-            // Set startTime only when becoming CONNECTED and it's not already set
-            startTime: shouldSetStartTime ? new Date() : currentCall.startTime,
           }
           : null,
+      };
+    });
+  },
+
+  // CRITICAL: Manually set startTime when participant connects
+  setCallStartTime: () => {
+    set((currentState) => {
+      const currentCall = currentState.currentCall;
+
+      // Only set if call exists and startTime not already set
+      if (!currentCall || currentCall.startTime) {
+        return currentState;
+      }
+
+      return {
+        currentCall: {
+          ...currentCall,
+          startTime: new Date(),
+        },
       };
     });
   },
