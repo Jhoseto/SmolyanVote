@@ -5,4 +5,7 @@
     <string name="facebook_app_id">1381612716938832</string>
     <string name="facebook_client_token">44173e627441c15c12ce16232d405c09</string>
     <string name="fb_login_protocol_scheme">fb1381612716938832</string>
+    
+    <!-- Attribution Tags -->
+    <string name="attribution_call_service">Call Service Attribution</string>
 </resources>

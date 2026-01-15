@@ -13,10 +13,18 @@
     padding: 2rem 0 !important;
 }
 
+.hero {
+    align-items: flex-end !important;
+}
+
+.hero .container {
+    padding-bottom: 1.5rem !important;
+}
+
 .hero-content {
-    padding: 0 1rem !important;
+    padding: 0 !important;
     position: relative !important;
-    top: 100px !important;
+    top: 0 !important;
 }
 
 .hero .display-4 {
@@ -24,9 +32,22 @@
     margin-bottom: 0.75rem !important;
 }
 
+/* Hero Bottom Row - Mobile: Positioned at bottom with smaller margins */
+.hero-bottom-row {
+    position: absolute !important;
+    bottom: 1.5rem !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    width: calc(100% - 2rem) !important;
+}
+
 .hero .lead {
     font-size: 1rem !important;
-    margin-bottom: 1.5rem !important;
+    margin: 0 !important;
+    text-align: left !important;
 }
 
 /* Admin Button - Top Right */
@@ -44,16 +65,19 @@
     border-radius: 20px !important;
 }
 
-/* Hero Stats - Icons Only */
+/* Hero Stats - Mobile: Horizontal row */
 .hero-stats {
-    flex-direction: column !important;
-    gap: 0.75rem !important;
-    margin-top: 1rem !important;
+    flex-direction: row !important;
+    gap: 1rem !important;
+    margin: 0 !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
 }
 
 .hero-stats span {
     font-size: 0.8rem !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
 }
 
 .hero-stats i {

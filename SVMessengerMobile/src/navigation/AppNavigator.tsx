@@ -51,7 +51,7 @@ export const AppNavigator: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPermissionsScreen, setShowPermissionsScreen] = useState(false);
   const [checkingPermissions, setCheckingPermissions] = useState(true);
-  
+
   // Setup push notifications - wrapped in error boundary by hook itself
   usePushNotifications();
 
@@ -105,12 +105,29 @@ export const AppNavigator: React.FC = () => {
       }
 
       try {
+        // CRITICAL CHECK: Always check if permissions are granted on launch
+        // User requested MANDATORY permissions check - app shouldn't work without them
+        const allGranted = await appPermissionsService.areAllCriticalPermissionsGranted();
+
+        if (!allGranted) {
+          // If permissions are missing, show the screen regardless of previous requests
+          // This ensures the user MUST grant permissions to use the app
+          setShowPermissionsScreen(true);
+        } else {
+          // All granted, proceed
+          setCheckingPermissions(false);
+        }
+
+        // We still mark as requested to track first launch, but the check above overrides it
         const hasRequestedBefore = await appPermissionsService.hasRequestedPermissionsBefore();
         if (!hasRequestedBefore) {
-          // Show permissions screen on first launch
-          setShowPermissionsScreen(true);
+          // Determine if we need to mark it (will be marked when user completes screen)
         }
-        setCheckingPermissions(false);
+
+        // If we didn't show the screen, stop checking
+        if (allGranted) {
+          setCheckingPermissions(false);
+        }
       } catch (error) {
         logger.error('Error checking permissions status:', error);
         setCheckingPermissions(false);
@@ -237,12 +254,12 @@ export const AppNavigator: React.FC = () => {
           </View>
         )
       )}
-      
+
       {/* Splash Screen Overlay - показва се точно 3 секунди */}
       {/* CRITICAL FIX: Show splash screen during initialization to prevent ugly loading screen flash */}
       {/* Splash screen has higher zIndex and will cover any loading indicators */}
       {showSplash && (
-        <SplashScreen 
+        <SplashScreen
           onFinish={() => {
             setShowSplash(false);
           }}

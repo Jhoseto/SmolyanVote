@@ -85,13 +85,16 @@
         </button>
       </div>
 
-      <h1 class="display-4">SmolyanVote Подкаст</h1>
-      <p class="lead">Истории, новини и разговори за Смолян и областта</p>
-
-      <div class="hero-stats">
-        <span><i class="fas fa-headphones"></i> <span th:text="${totalListens}">1,234</span> слушания</span>
-        <span><i class="fas fa-microphone"></i> <span th:text="${episodeCount}">8</span> епизода</span>
-        <span><i class="fas fa-clock"></i> Актуализиран днес</span>
+<!--      <h1 class="display-4">SmolyanVote Подкаст</h1>-->
+      
+      <!-- Hero Bottom Row: Text Left, Stats Right -->
+      <div class="hero-bottom-row">
+        <p class="lead">Истории, новини и разговори за Смолян и областта.</p>
+        <div class="hero-stats">
+          <span><i class="fas fa-headphones"></i> <span th:text="${totalListens}">288</span> слушания</span>
+          <span><i class="fas fa-microphone"></i> <span th:text="${episodeCount}">13</span> епизода</span>
+          <span><i class="fas fa-clock"></i> Актуализиран днес</span>
+        </div>
       </div>
     </div>
   </div>

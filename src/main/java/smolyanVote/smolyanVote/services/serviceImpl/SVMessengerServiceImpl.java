@@ -962,7 +962,52 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                     );
 
             if (entryExists) {
-                return; // Duplicate avoided
+                // CRITICAL FIX: Prioritize ACCEPTED status
+                // If the NEW signal is ACCEPTED (wasConnected=true or duration > 0),
+                // but the EXISTING entry is MISSED/CANCELLED, we should UPDATE the existing
+                // entry
+                // instead of ignoring the new one.
+
+                boolean newIsAccepted = "ACCEPTED".equals(callStatus);
+
+                if (newIsAccepted) {
+                    // Find the existing entry that we might want to upgrade
+                    CallHistoryEntity existingMisrepresented = existingEntries.stream()
+                            .filter(existing -> ((existing.getCallerId().equals(signal.getCallerId())
+                                    && existing.getReceiverId().equals(signal.getReceiverId())) ||
+                                    (existing.getCallerId().equals(signal.getReceiverId())
+                                            && existing.getReceiverId().equals(signal.getCallerId())))
+                                    &&
+                                    existing.getStartTime().isAfter(fiveSecondsAgo) &&
+                                    existing.getStartTime().isBefore(fiveSecondsLater) &&
+                                    ("MISSED".equals(existing.getStatus()) || "CANCELLED".equals(existing.getStatus())))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (existingMisrepresented != null) {
+                        // Upgrade the existing entry to ACCEPTED and update duration
+                        existingMisrepresented.setStatus(CallHistoryEntity.CallStatus.ACCEPTED);
+                        existingMisrepresented.setEndTime(endTime);
+                        // Recalculate duration for the upgraded entry
+                        long fixedDuration = durationSeconds > 0 ? durationSeconds : 1;
+                        // Note: Entity doesn't store duration directly usually, but calculated from
+                        // start/end
+                        // Ensure endTime provided gives > 0 duration relative to existing start time
+                        if (existingMisrepresented.getStartTime().equals(existingMisrepresented.getEndTime()) ||
+                                existingMisrepresented.getEndTime().isBefore(existingMisrepresented.getStartTime())) {
+                            existingMisrepresented
+                                    .setEndTime(existingMisrepresented.getStartTime().plusSeconds(fixedDuration));
+                        }
+
+                        callHistoryRepo.save(existingMisrepresented);
+                        log.info(
+                                "Refined Call History: Upgraded MISSED/CANCELLED entry to ACCEPTED for conversation {}",
+                                signal.getConversationId());
+                        return;
+                    }
+                }
+
+                return; // Duplicate avoided (and no upgrade needed)
             }
 
             // CRITICAL FIX: Use isVideoCall from signal if provided, otherwise default to

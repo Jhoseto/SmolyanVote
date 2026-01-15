@@ -188,7 +188,7 @@ public class SVMessengerWebSocketController {
                     pushNotificationService.sendIncomingCallNotification(
                             recipientUserId,
                             callerName,
-                            signal.getConversationId(), 
+                            signal.getConversationId(),
                             participantId,
                             callerImageUrl
                     );

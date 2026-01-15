@@ -21,6 +21,7 @@ export interface AppPermissionsStatus {
   notifications: PermissionStatus;
   microphone: PermissionStatus;
   camera: PermissionStatus;
+  storage: PermissionStatus; // New storage/media permission
   fullScreenIntent: PermissionStatus; // Special permission - can't be requested runtime
 }
 
@@ -59,6 +60,7 @@ class AppPermissionsService {
       notifications: { granted: false, blocked: false, unavailable: false },
       microphone: { granted: false, blocked: false, unavailable: false },
       camera: { granted: false, blocked: false, unavailable: false },
+      storage: { granted: false, blocked: false, unavailable: false },
       fullScreenIntent: { granted: false, blocked: false, unavailable: false },
     };
 
@@ -106,6 +108,23 @@ class AppPermissionsService {
         logger.error('Error checking camera permission:', error);
       }
 
+      // Check storage/media
+      try {
+        let storagePermission: Permission;
+        if (Platform.Version >= 33) {
+          storagePermission = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES;
+        } else {
+          storagePermission = PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
+        }
+
+        const storageResult = await check(storagePermission);
+        status.storage.granted = storageResult === RESULTS.GRANTED;
+        status.storage.blocked = storageResult === RESULTS.BLOCKED;
+        status.storage.unavailable = storageResult === RESULTS.UNAVAILABLE;
+      } catch (error) {
+        logger.error('Error checking storage permission:', error);
+      }
+
       // Full Screen Intent - special permission, can't be checked runtime
       // It's granted automatically if app has USE_FULL_SCREEN_INTENT in manifest
       // But user needs to enable it in Settings -> Special app access
@@ -125,6 +144,7 @@ class AppPermissionsService {
       notifications: { granted: false, blocked: false, unavailable: false },
       microphone: { granted: false, blocked: false, unavailable: false },
       camera: { granted: false, blocked: false, unavailable: false },
+      storage: { granted: false, blocked: false, unavailable: false },
       fullScreenIntent: { granted: false, blocked: false, unavailable: false },
     };
 
@@ -180,6 +200,34 @@ class AppPermissionsService {
         logger.error('Error requesting camera permission:', error);
       }
 
+      // Request storage/media
+      try {
+        let storagePermission: Permission;
+        let permissionName = 'Storage';
+
+        if (Platform.Version >= 33) {
+          // Android 13+ separate permissions, we request Images as primary
+          storagePermission = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES;
+          permissionName = 'Photos/Videos';
+
+          // Note: In a real app we might need to request VIDEO and AUDIO separately or together
+          // But usually requesting one prompts the user for the group or we request them sequentially
+          // Here we focus on Images as representative for "Media" access
+        } else {
+          storagePermission = PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
+        }
+
+        const storageResult = await request(storagePermission);
+        status.storage.granted = storageResult === RESULTS.GRANTED;
+        status.storage.blocked = storageResult === RESULTS.BLOCKED;
+        status.storage.unavailable = storageResult === RESULTS.UNAVAILABLE;
+
+        // If Android 13+, also request VIDEO specifically if needed, but let's keep it simple for now
+        // Assuming granting Images access usually covers the main need for gallery
+      } catch (error) {
+        logger.error('Error requesting storage permission:', error);
+      }
+
       // Full Screen Intent - can't be requested runtime
       // User needs to enable it manually in Settings -> Special app access -> Display over other apps
       status.fullScreenIntent.granted = true; // Assume granted, will check in settings if needed
@@ -198,12 +246,13 @@ class AppPermissionsService {
    */
   async areAllCriticalPermissionsGranted(): Promise<boolean> {
     const status = await this.checkAllPermissions();
-    
-    // Critical permissions: notifications and microphone (for calls)
+
+    // Critical permissions: notifications, microphone (calls), storage (media/files)
     const notificationsOk = status.notifications.granted || Platform.Version < 33;
     const microphoneOk = status.microphone.granted;
-    
-    return notificationsOk && microphoneOk;
+    const storageOk = status.storage.granted;
+
+    return notificationsOk && microphoneOk && storageOk;
   }
 
   /**

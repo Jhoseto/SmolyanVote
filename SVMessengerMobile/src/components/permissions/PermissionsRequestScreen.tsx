@@ -193,11 +193,11 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
     try {
       const status = await appPermissionsService.checkAllPermissions();
       setPermissionsStatus(status);
-      
+
       // Check battery optimization
       const batteryStatus = await nativePermissionsService.checkBatteryOptimization();
       setBatteryOptimized(batteryStatus.isIgnoring);
-      
+
       setLoading(false);
 
       // If all critical permissions are granted, complete immediately
@@ -235,6 +235,7 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
       if (status.notifications.blocked) blockedPermissions.push('Нотификации');
       if (status.microphone.blocked) blockedPermissions.push('Микрофон');
       if (status.camera.blocked) blockedPermissions.push('Камера');
+      if (status.storage.blocked) blockedPermissions.push('Галерия');
 
       if (blockedPermissions.length > 0) {
         appPermissionsService.showBlockedPermissionsAlert(blockedPermissions);
@@ -243,7 +244,7 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
       // CRITICAL: Check if ALL permissions are granted - MANDATORY
       const allGranted = await appPermissionsService.areAllCriticalPermissionsGranted();
       const batteryOk = batteryStatus.isIgnoring;
-      
+
       // CRITICAL: Only complete if ALL permissions are granted
       // If any permission is missing, show alert and don't allow to continue
       if (!allGranted || !batteryOk) {
@@ -252,22 +253,23 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
         if (!status.notifications.granted) missingPermissions.push('Нотификации');
         if (!status.microphone.granted) missingPermissions.push('Микрофон');
         if (!status.camera.granted) missingPermissions.push('Камера');
+        if (!status.storage.granted) missingPermissions.push('Галерия');
         if (!batteryOk) missingPermissions.push('Оптимизация на батерията');
-        
+
         if (missingPermissions.length > 0) {
           // Show alert with missing permissions
           const { Alert } = require('react-native');
           Alert.alert(
             'Задължителни разрешения',
             `Следните разрешения са задължителни:\n\n${missingPermissions.join('\n')}\n\nМоля, разрешете всички разрешения за да продължите.`,
-            [{ text: 'Разбрах', onPress: () => {} }]
+            [{ text: 'Разбрах', onPress: () => { } }]
           );
         }
-        
+
         // Don't complete - user must grant all permissions
         return;
       }
-      
+
       // All permissions granted - allow to continue
       onComplete(true);
     } catch (error) {
@@ -339,6 +341,19 @@ const PermissionsRequestScreen: React.FC<PermissionsRequestScreenProps> = ({ onC
               </Text>
             </View>
             {permissionsStatus?.camera.granted && (
+              <Text style={styles.grantedBadge}>✓ Разрешено</Text>
+            )}
+          </View>
+
+          {/* Storage / Media */}
+          <View style={styles.permissionItem}>
+            <View style={styles.permissionInfo}>
+              <Text style={styles.permissionName}>🖼️ Галерия</Text>
+              <Text style={styles.permissionDescription}>
+                За изпращане на снимки и видео
+              </Text>
+            </View>
+            {permissionsStatus?.storage.granted && (
               <Text style={styles.grantedBadge}>✓ Разрешено</Text>
             )}
           </View>

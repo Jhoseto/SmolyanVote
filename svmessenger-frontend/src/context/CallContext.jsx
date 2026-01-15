@@ -38,6 +38,10 @@ export const CallProvider = ({ children, currentUser }) => {
     // CRITICAL: Track if CALL_END signal was already sent to prevent duplicates
     const callEndSignalSentRef = useRef(false);
 
+    // CRITICAL FIX: Track if the call was EVER connected directly via Ref
+    // This avoids race conditions where state changes to 'idle' before we calculate call status
+    const hasEverConnectedRef = useRef(false);
+
     // Audio device setup state
     const [showDeviceSelector, setShowDeviceSelector] = useState(false);
     const [deviceSelectorMode, setDeviceSelectorMode] = useState('call'); // 'call' or 'settings'
@@ -103,6 +107,8 @@ export const CallProvider = ({ children, currentUser }) => {
             };
             // CRITICAL: Reset call end signal flag for new call
             callEndSignalSentRef.current = false;
+            // CRITICAL: Reset connection tracker
+            hasEverConnectedRef.current = false;
             setCurrentCall(callData);
             setCallState('outgoing');
 
@@ -473,8 +479,15 @@ export const CallProvider = ({ children, currentUser }) => {
 
             // CRITICAL: Determine status
             // Use REF to get the TRUE current state, avoiding stale closures from setInterval
-            // FINAL SAFEGUARD: If we have duration > 0, it WAS connected, regardless of callState
-            const wasConnected = callStateRef.current === 'connected' || (durationSeconds !== null && durationSeconds > 0);
+            // FINAL SAFEGUARD: If we have duration > 0 OR hasEverConnectedRef is true, it WAS connected
+            const wasConnected = hasEverConnectedRef.current || callStateRef.current === 'connected' || (durationSeconds !== null && durationSeconds > 0);
+
+            console.log('📞 [Web endCall] Determining connection status:', {
+                hasEverConnected: hasEverConnectedRef.current,
+                currentState: callStateRef.current,
+                durationSeconds,
+                FINAL_DECISION: wasConnected
+            });
 
             const signal = {
                 eventType: 'CALL_END',
@@ -690,6 +703,8 @@ export const CallProvider = ({ children, currentUser }) => {
                         };
                         // CRITICAL: Reset call end signal flag for new incoming call
                         callEndSignalSentRef.current = false;
+                        // CRITICAL: Reset connection tracker
+                        hasEverConnectedRef.current = false;
                         setCurrentCall(callData);
                         setCallState('incoming');
 
@@ -735,6 +750,10 @@ export const CallProvider = ({ children, currentUser }) => {
                     callStartTimeRef.current = new Date();
                     console.log('📞 [CallContext] Call start time set on CALL_ACCEPT:', callStartTimeRef.current.toISOString());
                 }
+
+                // CRITICAL: Mark as connected when we receive CALL_ACCEPT (Caller side)
+                hasEverConnectedRef.current = true;
+
                 setCurrentCall(currentCallValue => {
                     setCallState(currentState => {
                         const isForThisConversation = currentCallValue && currentCallValue.conversationId === signal.conversationId;
