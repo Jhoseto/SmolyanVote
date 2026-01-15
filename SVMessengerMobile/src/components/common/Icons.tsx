@@ -31,6 +31,7 @@ import {
   VideoCameraSlashIcon as HeroVideoCameraSlashIcon,
   ArrowPathIcon as HeroArrowPathIcon,
   EnvelopeIcon as HeroEnvelopeIcon,
+  EllipsisVerticalIcon as HeroEllipsisVerticalIcon,
 } from 'react-native-heroicons/outline';
 import {
   ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
@@ -164,4 +165,8 @@ export const ArrowPathIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280
 
 export const EnvelopeIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', style }) => (
   <HeroEnvelopeIcon size={size} color={color} strokeWidth={2.5} style={style} />
+);
+
+export const EllipsisVerticalIcon: React.FC<IconProps> = ({ size = 24, color = '#6b7280', style }) => (
+  <HeroEllipsisVerticalIcon size={size} color={color} strokeWidth={2.5} style={style} />
 );

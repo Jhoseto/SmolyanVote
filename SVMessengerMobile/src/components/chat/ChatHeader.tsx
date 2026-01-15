@@ -1,14 +1,9 @@
-/**
- * Chat Header Component
- * Premium header с avatar и voice/video бутони
- */
-
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Modal, TouchableWithoutFeedback, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Avatar } from '../common';
-import { ArrowLeftIcon, TelephoneIcon, SearchIcon } from '../common/Icons';
+import { ArrowLeftIcon, TelephoneIcon, EllipsisVerticalIcon, SearchIcon } from '../common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
@@ -35,6 +30,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const { startCall } = useCalls();
   const { user } = useAuthStore();
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   // Simple pulse animation за онлайн статус
   useEffect(() => {
@@ -62,9 +58,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const handleVoiceCall = () => {
     if (!user) return;
-    // CRITICAL FIX: Match arguments with useCalls hook:
-    // (participantId, participantName, participantImageUrl, isVideo, existingConversationId)
     startCall(participantId, participantName, participantImageUrl, false, conversationId);
+  };
+
+  const toggleMenu = () => setIsMenuVisible(!isMenuVisible);
+  const closeMenu = () => setIsMenuVisible(false);
+
+  const handleSearch = () => {
+    closeMenu();
+    if (onSearchPress) onSearchPress();
   };
 
   return (
@@ -119,33 +121,46 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionsContainer}>
-              {/* Search Button */}
-              {onSearchPress && (
-                <TouchableOpacity
-                  onPress={onSearchPress}
-                  style={styles.actionButton}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.iconButton}>
-                    <SearchIcon size={20} color={Colors.text.inverse} />
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Voice Call Button */}
+              {/* Voice Call Button - Simple Icon */}
               <TouchableOpacity
                 onPress={handleVoiceCall}
-                style={styles.actionButton}
+                style={styles.simpleActionButton}
                 activeOpacity={0.7}
               >
-                <View style={styles.iconButton}>
-                  <TelephoneIcon size={20} color={Colors.text.inverse} />
-                </View>
+                <TelephoneIcon size={24} color={Colors.text.inverse} />
+              </TouchableOpacity>
+
+              {/* Menu Button (Three Dots) */}
+              <TouchableOpacity
+                onPress={toggleMenu}
+                style={styles.simpleActionButton}
+                activeOpacity={0.7}
+              >
+                <EllipsisVerticalIcon size={24} color={Colors.text.inverse} />
               </TouchableOpacity>
             </View>
           </View>
         </LinearGradient>
       </View>
+
+      {/* Menu Overlay */}
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <TouchableWithoutFeedback onPress={closeMenu}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.menuContainer}>
+              <TouchableOpacity onPress={handleSearch} style={styles.menuItem}>
+                <SearchIcon size={20} color={Colors.text.primary} />
+                <Text style={styles.menuText}>Търсене</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -153,14 +168,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: Colors.green[500],
+    zIndex: 100,
   },
   gradientWrapper: {
-    overflow: 'hidden',
-    elevation: 12,
+    overflow: 'visible', // Visible for shadows; 'hidden' clips header content
+    elevation: 4,
     shadowColor: Colors.green[700],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    zIndex: 10,
   },
   gradient: {
     paddingBottom: 8,
@@ -180,28 +197,33 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   avatar: {
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   nameContainer: {
     flex: 1,
     justifyContent: 'center',
+    marginRight: 8, // Avoid overlapping icons
   },
   name: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.inverse,
-    marginBottom: 2,
+    marginBottom: 0,
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   onlineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 1,
   },
   onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.semantic.success,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4ade80', // Brighter green for dot
     marginRight: 4,
   },
   onlineText: {
@@ -212,25 +234,46 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 4,
   },
-  actionButton: {
-    marginLeft: Spacing.xs,
+  simpleActionButton: {
+    padding: 8,
+    borderRadius: 20,
+    // No background, no border - plain icon
   },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+
+  // Menu Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)', // Subtle dim
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 60, // approximate position below header
+    paddingRight: 10,
+  },
+  menuContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 160,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    marginTop: Platform.OS === 'android' ? 10 : 40, // Adjust based on statubar
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuText: {
+    marginLeft: 12,
+    fontSize: 15,
+    color: Colors.text.primary,
+    fontWeight: '500',
   },
 });
 

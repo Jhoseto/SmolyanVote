@@ -194,36 +194,36 @@ export const OutgoingCallScreen: React.FC = () => {
         >
           {/* Avatar с premium ring waves - SAME AS INCOMING */}
           <View style={styles.avatarContainer}>
-            {/* Ring wave 3 - Premium blue gradient */}
+            {/* Ring wave 3 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring3Scale }],
                   opacity: ring3Opacity,
-                  backgroundColor: '#1e40af', // Darker blue for white background
+                  backgroundColor: '#15803d', // Darker green for white background
                 },
               ]}
             />
-            {/* Ring wave 2 - Premium blue gradient */}
+            {/* Ring wave 2 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring2Scale }],
                   opacity: ring2Opacity,
-                  backgroundColor: '#2563eb', // Medium blue
+                  backgroundColor: '#16a34a', // Medium green
                 },
               ]}
             />
-            {/* Ring wave 1 - Premium blue gradient */}
+            {/* Ring wave 1 - Premium green gradient */}
             <Animated.View
               style={[
                 styles.ringWave,
                 {
                   transform: [{ scale: ring1Scale }],
                   opacity: ring1Opacity,
-                  backgroundColor: '#3b82f6', // Primary blue
+                  backgroundColor: '#22c55e', // Primary green
                 },
               ]}
             />
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 90,
     borderWidth: 2,
-    borderColor: 'rgba(59, 130, 246, 0.4)', // Premium blue
+    borderColor: 'rgba(34, 197, 94, 0.4)', // Premium green
     top: -15,
     left: -15,
   },
@@ -361,14 +361,14 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)', // Premium blue
+    borderColor: 'rgba(34, 197, 94, 0.2)', // Premium green
     top: -25,
     left: -25,
   },
   avatar: {
     borderWidth: 6,
-    borderColor: '#3b82f6', // Premium blue border
-    shadowColor: '#3b82f6',
+    borderColor: '#22c55e', // Premium green border
+    shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 28,
@@ -408,12 +408,12 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#3b82f6', // Premium blue
+    backgroundColor: '#22c55e', // Premium green
     marginRight: 12,
   },
   callingText: {
     fontSize: 17,
-    color: '#1e40af', // Dark blue text
+    color: '#15803d', // Dark green text
     fontWeight: '700',
   },
   actionsContainer: {
