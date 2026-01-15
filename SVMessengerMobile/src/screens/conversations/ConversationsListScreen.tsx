@@ -15,116 +15,107 @@ import { useNavigation } from '@react-navigation/native';
 import { useConversations } from '../../hooks/useConversations';
 import { ConversationItem } from '../../components/conversations/ConversationItem';
 import { ConversationSearchBar } from '../../components/conversations/ConversationSearchBar';
-import { Loading } from '../../components/common';
+import { GlassHeader } from '../../components/common/GlassHeader';
+import { SearchIcon } from '../../components/common/Icons';
+
 import { Colors, Spacing } from '../../theme';
 import { Conversation } from '../../types/conversation';
-import { ConversationsStackParamList } from '../../types/navigation';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ScreenBackground } from '../../components/common/ScreenBackground';
 
-type NavigationProp = NativeStackNavigationProp<ConversationsStackParamList>;
-
-export const ConversationsListScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const {
-    conversations,
-    isLoading,
-    error,
-    fetchConversations,
-    selectConversation,
-  } = useConversations();
-
+export const ConversationsListScreen = () => {
+  const navigation = useNavigation<any>();
+  const { conversations, isLoading, fetchConversations, selectConversation } = useConversations();
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
 
-  // Защита срещу undefined conversations
-  const safeConversations = Array.isArray(conversations) ? conversations : [];
-
-  // Filter conversations based on search query
   const filteredConversations = useMemo(() => {
     if (!searchQuery.trim()) {
-      return safeConversations;
+      return conversations;
     }
-
-    const query = searchQuery.toLowerCase().trim();
-    return safeConversations.filter((conv) => {
-      if (!conv || !conv.participant) return false;
-      
-      const participantName = (conv.participant.fullName || '').toLowerCase();
-      const participantUsername = (conv.participant.username || '').toLowerCase();
-      const lastMessageText = (conv.lastMessage?.text || '').toLowerCase();
-      
-      return (
-        participantName.includes(query) ||
-        participantUsername.includes(query) ||
-        lastMessageText.includes(query)
-      );
+    const lowerQuery = searchQuery.toLowerCase();
+    return conversations.filter((c: Conversation) => {
+      const name = c.participant?.fullName || c.participant?.username || '';
+      return name.toLowerCase().includes(lowerQuery);
     });
-  }, [safeConversations, searchQuery]);
-
-  const handleRefresh = () => {
-    fetchConversations();
-  };
+  }, [conversations, searchQuery]);
 
   const handleConversationPress = (conversation: Conversation) => {
     selectConversation(conversation.id);
     navigation.navigate('Chat', {
       conversationId: conversation.id,
-      participantName: conversation.participant.fullName,
+      participantId: conversation.participant.id,
+      participantName: conversation.participant.fullName || conversation.participant.username,
+      participantImageUrl: conversation.participant.imageUrl,
     });
   };
 
-  if (isLoading && safeConversations.length === 0) {
-    return <Loading message="Зареждане на разговори..." />;
-  }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchConversations();
+    setRefreshing(false);
+  };
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+  const toggleSearch = () => {
+    setIsSearchVisible(!isSearchVisible);
+    if (isSearchVisible) {
+      setSearchQuery('');
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <ConversationSearchBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onClearSearch={() => setSearchQuery('')}
-      />
-      <FlatList
-        data={filteredConversations.filter((item) => item != null && item.id != null)}
-        keyExtractor={(item) => item?.id?.toString() || `temp-${Math.random()}`}
-        renderItem={({ item }) => (
-          item ? (
-            <ConversationItem
-              conversation={item}
-              onPress={() => handleConversationPress(item)}
-            />
-          ) : null
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={handleRefresh}
-            tintColor={Colors.green[500]}
+    <ScreenBackground>
+      <View style={styles.container}>
+        <GlassHeader
+          title="Разговори"
+          rightIcon={<SearchIcon size={24} color={Colors.text.inverse} />}
+          onRightPress={toggleSearch}
+        />
+
+        {isSearchVisible && (
+          <ConversationSearchBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onClearSearch={() => setSearchQuery('')}
           />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {searchQuery.trim() ? 'Няма резултати' : 'Няма разговори'}
-            </Text>
-          </View>
-        }
-      />
-    </View>
+        )}
+        <FlatList
+          data={filteredConversations.filter((item) => item != null && item.id != null)}
+          keyExtractor={(item) => item?.id?.toString() || `temp-${Math.random()}`}
+          renderItem={({ item, index }) => (
+            item ? (
+              <ConversationItem
+                conversation={item}
+                onPress={() => handleConversationPress(item)}
+                index={index}
+              />
+            ) : null
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={handleRefresh}
+              tintColor={Colors.gold[400]} // Gold spinner
+              colors={[Colors.gold[400]]} // Android
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {searchQuery.trim() ? 'Няма резултати' : 'Няма разговори'}
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'transparent',
   },
   errorContainer: {
     flex: 1,

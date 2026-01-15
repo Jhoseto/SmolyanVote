@@ -18,6 +18,7 @@ export interface Conversation {
   unreadCount: number;
   missedCalls?: number; // Number of missed calls in this conversation
   isHidden?: boolean;
+  mutedUntil?: string; // ISO date string if muted
   createdAt: string;
   updatedAt?: string;
   lastMessageTime?: string; // Backend връща lastMessageTime

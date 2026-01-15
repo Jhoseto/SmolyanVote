@@ -74,14 +74,14 @@ export const useWebSocketMessages = () => {
       // CRITICAL FIX Bug 1: Match parentMessageId correctly - use strict null/undefined check
       // Treat undefined/null as "no parent", but allow 0 as valid parent ID
       // This prevents incorrect matching when message ID 0 is a valid parent
-      const matchingOptimistic = conversationMessages.filter((m) => 
-        m.id < 0 && 
-        m.text === message.text && 
+      const matchingOptimistic = conversationMessages.filter((m) =>
+        m.id < 0 &&
+        m.text === message.text &&
         m.senderId === message.senderId &&
-        (m.parentMessageId === message.parentMessageId || 
-         (m.parentMessageId == null && message.parentMessageId == null))
+        (m.parentMessageId === message.parentMessageId ||
+          (m.parentMessageId == null && message.parentMessageId == null))
       );
-      
+
       // CRITICAL FIX Bug 2: Find oldest optimistic message (least negative ID)
       // Since temp IDs use -Date.now(), older messages have less negative values (e.g., -1000)
       // and newer messages have more negative values (e.g., -2000)
@@ -89,11 +89,11 @@ export const useWebSocketMessages = () => {
       const optimisticMessage = matchingOptimistic.length > 0
         ? matchingOptimistic.reduce((oldest, current) => current.id > oldest.id ? current : oldest)
         : undefined;
-      
+
       if (optimisticMessage) {
         // Remove optimistic message before adding real one
         removeMessage(message.conversationId, optimisticMessage.id);
-        
+
         // CRITICAL FIX: Note that timeout cleanup is handled in useMessages hook
         // The timeout will check if real message already exists before retrying via REST
         // This prevents race condition where timeout fires after real message arrives
@@ -129,7 +129,7 @@ export const useWebSocketMessages = () => {
           updateConversationWithNewMessage(message.conversationId, message.text, message.createdAt, true); // incrementUnread = true
         } else {
           // Conversation doesn't exist - fetch and add conversation to list (exactly like web version)
-          
+
           // getConversation is async and always returns a Promise - call it directly
           // No need to check if it's a promise - it always is
           getConversation(message.conversationId)
@@ -155,8 +155,14 @@ export const useWebSocketMessages = () => {
         }
       }
 
-      // Play notification sound for new messages - fire and forget
-      soundService.playSound('notification');
+      // Check if conversation is muted
+      const conversation = conversations.find(c => c.id === message.conversationId);
+      const isMuted = conversation?.mutedUntil ? new Date(conversation.mutedUntil) > new Date() : false;
+
+      // Play notification sound only if not muted
+      if (!isMuted) {
+        soundService.playSound('notification');
+      }
     }
   }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation, sendReadReceipt]);
 

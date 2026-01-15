@@ -10,4 +10,7 @@ export { Loading } from './Loading';
 export { OfflineIndicator } from './OfflineIndicator';
 export { ErrorBoundary } from './ErrorBoundary';
 export * from './Icons';
+export * from './FadeInView';
+export * from './ScaleButton';
+export * from './GlassHeader';
 

@@ -19,6 +19,8 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MainTabParamList, ConversationsStackParamList } from '../../types/navigation';
 import { Avatar, Loading } from '../../components/common';
+import { ScreenBackground } from '../../components/common/ScreenBackground';
+import { GlassHeader } from '../../components/common/GlassHeader';
 import { Colors, Typography, Spacing, Shadows } from '../../theme';
 import apiClient from '../../services/api/client';
 import { API_CONFIG } from '../../config/api';
@@ -169,134 +171,134 @@ export const UserSearchScreen: React.FC = () => {
   const showFollowingUsers = !hasSearchQuery && !isSearching;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Търси потребители..."
-          placeholderTextColor={Colors.text.tertiary}
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+    <ScreenBackground>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <GlassHeader title="Търсене" />
 
-      {isSearching && (
-        <View style={styles.loadingContainer}>
-          <Loading size="small" />
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Търси потребители..."
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
         </View>
-      )}
 
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
+        {isSearching && (
+          <View style={styles.loadingContainer}>
+            <Loading size="small" />
+          </View>
+        )}
 
-      {showFollowingUsers ? (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.listContent}>
-          {isLoadingFollowing ? (
-            <View style={styles.loadingContainer}>
-              <Loading size="small" />
-            </View>
-          ) : followingUsers.length > 0 ? (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Следвани потребители</Text>
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {showFollowingUsers ? (
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.listContent}>
+            {isLoadingFollowing ? (
+              <View style={styles.loadingContainer}>
+                <Loading size="small" />
               </View>
-              {followingUsers.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.userItem}
-                  onPress={() => handleUserSelect(item)}
-                  activeOpacity={0.7}
-                >
-                  <Avatar
-                    imageUrl={item.imageUrl}
-                    name={item.fullName}
-                    size={56}
-                    isOnline={item.isOnline}
-                  />
-                  <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{item.fullName}</Text>
-                    <Text style={styles.userUsername}>@{item.username}</Text>
-                  </View>
-                  {item.isOnline && (
-                    <View style={styles.onlineIndicator} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Няма следвани потребители</Text>
-              <Text style={styles.emptySubtext}>Започни да следваш потребители за да ги видиш тук</Text>
-            </View>
-          )}
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={searchResults}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.userItem}
-              onPress={() => handleUserSelect(item)}
-              activeOpacity={0.7}
-            >
-              <Avatar
-                imageUrl={item.imageUrl}
-                name={item.fullName}
-                size={56}
-                isOnline={item.isOnline}
-              />
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{item.fullName}</Text>
-                <Text style={styles.userUsername}>@{item.username}</Text>
-              </View>
-              {item.isOnline && (
-                <View style={styles.onlineIndicator} />
-              )}
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            hasSearchQuery && !isSearching ? (
+            ) : followingUsers.length > 0 ? (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Следвани потребители</Text>
+                </View>
+                {followingUsers.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.userItem}
+                    onPress={() => handleUserSelect(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Avatar
+                      imageUrl={item.imageUrl}
+                      name={item.fullName}
+                      size={50}
+                      isOnline={item.isOnline}
+                    />
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.fullName}</Text>
+                      <Text style={styles.userUsername}>@{item.username}</Text>
+                    </View>
+                    {item.isOnline && (
+                      <View style={styles.onlineIndicator} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </>
+            ) : (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Няма резултати</Text>
+                <Text style={styles.emptyText}>Няма следвани потребители</Text>
+                <Text style={styles.emptySubtext}>Започни да следваш потребители за да ги видиш тук</Text>
               </View>
-            ) : null
-          }
-          contentContainerStyle={styles.listContent}
-        />
-      )}
-    </SafeAreaView>
+            )}
+          </ScrollView>
+        ) : (
+          <FlatList
+            data={searchResults}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.userItem}
+                onPress={() => handleUserSelect(item)}
+                activeOpacity={0.7}
+              >
+                <Avatar
+                  imageUrl={item.imageUrl}
+                  name={item.fullName}
+                  size={50}
+                  isOnline={item.isOnline}
+                />
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{item.fullName}</Text>
+                  <Text style={styles.userUsername}>@{item.username}</Text>
+                </View>
+                {item.isOnline && (
+                  <View style={styles.onlineIndicator} />
+                )}
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              hasSearchQuery && !isSearching ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>Няма резултати</Text>
+                </View>
+              ) : null
+            }
+            contentContainerStyle={styles.listContent}
+          />
+        )}
+      </SafeAreaView>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary, // SmolyanVote style - light gray background
+    backgroundColor: 'transparent',
   },
   searchContainer: {
     padding: Spacing.md,
     paddingTop: Spacing.sm,
-    backgroundColor: Colors.background.primary,
-    ...Shadows.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    backgroundColor: 'transparent',
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: Colors.border.light,
-    borderRadius: 24, // More rounded like web version
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 24,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    backgroundColor: Colors.background.secondary,
-    ...Shadows.sm,
+    color: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   loadingContainer: {
     padding: Spacing.lg,
@@ -306,12 +308,14 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.semantic.error + '15', // Light red background
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   errorText: {
-    color: Colors.semantic.error,
+    color: '#fca5a5',
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
   },
@@ -324,14 +328,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.background.secondary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    backgroundColor: 'transparent',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.secondary,
+    color: Colors.gold[400], // Gold title
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -340,11 +342,11 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Glassy list item
     borderRadius: 12,
-    borderBottomWidth: 0,
     alignItems: 'center',
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   userInfo: {
     marginLeft: Spacing.md,
@@ -353,33 +355,36 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs / 2,
+    color: '#ffffff', // White name
+    marginBottom: 2,
   },
   userUsername: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+    color: 'rgba(255, 255, 255, 0.6)', // Muted white
   },
   onlineIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: Colors.green[500],
-    borderWidth: 2,
-    borderColor: Colors.background.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
+    shadowColor: Colors.green[500],
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   emptyContainer: {
     padding: Spacing.xl * 2,
     alignItems: 'center',
   },
   emptyText: {
-    color: Colors.text.secondary,
+    color: 'rgba(255, 255, 255, 0.5)',
     fontSize: Typography.fontSize.base,
     fontStyle: 'italic',
     marginBottom: Spacing.xs,
   },
   emptySubtext: {
-    color: Colors.text.tertiary,
+    color: 'rgba(255, 255, 255, 0.3)',
     fontSize: Typography.fontSize.sm,
     textAlign: 'center',
   },

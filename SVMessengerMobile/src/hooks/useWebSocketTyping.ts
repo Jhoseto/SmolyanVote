@@ -12,8 +12,9 @@ export const useWebSocketTyping = () => {
 
   // Handle typing status updates
   const handleTypingStatus = useCallback((data: any) => {
-    if (data.conversationId && typeof data.isTyping === 'boolean') {
-      setTyping(data.conversationId, data.userId, data.isTyping);
+    const userId = data.userId || data.senderId;
+    if (data.conversationId && userId && typeof data.isTyping === 'boolean') {
+      setTyping(data.conversationId, userId, data.isTyping);
     }
   }, [setTyping]);
 

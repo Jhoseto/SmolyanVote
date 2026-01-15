@@ -13,7 +13,11 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
+  Vibration,
+  Animated,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { ArrowUturnLeftIcon } from 'react-native-heroicons/solid';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { ConversationsStackParamList } from '../../types/navigation';
 import { useMessages } from '../../hooks/useMessages';
@@ -25,6 +29,7 @@ import { ChatHeader } from '../../components/chat/ChatHeader';
 import { MessageSearchBar } from '../../components/chat/MessageSearchBar';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import { Loading } from '../../components/common';
+import { ScreenBackground } from '../../components/common/ScreenBackground';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
@@ -33,6 +38,63 @@ import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
 import { logger } from '../../utils/logger';
+
+
+// Swipeable Wrapper Component
+const SwipeableMessageWrapper = ({ children, onReply }: { children: React.ReactNode, onReply: () => void }) => {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderLeftActions = (progress: any, dragX: any) => {
+    const scale = dragX.interpolate({
+      inputRange: [0, 50],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <View style={{ justifyContent: 'center', paddingLeft: 20, width: 80 }}>
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <View style={{
+            backgroundColor: Colors.background.secondary,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}>
+            <ArrowUturnLeftIcon size={20} color={Colors.primary} />
+          </View>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const handleSwipeOpen = () => {
+    Vibration.vibrate(15);
+    onReply();
+    swipeableRef.current?.close();
+  };
+
+  // Only allow swiping for reply (left to right)
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderLeftActions={renderLeftActions}
+      onSwipeableOpen={handleSwipeOpen}
+      friction={2}
+      overshootLeft={false}
+      rightThreshold={40}
+    >
+      {children}
+    </Swipeable>
+  );
+};
+
 
 type ChatScreenRouteProp = RouteProp<ConversationsStackParamList, 'Chat'>;
 
@@ -286,6 +348,7 @@ export const ChatScreen: React.FC = () => {
     setReplyToMessage(null);
 
     // Send message - it will arrive via WebSocket
+    Vibration.vibrate(10);
     await sendMessage(text, parentMessageId);
 
     // Scroll to bottom after sending
@@ -388,18 +451,23 @@ export const ChatScreen: React.FC = () => {
   };
 
   if (isLoading && messages.length === 0) {
-    return <Loading message="Зареждане на съобщения..." />;
+    return (
+      <ScreenBackground>
+        <Loading message="Зареждане на съобщения..." />
+      </ScreenBackground>
+    );
   }
 
   return (
-    <View style={styles.wrapper}>
-      {/* Custom Header */}
-      <ChatHeader
-        participantName={participantName}
-        participantImageUrl={participant?.imageUrl}
-        participantId={participant?.id || 0}
-        conversationId={conversationId}
-        isOnline={participant?.isOnline || false}
+    <ScreenBackground>
+      <View style={styles.wrapper}>
+        {/* Custom Header */}
+        <ChatHeader
+          participantName={participantName}
+          participantImageUrl={participant?.imageUrl}
+          participantId={participant?.id || 0}
+          conversationId={conversationId}
+          isOnline={participant?.isOnline || false}
         /*  const handleCall = () => {
     if (participant) {
       // CRITICAL FIX: Pass existing conversationId to startCall to bypass backend check
@@ -426,161 +494,164 @@ export const ChatScreen: React.FC = () => {
       );
     }
   };  */onBack={() => navigation.goBack()}
-        onSearchPress={() => setShowSearch(!showSearch)}
-      />
+          onSearchPress={() => setShowSearch(!showSearch)}
+        />
 
-      {/* Message Search Bar */}
-      <MessageSearchBar
-        visible={showSearch}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onClose={() => {
-          setShowSearch(false);
-          setSearchQuery('');
-        }}
-        resultCount={searchResults.length}
-        currentIndex={currentSearchIndex}
-        onNext={handleSearchNext}
-        onPrevious={handleSearchPrevious}
-      />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        enabled={Platform.OS === 'ios'}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={chatItems}
-          keyExtractor={(item, index) => {
-            if (item.type === 'message') {
-              const id = item.data?.id != null ? String(item.data.id) : `msg-${index}`;
-              return `message-${id}`;
-            } else {
-              const id = item.data?.id != null ? String(item.data.id) : `call-${index}`;
-              return `call-${id}`;
-            }
+        {/* Message Search Bar */}
+        <MessageSearchBar
+          visible={showSearch}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onClose={() => {
+            setShowSearch(false);
+            setSearchQuery('');
           }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          renderItem={({ item }) => {
-            if (item.type === 'message') {
-              return (
-                <MessageBubble
-                  message={item.data}
-                  participantImageUrl={participant?.imageUrl}
-                  participantName={participant?.fullName || participantName}
-                  onReply={handleReply}
-                />
-              );
-            } else if (item.type === 'callHistory') {
-              // CRITICAL: Ensure callHistory data is valid before rendering
-              if (!item.data || typeof item.data !== 'object') {
-                return null;
+          resultCount={searchResults.length}
+          currentIndex={currentSearchIndex}
+          onNext={handleSearchNext}
+          onPrevious={handleSearchPrevious}
+        />
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          enabled={Platform.OS === 'ios'}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={chatItems}
+            keyExtractor={(item, index) => {
+              if (item.type === 'message') {
+                const id = item.data?.id != null ? String(item.data.id) : `msg-${index}`;
+                return `message-${id}`;
+              } else {
+                const id = item.data?.id != null ? String(item.data.id) : `call-${index}`;
+                return `call-${id}`;
               }
-              return <CallHistoryBubble callHistory={item.data} />;
-            }
-            return null;
-          }}
-          contentContainerStyle={[
-            styles.messagesContainer,
-            chatItems.length === 0 && styles.emptyContainer,
-          ]}
-          inverted={false}
-          ListHeaderComponent={
-            missedCalls > 0 ? (
-              <View style={styles.missedCallsContainer}>
-                <TelephoneIcon size={18} color={Colors.red[500]} />
-                <Text style={styles.missedCallsText}>
-                  {missedCalls === 1
-                    ? 'Пропуснато обаждане'
-                    : `${missedCalls} пропуснати обаждания`}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => clearMissedCalls(conversationId)}
-                  style={styles.clearMissedCallsButton}
-                >
-                  <Text style={styles.clearMissedCallsText}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ) : isLoadingMore ? (
-              <View style={styles.loadingMoreContainer}>
-                <ActivityIndicator size="small" color={Colors.green[500]} />
-                <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
-              </View>
-            ) : null
-          }
-          onScroll={(event) => {
-            const offsetY = event.nativeEvent.contentOffset.y;
-            scrollOffsetRef.current = offsetY;
-
-            // Mark that user has scrolled
-            if (offsetY > 50) {
-              hasScrolledRef.current = true;
-            }
-
-            // Load more messages when scrolling near the top (offsetY < 200)
-            // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
-            if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
-              loadMoreMessages();
-            }
-          }}
-          scrollEventThrottle={400}
-          onContentSizeChange={() => {
-            // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
-            // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-            // This allows users to scroll up and read older messages without being forced back to bottom
-            if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
-              setTimeout(() => {
-                try {
-                  flatListRef.current?.scrollToEnd({ animated: false });
-                  hasScrolledRef.current = true;
-                } catch (error) {
-                  logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
+            }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            renderItem={({ item }) => {
+              if (item.type === 'message') {
+                return (
+                  <SwipeableMessageWrapper onReply={() => handleReply(item.data)}>
+                    <MessageBubble
+                      message={item.data}
+                      participantImageUrl={participant?.imageUrl}
+                      participantName={participant?.fullName || participantName}
+                      onReply={handleReply}
+                    />
+                  </SwipeableMessageWrapper>
+                );
+              } else if (item.type === 'callHistory') {
+                // CRITICAL: Ensure callHistory data is valid before rendering
+                if (!item.data || typeof item.data !== 'object') {
+                  return null;
                 }
-              }, 100);
+                return <CallHistoryBubble callHistory={item.data} />;
+              }
+              return null;
+            }}
+            contentContainerStyle={[
+              styles.messagesContainer,
+              chatItems.length === 0 && styles.emptyContainer,
+            ]}
+            inverted={false}
+            ListHeaderComponent={
+              missedCalls > 0 ? (
+                <View style={styles.missedCallsContainer}>
+                  <TelephoneIcon size={18} color={Colors.red[500]} />
+                  <Text style={styles.missedCallsText}>
+                    {missedCalls === 1
+                      ? 'Пропуснато обаждане'
+                      : `${missedCalls} пропуснати обаждания`}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => clearMissedCalls(conversationId)}
+                    style={styles.clearMissedCallsButton}
+                  >
+                    <Text style={styles.clearMissedCallsText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : isLoadingMore ? (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color={Colors.green[500]} />
+                  <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
+                </View>
+              ) : null
             }
-          }}
-          onLayout={() => {
-            // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
-            // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-            if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
-              setTimeout(() => {
-                try {
-                  flatListRef.current?.scrollToEnd({ animated: false });
-                  hasScrolledRef.current = true;
-                } catch (error) {
-                  logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
-                }
-              }, 150);
-            }
-          }}
-        />
-        {isTyping && <TypingIndicator name={participantName} />}
-        <MessageInput
-          value={inputText}
-          onChangeText={handleInputChange}
-          onSend={handleSend}
-          replyPreview={replyToMessage ? {
-            messageId: replyToMessage.id,
-            text: replyToMessage.text,
-            senderName: replyToMessage.senderName,
-          } : null}
-          onCancelReply={handleCancelReply}
-        />
-      </KeyboardAvoidingView>
-    </View>
+            onScroll={(event) => {
+              const offsetY = event.nativeEvent.contentOffset.y;
+              scrollOffsetRef.current = offsetY;
+
+              // Mark that user has scrolled
+              if (offsetY > 50) {
+                hasScrolledRef.current = true;
+              }
+
+              // Load more messages when scrolling near the top (offsetY < 200)
+              // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
+              if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
+                loadMoreMessages();
+              }
+            }}
+            scrollEventThrottle={400}
+            onContentSizeChange={() => {
+              // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
+              // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+              // This allows users to scroll up and read older messages without being forced back to bottom
+              if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
+                setTimeout(() => {
+                  try {
+                    flatListRef.current?.scrollToEnd({ animated: false });
+                    hasScrolledRef.current = true;
+                  } catch (error) {
+                    logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
+                  }
+                }, 100);
+              }
+            }}
+            onLayout={() => {
+              // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
+              // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
+              if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
+                setTimeout(() => {
+                  try {
+                    flatListRef.current?.scrollToEnd({ animated: false });
+                    hasScrolledRef.current = true;
+                  } catch (error) {
+                    logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
+                  }
+                }, 150);
+              }
+            }}
+          />
+          {isTyping && <TypingIndicator name={participantName} />}
+          <MessageInput
+            value={inputText}
+            onChangeText={handleInputChange}
+            onSend={handleSend}
+            replyPreview={replyToMessage ? {
+              messageId: replyToMessage.id,
+              text: replyToMessage.text,
+              senderName: replyToMessage.senderName,
+            } : null}
+            onCancelReply={handleCancelReply}
+          />
+        </KeyboardAvoidingView>
+      </View>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
+    // Background handled by ScreenBackground
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: 'transparent',
   },
   messagesContainer: {
     padding: Spacing.md,

@@ -19,7 +19,9 @@ import { Colors, Spacing, Typography } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useMessagesStore } from '../../store/messagesStore';
-import { 
+import { ScreenBackground } from '../../components/common/ScreenBackground';
+import { GlassHeader } from '../../components/common/GlassHeader';
+import {
   ChevronRightIcon,
   BellIcon,
   ShieldCheckIcon,
@@ -37,7 +39,9 @@ interface SettingsSectionProps {
 const SettingsSection: React.FC<SettingsSectionProps> = ({ title, children }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
-    {children}
+    <View style={styles.sectionContent}>
+      {children}
+    </View>
   </View>
 );
 
@@ -71,7 +75,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
     </View>
     {rightComponent && <View style={styles.rightComponent}>{rightComponent}</View>}
     {showArrow && onPress && (
-      <ChevronRightIcon size={20} color={Colors.text.tertiary} />
+      <ChevronRightIcon size={20} color={Colors.gold[400]} />
     )}
   </TouchableOpacity>
 );
@@ -79,7 +83,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  
+
   // Notification settings
   const [pushNotifications, setPushNotifications] = useState(true);
   const [messageSounds, setMessageSounds] = useState(true);
@@ -110,8 +114,8 @@ export const SettingsScreen: React.FC = () => {
             try {
               // Clear AsyncStorage cache (excluding auth tokens)
               const keys = await AsyncStorage.getAllKeys();
-              const keysToRemove = keys.filter(key => 
-                !key.includes('token') && 
+              const keysToRemove = keys.filter(key =>
+                !key.includes('token') &&
                 !key.includes('auth') &&
                 !key.includes('fcm')
               );
@@ -141,13 +145,10 @@ export const SettingsScreen: React.FC = () => {
               // Clear conversations and messages from stores
               const { clearConversations } = useConversationsStore.getState();
               const { clearAllMessages } = useMessagesStore.getState();
-              
-              // Call API to delete conversations if needed
-              // await apiClient.delete('/api/svmessenger/conversations/all');
-              
+
               clearConversations();
               clearAllMessages();
-              
+
               Alert.alert('Успех', 'Разговорите са изчистени');
             } catch (error) {
               console.error('Error clearing conversations:', error);
@@ -186,206 +187,209 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Notifications Section */}
-      <SettingsSection title="Известия">
-        <SettingsItem
-          icon={<BellIcon size={22} color={Colors.green[500]} />}
-          title="Push известия"
-          rightComponent={
-            <Switch
-              value={pushNotifications}
-              onValueChange={setPushNotifications}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={pushNotifications ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<SpeakerWaveIcon size={22} color={Colors.green[500]} />}
-          title="Звуци за съобщения"
-          rightComponent={
-            <Switch
-              value={messageSounds}
-              onValueChange={setMessageSounds}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={messageSounds ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<SpeakerWaveIcon size={22} color={Colors.green[500]} />}
-          title="Звуци за обаждания"
-          rightComponent={
-            <Switch
-              value={callSounds}
-              onValueChange={setCallSounds}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={callSounds ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<BellIcon size={22} color={Colors.green[500]} />}
-          title="Преглед на известия"
-          subtitle="Показвай съдържанието на съобщенията в известията"
-          rightComponent={
-            <Switch
-              value={notificationPreview}
-              onValueChange={setNotificationPreview}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={notificationPreview ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<BellIcon size={22} color={Colors.green[500]} />}
-          title="Не безпокой"
-          subtitle="Спиране на всички известия"
-          rightComponent={
-            <Switch
-              value={doNotDisturb}
-              onValueChange={setDoNotDisturb}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={doNotDisturb ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-      </SettingsSection>
+    <ScreenBackground>
+      <GlassHeader title="Настройки" showBackButton onBackPress={() => navigation.goBack()} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* Notifications Section */}
+        <SettingsSection title="Известия">
+          <SettingsItem
+            icon={<BellIcon size={22} color={Colors.gold[400]} />}
+            title="Push известия"
+            rightComponent={
+              <Switch
+                value={pushNotifications}
+                onValueChange={setPushNotifications}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={pushNotifications ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<SpeakerWaveIcon size={22} color={Colors.gold[400]} />}
+            title="Звуци за съобщения"
+            rightComponent={
+              <Switch
+                value={messageSounds}
+                onValueChange={setMessageSounds}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={messageSounds ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<SpeakerWaveIcon size={22} color={Colors.gold[400]} />}
+            title="Звуци за обаждания"
+            rightComponent={
+              <Switch
+                value={callSounds}
+                onValueChange={setCallSounds}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={callSounds ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<BellIcon size={22} color={Colors.gold[400]} />}
+            title="Преглед на известия"
+            subtitle="Показвай съдържанието на съобщенията в известията"
+            rightComponent={
+              <Switch
+                value={notificationPreview}
+                onValueChange={setNotificationPreview}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={notificationPreview ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<BellIcon size={22} color={Colors.gold[400]} />}
+            title="Не безпокой"
+            subtitle="Спиране на всички известия"
+            rightComponent={
+              <Switch
+                value={doNotDisturb}
+                onValueChange={setDoNotDisturb}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={doNotDisturb ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+        </SettingsSection>
 
-      {/* Privacy Section */}
-      <SettingsSection title="Поверителност">
-        <SettingsItem
-          icon={<ShieldCheckIcon size={22} color={Colors.green[500]} />}
-          title="Видимост на онлайн статус"
-          rightComponent={
-            <Switch
-              value={onlineStatusVisible}
-              onValueChange={setOnlineStatusVisible}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={onlineStatusVisible ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<ShieldCheckIcon size={22} color={Colors.green[500]} />}
-          title="Потвърждения за прочитане"
-          rightComponent={
-            <Switch
-              value={readReceipts}
-              onValueChange={setReadReceipts}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={readReceipts ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<ShieldCheckIcon size={22} color={Colors.green[500]} />}
-          title="Видимост на последно активен"
-          rightComponent={
-            <Switch
-              value={lastSeenVisible}
-              onValueChange={setLastSeenVisible}
-              trackColor={{ false: Colors.gray[300], true: Colors.green[400] }}
-              thumbColor={lastSeenVisible ? Colors.green[500] : Colors.gray[500]}
-            />
-          }
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<ShieldCheckIcon size={22} color={Colors.green[500]} />}
-          title="Блокирани потребители"
-          onPress={() => {
-            Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-          }}
-        />
-      </SettingsSection>
+        {/* Privacy Section */}
+        <SettingsSection title="Поверителност">
+          <SettingsItem
+            icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
+            title="Видимост на онлайн статус"
+            rightComponent={
+              <Switch
+                value={onlineStatusVisible}
+                onValueChange={setOnlineStatusVisible}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={onlineStatusVisible ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
+            title="Потвърждения за прочитане"
+            rightComponent={
+              <Switch
+                value={readReceipts}
+                onValueChange={setReadReceipts}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={readReceipts ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
+            title="Видимост на последно активен"
+            rightComponent={
+              <Switch
+                value={lastSeenVisible}
+                onValueChange={setLastSeenVisible}
+                trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(250, 204, 21, 0.4)' }}
+                thumbColor={lastSeenVisible ? Colors.gold[400] : '#f4f3f4'}
+              />
+            }
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
+            title="Блокирани потребители"
+            onPress={() => {
+              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+            }}
+          />
+        </SettingsSection>
 
-      {/* Chat Section */}
-      <SettingsSection title="Чат">
-        <SettingsItem
-          icon={<ChatBubbleLeftRightIcon size={22} color={Colors.green[500]} />}
-          title="Размер на шрифта"
-          subtitle={fontSize === 'small' ? 'Малък' : fontSize === 'medium' ? 'Среден' : 'Голям'}
-          onPress={handleFontSizePress}
-        />
-        <SettingsItem
-          icon={<ChatBubbleLeftRightIcon size={22} color={Colors.green[500]} />}
-          title="Тема"
-          subtitle={theme === 'light' ? 'Светла' : theme === 'dark' ? 'Тъмна' : 'Системна'}
-          onPress={handleThemePress}
-        />
-        <SettingsItem
-          icon={<ChatBubbleLeftRightIcon size={22} color={Colors.green[500]} />}
-          title="Език"
-          subtitle="Български"
-          onPress={() => {
-            Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-          }}
-        />
-      </SettingsSection>
+        {/* Chat Section */}
+        <SettingsSection title="Чат">
+          <SettingsItem
+            icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
+            title="Размер на шрифта"
+            subtitle={fontSize === 'small' ? 'Малък' : fontSize === 'medium' ? 'Среден' : 'Голям'}
+            onPress={handleFontSizePress}
+          />
+          <SettingsItem
+            icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
+            title="Тема"
+            subtitle={theme === 'light' ? 'Светла' : theme === 'dark' ? 'Тъмна' : 'Системна'}
+            onPress={handleThemePress}
+          />
+          <SettingsItem
+            icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
+            title="Език"
+            subtitle="Български"
+            onPress={() => {
+              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+            }}
+          />
+        </SettingsSection>
 
-      {/* Storage Section */}
-      <SettingsSection title="Хранилище">
-        <SettingsItem
-          icon={<TrashIcon size={22} color={Colors.semantic.error} />}
-          title="Изчисти кеша"
-          subtitle="Освободи място на устройството"
-          onPress={handleClearCache}
-        />
-        <SettingsItem
-          icon={<TrashIcon size={22} color={Colors.semantic.error} />}
-          title="Изчисти разговори"
-          subtitle="Изтрий всички локални разговори"
-          onPress={handleClearConversations}
-        />
-      </SettingsSection>
+        {/* Storage Section */}
+        <SettingsSection title="Хранилище">
+          <SettingsItem
+            icon={<TrashIcon size={22} color={Colors.semantic.error} />}
+            title="Изчисти кеша"
+            subtitle="Освободи място на устройството"
+            onPress={handleClearCache}
+          />
+          <SettingsItem
+            icon={<TrashIcon size={22} color={Colors.semantic.error} />}
+            title="Изчисти разговори"
+            subtitle="Изтрий всички локални разговори"
+            onPress={handleClearConversations}
+          />
+        </SettingsSection>
 
-      {/* About Section */}
-      <SettingsSection title="За приложението">
-        <SettingsItem
-          icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
-          title="Версия"
-          subtitle="1.0.0"
-          showArrow={false}
-        />
-        <SettingsItem
-          icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
-          title="Условия за ползване"
-          onPress={() => {
-            Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-          }}
-        />
-        <SettingsItem
-          icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
-          title="Политика за поверителност"
-          onPress={() => {
-            Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-          }}
-        />
-        <SettingsItem
-          icon={<InformationCircleIcon size={22} color={Colors.green[500]} />}
-          title="Свържи се с поддръжката"
-          onPress={() => {
-            Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-          }}
-        />
-      </SettingsSection>
-    </ScrollView>
+        {/* About Section */}
+        <SettingsSection title="За приложението">
+          <SettingsItem
+            icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
+            title="Версия"
+            subtitle="1.0.0"
+            showArrow={false}
+          />
+          <SettingsItem
+            icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
+            title="Условия за ползване"
+            onPress={() => {
+              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+            }}
+          />
+          <SettingsItem
+            icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
+            title="Политика за поверителност"
+            onPress={() => {
+              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+            }}
+          />
+          <SettingsItem
+            icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
+            title="Свържи се с поддръжката"
+            onPress={() => {
+              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+            }}
+          />
+        </SettingsSection>
+      </ScrollView>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Spacing.md,
@@ -396,20 +400,27 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.secondary,
+    color: Colors.gold[400],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
   },
+  sectionContent: {
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   iconContainer: {
     marginRight: Spacing.md,
@@ -420,11 +431,11 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.medium,
-    color: Colors.text.primary,
+    color: '#ffffff',
   },
   itemSubtitle: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 2,
   },
   rightComponent: {

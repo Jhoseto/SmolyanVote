@@ -10,10 +10,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Message } from '../../types/message';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
-import { Avatar } from '../common';
+import { Avatar, FadeInView } from '../common';
 import { MessageMenu } from './MessageMenu';
 import { EditMessageModal } from './EditMessageModal';
 import { MessageStatusModal } from './MessageStatusModal';
+import { CheckIcon as HeroCheckIcon } from 'react-native-heroicons/outline';
 
 interface MessageBubbleProps {
   message: Message;
@@ -22,7 +23,7 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
+export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   participantImageUrl,
   participantName,
@@ -40,110 +41,127 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <>
-      <TouchableOpacity
-        style={[
-          styles.container,
-          isOwnMessage ? styles.ownMessage : styles.otherMessage,
-        ]}
-        onLongPress={handleLongPress}
-        activeOpacity={0.9}
-      >
-      {isOwnMessage ? (
-        // Sent message - синкав градиент
-        <LinearGradient
-          colors={['#e0f2fe', '#bae6fd', '#7dd3fc']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.bubble, styles.ownBubble]}
+      <FadeInView duration={300} startY={10}>
+        <TouchableOpacity
+          style={[
+            styles.container,
+            isOwnMessage ? styles.ownMessage : styles.otherMessage,
+          ]}
+          onLongPress={handleLongPress}
+          activeOpacity={0.9}
         >
-          {/* Reply Preview */}
-          {message.parentMessageText && (
-            <View style={styles.replyPreview}>
-              <View style={styles.replyLine} />
-              <View style={styles.replyContent}>
-                <Text style={styles.replyText} numberOfLines={2}>
-                  {message.parentMessageText}
-                </Text>
-              </View>
-            </View>
-          )}
-          <Text style={[styles.text, styles.ownText]}>
-            {message.text}
-          </Text>
-          {message.isEdited && (
-            <Text style={styles.editedBadge}>Редактирано</Text>
-          )}
-          <View style={styles.footer}>
-            <Text style={styles.time}>
-              {new Date(message.createdAt).toLocaleDateString('bg-BG', {
-                day: '2-digit',
-                month: '2-digit',
-              })}{' '}
-              {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false, // 24-hour format
-              })}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowStatusModal(true)}
-              activeOpacity={0.7}
-              style={styles.status}
+          {isOwnMessage ? (
+            <LinearGradient
+              colors={['#064e3b', '#022c22']} // Deep Emerald (900) to Darker (950)
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.bubble,
+                styles.sentBubble,
+                { borderBottomRightRadius: 2 }
+              ]}
             >
-              {!message.isDelivered ? (
-                // 1 сива лястовица: SENT (не е delivered)
-                <Text style={styles.statusIcon}>✓</Text>
-              ) : message.isDelivered && !message.isRead ? (
-                // 2 сиви лястовици: DELIVERED (delivered, но не е read)
-                <Text style={styles.statusIcon}>✓✓</Text>
-              ) : (
-                // 2 зелени лястовици: READ (delivered и read)
-                <Text style={[styles.statusIcon, styles.readIcon]}>✓✓</Text>
+              {/* 3D Shine Effect */}
+              <View style={styles.shine} />
+
+              {/* Reply Preview */}
+              {message.parentMessageText && (
+                <View style={styles.replyPreview}>
+                  <View style={[styles.replyLine, { backgroundColor: '#fff' }]} />
+                  <View style={styles.replyContent}>
+                    <Text style={[styles.replyText, { color: '#eee' }]} numberOfLines={2}>
+                      {message.parentMessageText}
+                    </Text>
+                  </View>
+                </View>
               )}
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      ) : (
-        // Received message - сив градиент с avatar
-        <View style={styles.otherMessageContainer}>
-          <Avatar
-            imageUrl={participantImageUrl}
-            name={participantName || 'User'}
-            size={32}
-            style={styles.messageAvatar}
-          />
-          <LinearGradient
-            colors={['#ffffff', '#f8fafc', '#f1f5f9']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.bubble, styles.otherBubble]}
-          >
-            {/* Reply Preview */}
-            {message.parentMessageText && (
-              <View style={styles.replyPreview}>
-                <View style={[styles.replyLine, styles.replyLineOther]} />
-                <View style={styles.replyContent}>
-                  <Text style={styles.replyText} numberOfLines={2}>
-                    {message.parentMessageText}
+
+              <Text style={[styles.text, styles.ownText]}>
+                {message.text}
+              </Text>
+
+              {message.isEdited && (
+                <Text style={[styles.editedBadge, { color: '#bbf7d0' }]}>Редактирано</Text>
+              )}
+
+              <View style={styles.footer}>
+                <Text style={[styles.time, { color: '#d1fae5' }]}>
+                  {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  })}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setShowStatusModal(true)}
+                  activeOpacity={0.7}
+                  style={styles.status}
+                >
+                  {!message.isDelivered ? (
+                    <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} />
+                  ) : message.isDelivered && !message.isRead ? (
+                    <View style={{ flexDirection: 'row', width: 18 }}>
+                      <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} style={{ marginRight: -8 }} />
+                      <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} />
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', width: 18 }}>
+                      <HeroCheckIcon size={14} color="#fbbf24" strokeWidth={2.5} style={{ marginRight: -8 }} />
+                      <HeroCheckIcon size={14} color="#fbbf24" strokeWidth={2.5} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          ) : (
+            <View style={styles.otherMessageContainer}>
+              <Avatar
+                imageUrl={participantImageUrl}
+                name={participantName || 'User'}
+                size={32}
+                style={styles.messageAvatar}
+              />
+              <View
+                style={[
+                  styles.bubble,
+                  styles.receivedBubble,
+                  styles.otherBubble,
+                ]}
+              >
+                {/* Reply Preview */}
+                {message.parentMessageText && (
+                  <View style={styles.replyPreview}>
+                    <View style={[styles.replyLine, styles.replyLineOther]} />
+                    <View style={styles.replyContent}>
+                      <Text style={styles.replyText} numberOfLines={2}>
+                        {message.parentMessageText}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                <Text style={[styles.text, styles.otherText]}>
+                  {message.text}
+                </Text>
+
+                {message.isEdited && (
+                  <Text style={styles.editedBadge}>Редактирано</Text>
+                )}
+
+                <View style={styles.footer}>
+                  <Text style={styles.time}>
+                    {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })}
                   </Text>
                 </View>
               </View>
-            )}
-            <Text style={[styles.text, styles.otherText]}>
-              {message.text}
-            </Text>
-            <View style={styles.footer}>
-              <Text style={styles.time}>
-                {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
             </View>
-          </LinearGradient>
-        </View>
-      )}
-      </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      </FadeInView>
 
       {/* Message Menu */}
       <MessageMenu
@@ -212,17 +230,41 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
   },
-  ownBubble: {
-    borderBottomRightRadius: 6,
-    borderColor: 'rgba(34, 197, 94, 0.2)',
-    shadowColor: '#22c55e',
-    shadowOpacity: 0.15,
+  sentBubble: {
+    marginLeft: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(250, 204, 21, 0.3)', // Subtle Gold Border
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  receivedBubble: {
+    marginRight: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)', // More glassy
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backdropFilter: 'blur(10px)', // Helps on some versions, ignored on others
+  },
+  shine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)', // More subtle shine
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 25, // More organic curve
+    borderBottomRightRadius: 25,
+    transform: [{ scaleX: 1.2 }, { translateY: -2 }],
   },
   otherBubble: {
     borderBottomLeftRadius: 6,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
   },
   text: {
     fontSize: 13, // var(--svm-font-size-sm)
@@ -230,7 +272,7 @@ const styles = StyleSheet.create({
     wordWrap: 'break-word',
   },
   ownText: {
-    color: '#1f2937', // --svm-bubble-sent-text: #1f2937
+    color: '#ffffff', // White text
   },
   otherText: {
     color: '#374151', // --svm-bubble-received-text: #374151

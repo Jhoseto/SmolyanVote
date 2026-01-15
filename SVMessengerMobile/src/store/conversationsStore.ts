@@ -4,6 +4,8 @@
  */
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Conversation, ConversationsState } from '../types/conversation';
 import apiClient from '../services/api/client';
 import { API_CONFIG } from '../config/api';
@@ -19,6 +21,7 @@ const mapBackendConversation = (conv: any): Conversation => ({
   unreadCount: conv.unreadCount || 0,
   missedCalls: conv.missedCalls || 0,
   isHidden: false,
+  mutedUntil: conv.mutedUntil ? new Date(conv.mutedUntil).toISOString() : undefined,
   createdAt: conv.createdAt,
   updatedAt: conv.lastMessageTime || conv.createdAt,
 });
@@ -40,6 +43,7 @@ interface ConversationsStore extends ConversationsState {
   markAsRead: (conversationId: number) => Promise<void>;
   incrementUnreadCount: (conversationId: number) => void;
   incrementMissedCalls: (conversationId: number) => void;
+  muteConversation: (conversationId: number, until: string | null) => void;
   clearMissedCalls: (conversationId: number) => void;
   clearError: () => void;
   recalculateTotalUnreadCount: () => void;
@@ -60,17 +64,17 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     try {
       const response = await apiClient.get(API_CONFIG.ENDPOINTS.MESSENGER.CONVERSATIONS);
       const rawData = response.data;
-      
+
       // Map backend response да съответства на frontend типовете (exactly like web version)
       // Backend връща: { id, otherUser, lastMessage, lastMessageTime, unreadCount, createdAt }
       // Frontend очаква: { id, participant, lastMessage, unreadCount, createdAt, updatedAt }
-      const mappedConversations = Array.isArray(rawData) 
+      const mappedConversations = Array.isArray(rawData)
         ? rawData.map((conv: any) => mapBackendConversation(conv))
         : [];
-      
+
       // Recalculate total unread count immediately (exactly like web version)
       const totalUnread = mappedConversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-      
+
       set({
         conversations: mappedConversations,
         isLoading: false,
@@ -94,13 +98,25 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
       const endpoint = API_CONFIG.ENDPOINTS.MESSENGER.GET_CONVERSATION.replace(':id', conversationId.toString());
       const response = await apiClient.get(endpoint);
       const rawData = response.data;
-      
+
       if (!rawData) {
         return null;
       }
-      
+
       // Map backend response to frontend format (exactly like web version)
-      return mapBackendConversation(rawData);
+      const mapped = mapBackendConversation(rawData);
+
+      // Preserve local mute state
+      const currentConversations = get().conversations;
+      const existing = currentConversations.find(c => c.id === mapped.id);
+      if (existing?.mutedUntil) {
+        const muteDate = new Date(existing.mutedUntil);
+        if (muteDate > new Date()) {
+          mapped.mutedUntil = existing.mutedUntil;
+        }
+      }
+
+      return mapped;
     } catch (error: any) {
       console.error('Error fetching conversation:', error);
       return null;
@@ -143,14 +159,14 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
       const updated = state.conversations.map((conv) =>
         conv.id === conversationId
           ? {
-              ...conv,
-              lastMessage: {
-                text: messageText,
-                createdAt: messageCreatedAt,
-              },
-              updatedAt: messageCreatedAt,
-              unreadCount: incrementUnread ? (conv.unreadCount || 0) + 1 : conv.unreadCount,
-            }
+            ...conv,
+            lastMessage: {
+              text: messageText,
+              createdAt: messageCreatedAt,
+            },
+            updatedAt: messageCreatedAt,
+            unreadCount: incrementUnread ? (conv.unreadCount || 0) + 1 : conv.unreadCount,
+          }
           : conv
       );
       const totalUnread = updated.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
@@ -251,13 +267,21 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     });
   },
 
-  // Increment missed calls
   incrementMissedCalls: (conversationId: number) => {
     set((state) => ({
       conversations: state.conversations.map((conv) =>
         conv.id === conversationId
           ? { ...conv, missedCalls: (conv.missedCalls || 0) + 1 }
           : conv
+      ),
+    }));
+  },
+
+  // Mute conversation (local update)
+  muteConversation: (conversationId: number, until: string | null) => {
+    set((state) => ({
+      conversations: state.conversations.map((conv) =>
+        conv.id === conversationId ? { ...conv, mutedUntil: until || undefined } : conv
       ),
     }));
   },

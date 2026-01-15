@@ -3,8 +3,8 @@
  * Premium animated typing indicator
  */
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { Colors, Typography, Spacing } from '../../theme';
 
 interface TypingIndicatorProps {
@@ -12,12 +12,42 @@ interface TypingIndicatorProps {
 }
 
 export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ name }) => {
+  const dot1Y = useRef(new Animated.Value(0)).current;
+  const dot2Y = useRef(new Animated.Value(0)).current;
+  const dot3Y = useRef(new Animated.Value(0)).current;
+
+  const startAnimation = (value: Animated.Value, delay: number) => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(value, {
+          toValue: -4, // Jump up 4px
+          duration: 300,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(value, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  useEffect(() => {
+    startAnimation(dot1Y, 0);
+    startAnimation(dot2Y, 150);
+    startAnimation(dot3Y, 300);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <View style={styles.container}>
       <View style={styles.indicator}>
-        <View style={[styles.dot, styles.dot1]} />
-        <View style={[styles.dot, styles.dot2]} />
-        <View style={[styles.dot, styles.dot3]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: dot1Y }], opacity: 0.6 }]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: dot2Y }], opacity: 0.8 }]} />
+        <Animated.View style={[styles.dot, { transform: [{ translateY: dot3Y }], opacity: 1 }]} />
       </View>
       <Text style={styles.text}>{name} пише...</Text>
     </View>
@@ -38,22 +68,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: Spacing.sm,
-    gap: 6,
+    gap: 4,
+    height: 16, // Fixed height for bounce
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.green[500],
-  },
-  dot1: {
-    opacity: 0.4,
-  },
-  dot2: {
-    opacity: 0.7,
-  },
-  dot3: {
-    opacity: 1,
   },
   text: {
     fontSize: Typography.fontSize.sm,

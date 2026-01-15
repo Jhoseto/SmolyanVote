@@ -11,6 +11,7 @@ import { SendIcon, FaceSmileIcon, PaperClipIcon, XMarkIcon } from '../common/Ico
 import { EmojiPicker } from './EmojiPicker';
 import { Colors, Typography, Spacing } from '../../theme';
 import { logger } from '../../utils/logger';
+import { ScaleButton } from '../common/ScaleButton'; // Import ScaleButton
 
 interface ReplyPreview {
   messageId: number;
@@ -68,7 +69,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     try {
       const result = await launchImageLibrary(options);
-      
+
       if (result.didCancel) {
         return;
       }
@@ -81,14 +82,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        
+
         if (asset.uri && asset.type && asset.fileName) {
           const file = {
             uri: asset.uri,
             type: asset.type,
             name: asset.fileName,
           };
-          
+
           // Call callback if provided
           if (onFileSelect) {
             onFileSelect(file);
@@ -135,14 +136,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       <View style={styles.container}>
-        {/* Attach Button (placeholder) */}
-        <TouchableOpacity
+        {/* Attach Button */}
+        <ScaleButton
           onPress={handleAttachPress}
           style={styles.iconButton}
-          activeOpacity={0.7}
         >
-          <PaperClipIcon size={22} color={Colors.text.secondary} />
-        </TouchableOpacity>
+          <PaperClipIcon size={22} color="#e5e7eb" />
+        </ScaleButton>
 
         <View style={styles.inputWrapper}>
           <TextInput
@@ -150,7 +150,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             value={value}
             onChangeText={onChangeText}
             placeholder={replyPreview ? "Напиши отговор..." : "Напиши съобщение..."}
-            placeholderTextColor={Colors.text.tertiary}
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
             multiline
             maxLength={1000}
             blurOnSubmit={false}
@@ -159,23 +159,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </View>
 
         {/* Emoji Button */}
-        <TouchableOpacity
+        <ScaleButton
           onPress={() => setShowEmojiPicker(true)}
           style={styles.iconButton}
-          activeOpacity={0.7}
         >
-          <FaceSmileIcon size={22} color={Colors.text.secondary} />
-        </TouchableOpacity>
+          <FaceSmileIcon size={22} color="#e5e7eb" />
+        </ScaleButton>
 
         {/* Send Button */}
-        <TouchableOpacity
+        <ScaleButton
           onPress={onSend}
           disabled={!value.trim()}
-          activeOpacity={0.8}
           style={styles.sendButtonWrapper}
         >
           <LinearGradient
-            colors={value.trim() 
+            colors={value.trim()
               ? [Colors.green[500], Colors.green[600]]
               : [Colors.gray[400], Colors.gray[500]]}
             start={{ x: 0, y: 0 }}
@@ -184,8 +182,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           >
             <SendIcon size={20} color={Colors.text.inverse} />
           </LinearGradient>
-        </TouchableOpacity>
+        </ScaleButton>
       </View>
+
 
       {/* Emoji Picker Modal */}
       <EmojiPicker
@@ -201,9 +200,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: Spacing.md,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'rgba(2, 44, 34, 0.85)', // Glassy Emerald Dark
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: 'rgba(212, 175, 55, 0.3)', // Gold border
     alignItems: 'flex-end',
     paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.md,
     elevation: 8,
@@ -224,21 +223,16 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
   },
   input: {
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Glassy input
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 24,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
+    color: '#ffffff', // White text
     maxHeight: 100,
     minHeight: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   sendButtonWrapper: {
     borderRadius: 22,
@@ -250,7 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.green[500],
+    shadowColor: Colors.green[500], // Keep shadow
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -262,9 +256,9 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   replyPreviewContainer: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: 'rgba(2, 44, 34, 0.95)', // Darker Emerald
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: 'rgba(212, 175, 55, 0.3)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
@@ -283,7 +277,7 @@ const styles = StyleSheet.create({
   replyAuthor: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.secondary,
+    color: '#fbbf24', // Gold
     marginBottom: 2,
   },
   replyText: {

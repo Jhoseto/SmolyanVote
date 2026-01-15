@@ -27,29 +27,23 @@ const ConversationsNavigator: React.FC = () => {
   return (
     <ErrorBoundary>
       <ConversationsStack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: Colors.green[500],
-        },
-        headerTintColor: Colors.text.inverse,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <ConversationsStack.Screen
-        name="ConversationsList"
-        component={ConversationsListScreen}
-        options={{ title: 'Разговори' }}
-      />
-      <ConversationsStack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{
-          headerShown: false, // Use custom header instead
+        screenOptions={{
+          headerShown: false,
         }}
-      />
-    </ConversationsStack.Navigator>
+      >
+        <ConversationsStack.Screen
+          name="ConversationsList"
+          component={ConversationsListScreen}
+          options={{ title: 'Разговори' }}
+        />
+        <ConversationsStack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{
+            headerShown: false, // Use custom header instead
+          }}
+        />
+      </ConversationsStack.Navigator>
     </ErrorBoundary>
   );
 };
@@ -59,32 +53,26 @@ const ProfileNavigator: React.FC = () => {
   return (
     <ErrorBoundary>
       <ProfileStack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: Colors.green[500],
-        },
-        headerTintColor: Colors.text.inverse,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <ProfileStack.Screen
-        name="ProfileMain"
-        component={ProfileScreen}
-        options={{ title: 'Профил' }}
-      />
-      <ProfileStack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: 'Настройки' }}
-      />
-      <ProfileStack.Screen
-        name="EditProfile"
-        component={EditProfileScreen}
-        options={{ title: 'Редактирай профил' }}
-      />
-    </ProfileStack.Navigator>
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <ProfileStack.Screen
+          name="ProfileMain"
+          component={ProfileScreen}
+          options={{ title: 'Профил' }}
+        />
+        <ProfileStack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Настройки' }}
+        />
+        <ProfileStack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
+          options={{ title: 'Редактирай профил' }}
+        />
+      </ProfileStack.Navigator>
     </ErrorBoundary>
   );
 };
@@ -111,20 +99,20 @@ export const MainNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.green[500],
-        tabBarInactiveTintColor: Colors.text.secondary,
+        tabBarActiveTintColor: Colors.gold[400], // Gold active
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)', // Semi-transparent white inactive
         tabBarStyle: {
-          backgroundColor: Colors.background.primary,
-          borderTopColor: Colors.border.light,
+          backgroundColor: 'rgba(2, 44, 34, 0.95)', // Deep Emerald Glass
+          borderTopColor: Colors.gold[400], // Gold Border
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
+          elevation: 0, // Remove shadow to let glass effect shine
+          position: 'absolute', // Optional: for true glass over content
+          bottom: 0,
+          left: 0,
+          right: 0,
           display: isKeyboardVisible ? 'none' : 'flex',
         },
         tabBarLabelStyle: {

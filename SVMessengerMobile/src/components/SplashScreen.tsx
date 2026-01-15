@@ -5,8 +5,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
-import LottieView from 'lottie-react-native';
+import { View, StyleSheet, Animated, Dimensions, Image } from 'react-native';
 import { Colors } from '../theme';
 
 const { width, height } = Dimensions.get('window');
@@ -17,16 +16,14 @@ interface SplashScreenProps {
   onFinish: () => void;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ 
+export const SplashScreen: React.FC<SplashScreenProps> = ({
   onFinish
 }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const lottieRef = useRef<LottieView>(null);
   const startTime = useRef(Date.now());
 
   useEffect(() => {
-    // Стартираме анимацията веднага
-    lottieRef.current?.play();
+    // Стартираме таймера веднага
     startTime.current = Date.now();
 
     // След точно 3 секунди скриваме анимацията
@@ -44,7 +41,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   }, [fadeAnim, onFinish]);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.overlay,
         {
@@ -54,14 +51,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       pointerEvents="auto"
     >
       <View style={styles.container}>
-        <LottieView
-          ref={lottieRef}
-          source={require('../assets/animations/animation.json')}
-          autoPlay
-          loop={false}
-          style={styles.lottie}
+        <Image
+          source={require('../assets/images/splash_bg.jpg')}
+          style={styles.image}
           resizeMode="contain"
-          speed={1}
         />
       </View>
     </Animated.View>
@@ -85,11 +78,9 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
-  lottie: {
-    width: width * 0.9,
-    height: width * 0.9, // Квадратно според резолюцията на анимацията (720x720)
-    maxWidth: 720,
-    maxHeight: 720,
+  image: {
+    width: width,
+    height: height,
   },
 });
 

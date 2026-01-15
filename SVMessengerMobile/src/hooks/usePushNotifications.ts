@@ -109,6 +109,12 @@ export const usePushNotifications = () => {
         debouncedRefreshConversations();
       } else if (conversationId) {
         // Fallback: ако има conversationId но няма type, fetch-ваме latest data from backend
+        // Check for mute status before sound?
+        // Actually, let's just make sure we don't play sound if muted.
+        // But here we rely on system notifications for background.
+        // For foreground, we rely on WebSocket.
+        // So this hook primarily ensures data freshness.
+
         debouncedFetchMessages(conversationId);
         debouncedRefreshConversations();
       }

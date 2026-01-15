@@ -18,6 +18,8 @@ import { ProfileStackParamList } from '../../types/navigation';
 import { Avatar, Button } from '../../components/common';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
+import { ScreenBackground } from '../../components/common/ScreenBackground';
+import { GlassHeader } from '../../components/common/GlassHeader';
 import { useUIStore } from '../../store/uiStore';
 
 type NavigationProp = NativeStackNavigationProp<ProfileStackParamList>;
@@ -51,81 +53,88 @@ export const ProfileScreen: React.FC = () => {
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Няма данни за потребителя</Text>
-      </View>
+      <ScreenBackground>
+        <View style={styles.container}>
+          <Text style={styles.errorText}>Няма данни за потребителя</Text>
+        </View>
+      </ScreenBackground>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.profileSection}>
-        <Avatar
-          imageUrl={user.imageUrl}
-          name={user.fullName}
-          size={100}
-          isOnline={user.isOnline}
-        />
-        <Text style={styles.name}>{user.fullName}</Text>
-        <Text style={styles.username}>@{user.username}</Text>
-        {user.lastSeen && (
-          <Text style={styles.lastSeen}>
-            Последно активен: {new Date(user.lastSeen).toLocaleDateString('bg-BG')}
-          </Text>
-        )}
-      </View>
+    <ScreenBackground>
+      <GlassHeader title="Профил" />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.profileSection}>
+          <Avatar
+            imageUrl={user.imageUrl}
+            name={user.fullName}
+            size={100}
+            isOnline={user.isOnline}
+          />
+          <Text style={styles.name}>{user.fullName}</Text>
+          <Text style={styles.username}>@{user.username}</Text>
+          {user.lastSeen && (
+            <Text style={styles.lastSeen}>
+              Последно активен: {new Date(user.lastSeen).toLocaleDateString('bg-BG')}
+            </Text>
+          )}
+        </View>
 
-      <View style={styles.settingsSection}>
-        <TouchableOpacity 
-          style={styles.settingItem} 
-          activeOpacity={0.7}
-          onPress={() => {
-            navigation.navigate('EditProfile');
-          }}
-        >
-          <Text style={styles.settingLabel}>Редактирай профил</Text>
-          <Text style={styles.settingArrow}>›</Text>
-        </TouchableOpacity>
+        <View style={styles.settingsSection}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            activeOpacity={0.7}
+            onPress={() => {
+              navigation.navigate('EditProfile');
+            }}
+          >
+            <Text style={styles.settingLabel}>Редактирай профил</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.settingItem} 
-          activeOpacity={0.7}
-          onPress={() => {
-            navigation.navigate('Settings');
-          }}
-        >
-          <Text style={styles.settingLabel}>Настройки</Text>
-          <Text style={styles.settingArrow}>›</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingItem}
+            activeOpacity={0.7}
+            onPress={() => {
+              navigation.navigate('Settings');
+            }}
+          >
+            <Text style={styles.settingLabel}>Настройки</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-          <Text style={styles.settingLabel}>Помощ и поддръжка</Text>
-          <Text style={styles.settingArrow}>›</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+            <Text style={styles.settingLabel}>Помощ и поддръжка</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-          <Text style={styles.settingLabel}>За приложението</Text>
-          <Text style={styles.settingArrow}>›</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+            <Text style={styles.settingLabel}>За приложението</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.logoutSection}>
-        <Button
-          title="Излез"
-          onPress={handleLogout}
-          variant="outline"
-          size="large"
-          fullWidth
-        />
-      </View>
-    </ScrollView>
+        <View style={styles.logoutSection}>
+          <Button
+            title="Излез"
+            onPress={handleLogout}
+            variant="outline"
+            size="large"
+            style={{ borderColor: Colors.gold[400], borderWidth: 1 }}
+            textStyle={{ color: Colors.gold[400] }}
+            fullWidth
+          />
+        </View>
+      </ScrollView>
+    </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Spacing.xl,
@@ -134,47 +143,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     marginBottom: Spacing.xl,
   },
   name: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
+    color: '#ffffff',
     marginTop: Spacing.md,
   },
   username: {
     fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
+    color: Colors.gold[400],
     marginTop: Spacing.xs,
   },
   lastSeen: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.text.tertiary,
+    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: Spacing.sm,
   },
   settingsSection: {
     marginBottom: Spacing.xl,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Slight dark backing
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'transparent',
   },
   settingLabel: {
     fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
+    color: '#ffffff',
+    fontWeight: '500',
   },
   settingArrow: {
-    fontSize: Typography.fontSize['2xl'],
-    color: Colors.text.tertiary,
+    fontSize: Typography.fontSize.xl,
+    color: Colors.gold[400],
   },
   logoutSection: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.md,
   },
   errorText: {
     color: Colors.semantic.error,
