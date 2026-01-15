@@ -1,90 +1,158 @@
 /**
- * Calls Store (Zustand)
- * Управление на call state
+ * Calls Store - Mobile Call State Management
+ * REFACTORED: Single source of truth with explicit boolean flags
+ * Senior-level architecture: Clear, maintainable, race-condition free
  */
 
 import { create } from 'zustand';
-import { Platform } from 'react-native';
-import { NativeModules } from 'react-native';
-import { Call, CallState } from '../types/call';
-import { CallSignal } from '../types/websocket';
-import { useAuthStore } from './authStore';
+import { Platform, NativeModules } from 'react-native';
 
-interface CallsState {
-  currentCall: Call | null;
-  callState: CallState;
+/**
+ * Call participant information
+ */
+export interface CallParticipant {
+  id: number;
+  name: string;
+  imageUrl?: string;
+}
+
+/**
+ * Core call data structure
+ */
+export interface CallData {
+  conversationId: number;
+  participant: CallParticipant;
+  roomName?: string;
+  token?: string;
+  serverUrl?: string;
+  isVideoCall: boolean;
+  isOutgoing: boolean;
+  startTime?: Date;
+  endTime?: Date;
+}
+
+/**
+ * Call state using explicit boolean flags
+ * ARCHITECTURE: Single responsibility - each flag represents ONE thing
+ */
+export interface CallsState {
+  // Core call data
+  currentCall: CallData | null;
+
+  // Explicit state flags - NO AMBIGUITY
+  isRinging: boolean;      // Incoming call, not yet answered
+  isDialing: boolean;      // Outgoing call, not yet connected
+  isConnected: boolean;    // Active conversation
+  isEnding: boolean;       // Call cleanup in progress
+
+  // UI state
   isMuted: boolean;
-  missedCallsCount: number;
-  isVideoCall: boolean; // Flag за video call
-}
+  isSpeakerOn: boolean;
+  isVideoEnabled: boolean;
 
-interface CallsStore extends CallsState {
   // Actions
-  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => void;
-  answerCall: () => void;
-  rejectCall: () => void;
-  endCall: () => void;
-  setCallState: (state: CallState) => void;
-  setCallStartTime: () => void; // CRITICAL: Set startTime manually when participant connects
-  toggleMute: () => void;
+  setIncomingCall: (data: CallData) => void;
+  setOutgoingCall: (data: CallData) => void;
+  setConnected: () => void;
+  setEnding: () => void;
   clearCall: () => void;
-  incrementMissedCalls: () => void;
-  resetMissedCalls: () => void;
-  clearCallState: () => void; // Add missing method
+
+  setCallStartTime: () => void;
+  setCallEndTime: () => void;
+
+  toggleMute: () => void;
+  toggleSpeaker: () => void;
+  toggleVideo: () => void;
+  setVideoEnabled: (enabled: boolean) => void;
 }
 
-export const useCallsStore = create<CallsStore>((set, get) => ({
+/**
+ * Zustand store with clean state management
+ */
+export const useCallsStore = create<CallsState>((set, get) => ({
   // Initial state
   currentCall: null,
-  callState: CallState.IDLE,
+  isRinging: false,
+  isDialing: false,
+  isConnected: false,
+  isEnding: false,
   isMuted: false,
-  missedCallsCount: 0,
-  isVideoCall: false,
+  isSpeakerOn: false,
+  isVideoEnabled: false,
 
-  // Start call
-  startCall: (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => {
-    const callState = initialState || CallState.OUTGOING;
-    // CRITICAL: Determine if this is an outgoing call (current user initiated it)
-    const isOutgoing = callState === CallState.OUTGOING;
-    const call: Call = {
-      id: `call-${Date.now()}`,
-      conversationId,
-      participantId,
-      participantName,
-      participantImageUrl,
-      state: callState,
-      // CRITICAL FIX: Don't set startTime here - it should only be set when call becomes CONNECTED
-      // This ensures timer starts counting only after the other party answers
-      startTime: undefined,
-      // CRITICAL: Track if this is an outgoing call to determine caller/receiver later
-      isOutgoing: isOutgoing,
-    };
-
+  /**
+   * Set incoming call - user is being called
+   */
+  setIncomingCall: (data: CallData) => {
     set({
-      currentCall: call,
-      callState: callState,
-      isVideoCall: isVideo || false,
+      currentCall: { ...data, isOutgoing: false },
+      isRinging: true,
+      isDialing: false,
+      isConnected: false,
+      isEnding: false,
     });
   },
 
-  // Answer call
-  answerCall: () => {
-    // CRITICAL: Do NOT set callState to CONNECTING here
-    // For incoming calls, we should stay in INCOMING state until LiveKit participant connects
-    // Then onParticipantConnected callback will set it to CONNECTED
-    // Setting CONNECTING here causes OutgoingCallScreen to show incorrectly
-    set((state) => ({
-      currentCall: state.currentCall,
-    }));
+  /**
+   * Set outgoing call - user is calling someone
+   */
+  setOutgoingCall: (data: CallData) => {
+    set({
+      currentCall: { ...data, isOutgoing: true },
+      isRinging: false,
+      isDialing: true,
+      isConnected: false,
+      isEnding: false,
+    });
   },
 
-  // Reject call
-  rejectCall: () => {
+  /**
+   * Mark call as connected - conversation started
+   */
+  setConnected: () => {
+    set({
+      isRinging: false,
+      isDialing: false,
+      isConnected: true,
+      isEnding: false,
+    });
+  },
+
+  /**
+   * Mark call as ending - cleanup in progress
+   */
+  setEnding: () => {
+    const { currentCall } = get();
+    if (!currentCall) return;
+
+    set({
+      isRinging: false,
+      isDialing: false,
+      isConnected: false,
+      isEnding: true,
+      currentCall: {
+        ...currentCall,
+        endTime: currentCall.endTime || new Date(),
+      },
+    });
+  },
+
+  /**
+   * Clear call completely - back to idle
+   */
+  clearCall: () => {
     set({
       currentCall: null,
-      callState: CallState.IDLE,
+      isRinging: false,
+      isDialing: false,
+      isConnected: false,
+      isEnding: false,
+      isMuted: false,
+      isSpeakerOn: false,
+      isVideoEnabled: false,
     });
-    // CRITICAL: Send broadcast to close IncomingCallActivity
+
+    // CRITICAL: Send broadcast to close any Android notification activity
     if (Platform.OS === 'android') {
       try {
         const { NotificationModule } = NativeModules;
@@ -92,140 +160,70 @@ export const useCallsStore = create<CallsStore>((set, get) => ({
           NotificationModule.sendCallStateBroadcast('IDLE').catch(() => { });
         }
       } catch (e) {
-        // Ignore errors - broadcast is optional
+        // Ignore - broadcast is optional
       }
     }
   },
 
-  // End call
-  endCall: () => {
-    const now = new Date();
-
-    // We don't send WebSocket signal here anymore - it is handled in useCalls hook
-    // This prevents duplicate CALL_END signals since the hook was also sending one
-
-    set((state) => ({
-      callState: CallState.DISCONNECTED,
-      currentCall: state.currentCall
-        ? {
-          ...state.currentCall,
-          state: CallState.DISCONNECTED,
-          endTime: now,
-          // CRITICAL: Ensure startTime is set if it wasn't set before (fallback)
-          // This prevents duration calculation issues
-          startTime: state.currentCall.startTime || now
-        }
-        : null,
-    }));
-
-    // CRITICAL: Send broadcast to close IncomingCallActivity
-    if (Platform.OS === 'android') {
-      try {
-        const { NotificationModule } = NativeModules;
-        if (NotificationModule?.sendCallStateBroadcast) {
-          NotificationModule.sendCallStateBroadcast('DISCONNECTED').catch(() => { });
-        }
-      } catch (e) {
-        // Ignore errors - broadcast is optional
-      }
-    }
-
-    // Clear call after a delay (without triggering broadcast)
-    setTimeout(() => {
-      get().clearCallState();
-    }, 1000);
-  },
-
-  // Set call state
-  setCallState: (state: CallState) => {
-    set((currentState) => {
-      const currentCall = currentState.currentCall;
-
-      // CRITICAL: DON'T automatically set startTime here
-      // startTime should only be set by useCalls when liveKitService confirms participant connected
-      // This prevents counting ringing time as call duration
-
-      return {
-        callState: state,
-        currentCall: currentCall
-          ? {
-            ...currentCall,
-            state,
-          }
-          : null,
-      };
-    });
-  },
-
-  // CRITICAL: Manually set startTime when participant connects
+  /**
+   * Set call start time - when conversation begins
+   */
   setCallStartTime: () => {
-    set((currentState) => {
-      const currentCall = currentState.currentCall;
-
-      // Only set if call exists and startTime not already set
-      if (!currentCall || currentCall.startTime) {
-        return currentState;
+    set((state) => {
+      if (!state.currentCall || state.currentCall.startTime) {
+        return state;
       }
-
       return {
         currentCall: {
-          ...currentCall,
+          ...state.currentCall,
           startTime: new Date(),
         },
       };
     });
   },
 
-  // Toggle mute
-  toggleMute: () => {
-    set((state) => ({
-      isMuted: !state.isMuted,
-    }));
-  },
-
-  // Clear call
-  // CRITICAL: Separate method for clearing call state without triggering broadcast
-  clearCallState: () => {
-    set({
-      currentCall: null,
-      callState: CallState.IDLE,
-      isMuted: false,
-      isVideoCall: false,
-    });
-  },
-
-  clearCall: () => {
-    set({
-      currentCall: null,
-      callState: CallState.IDLE,
-      isMuted: false,
-      isVideoCall: false,
-    });
-    // CRITICAL: Send broadcast to close IncomingCallActivity
-    if (Platform.OS === 'android') {
-      try {
-        const { NotificationModule } = NativeModules;
-        if (NotificationModule?.sendCallStateBroadcast) {
-          NotificationModule.sendCallStateBroadcast('IDLE').catch(() => { });
-        }
-      } catch (e) {
-        // Ignore errors - broadcast is optional
+  /**
+   * Set call end time - when call ends
+   */
+  setCallEndTime: () => {
+    set((state) => {
+      if (!state.currentCall) {
+        return state;
       }
-    }
-  },
-
-  // Increment missed calls counter
-  incrementMissedCalls: () => {
-    set((state) => ({
-      missedCallsCount: state.missedCallsCount + 1,
-    }));
-  },
-
-  // Reset missed calls counter
-  resetMissedCalls: () => {
-    set({
-      missedCallsCount: 0,
+      return {
+        currentCall: {
+          ...state.currentCall,
+          endTime: new Date(),
+        },
+      };
     });
+  },
+
+  /**
+   * Toggle mute state
+   */
+  toggleMute: () => {
+    set((state) => ({ isMuted: !state.isMuted }));
+  },
+
+  /**
+   * Toggle speaker state
+   */
+  toggleSpeaker: () => {
+    set((state) => ({ isSpeakerOn: !state.isSpeakerOn }));
+  },
+
+  /**
+   * Toggle video state
+   */
+  toggleVideo: () => {
+    set((state) => ({ isVideoEnabled: !state.isVideoEnabled }));
+  },
+
+  /**
+   * Set video enabled state directly
+   */
+  setVideoEnabled: (enabled: boolean) => {
+    set({ isVideoEnabled: enabled });
   },
 }));
-

@@ -22,7 +22,7 @@ const formatDuration = (seconds: number | undefined | null): string => {
   if (!seconds || seconds < 0 || isNaN(seconds)) {
     return '0:00';
   }
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -41,19 +41,19 @@ const formatDate = (dateString: string): string => {
   if (!dateString) {
     return '';
   }
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return '';
     }
-    
+
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const callDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+
     const diffTime = today.getTime() - callDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
@@ -79,7 +79,7 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
   if (!callHistory) {
     return null;
   }
-  
+
   const { user } = useAuthStore();
   // CRITICAL: Add null safety checks to prevent crashes
   // If user is null/undefined or user.id is null/undefined, default to false
@@ -115,20 +115,22 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
     showArrow = true;
     arrowDirection = isOwnCall ? 'right' : 'left'; // Outgoing rejected → right, Incoming rejected → left
   } else {
-    // For missed/cancelled calls, show direction (Входящо/Изходящо)
+    // For missed/cancelled calls, show "Без отговор" and direction
+    // User requested "Без отговор" for these cases
+    callTypeText = 'Без отговор';
+
+    // Use Red color for No Answer/Missed calls (Standard UX)
+    callTypeColor = Colors.red?.[500] || '#dc2626';
+
     if (isOwnCall) {
-      callTypeText = 'Изходящо';
       showArrow = true;
-      arrowDirection = 'right'; // Outgoing → right arrow
+      arrowDirection = 'left'; // Outgoing (Swapped as requested)
     } else {
-      callTypeText = 'Входящо';
       showArrow = true;
-      arrowDirection = 'left'; // Incoming → left arrow
+      arrowDirection = 'right'; // Incoming (Swapped as requested)
     }
-    // Gray for missed/cancelled calls
-    callTypeColor = Colors.text?.secondary || '#6b7280';
   }
-  
+
   // CRITICAL: Ensure callTypeText and callTypeColor are always valid strings
   if (!callTypeText || typeof callTypeText !== 'string') {
     callTypeText = 'Обаждане';
@@ -143,7 +145,7 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
   let callDate = '';
   let endTime = '';
   let endDate = '';
-  
+
   if (callHistory?.startTime) {
     try {
       const date = new Date(callHistory.startTime);
@@ -154,14 +156,14 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
           hour12: false, // 24-hour format
         });
         const dateString = formatDate(callHistory.startTime);
-        
+
         // CRITICAL: Check if strings are valid and not "Invalid Date"
-        if (timeString && 
-            timeString !== 'Invalid Date' && 
-            !timeString.includes('Invalid') &&
-            dateString && 
-            dateString !== 'Invalid Date' &&
-            !dateString.includes('Invalid')) {
+        if (timeString &&
+          timeString !== 'Invalid Date' &&
+          !timeString.includes('Invalid') &&
+          dateString &&
+          dateString !== 'Invalid Date' &&
+          !dateString.includes('Invalid')) {
           callTime = timeString;
           callDate = dateString;
         }
@@ -172,7 +174,7 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
       callDate = '';
     }
   }
-  
+
   // Format end time for accepted calls
   if (callHistory?.status === 'ACCEPTED' && callHistory?.endTime) {
     try {
@@ -184,13 +186,13 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
           hour12: false, // 24-hour format
         });
         const dateString = formatDate(callHistory.endTime);
-        
-        if (timeString && 
-            timeString !== 'Invalid Date' && 
-            !timeString.includes('Invalid') &&
-            dateString && 
-            dateString !== 'Invalid Date' &&
-            !dateString.includes('Invalid')) {
+
+        if (timeString &&
+          timeString !== 'Invalid Date' &&
+          !timeString.includes('Invalid') &&
+          dateString &&
+          dateString !== 'Invalid Date' &&
+          !dateString.includes('Invalid')) {
           endTime = timeString;
           endDate = dateString;
         }
@@ -211,7 +213,7 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
 
   // CRITICAL: Determine icon component - must be a valid React component, not a string
   const IconComponent = callHistory?.isVideoCall === true ? VideoCameraIcon : PhoneIcon;
-  
+
   // CRITICAL: Determine arrow component - must be a valid React component or null
   // Add extra safety check to prevent crashes
   const ArrowComponent = (showArrow === true && arrowDirection !== null && (arrowDirection === 'right' || arrowDirection === 'left'))
@@ -227,25 +229,25 @@ export const CallHistoryBubble: React.FC<CallHistoryBubbleProps> = ({ callHistor
           <View style={styles.iconContainer}>
             <IconComponent size={14} color={safeCallTypeColor} />
           </View>
-          
+
           {/* Arrow indicator for direction (premium graphics) */}
           {ArrowComponent !== null && (
             <View style={styles.arrowContainer}>
               <ArrowComponent size={12} color={safeCallTypeColor} />
             </View>
           )}
-          
+
           {/* Call type text (Входящо, Изходящо, Отказано, Разговор) */}
           <Text style={[styles.callTypeText, { color: safeCallTypeColor }]}>
             {safeCallTypeText}
           </Text>
-          
+
           {/* Date and time together - only show if valid */}
           {hasValidDateTime ? (
             <Text style={styles.timeText}> • {safeCallDate} {safeCallTime}</Text>
           ) : null}
         </View>
-        
+
         {/* For accepted calls - show end time and duration */}
         {callHistory?.status === 'ACCEPTED' ? (
           <View style={styles.acceptedCallDetails}>

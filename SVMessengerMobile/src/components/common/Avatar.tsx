@@ -22,12 +22,14 @@ export const Avatar: React.FC<AvatarProps> = ({
   isOnline = false,
   style,
 }) => {
-  const initials = name
+  const safeName = name || 'Потребител';
+  const initials = safeName
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .substring(0, 2);
+    .substring(0, 2) || '?';
 
   const avatarStyle = [
     styles.avatar,

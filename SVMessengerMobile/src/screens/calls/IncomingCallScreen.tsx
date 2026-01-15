@@ -177,7 +177,14 @@ export const IncomingCallScreen: React.FC = () => {
         friction: 8,
         useNativeDriver: true,
       }),
-    ]).start(() => answerCall());
+    ]).start(() => {
+      // CRITICAL FIX: Ensure answerCall is called safely
+      try {
+        answerCall();
+      } catch (e) {
+        console.error('Error answering call from UI', e);
+      }
+    });
   };
 
   const handleRejectPress = () => {
@@ -271,8 +278,8 @@ export const IncomingCallScreen: React.FC = () => {
               <View style={styles.avatarRing1} />
               <View style={styles.avatarRing2} />
               <Avatar
-                imageUrl={currentCall.participantImageUrl}
-                name={currentCall.participantName}
+                imageUrl={currentCall.participant.imageUrl}
+                name={currentCall.participant.name}
                 size={150}
                 isOnline={false}
                 style={styles.avatar}
@@ -282,7 +289,7 @@ export const IncomingCallScreen: React.FC = () => {
 
           {/* Caller info */}
           <View style={styles.callerInfo}>
-            <Text style={styles.callerName}>{currentCall.participantName}</Text>
+            <Text style={styles.callerName}>{currentCall.participant.name}</Text>
             <View style={styles.callingCard}>
               <View style={styles.pulsingDot} />
               <Text style={styles.callingText}>Входящо обаждане...</Text>

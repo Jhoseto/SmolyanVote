@@ -133,24 +133,29 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
 
             // Try to find existing conversation (including hidden ones)
-            return conversationRepo.findByTwoUsersIncludingHidden(currentUser.getId(), otherUserId)
-                    .map(conv -> {
-                        // If conversation was hidden, un-hide it for current user
-                        if (conv.isHiddenForUser(currentUser)) {
-                            conv.unhideForUser(currentUser);
-                            conv = conversationRepo.save(conv);
-                        }
-                        return SVConversationDTO.Mapper.toDTO(conv, currentUser);
-                    })
-                    .orElseGet(() -> {
-                        UserEntity otherUser = userRepo.findById(otherUserId)
-                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            // Try to find existing conversation (including hidden ones)
+            List<SVConversationEntity> existingConvs = conversationRepo.findByTwoUsersIncludingHidden(
+                    currentUser.getId(),
+                    otherUserId,
+                    PageRequest.of(0, 1));
 
-                        SVConversationEntity newConv = new SVConversationEntity(currentUser, otherUser);
-                        newConv = conversationRepo.save(newConv);
+            if (!existingConvs.isEmpty()) {
+                SVConversationEntity conv = existingConvs.get(0);
+                // If conversation was hidden, un-hide it for current user
+                if (conv.isHiddenForUser(currentUser)) {
+                    conv.unhideForUser(currentUser);
+                    conv = conversationRepo.save(conv);
+                }
+                return SVConversationDTO.Mapper.toDTO(conv, currentUser);
+            } else {
+                UserEntity otherUser = userRepo.findById(otherUserId)
+                        .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-                        return SVConversationDTO.Mapper.toDTO(newConv, currentUser);
-                    });
+                SVConversationEntity newConv = new SVConversationEntity(currentUser, otherUser);
+                newConv = conversationRepo.save(newConv);
+
+                return SVConversationDTO.Mapper.toDTO(newConv, currentUser);
+            }
         } catch (Exception e) {
             log.error("Error starting conversation: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to start conversation", e);
@@ -860,12 +865,14 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType eventType = signal.getEventType();
 
             // Determine if this event requires call history to be saved
-            // Handle both web (CALL_END/CALL_REJECT) and mobile (CALL_ENDED/CALL_REJECTED)
+            // Handle both web (CALL_END/CALL_REJECT) and mobile
+            // (CALL_ENDED/CALL_REJECTED/CALL_CANCEL)
             // signals
             if (eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_END &&
                     eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECT &&
                     eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_ENDED &&
-                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECTED) {
+                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_REJECTED &&
+                    eventType != smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_CANCEL) {
                 return;
             }
 
@@ -900,7 +907,9 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             }
 
             // CRITICAL: Log call history data for debugging
-            log.debug("📞 [handleCallSignalForHistory] Processing call history: conversationId={}, callerId={}, receiverId={}, " +
+            log.debug(
+                    "📞 [handleCallSignalForHistory] Processing call history: conversationId={}, callerId={}, receiverId={}, "
+                            +
                             "startTime={}, endTime={}, durationSeconds={}, wasConnected={}, eventType={}",
                     signal.getConversationId(), signal.getCallerId(), signal.getReceiverId(),
                     startTime, endTime, durationSeconds, signal.getWasConnected(), eventType);
@@ -913,6 +922,10 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 // If explicitly rejected, it's REJECTED
                 callStatus = "REJECTED";
                 durationSeconds = 0; // Rejected calls have 0 duration
+            } else if (eventType == smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallEventType.CALL_CANCEL) {
+                // Caller cancelled before answer -> MISSED for receiver
+                callStatus = "MISSED";
+                durationSeconds = 0;
             } else {
                 // It's CALL_END / CALL_ENDED
                 Boolean wasConnected = signal.getWasConnected();
@@ -921,23 +934,28 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 // A call is ACCEPTED if:
                 // 1. wasConnected flag is explicitly true, OR
                 // 2. duration is > 1 second (indicating actual conversation happened)
-                // This prevents false MISSED/CANCELLED status when wasConnected flag is missing but call was successful
+                // This prevents false MISSED/CANCELLED status when wasConnected flag is missing
+                // but call was successful
                 boolean isAccepted = Boolean.TRUE.equals(wasConnected) || durationSeconds > 1;
 
                 if (isAccepted) {
                     // Call was connected -> ACCEPTED
                     callStatus = "ACCEPTED";
-                    // Ensure duration is at least 1s if it was connected but duration calc is 0 or negative
+                    // Ensure duration is at least 1s if it was connected but duration calc is 0 or
+                    // negative
                     if (durationSeconds <= 0)
                         durationSeconds = 1;
-                    log.debug("📞 [handleCallSignalForHistory] Call marked as ACCEPTED: conversationId={}, duration={}s, wasConnected={}",
+                    log.debug(
+                            "📞 [handleCallSignalForHistory] Call marked as ACCEPTED: conversationId={}, duration={}s, wasConnected={}",
                             signal.getConversationId(), durationSeconds, wasConnected);
                 } else {
-                    log.debug("📞 [handleCallSignalForHistory] Call marked as {}: conversationId={}, duration={}s, wasConnected={}",
+                    log.debug(
+                            "📞 [handleCallSignalForHistory] Call marked as {}: conversationId={}, duration={}s, wasConnected={}",
                             (signal.getCallerId().equals(signal.getReceiverId()) ? "MISSED" : "CANCELLED"),
                             signal.getConversationId(), durationSeconds, wasConnected);
                     // Duration is <= 1 second and not connected
-                    // This means call was never actually connected (rejected before accept or cancelled immediately)
+                    // This means call was never actually connected (rejected before accept or
+                    // cancelled immediately)
                     // If Caller ended it -> CANCELLED
                     // If Receiver ended it -> MISSED
 

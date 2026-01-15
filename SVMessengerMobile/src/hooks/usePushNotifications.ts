@@ -10,7 +10,6 @@ import { Platform, AppState, DeviceEventEmitter } from 'react-native';
 import { useConversationsStore } from '../store/conversationsStore';
 import { useMessagesStore } from '../store/messagesStore';
 import { useCallsStore } from '../store/callsStore';
-import { CallState } from '../types/call';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
 import { debounce } from '../utils/constants';
 import { soundService } from '../services/sounds/soundService';
@@ -25,9 +24,9 @@ export const usePushNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { fetchConversations } = useConversationsStore();
   const { fetchMessages } = useMessagesStore();
-  const { startCall, setCallState, currentCall } = useCallsStore();
+  const { setIncomingCall, currentCall } = useCallsStore();
   const { answerCall, rejectCall } = useCalls();
-  
+
   // Оптимизация: Debounced refresh за conversations (избягва излишни API calls)
   const debouncedRefreshConversations = useRef(
     debounce(() => {
@@ -44,7 +43,7 @@ export const usePushNotifications = () => {
 
   // Heartbeat (disabled – WebSocket се грижи за online статус; избягваме излишни 401)
   useEffect(() => {
-    return () => {};
+    return () => { };
   }, [isAuthenticated]);
 
   /**
@@ -60,7 +59,7 @@ export const usePushNotifications = () => {
       const conversationId = data?.conversationId ? Number(data.conversationId) : null;
 
       const notificationType = data?.type;
-      
+
       // ✅ Обработка на INCOMING_CALL notifications (foreground)
       if (notificationType === 'INCOMING_CALL' && conversationId) {
 
@@ -83,14 +82,16 @@ export const usePushNotifications = () => {
           const participantImageUrl = participant?.imageUrl;
 
           // Стартирай входящ разговор локално (UI + звук)
-          startCall(
+          setIncomingCall({
             conversationId,
-            participantId,
-            participantName,
-            participantImageUrl,
-            CallState.INCOMING
-          );
-          setCallState(CallState.INCOMING);
+            participant: {
+              id: participantId,
+              name: participantName,
+              imageUrl: participantImageUrl,
+            },
+            isVideoCall: !!data.isVideoCall,
+            isOutgoing: false,
+          });
           soundService.playIncomingCallSound();
 
           // Refresh за актуални данни
@@ -102,7 +103,7 @@ export const usePushNotifications = () => {
         // ✅ ВИНАГИ fetch-ваме съобщенията за конкретния conversation (с debounce)
         // Това гарантира че съобщенията се виждат дори ако WebSocket не работи правилно
         debouncedFetchMessages(conversationId);
-        
+
         // Update conversation from backend (за да вземем correct unread count)
         // Използваме debounce за да избегнем излишни заявки
         debouncedRefreshConversations();
@@ -133,18 +134,18 @@ export const usePushNotifications = () => {
       let retryCount = 0;
       const MAX_RETRIES = 20; // Максимум 20 опита (10 секунди)
       const RETRY_INTERVAL = 500; // 500ms между опитите
-      
+
       while (retryCount < MAX_RETRIES) {
         // Проверка дали navigation е готов
         const isNavigationReady = navigationRef.isReady();
         // Проверка дали потребителят е аутентикиран (за INCOMING_CALL notifications)
         const currentAuthState = useAuthStore.getState();
         const isAuthReady = currentAuthState.isAuthenticated && currentAuthState.user;
-        
+
         if (isNavigationReady && (data?.type !== 'INCOMING_CALL' || isAuthReady)) {
           break; // Готово за обработка
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
         retryCount++;
       }
@@ -153,7 +154,7 @@ export const usePushNotifications = () => {
       if (data?.conversationId) {
         const conversationId = Number(data.conversationId);
         const notificationType = data?.type;
-        
+
         if (notificationType === 'INCOMING_CALL') {
           // CRITICAL FIX: Проверка дали потребителят е аутентикиран
           const currentAuthState = useAuthStore.getState();
@@ -172,20 +173,22 @@ export const usePushNotifications = () => {
             const conv = await getConversation(conversationId).catch(() => null);
             participant = conv?.participant;
           }
-          
+
           const participantId = participant?.id ?? 0;
           const participantName = data.callerName || participant?.fullName || participant?.username || 'Неизвестен потребител';
           const participantImageUrl = participant?.imageUrl;
 
           // Стартирай incoming call от notification data (дори ако липсва participant, показваме име)
-          startCall(
+          setIncomingCall({
             conversationId,
-            participantId,
-            participantName,
-            participantImageUrl,
-            CallState.INCOMING
-          );
-          setCallState(CallState.INCOMING);
+            participant: {
+              id: participantId,
+              name: participantName,
+              imageUrl: participantImageUrl,
+            },
+            isVideoCall: !!data.isVideoCall,
+            isOutgoing: false,
+          });
           soundService.playIncomingCallSound();
 
           // Свържи WebSocket ако не е свързан (за да получим call signals)
@@ -195,22 +198,22 @@ export const usePushNotifications = () => {
           }
         } else {
           // NEW_MESSAGE или друг тип - навигирай към conversation и fetch-вай messages
-          
+
           // Fetch conversations за да имаме актуални данни
           await fetchConversations();
-          
+
           // Вземи conversation за participant name
           const { conversations, getConversation, selectConversation } = useConversationsStore.getState();
           let conversation = conversations.find((c) => c.id === conversationId);
           if (!conversation) {
             conversation = await getConversation(conversationId).catch(() => null);
           }
-          
+
           const participantName = conversation?.participant?.fullName || data.senderName || 'Потребител';
-          
+
           // Select conversation в store
           selectConversation(conversationId);
-          
+
           // Навигирай към Chat screen и изчакай навигацията да завърши
           // преди да fetch-нем messages (избягваме race condition)
           const navigateToChat = (): Promise<void> => {
@@ -218,23 +221,23 @@ export const usePushNotifications = () => {
               const MAX_RETRIES = 20; // Максимум 20 опита (10 секунди)
               const RETRY_INTERVAL = 500; // 500ms между опитите
               const MAX_WAIT_TIME = 10000; // Максимум 10 секунди общо време
-              
+
               let retryCount = 0;
               const startTime = Date.now();
-              
+
               const attemptNavigation = () => {
                 // Проверка за максимално време
                 if (Date.now() - startTime > MAX_WAIT_TIME) {
                   resolve(); // Resolve за да не блокира целия процес
                   return;
                 }
-                
+
                 // Проверка за максимален брой опити
                 if (retryCount >= MAX_RETRIES) {
                   resolve(); // Resolve за да не блокира целия процес
                   return;
                 }
-                
+
                 if (navigationRef.isReady()) {
                   try {
                     navigationRef.dispatch(
@@ -265,22 +268,22 @@ export const usePushNotifications = () => {
                   setTimeout(attemptNavigation, RETRY_INTERVAL);
                 }
               };
-              
+
               // Стартирай първия опит
               attemptNavigation();
             });
           };
-          
+
           // Изчакай навигацията да завърши преди да fetch-нем messages
           await navigateToChat();
-          
+
           // Fetch messages (с debounce) - само след като навигацията е завършила
           debouncedFetchMessages(conversationId);
           debouncedRefreshConversations();
         }
       }
     },
-    [debouncedRefreshConversations, debouncedFetchMessages, startCall, setCallState, isAuthenticated, user, fetchConversations]
+    [debouncedRefreshConversations, debouncedFetchMessages, setIncomingCall, isAuthenticated, user, fetchConversations]
   );
 
   /**
@@ -296,10 +299,10 @@ export const usePushNotifications = () => {
       try {
         // Изчакваме малко, за да се уверим че token е запазен след login
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         // Get app version from package.json
         const appVersion = require('../../package.json').version || '0.0.1';
-        
+
         await pushNotificationService.registerDeviceToken({
           deviceToken,
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
@@ -310,7 +313,7 @@ export const usePushNotifications = () => {
         if ((error?.response?.status === 401 || error?.response?.status === 405) && retryCount < 2) {
           // Изчакай малко преди retry
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           // Retry - interceptor-ът ще се опита да refresh-не token-а
           try {
             return await registerDeviceToken(deviceToken, retryCount + 1);
@@ -320,7 +323,7 @@ export const usePushNotifications = () => {
             throw retryError;
           }
         }
-        
+
         logger.error('Failed to register device token:', error?.response?.status || error?.message);
         // CRITICAL FIX: Throw error to prevent false positive success log
         throw error;
@@ -408,7 +411,7 @@ export const usePushNotifications = () => {
                 logger.error('❌ [usePushNotifications] Unhandled error in registerDeviceToken:', error);
                 registrationSucceeded = false;
               }
-              
+
               // Only log success if registration actually succeeded
               if (registrationSucceeded) {
                 logger.info('✅ [usePushNotifications] Device token registered successfully');
@@ -455,13 +458,13 @@ export const usePushNotifications = () => {
     if (!isAuthenticated) {
       return;
     }
-    
+
     // WebSocket connection автоматично обновява online статуса когато се свърже
     // Проверяваме дали WebSocket е connected
     if (svMobileWebSocketService.isConnected()) {
       return;
     }
-    
+
     // Ако WebSocket не е connected, опитваме се да се reconnect-нем
     // WebSocket reconnect ще обновява online статуса автоматично
     // WebSocket reconnect се случва автоматично от useWebSocket hook при app state change
@@ -478,11 +481,11 @@ export const usePushNotifications = () => {
         // Ensure online status when app becomes active
         // WebSocket connection автоматично обновява online статуса
         ensureOnlineStatus();
-        
+
         const { selectedConversationId } = useConversationsStore.getState();
         // Refresh само ако няма отворен чат
         if (!selectedConversationId) {
-        debouncedRefreshConversations();
+          debouncedRefreshConversations();
         }
       } else if (nextAppState === 'background' || nextAppState === 'inactive') {
         // WebSocket остава активен в background за real-time нотификации
@@ -523,29 +526,25 @@ export const usePushNotifications = () => {
       // - participantId === 0: valid participant ID of 0
       // conversationId is required for call initialization, so we validate it explicitly
       const { action, conversationId, participantId } = event;
-      
+
       // Read currentCall from store inside listener to get latest state
       // This prevents stale closure issues when currentCall updates
       // CRITICAL FIX: Use direct assignment instead of destructuring
       // getState() returns the store state object which has a currentCall property
       // Direct assignment is clearer and avoids potential destructuring issues
       let latestCurrentCall = useCallsStore.getState().currentCall;
-      
+
       // CRITICAL FIX: If currentCall is not initialized (app launched from Full Screen Intent),
       // initialize it from the event data before processing accept/reject actions.
-      // This ensures the call UI works correctly even when the app launches directly from notification.
-      // CRITICAL: Validate conversationId exists and is a valid number before using it
-      // CRITICAL: participantId can be undefined (not provided) or a number (including 0)
-      // CRITICAL: Read fetchConversations and startCall from stores inside listener to avoid stale closures
+      // I will simplify the chunk to just replace the destructuring and call
       if (!latestCurrentCall && conversationId) {
-        // CRITICAL: Validate conversationId is a valid number to prevent NaN
-        // If conversationId is missing or invalid, we cannot initialize the call
+        const { setIncomingCall: latestSetIncomingCall } = useCallsStore.getState();
         const conversationIdNum = Number(conversationId);
         if (isNaN(conversationIdNum) || conversationIdNum <= 0) {
           logger.error('❌ Invalid conversationId in IncomingCallAction:', conversationId);
           return; // Cannot initialize call without valid conversationId
         }
-        
+
         // CRITICAL: Validate participantId if provided
         // If participantId is undefined, we'll try to get it from the conversation
         // If participantId is provided (including 0), we use it directly
@@ -565,8 +564,6 @@ export const usePushNotifications = () => {
           // Read functions from stores inside listener to get latest references
           // This prevents stale closure issues if function references change between renders
           const { fetchConversations: latestFetchConversations } = useConversationsStore.getState();
-          const { startCall: latestStartCall } = useCallsStore.getState();
-          
           // Fetch conversation to get participant details
           await latestFetchConversations();
           const { conversations, getConversation } = useConversationsStore.getState();
@@ -575,34 +572,34 @@ export const usePushNotifications = () => {
             const fetchedConversation = await getConversation(conversationIdNum).catch(() => null);
             conversation = fetchedConversation || undefined;
           }
-          
-          const participantName = conversation?.participant?.fullName || conversation?.participant?.username || 'Потребител';
-          const participantImageUrl = conversation?.participant?.imageUrl;
-          
+
+          const participantName = (conversation as any)?.participant?.fullName || (conversation as any)?.participant?.username || 'Потребител';
+          const participantImageUrl = (conversation as any)?.participant?.imageUrl;
+
           // Use participantId from event if provided, otherwise use from conversation
-          // CRITICAL: If participantId was provided in event (including 0), use it
-          // Otherwise, fall back to conversation participant ID
-          const finalParticipantId = (participantId !== undefined) 
-            ? participantIdNum 
-            : (conversation?.participant?.id || 0);
-          
+          const finalParticipantId = (participantId !== undefined)
+            ? Number(participantId)
+            : ((conversation as any)?.participant?.id || 0);
+
           // Initialize the call in the store using latest function reference
-          // CRITICAL: Use validated conversationIdNum and finalParticipantId
-          latestStartCall(
-            conversationIdNum,
-            finalParticipantId,
-            participantName,
-            participantImageUrl,
-            CallState.INCOMING
-          );
-          
+          latestSetIncomingCall({
+            conversationId: conversationIdNum,
+            participant: {
+              id: finalParticipantId,
+              name: participantName,
+              imageUrl: participantImageUrl,
+            },
+            isVideoCall: !!event.isVideoCall,
+            isOutgoing: false,
+          });
+
           // Read the newly initialized call
           latestCurrentCall = useCallsStore.getState().currentCall;
         } catch (error) {
           logger.error('❌ Error initializing currentCall from event data:', error);
         }
       }
-      
+
       if (action === 'accept_call') {
         if (latestCurrentCall) {
           answerCall();

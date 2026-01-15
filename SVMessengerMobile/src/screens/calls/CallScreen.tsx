@@ -12,6 +12,7 @@ import {
   Animated,
   Dimensions,
   PanResponder,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/common';
@@ -25,7 +26,6 @@ import {
 } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
-import { CallState } from '../../types/call';
 import { liveKitService } from '../../services/calls/liveKitService';
 import { RemoteParticipant, Track as LiveKitTrack } from 'livekit-client';
 import { logger } from '../../utils/logger';
@@ -44,34 +44,34 @@ const VideoView: React.FC<{
   // Use track.sid as key to force re-render when track changes
   const trackKey = track?.sid || 'no-track';
   const [forceUpdate, setForceUpdate] = useState(0);
-  
+
   // Force re-render when track or mediaStreamTrack changes
   useEffect(() => {
     if (track && track.mediaStreamTrack) {
       // Listen for track state changes
       const checkTrackState = () => {
         if (track.mediaStreamTrack) {
-          const isActive = track.mediaStreamTrack.active;
-          const isEnabled = track.mediaStreamTrack.enabled;
-          const readyState = track.mediaStreamTrack.readyState;
-          
+          const isActive = track.mediaStreamTrack?.active;
+          const isEnabled = track.mediaStreamTrack?.enabled;
+          const readyState = track.mediaStreamTrack?.readyState;
+
           // Force update if track becomes active
           if (isActive && readyState === 'live') {
             setForceUpdate(prev => prev + 1);
           }
         }
       };
-      
+
       // Check immediately
       checkTrackState();
-      
+
       // Poll for track state changes (important for mobile-web compatibility)
       const interval = setInterval(checkTrackState, 500);
-      
+
       return () => clearInterval(interval);
     }
   }, [track?.sid, track?.mediaStreamTrack?.id, track?.mediaStreamTrack?.active]);
-  
+
   if (!track) {
     return (
       <View style={[style, styles.videoPlaceholder]}>
@@ -90,15 +90,12 @@ const VideoView: React.FC<{
   }
 
   // CRITICAL: Force enable track at LiveKit level
-  // track.enabled can be undefined, so we need to check and set it explicitly
-  if (track.enabled !== true) {
+  if (!(track as any).enabled) {
     try {
-      // Try setEnabled first (preferred method)
-      if (typeof track.setEnabled === 'function') {
-        track.setEnabled(true);
+      if (typeof (track as any).setEnabled === 'function') {
+        (track as any).setEnabled(true);
       }
-      // Also try direct assignment as fallback
-      if (track.enabled !== true) {
+      if ((track as any).enabled !== true) {
         (track as any).enabled = true;
       }
     } catch (e) {
@@ -108,76 +105,36 @@ const VideoView: React.FC<{
 
   // CRITICAL: Force enable mediaStreamTrack
   if (track.mediaStreamTrack) {
-    // Always ensure enabled is true
     if (track.mediaStreamTrack.enabled !== true) {
       track.mediaStreamTrack.enabled = true;
     }
-    
-    // CRITICAL: For mobile-web compatibility, we need to wait for track to become active
-    // In React Native WebRTC, active might be undefined even when track is working
-    // So we check readyState instead - if it's 'live', the track should work
-    const isTrackReady = track.mediaStreamTrack.readyState === 'live' && track.mediaStreamTrack.enabled;
-    
-    if (!isTrackReady) {
-      // Still render - native view will handle activation
-    }
   }
 
-
   try {
-    // CRITICAL: Always render LiveKitVideoView even if track seems inactive
-    // The native view can handle the track becoming active
-    // Use key to force re-render when track changes (important for mobile-web compatibility)
-    // Include forceUpdate in key to trigger re-render when track state changes
     const viewKey = `${trackKey}-${forceUpdate}`;
-    
-    // CRITICAL: Match web version exactly - video element should fill container
-    // Use objectFit prop to control how video is displayed (contain shows full video, cover fills screen)
-    const finalStyle = [
-      style,
-      { 
-        backgroundColor: '#000', // Ensure black background for video
-        width: '100%',
-        height: '100%',
-        flex: 1, // CRITICAL: Ensure it takes full space
-      },
-    ];
-    
-    // CRITICAL: Wrap in View container like web version does
-    // In web: video element is appended to remoteVideoRef.current container
-    // We need to ensure proper container structure
+
     return (
       <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#000' }}>
-        <LiveKitVideoView 
-          key={viewKey} // CRITICAL: Force re-render when track changes or state updates
-          videoTrack={track} // Use videoTrack prop instead of track
-          track={track} // Also set track for backward compatibility
+        <LiveKitVideoView
+          key={viewKey}
+          videoTrack={track as any}
           style={{ flex: 1, width: '100%', height: '100%' }}
           mirror={mirror}
           zOrder={0}
-          objectFit={objectFit} // Use prop: 'contain' for remote video (shows full video), 'cover' for PiP
+          objectFit={objectFit}
         />
       </View>
     );
   } catch (error: any) {
     logger.error('❌ [VideoView] Error rendering LiveKitVideoView:', error);
-    const errorMessage = error?.message || 'Unknown error';
-    
-    // Show helpful message for emulator
     const isEmulator = __DEV__;
-    const placeholderText = isEmulator 
+    const placeholderText = isEmulator
       ? 'Камерата не работи на emulator\nТествай на реален телефон'
       : 'Грешка при показване';
-    
+
     return (
       <View style={[style, styles.videoPlaceholder]}>
         <Text style={styles.videoPlaceholderText}>{placeholderText}</Text>
-        {isEmulator && (
-          <Text style={[styles.videoPlaceholderText, { fontSize: 12, marginTop: 8, opacity: 0.7 }]}>
-            Emulator-ите често имат проблеми с камерите.{'\n'}
-            На production телефон всичко ще работи правилно.
-          </Text>
-        )}
       </View>
     );
   }
@@ -271,7 +228,6 @@ const Premium3DButton: React.FC<{
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.9} style={styles.buttonWrapper}>
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        {/* Outer glow (animated for active) */}
         {isActive && (
           <Animated.View
             style={[
@@ -284,27 +240,14 @@ const Premium3DButton: React.FC<{
             ]}
           />
         )}
-
-        {/* Outer shadow ring */}
         <View style={[styles.shadowRing, { backgroundColor: colors.outer }]} />
-
-        {/* Middle gradient ring */}
         <View style={[styles.middleRing, { backgroundColor: colors.middle }]} />
-
-        {/* Inner button with glossy effect */}
         <View style={[styles.innerButton, { backgroundColor: colors.inner }]}>
-          {/* Top glossy highlight */}
           <View style={styles.glossTop} />
-          
-          {/* Icon */}
           <View style={styles.iconContainer}>{icon}</View>
-
-          {/* Bottom shadow for depth */}
           <View style={styles.bottomShadow} />
         </View>
       </Animated.View>
-
-      {/* Label */}
       <Text style={styles.buttonLabel}>{label}</Text>
     </TouchableOpacity>
   );
@@ -313,7 +256,10 @@ const Premium3DButton: React.FC<{
 export const CallScreen: React.FC = () => {
   const {
     currentCall,
-    callState,
+    isRinging,
+    isDialing,
+    isConnected,
+    isEnding,
     isMuted,
     isSpeakerOn,
     endCall,
@@ -323,8 +269,8 @@ export const CallScreen: React.FC = () => {
     flipCamera,
     isVideoEnabled,
   } = useCalls();
-  
-  const isVideoCall = useCallsStore((state) => state.isVideoCall);
+
+  const isVideoCall = currentCall?.isVideoCall || false;
 
   const [remoteVideoTrack, setRemoteVideoTrack] = useState<LiveKitTrack | null>(null);
   const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null);
@@ -334,33 +280,26 @@ export const CallScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
-  
-  // PiP position state - Positioned higher up, not too low
-  // Default: right side, positioned higher (about 1/3 from bottom instead of very bottom)
-  const pipPosition = useRef({ x: width - 180, y: height - 300 }); // Higher position (160px width + 20px margin, but higher Y)
+
+  const pipPosition = useRef({ x: width - 180, y: height - 300 });
   const pipX = useRef(new Animated.Value(width - 180)).current;
   const pipY = useRef(new Animated.Value(height - 300)).current;
-  
-  // Track if we're currently dragging to disable floating animation
+
   const [isDragging, setIsDragging] = useState(false);
-  
-  // PanResponder for draggable PiP
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        // Mark as dragging and stop all animations
+      onPanResponderGrant: () => {
         setIsDragging(true);
         floatAnim.stopAnimation();
         pulseAnim.stopAnimation();
-        // Set floatAnim to 0 to avoid conflicts
         floatAnim.setValue(0);
-        // Get current position
         pipX.flattenOffset();
         pipY.flattenOffset();
-        pipX.setOffset(pipX._value);
-        pipY.setOffset(pipY._value);
+        pipX.setOffset((pipX as any)._value);
+        pipY.setOffset((pipY as any)._value);
         pipX.setValue(0);
         pipY.setValue(0);
       },
@@ -371,46 +310,41 @@ export const CallScreen: React.FC = () => {
       onPanResponderRelease: (evt, gestureState) => {
         pipX.flattenOffset();
         pipY.flattenOffset();
-        
-        // Calculate new position
+
         const currentX = pipPosition.current.x + gestureState.dx;
         const currentY = pipPosition.current.y + gestureState.dy;
-        
-        // Constrain to screen bounds (accounting for PiP size: 160x120)
+
         const newX = Math.max(10, Math.min(width - 170, currentX));
         const newY = Math.max(10, Math.min(height - 130, currentY));
-        
+
         pipPosition.current = { x: newX, y: newY };
-        
-        // Animate to final position
+
         Animated.parallel([
           Animated.spring(pipX, {
-            toValue: newX - (width - 180), // Offset from default right position
+            toValue: newX - (width - 180),
             useNativeDriver: false,
             tension: 50,
             friction: 7,
           }),
           Animated.spring(pipY, {
-            toValue: newY - (height - 300), // Offset from default position (updated to match new initial position)
+            toValue: newY - (height - 300),
             useNativeDriver: false,
             tension: 50,
             friction: 7,
           }),
         ]).start(() => {
-          // Mark as not dragging and resume floating animation
           setIsDragging(false);
-          // Resume floating animation - MUST use useNativeDriver: false to work with pipY
           Animated.loop(
             Animated.sequence([
               Animated.timing(floatAnim, {
                 toValue: -8,
                 duration: 2000,
-                useNativeDriver: false, // CRITICAL: Must be false to work with pipY
+                useNativeDriver: false,
               }),
               Animated.timing(floatAnim, {
                 toValue: 0,
                 duration: 2000,
-                useNativeDriver: false, // CRITICAL: Must be false to work with pipY
+                useNativeDriver: false,
               }),
             ])
           ).start();
@@ -423,119 +357,96 @@ export const CallScreen: React.FC = () => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
-      useNativeDriver: true, // fadeAnim can use native driver - it's only used for opacity
+      useNativeDriver: true,
     }).start();
 
-    // CRITICAL: pulseAnim MUST use useNativeDriver: false because it's used with pipY and floatAnim
-    // which also use false. Mixing native and JS drivers causes conflicts.
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.08,
           duration: 2000,
-          useNativeDriver: false, // CRITICAL: Must be false to work with pipY and floatAnim
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: false, // CRITICAL: Must be false to work with pipY and floatAnim
+          useNativeDriver: false,
         }),
       ])
     ).start();
 
-    // Floating animation for PiP - MUST use useNativeDriver: false to work with drag
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: -8,
           duration: 2000,
-          useNativeDriver: false, // CRITICAL: Must be false to work with pipY (which uses false)
+          useNativeDriver: false,
         }),
         Animated.timing(floatAnim, {
           toValue: 0,
           duration: 2000,
-          useNativeDriver: false, // CRITICAL: Must be false to work with pipY (which uses false)
+          useNativeDriver: false,
         }),
       ])
     ).start();
   }, []);
 
   useEffect(() => {
-    if (callState === CallState.DISCONNECTED) {
-      setTimeout(() => endCall(), 2000);
+    if (isEnding) {
+      const timer = setTimeout(() => endCall(), 2000);
+      return () => clearTimeout(timer);
     }
-  }, [callState, endCall]);
+  }, [isEnding, endCall]);
 
-  // Update local video track when camera state changes
   useEffect(() => {
-    if (callState === CallState.CONNECTED) {
-      // Poll for local video track changes (since getLocalVideoTrack() is not reactive)
+    if (isConnected) {
       const checkLocalVideoTrack = () => {
         const currentTrack = liveKitService.getLocalVideoTrack();
-        const trackChanged = currentTrack !== localVideoTrack;
-        
-        // Always update if track changed (even if not fully ready - VideoView will handle it)
-        if (trackChanged) {
-          // Always update state - even if track is not fully ready, VideoView will handle it
-          setLocalVideoTrack(currentTrack);
-        } else if (currentTrack && currentTrack !== localVideoTrack) {
-          // Force update if track exists but state is different
+        if (currentTrack !== localVideoTrack) {
           setLocalVideoTrack(currentTrack);
         }
       };
 
-      // Check immediately
       checkLocalVideoTrack();
-
-      // Poll more frequently to catch track creation (every 200ms)
       const interval = setInterval(checkLocalVideoTrack, 200);
-
       return () => clearInterval(interval);
     } else {
       setLocalVideoTrack(null);
     }
-  }, [callState, isVideoEnabled]);
+  }, [isConnected, isVideoEnabled]);
 
   useEffect(() => {
-    if (callState !== CallState.CONNECTED) {
+    if (!isConnected) {
       setRemoteVideoTrack(null);
       setRemoteParticipant(null);
       return;
     }
 
-    // Listen for NEW video tracks being subscribed
     const handleVideoTrackSubscribed = (track: LiveKitTrack | null, participant: RemoteParticipant) => {
-      // Handle track being unpublished (null track)
       if (!track) {
         setRemoteVideoTrack(null);
         return;
       }
-      
+
       if (track.kind === 'video') {
-        // If track has mediaStreamTrack, use it immediately
         if (track.mediaStreamTrack) {
-          // Ensure track is enabled
           track.mediaStreamTrack.enabled = true;
-          
-          // Enable at LiveKit level too
-          if (!track.enabled && track.setEnabled) {
+          if (!(track as any).enabled && (track as any).setEnabled) {
             try {
-              track.setEnabled(true);
+              (track as any).setEnabled(true);
             } catch (e) {
               logger.error('⚠️ [CallScreen] Could not enable track:', e);
             }
           }
-          
           setRemoteVideoTrack(track);
           setRemoteParticipant(participant);
         } else {
-          // Track exists but mediaStreamTrack not ready yet - wait a bit and try again
           setTimeout(() => {
             if (track.mediaStreamTrack) {
               track.mediaStreamTrack.enabled = true;
-              if (!track.enabled && track.setEnabled) {
+              if (!(track as any).enabled && (track as any).setEnabled) {
                 try {
-                  track.setEnabled(true);
+                  (track as any).setEnabled(true);
                 } catch (e) {
                   logger.error('⚠️ [CallScreen] Could not enable track:', e);
                 }
@@ -548,15 +459,11 @@ export const CallScreen: React.FC = () => {
       }
     };
 
-    // ✅ FIX: Store cleanup functions for proper unregistration
     const cleanupVideoTrackSubscribed = liveKitService.onVideoTrackSubscribed(handleVideoTrackSubscribed);
 
-    // Listen for participants joining
     const handleParticipantConnected = (participant: RemoteParticipant) => {
-      // Check for existing video tracks
       participant.videoTrackPublications.forEach((publication) => {
         if (publication.track && publication.track.kind === 'video' && publication.track.mediaStreamTrack) {
-          // Ensure track is enabled
           if (publication.track.mediaStreamTrack) {
             publication.track.mediaStreamTrack.enabled = true;
           }
@@ -566,22 +473,17 @@ export const CallScreen: React.FC = () => {
       });
     };
 
-    // ✅ FIX: Store cleanup function for proper unregistration
     const cleanupParticipantConnected = liveKitService.onParticipantConnected(handleParticipantConnected);
 
-    // Check for ALREADY CONNECTED participants (important!)
-    // Also poll periodically to catch tracks that might be published later
     const checkExistingParticipants = () => {
       try {
-        const room = (liveKitService as any)['room']; // Access private property
+        const room = (liveKitService as any)['room'];
         if (room) {
-          const participants = Array.from(room.remoteParticipants.values());
-          
+          const participants = Array.from(room.remoteParticipants.values()) as RemoteParticipant[];
+
           participants.forEach((participant) => {
             participant.videoTrackPublications.forEach((publication) => {
-              // Check if track exists and is subscribed
               if (publication.track && publication.track.kind === 'video') {
-                // If not subscribed, try to subscribe
                 if (!publication.isSubscribed) {
                   try {
                     publication.setSubscribed(true);
@@ -589,21 +491,16 @@ export const CallScreen: React.FC = () => {
                     logger.error('⚠️ [CallScreen] Error subscribing to video track:', e);
                   }
                 }
-                
-                // If track has mediaStreamTrack, use it
+
                 if (publication.track.mediaStreamTrack) {
-                  // Ensure track is enabled
                   publication.track.mediaStreamTrack.enabled = true;
-                  
-                  // Enable at LiveKit level too
-                  if (!publication.track.enabled && publication.track.setEnabled) {
+                  if (!(publication.track as any).enabled && (publication.track as any).setEnabled) {
                     try {
-                      publication.track.setEnabled(true);
+                      (publication.track as any).setEnabled(true);
                     } catch (e) {
                       logger.error('⚠️ [CallScreen] Could not enable track:', e);
                     }
                   }
-                  
                   setRemoteVideoTrack(publication.track);
                   setRemoteParticipant(participant);
                 }
@@ -616,30 +513,48 @@ export const CallScreen: React.FC = () => {
       }
     };
 
-    // Check immediately and also periodically to catch tracks that might be published later
     checkExistingParticipants();
-    const timeoutId1 = setTimeout(checkExistingParticipants, 500);
-    const timeoutId2 = setTimeout(checkExistingParticipants, 1500);
-    const timeoutId3 = setTimeout(checkExistingParticipants, 3000);
-    
-    // Also poll every 2 seconds to catch tracks that might be published after connection
+    const t1 = setTimeout(checkExistingParticipants, 500);
+    const t2 = setTimeout(checkExistingParticipants, 1500);
+    const t3 = setTimeout(checkExistingParticipants, 3000);
     const pollInterval = setInterval(checkExistingParticipants, 2000);
 
+    // Initial video check
+    const checkVideo = () => {
+      // This `participant` variable is not defined in this scope.
+      // Assuming the intent was to check for the `remoteParticipant` state variable.
+      // If `remoteParticipant` is null, this function will return early.
+      if (!remoteParticipant) return;
+
+      remoteParticipant.videoTrackPublications.forEach((pub) => {
+        if (pub.track && pub.track.mediaStreamTrack) {
+          pub.track.mediaStreamTrack.enabled = true;
+        }
+        if (!pub.isSubscribed) {
+          pub.setSubscribed(true);
+        }
+      });
+    };
+
+    checkVideo();
+    // Re-check periodically
+    const interval = setInterval(checkVideo, 2000);
+
     return () => {
-      // ✅ FIX: Cleanup event listeners to prevent memory leaks
       cleanupVideoTrackSubscribed?.();
       cleanupParticipantConnected?.();
-      clearTimeout(timeoutId1);
-      clearTimeout(timeoutId2);
-      clearTimeout(timeoutId3);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       clearInterval(pollInterval);
+      clearInterval(interval); // Added cleanup for the new interval
       setRemoteVideoTrack(null);
       setRemoteParticipant(null);
     };
-  }, [callState]);
+  }, [isConnected, remoteParticipant]); // Added remoteParticipant to dependencies for checkVideo
 
   useEffect(() => {
-    if (callState !== CallState.CONNECTED || !currentCall?.startTime) {
+    if (!isConnected || !currentCall?.startTime) {
       setCallDuration('00:00');
       return;
     }
@@ -653,19 +568,10 @@ export const CallScreen: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [callState, currentCall?.startTime]);
+  }, [isConnected, currentCall?.startTime]);
 
   if (!currentCall) return null;
-  
-  // Debug logging for video tracks
-  useEffect(() => {
-    if (callState === CallState.CONNECTED) {
-      // Video state is managed by localVideoTrack and remoteVideoTrack state variables
-    }
-  }, [callState, isVideoEnabled, localVideoTrack, remoteVideoTrack]);
-  
-  // Show video mode if we have remote video OR if we have local video enabled
-  // Also show if we're in a video call and camera should be enabled
+
   const showVideo = remoteVideoTrack || (isVideoEnabled && localVideoTrack) || (isVideoCall && isVideoEnabled);
 
   return (
@@ -673,13 +579,10 @@ export const CallScreen: React.FC = () => {
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {showVideo ? (
           <View style={styles.videoContainer}>
-            {/* Remote video container - EXACT STRUCTURE AS WEB VERSION */}
             <View style={styles.remoteVideo}>
-              {/* Show remote video if available, otherwise show placeholder */}
               {remoteVideoTrack ? (
                 <VideoView track={remoteVideoTrack} style={{ flex: 1, width: '100%', height: '100%' }} mirror={false} objectFit="contain" />
               ) : (
-                // Show placeholder if no remote video yet - centered like web version
                 <View style={styles.videoPlaceholder}>
                   <Text style={styles.videoPlaceholderText}>
                     {isVideoEnabled ? 'Очакване на видео от отсреща...' : 'Камерата е изключена'}
@@ -687,8 +590,7 @@ export const CallScreen: React.FC = () => {
                 </View>
               )}
             </View>
-            
-            {/* Floating local video PiP with 3D effect - DRAGGABLE - ALWAYS show if localVideoTrack exists */}
+
             {localVideoTrack && (
               <Animated.View
                 style={[
@@ -696,7 +598,6 @@ export const CallScreen: React.FC = () => {
                   {
                     transform: [
                       { translateX: pipX },
-                      // Add floatAnim - it will be stopped during drag to avoid conflicts
                       { translateY: Animated.add(pipY, floatAnim) },
                       { scale: pulseAnim },
                     ],
@@ -712,19 +613,15 @@ export const CallScreen: React.FC = () => {
               </Animated.View>
             )}
 
-            {/* Premium gradient overlay at top */}
             <View style={styles.topGradient}>
-              <Text style={styles.participantNameVideo}>{currentCall.participantName}</Text>
-              {/* CRITICAL FIX: Show timer ONLY when call is CONNECTED and has startTime */}
-              {/* NO timer during dialing/connecting - timer starts only after the other party answers */}
-              {callState === CallState.CONNECTED && currentCall?.startTime && (
+              <Text style={styles.participantNameVideo}>{currentCall.participant.name}</Text>
+              {isConnected && currentCall?.startTime && (
                 <View style={styles.liveTimer}>
                   <View style={styles.livePulse} />
                   <Text style={styles.timerText}>{callDuration}</Text>
                 </View>
               )}
-              {/* CRITICAL FIX: Show connecting status when call is connecting (no timer, just status) */}
-              {callState === CallState.CONNECTING && (
+              {isDialing && (
                 <View style={styles.liveTimer}>
                   <View style={styles.livePulse} />
                   <Text style={styles.timerText}>Свързване...</Text>
@@ -735,13 +632,12 @@ export const CallScreen: React.FC = () => {
         ) : (
           <View style={styles.audioContainer}>
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              {/* Avatar with premium ring */}
               <View style={styles.avatarWrapper}>
                 <View style={styles.avatarRing1} />
                 <View style={styles.avatarRing2} />
                 <Avatar
-                  imageUrl={currentCall.participantImageUrl}
-                  name={currentCall.participantName}
+                  imageUrl={currentCall.participant.imageUrl}
+                  name={currentCall.participant.name}
                   size={140}
                   isOnline={true}
                   style={styles.avatar}
@@ -749,25 +645,22 @@ export const CallScreen: React.FC = () => {
               </View>
             </Animated.View>
 
-            <Text style={styles.participantName}>{currentCall.participantName}</Text>
+            <Text style={styles.participantName}>{currentCall.participant.name}</Text>
 
             <View style={styles.statusCard}>
-              {/* CRITICAL FIX: Show connecting status when call is connecting (no timer, just status) */}
-              {callState === CallState.CONNECTING && (
+              {isDialing && (
                 <>
                   <View style={[styles.statusDot, styles.connectingDot]} />
                   <Text style={styles.statusText}>Свързване...</Text>
                 </>
               )}
-              {/* CRITICAL FIX: Show timer ONLY when call is CONNECTED and has startTime */}
-              {/* NO timer during dialing/connecting - timer starts only after the other party answers */}
-              {callState === CallState.CONNECTED && currentCall?.startTime && (
+              {isConnected && currentCall?.startTime && (
                 <>
                   <View style={[styles.statusDot, styles.connectedDot]} />
                   <Text style={styles.statusText}>{callDuration}</Text>
                 </>
               )}
-              {callState === CallState.DISCONNECTED && (
+              {isEnding && (
                 <Text style={styles.statusText}>Разговорът приключи</Text>
               )}
             </View>
@@ -793,14 +686,14 @@ export const CallScreen: React.FC = () => {
               isActive={isSpeakerOn}
             />
 
-            {callState === CallState.CONNECTED && (
+            {isConnected && (
               <Premium3DButton
                 onPress={toggleCamera}
                 icon={
                   isVideoEnabled ? (
-                    <VideoCameraIcon size={22} color="#fff" />
-                  ) : (
                     <VideoCameraSlashIcon size={22} color="#fff" />
+                  ) : (
+                    <VideoCameraIcon size={22} color="#fff" />
                   )
                 }
                 label="Camera"
@@ -809,20 +702,21 @@ export const CallScreen: React.FC = () => {
               />
             )}
 
-            {callState === CallState.CONNECTED && isVideoEnabled && (
+            {isConnected && isVideoEnabled && (
               <Premium3DButton
                 onPress={flipCamera}
                 icon={<ArrowPathIcon size={22} color="#fff" />}
                 label="Flip"
                 variant="camera"
-                isActive={false}
               />
             )}
+          </View>
 
+          <View style={styles.endCallRow}>
             <Premium3DButton
               onPress={endCall}
-              icon={<TelephoneIcon size={22} color="#fff" />}
-              label="End"
+              icon={<TelephoneIcon size={28} color="#fff" style={{ transform: [{ rotate: '135deg' }] }} />}
+              label="End Call"
               variant="end"
             />
           </View>
@@ -835,104 +729,56 @@ export const CallScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff', // Premium white background
+    backgroundColor: Colors.background.primary,
   },
   content: {
     flex: 1,
   },
-  // Video mode - EXACT STRUCTURE AS WEB VERSION
   videoContainer: {
     flex: 1,
-    position: 'relative',
-    width: '100%',
-    height: '100%',
     backgroundColor: '#000',
   },
-  // Remote video container - EXACTLY LIKE WEB: position absolute, full screen, flex center
   remoteVideo: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
+    flex: 1,
     width: '100%',
     height: '100%',
+  },
+  videoPlaceholder: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#1e293b',
   },
-  topGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.xl,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+  videoPlaceholderText: {
+    color: '#94a3b8',
+    fontSize: 16,
+    textAlign: 'center',
+    padding: 20,
   },
-  participantNameVideo: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  liveTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#b91c1c',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  livePulse: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-    marginRight: 6,
-  },
-  timerText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  // PiP with 3D effect - MATCH WEB VERSION SIZE AND POSITION
-  // Web: width: 160px, height: 120px, bottom: 20px, right: 20px
-  // Using animated position instead of fixed bottom/right
   pipContainer: {
     position: 'absolute',
     width: 160,
     height: 120,
-    zIndex: 1000,
-    elevation: 1000, // Android elevation - ensures it's always on top
+    borderRadius: 16,
+    overflow: 'hidden',
+    zIndex: 100,
   },
   pipShadow: {
-    position: 'absolute',
-    top: 8,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-    backgroundColor: '#000',
-    opacity: 0.5,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    transform: [{ translateY: 4 }],
   },
   pipBorder: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
     overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
     backgroundColor: '#000',
   },
   pipVideo: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#000',
   },
   pipGloss: {
     position: 'absolute',
@@ -940,183 +786,196 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  videoPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingTop: 40,
+    background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)',
     alignItems: 'center',
-    backgroundColor: '#000', // Match web: backgroundColor: '#000'
-    width: '100%',
-    height: '100%',
   },
-  videoPlaceholderText: {
-    color: '#64748b',
+  participantNameVideo: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  liveTimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  livePulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ef4444',
+    marginRight: 8,
+  },
+  timerText: {
+    color: '#fff',
     fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  // Audio mode
   audioContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingBottom: 100,
   },
   avatarWrapper: {
     position: 'relative',
-    alignItems: 'center',
+    width: 180,
+    height: 180,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarRing1: {
     position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   avatarRing2: {
     position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.15)',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   avatar: {
     borderWidth: 4,
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.7,
-    shadowRadius: 24,
-    elevation: 16,
+    borderColor: Colors.green[500],
   },
   participantName: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: Spacing.xl,
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+    marginTop: 40,
   },
   statusCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 16,
+    backgroundColor: 'rgba(100, 116, 139, 0.1)',
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: Spacing.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   connectingDot: {
-    backgroundColor: '#fbbf24',
+    backgroundColor: Colors.orange[500],
   },
   connectedDot: {
-    backgroundColor: '#10b981',
+    backgroundColor: Colors.green[500],
   },
   statusText: {
     fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
-  // Premium 3D Controls
   controlsContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 12,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
   controlsOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 20,
   },
   controlsRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: 12,
+    justifyContent: 'space-around',
+    marginBottom: 30,
+  },
+  endCallRow: {
+    alignItems: 'center',
   },
   buttonWrapper: {
     alignItems: 'center',
+    width: 80,
   },
   outerGlow: {
     position: 'absolute',
     width: 64,
     height: 64,
     borderRadius: 32,
-    top: -4,
-    left: -4,
+    zIndex: -1,
+    left: -2,
+    top: -2,
   },
   shadowRing: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     position: 'absolute',
-    top: 1,
-    left: 1,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    top: 4,
+    left: 0,
   },
   middleRing: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    top: 2,
+    left: 0,
   },
   innerButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    position: 'absolute',
-    top: 2,
-    left: 2,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    position: 'relative',
   },
   glossTop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-  },
-  iconContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
+    height: '40%',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   bottomShadow: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '30%',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
+    height: '15%',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  iconContainer: {
+    zIndex: 10,
   },
   buttonLabel: {
-    marginTop: 6,
-    fontSize: 11,
-    fontWeight: '600',
+    marginTop: 12,
     color: '#fff',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.9,
   },
 });

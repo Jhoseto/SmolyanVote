@@ -14,7 +14,6 @@ import { MainNavigator } from './MainNavigator';
 import { useAuthStore } from '../store/authStore';
 import { useCallsStore } from '../store/callsStore';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { CallState } from '../types/call';
 import { Colors } from '../theme';
 import { SplashScreen } from '../components/SplashScreen';
 import { navigationRef } from './navigationRef';
@@ -43,7 +42,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator: React.FC = () => {
   const { isAuthenticated, refreshAuth } = useAuthStore();
-  const { callState, currentCall } = useCallsStore();
+  const { currentCall, isRinging, isDialing, isConnected } = useCallsStore();
   const [isInitializing, setIsInitializing] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [callScreensLoaded, setCallScreensLoaded] = useState(false);
@@ -62,7 +61,7 @@ export const AppNavigator: React.FC = () => {
   // CRITICAL FIX: Load each module separately with individual error handling
   // This ensures critical components (CallScreen, IncomingCallScreen) are loaded even if optional component (OutgoingCallScreen) fails
   useEffect(() => {
-    const showCallScreen = callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
+    const showCallScreen = isRinging || isDialing || isConnected;
     if (showCallScreen && !callScreensLoaded) {
       // Load CallScreen (critical - required for all call states)
       try {
@@ -87,7 +86,7 @@ export const AppNavigator: React.FC = () => {
       // Mark as loaded only if critical components succeeded
       setCallScreensLoaded(true);
     }
-  }, [callState, callScreensLoaded]);
+  }, [isRinging, isDialing, isConnected, callScreensLoaded]);
 
   // Check permissions on first launch
   useEffect(() => {
@@ -155,13 +154,12 @@ export const AppNavigator: React.FC = () => {
   }, [refreshAuth]);
 
   // Show call screens if call is active
-  const showCallScreen =
-    callState !== CallState.IDLE && callState !== CallState.DISCONNECTED;
+  const showCallScreen = isRinging || isDialing || isConnected;
 
   // State tracking for call screen visibility
   React.useEffect(() => {
     // Call screen visibility is managed by showCallScreen variable
-  }, [callState, currentCall, showCallScreen]);
+  }, [isRinging, isDialing, isConnected, currentCall, showCallScreen]);
 
   // Show permissions screen if needed (only on Android, first launch)
   if (Platform.OS === 'android' && showPermissionsScreen && !checkingPermissions) {
@@ -212,8 +210,7 @@ export const AppNavigator: React.FC = () => {
             </Stack.Navigator>
 
             {/* Call Screens Overlay */}
-            {/* CRITICAL FIX: OutgoingCallScreen is now imported directly to prevent visual flash
-                CallScreenComponent and IncomingCallScreenComponent are still lazy-loaded */}
+            {/* REFACTORED: Clean boolean flag logic - no race conditions */}
             {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
               <View
                 style={{
@@ -225,13 +222,13 @@ export const AppNavigator: React.FC = () => {
                   zIndex: 9999,
                 }}
               >
-                {callState === CallState.INCOMING ? (
+                {isRinging ? (
                   <IncomingCallScreenComponent />
-                ) : (callState === CallState.OUTGOING || callState === CallState.CONNECTING) ? (
+                ) : isDialing ? (
                   <OutgoingCallScreen />
-                ) : (
+                ) : isConnected ? (
                   <CallScreenComponent />
-                )}
+                ) : null}
               </View>
             )}
           </View>

@@ -99,7 +99,9 @@ class LiveKitService {
 
         // CRITICAL: Check if there are already participants in the room
         // If yes, mark as connected immediately
-        const participants = Array.from(this.room!.remoteParticipants.values());
+        if (!this.room) return;
+
+        const participants = Array.from(this.room.remoteParticipants.values());
         if (participants.length > 0) {
           this.hasConnectedParticipant = true;
           logger.debug('✅ [LiveKit] Found existing participants on connect, marking as connected');
@@ -133,14 +135,14 @@ class LiveKitService {
 
           // CRITICAL: Force enable track at LiveKit level
           // track.enabled can be undefined, so we need to check and set it
-          if (track.enabled !== true) {
+          if (!(track as any).enabled) {
             try {
               // Try setEnabled first (preferred method)
-              if (typeof track.setEnabled === 'function') {
-                track.setEnabled(true);
+              if (typeof (track as any).setEnabled === 'function') {
+                (track as any).setEnabled(true);
               }
               // Also try direct assignment as fallback
-              if (track.enabled !== true) {
+              if ((track as any).enabled !== true) {
                 (track as any).enabled = true;
               }
             } catch (e) {
@@ -158,7 +160,7 @@ class LiveKitService {
       // Handle TrackPublished event - subscribe immediately when track is published
       this.room.on(RoomEvent.TrackPublished, (publication, participant: RemoteParticipant) => {
         // Subscribe to video tracks immediately when published (for remote participants)
-        if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
+        if (publication.kind === 'video' && participant.identity !== this.room?.localParticipant?.identity) {
           try {
             publication.setSubscribed(true);
           } catch (e) {
@@ -178,7 +180,7 @@ class LiveKitService {
       // Handle TrackUnpublished event - clear remote video when track is unpublished
       this.room.on(RoomEvent.TrackUnpublished, (publication, participant: RemoteParticipant) => {
         // If video track is unpublished, notify callback (will be handled by CallScreen)
-        if (publication.kind === 'video' && participant !== this.room?.localParticipant) {
+        if (publication.kind === 'video' && participant.identity !== this.room?.localParticipant?.identity) {
           // Don't immediately clear - wait a bit in case it's republished
           // Some mobile-web connections have temporary unpublish/republish cycles
           setTimeout(() => {
@@ -222,9 +224,9 @@ class LiveKitService {
             publication.track.mediaStreamTrack.enabled = true;
 
             // Enable at LiveKit level too
-            if (!publication.track.enabled && publication.track.setEnabled) {
+            if (!(publication.track as any).enabled && (publication.track as any).setEnabled) {
               try {
-                publication.track.setEnabled(true);
+                (publication.track as any).setEnabled(true);
               } catch (e) {
                 logger.error('⚠️ [LiveKit] Could not enable track:', e);
               }
@@ -263,7 +265,18 @@ class LiveKitService {
       // Check immediately and also after a short delay to catch tracks that might be loading
       const checkExistingParticipants = () => {
         try {
-          const remoteParticipants = Array.from(this.room!.remoteParticipants.values());
+          // DEFENSIVE: Ensure room still exists and is connected
+          if (!this.room || !this.isConnected) {
+            logger.debug('⚠️ [LiveKit] Skipping checkExistingParticipants - room disconnected');
+            return;
+          }
+
+          if (!this.room.remoteParticipants) {
+            logger.debug('⚠️ [LiveKit] Skipping checkExistingParticipants - remoteParticipants undefined');
+            return;
+          }
+
+          const remoteParticipants = Array.from(this.room.remoteParticipants.values());
 
           remoteParticipants.forEach((participant) => {
             participant.videoTrackPublications.forEach((publication) => {
@@ -280,9 +293,9 @@ class LiveKitService {
               if (publication.track && publication.track.mediaStreamTrack) {
                 publication.track.mediaStreamTrack.enabled = true;
 
-                if (!publication.track.enabled && publication.track.setEnabled) {
+                if (!(publication.track as any).enabled && (publication.track as any).setEnabled) {
                   try {
-                    publication.track.setEnabled(true);
+                    (publication.track as any).setEnabled(true);
                   } catch (e) {
                     logger.error('⚠️ [LiveKit] Could not enable track:', e);
                   }
@@ -299,9 +312,20 @@ class LiveKitService {
 
       // Check immediately
       checkExistingParticipants();
-      // Also check after short delay for tracks that might still be loading
-      setTimeout(checkExistingParticipants, 300);
-      setTimeout(checkExistingParticipants, 800);
+
+      // Also check after short delays for tracks that might still be loading
+      // BUT only if we are still connected
+      const delayedCheck = (delay: number) => {
+        setTimeout(() => {
+          if (this.isConnected && this.room) {
+            checkExistingParticipants();
+          }
+        }, delay);
+      };
+
+      delayedCheck(300);
+      delayedCheck(800);
+      delayedCheck(1500);
 
     } catch (error: any) {
       logger.error('❌ [LiveKit] Connection error:', error);
@@ -309,7 +333,7 @@ class LiveKitService {
 
       // Retry logic
       if (retryCount < MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+        await new Promise<void>(resolve => setTimeout(() => resolve(), 2000 * (retryCount + 1))); // Exponential backoff
         return this.connect(token, roomName, serverUrl, retryCount + 1);
       }
 
@@ -394,15 +418,23 @@ class LiveKitService {
     if (!this.localAudioTrack) return false;
 
     const isMuted = this.localAudioTrack.isMuted;
-    await this.localAudioTrack.setMuted(!isMuted);
+    await (this.localAudioTrack as any).setMuted(!isMuted);
     return !isMuted;
+  }
+
+  /**
+   * Set microphone enabled/disabled
+   */
+  async setMicrophoneEnabled(enabled: boolean): Promise<void> {
+    const isMuted = (this.localAudioTrack as any).isMuted;
+    await (this.localAudioTrack as any).setEnabled(enabled);
   }
 
   /**
    * Check if microphone is muted
    */
   isMuted(): boolean {
-    return this.localAudioTrack?.isMuted ?? false;
+    return (this.localAudioTrack as any)?.isMuted ?? false;
   }
 
   /**
@@ -417,7 +449,7 @@ class LiveKitService {
    * Get connection state
    */
   getConnectionState(): boolean {
-    return this.isConnected && (this.room?.isConnected ?? false);
+    return this.isConnected && this.room !== null;
   }
 
   /**
@@ -561,7 +593,7 @@ class LiveKitService {
 
         // Publish video track (this starts billing as video call)
         await this.room.localParticipant.publishTrack(this.localVideoTrack, {
-          source: 'camera',
+          source: Track.Source.Camera,
           videoCodec: 'vp8', // Better compatibility
         });
 

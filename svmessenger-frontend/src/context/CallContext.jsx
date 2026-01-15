@@ -253,16 +253,22 @@ export const CallProvider = ({ children, currentUser }) => {
     }, [currentUser, conversationsRef, proceedWithCallStart]);
 
     const proceedWithCallAccept = useCallback(async () => {
+        console.log('⚡ [CallContext] proceedWithCallAccept STARTED');
         try {
             const roomName = currentCall.roomName;
+            console.log('⚡ [CallContext] Room Name:', roomName);
+
             if (!roomName) {
                 throw new Error('Missing room name for call accept');
             }
 
             // Generate token
+            console.log('⚡ [CallContext] Requesting token for:', { conversationId: currentCall.conversationId, otherUserId: currentCall.otherUserId });
             const tokenResponse = await svMessengerAPI.getCallToken(currentCall.conversationId, currentCall.otherUserId);
+            console.log('⚡ [CallContext] Token received:', !!tokenResponse.token);
 
             if (tokenResponse.roomName !== roomName) {
+                console.warn('⚡ [CallContext] Room name mismatch!', { expected: roomName, received: tokenResponse.roomName });
                 tokenResponse.roomName = roomName;
             }
 
@@ -277,6 +283,8 @@ export const CallProvider = ({ children, currentUser }) => {
                 roomName: roomName,
                 timestamp: new Date().toISOString()
             };
+
+            console.log('⚡ [CallContext] Sending CALL_ACCEPT signal');
             svWebSocketService.sendCallSignal(signal);
 
             // CRITICAL: Reset call end signal flag for new call
@@ -299,6 +307,7 @@ export const CallProvider = ({ children, currentUser }) => {
                 callState: 'connected'
             });
 
+            console.log('⚡ [CallContext] Opening popup window');
             const popup = window.open(
                 popupUrl,
                 'svmessenger-call',
@@ -306,6 +315,7 @@ export const CallProvider = ({ children, currentUser }) => {
             );
 
             if (popup) {
+                console.log('⚡ [CallContext] Popup opened successfully');
                 setCallWindowRef(popup);
 
                 // Clear any existing interval
@@ -317,6 +327,7 @@ export const CallProvider = ({ children, currentUser }) => {
                 // CRITICAL FIX: Store interval in ref so we can clear it in endCall
                 popupCheckIntervalRef.current = setInterval(() => {
                     if (popup.closed) {
+                        console.log('⚡ [CallContext] Popup closed detected by interval');
                         if (popupCheckIntervalRef.current) {
                             clearInterval(popupCheckIntervalRef.current);
                             popupCheckIntervalRef.current = null;
@@ -326,6 +337,7 @@ export const CallProvider = ({ children, currentUser }) => {
                     }
                 }, 500);
             } else {
+                console.warn('⚡ [CallContext] Popup failed to open (blocked?)');
             }
 
             // Stop incoming call sound
@@ -341,7 +353,7 @@ export const CallProvider = ({ children, currentUser }) => {
                 callStartTimeRef.current = new Date();
             }
         } catch (error) {
-            console.error('Failed to proceed with call accept:', error);
+            console.error('❌ [CallContext] Failed to proceed with call accept:', error);
             endCall();
         }
     }, [currentCall, currentUser, buildCallWindowUrl]);
@@ -672,9 +684,19 @@ export const CallProvider = ({ children, currentUser }) => {
         }
     }, [deviceSelectorMode]);
 
+    // Race condition handling
+    const cancelledCallsRef = useRef(new Set());
+
     // ========== CALL SIGNAL HANDLER ==========
 
     const handleCallSignal = useCallback(async (signal) => {
+        // Global check for cancelled calls (handling race conditions)
+        if ((signal.eventType === 'CALL_REQUEST' || signal.eventType === 'CALL_ACCEPT') &&
+            cancelledCallsRef.current.has(signal.conversationId)) {
+            console.log('🛑 [CallContext] Ignoring signal for cancelled conversation:', signal.conversationId);
+            return;
+        }
+
         switch (signal.eventType) {
             case 'TEST_SIGNAL':
                 break;
@@ -692,6 +714,12 @@ export const CallProvider = ({ children, currentUser }) => {
                         } catch (error) {
                             console.error('Failed to load/create conversation:', error);
                         }
+                    }
+
+                    // CRITICAL RACE CHECK: Check cancellation AGAIN after await
+                    if (cancelledCallsRef.current.has(signal.conversationId)) {
+                        console.log('🛑 [CallContext] Aborting CALL_REQUEST after await - Call was cancelled');
+                        return;
                     }
 
                     if (conversation) {
@@ -839,11 +867,96 @@ export const CallProvider = ({ children, currentUser }) => {
                 }
                 break;
 
+            case 'CALL_CANCEL':
+                console.log('📞 [CallContext] Received CALL_CANCEL signal', signal);
+                // Race condition protection: Mark as cancelled for 5 seconds
+                cancelledCallsRef.current.add(signal.conversationId);
+                setTimeout(() => {
+                    cancelledCallsRef.current.delete(signal.conversationId);
+                }, 5000);
+
+                // Treat CALL_CANCEL like CALL_REJECT (incoming call cancelled by caller)
+
+                // ALWAYS stop sound first, regardless of state
+                if (incomingCallSoundRef.current) {
+                    console.log('📞 [CallContext] Stopping incoming call sound');
+                    incomingCallSoundRef.current.pause();
+                    incomingCallSoundRef.current.currentTime = 0;
+                    incomingCallSoundRef.current = null;
+                }
+
+                if (callChannelRef.current) {
+                    console.log('📞 [CallContext] Broadcasting CALL_CANCELLED to popup');
+                    callChannelRef.current.postMessage({
+                        type: 'CALL_CANCELLED',
+                        data: {
+                            conversationId: signal.conversationId
+                        }
+                    });
+                }
+
+                // Force cleanup using state updater to avoid stale closure issues
+                setCurrentCall(prevCall => {
+                    const shouldClear = prevCall && prevCall.conversationId == signal.conversationId;
+
+                    console.log('📞 [CallContext] CALL_CANCEL check:', {
+                        currentId: prevCall?.conversationId,
+                        signalId: signal.conversationId,
+                        shouldClear
+                    });
+
+                    if (shouldClear) {
+                        setLiveKitToken(null);
+                        setLiveKitRoom(null);
+                        setCallState('idle'); // Ensure state is reset
+                        return null; // Clear current call
+                    }
+                    return prevCall;
+                });
+
+                if (callState === 'incoming' || callState === 'idle') { // Also handle idle in case race condition
+                    setCurrentCall(null);
+                    setCallState('idle');
+                    setLiveKitToken(null);
+                    setLiveKitRoom(null);
+                    console.log('📞 [CallContext] Incoming call CANCELLED by caller - Cleared State');
+
+                    // Show notification
+                    // Show notification
+                    if (callState === 'incoming' && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Missed Call', {
+                            body: `Call from ${signal.callerName || 'Unknown'} was cancelled`,
+                            icon: '/images/default-avatar.png'
+                        });
+                    }
+                }
+                break;
+
             case 'CALL_END':
+                // Race condition protection: Mark as cancelled for 5 seconds
+                cancelledCallsRef.current.add(signal.conversationId);
+                setTimeout(() => {
+                    cancelledCallsRef.current.delete(signal.conversationId);
+                }, 5000);
+
+                // ALWAYS stop usage of sound first
+                if (incomingCallSoundRef.current) {
+                    incomingCallSoundRef.current.pause();
+                    incomingCallSoundRef.current.currentTime = 0;
+                    incomingCallSoundRef.current = null;
+                }
+
                 setCurrentCall(currentCallValue => {
                     setCallState(currentState => {
+                        // Use loose equality (==) to handle string/number mismatches
                         const isForThisCall = currentCallValue &&
-                            currentCallValue.conversationId === signal.conversationId;
+                            currentCallValue.conversationId == signal.conversationId;
+
+                        console.log('📞 [CallContext] CALL_END check:', {
+                            currentId: currentCallValue?.conversationId,
+                            signalId: signal.conversationId,
+                            isMatch: isForThisCall
+                        });
 
                         if (currentState !== 'idle' && isForThisCall) {
                             if (incomingCallSoundRef.current) {
@@ -859,16 +972,23 @@ export const CallProvider = ({ children, currentUser }) => {
                                         conversationId: signal.conversationId
                                     }
                                 });
+                                // Close popup via channel just in case
+                                callChannelRef.current.postMessage({ type: 'CLOSE_POPUP' });
                             }
 
                             svLiveKitService.disconnect();
                             return 'idle';
                         } else {
+                            // Helper: Force idle if we are ringing and signal matches, even if state is weird
+                            if (isForThisCall) {
+                                svLiveKitService.disconnect();
+                                return 'idle';
+                            }
                             return currentState;
                         }
                     });
 
-                    if (currentCallValue && currentCallValue.conversationId === signal.conversationId) {
+                    if (currentCallValue && currentCallValue.conversationId == signal.conversationId) {
                         setLiveKitToken(null);
                         setLiveKitRoom(null);
                         return null;

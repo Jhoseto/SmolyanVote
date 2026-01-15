@@ -28,7 +28,9 @@ export const CallButton: React.FC<CallButtonProps> = ({
 
   const handleCall = () => {
     if (!user) return;
-    startCall(conversationId, participantId, participantName);
+    // CRITICAL FIX: Match arguments with useCalls hook: 
+    // (participantId, participantName, participantImageUrl, isVideo, existingConversationId)
+    startCall(participantId, participantName, participantImageUrl, false, conversationId);
   };
 
   return (

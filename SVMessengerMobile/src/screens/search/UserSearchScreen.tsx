@@ -98,28 +98,70 @@ export const UserSearchScreen: React.FC = () => {
     performSearch(text);
   };
 
-  const handleUserSelect = async (user: UserSearchResult) => {
+  const handleUserSelect = async (selectedUser: UserSearchResult) => {
     try {
       // Start conversation (backend ще създаде или върне съществуващ)
-      const response = await apiClient.post(API_CONFIG.ENDPOINTS.MESSENGER.START_CONVERSATION, {
-        otherUserId: user.id,
-      });
+      let conversationId: number | null = null;
+      let usedFallback = false;
 
-      const conversation = response.data;
+      try {
+        const response = await apiClient.post(API_CONFIG.ENDPOINTS.MESSENGER.START_CONVERSATION, {
+          otherUserId: selectedUser.id,
+        });
+        conversationId = response.data.id;
+      } catch (error: any) {
+        // Fallback strategy for 500 errors
+        if (error.response?.status === 500 || error.message.includes('500')) {
+          console.warn('⚠️ Backend 500 error on start. Trying fallback via conversation list.');
+          try {
+            // Fetch all conversations
+            const listResponse = await apiClient.get(API_CONFIG.ENDPOINTS.MESSENGER.CONVERSATIONS);
+            const conversations = listResponse.data || [];
 
-      // Refresh conversations list
-      await fetchConversations();
+            const found = conversations.find((c: any) =>
+              (c.participantId === selectedUser.id) ||
+              (c.participant && c.participant.id === selectedUser.id) ||
+              (c.user1Id === selectedUser.id) ||
+              (c.user2Id === selectedUser.id && c.user1Id === user?.id) ||
+              (c.user1Id === user?.id && c.user2Id === selectedUser.id)
+            );
 
-      // Navigate to chat - navigate to Conversations tab first, then to Chat screen
-      navigation.navigate('Conversations', {
-        screen: 'Chat',
-        params: {
-          conversationId: conversation.id,
-          participantName: user.fullName,
-        },
-      });
+            if (found && found.id) {
+              conversationId = found.id;
+              usedFallback = true;
+              console.log('✅ Fallback successful in UserSearch!');
+            }
+          } catch (fbError) {
+            console.error('Fallback failed:', fbError);
+          }
+        }
+
+        if (!conversationId && !usedFallback) {
+          throw error; // Re-throw if fallback didn't work
+        }
+      }
+
+      if (conversationId) {
+        // Refresh conversations list
+        // Don't await if fallback was used (list already fetched)
+        if (!usedFallback) {
+          await fetchConversations();
+        } else {
+          fetchConversations(); // background refresh
+        }
+
+        // Navigate to chat
+        navigation.navigate('Conversations', {
+          screen: 'Chat',
+          params: {
+            conversationId: conversationId,
+            participantName: selectedUser.fullName,
+          },
+        });
+      }
     } catch (error: any) {
       console.error('Error starting conversation:', error);
+      setError('Неуспешна връзка с този потребител');
     }
   };
 

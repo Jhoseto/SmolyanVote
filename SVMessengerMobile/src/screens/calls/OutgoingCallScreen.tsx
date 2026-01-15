@@ -233,8 +233,8 @@ export const OutgoingCallScreen: React.FC = () => {
               <View style={styles.avatarRing1} />
               <View style={styles.avatarRing2} />
               <Avatar
-                imageUrl={currentCall.participantImageUrl}
-                name={currentCall.participantName}
+                imageUrl={currentCall.participant.imageUrl}
+                name={currentCall.participant.name}
                 size={150}
                 isOnline={false}
                 style={styles.avatar}
@@ -244,7 +244,7 @@ export const OutgoingCallScreen: React.FC = () => {
 
           {/* Participant info */}
           <View style={styles.participantInfo}>
-            <Text style={styles.participantName}>{currentCall.participantName}</Text>
+            <Text style={styles.participantName}>{currentCall.participant.name}</Text>
             <View style={styles.callingCard}>
               <View style={styles.pulsingDot} />
               <Text style={styles.callingText}>Изходящо обаждане...</Text>

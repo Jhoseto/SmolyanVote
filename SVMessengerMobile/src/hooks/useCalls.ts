@@ -1,421 +1,576 @@
 /**
- * useCalls Hook
- * Hook за управление на voice calls
+ * Calls Hook - Business Logic Orchestration
+ * REFACTORED: Clean orchestration between Store, LiveKit, WebSocket
+ * Senior-level: Proper error handling, cleanup sequences, defensive programming
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useCallsStore } from '../store/callsStore';
-import { useAuthStore } from '../store/authStore';
 import { liveKitService } from '../services/calls/liveKitService';
 import { soundService } from '../services/sounds/soundService';
-import { callPermissionsService } from '../services/permissions/callPermissionsService';
-import { CallState } from '../types/call';
 import { svMobileWebSocketService } from '../services/websocket/stompClient';
-import InCallManager from 'react-native-incall-manager';
+import { callPermissionsService } from '../services/permissions/callPermissionsService';
+import { useAuthStore } from '../store/authStore';
 import { logger } from '../utils/logger';
+import InCallManager from 'react-native-incall-manager';
+import apiClient from '../services/api/client';
+import { API_CONFIG } from '../config/api';
 
+/**
+ * Main calls hook - coordinates all call functionality
+ */
 export const useCalls = () => {
   const {
     currentCall,
-    callState,
+    isRinging,
+    isDialing,
+    isConnected,
+    isEnding,
     isMuted,
-    isVideoCall,
-    startCall,
-    answerCall,
-    rejectCall,
-    endCall,
-    setCallState,
-    setCallStartTime,
-    toggleMute,
+    isSpeakerOn,
+    isVideoEnabled,
+    setOutgoingCall,
+    setConnected,
+    setEnding,
     clearCall,
+    setCallStartTime,
+    setCallEndTime,
+    toggleMute,
+    toggleSpeaker,
+    toggleVideo,
+    setVideoEnabled,
   } = useCallsStore();
 
-  // Speaker state (local to this hook)
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const { user } = useAuthStore();
 
-  // Initialize LiveKit event listeners with proper cleanup
+  /**
+   * LiveKit event handlers
+   * Clean separation: Events → Actions
+   */
+  // useEffect moved to bottom to fix "use before declaration" errors
+
+  /**
+   * Auto-enable camera for video calls
+   */
   useEffect(() => {
-    // ✅ FIX: Register callbacks and store cleanup functions
-    const cleanupConnected = liveKitService.onConnected(() => {
-      // CRITICAL: Do NOT set CONNECTED here - this fires when LiveKit room connects
-      // which happens BEFORE the other participant answers
-      // Only stop outgoing sound here
-      soundService.stopOutgoingCallSound();
-    });
-
-    const cleanupDisconnected = liveKitService.onDisconnected(() => {
-      endCall();
-    });
-
-    const cleanupParticipantConnected = liveKitService.onParticipantConnected(() => {
-      // CRITICAL: Set CONNECTED state when participant actually joins
-      // This ensures we show CallScreen only when the call is actually connected
-      setCallState(CallState.CONNECTED);
-      // CRITICAL: Set startTime when participant connects
-      setCallStartTime();
-      logger.debug('✅ [useCalls] Participant connected, setting CONNECTED state and startTime');
-    });
-
-    const cleanupParticipantDisconnected = liveKitService.onParticipantDisconnected(() => {
-      // If no participants left, end call locally (don't send CALL_END signal)
-      const participants = liveKitService.getParticipants();
-      if (participants.length === 0) {
-        // CRITICAL: Use endCall() from store, not handleEndCall()
-        // handleEndCall() sends CALL_END signal, but this is already triggered by the other participant
-        // We just need to update local state
-        endCall();
-      }
-    });
-
-    // ✅ FIX: Cleanup callbacks on unmount
-    return () => {
-      cleanupConnected?.();
-      cleanupDisconnected?.();
-      cleanupParticipantConnected?.();
-      cleanupParticipantDisconnected?.();
-    };
-  }, [setCallState, setCallStartTime, endCall]);
-
-  // Auto-enable camera for video calls
-  useEffect(() => {
-    const enableCameraForVideoCall = async () => {
-      if (callState === CallState.CONNECTED && isVideoCall && !liveKitService.isCameraEnabled()) {
-        try {
-          const hasCameraPermission = await callPermissionsService.requestCameraPermission();
-          if (hasCameraPermission) {
-            // Add small delay to ensure room is fully ready
-            await new Promise(resolve => setTimeout(resolve, 300));
-            await liveKitService.toggleCamera(true);
-          }
-        } catch (error) {
-          logger.error('❌ [useCalls] Error enabling camera:', error);
-        }
-      }
-    };
-
-    // Add delay to ensure connection is fully established
-    if (callState === CallState.CONNECTED) {
-      const timeoutId = setTimeout(enableCameraForVideoCall, 500);
-      return () => clearTimeout(timeoutId);
+    if (isConnected && currentCall?.isVideoCall && !isVideoEnabled) {
+      handleToggleCamera();
     }
-  }, [callState, isVideoCall]);
+  }, [isConnected, currentCall?.isVideoCall]);
 
-  // Start outgoing call
+  /**
+   * Mute/unmute audio
+   */
+  useEffect(() => {
+    if (isConnected) {
+      liveKitService.setMicrophoneEnabled(!isMuted);
+    }
+  }, [isMuted, isConnected]);
+
+  /**
+   * Speaker on/off
+   */
+  useEffect(() => {
+    if (isConnected) {
+      InCallManager.setSpeakerphoneOn(isSpeakerOn);
+    }
+  }, [isSpeakerOn, isConnected]);
+
+  /**
+   * Start outgoing call
+   */
   const handleStartCall = useCallback(
-    async (conversationId: number, participantId: number, participantName: string, participantImageUrl?: string, initialState?: CallState, isVideo?: boolean) => {
+    async (
+      participantId: number,
+      participantName: string,
+      participantImageUrl?: string,
+      isVideo: boolean = false,
+      existingConversationId?: number // OPTIONAL: Skip backend lookup if we already know the ID
+    ) => {
       try {
-        const { user } = useAuthStore.getState();
+        // Validation
         if (!user) {
-          throw new Error('User not authenticated');
-        }
-
-        // Request microphone permission before starting call
-        const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
-        if (!hasAudioPermission) {
-          logger.error('❌ Microphone permission denied, cannot start call');
-          clearCall();
+          logger.error('❌ Cannot start call - no user');
           return;
         }
 
-        // Request camera permission for video calls
+        if (currentCall || isRinging || isDialing || isConnected) {
+          logger.warn('⚠️ Already in a call');
+          return;
+        }
+
+        // Request permissions
+        const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
+        if (!hasAudioPermission) {
+          logger.error('❌ Microphone permission denied');
+          return;
+        }
+
         if (isVideo) {
           const hasCameraPermission = await callPermissionsService.requestCameraPermission();
           if (!hasCameraPermission) {
-            logger.error('❌ Camera permission denied, cannot start video call');
-            clearCall();
-            return;
+            logger.error('❌ Camera permission denied');
+            // Continue as audio-only
+            isVideo = false;
           }
         }
 
-        // Generate call token
-        const { token, roomName, serverUrl } = await liveKitService.generateCallToken(conversationId, participantId);
+        // Get conversation ID
+        // CRITICAL OPTIMIZATION: Use existing ID if provided to bypass backend call
+        let conversationId = existingConversationId;
 
-        // Start call in store with video flag
-        startCall(conversationId, participantId, participantName, participantImageUrl, initialState, isVideo);
-
-        // Play outgoing call sound
-        soundService.playOutgoingCallSound();
-
-        // Send call signal via WebSocket
-        if (svMobileWebSocketService.isConnected()) {
-          svMobileWebSocketService.sendCallSignal({
-            eventType: 'CALL_REQUEST',
-            conversationId,
-            callerId: user.id,
-            receiverId: participantId,
-            roomName,
-            isVideo: isVideo || false,
-          });
+        if (!conversationId) {
+          logger.debug('🔍 [useCalls] No existing ID provided, fetching from backend...');
+          const fetchedId = await getOrCreateConversation(participantId);
+          if (fetchedId) {
+            conversationId = fetchedId;
+          }
         }
 
-        // Connect to LiveKit room
-        await liveKitService.connect(token, roomName, serverUrl);
-        // Note: outgoing call sound will be stopped in onConnected callback
-        // Camera will be enabled automatically in useEffect when callState becomes CONNECTED
+        if (!conversationId) {
+          logger.error('❌ Failed to get conversation ID');
+          // Show error to user?
+          return;
+        }
+
+        logger.debug(`✅ [useCalls] Starting call with Conversation ID: ${conversationId}`);
+
+        // Generate LiveKit token
+        const tokenResponse = await liveKitService.generateCallToken(conversationId, participantId);
+
+        // Set outgoing call state
+        setOutgoingCall({
+          conversationId,
+          participant: {
+            id: participantId,
+            name: participantName,
+            imageUrl: participantImageUrl,
+          },
+          roomName: tokenResponse.roomName,
+          token: tokenResponse.token,
+          serverUrl: tokenResponse.serverUrl,
+          isVideoCall: isVideo,
+          isOutgoing: true,
+        });
+
+        // Start dialing sound
+        soundService.playOutgoingCallSound();
+
+        // Send CALL_REQUEST via WebSocket
+        svMobileWebSocketService.sendCallSignal({
+          eventType: 'CALL_REQUEST',
+          conversationId,
+          callerId: user.id,
+          receiverId: participantId,
+          roomName: tokenResponse.roomName,
+          callerName: user.fullName || user.username,
+          callerAvatar: user.imageUrl,
+          isVideoCall: isVideo,
+        });
+
+        // Connect to LiveKit
+        await liveKitService.connect(tokenResponse.token, tokenResponse.roomName, tokenResponse.serverUrl);
+
+        logger.debug('✅ [useCalls] Outgoing call started');
       } catch (error) {
-        logger.error('Error starting call:', error);
-        clearCall();
+        logger.error('❌ Error starting call:', error);
+        performCleanup('Error starting call');
       }
     },
-    [startCall, clearCall]
+    [user, currentCall, isRinging, isDialing, isConnected, setOutgoingCall]
   );
 
-  // Answer incoming call
-  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
-  // This ensures that even if currentCall is initialized after the callback is created,
-  // the function will still access the latest value from the store
+  /**
+   * Answer incoming call
+   */
   const handleAnswerCall = useCallback(async () => {
-    // Read currentCall from store to get latest value (not from closure)
-    const latestCurrentCall = useCallsStore.getState().currentCall;
-    if (!latestCurrentCall) {
-      return;
-    }
-
     try {
-      // Request microphone permission before answering call
-      const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
-      if (!hasAudioPermission) {
-        logger.error('❌ Microphone permission denied, cannot answer call');
-        clearCall();
+      if (!currentCall || !isRinging) {
+        logger.warn('⚠️ Cannot answer - no incoming call');
         return;
       }
 
-      // Stop incoming call sound when answering
+      // Request permissions
+      const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
+      if (!hasAudioPermission) {
+        logger.error('❌ Microphone permission denied');
+        handleRejectCall();
+        return;
+      }
+
+      if (currentCall.isVideoCall) {
+        const hasCameraPermission = await callPermissionsService.requestCameraPermission();
+        if (!hasCameraPermission) {
+          logger.warn('⚠️ Camera permission denied - continuing as audio');
+        }
+      }
+
+      // Stop ringing sound
       soundService.stopIncomingCallSound();
-      answerCall();
 
-      // Generate call token
-      let token: string;
-      let roomName: string;
-      let serverUrl: string;
+      // Generate token
+      const tokenResponse = await liveKitService.generateCallToken(
+        currentCall.conversationId,
+        currentCall.participant.id
+      );
 
-      try {
-        const tokenResponse = await liveKitService.generateCallToken(
-          latestCurrentCall.conversationId,
-          latestCurrentCall.participantId
-        );
-        token = tokenResponse.token;
-        roomName = tokenResponse.roomName;
-        serverUrl = tokenResponse.serverUrl;
-      } catch (tokenError: any) {
-        logger.error('❌ [useCalls] Error generating call token:', {
-          error: tokenError,
-          message: tokenError?.message,
-          response: tokenError?.response?.data,
-          status: tokenError?.response?.status,
-        });
-        throw tokenError;
-      }
-
-      // Send answer signal via WebSocket
-      const { user } = useAuthStore.getState();
-      if (svMobileWebSocketService.isConnected() && user) {
-        svMobileWebSocketService.sendCallSignal({
-          eventType: 'CALL_ACCEPT', // ✅ Съответства на backend enum SVCallEventType.CALL_ACCEPT
-          conversationId: latestCurrentCall.conversationId,
-          callerId: latestCurrentCall.participantId,
-          receiverId: user.id,
-          roomName,
-        });
-      }
-
-      // Connect to LiveKit room
-      await liveKitService.connect(token, roomName, serverUrl);
-    } catch (error: any) {
-      logger.error('❌ [useCalls] Error answering call:', {
-        error,
-        message: error?.message,
-        stack: error?.stack,
-        currentCall: latestCurrentCall,
-      });
-      clearCall();
-    }
-  }, [answerCall, clearCall]); // Removed currentCall from dependencies since we read it from store
-
-  // Reject call
-  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
-  // This ensures that even if currentCall is initialized after the callback is created,
-  // the function will still access the latest value from the store
-  const handleRejectCall = useCallback(() => {
-    // Read currentCall from store to get latest value (not from closure)
-    const latestCurrentCall = useCallsStore.getState().currentCall;
-    const { user } = useAuthStore.getState();
-    if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
-      // CRITICAL FIX: For incoming calls, current user is the receiver
-      // participantId is the caller (the one who initiated the call)
-      const callerId = latestCurrentCall.participantId; // The one who called
-      const receiverId = user.id; // Current user is rejecting
-
-      // CRITICAL: Get startTime from currentCall (when call was received)
-      // For rejected calls, endTime is same as startTime (no conversation happened)
-      const startTime = latestCurrentCall.startTime
-        ? latestCurrentCall.startTime.toISOString()
-        : new Date().toISOString(); // Fallback to now if startTime not set
-      const endTime = startTime; // Same as startTime for rejected calls
-
-      // Send reject signal via WebSocket with call history data
+      // Send CALL_ACCEPT signal
       svMobileWebSocketService.sendCallSignal({
-        eventType: 'CALL_REJECT', // ✅ Съответства на backend enum SVCallEventType.CALL_REJECT
-        conversationId: latestCurrentCall.conversationId,
-        callerId: callerId,
-        receiverId: receiverId,
-        startTime: startTime,
-        endTime: endTime,
-        isVideoCall: false, // Default to false for now
+        eventType: 'CALL_ACCEPT',
+        conversationId: currentCall.conversationId,
+        callerId: currentCall.participant.id,
+        receiverId: user!.id,
+        roomName: tokenResponse.roomName,
       });
+
+      // Connect to LiveKit
+      await liveKitService.connect(tokenResponse.token, tokenResponse.roomName, tokenResponse.serverUrl);
+
+      logger.debug('✅ [useCalls] Call answered');
+    } catch (error) {
+      logger.error('❌ Error answering call:', error);
+      performCleanup('Error answering call');
+    }
+  }, [currentCall, isRinging, user]);
+
+  /**
+   * Reject incoming call
+   */
+  const handleRejectCall = useCallback(() => {
+    if (!currentCall || !isRinging) {
+      logger.warn('⚠️ Cannot reject - no incoming call');
+      return;
     }
 
-    // Stop incoming call sound when rejecting
+    logger.debug('📞 [useCalls] Rejecting call');
+
+    // Stop ringing
     soundService.stopIncomingCallSound();
-    rejectCall();
-    liveKitService.disconnect();
-  }, [rejectCall]); // Removed currentCall from dependencies since we read it from store
 
-  // End call
-  // CRITICAL FIX: Read currentCall from store inside the function to avoid stale closure issues
-  // This ensures that even if currentCall is initialized after the callback is created,
-  // the function will still access the latest value from the store
+    // Send CALL_REJECT signal
+    const rejectTime = new Date().toISOString();
+    svMobileWebSocketService.sendCallSignal({
+      eventType: 'CALL_REJECT',
+      conversationId: currentCall.conversationId,
+      callerId: currentCall.participant.id,
+      receiverId: user!.id,
+      startTime: currentCall.startTime ? currentCall.startTime.toISOString() : rejectTime,
+      endTime: rejectTime,
+    });
+
+    // Clear call
+    clearCall();
+  }, [currentCall, isRinging, user, clearCall]);
+
+  /**
+   * End active call or cancel outgoing call
+   */
   const handleEndCall = useCallback(() => {
-    // Read currentCall and callState from store to get latest value (not from closure)
-    const { currentCall: latestCurrentCall, isVideoCall } = useCallsStore.getState();
-    const { user } = useAuthStore.getState();
-    if (latestCurrentCall && svMobileWebSocketService.isConnected() && user) {
-      // CRITICAL FIX: Determine caller and receiver based on isOutgoing flag
-      // If isOutgoing is true, current user is the caller
-      // If isOutgoing is false/undefined, current user is the receiver (incoming call)
-      const isOutgoingCall = latestCurrentCall.isOutgoing === true;
+    if (!currentCall) {
+      logger.warn('⚠️ Cannot end - no active call');
+      return;
+    }
 
-      const callerId = isOutgoingCall ? user.id : latestCurrentCall.participantId;
-      const receiverId = isOutgoingCall ? latestCurrentCall.participantId : user.id;
+    logger.debug('📞 [useCalls] Ending call');
 
-      // CRITICAL: Get startTime and endTime from currentCall
-      // startTime should be set when call becomes CONNECTED
-      // endTime should be set when call ends (in endCall() method)
-      // CRITICAL FIX: If startTime is not set, the call was never connected, so duration should be 0
-      // But we still need valid timestamps for database
-      const now = new Date();
-      const startTime = latestCurrentCall.startTime
-        ? latestCurrentCall.startTime.toISOString()
-        : now.toISOString(); // Fallback to now if startTime not set (call was never connected)
-      // CRITICAL: endTime should be set in endCall() method, but if not, use now()
-      // This ensures accurate duration calculation
-      const endTime = latestCurrentCall.endTime
-        ? latestCurrentCall.endTime.toISOString()
-        : now.toISOString(); // Use now() as fallback to ensure we have an endTime
+    // Set end time
+    setCallEndTime();
 
-      // CRITICAL: Log warning if startTime is not set (call was never connected)
-      if (!latestCurrentCall.startTime) {
-      }
+    // Determine signal type based on state
+    let eventType: 'CALL_CANCEL' | 'CALL_END' = 'CALL_END';
 
-      // CRITICAL: Calculate duration for logging
-      const durationSeconds = latestCurrentCall.startTime && latestCurrentCall.endTime
-        ? Math.floor((latestCurrentCall.endTime.getTime() - latestCurrentCall.startTime.getTime()) / 1000)
+    logger.debug('🛑 [useCalls] handleEndCall - Determining signal type', {
+      isDialing,
+      isConnected,
+      isRinging,
+      hasEverConnected: liveKitService.hasParticipantEverConnected()
+    });
+
+    // CRITICAL: Aggressive check for cancellation
+    // If outgoing and no remote participant connected, OR duration is near zero, treat as CANCEL
+    const hasRemoteParticipant = liveKitService.hasParticipantEverConnected();
+    const durationIsMinimal = !currentCall.startTime || (new Date().getTime() - currentCall.startTime.getTime() < 2000);
+
+    /* REVERTED based on user feedback to mimic Web behavior (which sends CALL_END)
+    if (currentCall.isOutgoing && (!hasRemoteParticipant || durationIsMinimal)) {
+      // Outgoing call not yet answered (or connected but no remote participant) - send CANCEL
+      eventType = 'CALL_CANCEL';
+      logger.debug('🛑 [useCalls] Force CALL_CANCEL (No participant or minimal duration)');
+    }
+    */
+
+    // Calculate duration
+    const durationSeconds =
+      currentCall.startTime && currentCall.endTime
+        ? Math.floor((currentCall.endTime.getTime() - currentCall.startTime.getTime()) / 1000)
         : null;
 
-      // CRITICAL: Determine if call was connected
-      // Use liveKitService's hasParticipantEverConnected() method AND duration check
-      const hasParticipantConnected = liveKitService.hasParticipantEverConnected();
-      const hasDuration = durationSeconds !== null && durationSeconds > 0;
-      const wasConnected = hasParticipantConnected || hasDuration;
+    const wasConnected = liveKitService.hasParticipantEverConnected() || (durationSeconds !== null && durationSeconds > 0);
 
-      // CRITICAL: Get current callState to determine event type
-      const { callState: currentCallState } = useCallsStore.getState();
+    // Send signal
+    svMobileWebSocketService.sendCallSignal({
+      eventType,
+      conversationId: currentCall.conversationId,
+      callerId: currentCall.isOutgoing ? user!.id : currentCall.participant.id,
+      receiverId: currentCall.isOutgoing ? currentCall.participant.id : user!.id,
+      startTime: currentCall.startTime?.toISOString() || new Date().toISOString(),
+      endTime: currentCall.endTime?.toISOString() || new Date().toISOString(),
+      isVideoCall: currentCall.isVideoCall,
+      wasConnected,
+    });
 
-      // CRITICAL: If call was not connected (OUTGOING/CONNECTING), send CALL_CANCEL instead of CALL_ENDED
-      // This notifies the other party to stop ringing
-      const isUnconnectedOutgoing = isOutgoingCall && (currentCallState === CallState.OUTGOING || currentCallState === CallState.CONNECTING);
-      const eventType = isUnconnectedOutgoing ? 'CALL_CANCEL' : 'CALL_ENDED';
+    logger.debug(`📞 [useCalls] Sent ${eventType} signal`, {
+      wasConnected,
+      durationSeconds,
+      startTime: currentCall.startTime?.toISOString(),
+      endTime: currentCall.endTime?.toISOString()
+    });
 
-      logger.debug(`📞 [handleEndCall] Sending ${eventType} signal:`, {
-        conversationId: latestCurrentCall.conversationId,
-        callerId,
-        receiverId,
-        startTime,
-        endTime,
-        durationSeconds,
-        hasParticipantConnected,
-        hasDuration,
-        wasConnected,
-        isVideoCall,
-        currentCallState,
-        isUnconnectedOutgoing,
-      });
+    // Perform cleanup
+    performCleanup('User ended call');
+  }, [currentCall, isDialing, isConnected, user, setCallEndTime]);
 
-      // Send end/cancel signal via WebSocket with call history data
-      svMobileWebSocketService.sendCallSignal({
-        eventType: eventType,
-        conversationId: latestCurrentCall.conversationId,
-        callerId: callerId,
-        receiverId: receiverId,
-        startTime: startTime,
-        endTime: endTime,
-        isVideoCall: isVideoCall,
-        wasConnected: wasConnected // CRITICAL: Send wasConnected based on participant tracking AND duration
-      });
-    }
+  /**
+   * Handle remote party hanging up
+   */
+  const handleRemoteHangup = useCallback(() => {
+    logger.debug('📞 [useCalls] Remote party hung up');
 
-    // Stop all call sounds when ending call
-    soundService.stopIncomingCallSound();
+    // Mark as ending
+    setEnding();
+
+    // Stop sounds
     soundService.stopOutgoingCallSound();
-    liveKitService.disconnect();
-    endCall();
-  }, [endCall]); // Removed currentCall from dependencies since we read it from store
+    soundService.stopIncomingCallSound();
 
-  // Toggle mute
-  const handleToggleMute = useCallback(async () => {
-    const newMuteState = await liveKitService.toggleMute();
+    // Perform cleanup
+    setTimeout(() => {
+      performCleanup('Remote hangup');
+    }, 500);
+  }, [setEnding]);
+
+  /**
+   * Cleanup sequence - stops everything
+   */
+  const performCleanup = useCallback((reason: string = 'Unknown') => {
+    logger.debug(`🧹 [useCalls] Performing cleanup. Reason: ${reason}`);
+
+    // Stop all sounds
+    soundService.stopOutgoingCallSound();
+    soundService.stopIncomingCallSound();
+
+    // Disconnect LiveKit
+    liveKitService.disconnect();
+    liveKitService.resetConnectionTracking();
+
+    // Clear call state
+    clearCall();
+  }, [clearCall]);
+
+  /**
+   * Toggle microphone mute
+   */
+  const handleToggleMute = useCallback(() => {
     toggleMute();
-    return newMuteState;
   }, [toggleMute]);
 
-  // Toggle camera
+  /**
+   * Toggle speaker
+   */
+  const handleToggleSpeaker = useCallback(() => {
+    toggleSpeaker();
+  }, [toggleSpeaker]);
+
+  /**
+   * Toggle camera
+   */
   const handleToggleCamera = useCallback(async () => {
-    if (callState !== CallState.CONNECTED) return false;
+    if (!isConnected) return false;
 
-    const currentVideoState = liveKitService.isCameraEnabled();
-    const wantsToEnable = !currentVideoState;
+    try {
+      if (!isVideoEnabled) {
+        // Enabling camera
+        const hasPermission = await callPermissionsService.requestCameraPermission();
+        if (!hasPermission) {
+          logger.error('❌ Camera permission denied');
+          return false;
+        }
 
-    // If trying to enable camera, request permission first
-    if (wantsToEnable) {
-      const hasCameraPermission = await callPermissionsService.requestCameraPermission();
-      if (!hasCameraPermission) {
-        logger.error('❌ Camera permission denied, cannot enable camera');
-        return false;
+        const success = await liveKitService.toggleCamera(true);
+        if (success) {
+          setVideoEnabled(true);
+        }
+        return success;
+      } else {
+        // Disabling camera
+        await liveKitService.toggleCamera(false);
+        setVideoEnabled(false);
+        return true;
       }
-    }
-
-    const newVideoState = await liveKitService.toggleCamera(wantsToEnable);
-    return newVideoState;
-  }, [callState]);
-
-  // Get video enabled state
-  const getIsVideoEnabled = useCallback(() => {
-    return liveKitService.isCameraEnabled();
-  }, []);
-
-  // Flip camera (front/back)
-  const handleFlipCamera = useCallback(async () => {
-    if (callState !== CallState.CONNECTED || !liveKitService.isCameraEnabled()) {
+    } catch (error) {
+      logger.error('❌ Error toggling camera:', error);
       return false;
     }
+  }, [isConnected, isVideoEnabled, setVideoEnabled]);
 
-    const success = await liveKitService.flipCamera();
-    return success;
-  }, [callState]);
+  /**
+   * Flip camera (front/back)
+   */
+  const handleFlipCamera = useCallback(async () => {
+    if (!isConnected || !isVideoEnabled) return false;
 
-  // Toggle speaker
-  const handleToggleSpeaker = useCallback(() => {
-    const newSpeakerState = !isSpeakerOn;
-    setIsSpeakerOn(newSpeakerState);
-    InCallManager.setSpeakerphoneOn(newSpeakerState);
-  }, [isSpeakerOn]);
+    try {
+      const success = await liveKitService.flipCamera();
+      return success;
+    } catch (error) {
+      logger.error('❌ Error flipping camera:', error);
+      return false;
+    }
+  }, [isConnected, isVideoEnabled]);
 
+  /**
+   * LiveKit event handlers
+   * Moved here to avoid "use before declaration" errors with handlers
+   */
+  useEffect(() => {
+    const cleanupParticipantConnected = liveKitService.onParticipantConnected(() => {
+      logger.debug('✅ [useCalls] Participant connected');
+
+      // Stop call sounds
+      soundService.stopOutgoingCallSound();
+      soundService.stopIncomingCallSound();
+
+      // Mark as connected
+      setConnected();
+
+      // Set start time
+      setCallStartTime();
+    });
+
+    // CRITICAL FIX: Handle local connection success
+    const cleanupConnected = liveKitService.onConnected(() => {
+      logger.debug('✅ [useCalls] Local user connected to room');
+
+      // Determine if we should transition to "Connected" state
+      // 1. If we are dialing (outgoing), we ONLY connect if there are ALREADY participants (re-joining)
+      //    Otherwise, we wait for 'onParticipantConnected'
+      // 2. If we are NOT dialing (answering/incoming), we connect immediately
+
+      // Check for existing participants
+      const hasParticipants = liveKitService.getParticipants().length > 0;
+
+      if (isDialing && !hasParticipants) {
+        logger.debug('⏳ [useCalls] Connected to room but waiting for remote participant (Outgoing Call)');
+        // DO NOT set connected yet - stay in OutgoingCallScreen
+      } else {
+        logger.debug('✅ [useCalls] Marking as connected immediately (Incoming Call or Participants exist)');
+        // Mark as connected
+        setConnected();
+        // CRITICAL: Set start time when we connect, to ensure duration is calculated
+        setCallStartTime();
+      }
+    });
+
+    const cleanupParticipantDisconnected = liveKitService.onParticipantDisconnected(() => {
+      // Check if any participants remain
+      const participants = liveKitService.getParticipants();
+      logger.debug(`⚠️ [useCalls] Participant disconnected. Remaining: ${participants.length}. IsEnding: ${isEnding}`);
+
+      if (participants.length === 0 && !isEnding) {
+        // Other party hung up
+        handleRemoteHangup();
+      }
+    });
+
+    const cleanupDisconnected = liveKitService.onDisconnected(() => {
+      logger.debug('📞 [useCalls] LiveKit disconnected');
+
+      // If not already ending, trigger cleanup
+      if (!isEnding) {
+        performCleanup('LiveKit Disconnected event');
+      }
+    });
+
+    return () => {
+      cleanupParticipantConnected?.();
+      cleanupConnected?.(); // Added cleanup
+      cleanupParticipantDisconnected?.();
+      cleanupDisconnected?.();
+    };
+  }, [isEnding, setConnected, setCallStartTime, isDialing, handleRemoteHangup, performCleanup]);
+
+  /**
+   * Helper: Get or create conversation via backend API
+   */
+  const getOrCreateConversation = useCallback(async (participantId: number): Promise<number | null> => {
+    try {
+      logger.debug(`🔍 [useCalls] Getting/creating conversation for user ${participantId}`);
+
+      try {
+        const response = await apiClient.post(API_CONFIG.ENDPOINTS.MESSENGER.START_CONVERSATION, {
+          otherUserId: participantId,
+        });
+
+        if (response.data && response.data.id) {
+          logger.debug(`✅ [useCalls] Conversation found/created: ${response.data.id}`);
+          return response.data.id;
+        }
+      } catch (error: any) {
+        // Fallback strategy for 500 errors (if backend is unstable but conversation might exist)
+        if (error.response?.status === 500 || error.message.includes('500')) {
+          logger.warn('⚠️ [useCalls] Backend 500 error on start. Trying fallback: Linear search in conversations.');
+
+          try {
+            // Fetch all conversations
+            const response = await apiClient.get(API_CONFIG.ENDPOINTS.MESSENGER.CONVERSATIONS);
+            const conversations = response.data || [];
+
+            logger.debug(`⚠️ [useCalls] Fallback: Searching in ${conversations.length} conversations for ID ${participantId}`);
+
+            // Find conversation with this participant
+            const found = conversations.find((c: any) =>
+              (c.participantId === participantId) ||
+              (c.participant && c.participant.id === participantId) ||
+              (c.user1Id === participantId) ||
+              (c.user2Id === participantId && c.user1Id === user?.id) ||
+              (c.user1Id === user?.id && c.user2Id === participantId)
+            );
+
+            if (found && found.id) {
+              logger.debug(`✅ [useCalls] Fallback successful! Found conversation ID: ${found.id}`);
+              return found.id;
+            } else {
+              logger.warn(`❌ [useCalls] Fallback failed: User ${participantId} not found in local conversations list.`);
+            }
+          } catch (fallbackError) {
+            logger.error('❌ [useCalls] Fallback search failed (API error):', fallbackError);
+          }
+        }
+
+        throw error; // Re-throw if not 500 or fallback failed
+      }
+
+      logger.error('❌ [useCalls] Invalid response from start conversation API');
+      return null;
+    } catch (error) {
+      logger.error('❌ [useCalls] Error getting/creating conversation:', error);
+      return null;
+    }
+  }, [user]);
+
+  // Return clean API
   return {
+    // State
     currentCall,
-    callState,
+    isRinging,
+    isDialing,
+    isConnected,
+    isEnding,
     isMuted,
     isSpeakerOn,
-    isVideoEnabled: getIsVideoEnabled(),
+    isVideoEnabled,
+
+    // Actions
     startCall: handleStartCall,
     answerCall: handleAnswerCall,
     rejectCall: handleRejectCall,
@@ -426,4 +581,3 @@ export const useCalls = () => {
     flipCamera: handleFlipCamera,
   };
 };
-

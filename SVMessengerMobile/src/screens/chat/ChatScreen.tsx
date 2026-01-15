@@ -29,7 +29,6 @@ import { Colors, Spacing, Typography } from '../../theme';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
 import { useCallsStore } from '../../store/callsStore';
-import { CallState } from '../../types/call';
 import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
@@ -61,7 +60,8 @@ export const ChatScreen: React.FC = () => {
   } = useMessages(conversationId);
 
   const { callHistory, refreshCallHistory } = useCallHistory(conversationId);
-  const { callState, currentCall } = useCallsStore();
+  const { currentCall, isRinging, isDialing, isConnected } = useCallsStore();
+  const isCallActive = isRinging || isDialing || isConnected;
 
   // CRITICAL FIX: Store conversationId in ref when call is active
   // This ensures we can check if call was for this conversation even after currentCall is cleared
@@ -69,22 +69,18 @@ export const ChatScreen: React.FC = () => {
 
   // Update ref when call becomes active
   useEffect(() => {
-    if (currentCall?.conversationId &&
-      (callState === CallState.INCOMING ||
-        callState === CallState.OUTGOING ||
-        callState === CallState.CONNECTING ||
-        callState === CallState.CONNECTED)) {
+    if (currentCall?.conversationId && isCallActive) {
       activeCallConversationIdRef.current = currentCall.conversationId;
     }
-  }, [callState, currentCall?.conversationId]);
+  }, [isCallActive, currentCall?.conversationId]);
 
   // CRITICAL FIX: Refresh call history when call ends to show new call in chat
   // This ensures call history is updated immediately after a call completes
-  const prevCallStateRef = useRef(callState);
+  const prevIsCallActiveRef = useRef(isCallActive);
   useEffect(() => {
-    // Refresh call history when call transitions from active (CONNECTED, CONNECTING, OUTGOING, INCOMING) to IDLE/DISCONNECTED
-    const wasActive = prevCallStateRef.current !== CallState.IDLE && prevCallStateRef.current !== CallState.DISCONNECTED;
-    const isNowIdle = callState === CallState.IDLE || callState === CallState.DISCONNECTED;
+    // Refresh call history when call transitions from active to idle
+    const wasActive = prevIsCallActiveRef.current;
+    const isNowIdle = !isCallActive;
 
     // CRITICAL FIX: Use ref to check conversationId instead of currentCall
     // currentCall is cleared by clearCall() after 1 second, so it may be null when this effect runs
@@ -100,8 +96,8 @@ export const ChatScreen: React.FC = () => {
       }, 1000);
     }
 
-    prevCallStateRef.current = callState;
-  }, [callState, conversationId, refreshCallHistory]);
+    prevIsCallActiveRef.current = isCallActive;
+  }, [isCallActive, conversationId, refreshCallHistory]);
 
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -404,7 +400,32 @@ export const ChatScreen: React.FC = () => {
         participantId={participant?.id || 0}
         conversationId={conversationId}
         isOnline={participant?.isOnline || false}
-        onBack={() => navigation.goBack()}
+        /*  const handleCall = () => {
+    if (participant) {
+      // CRITICAL FIX: Pass existing conversationId to startCall to bypass backend check
+      // This prevents "500 Internal Server Error" if the backend endpoint is unstable
+      startCall(
+        participant.id,
+        participantName || participant.fullName || participant.username,
+        participant.imageUrl,
+        false, // isVideo
+        conversationId // existingConversationId
+      );
+    }
+  };
+
+  const handleVideoCall = () => {
+    if (participant) {
+      // CRITICAL FIX: Pass existing conversationId for video calls too
+      startCall(
+        participant.id,
+        participantName || participant.fullName || participant.username,
+        participant.imageUrl,
+        true, // isVideo
+        conversationId // existingConversationId
+      );
+    }
+  };  */onBack={() => navigation.goBack()}
         onSearchPress={() => setShowSearch(!showSearch)}
       />
 

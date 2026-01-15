@@ -62,7 +62,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const handleVoiceCall = () => {
     if (!user) return;
-    startCall(conversationId, participantId, participantName);
+    // CRITICAL FIX: Match arguments with useCalls hook:
+    // (participantId, participantName, participantImageUrl, isVideo, existingConversationId)
+    startCall(participantId, participantName, participantImageUrl, false, conversationId);
   };
 
   return (
@@ -82,66 +84,66 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               </TouchableOpacity>
             )}
 
-        {/* Avatar */}
-        <View style={styles.avatarContainer}>
-          <Avatar
-            imageUrl={participantImageUrl}
-            name={participantName}
-            size={40}
-            isOnline={isOnline}
-            style={styles.avatar}
-          />
-        </View>
-
-        {/* Name */}
-        <View style={styles.nameContainer}>
-          <Text style={styles.name} numberOfLines={1}>
-            {participantName}
-          </Text>
-          {isOnline && (
-            <View style={styles.onlineContainer}>
-              <Animated.View
-                style={[
-                  styles.onlineDot,
-                  {
-                    transform: [{ scale: pulseAnim }],
-                  },
-                ]}
+            {/* Avatar */}
+            <View style={styles.avatarContainer}>
+              <Avatar
+                imageUrl={participantImageUrl}
+                name={participantName}
+                size={40}
+                isOnline={isOnline}
+                style={styles.avatar}
               />
-              <Text style={styles.onlineText}>
-                Онлайн
-              </Text>
             </View>
-          )}
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-            {/* Search Button */}
-            {onSearchPress && (
+            {/* Name */}
+            <View style={styles.nameContainer}>
+              <Text style={styles.name} numberOfLines={1}>
+                {participantName}
+              </Text>
+              {isOnline && (
+                <View style={styles.onlineContainer}>
+                  <Animated.View
+                    style={[
+                      styles.onlineDot,
+                      {
+                        transform: [{ scale: pulseAnim }],
+                      },
+                    ]}
+                  />
+                  <Text style={styles.onlineText}>
+                    Онлайн
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.actionsContainer}>
+              {/* Search Button */}
+              {onSearchPress && (
+                <TouchableOpacity
+                  onPress={onSearchPress}
+                  style={styles.actionButton}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.iconButton}>
+                    <SearchIcon size={20} color={Colors.text.inverse} />
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {/* Voice Call Button */}
               <TouchableOpacity
-                onPress={onSearchPress}
+                onPress={handleVoiceCall}
                 style={styles.actionButton}
                 activeOpacity={0.7}
               >
                 <View style={styles.iconButton}>
-                  <SearchIcon size={20} color={Colors.text.inverse} />
+                  <TelephoneIcon size={20} color={Colors.text.inverse} />
                 </View>
               </TouchableOpacity>
-            )}
-
-            {/* Voice Call Button */}
-            <TouchableOpacity
-              onPress={handleVoiceCall}
-              style={styles.actionButton}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconButton}>
-                <TelephoneIcon size={20} color={Colors.text.inverse} />
-              </View>
-            </TouchableOpacity>
+            </View>
           </View>
-        </View>
         </LinearGradient>
       </View>
     </SafeAreaView>

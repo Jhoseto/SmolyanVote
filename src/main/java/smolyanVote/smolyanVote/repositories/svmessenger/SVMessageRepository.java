@@ -13,126 +13,122 @@ import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
 import jakarta.persistence.QueryHint;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long> {
 
-    // ✅ FIX: JOIN FETCH за да избегнем N+1 при sender
-    @Query(value = "SELECT DISTINCT m FROM SVMessageEntity m " +
-            "LEFT JOIN FETCH m.sender " +
-            "WHERE m.conversation.id = :conversationId AND " +
-            "m.isDeleted = false " +
-            "ORDER BY m.sentAt DESC",
-            countQuery = "SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-                    "m.conversation.id = :conversationId AND m.isDeleted = false")
-    @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "false"))
-    Page<SVMessageEntity> findByConversationId(@Param("conversationId") Long conversationId,
-                                               Pageable pageable);
+        // ✅ FIX: JOIN FETCH за да избегнем N+1 при sender
+        @Query(value = "SELECT DISTINCT m FROM SVMessageEntity m " +
+                        "LEFT JOIN FETCH m.sender " +
+                        "WHERE m.conversation.id = :conversationId AND " +
+                        "m.isDeleted = false " +
+                        "ORDER BY m.sentAt DESC", countQuery = "SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
+                                        "m.conversation.id = :conversationId AND m.isDeleted = false")
+        @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "false"))
+        Page<SVMessageEntity> findByConversationId(@Param("conversationId") Long conversationId,
+                        Pageable pageable);
 
-    // ✅ FIX: Limit 1 за last message
-    @Query("SELECT m FROM SVMessageEntity m " +
-            "LEFT JOIN FETCH m.sender " +
-            "WHERE m.conversation.id = :conversationId AND " +
-            "m.isDeleted = false " +
-            "ORDER BY m.sentAt DESC " +
-            "LIMIT 1")
-    Optional<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId);
+        // ✅ FIX: Limit 1 за last message
+        @Query("SELECT m FROM SVMessageEntity m " +
+                        "WHERE m.conversation.id = :conversationId AND " +
+                        "m.isDeleted = false " +
+                        "ORDER BY m.sentAt DESC")
+        List<SVMessageEntity> findLastMessage(@Param("conversationId") Long conversationId,
+                        Pageable pageable);
 
-    @Query("SELECT m FROM SVMessageEntity m " +
-            "LEFT JOIN FETCH m.sender " +
-            "WHERE m.conversation.id = :conversationId AND " +
-            "m.sender.id != :userId AND " +
-            "m.isRead = false AND " +
-            "m.isDeleted = false " +
-            "ORDER BY m.sentAt ASC")
-    List<SVMessageEntity> findUnreadMessages(@Param("conversationId") Long conversationId,
-                                             @Param("userId") Long userId);
+        @Query("SELECT m FROM SVMessageEntity m " +
+                        "WHERE m.conversation.id = :conversationId AND " +
+                        "m.sender.id != :userId AND " +
+                        "m.isRead = false AND " +
+                        "m.isDeleted = false " +
+                        "ORDER BY m.sentAt ASC")
+        List<SVMessageEntity> findUnreadMessages(@Param("conversationId") Long conversationId,
+                        @Param("userId") Long userId);
 
-    @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-            "m.conversation.id = :conversationId AND " +
-            "m.sender.id != :userId AND " +
-            "m.isRead = false AND " +
-            "m.isDeleted = false")
-    Long countUnreadMessages(@Param("conversationId") Long conversationId,
-                             @Param("userId") Long userId);
+        @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
+                        "m.conversation.id = :conversationId AND " +
+                        "m.sender.id != :userId AND " +
+                        "m.isRead = false AND " +
+                        "m.isDeleted = false")
+        Long countUnreadMessages(@Param("conversationId") Long conversationId,
+                        @Param("userId") Long userId);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET " +
-            "m.isRead = true, " +
-            "m.readAt = :readAt " +
-            "WHERE m.conversation.id = :conversationId AND " +
-            "m.sender.id != :userId AND " +
-            "m.isRead = false AND " +
-            "m.isDeleted = false")
-    int markAllAsRead(@Param("conversationId") Long conversationId,
-                      @Param("userId") Long userId,
-                      @Param("readAt") LocalDateTime readAt);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET " +
+                        "m.isRead = true, " +
+                        "m.readAt = :readAt " +
+                        "WHERE m.conversation.id = :conversationId AND " +
+                        "m.sender.id != :userId AND " +
+                        "m.isRead = false AND " +
+                        "m.isDeleted = false")
+        int markAllAsRead(@Param("conversationId") Long conversationId,
+                        @Param("userId") Long userId,
+                        @Param("readAt") LocalDateTime readAt);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET " +
-            "m.isRead = true, " +
-            "m.readAt = :readAt " +
-            "WHERE m.id = :messageId")
-    int markAsRead(@Param("messageId") Long messageId,
-                   @Param("readAt") LocalDateTime readAt);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET " +
+                        "m.isRead = true, " +
+                        "m.readAt = :readAt " +
+                        "WHERE m.id = :messageId")
+        int markAsRead(@Param("messageId") Long messageId,
+                        @Param("readAt") LocalDateTime readAt);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.id = :messageId")
-    int softDelete(@Param("messageId") Long messageId);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.id = :messageId")
+        int softDelete(@Param("messageId") Long messageId);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.conversation.id = :conversationId")
-    int softDeleteAllInConversation(@Param("conversationId") Long conversationId);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.conversation.id = :conversationId")
+        int softDeleteAllInConversation(@Param("conversationId") Long conversationId);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET " +
-            "m.messageText = :newText, " +
-            "m.isEdited = true, " +
-            "m.editedAt = :editedAt " +
-            "WHERE m.id = :messageId")
-    void editMessage(@Param("messageId") Long messageId,
-                    @Param("newText") String newText,
-                    @Param("editedAt") LocalDateTime editedAt);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET " +
+                        "m.messageText = :newText, " +
+                        "m.isEdited = true, " +
+                        "m.editedAt = :editedAt " +
+                        "WHERE m.id = :messageId")
+        void editMessage(@Param("messageId") Long messageId,
+                        @Param("newText") String newText,
+                        @Param("editedAt") LocalDateTime editedAt);
 
-    @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-            "m.conversation.id = :conversationId AND " +
-            "m.isDeleted = false")
-    Long countByConversation(@Param("conversationId") Long conversationId);
+        @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
+                        "m.conversation.id = :conversationId AND " +
+                        "m.isDeleted = false")
+        Long countByConversation(@Param("conversationId") Long conversationId);
 
-    @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
-            "m.sender.id = :userId AND " +
-            "m.isDeleted = false")
-    Long countBySender(@Param("userId") Long userId);
+        @Query("SELECT COUNT(m) FROM SVMessageEntity m WHERE " +
+                        "m.sender.id = :userId AND " +
+                        "m.isDeleted = false")
+        Long countBySender(@Param("userId") Long userId);
 
-    @Query("SELECT m FROM SVMessageEntity m " +
-            "LEFT JOIN FETCH m.sender " +
-            "WHERE m.conversation.id = :conversationId AND " +
-            "LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
-            "m.isDeleted = false " +
-            "ORDER BY m.sentAt DESC")
-    List<SVMessageEntity> searchInConversation(@Param("conversationId") Long conversationId,
-                                               @Param("query") String query);
+        @Query("SELECT m FROM SVMessageEntity m " +
+                        "LEFT JOIN FETCH m.sender " +
+                        "WHERE m.conversation.id = :conversationId AND " +
+                        "LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
+                        "m.isDeleted = false " +
+                        "ORDER BY m.sentAt DESC")
+        List<SVMessageEntity> searchInConversation(@Param("conversationId") Long conversationId,
+                        @Param("query") String query);
 
-    @Modifying
-    @Query("UPDATE SVMessageEntity m SET " +
-            "m.isDelivered = true, " +
-            "m.deliveredAt = :deliveredAt " +
-            "WHERE m.conversation IN (" +
-            "   SELECT c FROM SVConversationEntity c WHERE " +
-            "   (c.user1.id = :userId OR c.user2.id = :userId)" +
-            ") AND m.sender.id != :userId AND " +
-            "m.isDelivered = false AND " +
-            "m.isDeleted = false")
-    int markAllUndeliveredAsDeliveredForUser(@Param("userId") Long userId,
-                                              @Param("deliveredAt") LocalDateTime deliveredAt);
+        @Modifying
+        @Query("UPDATE SVMessageEntity m SET " +
+                        "m.isDelivered = true, " +
+                        "m.deliveredAt = :deliveredAt " +
+                        "WHERE m.conversation IN (" +
+                        "   SELECT c FROM SVConversationEntity c WHERE " +
+                        "   (c.user1.id = :userId OR c.user2.id = :userId)" +
+                        ") AND m.sender.id != :userId AND " +
+                        "m.isDelivered = false AND " +
+                        "m.isDeleted = false")
+        int markAllUndeliveredAsDeliveredForUser(@Param("userId") Long userId,
+                        @Param("deliveredAt") LocalDateTime deliveredAt);
 
-    @Query("SELECT DISTINCT m.conversation.id FROM SVMessageEntity m WHERE " +
-            "m.conversation IN (" +
-            "   SELECT c FROM SVConversationEntity c WHERE " +
-            "   (c.user1.id = :userId OR c.user2.id = :userId)" +
-            ") AND m.sender.id != :userId AND " +
-            "m.isDelivered = false AND " +
-            "m.isDeleted = false")
-    List<Long> findConversationsWithUndeliveredMessagesForUser(@Param("userId") Long userId);
+        @Query("SELECT DISTINCT m.conversation.id FROM SVMessageEntity m WHERE " +
+                        "m.conversation IN (" +
+                        "   SELECT c FROM SVConversationEntity c WHERE " +
+                        "   (c.user1.id = :userId OR c.user2.id = :userId)" +
+                        ") AND m.sender.id != :userId AND " +
+                        "m.isDelivered = false AND " +
+                        "m.isDeleted = false")
+        List<Long> findConversationsWithUndeliveredMessagesForUser(@Param("userId") Long userId);
 }
