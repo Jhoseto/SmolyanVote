@@ -525,103 +525,55 @@ export const usePushNotifications = () => {
     // internally, so they always access the latest state. We only need to check currentCall
     // to avoid calling them when there's no call, so we read it fresh inside the listener.
     const subscription = DeviceEventEmitter.addListener('IncomingCallAction', async (event: any) => {
-      // CRITICAL FIX: Destructure without default value for participantId to distinguish between
-      // missing (undefined) and valid 0. The native code now always includes participantId if it
-      // was provided in the intent, even if it's 0, allowing us to distinguish between:
-      // - participantId === undefined: not provided in intent (should not happen in normal flow)
-      // - participantId === 0: valid participant ID of 0
-      // conversationId is required for call initialization, so we validate it explicitly
+      logger.debug('🔔 [usePushNotifications] IncomingCallAction received:', event);
+
       const { action, conversationId, participantId } = event;
 
-      // Read currentCall from store inside listener to get latest state
-      // This prevents stale closure issues when currentCall updates
-      // CRITICAL FIX: Use direct assignment instead of destructuring
-      // getState() returns the store state object which has a currentCall property
-      // Direct assignment is clearer and avoids potential destructuring issues
-      let latestCurrentCall = useCallsStore.getState().currentCall;
-
-      // CRITICAL FIX: If currentCall is not initialized (app launched from Full Screen Intent),
-      // initialize it from the event data before processing accept/reject actions.
-      // I will simplify the chunk to just replace the destructuring and call
-      if (!latestCurrentCall && conversationId) {
-        const { setIncomingCall: latestSetIncomingCall } = useCallsStore.getState();
-        const conversationIdNum = Number(conversationId);
-        if (isNaN(conversationIdNum) || conversationIdNum <= 0) {
-          logger.error('❌ Invalid conversationId in IncomingCallAction:', conversationId);
-          return; // Cannot initialize call without valid conversationId
-        }
-
-        // CRITICAL: Validate participantId if provided
-        // If participantId is undefined, we'll try to get it from the conversation
-        // If participantId is provided (including 0), we use it directly
-        let participantIdNum: number;
-        if (participantId !== undefined) {
-          participantIdNum = Number(participantId);
-          if (isNaN(participantIdNum)) {
-            logger.error('❌ Invalid participantId in IncomingCallAction:', participantId);
-            return; // Cannot initialize call with invalid participantId
-          }
-          // participantIdNum is valid (including 0, which is a valid ID)
-        } else {
-          // participantId not provided - we'll try to get it from conversation
-          participantIdNum = 0; // Temporary value, will be updated from conversation
-        }
-        try {
-          // Read functions from stores inside listener to get latest references
-          // This prevents stale closure issues if function references change between renders
-          const { fetchConversations: latestFetchConversations } = useConversationsStore.getState();
-          // Fetch conversation to get participant details
-          await latestFetchConversations();
-          const { conversations, getConversation } = useConversationsStore.getState();
-          let conversation = conversations.find((c) => c.id === conversationIdNum);
-          if (!conversation) {
-            const fetchedConversation = await getConversation(conversationIdNum).catch(() => null);
-            conversation = fetchedConversation || undefined;
-          }
-
-          const participantName = (conversation as any)?.participant?.fullName || (conversation as any)?.participant?.username || 'Потребител';
-          const participantImageUrl = (conversation as any)?.participant?.imageUrl;
-
-          // Use participantId from event if provided, otherwise use from conversation
-          const finalParticipantId = (participantId !== undefined)
-            ? Number(participantId)
-            : ((conversation as any)?.participant?.id || 0);
-
-          // Initialize the call in the store using latest function reference
-          latestSetIncomingCall({
-            conversationId: conversationIdNum,
-            participant: {
-              id: finalParticipantId,
-              name: participantName,
-              imageUrl: participantImageUrl,
-            },
-            isVideoCall: !!event.isVideoCall,
-            isOutgoing: false,
-          });
-
-          // Read the newly initialized call
-          latestCurrentCall = useCallsStore.getState().currentCall;
-        } catch (error) {
-          logger.error('❌ Error initializing currentCall from event data:', error);
-        }
+      // Validate inputs
+      if (!conversationId) {
+        logger.error('❌ [usePushNotifications] Missing conversationId in event');
+        return;
       }
 
+      // Initialize call immediately if needed
+      let latestCurrentCall = useCallsStore.getState().currentCall;
+
+      if (!latestCurrentCall) {
+        logger.debug('🔔 [usePushNotifications] currentCall is null, initializing from event data...');
+        const conversationIdNum = Number(conversationId);
+
+        // Use provided participantId or default to 0
+        const participantIdNum = participantId !== undefined ? Number(participantId) : 0;
+
+        // Construct minimal participant data immediately - don't wait for API
+        const participantName = event.callerName || 'Unknown User';
+
+        // Initialize state IMMEDIATELY to allow answerCall to work
+        const { setIncomingCall } = useCallsStore.getState();
+        setIncomingCall({
+          conversationId: conversationIdNum,
+          participant: {
+            id: participantIdNum,
+            name: participantName,
+            imageUrl: event.callerImageUrl,
+          },
+          isVideoCall: !!event.isVideoCall,
+          isOutgoing: false,
+        });
+
+        logger.debug('✅ [usePushNotifications] Call state initialized manually');
+        latestCurrentCall = useCallsStore.getState().currentCall;
+      }
+
+      // Execute Action
       if (action === 'accept_call') {
-        if (latestCurrentCall) {
-          answerCall();
-        } else {
-          logger.error('❌ Cannot accept call: currentCall not initialized and could not be created from event data');
-        }
+        logger.debug('📞 [usePushNotifications] Executing answerCall()');
+        answerCall();
       } else if (action === 'reject_call') {
-        // For reject, we can still process it even if currentCall wasn't initialized
-        // because rejectCall() clears the call state, which is safe to call
-        if (latestCurrentCall) {
-          rejectCall();
-        } else {
-          // If no currentCall, just clear any potential call state
-          const { clearCall } = useCallsStore.getState();
-          clearCall();
-        }
+        logger.debug('📞 [usePushNotifications] Executing rejectCall()');
+        rejectCall();
+      } else {
+        logger.warn('⚠️ [usePushNotifications] Unknown action:', action);
       }
     });
 

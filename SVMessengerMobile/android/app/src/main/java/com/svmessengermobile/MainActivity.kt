@@ -1,6 +1,7 @@
 package com.svmessengermobile
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import com.facebook.react.ReactActivity
@@ -20,6 +21,9 @@ class MainActivity : ReactActivity() {
       super.onCreate(savedInstanceState)
       android.util.Log.d("MainActivity", "✅ onCreate() completed")
       
+      // CRITICAL: Check and request required permissions for Full Screen Intent
+      checkAndRequestFullScreenIntentPermissions()
+      
       // Handle incoming call actions from IncomingCallActivity
       handleIncomingCallAction(intent)
       
@@ -38,6 +42,45 @@ class MainActivity : ReactActivity() {
     setIntent(intent)
     // Handle incoming call actions when activity is already running
     intent?.let { handleIncomingCallAction(it) }
+  }
+  
+  /**
+   * Check and request required permissions for Full Screen Intent
+   * CRITICAL: On Android 10+, "Display over other apps" permission is REQUIRED
+   * for Full Screen Intent to work when app is background/killed
+   */
+  private fun checkAndRequestFullScreenIntentPermissions() {
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val canDrawOverlays = FullScreenIntentPermissionHelper.canDrawOverlays(this)
+        val batteryOptDisabled = FullScreenIntentPermissionHelper.isBatteryOptimizationDisabled(this)
+        
+        android.util.Log.d("MainActivity", "🔐 Permission status:")
+        android.util.Log.d("MainActivity", "  - Display over other apps: $canDrawOverlays")
+        android.util.Log.d("MainActivity", "  - Battery optimization disabled: $batteryOptDisabled")
+        
+        if (!canDrawOverlays) {
+          android.util.Log.w("MainActivity", "⚠️ CRITICAL: 'Display over other apps' permission NOT granted!")
+          android.util.Log.w("MainActivity", "⚠️ Full Screen Intent will NOT work when app is background/killed")
+          android.util.Log.w("MainActivity", "⚠️ Opening Settings to request permission...")
+          
+          // Automatically open Settings for user to grant permission
+          // User MUST manually enable this permission in Settings
+          FullScreenIntentPermissionHelper.openDrawOverlaysSettings(this)
+        } else {
+          android.util.Log.d("MainActivity", "✅ All required permissions granted - Full Screen Intent will work")
+        }
+        
+        if (!batteryOptDisabled) {
+          android.util.Log.w("MainActivity", "⚠️ RECOMMENDED: Disable battery optimization for reliable call notifications")
+          // Don't auto-open battery settings - only if user explicitly requests it
+        }
+      } else {
+        android.util.Log.d("MainActivity", "✅ Android version < M - No system permissions required")
+      }
+    } catch (e: Exception) {
+      android.util.Log.e("MainActivity", "❌ Error checking permissions:", e)
+    }
   }
   
   /**

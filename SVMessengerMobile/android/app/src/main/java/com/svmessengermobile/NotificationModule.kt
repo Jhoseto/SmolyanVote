@@ -166,10 +166,16 @@ class NotificationModule(reactContext: ReactApplicationContext) : ReactContextBa
             
             Log.d("NotificationModule", "📞 Call data: conversationId=$conversationId, callerName=$callerName, participantId=$participantId")
             
-            // CRITICAL: Start foreground service to keep app alive
+                // CRITICAL: Start foreground service to keep app alive
             // This is ESSENTIAL for showing Full Screen Intent when app is completely closed
             try {
-                IncomingCallService.startService(context, callerName)
+                IncomingCallService.startService(
+                    context, 
+                    callerName,
+                    conversationId,
+                    callerImageUrl,
+                    participantId
+                )
                 Log.d("NotificationModule", "✅ Foreground service started for incoming call")
             } catch (e: Exception) {
                 Log.e("NotificationModule", "❌ Failed to start foreground service:", e)
@@ -239,27 +245,9 @@ class NotificationModule(reactContext: ReactApplicationContext) : ReactContextBa
                 notificationManager.notify(notificationId, notification)
                 Log.d("NotificationModule", "✅ Full Screen Intent notification posted from React Native background handler")
                 
-                // Cancel notification after posting (same as SVMessengerFirebaseMessagingService)
-                val cancelDelays = intArrayOf(1, 5, 10, 25, 50, 100, 200, 500)
-                cancelDelays.forEach { delay ->
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        try {
-                            notificationManager.cancel(notificationId)
-                            notificationManager.cancelAll()
-                        } catch (e: Exception) {
-                            // Ignore errors
-                        }
-                    }, delay.toLong())
-                }
-                
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    try {
-                        notificationManager.cancelAll()
-                        Log.d("NotificationModule", "✅ Final safety cancel - removed ALL notifications")
-                    } catch (e: Exception) {
-                        // Ignore errors
-                    }
-                }, 1000)
+                // REMOVED: Aggressive cancellation loops
+                // We rely on IncomingCallActivity to cancel the notification when the user answers/declines
+                Log.d("NotificationModule", "✅ Full Screen Intent posted from React Native BG. Waiting for user interaction.")
             } else {
                 // Android P and below - try to launch activity directly
                 try {

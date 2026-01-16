@@ -66,7 +66,8 @@ public class FirebaseConfig {
             }
         }
 
-        // Ако не е намерен от път, опитваме от classpath (firebase-service-account.json)
+        // Ако не е намерен от път, опитваме от classpath
+        // (firebase-service-account.json)
         if (serviceAccount == null) {
             try {
                 ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
@@ -79,39 +80,53 @@ public class FirebaseConfig {
             }
         }
 
-        // Ако все още няма service account, опитваме от environment variable (JSON string)
+        // Ако все още няма service account, опитваме от environment variable (JSON
+        // string)
         if (serviceAccount == null) {
             String serviceAccountJson = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
             if (serviceAccountJson != null && !serviceAccountJson.isEmpty()) {
                 try {
                     // Парсване на JSON string от environment variable
                     serviceAccount = new java.io.ByteArrayInputStream(serviceAccountJson.getBytes("UTF-8"));
-                    log.info("Loading Firebase service account from FIREBASE_SERVICE_ACCOUNT_JSON environment variable");
+                    log.info(
+                            "Loading Firebase service account from FIREBASE_SERVICE_ACCOUNT_JSON environment variable");
                 } catch (Exception e) {
                     log.warn("Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {}", e.getMessage());
                 }
             }
         }
-        
+
         // Ако все още няма, опитваме от различни места
         if (serviceAccount == null) {
             String[] possiblePaths = {
-                "../SVMessengerMobile/firebase-service-account.json",
-                "SVMessengerMobile/firebase-service-account.json",
-                "./SVMessengerMobile/firebase-service-account.json",
-                "firebase-service-account.json",
-                "../firebase-service-account.json"
+                    // Absolute path based on project structure
+                    System.getProperty("user.dir") + "/firebase-service-account.json",
+                    System.getProperty("user.dir") + "/src/main/resources/firebase-service-account.json",
+                    // Relative paths
+                    "../SVMessengerMobile/firebase-service-account.json",
+                    "SVMessengerMobile/firebase-service-account.json",
+                    "./SVMessengerMobile/firebase-service-account.json",
+                    "firebase-service-account.json",
+                    "../firebase-service-account.json",
+                    // Additional common locations
+                    "src/main/resources/firebase-service-account.json",
+                    "./src/main/resources/firebase-service-account.json"
             };
-            
+
+            log.info("🔍 Current working directory: {}", System.getProperty("user.dir"));
+            log.info("🔍 Searching for firebase-service-account.json in {} locations...", possiblePaths.length);
+
             for (String path : possiblePaths) {
                 try {
                     java.io.File firebaseFile = new java.io.File(path);
+                    log.debug("Checking path: {} (absolute: {})", path, firebaseFile.getAbsolutePath());
                     if (firebaseFile.exists() && firebaseFile.isFile()) {
                         serviceAccount = new FileInputStream(firebaseFile);
                         log.info("✅ Loading Firebase service account from: {}", firebaseFile.getAbsolutePath());
                         break;
                     }
                 } catch (Exception e) {
+                    log.debug("Path not found: {} - {}", path, e.getMessage());
                     // Continue to next path
                 }
             }
@@ -147,4 +162,3 @@ public class FirebaseConfig {
         }
     }
 }
-

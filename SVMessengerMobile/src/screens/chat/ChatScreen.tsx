@@ -652,10 +652,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    paddingBottom: 60, // Space for bottom tab navigation
   },
   messagesContainer: {
     padding: Spacing.md,
     flexGrow: 1,
+    paddingBottom: 76, // Extra space for bottom tab navigation (60px tabs + 16px spacing)
   },
   emptyContainer: {
     flex: 1,

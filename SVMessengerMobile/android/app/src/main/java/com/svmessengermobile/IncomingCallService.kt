@@ -23,7 +23,7 @@ import androidx.core.app.NotificationCompat
 class IncomingCallService : Service() {
 
     companion object {
-        private const val CHANNEL_ID = "svmessenger_incoming_call_service"
+        private const val CHANNEL_ID = "svmessenger_incoming_call_v3" // CHANGED: Force new channel with HIGH importance
         private const val NOTIFICATION_ID = 999999 // Unique ID for service notification
         private const val ACTION_STOP_SERVICE = "com.svmessengermobile.STOP_INCOMING_CALL_SERVICE"
 
@@ -31,9 +31,12 @@ class IncomingCallService : Service() {
          * Start incoming call service
          * CRITICAL: This must be called when showing incoming call to keep app alive
          */
-        fun startService(context: Context, callerName: String) {
+        fun startService(context: Context, callerName: String, conversationId: String?, callerImageUrl: String?, participantId: Long?) {
             val intent = Intent(context, IncomingCallService::class.java).apply {
                 putExtra("callerName", callerName)
+                conversationId?.let { putExtra("conversationId", it) }
+                callerImageUrl?.let { putExtra("callerImageUrl", it) }
+                participantId?.let { putExtra("participantId", it) }
             }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -65,61 +68,85 @@ class IncomingCallService : Service() {
         Log.d("IncomingCallService", "📞 IncomingCallService started")
 
         val callerName = intent?.getStringExtra("callerName") ?: "Потребител"
+        val conversationId = intent?.getStringExtra("conversationId")
+        val callerImageUrl = intent?.getStringExtra("callerImageUrl")
+        val participantId = intent?.getLongExtra("participantId", 0L)
 
-        // CRITICAL: Start foreground service immediately
-        // This prevents the service from being killed by the system
-        val notification = createNotification(callerName)
-        startForeground(NOTIFICATION_ID, notification)
+        // CRITICAL: Start foreground service immediately with the Full Screen Intent Notification
+        // This consolidates both the "Keeping App Alive" requirement and the "Show Call UI" requirement
+        // into a SINGLE notification.
+        val notification = createNotification(callerName, conversationId, callerImageUrl, participantId)
+        
+        // CRITICAL FIX: Specify foreground service type for Android 14+
+        if (Build.VERSION.SDK_INT >= 34) { // Android 14+
+            try {
+                // Use reflection or hardcoded value for FOREGROUND_SERVICE_TYPE_SHORT_SERVICE (2048)
+                // ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE = 2048
+                startForeground(NOTIFICATION_ID, notification, 2048)
+            } catch (e: Exception) {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
 
-        Log.d("IncomingCallService", "📞 Foreground service started for caller: $callerName")
+        Log.d("IncomingCallService", "📞 Foreground service started for caller: $callerName with Full Screen Intent")
 
-        // Return START_NOT_STICKY - service should not be restarted if killed
-        // Incoming calls are time-sensitive, restarting doesn't make sense
         return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        // This is a started service, not bound
         return null
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("IncomingCallService", "📞 IncomingCallService destroyed")
-    }
-
-    /**
-     * Create notification channel for foreground service
-     * CRITICAL: Channel must exist on Android O+ (API 26+)
-     */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            // Delete old channel to ensure fresh settings
+            try {
+                notificationManager.deleteNotificationChannel("svmessenger_incoming_call_service")
+            } catch (e: Exception) {
+                // Ignore
+            }
+
+            // CRITICAL: Use HIGH importance for Full Screen Intent to work
+            // Android requires HIGH priority notification to trigger Full Screen Intent
+            // We will dismiss the notification immediately when IncomingCallActivity starts
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Входящи обаждания",
-                NotificationManager.IMPORTANCE_LOW // Low importance - don't show notification
+                NotificationManager.IMPORTANCE_HIGH // MUST be HIGH for Full Screen Intent
             ).apply {
-                description = "Foreground service за входящи обаждания"
+                description = "Известия за входящи разговори"
                 setShowBadge(false)
-                // CRITICAL: Silent notification - no sound, no vibration
-                setSound(null, null)
-                enableVibration(false)
+                // Set default sound - will be dismissed before it plays
+                val soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
+                val audioAttributes = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                setSound(soundUri, audioAttributes)
+                enableVibration(false) // No vibration - Activity handles it
                 enableLights(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
 
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
 
-    /**
-     * Create notification for foreground service
-     * CRITICAL: This notification is required for foreground service but should be invisible
-     */
-    private fun createNotification(callerName: String): Notification {
-        // Create intent to open IncomingCallActivity if user taps notification
-        val intent = Intent(this, IncomingCallActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    private fun createNotification(callerName: String, conversationId: String?, callerImageUrl: String?, participantId: Long?): Notification {
+        // Create Full Screen Intent
+        val fullScreenIntent = Intent(this, IncomingCallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or 
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+            putExtra("callerName", callerName)
+            conversationId?.let { putExtra("conversationId", it) }
+            callerImageUrl?.let { putExtra("callerImageUrl", it) }
+            participantId?.let { putExtra("participantId", it) }
         }
 
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -128,24 +155,29 @@ class IncomingCallService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
 
-        val pendingIntent = PendingIntent.getActivity(
+        val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
-            0,
-            intent,
+            112233, // Unique request code
+            fullScreenIntent,
             pendingIntentFlags
         )
 
-        // Build minimal notification
+        // Build HIGH priority notification for Full Screen Intent
+        // CRITICAL: Full Screen Intent ONLY works with HIGH priority notification
+        // Notification will be dismissed immediately when IncomingCallActivity starts
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Входящо обаждане")
             .setContentText(callerName)
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(false)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW) // Low priority - don't intrude
+            .setPriority(NotificationCompat.PRIORITY_MAX) // MAX for Full Screen Intent
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setSilent(true) // Silent - no sound, no vibration
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true) // Ongoing until dismissed
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(true) // Only alert once - prevents sound on updates
+            // CRITICAL: Attach the Full Screen Intent
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(fullScreenPendingIntent)
 
         return builder.build()
     }

@@ -91,10 +91,11 @@ export const useWebSocketCalls = () => {
     logger.debug('📞 [WebSocket] Call cancelled by remote party');
 
     // Only relevant if we're ringing
-    if (!isRinging) {
-      logger.debug('📞 [WebSocket] Ignoring CALL_CANCEL - not ringing');
-      return;
-    }
+    // CRITICAL FIX: Don't check !isRinging - always stop sound just in case
+    // if (!isRinging) {
+    //   logger.debug('📞 [WebSocket] Ignoring CALL_CANCEL - not ringing');
+    //   return;
+    // }
 
     // Stop ringing sound
     soundService.stopIncomingCallSound();

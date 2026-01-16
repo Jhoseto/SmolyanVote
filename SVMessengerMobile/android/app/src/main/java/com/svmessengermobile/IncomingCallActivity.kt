@@ -55,6 +55,16 @@ class IncomingCallActivity : Activity() {
         
         // CRITICAL: Wrap everything in try-catch to prevent crashes
         try {
+            // CRITICAL: Cancel ALL notifications IMMEDIATELY before anything else
+            // This removes the notification from tray while Full Screen Intent already triggered
+            try {
+                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                notificationManager.cancelAll()
+                Log.d("IncomingCallActivity", "🧹 ALL Notifications cancelled IMMEDIATELY on Activity start")
+            } catch (e: Exception) {
+                Log.e("IncomingCallActivity", "❌ Error cancelling notifications:", e)
+            }
+            
             // CRITICAL: Acquire Wake Lock FIRST before anything else
             // This ensures screen stays on even when phone is locked
             acquireWakeLock()
@@ -782,7 +792,11 @@ class IncomingCallActivity : Activity() {
                     // Release wake lock
                     releaseWakeLock()
                     // Finish activity
-                    finish()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        finishAndRemoveTask()
+                    } else {
+                        finish()
+                    }
                 }
             }
         }

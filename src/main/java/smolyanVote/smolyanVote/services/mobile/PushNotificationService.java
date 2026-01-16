@@ -15,6 +15,7 @@ import smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Push Notification Service за мобилни приложения
@@ -28,6 +29,10 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     private final MobileDeviceTokenRepository deviceTokenRepository;
     private FirebaseMessaging firebaseMessaging;
+
+    // Cache to prevent duplicate call notifications: Key="userId_conversationId",
+    // Value=Timestamp
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> callNotificationCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Value("${firebase.enabled:false}")
     private boolean firebaseEnabled;
@@ -45,9 +50,9 @@ public class PushNotificationService implements MobilePushNotificationService {
      * Изпраща push notification до конкретен user
      * 
      * @param userId ID на потребителя
-     * @param title Заглавие на notification
-     * @param body Текст на notification
-     * @param data Допълнителни данни (optional)
+     * @param title  Заглавие на notification
+     * @param body   Текст на notification
+     * @param data   Допълнителни данни (optional)
      */
     public void sendNotificationToUser(Long userId, String title, String body, Map<String, String> data) {
         if (!firebaseEnabled) {
@@ -65,8 +70,18 @@ public class PushNotificationService implements MobilePushNotificationService {
             }
 
             // Изпращане на notification до всеки device
+            // CRITICAL FIX: Deduplicate tokens to prevent double notifications
+            // If the database has multiple active entries for the same token (e.g. from
+            // reinstalls),
+            // we must ensure we only send to the unique token string once.
+            java.util.Set<String> processedTokens = new java.util.HashSet<>();
+
             for (MobileDeviceTokenEntity token : tokens) {
-                sendNotificationToDevice(token, title, body, data);
+                String tokenString = token.getDeviceToken();
+                if (tokenString != null && !processedTokens.contains(tokenString)) {
+                    sendNotificationToDevice(token, title, body, data);
+                    processedTokens.add(tokenString);
+                }
             }
 
             log.info("Push notification sent to {} devices for user: {}", tokens.size(), userId);
@@ -80,11 +95,12 @@ public class PushNotificationService implements MobilePushNotificationService {
      * Изпраща push notification до конкретен device
      * 
      * @param deviceToken Device token entity
-     * @param title Заглавие
-     * @param body Текст
-     * @param data Допълнителни данни
+     * @param title       Заглавие
+     * @param body        Текст
+     * @param data        Допълнителни данни
      */
-    private void sendNotificationToDevice(MobileDeviceTokenEntity deviceToken, String title, String body, Map<String, String> data) {
+    private void sendNotificationToDevice(MobileDeviceTokenEntity deviceToken, String title, String body,
+            Map<String, String> data) {
         try {
             String platform = deviceToken.getPlatform().toLowerCase();
             String token = deviceToken.getDeviceToken();
@@ -104,11 +120,15 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща FCM notification за Android
-     * CRITICAL: За входящи обаждания използваме DATA-ONLY payload (без notification payload)
-     * Това позволява на app-а да покаже Full Screen Intent вместо notification в лентата
-     * За други notifications използваме notification payload за автоматично показване от Firebase
+     * CRITICAL: За входящи обаждания използваме DATA-ONLY payload (без notification
+     * payload)
+     * Това позволява на app-а да покаже Full Screen Intent вместо notification в
+     * лентата
+     * За други notifications използваме notification payload за автоматично
+     * показване от Firebase
      */
-    private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
+    private void sendFCMNotification(String deviceToken, String title, String body, Map<String, String> data,
+            MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
             log.warn("FirebaseMessaging not available - cannot send FCM notification");
             return;
@@ -120,22 +140,25 @@ public class PushNotificationService implements MobilePushNotificationService {
             // Това позволява на app-а да покаже Full Screen Intent на целия екран
             // вместо notification в лентата
             boolean isIncomingCall = data != null && "INCOMING_CALL".equals(data.get("type"));
-            
+
             // CRITICAL: Log what we're sending for debugging
             if (isIncomingCall) {
-                log.info("📞 INCOMING CALL - Sending DATA-ONLY payload (NO notification payload, NO AndroidNotification)");
+                log.info(
+                        "📞 INCOMING CALL - Sending DATA-ONLY payload (NO notification payload, NO AndroidNotification)");
             } else {
                 log.info("📬 Regular notification - Sending with notification payload and AndroidNotification");
             }
-            
+
             Message.Builder messageBuilder = Message.builder()
                     .setToken(deviceToken);
-            
+
             // CRITICAL: За входящи обаждания НЕ добавяме notification payload
-            // За всички останали notifications добавяме notification payload за автоматично показване от Firebase
+            // За всички останали notifications добавяме notification payload за автоматично
+            // показване от Firebase
             if (!isIncomingCall) {
                 // За обикновени notifications (не обаждания) използваме notification payload
-                // Firebase автоматично ги показва дори когато app-ът е затворен (оптимизация на батерията)
+                // Firebase автоматично ги показва дори когато app-ът е затворен (оптимизация на
+                // батерията)
                 messageBuilder.setNotification(Notification.builder()
                         .setTitle(title)
                         .setBody(body)
@@ -144,13 +167,15 @@ public class PushNotificationService implements MobilePushNotificationService {
             } else {
                 log.info("✅ SKIPPED Notification payload for incoming call (DATA-ONLY mode)");
             }
-            
+
             // Android config с priority: "high" - критично за background notifications
-            com.google.firebase.messaging.AndroidConfig.Builder androidConfigBuilder = com.google.firebase.messaging.AndroidConfig.builder()
+            com.google.firebase.messaging.AndroidConfig.Builder androidConfigBuilder = com.google.firebase.messaging.AndroidConfig
+                    .builder()
                     .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH);
-            
+
             // CRITICAL: За входящи обаждания НЕ добавяме AndroidNotification ИЗОБЩО
-            // Firebase НЕ трябва да показва notification - app-ът ще покаже Full Screen Intent
+            // Firebase НЕ трябва да показва notification - app-ът ще покаже Full Screen
+            // Intent
             // За всички останали notifications добавяме AndroidNotification
             if (!isIncomingCall) {
                 androidConfigBuilder.setNotification(com.google.firebase.messaging.AndroidNotification.builder()
@@ -160,14 +185,15 @@ public class PushNotificationService implements MobilePushNotificationService {
                         .setChannelId(getNotificationChannelId(data))
                         .setPriority(com.google.firebase.messaging.AndroidNotification.Priority.HIGH)
                         .build());
-                log.debug("✅ Added AndroidNotification: title={}, body={}, channelId={}", title, body, getNotificationChannelId(data));
+                log.debug("✅ Added AndroidNotification: title={}, body={}, channelId={}", title, body,
+                        getNotificationChannelId(data));
             } else {
                 log.info("✅ SKIPPED AndroidNotification for incoming call (DATA-ONLY mode)");
             }
             // CRITICAL FIX: За входящи обаждания НЕ добавяме AndroidNotification изобщо
             // Това гарантира че Firebase НЕ ще покаже notification в лентата
             // App-ът ще получи само data payload и ще покаже Full Screen Intent
-            
+
             messageBuilder.setAndroidConfig(androidConfigBuilder.build());
 
             // Добавяне на data payload за app логика
@@ -178,34 +204,35 @@ public class PushNotificationService implements MobilePushNotificationService {
 
             Message message = messageBuilder.build();
             String response = firebaseMessaging.send(message);
-            
+
             // CRITICAL: Log what was actually sent
             if (isIncomingCall) {
-                log.info("✅ FCM DATA-ONLY notification sent successfully for INCOMING CALL: token={}, response={}", deviceToken, response);
-                log.info("📞 VERIFICATION: This message has NO notification payload and NO AndroidNotification - Firebase will NOT show notification in bar");
+                log.info("✅ FCM DATA-ONLY notification sent successfully for INCOMING CALL: token={}, response={}",
+                        deviceToken, response);
+                log.info(
+                        "📞 VERIFICATION: This message has NO notification payload and NO AndroidNotification - Firebase will NOT show notification in bar");
             } else {
                 log.info("✅ FCM notification sent successfully: token={}, response={}", deviceToken, response);
             }
 
         } catch (FirebaseMessagingException e) {
-            log.error("❌ Failed to send FCM notification: token={}, error={}, errorCode={}", 
+            log.error("❌ Failed to send FCM notification: token={}, error={}, errorCode={}",
                     deviceToken, e.getMessage(), e.getErrorCode());
-            
+
             // ✅ Маркирай device token като неактивен ако е невалиден
             // Проверяваме всички възможни error codes които означават невалиден token
             String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : "";
             String errorMessage = e.getMessage() != null ? e.getMessage() : "";
-            boolean isInvalidToken = 
-                "INVALID_ARGUMENT".equals(errorCode) || 
-                "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
-                "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
-                "NOT_FOUND".equals(errorCode) ||
-                errorMessage.contains("Requested entity was not found") ||
-                errorMessage.contains("NotRegistered") ||
-                errorMessage.contains("not found");
-            
+            boolean isInvalidToken = "INVALID_ARGUMENT".equals(errorCode) ||
+                    "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
+                    "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
+                    "NOT_FOUND".equals(errorCode) ||
+                    errorMessage.contains("Requested entity was not found") ||
+                    errorMessage.contains("NotRegistered") ||
+                    errorMessage.contains("not found");
+
             if (isInvalidToken) {
-                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive", 
+                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive",
                         errorCode, errorMessage);
                 markTokenAsInactive(tokenEntity);
             }
@@ -218,7 +245,8 @@ public class PushNotificationService implements MobilePushNotificationService {
      * Изпраща APNs notification за iOS
      * Firebase Admin SDK поддържа iOS чрез APNs автоматично
      */
-    private void sendAPNsNotification(String deviceToken, String title, String body, Map<String, String> data, MobileDeviceTokenEntity tokenEntity) {
+    private void sendAPNsNotification(String deviceToken, String title, String body, Map<String, String> data,
+            MobileDeviceTokenEntity tokenEntity) {
         if (firebaseMessaging == null) {
             log.warn("FirebaseMessaging not available - cannot send APNs notification");
             return;
@@ -251,24 +279,23 @@ public class PushNotificationService implements MobilePushNotificationService {
             log.info("✅ APNs notification sent successfully: token={}, response={}", deviceToken, response);
 
         } catch (FirebaseMessagingException e) {
-            log.error("❌ Failed to send APNs notification: token={}, error={}, errorCode={}", 
+            log.error("❌ Failed to send APNs notification: token={}, error={}, errorCode={}",
                     deviceToken, e.getMessage(), e.getErrorCode());
-            
+
             // ✅ Маркирай device token като неактивен ако е невалиден
             // Проверяваме всички възможни error codes които означават невалиден token
             String errorCode = e.getErrorCode() != null ? e.getErrorCode().name() : "";
             String errorMessage = e.getMessage() != null ? e.getMessage() : "";
-            boolean isInvalidToken = 
-                "INVALID_ARGUMENT".equals(errorCode) || 
-                "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
-                "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
-                "NOT_FOUND".equals(errorCode) ||
-                errorMessage.contains("Requested entity was not found") ||
-                errorMessage.contains("NotRegistered") ||
-                errorMessage.contains("not found");
-            
+            boolean isInvalidToken = "INVALID_ARGUMENT".equals(errorCode) ||
+                    "REGISTRATION_TOKEN_NOT_REGISTERED".equals(errorCode) ||
+                    "INVALID_REGISTRATION_TOKEN".equals(errorCode) ||
+                    "NOT_FOUND".equals(errorCode) ||
+                    errorMessage.contains("Requested entity was not found") ||
+                    errorMessage.contains("NotRegistered") ||
+                    errorMessage.contains("not found");
+
             if (isInvalidToken) {
-                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive", 
+                log.warn("Invalid device token detected (errorCode={}, message={}) - marking as inactive",
                         errorCode, errorMessage);
                 markTokenAsInactive(tokenEntity);
             }
@@ -276,7 +303,7 @@ public class PushNotificationService implements MobilePushNotificationService {
             log.error("❌ Unexpected error sending APNs notification: token={}", deviceToken, e);
         }
     }
-    
+
     /**
      * Маркира device token като неактивен
      */
@@ -306,13 +333,17 @@ public class PushNotificationService implements MobilePushNotificationService {
 
     /**
      * Изпраща notification за входящо обаждане
-     * @param userId ID на получателя на нотификацията
-     * @param callerName Име на звънящия
+     * 
+     * @param userId         ID на получателя на нотификацията
+     * @param callerName     Име на звънящия
      * @param conversationId ID на разговора
-     * @param participantId ID на участника (звънящия) - използва се за accept/reject call
-     * @param callerImageUrl URL на аватара на звънящия - използва се за показване в call UI
+     * @param participantId  ID на участника (звънящия) - използва се за
+     *                       accept/reject call
+     * @param callerImageUrl URL на аватара на звънящия - използва се за показване в
+     *                       call UI
      */
-    public void sendIncomingCallNotification(Long userId, String callerName, Long conversationId, Long participantId, String callerImageUrl) {
+    public void sendIncomingCallNotification(Long userId, String callerName, Long conversationId, Long participantId,
+            String callerImageUrl) {
         // CRITICAL FIX: Validate required parameters to prevent NullPointerException
         if (userId == null) {
             log.error("❌ Cannot send incoming call notification: userId is null");
@@ -323,15 +354,16 @@ public class PushNotificationService implements MobilePushNotificationService {
             return;
         }
         // callerName can be null, use default value
-        String safeCallerName = (callerName != null && !callerName.trim().isEmpty()) 
-            ? callerName 
-            : "Потребител";
-        
+        String safeCallerName = (callerName != null && !callerName.trim().isEmpty())
+                ? callerName
+                : "Потребител";
+
         Map<String, String> data = new HashMap<>();
         data.put("type", "INCOMING_CALL");
         data.put("conversationId", conversationId.toString()); // Safe now - conversationId is validated above
         data.put("callerName", safeCallerName);
-        // CRITICAL: participantId и callerImageUrl са необходими за правилно показване на call UI
+        // CRITICAL: participantId и callerImageUrl са необходими за правилно показване
+        // на call UI
         // participantId се използва за accept/reject call actions
         // callerImageUrl се използва за показване на аватар в IncomingCallActivity
         if (participantId != null) {
@@ -340,6 +372,28 @@ public class PushNotificationService implements MobilePushNotificationService {
         if (callerImageUrl != null && !callerImageUrl.trim().isEmpty()) {
             data.put("callerImageUrl", callerImageUrl.trim());
         }
+
+        // Check for duplicate notifications (Server-side deduplication)
+        // Key: "userId_conversationId"
+        String dedupKey = userId + "_" + conversationId;
+        Long lastSentTime = callNotificationCache.get(dedupKey);
+        long currentTime = System.currentTimeMillis();
+
+        // If sent less than 15 seconds ago, skip
+        if (lastSentTime != null && (currentTime - lastSentTime) < 15000) {
+            log.info("🚫 SKIPPING duplicate incoming call notification for user {} conversation {} (sent {} ms ago)",
+                    userId, conversationId, (currentTime - lastSentTime));
+            return;
+        }
+
+        // Clean up cache occasionally (every 100 calls roughly, or simple lazy removal)
+        // Simple lazy cleanup: if map gets too big (>1000 items), clear it.
+        // Incoming calls are rare enough that this is safe and efficient.
+        if (callNotificationCache.size() > 1000) {
+            callNotificationCache.clear();
+        }
+
+        callNotificationCache.put(dedupKey, currentTime);
 
         sendNotificationToUser(userId, "Входящо обаждане", safeCallerName + " те вика", data);
     }
@@ -355,4 +409,3 @@ public class PushNotificationService implements MobilePushNotificationService {
         return "svmessenger_messages"; // Messages channel (default)
     }
 }
-

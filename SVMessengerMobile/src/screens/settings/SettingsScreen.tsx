@@ -335,6 +335,16 @@ export const SettingsScreen: React.FC = () => {
           />
         </SettingsSection>
 
+        {/* Accessibility Section */}
+        <SettingsSection title="Достъпност">
+          <SettingsItem
+            icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
+            title="Настройки на разрешенията"
+            subtitle="Управление на системни разрешения за обаждания"
+            onPress={() => navigation.navigate('PermissionsSettings' as any)}
+          />
+        </SettingsSection>
+
         {/* Storage Section */}
         <SettingsSection title="Хранилище">
           <SettingsItem
