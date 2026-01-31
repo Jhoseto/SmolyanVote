@@ -72,13 +72,13 @@ public class TranslationController {
     @PostMapping("/translate-and-save")
     public ResponseEntity<Map<String, Object>> translateAndSave(@RequestBody Map<String, Object> payload) {
         try {
-            // Extract payload
-            Long messageId = Long.valueOf(payload.get("messageId").toString());
+            // Extract payload - null-check before conversion to avoid NPE
+            Object messageIdObj = payload.get("messageId");
             String targetLanguage = (String) payload.get("targetLanguage");
-
-            if (messageId == null || targetLanguage == null) {
+            if (messageIdObj == null || targetLanguage == null) {
                 return ResponseEntity.badRequest().build();
             }
+            Long messageId = Long.valueOf(messageIdObj.toString());
 
             // Get current user from security context
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

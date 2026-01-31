@@ -464,6 +464,7 @@ export const ChatScreen: React.FC = () => {
                   <SwipeableMessageWrapper onReply={() => handleReply(item.data)}>
                     <MessageBubble
                       message={item.data}
+                      conversationId={conversationId}
                       participantImageUrl={participant?.imageUrl}
                       participantName={participant?.fullName || participantName}
                       onReply={handleReply}

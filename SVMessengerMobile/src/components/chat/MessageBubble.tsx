@@ -20,6 +20,7 @@ import { logger } from '../../utils/logger';
 
 interface MessageBubbleProps {
   message: Message;
+  conversationId: number;
   participantImageUrl?: string;
   participantName?: string;
   onReply?: (message: Message) => void;
@@ -35,6 +36,7 @@ const LANGUAGES = [
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
+  conversationId,
   participantImageUrl,
   participantName,
   onReply,
@@ -154,7 +156,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ) : (
             <>
               <View style={styles.avatarContainer}>
-                <Avatar uri={participantImageUrl} size={32} />
+                <Avatar imageUrl={participantImageUrl} name={participantName ?? 'Потребител'} size={32} />
               </View>
               <View style={[styles.bubble, styles.receivedBubble, { borderBottomLeftRadius: 2 }]}>
                 {/* Reply Preview */}
@@ -228,36 +230,37 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       </Modal>
 
       {/* Message Menu (for own messages) */}
-      {showMenu && (
-        <MessageMenu
-          message={message}
-          onClose={() => setShowMenu(false)}
-          onEdit={() => {
-            setShowMenu(false);
-            setShowEditModal(true);
-          }}
-          onReply={() => {
-            setShowMenu(false);
-            if (onReply) onReply(message);
-          }}
-        />
-      )}
+      <MessageMenu
+        visible={showMenu}
+        messageId={message.id}
+        conversationId={conversationId}
+        messageText={message.text ?? ''}
+        isOwnMessage={isOwnMessage}
+        onClose={() => setShowMenu(false)}
+        onEdit={() => {
+          setShowMenu(false);
+          setShowEditModal(true);
+        }}
+        onReply={() => {
+          setShowMenu(false);
+          if (onReply) onReply(message);
+        }}
+      />
 
       {/* Edit Modal */}
-      {showEditModal && (
-        <EditMessageModal
-          message={message}
-          onClose={() => setShowEditModal(false)}
-        />
-      )}
+      <EditMessageModal
+        visible={showEditModal}
+        messageId={message.id}
+        currentText={message.text ?? ''}
+        onClose={() => setShowEditModal(false)}
+      />
 
       {/* Status Modal */}
-      {showStatusModal && (
-        <MessageStatusModal
-          message={message}
-          onClose={() => setShowStatusModal(false)}
-        />
-      )}
+      <MessageStatusModal
+        visible={showStatusModal}
+        message={message}
+        onClose={() => setShowStatusModal(false)}
+      />
     </>
   );
 };
