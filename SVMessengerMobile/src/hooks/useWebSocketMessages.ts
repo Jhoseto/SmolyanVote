@@ -159,9 +159,17 @@ export const useWebSocketMessages = () => {
       const conversation = conversations.find(c => c.id === message.conversationId);
       const isMuted = conversation?.mutedUntil ? new Date(conversation.mutedUntil) > new Date() : false;
 
-      // Play notification sound only if not muted
-      if (!isMuted) {
+      // CRITICAL UX: Play sound ONLY if:
+      // 1. Conversation is NOT muted
+      // 2. Chat with this person is NOT currently open (user would see message on screen)
+      // This prevents annoying sound when actively chatting with someone
+      const isChatOpen = selectedConversationId === message.conversationId;
+
+      if (!isMuted && !isChatOpen) {
         soundService.playSound('notification');
+      } else if (isChatOpen) {
+        // User is actively viewing this chat - no sound needed (sees message immediately)
+        logger.debug(`🔕 [useWebSocketMessages] Skipping sound - chat is open for conversation ${message.conversationId}`);
       }
     }
   }, [user, addMessage, conversations, selectedConversationId, updateConversation, updateConversationWithNewMessage, getConversation, addConversation, sendReadReceipt]);

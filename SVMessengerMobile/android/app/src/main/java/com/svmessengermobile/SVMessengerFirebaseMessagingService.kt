@@ -212,17 +212,24 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         // Handle notification messages (когато има notification payload)
-        // ВАЖНО: Firebase автоматично показва нотификациите САМО когато app-ът е напълно затворен.
-        // Когато app-ът е в background (процесът работи но не е в foreground),
+        // ВАЖНО: Firebase автоматично показва нотификациите САМО когато app-ът е напълно затворен.\n        // Когато app-ът е в background (процесът работи но не е в foreground),
         // Firebase НЕ показва автоматично нотификациите и onMessageReceived се извиква.
         // В този случай трябва ръчно да покажем нотификацията.
         remoteMessage.notification?.let { notification ->
             Log.d("SVMessengerFCM", "📬 Notification message: title=${notification.title}, body=${notification.body}")
             
+            // CRITICAL UX: НЕ показвай system notification когато app е foreground!
+            // User вижда съобщението в UI - notification би била redundant
+            if (isAppInForeground()) {
+                Log.d("SVMessengerFCM", "📬 App is FOREGROUND - React Native will handle notification (NO system notification)")
+                // React Native foreground handler в usePushNotifications ще обнови UI
+                return
+            }
+            
             // Firebase автоматично показва нотификациите само когато app-ът е напълно затворен.
             // Когато app-ът е в background, трябва ръчно да покажем нотификацията.
             // Показваме нотификацията ръчно за да гарантираме че винаги се показва.
-            Log.d("SVMessengerFCM", "📬 Showing notification manually (app is in background)")
+            Log.d("SVMessengerFCM", "📬 App is BACKGROUND - Showing system notification")
             showNotification(
                 notification.title,
                 notification.body,
@@ -243,7 +250,15 @@ class SVMessengerFirebaseMessagingService : FirebaseMessagingService() {
 
         Log.d("SVMessengerFCM", "📬 Handling data message: type=$type, conversationId=$conversationId")
         
-        // Show notification for data-only messages
+        // CRITICAL UX: НЕ показвай system notification когато app е foreground!
+        if (isAppInForeground()) {
+            Log.d("SVMessengerFCM", "📬 App is FOREGROUND - React Native will handle notification (NO system notification)")
+            // React Native foreground handler ще обнови UI
+            return
+        }
+        
+        // Show notification for data-only messages (only when app is background)
+        Log.d("SVMessengerFCM", "📬 App is BACKGROUND - Showing system notification")
         showNotification(title, body, data)
     }
 

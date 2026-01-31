@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
  * - Bootstrap phone icon (би-telephone)
  * - Без SVG
  */
-const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch, onCall, onOpenAudioSettings }) => {
+const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch, onCall, onOpenAudioSettings, onOpenTranslationSettings }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
 
@@ -42,6 +42,13 @@ const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch, onCall,
         setShowMenu(false);
         if (onOpenAudioSettings) {
             onOpenAudioSettings();
+        }
+    };
+
+    const handleTranslationSettings = () => {
+        setShowMenu(false);
+        if (onOpenTranslationSettings) {
+            onOpenTranslationSettings();
         }
     };
 
@@ -133,6 +140,12 @@ const SVChatHeader = ({ conversation, onClose, onMinimize, onOpenSearch, onCall,
                             <button onClick={handleAudioSettings} className="svmessenger-menu-item">
                                 <i className="bi bi-gear-fill" style={{ fontSize: '16px' }}></i>
                                 Настройки
+                            </button>
+                            <button onClick={handleTranslationSettings} className="svmessenger-menu-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53-1.7-.71-3.36-1.57-4.94-2.58l.78-1.26c1.69 1.1 3.5 2.05 5.37 2.82C16.92 1.57 18.06.33 18.06.33L19.5 2c-.08.08-1.59 1.58-2.73 3.51 1.29.58 2.68 1.09 4.14 1.5l-.6 1.9c-1.63-.44-3.18-1-4.63-1.63-.61 1.7-1.59 3.29-2.82 4.79v.01l-.01.01-.01.01-.01.01h-.06zM1 18.5l4.33-11.5h1.94l4.33 11.5h-1.96l-1.11-3.22H4.47L3.36 18.5H1zM5.08 13.6h2.83L6.5 9.17l-1.42 4.43z" />
+                                </svg>
+                                Превод
                             </button>
                             <button onClick={handleDeleteChat} className="svmessenger-menu-item svmessenger-menu-item-danger">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

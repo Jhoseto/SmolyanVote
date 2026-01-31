@@ -3,6 +3,7 @@ import { useSVMessenger } from '../context/SVMessengerContext';
 import SVChatHeader from './SVChatHeader';
 import SVMessageThread from './SVMessageThread';
 import SVMessageInput from './SVMessageInput';
+import { svMessengerAPI } from '../services/svMessengerAPI';
 
 // Search component that appears below header
 const SVChatSearch = ({ searchQuery, onSearchChange, onClose }) => {
@@ -36,6 +37,103 @@ const SVChatWindow = ({ chat }) => {
     // Search state
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Translation State
+    const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+    const [targetLanguage, setTargetLanguage] = useState('bg');
+    const [showTranslationSettings, setShowTranslationSettings] = useState(false);
+    const [translatedMessages, setTranslatedMessages] = useState({});
+
+    const LANGUAGES = [
+        { code: 'bg', name: 'Български' },
+        { code: 'en', name: 'English' },
+        { code: 'de', name: 'Deutsch' },
+        { code: 'el', name: 'Ελληνικά' },
+        { code: 'tr', name: 'Türkçe' },
+    ];
+
+    // Load Translation Settings
+    useEffect(() => {
+        const loadSettings = () => {
+            try {
+                const saved = localStorage.getItem(`translation_settings_${chat.conversation.id}`);
+                if (saved) {
+                    const { enabled, language } = JSON.parse(saved);
+                    setIsTranslationEnabled(enabled);
+                    if (language) setTargetLanguage(language);
+                }
+            } catch (error) {
+                console.error("Failed to load translation settings", error);
+            }
+        };
+        loadSettings();
+    }, [chat.conversation.id]);
+
+    // Save Settings Helper
+    const saveSettings = (enabled, language) => {
+        try {
+            localStorage.setItem(`translation_settings_${chat.conversation.id}`, JSON.stringify({
+                enabled,
+                language
+            }));
+        } catch (error) {
+            console.error("Failed to save settings", error);
+        }
+    };
+
+    // Translation Logic
+    useEffect(() => {
+        const performTranslation = async () => {
+            if (!isTranslationEnabled) return;
+
+            const messages = messagesByConversation[chat.conversation.id] || [];
+            // Filter messages: from other user, has text, not translated yet
+            const toTranslate = messages.filter(m =>
+                m.senderId !== currentUser.id &&
+                m.text &&
+                !translatedMessages[`${m.id}_${targetLanguage}`]
+            );
+
+            for (const msg of toTranslate) {
+                try {
+                    const cacheKey = `${msg.id}_${targetLanguage}`;
+                    // Double check
+                    if (translatedMessages[cacheKey]) continue;
+
+                    const response = await svMessengerAPI.translateMessage(msg.text, targetLanguage);
+                    if (response && response.translated) {
+                        const translated = response.translated;
+                        setTranslatedMessages(prev => ({
+                            ...prev,
+                            [cacheKey]: translated,
+                            [msg.id]: translated // Simplify access
+                        }));
+                    }
+                } catch (e) {
+                    console.error("Translation failed for msg", msg.id, e);
+                }
+            }
+        };
+
+        // Simple debounce/delay
+        const timeout = setTimeout(performTranslation, 500);
+        return () => clearTimeout(timeout);
+    }, [messagesByConversation, chat.conversation.id, isTranslationEnabled, targetLanguage, translatedMessages]);
+
+    const handleOpenTranslationSettings = () => {
+        setShowTranslationSettings(true);
+    };
+
+    const toggleTranslation = (e) => {
+        const newValue = e.target.checked;
+        setIsTranslationEnabled(newValue);
+        saveSettings(newValue, targetLanguage);
+    };
+
+    const changeLanguage = (code) => {
+        setTargetLanguage(code);
+        saveSettings(isTranslationEnabled, code);
+    };
 
     useEffect(() => {
         if (!chat.isMinimized) {
@@ -155,6 +253,7 @@ const SVChatWindow = ({ chat }) => {
                 onOpenSearch={handleOpenSearch}
                 onCall={handleCall}
                 onOpenAudioSettings={handleOpenAudioSettings}
+                onOpenTranslationSettings={handleOpenTranslationSettings}
             />
 
             {/* Search field appears below header */}
@@ -166,9 +265,50 @@ const SVChatWindow = ({ chat }) => {
                 />
             )}
 
+            {/* Translation Settings Modal */}
+            {showTranslationSettings && (
+                <div className="svmessenger-modal-overlay">
+                    <div className="svmessenger-modal-content" style={{ maxWidth: '300px' }}>
+                        <div className="svmessenger-modal-header">
+                            <h3>Настройки за превод</h3>
+                            <button onClick={() => setShowTranslationSettings(false)}>✕</button>
+                        </div>
+                        <div className="svmessenger-modal-body">
+                            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={{ fontWeight: '500' }}>Автоматичен превод</label>
+                                <label className="svmessenger-switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={isTranslationEnabled}
+                                        onChange={toggleTranslation}
+                                    />
+                                    <span className="svmessenger-slider round"></span>
+                                </label>
+                            </div>
+
+                            {isTranslationEnabled && (
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9em', color: '#666' }}>Език на превода:</label>
+                                    <select
+                                        value={targetLanguage}
+                                        onChange={(e) => changeLanguage(e.target.value)}
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                    >
+                                        {LANGUAGES.map(lang => (
+                                            <option key={lang.code} value={lang.code}>{lang.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <SVMessageThread
                 conversationId={chat.conversation.id}
                 searchQuery={searchQuery}
+                translatedMessages={isTranslationEnabled ? translatedMessages : {}}
             />
 
             <SVMessageInput conversationId={chat.conversation.id} />

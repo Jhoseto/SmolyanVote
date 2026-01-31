@@ -72,9 +72,27 @@ class IncomingCallService : Service() {
         val callerImageUrl = intent?.getStringExtra("callerImageUrl")
         val participantId = intent?.getLongExtra("participantId", 0L)
 
-        // CRITICAL: Start foreground service immediately with the Full Screen Intent Notification
-        // This consolidates both the "Keeping App Alive" requirement and the "Show Call UI" requirement
-        // into a SINGLE notification.
+        // CRITICAL FIX: Start IncomingCallActivity IMMEDIATELY for instant display
+        // This shows the call UI right away while service starts in background
+        // Eliminates the "ugly notification first" problem
+        try {
+            val activityIntent = Intent(this, IncomingCallActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or 
+                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                putExtra("callerName", callerName)
+                conversationId?.let { putExtra("conversationId", it) }
+                callerImageUrl?.let { putExtra("callerImageUrl", it) }
+                putExtra("participantId", participantId)
+            }
+            startActivity(activityIntent)
+            Log.d("IncomingCallService", "✅ Started IncomingCallActivity directly")
+        } catch (e: Exception) {
+            Log.e("IncomingCallService", "❌ Failed to start activity directly:", e)
+        }
+
+        // CRITICAL: Start foreground service with Full Screen Intent notification
+        // The notification serves as backup if activity fails to start
         val notification = createNotification(callerName, conversationId, callerImageUrl, participantId)
         
         // CRITICAL FIX: Specify foreground service type for Android 14+
@@ -90,7 +108,7 @@ class IncomingCallService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        Log.d("IncomingCallService", "📞 Foreground service started for caller: $callerName with Full Screen Intent")
+        Log.d("IncomingCallService", "📞 Foreground service started for caller: $callerName")
 
         return START_NOT_STICKY
     }
@@ -137,10 +155,11 @@ class IncomingCallService : Service() {
     }
 
     private fun createNotification(callerName: String, conversationId: String?, callerImageUrl: String?, participantId: Long?): Notification {
-        // Create Full Screen Intent
+        // CRITICAL FIX: Full Screen Intent REQUIRES FLAG_ACTIVITY_NEW_TASK to work!
+        // NEW_TASK is mandatory for FSI, but CLEAR_TOP is what kills the app
+        // Use NEW_TASK + SINGLE_TOP to trigger FSI without destroying MainActivity
         val fullScreenIntent = Intent(this, IncomingCallActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or 
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
             putExtra("callerName", callerName)
@@ -162,20 +181,26 @@ class IncomingCallService : Service() {
             pendingIntentFlags
         )
 
-        // Build HIGH priority notification for Full Screen Intent
-        // CRITICAL: Full Screen Intent ONLY works with HIGH priority notification
-        // Notification will be dismissed immediately when IncomingCallActivity starts
+
+        // CRITICAL: Full Screen Intent REQUIRES HIGH/MAX priority!
+        // BUT we can make notification invisible via SECRET visibility and empty content
+        // User will NEVER see notification tray icon - only the Full Screen Intent Activity
+        // IncomingCallActivity cancels notification immediately (line 62)
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Входящо обаждане")
-            .setContentText(callerName)
+            .setContentTitle("") // Empty - won't show in notification tray
+            .setContentText("") // Empty - won't show in notification tray
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setPriority(NotificationCompat.PRIORITY_MAX) // MAX for Full Screen Intent
+            .setPriority(NotificationCompat.PRIORITY_MAX) // MAX REQUIRED for Full Screen Intent!
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true) // Ongoing until dismissed
-            .setAutoCancel(false)
-            .setOnlyAlertOnce(true) // Only alert once - prevents sound on updates
-            // CRITICAL: Attach the Full Screen Intent
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET) // SECRET - invisible on lockscreen
+            .setOngoing(false) 
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true) // No repeated alerts
+            .setSilent(true) // Completely silent
+            .setSound(null) // No sound (IncomingCallActivity plays sound)
+            .setVibrate(null) // No vibration
+            .setTimeoutAfter(60000) // Auto-cancel after 60 seconds
+            // CRITICAL: Full Screen Intent - this is what user sees!
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setContentIntent(fullScreenPendingIntent)
 

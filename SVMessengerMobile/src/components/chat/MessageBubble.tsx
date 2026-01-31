@@ -21,6 +21,7 @@ interface MessageBubbleProps {
   participantImageUrl?: string;
   participantName?: string;
   onReply?: (message: Message) => void;
+  translatedText?: string | null; // New prop
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -28,6 +29,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   participantImageUrl,
   participantName,
   onReply,
+  translatedText,
 }) => {
   const { user } = useAuthStore();
   const isOwnMessage = message.senderId === user?.id;
@@ -143,6 +145,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <Text style={[styles.text, styles.otherText]}>
                   {message.text}
                 </Text>
+
+                {/* Translated Text Display */}
+                {translatedText && (
+                  <View style={{ marginTop: 4, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.1)' }}>
+                    <Text style={[styles.text, styles.otherText, { fontStyle: 'italic', fontSize: 14, color: '#111827', fontWeight: '500' }]}>
+                      {translatedText}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: Colors.text.tertiary, marginTop: 2 }}>
+                      Преведено с Gemini ✨
+                    </Text>
+                  </View>
+                )}
 
                 {message.isEdited && (
                   <Text style={styles.editedBadge}>Редактирано</Text>

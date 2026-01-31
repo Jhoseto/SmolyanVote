@@ -7,7 +7,7 @@ import { linkifyText, isOnlyEmoji } from '../utils/svHelpers';
  * Single Message Item компонент
  * Показва едно съобщение в thread-а
  */
-const SVMessageItem = ({ message, searchQuery = '' }) => {
+const SVMessageItem = ({ message, searchQuery = '', translatedText }) => {
     const { currentUser } = useSVMessenger();
 
     // Защита срещу невалидни съобщения
@@ -41,7 +41,7 @@ const SVMessageItem = ({ message, searchQuery = '' }) => {
         if (!message.isDelivered) {
             return (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="single-check">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
             );
         }
@@ -50,8 +50,8 @@ const SVMessageItem = ({ message, searchQuery = '' }) => {
         if (message.isDelivered && !message.isRead) {
             return (
                 <svg width="18" height="14" viewBox="0 0 32 24" fill="currentColor" className="double-check-gray">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    <path d="M17 16.17L12.83 12l-1.42 1.41L17 19 29 7l-1.41-1.41z"/>
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    <path d="M17 16.17L12.83 12l-1.42 1.41L17 19 29 7l-1.41-1.41z" />
                 </svg>
             );
         }
@@ -60,8 +60,8 @@ const SVMessageItem = ({ message, searchQuery = '' }) => {
         if (message.isDelivered && message.isRead) {
             return (
                 <svg width="18" height="14" viewBox="0 0 32 24" fill="currentColor" className="double-check-green">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    <path d="M17 16.17L12.83 12l-1.42 1.41L17 19 29 7l-1.41-1.41z"/>
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    <path d="M17 16.17L12.83 12l-1.42 1.41L17 19 29 7l-1.41-1.41z" />
                 </svg>
             );
         }
@@ -94,17 +94,31 @@ const SVMessageItem = ({ message, searchQuery = '' }) => {
                             __html: highlightSearchText(message.text, searchQuery)
                         }}
                     />
+                    {translatedText && (
+                        <div className="svmessenger-translated-text" style={{
+                            borderTop: '1px solid rgba(0,0,0,0.1)',
+                            marginTop: '4px',
+                            paddingTop: '4px',
+                            fontSize: '0.9em',
+                            color: '#4b5563'
+                        }}>
+                            {translatedText}
+                            <div style={{ fontSize: '0.7em', color: '#9ca3af', marginTop: '2px', fontStyle: 'italic' }}>
+                                Преведено с Gemini
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Message Time and Status */}
                 <div className="svmessenger-message-meta">
-          <span className="svmessenger-message-time-only">
-            {new Date(message.sentAt).toLocaleDateString('bg-BG', {
-              day: '2-digit',
-              month: '2-digit',
-            })}{' '}
-            {formatMessageTimeOnly(message.sentAt)}
-          </span>
+                    <span className="svmessenger-message-time-only">
+                        {new Date(message.sentAt).toLocaleDateString('bg-BG', {
+                            day: '2-digit',
+                            month: '2-digit',
+                        })}{' '}
+                        {formatMessageTimeOnly(message.sentAt)}
+                    </span>
 
                     {/* Checkmarks за own messages */}
                     {isOwnMessage && (

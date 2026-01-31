@@ -45,9 +45,9 @@ class MainActivity : ReactActivity() {
   }
   
   /**
-   * Check and request required permissions for Full Screen Intent
-   * CRITICAL: On Android 10+, "Display over other apps" permission is REQUIRED
-   * for Full Screen Intent to work when app is background/killed
+   * Check and log required permissions for Full Screen Intent
+   * CRITICAL: React Native will show custom permission screen
+   * MainActivity only checks and logs status - does NOT force Settings opening
    */
   private fun checkAndRequestFullScreenIntentPermissions() {
     try {
@@ -60,13 +60,9 @@ class MainActivity : ReactActivity() {
         android.util.Log.d("MainActivity", "  - Battery optimization disabled: $batteryOptDisabled")
         
         if (!canDrawOverlays) {
-          android.util.Log.w("MainActivity", "⚠️ CRITICAL: 'Display over other apps' permission NOT granted!")
-          android.util.Log.w("MainActivity", "⚠️ Full Screen Intent will NOT work when app is background/killed")
-          android.util.Log.w("MainActivity", "⚠️ Opening Settings to request permission...")
-          
-          // Automatically open Settings for user to grant permission
-          // User MUST manually enable this permission in Settings
-          FullScreenIntentPermissionHelper.openDrawOverlaysSettings(this)
+          android.util.Log.w("MainActivity", "⚠️ 'Display over other apps' permission NOT granted")
+          android.util.Log.w("MainActivity", "⚠️ React Native will show custom permission screen")
+          // DON'T auto-open Settings! React Native AppNavigator handles this with better UX
         } else {
           android.util.Log.d("MainActivity", "✅ All required permissions granted - Full Screen Intent will work")
         }

@@ -136,15 +136,18 @@ public class PushNotificationService implements MobilePushNotificationService {
 
         try {
             // CRITICAL FIX: Проверка дали е входящо обаждане
-            // За входящи обаждания изпращаме САМО data payload (БЕЗ notification payload)
-            // Това позволява на app-а да покаже Full Screen Intent на целия екран
-            // вместо notification в лентата
+            // CRITICAL FIX: Android emulators and some devices do NOT reliably deliver
+            // data-only messages when app is background/killed (doze mode, battery
+            // optimization)
+            // We MUST include a minimal notification payload to guarantee delivery
+            // Native service will IMMEDIATELY cancel this notification - user sees only FSI
             boolean isIncomingCall = data != null && "INCOMING_CALL".equals(data.get("type"));
 
             // CRITICAL: Log what we're sending for debugging
             if (isIncomingCall) {
                 log.info(
-                        "📞 INCOMING CALL - Sending DATA-ONLY payload (NO notification payload, NO AndroidNotification)");
+                        "📞 INCOMING CALL - Sending with MINIMAL notification payload (for delivery guarantee)");
+                log.info("📞 Native service will CANCEL notification immediately - user sees only Full Screen Intent");
             } else {
                 log.info("📬 Regular notification - Sending with notification payload and AndroidNotification");
             }
@@ -152,11 +155,21 @@ public class PushNotificationService implements MobilePushNotificationService {
             Message.Builder messageBuilder = Message.builder()
                     .setToken(deviceToken);
 
-            // CRITICAL: За входящи обаждания НЕ добавяме notification payload
-            // За всички останали notifications добавяме notification payload за автоматично
-            // показване от Firebase
-            if (!isIncomingCall) {
-                // За обикновени notifications (не обаждания) използваме notification payload
+            // CRITICAL FIX: For incoming calls, add MINIMAL notification payload
+            // This is ONLY for delivery guarantee - notification will be cancelled
+            // immediately
+            // For regular messages, add full notification payload
+            if (isIncomingCall) {
+                // Minimal notification ensures FCM delivers the message
+                // SVMessengerFirebaseMessagingService will cancel it immediately on line
+                // 122-127
+                messageBuilder.setNotification(Notification.builder()
+                        .setTitle("Incoming call")
+                        .setBody(title) // Use title for caller name
+                        .build());
+                log.info("✅ Added MINIMAL Notification payload for delivery (will be cancelled by native)");
+            } else {
+                // For regular notifications use full notification payload
                 // Firebase автоматично ги показва дори когато app-ът е затворен (оптимизация на
                 // батерията)
                 messageBuilder.setNotification(Notification.builder()
@@ -164,8 +177,6 @@ public class PushNotificationService implements MobilePushNotificationService {
                         .setBody(body)
                         .build());
                 log.debug("✅ Added Notification payload: title={}, body={}", title, body);
-            } else {
-                log.info("✅ SKIPPED Notification payload for incoming call (DATA-ONLY mode)");
             }
 
             // Android config с priority: "high" - критично за background notifications
@@ -173,11 +184,20 @@ public class PushNotificationService implements MobilePushNotificationService {
                     .builder()
                     .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH);
 
-            // CRITICAL: За входящи обаждания НЕ добавяме AndroidNotification ИЗОБЩО
-            // Firebase НЕ трябва да показва notification - app-ът ще покаже Full Screen
-            // Intent
-            // За всички останали notifications добавяме AndroidNotification
-            if (!isIncomingCall) {
+            // CRITICAL FIX: For incoming calls, add MINIMAL AndroidNotification
+            // This notification will be IMMEDIATELY cancelled by native service
+            // But it ensures the FCM message is delivered reliably
+            if (isIncomingCall) {
+                androidConfigBuilder.setNotification(com.google.firebase.messaging.AndroidNotification.builder()
+                        .setTitle("Incoming call")
+                        .setBody(title) // Caller name
+                        .setSound("default") // Will be overridden by IncomingCallActivity sound
+                        .setChannelId("svmessenger_calls")
+                        .setPriority(com.google.firebase.messaging.AndroidNotification.Priority.MAX)
+                        .setTag("incoming_call") // Tag for easy cancellation
+                        .build());
+                log.info("✅ Added MINIMAL AndroidNotification for delivery (will be cancelled by native)");
+            } else {
                 androidConfigBuilder.setNotification(com.google.firebase.messaging.AndroidNotification.builder()
                         .setTitle(title)
                         .setBody(body)
@@ -187,12 +207,7 @@ public class PushNotificationService implements MobilePushNotificationService {
                         .build());
                 log.debug("✅ Added AndroidNotification: title={}, body={}, channelId={}", title, body,
                         getNotificationChannelId(data));
-            } else {
-                log.info("✅ SKIPPED AndroidNotification for incoming call (DATA-ONLY mode)");
             }
-            // CRITICAL FIX: За входящи обаждания НЕ добавяме AndroidNotification изобщо
-            // Това гарантира че Firebase НЕ ще покаже notification в лентата
-            // App-ът ще получи само data payload и ще покаже Full Screen Intent
 
             messageBuilder.setAndroidConfig(androidConfigBuilder.build());
 

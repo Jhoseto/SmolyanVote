@@ -40,7 +40,7 @@ export const useMessages = (conversationId: number) => {
 
   // Track optimistic message timeouts for cleanup
   const optimisticMessageTimeoutsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
-  
+
   // CRITICAL FIX: Counter for generating unique optimistic message IDs
   // Prevents collisions when multiple messages are sent within the same millisecond
   const optimisticMessageCounterRef = useRef<number>(0);
@@ -52,11 +52,11 @@ export const useMessages = (conversationId: number) => {
     if (conversationId) {
       // Select conversation first to mark it as open (prevents unread count increment)
       selectConversation(conversationId);
-      
+
       // Get current conversation's unread count from store (don't add to dependencies)
       const currentConversation = conversations.find(c => c.id === conversationId);
       const currentUnreadCount = currentConversation?.unreadCount || 0;
-      
+
       // Mark as read immediately if conversation has unread messages (exactly like web version)
       if (currentUnreadCount > 0) {
         markAsRead(conversationId).catch(error => {
@@ -64,11 +64,11 @@ export const useMessages = (conversationId: number) => {
         });
         sendReadReceipt(conversationId);
       }
-      
-      // CRITICAL FIX: Always fetch messages when conversation changes, even if already loaded
-      // This ensures messages are fresh and properly displayed
+
+      // CRITICAL: Load only last 30 messages initially (like Facebook Messenger)
+      // Older messages will lazy-load when user scrolls up
       logger.info(`📥 [useMessages] Fetching messages for conversation ${conversationId}`);
-      fetchMessages(conversationId, 0, 50, false); // Reset to page 0, don't append
+      fetchMessages(conversationId, 0, 30, false); // Load last 30 messages, don't append
     } else {
       // Deselect when conversationId is null
       selectConversation(null);
@@ -97,7 +97,7 @@ export const useMessages = (conversationId: number) => {
     const currentOptimisticIds = currentMessages
       .filter(m => m.id < 0)
       .map(m => m.id);
-    
+
     // Clear timeouts for optimistic messages that no longer exist
     optimisticMessageTimeoutsRef.current.forEach((timeoutId, optimisticId) => {
       if (!currentOptimisticIds.includes(optimisticId)) {
@@ -156,7 +156,7 @@ export const useMessages = (conversationId: number) => {
     (text: string) => {
       if (text.length > 0) {
         sendTypingStatus(conversationId, true);
-        
+
         // Stop typing after 3 seconds of inactivity
         setTimeout(() => {
           sendTypingStatus(conversationId, false);
@@ -199,7 +199,7 @@ export const useMessages = (conversationId: number) => {
         parentMessageId,
         parentMessageText: undefined,
       };
-      
+
       // Add optimistic message immediately
       addMessage(conversationId, optimisticMessage);
 
@@ -211,12 +211,12 @@ export const useMessages = (conversationId: number) => {
             // CRITICAL FIX Bug 2: Include parentMessageId for reply functionality
             // CRITICAL FIX Bug 1: Check return value - if send fails, remove optimistic message and fallback to REST
             const sendSuccess = svMobileWebSocketService.sendMessage(conversationId, text, 'TEXT', parentMessageId);
-            
+
             if (sendSuccess) {
               // Real message will arrive via WebSocket and replace optimistic message
               // The real message will have a positive ID, so it won't conflict
               // When real message arrives, we'll remove the optimistic one
-              
+
               // CRITICAL FIX: Set timeout to cleanup orphaned optimistic message if real message never arrives
               // This prevents optimistic messages from remaining in UI indefinitely if WebSocket fails silently
               const timeoutId = setTimeout(() => {
@@ -224,19 +224,19 @@ export const useMessages = (conversationId: number) => {
                 const storeState = useMessagesStore.getState();
                 const conversationMessages = storeState.messages[conversationId] || [];
                 const stillExists = conversationMessages.some(m => m.id === tempMessageId);
-                
+
                 if (stillExists) {
                   // CRITICAL FIX Bug 1: Before retrying via REST, check if real message already arrived
                   // This prevents race condition where real WebSocket message arrives between
                   // removing optimistic message and sending REST retry, causing duplicate messages
-                  const realMessageExists = conversationMessages.some(m => 
+                  const realMessageExists = conversationMessages.some(m =>
                     m.id > 0 && // Real message has positive ID
                     m.text === text && // Same text
                     m.senderId === user.id && // Same sender
-                    (m.parentMessageId === parentMessageId || 
-                     (m.parentMessageId == null && parentMessageId == null)) // Same parent (if any)
+                    (m.parentMessageId === parentMessageId ||
+                      (m.parentMessageId == null && parentMessageId == null)) // Same parent (if any)
                   );
-                  
+
                   if (realMessageExists) {
                     // Real message already arrived - just remove optimistic and don't retry
                     logger.debug(`✅ [useMessages] Real message already arrived for optimistic ${tempMessageId}, removing optimistic without REST retry`);
@@ -246,21 +246,21 @@ export const useMessages = (conversationId: number) => {
                     logger.warn(`⚠️ [useMessages] Optimistic message ${tempMessageId} not confirmed after 15s, removing and retrying via REST`);
                     // Remove orphaned optimistic message
                     removeMessage(conversationId, tempMessageId);
-                    
+
                     // Retry via REST API as fallback
                     sendMessage(conversationId, text, parentMessageId).catch((error) => {
                       logger.error('❌ [useMessages] REST fallback after optimistic timeout failed:', error);
                     });
                   }
                 }
-                
+
                 // Clean up timeout reference
                 optimisticMessageTimeoutsRef.current.delete(tempMessageId);
               }, 15000); // 15 seconds timeout - reasonable for network delays
-              
+
               // Store timeout for potential cleanup
               optimisticMessageTimeoutsRef.current.set(tempMessageId, timeoutId);
-              
+
               return optimisticMessage;
             } else {
               // WebSocket send failed (returned false) - remove optimistic message and fallback to REST
@@ -329,7 +329,7 @@ export const useMessages = (conversationId: number) => {
     isTyping,
     sendMessage: handleSendMessage,
     handleTyping,
-    refreshMessages: () => fetchMessages(conversationId, 0, 50, false),
+    refreshMessages: () => fetchMessages(conversationId, 0, 30, false),
     loadMoreMessages: () => loadMoreMessages(conversationId),
     hasMore: conversationPagination.hasMore,
     isLoadingMore: conversationPagination.isLoadingMore,

@@ -58,18 +58,15 @@ export const AppNavigator: React.FC = () => {
   usePushNotifications();
 
   // Lazy load call screens when needed (only when call is active)
-  // CRITICAL FIX: Load each module separately with individual error handling
-  // This ensures critical components (CallScreen, IncomingCallScreen) are loaded even if optional component (OutgoingCallScreen) fails
   useEffect(() => {
     const showCallScreen = isRinging || isDialing || isConnected;
     if (showCallScreen && !callScreensLoaded) {
-      // Load CallScreen (critical - required for all call states)
+      // Load CallScreen (critical - required for active calls)
       try {
         const callScreenModule = require('../screens/calls/CallScreen');
         setCallScreenComponent(() => callScreenModule.CallScreen);
       } catch (error) {
         console.error('❌ Failed to load CallScreen:', error);
-        // Don't set callScreensLoaded if critical component fails
         return;
       }
 
@@ -79,11 +76,10 @@ export const AppNavigator: React.FC = () => {
         setIncomingCallScreenComponent(() => incomingCallScreenModule.IncomingCallScreen);
       } catch (error) {
         console.error('❌ Failed to load IncomingCallScreen:', error);
-        // Don't set callScreensLoaded if critical component fails
         return;
       }
 
-      // Mark as loaded only if critical components succeeded
+      // Mark as loaded
       setCallScreensLoaded(true);
     }
   }, [isRinging, isDialing, isConnected, callScreensLoaded]);
@@ -210,7 +206,7 @@ export const AppNavigator: React.FC = () => {
             </Stack.Navigator>
 
             {/* Call Screens Overlay */}
-            {/* REFACTORED: Clean boolean flag logic - no race conditions */}
+            {/* TEMPORARY: Using React Native IncomingCallScreen until Native Activity is fixed */}
             {showCallScreen && CallScreenComponent && IncomingCallScreenComponent && (
               <View
                 style={{

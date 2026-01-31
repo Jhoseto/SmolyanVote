@@ -11,7 +11,7 @@ import { groupMessagesByDate } from '../utils/svDateFormatter';
  * Message Thread компонент
  * Показва списък с съобщения и call history, поддържа infinite scroll
  */
-const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
+const SVMessageThread = ({ conversationId, searchQuery = '', translatedMessages = {} }) => {
   const {
     messagesByConversation,
     callHistoryByConversation,
@@ -30,21 +30,21 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   // Filter messages based on search query
   const messages = searchQuery.trim()
     ? allMessages.filter(message =>
-        message.text && message.text.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      message.text && message.text.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : allMessages;
-  
+
   // Get call history for this conversation
   const callHistory = Array.isArray(callHistoryByConversation[conversationId])
     ? callHistoryByConversation[conversationId]
     : [];
-  
+
   const isLoading = loadingMessages[conversationId] || false;
   const isLoadingCallHistory = loadingCallHistory[conversationId] || false;
   const isTyping = typingUsers[conversationId];
   const messagesEndRef = useRef(null);
   const threadRef = useRef(null);
-  
+
   // Load call history when conversation changes
   useEffect(() => {
     if (conversationId) {
@@ -85,7 +85,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   console.log(`📞 [SVMessageThread] Processing: ${messages.length} messages, ${callHistory.length} call history entries`);
   const groupedItems = groupMessagesByDate(messages, callHistory);
   console.log(`📞 [SVMessageThread] Grouped items: ${groupedItems.length} total items (including date separators)`);
-  
+
   // Log call history items
   const callHistoryItems = groupedItems.filter(item => item.type === 'callHistory');
   console.log(`📞 [SVMessageThread] Call history items in grouped: ${callHistoryItems.length}`);
@@ -101,7 +101,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
 
       {/* Messages and call history with date separators */}
       <div className="svmessenger-messages">
-          {groupedItems.map((item, index) => {
+        {groupedItems.map((item, index) => {
           if (item.type === 'date') {
             return (
               <div key={`date-${item.dateKey}`} className="svmessenger-date-separator">
@@ -114,7 +114,11 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
             const isLast = index === groupedItems.length - 1;
             return (
               <div key={`message-${item.message.id}`} ref={isLast ? lastMessageRef : null}>
-                <SVMessageItem message={item.message} searchQuery={searchQuery} />
+                <SVMessageItem
+                  message={item.message}
+                  searchQuery={searchQuery}
+                  translatedText={translatedMessages[item.message.id]}
+                />
               </div>
             );
           } else if (item.type === 'callHistory' && item.callHistory && item.callHistory.id) {
@@ -141,7 +145,7 @@ const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
           title="Scroll to bottom"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
           </svg>
         </button>
       )}

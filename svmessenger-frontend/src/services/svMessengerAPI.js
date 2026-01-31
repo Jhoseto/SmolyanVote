@@ -11,13 +11,13 @@ const BASE_URL = '/api/svmessenger';
 const getCsrfToken = () => {
   // 1. Try window.CSRF_TOKEN (от topHtmlStyles fragment) - НАЙ-БЪРЗО
   if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
-  
+
   // 2. Try window.getCsrfToken() function (от topHtmlStyles fragment)
   if (window.getCsrfToken && typeof window.getCsrfToken === 'function') {
     const token = window.getCsrfToken();
     if (token) return token;
   }
-  
+
   // 3. Try meta tag (Spring Security default)
   const meta = document.querySelector('meta[name="_csrf"]');
   if (meta && meta.content) return meta.content;
@@ -38,21 +38,21 @@ const getCsrfToken = () => {
 const getCsrfHeader = () => {
   // 1. Try window.CSRF_HEADER (от topHtmlStyles fragment) - НАЙ-БЪРЗО
   if (window.CSRF_HEADER) return window.CSRF_HEADER;
-  
+
   // 2. Try window.getCsrfHeader() function (от topHtmlStyles fragment)
   if (window.getCsrfHeader && typeof window.getCsrfHeader === 'function') {
     return window.getCsrfHeader();
   }
-  
+
   // 3. Try meta tag
   const meta = document.querySelector('meta[name="_csrf_header"]');
   if (meta && meta.content) return meta.content;
-  
+
   // 4. Try window.SVMESSENGER_CSRF (от svMessengerWidget)
   if (window.SVMESSENGER_CSRF && window.SVMESSENGER_CSRF.headerName) {
     return window.SVMESSENGER_CSRF.headerName;
   }
-  
+
   return 'X-XSRF-TOKEN';
 };
 
@@ -270,5 +270,17 @@ export const svMessengerAPI = {
    */
   getCallHistory: async (conversationId) => {
     return fetchAPI(`${BASE_URL}/conversations/${conversationId}/call-history`);
+  },
+
+  // ========== TRANSLATION ==========
+
+  /**
+   * Преведи текст чрез Gemini API
+   */
+  translateMessage: async (text, targetLanguage) => {
+    return fetchAPI(`${BASE_URL}/translate`, {
+      method: 'POST',
+      body: JSON.stringify({ text, targetLanguage })
+    });
   }
 };

@@ -14,6 +14,7 @@ import { UserSearchScreen } from '../screens/search/UserSearchScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { SettingsScreen } from '../screens/settings/SettingsScreen';
+import { PermissionsSettingsScreen } from '../screens/settings/PermissionsSettingsScreen';
 import { Colors } from '../theme';
 import { ChatIcon, SearchIcon, PersonIcon, ChatIconSolid, SearchIconSolid, PersonIconSolid } from '../components/common/Icons';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
@@ -71,6 +72,11 @@ const ProfileNavigator: React.FC = () => {
           name="EditProfile"
           component={EditProfileScreen}
           options={{ title: 'Редактирай профил' }}
+        />
+        <ProfileStack.Screen
+          name="PermissionsSettings"
+          component={PermissionsSettingsScreen}
+          options={{ title: 'Настройки на разрешенията' }}
         />
       </ProfileStack.Navigator>
     </ErrorBoundary>

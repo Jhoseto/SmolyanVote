@@ -699,9 +699,11 @@ class IncomingCallActivity : Activity() {
             }
             // CRITICAL: Stop sound before navigating
             stopIncomingCallSound()
-            // Open app and accept call
+            // CRITICAL FIX: Open app and accept call WITHOUT cold restart
+            // Use SINGLE_TOP to resume existing MainActivity without destroying it
+            // Use REORDER_TO_FRONT to bring MainActivity to front if it's in back stack
             val intent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                 putExtra("action", "accept_call")
                 conversationId?.let { putExtra("conversationId", it) }
                 // CRITICAL FIX: Only include participantId if it was originally provided in the intent
@@ -725,9 +727,11 @@ class IncomingCallActivity : Activity() {
             }
             // CRITICAL: Stop sound before navigating
             stopIncomingCallSound()
-            // Open app and reject call
+            // CRITICAL FIX: Open app and reject call WITHOUT cold restart
+            // Use SINGLE_TOP to resume existing MainActivity without destroying it
+            // Use REORDER_TO_FRONT to bring MainActivity to front if it's in back stack
             val intent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                 putExtra("action", "reject_call")
                 conversationId?.let { putExtra("conversationId", it) }
                 // CRITICAL FIX: Only include participantId if it was originally provided in the intent

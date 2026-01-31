@@ -15,7 +15,10 @@ import {
   TouchableOpacity,
   Vibration,
   Animated,
+  Modal,
+  Switch,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { Swipeable } from 'react-native-gesture-handler';
 import { ArrowUturnLeftIcon } from 'react-native-heroicons/solid';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
@@ -37,6 +40,7 @@ import { useCallsStore } from '../../store/callsStore';
 import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
+import { translateText } from '../../services/api/translationService';
 import { logger } from '../../utils/logger';
 
 
@@ -109,6 +113,95 @@ export const ChatScreen: React.FC = () => {
   const missedCalls = conversation?.missedCalls || 0;
   const { user } = useAuthStore();
   const { clearMissedCalls } = useConversationsStore();
+
+  // Translation State
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState('bg');
+  const [showTranslationSettings, setShowTranslationSettings] = useState(false);
+  const [translatedMessages, setTranslatedMessages] = useState<Record<number, string>>({});
+
+  const LANGUAGES = [
+    { code: 'bg', name: 'Български' },
+    { code: 'en', name: 'English' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'el', name: 'Ελληνικά' },
+    { code: 'tr', name: 'Türkçe' },
+  ];
+
+  // Load Settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedSettings = await AsyncStorage.getItem(`translation_settings_${conversationId}`);
+        if (savedSettings) {
+          const { enabled, language } = JSON.parse(savedSettings);
+          setIsTranslationEnabled(enabled);
+          if (language) setTargetLanguage(language);
+        }
+      } catch (error) {
+        logger.error('Failed to load translation settings', error);
+      }
+    };
+    loadSettings();
+  }, [conversationId]);
+
+  // Save Settings
+  const saveSettings = async (enabled: boolean, language: string) => {
+    try {
+      await AsyncStorage.setItem(`translation_settings_${conversationId}`, JSON.stringify({
+        enabled,
+        language
+      }));
+    } catch (error) {
+      logger.error('Failed to save translation settings', error);
+    }
+  };
+
+  const handleToggleTranslation = (value: boolean) => {
+    setIsTranslationEnabled(value);
+    saveSettings(value, targetLanguage);
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    setTargetLanguage(lang);
+    saveSettings(isTranslationEnabled, lang);
+  };
+
+  // Translation Effect
+  useEffect(() => {
+    const performTranslation = async () => {
+      if (!isTranslationEnabled) return;
+
+      const messagesToTranslate = messages.filter(msg =>
+        msg.senderId !== user?.id &&
+        msg.text &&
+        !translatedMessages[`${msg.id}_${targetLanguage}`]
+      );
+
+      for (const msg of messagesToTranslate) {
+        try {
+          const cacheKey = `${msg.id}_${targetLanguage}`;
+          // Double check inside loop
+          if (translatedMessages[cacheKey]) continue;
+
+          const translated = await translateText(msg.text, targetLanguage);
+          if (translated) {
+            setTranslatedMessages(prev => ({
+              ...prev,
+              [cacheKey]: translated,
+              [msg.id]: translated // Access by ID for current language
+            }));
+          }
+        } catch (e) {
+          logger.error("Translation error", e);
+        }
+      }
+    };
+
+    // Simple debounce
+    const timeout = setTimeout(performTranslation, 500);
+    return () => clearTimeout(timeout);
+  }, [messages, isTranslationEnabled, targetLanguage, user?.id]);
 
   const {
     messages,
@@ -241,8 +334,8 @@ export const ChatScreen: React.FC = () => {
       }
     };
 
-    // CRITICAL FIX: Sort by time ascending (oldest first, newest last)
-    // FlatList is inverted={false}, so newest messages should be at the bottom
+    // Sort ASCENDING (oldest first, newest last)
+    // FlatList will show with newest messages at bottom
     items.sort((a, b) => {
       const timeA = parseSortableTimestamp(
         a.type === 'message' ? a.data.createdAt : a.data.startTime
@@ -250,7 +343,7 @@ export const ChatScreen: React.FC = () => {
       const timeB = parseSortableTimestamp(
         b.type === 'message' ? b.data.createdAt : b.data.startTime
       );
-      return timeA - timeB; // Ascending order (oldest first, newest last)
+      return timeA - timeB; // ASCENDING (oldest first, newest last)
     });
 
     return items;
@@ -273,66 +366,13 @@ export const ChatScreen: React.FC = () => {
     }
   }, [conversationId]);
 
-  // CRITICAL FIX: Auto-scroll to bottom when messages finish loading for the first time
-  // This ensures chat always opens at the bottom showing the latest messages
-  useEffect(() => {
-    if (!isLoading && messages.length > 0 && flatListRef.current && !hasScrolledRef.current) {
 
-      // Use multiple attempts to ensure scroll happens after layout
-      const scrollToBottom = () => {
-        if (flatListRef.current && !hasScrolledRef.current) {
-          try {
-            flatListRef.current.scrollToEnd({ animated: false });
-            hasScrolledRef.current = true;
-          } catch (error) {
-            logger.error('❌ [ChatScreen] Error scrolling to bottom:', error);
-          }
-        }
-      };
+  // REMOVED: Auto-scroll logic no longer needed with inverted FlatList
+  // Inverted list naturally shows newest messages at bottom
 
-      // Try immediately
-      scrollToBottom();
 
-      // Try after a short delay (for layout)
-      const timeout1 = setTimeout(scrollToBottom, 100);
-
-      // Try after longer delay (for content size)
-      const timeout2 = setTimeout(scrollToBottom, 300);
-
-      return () => {
-        clearTimeout(timeout1);
-        clearTimeout(timeout2);
-      };
-    }
-  }, [isLoading, messages.length, conversationId]);
-
-  // Auto-scroll to bottom when new messages arrive (after initial load)
-  // This handles new messages that arrive while user is viewing the chat
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    const lastMessageId = lastMessage?.id || null;
-    const messageCount = messages.length;
-
-    // Only scroll if we have new messages (count changed or last message ID changed)
-    // AND we've already done the initial scroll (hasScrolledRef.current === true)
-    // This prevents scrolling during initial load (handled by previous effect)
-    if (messages.length > 0 && flatListRef.current && hasScrolledRef.current &&
-      (messageCount !== lastMessageCountRef.current || lastMessageId !== lastMessageIdRef.current)) {
-      lastMessageIdRef.current = lastMessageId;
-      lastMessageCountRef.current = messageCount;
-
-      // Use requestAnimationFrame for better performance
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      });
-    } else if (messages.length > 0) {
-      // Update refs even if we don't scroll (for tracking)
-      lastMessageIdRef.current = lastMessageId;
-      lastMessageCountRef.current = messageCount;
-    }
-  }, [messages.length, messages[messages.length - 1]?.id]);
+  // REMOVED: New message auto-scroll logic no longer needed
+  // Inverted FlatList handles new messages automatically
 
   const handleInputChange = (text: string) => {
     setInputText(text);
@@ -468,7 +508,7 @@ export const ChatScreen: React.FC = () => {
           participantId={participant?.id || 0}
           conversationId={conversationId}
           isOnline={participant?.isOnline || false}
-        /*  const handleCall = () => {
+          /*  const handleCall = () => {
     if (participant) {
       // CRITICAL FIX: Pass existing conversationId to startCall to bypass backend check
       // This prevents "500 Internal Server Error" if the backend endpoint is unstable
@@ -495,6 +535,7 @@ export const ChatScreen: React.FC = () => {
     }
   };  */onBack={() => navigation.goBack()}
           onSearchPress={() => setShowSearch(!showSearch)}
+          onTranslatePress={() => setShowTranslationSettings(true)}
         />
 
         {/* Message Search Bar */}
@@ -540,6 +581,7 @@ export const ChatScreen: React.FC = () => {
                       participantImageUrl={participant?.imageUrl}
                       participantName={participant?.fullName || participantName}
                       onReply={handleReply}
+                      translatedText={isTranslationEnabled ? translatedMessages[item.data.id] : undefined}
                     />
                   </SwipeableMessageWrapper>
                 );
@@ -580,51 +622,22 @@ export const ChatScreen: React.FC = () => {
                 </View>
               ) : null
             }
-            onScroll={(event) => {
-              const offsetY = event.nativeEvent.contentOffset.y;
-              scrollOffsetRef.current = offsetY;
-
-              // Mark that user has scrolled
-              if (offsetY > 50) {
-                hasScrolledRef.current = true;
-              }
-
-              // Load more messages when scrolling near the top (offsetY < 200)
-              // Only load if: user has scrolled, we have more messages, not currently loading, and messages are already loaded
-              if (hasScrolledRef.current && offsetY < 200 && hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
-                loadMoreMessages();
-              }
-            }}
-            scrollEventThrottle={400}
             onContentSizeChange={() => {
-              // CRITICAL FIX: Only auto-scroll on initial load, not on every content change
-              // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-              // This allows users to scroll up and read older messages without being forced back to bottom
-              if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
+              // Auto-scroll to bottom only when content changes and we're near bottom
+              // This keeps chat at bottom when sending messages but allows reading history
+              if (chatItems.length > 0 && flatListRef.current) {
                 setTimeout(() => {
-                  try {
-                    flatListRef.current?.scrollToEnd({ animated: false });
-                    hasScrolledRef.current = true;
-                  } catch (error) {
-                    logger.error('❌ [ChatScreen] Error scrolling in onContentSizeChange:', error);
-                  }
+                  flatListRef.current?.scrollToEnd({ animated: true });
                 }, 100);
               }
             }}
-            onLayout={() => {
-              // CRITICAL FIX: Only auto-scroll on initial load, not on every layout change
-              // hasScrolledRef is set to true after initial scroll, preventing aggressive auto-scrolling
-              if (chatItems.length > 0 && !isLoadingMore && !isLoading && !hasScrolledRef.current && flatListRef.current) {
-                setTimeout(() => {
-                  try {
-                    flatListRef.current?.scrollToEnd({ animated: false });
-                    hasScrolledRef.current = true;
-                  } catch (error) {
-                    logger.error('❌ [ChatScreen] Error scrolling in onLayout:', error);
-                  }
-                }, 150);
+            onEndReached={() => {
+              // Load more messages when scrolling to TOP (older messages)
+              if (hasMore && !isLoadingMore && !isLoading && chatItems.length > 0) {
+                loadMoreMessages();
               }
             }}
+            onEndReachedThreshold={0.1}
           />
           {isTyping && <TypingIndicator name={participantName} />}
           <MessageInput
@@ -640,11 +653,143 @@ export const ChatScreen: React.FC = () => {
           />
         </KeyboardAvoidingView>
       </View>
+
+      {/* Translation Settings Modal */}
+      <Modal
+        visible={showTranslationSettings}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTranslationSettings(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Настройки за превод</Text>
+              <TouchableOpacity
+                onPress={() => setShowTranslationSettings(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchLabel}>Автоматичен превод</Text>
+              <Switch
+                value={isTranslationEnabled}
+                onValueChange={handleToggleTranslation}
+                trackColor={{ false: '#767577', true: Colors.primary }}
+                thumbColor={isTranslationEnabled ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+
+            {isTranslationEnabled && (
+              <>
+                <Text style={styles.sectionTitle}>Език на превода:</Text>
+                <View style={styles.languagesList}>
+                  {LANGUAGES.map((lang) => (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[
+                        styles.languageOption,
+                        targetLanguage === lang.code && styles.selectedLanguage
+                      ]}
+                      onPress={() => handleLanguageChange(lang.code)}
+                    >
+                      <Text style={[
+                        styles.languageText,
+                        targetLanguage === lang.code && styles.selectedLanguageText
+                      ]}>
+                        {lang.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScreenBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.primary,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: Spacing.xl,
+    paddingBottom: Spacing.xl + 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  closeButton: {
+    padding: Spacing.sm,
+  },
+  closeButtonText: {
+    fontSize: Typography.fontSize.xl,
+    color: Colors.text.secondary,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  switchLabel: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  languagesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  languageOption: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  selectedLanguage: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  languageText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+  },
+  selectedLanguageText: {
+    color: '#fff',
+    fontWeight: Typography.fontWeight.medium,
+  },
   wrapper: {
     flex: 1,
     // Background handled by ScreenBackground

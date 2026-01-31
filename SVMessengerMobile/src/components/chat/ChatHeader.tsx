@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Modal, TouchableWithoutFeedback, Platform, Vibration, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, ScaleButton } from '../common';
-import { ArrowLeftIcon, TelephoneIcon, EllipsisVerticalIcon, SearchIcon, BellSlashIcon } from '../common/Icons';
+import { ArrowLeftIcon, TelephoneIcon, EllipsisVerticalIcon, SearchIcon, BellSlashIcon, LanguageIcon } from '../common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import { useCalls } from '../../hooks/useCalls';
 import { useAuthStore } from '../../store/authStore';
@@ -17,6 +17,7 @@ interface ChatHeaderProps {
   mutedUntil?: string; // New prop
   onBack?: () => void;
   onSearchPress?: () => void;
+  onTranslatePress?: () => void; // New prop
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -28,6 +29,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   mutedUntil,
   onBack,
   onSearchPress,
+  onTranslatePress,
 }) => {
   const { startCall } = useCalls();
   const { user } = useAuthStore();
@@ -143,6 +145,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (onSearchPress) onSearchPress();
   };
 
+  const handleTranslate = () => {
+    Vibration.vibrate(10);
+    closeMenu();
+    if (onTranslatePress) onTranslatePress();
+  };
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.glassContainer}>
@@ -241,6 +249,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               <TouchableOpacity onPress={handleMute} style={styles.menuItem}>
                 <BellSlashIcon size={20} color={Colors.text.primary} />
                 <Text style={styles.menuText}>Заглуши</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <TouchableOpacity onPress={handleTranslate} style={styles.menuItem}>
+                <LanguageIcon size={20} color={Colors.text.primary} />
+                <Text style={styles.menuText}>Превод</Text>
               </TouchableOpacity>
             </View>
           </View>
