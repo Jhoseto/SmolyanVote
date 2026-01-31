@@ -62,7 +62,8 @@ public class ApplicationSecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokenRepository.setCookiePath("/");
-        // CSRF cookie трябва да е достъпен от JavaScript за да може web версията да го прочете
+        // CSRF cookie трябва да е достъпен от JavaScript за да може web версията да го
+        // прочете
         // SameSite=Lax за да работи с cross-site заявки, но все още да е защитен
 
         http
@@ -71,8 +72,10 @@ public class ApplicationSecurityConfiguration {
                                 .maxAgeInSeconds(31536000) // 1 година
                                 .includeSubDomains(true))
                         .frameOptions(frame -> frame.deny())
-                        .contentTypeOptions(contentType -> {})
-                        .xssProtection(xss -> {}))
+                        .contentTypeOptions(contentType -> {
+                        })
+                        .xssProtection(xss -> {
+                        }))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(authz -> authz
@@ -80,14 +83,20 @@ public class ApplicationSecurityConfiguration {
                         // 405
                         .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**", "/api/mobile/**").permitAll()
                         // Mobile Auth endpoints - permitAll (JWT validation в filter)
-                        .requestMatchers("/api/mobile/auth/login", "/api/mobile/auth/refresh", "/api/mobile/auth/logout").permitAll()
+                        .requestMatchers("/api/mobile/auth/login", "/api/mobile/auth/refresh",
+                                "/api/mobile/auth/logout")
+                        .permitAll()
                         // Mobile Device endpoints - изискват authentication
                         .requestMatchers("/api/mobile/device/**").authenticated()
                         // Статични ресурси и podcast window - трябва да са преди другите правила
-                        .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**", "/static/**").permitAll()
+                        .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**", "/images/**", "/fonts/**",
+                                "/static/**", "/svmessenger.apk")
+                        .permitAll()
                         .requestMatchers("/api/podcast/**").permitAll()
-                        .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists", "/api/multipoll/*/exists").permitAll()
-                        // WebSocket handshake endpoints - permitAll (authentication се проверява от JWT interceptor при STOMP CONNECT)
+                        .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists", "/api/multipoll/*/exists")
+                        .permitAll()
+                        // WebSocket handshake endpoints - permitAll (authentication се проверява от JWT
+                        // interceptor при STOMP CONNECT)
                         .requestMatchers("/ws-svmessenger/**").permitAll()
                         .requestMatchers(
                                 "/svmessenger/**",
@@ -95,7 +104,8 @@ public class ApplicationSecurityConfiguration {
                                 "/registration",
                                 "/register", "/about", "/login", "/viewLogin", "/logout", "/user/login",
                                 "/user/logout", "/confirm/**", "/mainEvents/**", "/mainEventPage", "/event",
-                                "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt", "/sitemap.xml",
+                                "/eventDetailView", "/posts", "/podcast", "/error/**", "/favicon.ico", "/robots.txt",
+                                "/sitemap.xml",
                                 "/heartbeat", "/search", "/contacts", "/contact", "/publications/**", "/api/links/**",
                                 "/terms-and-conditions", "/faq", "/signals/**",
                                 "/oauth2/**", "/login/oauth2/**")
@@ -157,10 +167,12 @@ public class ApplicationSecurityConfiguration {
                 .csrf(csrf -> csrf
                         // ✅ CSRF PROTECTION - Правилна имплементация за web и mobile
                         // Mobile API endpoints са exempt (използват JWT tokens в Authorization header)
-                        // Web messenger API endpoints ИЗПОЛЗВАТ CSRF protection (session cookies + X-XSRF-TOKEN header)
+                        // Web messenger API endpoints ИЗПОЛЗВАТ CSRF protection (session cookies +
+                        // X-XSRF-TOKEN header)
                         .ignoringRequestMatchers(
                                 // Static resources
-                                "/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**", "/heartbeat",
+                                "/images/**", "/css/**", "/js/**", "/fonts/**", "/podcast/**", "/api/podcast/**",
+                                "/heartbeat",
                                 // WebSocket endpoints
                                 "/ws-svmessenger/**", "/ws/notifications/**", "/ws/admin/activity/**",
                                 // Other public endpoints
@@ -168,8 +180,7 @@ public class ApplicationSecurityConfiguration {
                                 // Mobile API endpoints (JWT authentication)
                                 "/api/mobile/**",
                                 // LiveKit call token endpoint (used by mobile app with JWT)
-                                "/api/svmessenger/call/token"
-                        )
+                                "/api/svmessenger/call/token")
                         // Custom matcher: exempt само Bearer JWT tokens (mobile app)
                         // Web заявките изискват CSRF token в X-XSRF-TOKEN header
                         // Това предотвратява CSRF bypass чрез фалшиви Authorization headers
@@ -178,12 +189,13 @@ public class ApplicationSecurityConfiguration {
                             // Exempt само Bearer JWT tokens от mobile app
                             // Други Authorization schemes (Basic, Digest, etc.) все още изискват CSRF
                             return authHeader != null &&
-                                   authHeader.startsWith("Bearer ") &&
-                                   authHeader.length() > 100; // JWT tokens са достатъчно дълги
+                                    authHeader.startsWith("Bearer ") &&
+                                    authHeader.length() > 100; // JWT tokens са достатъчно дълги
                         })
                         .csrfTokenRepository(csrfTokenRepository))
                 // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -218,24 +230,25 @@ public class ApplicationSecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Development: allow specific localhost ports and Android emulator, Production: only production domains
+        // Development: allow specific localhost ports and Android emulator, Production:
+        // only production domains
         if ("dev".equals(activeProfile) || "development".equals(activeProfile)) {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",
                     "https://www.smolyanvote.com",
-                    "http://localhost:3000",    // React dev server
-                    "http://localhost:8081",    // Metro bundler
+                    "http://localhost:3000", // React dev server
+                    "http://localhost:8081", // Metro bundler
                     "http://127.0.0.1:3000",
                     "http://127.0.0.1:8081",
-                    "http://10.0.2.2:8081",     // Android Emulator Metro
-                    "ws://localhost:3000",      // WebSocket for React
+                    "http://10.0.2.2:8081", // Android Emulator Metro
+                    "ws://localhost:3000", // WebSocket for React
                     "ws://127.0.0.1:3000",
-                    "ws://10.0.2.2:8081"));     // WebSocket for Android
+                    "ws://10.0.2.2:8081")); // WebSocket for Android
         } else {
             configuration.setAllowedOriginPatterns(List.of(
                     "https://smolyanvote.com",
                     "https://www.smolyanvote.com",
-                    "wss://smolyanvote.com",    // WebSocket for production
+                    "wss://smolyanvote.com", // WebSocket for production
                     "wss://www.smolyanvote.com"));
         }
 
@@ -269,8 +282,10 @@ public class ApplicationSecurityConfiguration {
                             updatedHeader += "; Secure";
                         }
 
-                        // CSRF token cookie (XSRF-TOKEN) не трябва да има HttpOnly за да може JavaScript да го прочете
-                        // CookieCsrfTokenRepository вече го конфигурира правилно, но нека се уверим че не го променяме
+                        // CSRF token cookie (XSRF-TOKEN) не трябва да има HttpOnly за да може
+                        // JavaScript да го прочете
+                        // CookieCsrfTokenRepository вече го конфигурира правилно, но нека се уверим че
+                        // не го променяме
                         if (!header.toLowerCase().contains("httponly") && !header.startsWith("XSRF-TOKEN")) {
                             updatedHeader += "; HttpOnly";
                         }

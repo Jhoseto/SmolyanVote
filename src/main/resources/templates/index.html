@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="bg" xmlns:th="http://www.thymeleaf.org">
+
 <head>
   <!-- Enhanced SEO Meta Tags -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>SmolyanVote - Гласът на Смолян | Вашият глас   Вашият град   Вашето мнение</title>
+  <title>SmolyanVote - Гласът на Смолян | Вашият глас Вашият град Вашето мнение</title>
 
   <!-- SEO  БОМБА  -->
   <th:block th:replace="~{fragments/indexSeo :: indexSeo}"></th:block>
@@ -13,7 +14,9 @@
   <!-- Старият код е премахнат - използва се Google Consent Mode v2 -->
 
   <!-- Enhanced Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Display:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 
   <!-- Existing Thymeleaf fragments -->
   <th:block th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></th:block>
@@ -60,18 +63,18 @@
   <!-- ✅ Cookie Consent сега се управлява глобално чрез cookie-consent модула -->
   <!-- Конфигурацията е в bottomHtmlStyles фрагмента -->
 
-<!--  &lt;!&ndash; Smartsupp Live Chat script &ndash;&gt;-->
-<!--  <script type="text/javascript">-->
-<!--    var _smartsupp = _smartsupp || {};-->
-<!--    _smartsupp.key = 'f37049fb8ea2553a0a4798457f816636b426372c';-->
-<!--    window.smartsupp||(function(d) {-->
-<!--      var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];-->
-<!--      s=d.getElementsByTagName('script')[0];c=d.createElement('script');-->
-<!--      c.type='text/javascript';c.charset='utf-8';c.async=true;-->
-<!--      c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);-->
-<!--    })(document);-->
-<!--  </script>-->
-<!--  <noscript> Powered by <a href="https://www.smartsupp.com" target="_blank">Smartsupp</a></noscript>-->
+  <!--  &lt;!&ndash; Smartsupp Live Chat script &ndash;&gt;-->
+  <!--  <script type="text/javascript">-->
+  <!--    var _smartsupp = _smartsupp || {};-->
+  <!--    _smartsupp.key = 'f37049fb8ea2553a0a4798457f816636b426372c';-->
+  <!--    window.smartsupp||(function(d) {-->
+  <!--      var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];-->
+  <!--      s=d.getElementsByTagName('script')[0];c=d.createElement('script');-->
+  <!--      c.type='text/javascript';c.charset='utf-8';c.async=true;-->
+  <!--      c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);-->
+  <!--    })(document);-->
+  <!--  </script>-->
+  <!--  <noscript> Powered by <a href="https://www.smartsupp.com" target="_blank">Smartsupp</a></noscript>-->
 </head>
 
 
@@ -82,15 +85,15 @@
 <main id="main-content">
 
   <!-- Hero Section (Запазвам оригиналния ти дизайн) -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="display-4">Гласът на Смолян</h1>
-                <p class="lead">Вашият глас • Вашият град • Вашето мнение</p>
-                <a href="/mainEvents" class="btn">Участвай сега</a>
-            </div>
-        </div>
-    </section>
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="display-4">Гласът на Смолян</h1>
+        <p class="lead">Вашият глас • Вашият град • Вашето мнение</p>
+        <a href="/mainEvents" class="btn">Участвай сега</a>
+      </div>
+    </div>
+  </section>
 
   <!-- Title Section (Запазвам динамичния текст) -->
   <div class="container title-section">
@@ -99,10 +102,10 @@
       <div class="title-description">
         Гражданска платформа, създадена&nbsp;
         <span class="dynamic-text-box">
-            <span class="dynamic-text">от хората</span>
-            <span class="dynamic-text">за хората</span>
-            <span class="dynamic-text">с мисъл за града</span>
-          </span>
+          <span class="dynamic-text">от хората</span>
+          <span class="dynamic-text">за хората</span>
+          <span class="dynamic-text">с мисъл за града</span>
+        </span>
       </div>
     </div>
   </div>
@@ -113,12 +116,9 @@
       <div class="video-stats-wrapper">
         <div class="video-container" allowfullscreen>
           <div class="ratio ratio-16x9">
-            <mux-player
-                    playback-id="NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014"
-                    metadata-viewer-user-id="Placeholder (optional)"
-                    metadata-video-title="SmolyanVote_promo1"
-                    poster="https://image.mux.com/NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014/thumbnail.png?height=640&width=360&time=1"
-            ></mux-player>
+            <mux-player playback-id="NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014"
+              metadata-viewer-user-id="Placeholder (optional)" metadata-video-title="SmolyanVote_promo1"
+              poster="https://image.mux.com/NEMsgbV9d7wxN9I84A4BGN400BkSluX3VRvkRbjQgl014/thumbnail.png?height=640&width=360&time=1"></mux-player>
           </div>
         </div>
         <div class="stats-container">
@@ -149,8 +149,8 @@
       <div class="motivation-header">
         <h2 class="motivation-title">Защо SmolyanVote е различен?</h2>
         <p class="motivation-subtitle">
-            В социалните мрежи печели популярността, в медиите - парите, в SmolyanVote - печелиш ти!
-            SmolyanVote е място, където общественото мнение не се редактира преди да го видиш.
+          В социалните мрежи печели популярността, в медиите - парите, в SmolyanVote - печелиш ти!
+          SmolyanVote е място, където общественото мнение не се редактира преди да го видиш.
         </p>
       </div>
 
@@ -171,7 +171,8 @@
           </div>
           <div class="panel-content-motivationCard">
             <div class="panel-details">
-              <p>Дълги години медиите и политиците манипулират общественото мнение. Тук ще видиш какво мислят наистина останалите хора - без филтри, без редактиране, без лъжи.</p>
+              <p>Дълги години медиите и политиците манипулират общественото мнение. Тук ще видиш какво мислят наистина
+                останалите хора - без филтри, без редактиране, без лъжи.</p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Истински резултати в реално време</li>
                 <li><i class="bi bi-check-circle-fill"></i> Невъзможна манипулация на данните</li>
@@ -198,7 +199,8 @@
           </div>
           <div class="panel-content-motivationCard">
             <div class="panel-details">
-              <p>Всеки глас е защитен с модерна технология. Един човек - един глас. Честността на процеса се гарантира от редица параметри.</p>
+              <p>Всеки глас е защитен с модерна технология. Един човек - един глас. Честността на процеса се гарантира
+                от редица параметри.</p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Криптографска защита на данните</li>
                 <li><i class="bi bi-check-circle-fill"></i> Проверка на истинност на потребителите</li>
@@ -226,7 +228,8 @@
           <div class="panel-content-motivationCard">
             <div class="panel-details">
               <p>Стартирай събитие за допитване днес и следи резултатите в реално време.
-                Събери подкрепа за твоята идея и покажи на отговорните институции или местни медии, истинското мнение на хората.
+                Събери подкрепа за твоята идея и покажи на отговорните институции или местни медии, истинското мнение на
+                хората.
                 Промяната започва от теб и се случва бързо.</p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Създаване на събития за минути</li>
@@ -254,7 +257,8 @@
           </div>
           <div class="panel-content-motivationCard">
             <div class="panel-details">
-              <p>Област Смолян е твоят дом и заслужава най-доброто. Тук можеш да предлагаш решения за паркове, пътища, образование,
+              <p>Област Смолян е твоят дом и заслужава най-доброто. Тук можеш да предлагаш решения за паркове, пътища,
+                образование,
                 бизнес - всичко което те интересува.</p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Истории за реални промени</li>
@@ -282,7 +286,8 @@
           </div>
           <div class="panel-content-motivationCard">
             <div class="panel-details">
-              <p>За първи път ще видиш че не си сам в мислите си. Жителите на Областта споделят твоите тревоги и мечти за населеното място. Заедно сте по-силни от всякога.</p>
+              <p>За първи път ще видиш че не си сам в мислите си. Жителите на Областта споделят твоите тревоги и мечти
+                за населеното място. Заедно сте по-силни от всякога.</p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Истинска обществена подкрепа</li>
                 <li><i class="bi bi-check-circle-fill"></i> Намиране на единомишленици</li>
@@ -310,9 +315,9 @@
           <div class="panel-content-motivationCard">
             <div class="panel-details">
               <p>Какво имаме в момента: Хората искат нещо → никой не ги чува = фрустрация.
-                  Бизнесът предлага нещо → не знае дали хората го искат = риск.
-                  Институциите решават нещо → не знаят дали е правилното = хаос.<br>
-                  SmolyanVote променя играта !
+                Бизнесът предлага нещо → не знае дали хората го искат = риск.
+                Институциите решават нещо → не знаят дали е правилното = хаос.<br>
+                SmolyanVote променя играта !
               </p>
               <ul class="panel-features">
                 <li><i class="bi bi-check-circle-fill"></i> Бизнесът вижда реално търсене</li>
@@ -333,7 +338,8 @@
         <div class="community-text">
           <h2>Платформата се изгражда от хората за хората</h2>
           <p>
-            В SmolyanVote всяка функция, всяко подобрение се ражда от реалните потребности на жителите на област Смолян.<br>
+            В SmolyanVote всяка функция, всяко подобрение се ражда от реалните потребности на жителите на област
+            Смолян.<br>
             Вашето мнение и предложение директно влияе върху развитието на платформата.
           </p>
           <p>
@@ -365,12 +371,42 @@
     </section>
   </section>
 
+  <!-- App Download Banner -->
+  <section class="app-promo-section">
+    <div class="container">
+      <div class="app-promo-card">
+        <div class="app-promo-content">
+          <div class="app-promo-text">
+            <span class="badge-new">НОВО</span>
+            <h2>SmolyanVote вече е в джоба ти!</h2>
+            <p>Бъди винаги свързан със съгражданите си. Получавай мигновени известия и чати в реално време с нашето ново
+              мобилно приложение.</p>
+            <ul class="app-features-list">
+              <li><i class="bi bi-check-circle-fill"></i> Чат в реално време</li>
+              <li><i class="bi bi-check-circle-fill"></i> Мигновени известия</li>
+              <li><i class="bi bi-check-circle-fill"></i> Гласуване през телефона</li>
+            </ul>
+            <div class="app-promo-actions">
+              <button onclick="if(window.SVMessenger) window.SVMessenger.openDownloadModal()" class="btn-app-download">
+                <i class="bi bi-phone"></i> Изтегли SVMessenger
+              </button>
+            </div>
+          </div>
+          <div class="app-promo-image">
+            <img src="/svmessenger/img/svmessenger_promo.png" alt="SVMessenger App" class="img-promo">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="final-registration-section">
     <div class="container">
       <div class="registration-content">
         <h2>Време е за действие</h2>
         <p>
-          Видяхте възможностите. Разбрахте потенциала. Сега е ваш ред да станете част от активното гражданско общество.<br>
+          Видяхте възможностите. Разбрахте потенциала. Сега е ваш ред да станете част от активното гражданско
+          общество.<br>
           Искате да застанете с името и лицето си или да използвате комфорта на анонимноста?<br>
           За SmolyanVote това е без значение ! <br>
           Зад всеки профил стои човек - личност с мнение, <br>
@@ -408,4 +444,5 @@
 <!-- ✅ Cookie Consent сега се управлява глобално чрез cookie-consent модула -->
 
 </body>
+
 </html>

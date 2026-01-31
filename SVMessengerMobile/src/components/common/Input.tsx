@@ -18,6 +18,7 @@ interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
+  labelStyle?: any;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -25,13 +26,14 @@ export const Input: React.FC<InputProps> = ({
   error,
   containerStyle,
   style,
+  labelStyle,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       <TextInput
         style={[
           styles.input,

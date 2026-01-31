@@ -92,7 +92,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
             }
             return;
         }
-        
+
         // Валидация на съобщението
         if (!message || !message.id || !message.text || !message.conversationId || !message.sentAt) {
             return;
@@ -104,7 +104,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
         if (processedMessageIds.current.has(messageKey)) {
             return;
         }
-        
+
         // Маркирай като обработено (ще се изчисти след малко)
         processedMessageIds.current.add(messageKey);
         setTimeout(() => {
@@ -116,7 +116,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
             const existingMessages = prev[message.conversationId] || [];
             // Филтрирай невалидни съобщения
             const validExisting = existingMessages.filter(m => m && m.id && m.text && m.sentAt);
-            
+
             // ✅ Проверка за дубликати - ако съобщението вече съществува, обнови го вместо да го добавиш отново
             const existingIndex = validExisting.findIndex(m => m.id === message.id);
             if (existingIndex !== -1) {
@@ -129,7 +129,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
                     [message.conversationId]: updated
                 };
             }
-            
+
             // Ново съобщение - добави го
             return {
                 ...prev,
@@ -352,6 +352,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
     // ========== API METHODS ==========
 
     const loadConversations = useCallback(async () => {
+        if (!currentUser?.isAuthenticated) return;
         setIsLoadingConversations(true);
         try {
             const data = await svMessengerAPI.getConversations();
@@ -381,8 +382,8 @@ export const MessagesProvider = ({ children, currentUser }) => {
 
             // Backend връща Page<SVMessageDTO> - Spring Data Page обект
             // Структура: { content: Array<SVMessageDTO>, totalElements: number, ... }
-            const messagesArray = (data && data.content && Array.isArray(data.content)) 
-                ? data.content 
+            const messagesArray = (data && data.content && Array.isArray(data.content))
+                ? data.content
                 : (Array.isArray(data) ? data : []);
 
             // Backend сортира по DESC (най-новите първо), ние искаме ASC (старите първо)
@@ -399,7 +400,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
 
             setMessagesByConversation(prev => {
                 const existingMessages = prev[conversationId] || [];
-                
+
                 if (page === 0) {
                     // При page=0 заменяме всички съобщения от API
                     // Запазваме само новите съобщения от WebSocket които все още не са в API отговора
@@ -409,14 +410,14 @@ export const MessagesProvider = ({ children, currentUser }) => {
                             apiMessageIds.add(m.id);
                         }
                     });
-                    
-                    const wsMessages = existingMessages.filter(m => 
+
+                    const wsMessages = existingMessages.filter(m =>
                         m && m.id && !apiMessageIds.has(m.id)
                     );
-                    
+
                     // Комбинирай API съобщенията + новите от WebSocket
                     const combined = [...sortedMessages, ...wsMessages];
-                    
+
                     // Премахни дубликати и сортирай по sentAt ASC
                     const uniqueMap = new Map();
                     combined.forEach(msg => {
@@ -424,13 +425,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
                             uniqueMap.set(msg.id, msg);
                         }
                     });
-                    
+
                     const uniqueMessages = Array.from(uniqueMap.values()).sort((a, b) => {
                         const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
                         const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
                         return timeA - timeB;
                     });
-                    
+
                     return {
                         ...prev,
                         [conversationId]: uniqueMessages
@@ -443,13 +444,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
                             existingIds.add(m.id);
                         }
                     });
-                    
-                    const olderMessages = sortedMessages.filter(m => 
+
+                    const olderMessages = sortedMessages.filter(m =>
                         m && m.id && !existingIds.has(m.id)
                     );
-                    
+
                     const combined = [...olderMessages, ...existingMessages];
-                    
+
                     // Премахни дубликати и сортирай по sentAt ASC
                     const uniqueMap = new Map();
                     combined.forEach(msg => {
@@ -457,13 +458,13 @@ export const MessagesProvider = ({ children, currentUser }) => {
                             uniqueMap.set(msg.id, msg);
                         }
                     });
-                    
+
                     const uniqueMessages = Array.from(uniqueMap.values()).sort((a, b) => {
                         const timeA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
                         const timeB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
                         return timeA - timeB;
                     });
-                    
+
                     return {
                         ...prev,
                         [conversationId]: uniqueMessages
@@ -550,6 +551,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
     }, [currentUser]);
 
     const loadUnreadCount = useCallback(async () => {
+        if (!currentUser?.isAuthenticated) return;
         try {
             const data = await svMessengerAPI.getUnreadCount();
             setTotalUnreadCount(data.count);
@@ -595,8 +597,8 @@ export const MessagesProvider = ({ children, currentUser }) => {
         setLoadingCallHistory(prev => ({ ...prev, [conversationId]: true }));
 
         try {
-                   const callHistory = await svMessengerAPI.getCallHistory(conversationId);
-            
+            const callHistory = await svMessengerAPI.getCallHistory(conversationId);
+
             setCallHistoryByConversation(prev => ({
                 ...prev,
                 [conversationId]: Array.isArray(callHistory) ? callHistory : []
@@ -609,7 +611,7 @@ export const MessagesProvider = ({ children, currentUser }) => {
             setLoadingCallHistory(prev => ({ ...prev, [conversationId]: false }));
         }
     }, []);
-    
+
     // CRITICAL: Update ref when loadCallHistory changes to avoid circular dependency
     useEffect(() => {
         loadCallHistoryRef.current = loadCallHistory;
@@ -619,14 +621,14 @@ export const MessagesProvider = ({ children, currentUser }) => {
 
     const requestNotificationPermission = () => {
         if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission().then(permission => {});
+            Notification.requestPermission().then(permission => { });
         }
     };
 
     const playNotificationSound = () => {
         if (messageSound.current) {
             messageSound.current.currentTime = 0;
-            messageSound.current.play().catch(() => {});
+            messageSound.current.play().catch(() => { });
         }
     };
 
@@ -649,13 +651,15 @@ export const MessagesProvider = ({ children, currentUser }) => {
     // ========== INITIALIZE ==========
 
     useEffect(() => {
+        if (!currentUser?.isAuthenticated) return;
+
         // Load initial data
         loadConversations();
         loadUnreadCount();
 
         // Request notification permission
         requestNotificationPermission();
-    }, []);
+    }, [currentUser, loadConversations, loadUnreadCount]);
 
     // ========== CONTEXT VALUE ==========
 

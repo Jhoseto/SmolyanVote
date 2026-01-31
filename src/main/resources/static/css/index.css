@@ -20,13 +20,13 @@
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #0F7B59 0%, #4CAF50 100%);
   --gradient-secondary: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
 
   /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
-  --shadow-xl: 0 25px 50px rgba(0,0,0,0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.25);
 
   /* Typography */
   --font-primary: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -78,285 +78,302 @@ body {
 
 /* ====== HERO НАСТРОЙКИ ЗА СНИМКАТА  ====== */
 :root {
-    /* СНИМКА НАСТРОЙКИ */
-    --hero-image-size: 1905px;          /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
-    --hero-image-x: 0;            /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
-    --hero-image-y: 40px;            /* ГОРЕ-ДОЛУ: top, center, bottom или 0% до 100% */
+  /* СНИМКА НАСТРОЙКИ */
+  --hero-image-size: 1905px;
+  /* РАЗМЕР: cover, contain, 80%, 100%, 120% */
+  --hero-image-x: 0;
+  /* ЛЯВО-ДЯСНО: left, center, right или 0% до 100% */
+  --hero-image-y: 40px;
+  /* ГОРЕ-ДОЛУ: top, center, bottom или 0% до 100% */
 
-    /* ЦВЕТОВЕ И ЕФЕКТИ */
-    --hero-overlay-opacity: 0.1;       /* ПРОЗРАЧНОСТ НА ОВЕРЛЕЙ: 0 до 1 */
-    --text-shadow-strength: 0.05;      /* ПОПРАВЕНО: намалено от 0.15 за по-ясен текст */
-    --button-3d-depth: 8px;           /* ДЪЛБОЧИНА НА 3D БУТОН */
+  /* ЦВЕТОВЕ И ЕФЕКТИ */
+  --hero-overlay-opacity: 0.1;
+  /* ПРОЗРАЧНОСТ НА ОВЕРЛЕЙ: 0 до 1 */
+  --text-shadow-strength: 0.05;
+  /* ПОПРАВЕНО: намалено от 0.15 за по-ясен текст */
+  --button-3d-depth: 8px;
+  /* ДЪЛБОЧИНА НА 3D БУТОН */
 
-    /* КОНСИСТЕНТНИ ЦВЕТОВЕ ОТ ПРОЕКТА */
-    --primary-green: #19861c;
-    --accent-green: #4CAF50;
-    --text-primary: #2C3E50;
-    --text-secondary: #5A6C7D;
+  /* КОНСИСТЕНТНИ ЦВЕТОВЕ ОТ ПРОЕКТА */
+  --primary-green: #19861c;
+  --accent-green: #4CAF50;
+  --text-primary: #2C3E50;
+  --text-secondary: #5A6C7D;
 }
 
 /* ====== ГЛАВНА HERO СЕКЦИЯ ====== */
 .hero {
-    position: relative;
-    min-height: 85vh;
-    width: 100%;
-    overflow: hidden;
+  position: relative;
+  min-height: 85vh;
+  width: 100%;
+  overflow: hidden;
 
-    /* СНИМКАТА КАТО BACKGROUND */
-    background-image: url('/images/web/hero3.jpg');
-    background-size: cover;
-    background-position: center top;
-    background-position-y: 38px;
-    background-repeat: no-repeat;
-    /* ПОПРАВЕНО: премахнат fixed за по-ясен текст на всички браузъри */
+  /* СНИМКАТА КАТО BACKGROUND */
+  background-image: url('/images/web/hero3.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-position-y: 38px;
+  background-repeat: no-repeat;
+  /* ПОПРАВЕНО: премахнат fixed за по-ясен текст на всички браузъри */
 
-    /* ФЛЕКСБОКС ЗА ЦЕНТРИРАНЕ */
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
+  /* ФЛЕКСБОКС ЗА ЦЕНТРИРАНЕ */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 /* ЛЕКИ ЕНХАНСМЪНТИ С ОВЕРЛЕЙ */
 .hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, var(--hero-overlay-opacity)) 0%,
-            rgba(25, 134, 28, 0.05) 100%
-    );
-    z-index: 1;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, var(--hero-overlay-opacity)) 0%,
+      rgba(25, 134, 28, 0.05) 100%);
+  z-index: 1;
 }
 
 /* ====== КОНТЕЙНЕР И СЪДЪРЖАНИЕ ====== */
 .hero .container {
-    position: relative;
-    z-index: 10;
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 0 8rem 14rem;
-    padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 0 8rem 14rem;
+  padding: 0 2rem;
 }
 
 .hero-content {
-    width: 55%; /* ЗАЕМА ЛЯВАТА ЧАСТ */
-    max-width: 600px;
-    animation: heroContentSlideIn 1.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
-    opacity: 0;
-    transform: translateX(-50px);
+  width: 55%;
+  /* ЗАЕМА ЛЯВАТА ЧАСТ */
+  max-width: 600px;
+  animation: heroContentSlideIn 1.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  opacity: 0;
+  transform: translateX(-50px);
 }
 
 @keyframes heroContentSlideIn {
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ====== ЗАГЛАВИЕ ====== */
 .hero .display-4 {
-    font-family: var(--font-primary), serif;
-    font-size: clamp(2.5rem, 5.5vw, 4.2rem);
-    font-weight: 500;
-    line-height: 1.1;
-    margin-bottom: 0;
-    margin-top: 7.5rem;
+  font-family: var(--font-primary), serif;
+  font-size: clamp(2.5rem, 5.5vw, 4.2rem);
+  font-weight: 500;
+  line-height: 1.1;
+  margin-bottom: 0;
+  margin-top: 7.5rem;
 
-    /* ПОПРАВЕНО: заменен градиент с обикновен цвят за перфектна четливост */
-    color: var(--primary-green);
+  /* ПОПРАВЕНО: заменен градиент с обикновен цвят за перфектна четливост */
+  color: var(--primary-green);
 
-    /* ПОПРАВЕНО: минимален text-shadow */
-    text-shadow: 0 1px 2px rgba(25, 134, 28, var(--text-shadow-strength));
+  /* ПОПРАВЕНО: минимален text-shadow */
+  text-shadow: 0 1px 2px rgba(25, 134, 28, var(--text-shadow-strength));
 
-    /* ПОПРАВЕНО: по-мека анимация без filter ефекти */
-    animation: titleColorGlow 4s ease-in-out infinite alternate;
+  /* ПОПРАВЕНО: по-мека анимация без filter ефекти */
+  animation: titleColorGlow 4s ease-in-out infinite alternate;
 }
 
 @keyframes titleColorGlow {
-    0% {
-        color: var(--primary-green);
-    }
-    100% {
-        color: var(--accent-green);
-    }
+  0% {
+    color: var(--primary-green);
+  }
+
+  100% {
+    color: var(--accent-green);
+  }
 }
 
 /* ====== ПОДЗАГЛАВИЕ ====== */
 .hero .lead {
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(1.1rem, 2.8vw, 1.3rem);
-    font-weight: 300;
-    line-height: 4.6;
-    color: var(--text-secondary);
-    margin-bottom: 15px;
-    margin-top: 15px;
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1.1rem, 2.8vw, 1.3rem);
+  font-weight: 300;
+  line-height: 4.6;
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+  margin-top: 15px;
 
-    /* ПОПРАВЕНО: минимални ефекти за ясен текст */
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-    opacity: 0.95;
+  /* ПОПРАВЕНО: минимални ефекти за ясен текст */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  opacity: 0.95;
 }
 
 /* ====== ОПРОСТЕН СТЪКЛЕН БУТОН ====== */
 .hero .btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.9rem 2rem 0.9rem 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 50px;
-    margin-bottom: 4.5rem;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 2rem 0.9rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50px;
+  margin-bottom: 4.5rem;
 
-    font-family: 'Inter', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-decoration: none;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 
-    /* ДРАМАТИЧЕН СТЪКЛЕН ВИД */
-    background: rgb(25, 133, 28);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+  /* ДРАМАТИЧЕН СТЪКЛЕН ВИД */
+  background: rgb(25, 133, 28);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 
-    /* ПЕРСПЕКТИВА ОТЛЯВО */
-    transform: perspective(800px) rotateY(0deg);
+  /* ПЕРСПЕКТИВА ОТЛЯВО */
+  transform: perspective(800px) rotateY(0deg);
 
-    /* СИЛНИ СЕНКИ */
-    box-shadow:
-            12px 10px 20px rgba(25, 134, 28, 0.6),
-            0 2px 0 rgba(25, 134, 28, 0.8),
-            inset 0 2px 0 rgba(255, 255, 255, 0.7);
+  /* СИЛНИ СЕНКИ */
+  box-shadow:
+    12px 10px 20px rgba(25, 134, 28, 0.6),
+    0 2px 0 rgba(25, 134, 28, 0.8),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7);
 
-    transition: all 0.5s ease;
-    cursor: pointer;
-    overflow: hidden;
+  transition: all 0.5s ease;
+  cursor: pointer;
+  overflow: hidden;
 }
 
 /* ГОЛЯМО ДВИЖЕЩО СЕ ОТРАЖЕНИЕ */
 .hero .btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -150%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.8),
-    transparent
-    );
-    animation: bigReflection 3s linear infinite;
-    border-radius: inherit;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.8),
+      transparent);
+  animation: bigReflection 3s linear infinite;
+  border-radius: inherit;
 }
 
 @keyframes bigReflectionFast {
-    0% { left: 150%; }
-    100% { left: -150%; }
+  0% {
+    left: 150%;
+  }
+
+  100% {
+    left: -150%;
+  }
 }
+
 .hero .btn i {
-    font-size: 1.2em;
-    transition: transform 0.3s ease;
-    position: relative;
-    z-index: 3;
+  font-size: 1.2em;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 3;
 }
 
 /* ====== HOVER ЕФЕКТИ - БЕЗ ДВИЖЕНИЕ ====== */
 .hero .btn:hover {
-    background: rgba(25, 134, 28, 0.4);
-    border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(25, 134, 28, 0.4);
+  border-color: rgba(255, 255, 255, 0.5);
 
-    box-shadow:
-            8px 8px 20px rgba(25, 134, 28, 0.6),
-            4px 4px 8px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    8px 8px 20px rgba(25, 134, 28, 0.6),
+    4px 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* ПО-БЪРЗИ ОТРАЖЕНИЯ ПРИ HOVER */
 .hero .btn:hover::before {
-    animation: glassReflection 2s linear infinite;
+  animation: glassReflection 2s linear infinite;
 }
 
 .hero .btn:hover::after {
-    animation: scrollReflection 3s ease-in-out infinite;
-    opacity: 1;
+  animation: scrollReflection 3s ease-in-out infinite;
+  opacity: 1;
 }
 
 /* ВЪРТЕНЕ НА ИКОНАТА ПРИ HOVER */
 .hero .btn:hover i {
-    transform: rotate(360deg) scale(1.1);
+  transform: rotate(360deg) scale(1.1);
 }
 
 /* ====== АКТИВЕН/НАТИСНАТ ЕФЕКТ - "ПОТЪВАНЕ С ДВИЖЕНИЕ" ====== */
 .hero .btn:active {
-    /* ПОТЪВАНЕ И УВЕЛИЧАВАНЕ НА ПЕРСПЕКТИВАТА */
-    transform: perspective(1000px) rotateY(12deg) translateY(3px) scale(0.98);
+  /* ПОТЪВАНЕ И УВЕЛИЧАВАНЕ НА ПЕРСПЕКТИВАТА */
+  transform: perspective(1000px) rotateY(12deg) translateY(3px) scale(0.98);
 
-    /* НАМАЛЯВАНЕ НА СТЪКЛЕНИТЕ СЕНКИ */
-    box-shadow:
-            -5px 5px 15px rgba(25, 134, 28, 0.3),
-            -6px 6px 0 rgba(25, 134, 28, 0.5),
-            0 8px 20px rgba(0, 0, 0, 0.1),
-                /* ВЪТРЕШНА СЯНКА ЗА ПОТИСНАТ ЕФЕКТ */
-            inset 2px 2px 8px rgba(0, 0, 0, 0.2),
-            inset -1px -1px 0 rgba(255, 255, 255, 0.1);
+  /* НАМАЛЯВАНЕ НА СТЪКЛЕНИТЕ СЕНКИ */
+  box-shadow:
+    -5px 5px 15px rgba(25, 134, 28, 0.3),
+    -6px 6px 0 rgba(25, 134, 28, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    /* ВЪТРЕШНА СЯНКА ЗА ПОТИСНАТ ЕФЕКТ */
+    inset 2px 2px 8px rgba(0, 0, 0, 0.2),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.1);
 
-    /* ПОТЪМНЯВАНЕ НА СТЪКЛОТО */
-    background: linear-gradient(145deg,
-    rgba(21, 107, 24, 0.9) 0%,
-    rgba(57, 141, 61, 0.95) 50%,
-    rgba(76, 175, 80, 0.9) 100%
-    );
+  /* ПОТЪМНЯВАНЕ НА СТЪКЛОТО */
+  background: linear-gradient(145deg,
+      rgba(21, 107, 24, 0.9) 0%,
+      rgba(57, 141, 61, 0.95) 50%,
+      rgba(76, 175, 80, 0.9) 100%);
 
-    border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
 
-    /* ПО-КРАТЪК ПРЕХОД ЗА БЪРЗ ОТЗВУК */
-    transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* ПО-КРАТЪК ПРЕХОД ЗА БЪРЗ ОТЗВУК */
+  transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* ОБРЪЩАНЕ НА ОТРАЖЕНИЯТА ПРИ НАТИСКАНЕ */
 .hero .btn:active::before {
-    animation: glassReflectionReverse 1s linear infinite;
+  animation: glassReflectionReverse 1s linear infinite;
 }
 
 .hero .btn:active::after {
-    animation: scrollReflectionReverse 1.5s ease-in-out infinite;
-    opacity: 0.6;
+  animation: scrollReflectionReverse 1.5s ease-in-out infinite;
+  opacity: 0.6;
 }
 
 @keyframes glassReflectionReverse {
-    0% { left: 100%; }
-    100% { left: -100%; }
+  0% {
+    left: 100%;
+  }
+
+  100% {
+    left: -100%;
+  }
 }
 
 @keyframes scrollReflectionReverse {
-    0% {
-        background-position: 200% 0;
-        opacity: 0.6;
-    }
-    50% {
-        background-position: -200% 0;
-        opacity: 0.4;
-    }
-    100% {
-        background-position: 200% 0;
-        opacity: 0.6;
-    }
+  0% {
+    background-position: 200% 0;
+    opacity: 0.6;
+  }
+
+  50% {
+    background-position: -200% 0;
+    opacity: 0.4;
+  }
+
+  100% {
+    background-position: 200% 0;
+    opacity: 0.6;
+  }
 }
 
 /* ====== FOCUS ЕФЕКТИ ЗА ACCESSIBILITY ====== */
 .hero .btn:focus {
-    outline: none;
-    box-shadow:
-            0 var(--button-3d-depth) 20px rgba(25, 134, 28, 0.4),
-            var(--button-3d-depth) var(--button-3d-depth) 0 rgba(25, 134, 28, 0.8),
-            0 15px 35px rgba(0, 0, 0, 0.15),
-            inset 0 2px 0 rgba(255, 255, 255, 0.3),
-                /* FOCUS RING */
-            0 0 0 4px rgba(25, 134, 28, 0.3);
+  outline: none;
+  box-shadow:
+    0 var(--button-3d-depth) 20px rgba(25, 134, 28, 0.4),
+    var(--button-3d-depth) var(--button-3d-depth) 0 rgba(25, 134, 28, 0.8),
+    0 15px 35px rgba(0, 0, 0, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    /* FOCUS RING */
+    0 0 0 4px rgba(25, 134, 28, 0.3);
 }
 
 
@@ -449,6 +466,7 @@ body {
   0% {
     filter: drop-shadow(0 0 2px rgba(25, 134, 28, 0.3));
   }
+
   100% {
     filter: drop-shadow(0 0 8px rgba(25, 134, 28, 0.5));
   }
@@ -563,6 +581,7 @@ mux-player {
   0% {
     filter: drop-shadow(0 0 2px rgba(44, 62, 80, 0.3));
   }
+
   100% {
     filter: drop-shadow(0 0 6px rgba(44, 62, 80, 0.5));
   }
@@ -754,11 +773,11 @@ mux-player {
 
 /* Platform Community Section */
 .platform-community-section {
-    background-image: url('/images/web/platformComunitiSection.jpg');
-    background-size: 277px;
-    background-position-x: 278px;
-    background-position-y: 165px;
-    background-repeat: no-repeat;
+  background-image: url('/images/web/platformComunitiSection.jpg');
+  background-size: 277px;
+  background-position-x: 278px;
+  background-position-y: 165px;
+  background-repeat: no-repeat;
   padding: 4rem 0;
   /*background: var(--white);*/
   position: relative;
@@ -846,8 +865,8 @@ mux-player {
   right: 0;
   bottom: 0;
   background-image:
-          linear-gradient(90deg, rgba(25, 134, 28, 0.03) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(25, 134, 28, 0.03) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(25, 134, 28, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(25, 134, 28, 0.03) 1px, transparent 1px);
   background-size: 80px 80px;
   z-index: 1;
 }
@@ -861,9 +880,9 @@ mux-player {
   right: 0;
   bottom: 0;
   background:
-          radial-gradient(ellipse at top, rgba(25, 134, 28, 0.05) 0%, transparent 50%),
-          radial-gradient(ellipse at bottom, rgba(25, 134, 28, 0.08) 0%, transparent 50%),
-          radial-gradient(ellipse at center, rgba(25, 134, 28, 0.02) 0%, transparent 70%);
+    radial-gradient(ellipse at top, rgba(25, 134, 28, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(25, 134, 28, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at center, rgba(25, 134, 28, 0.02) 0%, transparent 70%);
   z-index: 2;
 }
 
@@ -887,9 +906,9 @@ mux-player {
   border-radius: 24px;
   padding: 3rem 2.5rem;
   box-shadow:
-          0 20px 40px rgba(25, 134, 28, 0.08),
-          0 1px 2px rgba(0, 0, 0, 0.05),
-          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 20px 40px rgba(25, 134, 28, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(25, 134, 28, 0.1);
   backdrop-filter: blur(20px);
   position: relative;
@@ -904,10 +923,10 @@ mux-player {
   right: -2px;
   bottom: -2px;
   background: linear-gradient(45deg,
-  rgba(25, 134, 28, 0.15) 0%,
-  transparent 15%,
-  transparent 85%,
-  rgba(25, 134, 28, 0.15) 100%);
+      rgba(25, 134, 28, 0.15) 0%,
+      transparent 15%,
+      transparent 85%,
+      rgba(25, 134, 28, 0.15) 100%);
   border-radius: 26px;
   z-index: -1;
 }
@@ -969,8 +988,8 @@ mux-player {
   text-decoration: none;
   margin: 2rem 0 1rem 0;
   box-shadow:
-          0 8px 25px rgba(25, 134, 28, 0.25),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 8px 25px rgba(25, 134, 28, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
@@ -995,8 +1014,8 @@ mux-player {
   background: linear-gradient(135deg, var(--accent-green) 0%, var(--primary-green) 100%);
   transform: translateY(-3px);
   box-shadow:
-          0 12px 35px rgba(25, 134, 28, 0.35),
-          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 12px 35px rgba(25, 134, 28, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   color: var(--white);
   text-decoration: none;
   outline: none;
@@ -1040,7 +1059,8 @@ mux-player {
 /* ====== FUTURISTIC CAROUSEL BACKGROUND ====== */
 #platform-features-carousel {
   position: relative;
-  overflow: visible; /* visible за да не прецаква 3D трансформациите на каруселата */
+  overflow: visible;
+  /* visible за да не прецаква 3D трансформациите на каруселата */
   /* Светъл фон подобен на error страницата с точки */
   background: #ffffff;
 }
@@ -1054,4 +1074,33 @@ mux-player {
 #platform-features-carousel .carousel-container {
   position: relative;
   z-index: 2;
+}
+
+.app-features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.app-features-list li i {
+  color: #4ade80;
+  font-size: 18px;
+}
+
+@media (max-width: 991px) {
+  .app-features-list {
+    align-items: center;
+  }
 }

@@ -9,16 +9,11 @@ import SVMessengerWidget from './components/SVMessengerWidget';
 function App() {
   // Вземи user data от window object (предаден от Thymeleaf)
   const userData = window.SVMESSENGER_USER_DATA || { isAuthenticated: false };
-  
+
   // Debug log
   if (process.env.NODE_ENV === 'development') {
   }
-  
-  // Ако user не е authenticated, не показвай нищо
-  if (!userData.isAuthenticated) {
-    return null;
-  }
-  
+
   return (
     <SVMessengerProvider userData={userData}>
       <SVMessengerWidget />

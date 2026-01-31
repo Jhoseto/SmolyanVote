@@ -24,6 +24,11 @@ export const WebSocketManager = () => {
 
     // Initialize WebSocket connection
     useEffect(() => {
+        // ✅ Защита срещу гости
+        if (!window.SVMESSENGER_USER_DATA?.isAuthenticated) {
+            return;
+        }
+
         // ✅ Защита срещу множествени инициализации
         if (initializedRef.current) {
             return;

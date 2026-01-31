@@ -71,7 +71,10 @@ export const useSVMessenger = () => {
         minimizeChat: ui.minimizeChat,
         restoreChat: ui.restoreChat,
         bringToFront: ui.bringToFront,
-        updateChatPosition: ui.updateChatPosition
+        updateChatPosition: ui.updateChatPosition,
+        isDownloadModalOpen: ui.isDownloadModalOpen,
+        openDownloadModal: ui.openDownloadModal,
+        closeDownloadModal: ui.closeDownloadModal
     };
 };
 

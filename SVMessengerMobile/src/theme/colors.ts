@@ -18,18 +18,18 @@ export const Colors = {
     900: '#14532d',
   },
 
-  // Gold Palette (for premium accents)
+  // Premium Gold Palette (metallic gold with shine)
   gold: {
-    50: '#fffbf0',
-    100: '#fef0c7',
-    200: '#fde68a',
-    300: '#fcd34d',
-    400: '#fbbf24',
-    500: '#f59e0b',
-    600: '#d97706',
-    700: '#b45309',
-    800: '#92400e',
-    900: '#78350f',
+    50: '#fdfbf7',
+    100: '#f9f5e8',
+    200: '#f0e6c8',
+    300: '#e8d8a0',
+    400: '#d4b973',  // Light metallic gold
+    500: '#c9a961',  // Main premium gold
+    600: '#b8954d',  // Rich gold
+    700: '#9e7d3a',  // Deep gold
+    800: '#7d6028',  // Dark gold accent
+    900: '#5c4518',  // Darkest gold
   },
 
   // Neutral Palette

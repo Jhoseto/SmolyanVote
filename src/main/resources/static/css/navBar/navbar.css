@@ -51,13 +51,11 @@
     position: relative;
     z-index: 2;
     /* Градиент от плътен сив към стъклен ефект */
-    background: linear-gradient(
-            180deg,
+    background: linear-gradient(180deg,
             rgba(248, 249, 250, 0.95) 0%,
             rgba(248, 249, 250, 0.85) 40%,
             rgba(255, 255, 255, 0.6) 70%,
-            rgba(255, 255, 255, 0.3) 100%
-    );
+            rgba(255, 255, 255, 0.3) 100%);
     backdrop-filter: blur(5px);
     border-radius: 0;
     padding: 1.0rem 1rem;
@@ -125,7 +123,8 @@
 
 /* Search Component в navigation section-а */
 .search-container-glass {
-    margin-right: 1rem; /* Умерено разстояние след search-а */
+    margin-right: 1rem;
+    /* Умерено разстояние след search-а */
     position: relative;
 }
 
@@ -211,6 +210,57 @@
         width: 100%;
     }
 
+    /* App Banner in Navbar */
+    .app-banner-nav {
+        margin-right: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .app-banner-nav .nav-link-glass {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white !important;
+        padding: 0.5rem 1.2rem !important;
+        border-radius: 100px;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(22, 197, 94, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1;
+    }
+
+    .app-banner-nav .nav-link-glass:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 16px rgba(22, 197, 94, 0.4);
+        background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+        color: white !important;
+    }
+
+    .app-banner-nav .nav-link-glass::after {
+        display: none !important;
+    }
+
+    .app-banner-nav .bi-phone {
+        font-size: 1.1rem;
+    }
+
+    /* Mobile adjustments for App Banner */
+    @media (max-width: 768px) {
+        .app-banner-nav {
+            margin: 10px 16px !important;
+            display: block !important;
+        }
+
+        .app-banner-nav .nav-link-glass {
+            padding: 14px 20px !important;
+            border-radius: 12px !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+    }
+
     /* Vote Toggle - desktop */
     .vote-toggle-glass {
         color: var(--text-primary) !important;
@@ -237,7 +287,9 @@
     .vote-arrow-glass.rotated {
         transform: rotate(180deg);
     }
-} /* End desktop nav styles */
+}
+
+/* End desktop nav styles */
 
 /* Auth/Profile Section - desktop only */
 @media (min-width: 769px) {
@@ -261,10 +313,10 @@
         bottom: 20%;
         width: 0;
         background: linear-gradient(180deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.3) 20%,
-        rgba(255, 255, 255, 0.3) 80%,
-        transparent 100%);
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 20%,
+                rgba(255, 255, 255, 0.3) 80%,
+                transparent 100%);
         pointer-events: none;
     }
 }
@@ -279,269 +331,278 @@
 
     /* Auth Links като привлекателни бутони */
     .auth-link-glass {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--white);
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    position: relative;
-    overflow: hidden;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    animation: buttonPulse 3s ease-in-out infinite;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-}
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--white);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        position: relative;
+        overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        animation: buttonPulse 3s ease-in-out infinite;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+    }
 
-/* Pulse анимация за привличане на внимание */
-@keyframes buttonPulse {
-    0%, 100% {
-        transform: scale(1);
+    /* Pulse анимация за привличане на внимание */
+    @keyframes buttonPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 4px 15px rgba(25, 134, 28, 0.3);
+        }
+
+        50% {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(25, 134, 28, 0.4);
+        }
+    }
+
+    /* Вход бутон - акцентен зелен */
+    .auth-link-glass:first-of-type {
+        background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
         box-shadow: 0 4px 15px rgba(25, 134, 28, 0.3);
+        font-weight: 700;
     }
-    50% {
-        transform: scale(1.02);
-        box-shadow: 0 6px 20px rgba(25, 134, 28, 0.4);
+
+    .auth-link-glass:first-of-type:hover {
+        background: linear-gradient(135deg, var(--accent-green), var(--primary-green));
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 8px 25px rgba(25, 134, 28, 0.5);
+        color: var(--white);
+        text-decoration: none;
+        animation: none;
+        /* Спира pulse при hover */
+    }
+
+    /* Регистрация бутон - outline стил с акцент */
+    .auth-link-glass:last-of-type {
+        background: rgba(255, 255, 255, 0.15);
+        border: 2px solid var(--primary-green);
+        color: var(--primary-green);
+        backdrop-filter: blur(8px);
+        animation-delay: 0.5s;
+        /* Малко закъснение за по-интересен ефект */
+        font-weight: 600;
+        position: relative;
+    }
+
+    .auth-link-glass:last-of-type::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+
+    .auth-link-glass:last-of-type:hover {
+        color: var(--white);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 8px 25px rgba(25, 134, 28, 0.4);
+        text-decoration: none;
+        animation: none;
+        /* Спира pulse при hover */
+        border-color: transparent;
+    }
+
+    .auth-link-glass:last-of-type:hover::after {
+        opacity: 1;
+    }
+
+    /* Shimmer ефект за бутоните */
+    .auth-link-glass::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+        z-index: -1;
+    }
+
+    .auth-link-glass:hover::before {
+        left: 100%;
+    }
+
+    .profile-dropdown-glass {
+        position: relative;
+        z-index: 1050;
+        /* Най-висок z-index */
+    }
+
+    /* ===== EXPANDING PROFILE TOGGLE - NATURAL BALLOON ===== */
+    .profile-toggle-glass {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px 6px 6px;
+
+        /* Apple-style glassmorphism */
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+
+        /* Tesla-style minimal border */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 24px;
+
+        /* Professional shadow */
+        box-shadow:
+            0 2px 16px rgba(0, 0, 0, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+        color: #1d1d1f;
+        text-decoration: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+
+        /* Smooth hover animation */
+        position: relative;
+        overflow: hidden;
+
+        /* За да изглежда като отварящ се балон */
+        min-width: fit-content;
+        width: auto;
+    }
+
+    .profile-toggle-glass::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.04);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: -1;
+    }
+
+    .profile-toggle-glass:hover::before {
+        opacity: 1;
+    }
+
+    .profile-toggle-glass:hover {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-1px);
+        color: #1d1d1f;
+        text-decoration: none;
+
+        /* Enhanced shadow on hover */
+        box-shadow:
+            0 4px 24px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    /* ===== EXPANDED STATE - КОГАТО DROPDOWN Е ОТВОРЕНО ===== */
+
+    .profile-dropdown-glass:has(.dropdown-menu-glass.show) .profile-toggle-glass {
+        /* Когато dropdown е отворено, балончето изглежда "разтегнато" */
+        border-radius: 24px 24px 0 0;
+        border-bottom: none;
+
+        /* По-силна сянка за да изглежда "отворено" */
+        box-shadow:
+            0 4px 24px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+        /* Леко "издигане" на балончето */
+        transform: translateY(-2px);
+    }
+
+    /* Fallback за браузъри които не поддържат :has() */
+    .profile-dropdown-glass.expanded .profile-toggle-glass {
+        border-radius: 24px 24px 0 0;
+        border-bottom: none;
+
+        box-shadow:
+            0 4px 24px rgba(0, 0, 0, 0.12),
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+        transform: translateY(-2px);
+    }
+
+    /* ===== PROFESSIONAL PROFILE IMAGE STYLING ===== */
+
+    .profile-image-glass {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+
+        /* Apple-style border */
+        border: 2px solid rgba(255, 255, 255, 0.6);
+
+        /* Smooth transition */
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+        /* Professional shadow */
+        box-shadow:
+            0 2px 8px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .avatar-placeholder-glass {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+
+        /* Apple-style gradient */
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 13px;
+
+        /* Professional border */
+        border: 2px solid rgba(255, 255, 255, 0.6);
+
+        /* Smooth transition */
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+        /* Professional shadow */
+        box-shadow:
+            0 2px 8px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .username-glass {
+        font-weight: 500;
+        font-size: 14px;
+        color: #1d1d1f;
+        padding-right: 8px;
+
+        /* Smooth transition */
+        transition: color 0.2s ease;
+    }
+
+    .profile-toggle-glass:hover .username-glass {
+        color: #1d1d1f;
     }
 }
 
-/* Вход бутон - акцентен зелен */
-.auth-link-glass:first-of-type {
-    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
-    box-shadow: 0 4px 15px rgba(25, 134, 28, 0.3);
-    font-weight: 700;
-}
-
-.auth-link-glass:first-of-type:hover {
-    background: linear-gradient(135deg, var(--accent-green), var(--primary-green));
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 25px rgba(25, 134, 28, 0.5);
-    color: var(--white);
-    text-decoration: none;
-    animation: none; /* Спира pulse при hover */
-}
-
-/* Регистрация бутон - outline стил с акцент */
-.auth-link-glass:last-of-type {
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid var(--primary-green);
-    color: var(--primary-green);
-    backdrop-filter: blur(8px);
-    animation-delay: 0.5s; /* Малко закъснение за по-интересен ефект */
-    font-weight: 600;
-    position: relative;
-}
-
-.auth-link-glass:last-of-type::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 20px;
-    background: linear-gradient(135deg, var(--primary-green), var(--accent-green));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
-}
-
-.auth-link-glass:last-of-type:hover {
-    color: var(--white);
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 25px rgba(25, 134, 28, 0.4);
-    text-decoration: none;
-    animation: none; /* Спира pulse при hover */
-    border-color: transparent;
-}
-
-.auth-link-glass:last-of-type:hover::after {
-    opacity: 1;
-}
-
-/* Shimmer ефект за бутоните */
-.auth-link-glass::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.6s ease;
-    z-index: -1;
-}
-
-.auth-link-glass:hover::before {
-    left: 100%;
-}
-
-.profile-dropdown-glass {
-    position: relative;
-    z-index: 1050; /* Най-висок z-index */
-}
-
-/* ===== EXPANDING PROFILE TOGGLE - NATURAL BALLOON ===== */
-.profile-toggle-glass {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px 6px 6px;
-    
-    /* Apple-style glassmorphism */
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    
-    /* Tesla-style minimal border */
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 24px;
-    
-    /* Professional shadow */
-    box-shadow: 
-        0 2px 16px rgba(0, 0, 0, 0.06),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    
-    color: #1d1d1f;
-    text-decoration: none;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
-    
-    /* Smooth hover animation */
-    position: relative;
-    overflow: hidden;
-    
-    /* За да изглежда като отварящ се балон */
-    min-width: fit-content;
-    width: auto;
-}
-
-.profile-toggle-glass::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.04);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: -1;
-}
-
-.profile-toggle-glass:hover::before {
-    opacity: 1;
-}
-
-.profile-toggle-glass:hover {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-1px);
-    color: #1d1d1f;
-    text-decoration: none;
-    
-    /* Enhanced shadow on hover */
-    box-shadow: 
-        0 4px 24px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-/* ===== EXPANDED STATE - КОГАТО DROPDOWN Е ОТВОРЕНО ===== */
-
-.profile-dropdown-glass:has(.dropdown-menu-glass.show) .profile-toggle-glass {
-    /* Когато dropdown е отворено, балончето изглежда "разтегнато" */
-    border-radius: 24px 24px 0 0;
-    border-bottom: none;
-    
-    /* По-силна сянка за да изглежда "отворено" */
-    box-shadow: 
-        0 4px 24px rgba(0, 0, 0, 0.12),
-        0 2px 8px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    
-    /* Леко "издигане" на балончето */
-    transform: translateY(-2px);
-}
-
-/* Fallback за браузъри които не поддържат :has() */
-.profile-dropdown-glass.expanded .profile-toggle-glass {
-    border-radius: 24px 24px 0 0;
-    border-bottom: none;
-    
-    box-shadow: 
-        0 4px 24px rgba(0, 0, 0, 0.12),
-        0 2px 8px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    
-    transform: translateY(-2px);
-}
-
-/* ===== PROFESSIONAL PROFILE IMAGE STYLING ===== */
-
-.profile-image-glass {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    
-    /* Apple-style border */
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    
-    /* Smooth transition */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* Professional shadow */
-    box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.avatar-placeholder-glass {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    
-    /* Apple-style gradient */
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 13px;
-    
-    /* Professional border */
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    
-    /* Smooth transition */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* Professional shadow */
-    box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.username-glass {
-    font-weight: 500;
-    font-size: 14px;
-    color: #1d1d1f;
-    padding-right: 8px;
-    
-    /* Smooth transition */
-    transition: color 0.2s ease;
-}
-
-.profile-toggle-glass:hover .username-glass {
-    color: #1d1d1f;
-}
-} /* End auth & profile desktop styles */
+/* End auth & profile desktop styles */
 
 /* ===== EXPANDING PROFILE DROPDOWN - NATURAL EXTENSION ===== */
 
@@ -550,39 +611,40 @@
     top: 100%;
     left: 0;
     right: 0;
-    
+
     /* Начално състояние - скрито */
     opacity: 0;
     transform: scaleY(0);
     transform-origin: top;
     visibility: hidden;
-    
+
     /* Плавна анимация на разтягане */
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     /* Същия стил като profile toggle за единство */
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    
+
     /* Същата граница като profile toggle */
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-top: none; /* Без горна граница за плавен преход */
-    
+    border-top: none;
+    /* Без горна граница за плавен преход */
+
     /* Закръглени ъгли само отдолу */
     border-radius: 0 0 24px 24px;
-    
+
     /* Професионална сянка */
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.12),
         0 2px 8px rgba(0, 0, 0, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    
+
     overflow: hidden;
     padding: 0;
     margin: 0;
     z-index: 1060;
-    
+
     /* Ширината е винаги същата като profile toggle */
     width: 100%;
     min-width: auto;
@@ -601,19 +663,19 @@
     font-weight: 400;
     padding: 12px 16px;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     color: #1d1d1f;
     text-decoration: none;
     display: flex;
     align-items: center;
     gap: 12px;
-    
+
     border: none;
     background: transparent;
     width: 100%;
     text-align: left;
     cursor: pointer;
-    
+
     /* Subtle hover effect */
     position: relative;
     overflow: hidden;
@@ -666,14 +728,14 @@
     font-weight: 400;
     padding: 12px 16px;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     color: #d70015;
     text-decoration: none;
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    
+
     position: relative;
     overflow: hidden;
 }
@@ -739,7 +801,7 @@
     .mobile-toggler-glass {
         display: none !important;
     }
-    
+
     /* Hide mobile auth/profile that's inside mobile menu */
     .navbar-nav-section-glass .auth-buttons-glass,
     .navbar-nav-section-glass .profile-dropdown-glass {
@@ -754,11 +816,9 @@
     left: 0;
     right: 0;
     z-index: 1020;
-    background: linear-gradient(
-            180deg,
+    background: linear-gradient(180deg,
             rgba(255, 255, 255, 0.95) 0%,
-            rgba(255, 255, 255, 0.9) 100%
-    );
+            rgba(255, 255, 255, 0.9) 100%);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -767,7 +827,7 @@
     transform: translateY(-100%);
     opacity: 0;
     will-change: transform, opacity, max-height;
-    transition: 
+    transition:
         transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
         opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
         max-height 0.85s cubic-bezier(0.16, 1, 0.3, 1),
@@ -775,7 +835,8 @@
 }
 
 .vote-menu-container-glass.show {
-    margin-top: 60px; /* Точно под navbar-а */
+    margin-top: 60px;
+    /* Точно под navbar-а */
     max-height: 500px;
     padding: 1.5rem 0;
     transform: translateY(0);
@@ -794,7 +855,7 @@
     opacity: 0;
     visibility: hidden;
     will-change: opacity, visibility;
-    transition: 
+    transition:
         opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
         visibility 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -833,7 +894,7 @@
 .language-option .fi {
     font-size: 1.3rem;
     border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Language Dropdown */
@@ -918,5 +979,3 @@ body.translated {
     transform: translateZ(0);
     backface-visibility: hidden;
 }
-
-

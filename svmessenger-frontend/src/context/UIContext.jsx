@@ -36,6 +36,7 @@ export const UIProvider = ({ children, currentUser }) => {
     // UI State
     const [isChatListOpen, setIsChatListOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
     // Refs
     const nextZIndex = useRef(1000);
@@ -64,6 +65,14 @@ export const UIProvider = ({ children, currentUser }) => {
 
     const closeSearch = useCallback(() => {
         setIsSearchOpen(false);
+    }, []);
+
+    const openDownloadModal = useCallback(() => {
+        setIsDownloadModalOpen(true);
+    }, []);
+
+    const closeDownloadModal = useCallback(() => {
+        setIsDownloadModalOpen(false);
     }, []);
 
     const calculateInitialPosition = useCallback(() => {
@@ -224,7 +233,8 @@ export const UIProvider = ({ children, currentUser }) => {
                     startConversationReact: startConversationReactWithAutoOpen,
                     openChat: openChat,
                     openChatList: openChatList,
-                    openSearch: openSearch
+                    openSearch: openSearch,
+                    openDownloadModal: openDownloadModal
                 };
             } catch (error) {
                 console.error('SVMessenger: Error exposing global API:', error);
@@ -238,7 +248,7 @@ export const UIProvider = ({ children, currentUser }) => {
                 delete window.SVMessenger;
             }
         };
-    }, [openChat, openChatList, openSearch, startConversation]);
+    }, [openChat, openChatList, openSearch, startConversation, openDownloadModal]);
 
     // ========== CONTEXT VALUE ==========
 
@@ -259,6 +269,9 @@ export const UIProvider = ({ children, currentUser }) => {
         restoreChat,
         bringToFront,
         updateChatPosition,
+        isDownloadModalOpen,
+        openDownloadModal,
+        closeDownloadModal,
 
         // Refs
         activeChatsRef
