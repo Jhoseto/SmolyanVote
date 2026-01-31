@@ -275,12 +275,13 @@ export const svMessengerAPI = {
   // ========== TRANSLATION ==========
 
   /**
-   * Преведи текст чрез Gemini API
+   * Translate and save message (new per-user translation system)
+   * Calls /translate-and-save which checks DB cache first
    */
-  translateMessage: async (text, targetLanguage) => {
-    return fetchAPI(`${BASE_URL}/translate`, {
+  translateAndSaveMessage: async (messageId, targetLanguage) => {
+    return fetchAPI(`${BASE_URL}/translate-and-save`, {
       method: 'POST',
-      body: JSON.stringify({ text, targetLanguage })
+      body: JSON.stringify({ messageId, targetLanguage })
     });
   }
 };

@@ -38,7 +38,7 @@ public class SVConversationEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "last_message_preview", length = 100)
+    @Column(name = "last_message_preview", columnDefinition = "TEXT")
     private String lastMessagePreview;
 
     @Column(name = "user1_unread_count", nullable = false)
@@ -130,10 +130,14 @@ public class SVConversationEntity {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (user1UnreadCount == null) user1UnreadCount = 0;
-        if (user2UnreadCount == null) user2UnreadCount = 0;
-        if (isDeleted == null) isDeleted = false;
-        if (isHidden == null) isHidden = false;
+        if (user1UnreadCount == null)
+            user1UnreadCount = 0;
+        if (user2UnreadCount == null)
+            user2UnreadCount = 0;
+        if (isDeleted == null)
+            isDeleted = false;
+        if (isHidden == null)
+            isHidden = false;
     }
 
     @PreUpdate

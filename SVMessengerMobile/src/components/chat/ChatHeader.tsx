@@ -17,7 +17,6 @@ interface ChatHeaderProps {
   mutedUntil?: string; // New prop
   onBack?: () => void;
   onSearchPress?: () => void;
-  onTranslatePress?: () => void; // New prop
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -29,7 +28,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   mutedUntil,
   onBack,
   onSearchPress,
-  onTranslatePress,
 }) => {
   const { startCall } = useCalls();
   const { user } = useAuthStore();
@@ -145,11 +143,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (onSearchPress) onSearchPress();
   };
 
-  const handleTranslate = () => {
-    Vibration.vibrate(10);
-    closeMenu();
-    if (onTranslatePress) onTranslatePress();
-  };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -251,12 +244,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <Text style={styles.menuText}>Заглуши</Text>
               </TouchableOpacity>
 
-              <View style={styles.menuDivider} />
 
-              <TouchableOpacity onPress={handleTranslate} style={styles.menuItem}>
-                <LanguageIcon size={20} color={Colors.text.primary} />
-                <Text style={styles.menuText}>Превод</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>

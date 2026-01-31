@@ -1,38 +1,30 @@
-import { API_URL } from '../../config/api';
-import { useAuthStore } from '../../store/authStore';
+import apiClient from './client';
+import { API_CONFIG } from '../../config/api';
 import { logger } from '../../utils/logger';
 
-export const translateText = async (text: string, targetLanguage: string): Promise<string | null> => {
+/**
+ * Translate and save message (new per-user translation system)
+ * Calls /translate-and-save which checks DB cache first
+ */
+export const translateAndSaveMessage = async (
+    messageId: number,
+    targetLanguage: string
+): Promise<{ translatedText: string; cached: boolean } | null> => {
     try {
-        const token = useAuthStore.getState().token;
-
-        if (!token) {
-            logger.error('No auth token available for translation');
-            return null;
-        }
-
-        const response = await fetch(`${API_URL}/messenger/translate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                text,
+        const response = await apiClient.post(
+            '/api/svmessenger/translate-and-save',
+            {
+                messageId,
                 targetLanguage,
-            }),
-        });
+            }
+        );
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            logger.error(`Translation failed: ${response.status} ${errorText}`);
-            return null;
-        }
-
-        const data = await response.json();
-        return data.translated;
+        return {
+            translatedText: response.data.translatedText,
+            cached: response.data.cached || false,
+        };
     } catch (error) {
-        logger.error('Error translating text:', error);
+        logger.error('Error translating message:', error);
         return null;
     }
 };

@@ -40,7 +40,6 @@ import { useCallsStore } from '../../store/callsStore';
 import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
-import { translateText } from '../../services/api/translationService';
 import { logger } from '../../utils/logger';
 
 
@@ -114,94 +113,7 @@ export const ChatScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { clearMissedCalls } = useConversationsStore();
 
-  // Translation State
-  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState('bg');
-  const [showTranslationSettings, setShowTranslationSettings] = useState(false);
-  const [translatedMessages, setTranslatedMessages] = useState<Record<number, string>>({});
-
-  const LANGUAGES = [
-    { code: 'bg', name: 'Български' },
-    { code: 'en', name: 'English' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'el', name: 'Ελληνικά' },
-    { code: 'tr', name: 'Türkçe' },
-  ];
-
-  // Load Settings
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const savedSettings = await AsyncStorage.getItem(`translation_settings_${conversationId}`);
-        if (savedSettings) {
-          const { enabled, language } = JSON.parse(savedSettings);
-          setIsTranslationEnabled(enabled);
-          if (language) setTargetLanguage(language);
-        }
-      } catch (error) {
-        logger.error('Failed to load translation settings', error);
-      }
-    };
-    loadSettings();
-  }, [conversationId]);
-
-  // Save Settings
-  const saveSettings = async (enabled: boolean, language: string) => {
-    try {
-      await AsyncStorage.setItem(`translation_settings_${conversationId}`, JSON.stringify({
-        enabled,
-        language
-      }));
-    } catch (error) {
-      logger.error('Failed to save translation settings', error);
-    }
-  };
-
-  const handleToggleTranslation = (value: boolean) => {
-    setIsTranslationEnabled(value);
-    saveSettings(value, targetLanguage);
-  };
-
-  const handleLanguageChange = (lang: string) => {
-    setTargetLanguage(lang);
-    saveSettings(isTranslationEnabled, lang);
-  };
-
-  // Translation Effect
-  useEffect(() => {
-    const performTranslation = async () => {
-      if (!isTranslationEnabled) return;
-
-      const messagesToTranslate = messages.filter(msg =>
-        msg.senderId !== user?.id &&
-        msg.text &&
-        !translatedMessages[`${msg.id}_${targetLanguage}`]
-      );
-
-      for (const msg of messagesToTranslate) {
-        try {
-          const cacheKey = `${msg.id}_${targetLanguage}`;
-          // Double check inside loop
-          if (translatedMessages[cacheKey]) continue;
-
-          const translated = await translateText(msg.text, targetLanguage);
-          if (translated) {
-            setTranslatedMessages(prev => ({
-              ...prev,
-              [cacheKey]: translated,
-              [msg.id]: translated // Access by ID for current language
-            }));
-          }
-        } catch (e) {
-          logger.error("Translation error", e);
-        }
-      }
-    };
-
-    // Simple debounce
-    const timeout = setTimeout(performTranslation, 500);
-    return () => clearTimeout(timeout);
-  }, [messages, isTranslationEnabled, targetLanguage, user?.id]);
+  // Translation is now handled per-message in MessageBubble (on-demand)
 
   const {
     messages,
@@ -508,34 +420,8 @@ export const ChatScreen: React.FC = () => {
           participantId={participant?.id || 0}
           conversationId={conversationId}
           isOnline={participant?.isOnline || false}
-          /*  const handleCall = () => {
-    if (participant) {
-      // CRITICAL FIX: Pass existing conversationId to startCall to bypass backend check
-      // This prevents "500 Internal Server Error" if the backend endpoint is unstable
-      startCall(
-        participant.id,
-        participantName || participant.fullName || participant.username,
-        participant.imageUrl,
-        false, // isVideo
-        conversationId // existingConversationId
-      );
-    }
-  };
-
-  const handleVideoCall = () => {
-    if (participant) {
-      // CRITICAL FIX: Pass existing conversationId for video calls too
-      startCall(
-        participant.id,
-        participantName || participant.fullName || participant.username,
-        participant.imageUrl,
-        true, // isVideo
-        conversationId // existingConversationId
-      );
-    }
-  };  */onBack={() => navigation.goBack()}
+          onBack={() => navigation.goBack()}
           onSearchPress={() => setShowSearch(!showSearch)}
-          onTranslatePress={() => setShowTranslationSettings(true)}
         />
 
         {/* Message Search Bar */}
@@ -581,7 +467,6 @@ export const ChatScreen: React.FC = () => {
                       participantImageUrl={participant?.imageUrl}
                       participantName={participant?.fullName || participantName}
                       onReply={handleReply}
-                      translatedText={isTranslationEnabled ? translatedMessages[item.data.id] : undefined}
                     />
                   </SwipeableMessageWrapper>
                 );
@@ -654,62 +539,7 @@ export const ChatScreen: React.FC = () => {
         </KeyboardAvoidingView>
       </View>
 
-      {/* Translation Settings Modal */}
-      <Modal
-        visible={showTranslationSettings}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowTranslationSettings(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Настройки за превод</Text>
-              <TouchableOpacity
-                onPress={() => setShowTranslationSettings(false)}
-                style={styles.closeButton}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.switchContainer}>
-              <Text style={styles.switchLabel}>Автоматичен превод</Text>
-              <Switch
-                value={isTranslationEnabled}
-                onValueChange={handleToggleTranslation}
-                trackColor={{ false: '#767577', true: Colors.primary }}
-                thumbColor={isTranslationEnabled ? '#fff' : '#f4f3f4'}
-              />
-            </View>
-
-            {isTranslationEnabled && (
-              <>
-                <Text style={styles.sectionTitle}>Език на превода:</Text>
-                <View style={styles.languagesList}>
-                  {LANGUAGES.map((lang) => (
-                    <TouchableOpacity
-                      key={lang.code}
-                      style={[
-                        styles.languageOption,
-                        targetLanguage === lang.code && styles.selectedLanguage
-                      ]}
-                      onPress={() => handleLanguageChange(lang.code)}
-                    >
-                      <Text style={[
-                        styles.languageText,
-                        targetLanguage === lang.code && styles.selectedLanguageText
-                      ]}>
-                        {lang.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
     </ScreenBackground>
   );
 };

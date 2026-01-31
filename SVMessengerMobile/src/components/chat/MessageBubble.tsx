@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Message } from '../../types/message';
 import { Colors, Typography, Spacing } from '../../theme';
@@ -15,21 +15,29 @@ import { MessageMenu } from './MessageMenu';
 import { EditMessageModal } from './EditMessageModal';
 import { MessageStatusModal } from './MessageStatusModal';
 import { CheckIcon as HeroCheckIcon } from 'react-native-heroicons/outline';
+import { translateAndSaveMessage } from '../../services/api/translationService';
+import { logger } from '../../utils/logger';
 
 interface MessageBubbleProps {
   message: Message;
   participantImageUrl?: string;
   participantName?: string;
   onReply?: (message: Message) => void;
-  translatedText?: string | null; // New prop
 }
+
+const LANGUAGES = [
+  { code: 'bg', name: 'Български' },
+  { code: 'en', name: 'English' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'el', name: 'Ελληνικά' },
+  { code: 'tr', name: 'Türkçe' },
+];
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   participantImageUrl,
   participantName,
   onReply,
-  translatedText,
 }) => {
   const { user } = useAuthStore();
   const isOwnMessage = message.senderId === user?.id;
@@ -37,8 +45,35 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
 
+  // Translation state
+  const [showTranslateMenu, setShowTranslateMenu] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [translatingTo, setTranslatingTo] = useState<string | null>(null);
+
   const handleLongPress = () => {
-    setShowMenu(true);
+    // Only show translate menu for received messages (not own messages)
+    if (!isOwnMessage && message.text && message.text.length > 0) {
+      setShowTranslateMenu(true);
+    } else {
+      setShowMenu(true);
+    }
+  };
+
+  const handleTranslate = async (languageCode: string) => {
+    setShowTranslateMenu(false);
+    setTranslatingTo(languageCode);
+
+    try {
+      const response = await translateAndSaveMessage(message.id, languageCode);
+      if (response && response.translatedText) {
+        setTranslatedText(response.translatedText);
+      }
+    } catch (error) {
+      logger.error('Translation failed:', error);
+      Alert.alert('Грешка', 'Преводът не успя. Моля опитайте отново.');
+    } finally {
+      setTranslatingTo(null);
+    }
   };
 
   return (
@@ -98,262 +133,266 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <TouchableOpacity
                   onPress={() => setShowStatusModal(true)}
                   activeOpacity={0.7}
-                  style={styles.status}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  {!message.isDelivered ? (
-                    <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} />
-                  ) : message.isDelivered && !message.isRead ? (
-                    <View style={{ flexDirection: 'row', width: 18 }}>
-                      <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} style={{ marginRight: -8 }} />
-                      <HeroCheckIcon size={14} color="#d1fae5" strokeWidth={2} />
+                  {message.status === 'READ' ? (
+                    <View style={styles.doubleCheck}>
+                      <HeroCheckIcon size={14} color={'#34d399'} style={{ marginLeft: -8 }} />
+                      <HeroCheckIcon size={14} color={'#34d399'} style={{ marginLeft: -8 }} />
+                    </View>
+                  ) : message.status === 'DELIVERED' ? (
+                    <View style={styles.doubleCheck}>
+                      <HeroCheckIcon size={14} color={'#d1fae5'} style={{ marginLeft: -8 }} />
+                      <HeroCheckIcon size={14} color={'#d1fae5'} style={{ marginLeft: -8 }} />
                     </View>
                   ) : (
-                    <View style={{ flexDirection: 'row', width: 18 }}>
-                      <HeroCheckIcon size={14} color="#fbbf24" strokeWidth={2.5} style={{ marginRight: -8 }} />
-                      <HeroCheckIcon size={14} color="#fbbf24" strokeWidth={2.5} />
-                    </View>
+                    <HeroCheckIcon size={14} color={'#d1fae5'} />
                   )}
                 </TouchableOpacity>
               </View>
             </LinearGradient>
           ) : (
-            <View style={styles.otherMessageContainer}>
-              <Avatar
-                imageUrl={participantImageUrl}
-                name={participantName || 'User'}
-                size={32}
-                style={styles.messageAvatar}
-              />
-              <View
-                style={[
-                  styles.bubble,
-                  styles.receivedBubble,
-                  styles.otherBubble,
-                ]}
-              >
+            <>
+              <View style={styles.avatarContainer}>
+                <Avatar uri={participantImageUrl} size={32} />
+              </View>
+              <View style={[styles.bubble, styles.receivedBubble, { borderBottomLeftRadius: 2 }]}>
                 {/* Reply Preview */}
                 {message.parentMessageText && (
                   <View style={styles.replyPreview}>
-                    <View style={[styles.replyLine, styles.replyLineOther]} />
+                    <View style={[styles.replyLine, { backgroundColor: Colors.green[600] }]} />
                     <View style={styles.replyContent}>
-                      <Text style={styles.replyText} numberOfLines={2}>
+                      <Text style={[styles.replyText, { color: Colors.text.secondary }]} numberOfLines={2}>
                         {message.parentMessageText}
                       </Text>
                     </View>
                   </View>
                 )}
+
+
                 <Text style={[styles.text, styles.otherText]}>
-                  {message.text}
+                  {translatedText || message.text}
                 </Text>
 
-                {/* Translated Text Display */}
-                {translatedText && (
-                  <View style={{ marginTop: 4, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.1)' }}>
-                    <Text style={[styles.text, styles.otherText, { fontStyle: 'italic', fontSize: 14, color: '#111827', fontWeight: '500' }]}>
-                      {translatedText}
-                    </Text>
-                    <Text style={{ fontSize: 9, color: Colors.text.tertiary, marginTop: 2 }}>
-                      Преведено с Gemini ✨
-                    </Text>
+                {/* Translating Indicator */}
+                {translatingTo && (
+                  <View style={styles.translatingContainer}>
+                    <Text style={styles.translatingText}>Translating...</Text>
                   </View>
                 )}
 
+
+
                 {message.isEdited && (
-                  <Text style={styles.editedBadge}>Редактирано</Text>
+                  <Text style={[styles.editedBadge, { color: Colors.text.secondary }]}>Редактирано</Text>
                 )}
 
-                <View style={styles.footer}>
-                  <Text style={styles.time}>
-                    {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false,
-                    })}
-                  </Text>
-                </View>
+                <Text style={[styles.time, { color: Colors.text.secondary }]}>
+                  {new Date(message.createdAt).toLocaleTimeString('bg-BG', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  })}
+                </Text>
               </View>
-            </View>
+            </>
           )}
         </TouchableOpacity>
       </FadeInView>
 
-      {/* Message Menu */}
-      <MessageMenu
-        visible={showMenu}
-        messageId={message.id}
-        conversationId={message.conversationId}
-        messageText={message.text}
-        isOwnMessage={isOwnMessage}
-        onClose={() => setShowMenu(false)}
-        onEdit={() => setShowEditModal(true)}
-        onReply={() => onReply?.(message)}
-      />
+      {/* Translation Language Selector */}
+      <Modal
+        visible={showTranslateMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTranslateMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTranslateMenu(false)}
+        >
+          <View style={styles.translationMenu}>
+            <Text style={styles.translationMenuTitle}>Превод на</Text>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.languageOption}
+                onPress={() => handleTranslate(lang.code)}
+              >
+                <Text style={styles.languageOptionText}>{lang.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
-      {/* Edit Message Modal */}
+      {/* Message Menu (for own messages) */}
+      {showMenu && (
+        <MessageMenu
+          message={message}
+          onClose={() => setShowMenu(false)}
+          onEdit={() => {
+            setShowMenu(false);
+            setShowEditModal(true);
+          }}
+          onReply={() => {
+            setShowMenu(false);
+            if (onReply) onReply(message);
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
       {showEditModal && (
         <EditMessageModal
-          visible={showEditModal}
-          messageId={message.id}
-          currentText={message.text}
+          message={message}
           onClose={() => setShowEditModal(false)}
         />
       )}
 
-      {/* Message Status Modal */}
-      <MessageStatusModal
-        visible={showStatusModal}
-        message={message}
-        onClose={() => setShowStatusModal(false)}
-      />
+      {/* Status Modal */}
+      {showStatusModal && (
+        <MessageStatusModal
+          message={message}
+          onClose={() => setShowStatusModal(false)}
+        />
+      )}
     </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: Spacing.xs,
-    flexDirection: 'row',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 2,
+    marginVertical: 2,
   },
   ownMessage: {
-    justifyContent: 'flex-end',
-  },
-  otherMessage: {
-    justifyContent: 'flex-start',
-  },
-  otherMessageContainer: {
-    flexDirection: 'row',
+    alignSelf: 'flex-end',
     alignItems: 'flex-end',
-    gap: Spacing.xs,
     maxWidth: '85%',
   },
-  messageAvatar: {
-    marginBottom: 2,
+  otherMessage: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    maxWidth: '85%',
+  },
+  avatarContainer: {
+    marginRight: Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 2,
   },
   bubble: {
-    maxWidth: '75%',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    maxWidth: '100%',
   },
   sentBubble: {
-    marginLeft: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(250, 204, 21, 0.3)', // Subtle Gold Border
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
   },
   receivedBubble: {
-    marginRight: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // More glassy
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    backdropFilter: 'blur(10px)', // Helps on some versions, ignored on others
+    backgroundColor: Colors.background.secondary,
+    flex: 1,
   },
   shine: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: '45%',
-    backgroundColor: 'rgba(255, 255, 255, 0.07)', // More subtle shine
+    height: '40%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    borderBottomLeftRadius: 25, // More organic curve
-    borderBottomRightRadius: 25,
-    transform: [{ scaleX: 1.2 }, { translateY: -2 }],
-  },
-  otherBubble: {
-    borderBottomLeftRadius: 6,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-  },
-  text: {
-    fontSize: 13, // var(--svm-font-size-sm)
-    lineHeight: 18.2, // 1.4 * 13
-    wordWrap: 'break-word',
-  },
-  ownText: {
-    color: '#ffffff', // White text
-  },
-  otherText: {
-    color: '#374151', // --svm-bubble-received-text: #374151
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    justifyContent: 'flex-end',
-  },
-  time: {
-    fontSize: 8, // 8px като web версията
-    color: '#6b7280',
-    opacity: 0.8,
-    marginRight: 2,
-    fontWeight: '400',
-    lineHeight: 9.6, // 1.2 * 8
-  },
-  status: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 1,
-  },
-  statusIcon: {
-    fontSize: 8, // 8px като web версията
-    color: '#6b7280', // Сиво по default
-    fontWeight: '400',
-    lineHeight: 9.6, // 1.2 * 8
-  },
-  readIcon: {
-    color: '#ffffff', // Бяло за прочетени съобщения (като web версията)
-  },
-  editedBadge: {
-    fontSize: 10,
-    color: '#6b7280',
-    fontStyle: 'italic',
-    marginTop: 2,
   },
   replyPreview: {
     flexDirection: 'row',
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    marginBottom: 6,
+    paddingLeft: 8,
   },
   replyLine: {
     width: 3,
-    backgroundColor: Colors.green[500],
-    borderRadius: 2,
+    borderRadius: 1.5,
     marginRight: 8,
-  },
-  replyLineOther: {
-    backgroundColor: Colors.gray[400],
   },
   replyContent: {
     flex: 1,
   },
-  replyAuthor: {
-    fontSize: 11,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.secondary,
-    marginBottom: 2,
-  },
   replyText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  text: {
+    fontSize: Typography.fontSize.base,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+  },
+  ownText: {
+    color: '#fff',
+  },
+  otherText: {
+    color: Colors.text.primary,
+  },
+  editedBadge: {
+    fontSize: 11,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  time: {
+    fontSize: 11,
+  },
+  doubleCheck: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  translatingContainer: {
+    marginTop: 4,
+  },
+  translatingText: {
     fontSize: 12,
-    color: Colors.text.tertiary,
-    lineHeight: 16,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  translationMenu: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: Spacing.md,
+    minWidth: 200,
+    maxWidth: '80%',
+  },
+  translationMenuTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  languageOption: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 8,
+    marginVertical: 4,
+    backgroundColor: Colors.background.secondary,
+  },
+  languageOptionText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    textAlign: 'center',
   },
 });
-

@@ -15,6 +15,9 @@ const SVMessageInput = ({ conversationId }) => {
   const textareaRef = useRef(null);
   const emojiButtonRef = useRef(null);
 
+  const MAX_LENGTH = 3000;
+  const WARNING_THRESHOLD = 2700;
+
   // Typing status hook
   const { handleTyping, stopTyping } = useSVTypingStatus(
     conversationId,
@@ -37,7 +40,7 @@ const SVMessageInput = ({ conversationId }) => {
       const lineHeight = 20;
       const minHeight = 40;
       const maxHeight = 120;
-      
+
       textarea.style.height = 'auto';
       const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
       textarea.style.height = `${newHeight}px`;
@@ -46,9 +49,16 @@ const SVMessageInput = ({ conversationId }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (messageText.trim()) {
-      sendMessage(conversationId, messageText.trim());
+
+    const trimmedText = messageText.trim();
+
+    if (trimmedText) {
+      if (trimmedText.length > MAX_LENGTH) {
+        alert(`Съобщението е твърде дълго (максимум ${MAX_LENGTH} символа)`);
+        return;
+      }
+
+      sendMessage(conversationId, trimmedText);
       setMessageText('');
       stopTyping();
       if (textareaRef.current) {
@@ -113,14 +123,14 @@ const SVMessageInput = ({ conversationId }) => {
       <form onSubmit={handleSubmit} className="svmessenger-input-form">
         <div className="svmessenger-input-container">
           {/* Attach Button */}
-          <button 
+          <button
             type="button"
             className="svmessenger-attach-btn"
             onClick={handleAttachClick}
             title="Прикачи файл"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+              <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
             </svg>
           </button>
 
@@ -136,12 +146,12 @@ const SVMessageInput = ({ conversationId }) => {
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
               rows={1}
-              maxLength={2000}
+              maxLength={MAX_LENGTH}
             />
           </div>
 
           {/* Emoji Button - always visible like Facebook */}
-          <button 
+          <button
             ref={emojiButtonRef}
             type="button"
             className={`svmessenger-emoji-btn ${showEmojiPicker ? 'active' : ''}`}
@@ -149,7 +159,7 @@ const SVMessageInput = ({ conversationId }) => {
             title="Емотикони"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9c.83 0 1.5-.67 1.5-1.5S9.33 8.5 8.5 8.5 7 9.17 7 10s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9c.83 0 1.5-.67 1.5-1.5S9.33 8.5 8.5 8.5 7 9.17 7 10s.67 1.5 1.5 1.5zm7 0c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
             </svg>
           </button>
 
@@ -161,7 +171,7 @@ const SVMessageInput = ({ conversationId }) => {
               title="Изпрати съобщение"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
               </svg>
             </button>
           ) : (
@@ -172,15 +182,25 @@ const SVMessageInput = ({ conversationId }) => {
               disabled
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
               </svg>
             </button>
           )}
         </div>
 
-          {/* Helper text */}
+        {/* Helper text with character counter */}
         <div className="svmessenger-input-helper">
-          Натисни Enter за изпращане • Shift+Enter за нов ред
+          <span>Натисни Enter за изпращане • Shift+Enter за нов ред</span>
+          {messageText.length > 0 && (
+            <span
+              className="svmessenger-char-counter"
+              style={{
+                color: messageText.length >= WARNING_THRESHOLD ? '#ef4444' : messageText.length >= (MAX_LENGTH - 500) ? '#f59e0b' : '#6b7280'
+              }}
+            >
+              {messageText.length}/{MAX_LENGTH}
+            </span>
+          )}
         </div>
       </form>
 

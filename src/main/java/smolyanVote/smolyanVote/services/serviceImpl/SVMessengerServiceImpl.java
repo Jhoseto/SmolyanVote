@@ -180,8 +180,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 throw new IllegalArgumentException("Message cannot be empty");
             }
 
-            if (text.length() > 5000) {
-                throw new IllegalArgumentException("Message too long (max 5000 characters)");
+            if (text.length() > 3000) {
+                throw new IllegalArgumentException("Съобщението е твърде дълго (максимум 3000 символа)");
             }
 
             // Get conversation
@@ -211,7 +211,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             message = messageRepo.save(message);
 
             // Update conversation
-            conversation.setLastMessagePreview(truncateText(text, 100));
+            conversation.setLastMessagePreview(truncateText(text, 2900));
             conversation.setUpdatedAt(LocalDateTime.now());
 
             UserEntity otherUser = conversation.getOtherUser(sender);

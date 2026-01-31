@@ -7,138 +7,141 @@
 
 /* ========== CSS VARIABLES - PREMIUM PALETTE ========== */
 :root {
-    /* SmolyanVote Green Palette - 10 Nuances */
+  /* SmolyanVote Green Palette - 10 Nuances */
   --svm-green-50: #f0fdf4;
   --svm-green-100: #dcfce7;
   --svm-green-200: #bbf7d0;
   --svm-green-300: #86efac;
   --svm-green-400: #4ade80;
-    --svm-green-500: #22c55e; /* Primary Green */
+  --svm-green-500: #22c55e;
+  /* Primary Green */
   --svm-green-600: #16a34a;
   --svm-green-700: #15803d;
   --svm-green-800: #166534;
   --svm-green-900: #14532d;
-  
-    /* Neutral Palette - 10 Nuances */
-    --svm-white: #ffffff;
+
+  /* Neutral Palette - 10 Nuances */
+  --svm-white: #ffffff;
   --svm-gray-50: #f9fafb;
   --svm-gray-100: #f3f4f6;
   --svm-gray-200: #e5e7eb;
   --svm-gray-300: #d1d5db;
   --svm-gray-400: #9ca3af;
-    --svm-gray-500: #6b7280; /* Secondary Text */
+  --svm-gray-500: #6b7280;
+  /* Secondary Text */
   --svm-gray-600: #4b5563;
   --svm-gray-700: #374151;
   --svm-gray-800: #1f2937;
-    --svm-gray-900: #111827; /* Primary Text */
+  --svm-gray-900: #111827;
+  /* Primary Text */
 
-    /* Semantic Colors */
-    --svm-primary: var(--svm-green-500);
-    --svm-primary-dark: var(--svm-green-700);
-    --svm-primary-light: var(--svm-green-300);
-    --svm-accent: var(--svm-green-600);
-    --svm-error: #ef4444;
-    --svm-success: var(--svm-green-500);
-    --svm-warning: #f59e0b;
-    --svm-info: #3b82f6;
+  /* Semantic Colors */
+  --svm-primary: var(--svm-green-500);
+  --svm-primary-dark: var(--svm-green-700);
+  --svm-primary-light: var(--svm-green-300);
+  --svm-accent: var(--svm-green-600);
+  --svm-error: #ef4444;
+  --svm-success: var(--svm-green-500);
+  --svm-warning: #f59e0b;
+  --svm-info: #3b82f6;
 
-    /* Backgrounds */
-    --svm-bg-primary: var(--svm-white);
-    --svm-bg-secondary: var(--svm-gray-50);
-    --svm-bg-tertiary: var(--svm-gray-100);
+  /* Backgrounds */
+  --svm-bg-primary: var(--svm-white);
+  --svm-bg-secondary: var(--svm-gray-50);
+  --svm-bg-tertiary: var(--svm-gray-100);
 
-    /* Text */
-    --svm-text-primary: var(--svm-gray-900);
-    --svm-text-secondary: var(--svm-gray-600);
-    --svm-text-tertiary: var(--svm-gray-400);
-    --svm-text-light: var(--svm-white);
+  /* Text */
+  --svm-text-primary: var(--svm-gray-900);
+  --svm-text-secondary: var(--svm-gray-600);
+  --svm-text-tertiary: var(--svm-gray-400);
+  --svm-text-light: var(--svm-white);
 
-    /* Borders & Dividers */
-    --svm-border-light: var(--svm-gray-200);
-    --svm-border-medium: var(--svm-gray-300);
-    --svm-border-dark: var(--svm-gray-400);
+  /* Borders & Dividers */
+  --svm-border-light: var(--svm-gray-200);
+  --svm-border-medium: var(--svm-gray-300);
+  --svm-border-dark: var(--svm-gray-400);
 
-    /* Message Bubbles */
-    --svm-bubble-sent: var(--svm-primary);
-    --svm-bubble-sent-text: var(--svm-white);
-    --svm-bubble-received: var(--svm-bg-tertiary);
-    --svm-bubble-received-text: var(--svm-text-primary);
-    
-    /* Enhanced Message Colors */
-    --svm-bubble-sent-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 30%, #bae6fd 70%, #7dd3fc 100%);
-    --svm-bubble-received-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
-    --svm-bubble-sent-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
-    --svm-bubble-received-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --svm-bubble-sent-glow: 0 0 15px rgba(34, 197, 94, 0.1);
-    --svm-bubble-received-glow: 0 0 10px rgba(0, 0, 0, 0.05);
-    
-    /* Text Colors */
-    --svm-bubble-sent-text: #1f2937;
-    --svm-bubble-received-text: #374151;
+  /* Message Bubbles */
+  --svm-bubble-sent: var(--svm-primary);
+  --svm-bubble-sent-text: var(--svm-white);
+  --svm-bubble-received: var(--svm-bg-tertiary);
+  --svm-bubble-received-text: var(--svm-text-primary);
 
-    /* Glassmorphism */
-    --svm-glass-bg: rgba(255, 255, 255, 0.7);
-    --svm-glass-border: rgba(255, 255, 255, 0.2);
-    --svm-glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-    --svm-glass-green: rgba(34, 197, 94, 0.1);
-  
+  /* Enhanced Message Colors */
+  --svm-bubble-sent-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 30%, #bae6fd 70%, #7dd3fc 100%);
+  --svm-bubble-received-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  --svm-bubble-sent-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+  --svm-bubble-received-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --svm-bubble-sent-glow: 0 0 15px rgba(34, 197, 94, 0.1);
+  --svm-bubble-received-glow: 0 0 10px rgba(0, 0, 0, 0.05);
+
+  /* Text Colors */
+  --svm-bubble-sent-text: #1f2937;
+  --svm-bubble-received-text: #374151;
+
+  /* Glassmorphism */
+  --svm-glass-bg: rgba(255, 255, 255, 0.7);
+  --svm-glass-border: rgba(255, 255, 255, 0.2);
+  --svm-glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  --svm-glass-green: rgba(34, 197, 94, 0.1);
+
   /* Gradients */
-    --svm-gradient-primary: linear-gradient(135deg, var(--svm-green-500) 0%, var(--svm-green-600) 100%);
-    --svm-gradient-secondary: linear-gradient(135deg, var(--svm-gray-100) 0%, var(--svm-gray-200) 100%);
-    --svm-gradient-light: linear-gradient(135deg, var(--svm-green-100) 0%, var(--svm-green-200) 100%);
+  --svm-gradient-primary: linear-gradient(135deg, var(--svm-green-500) 0%, var(--svm-green-600) 100%);
+  --svm-gradient-secondary: linear-gradient(135deg, var(--svm-gray-100) 0%, var(--svm-gray-200) 100%);
+  --svm-gradient-light: linear-gradient(135deg, var(--svm-green-100) 0%, var(--svm-green-200) 100%);
 
-    /* Shadows - Subtle & Layered */
-    --svm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --svm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --svm-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-    --svm-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.08);
-    --svm-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2), 0 8px 10px rgba(0, 0, 0, 0.12);
-    --svm-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+  /* Shadows - Subtle & Layered */
+  --svm-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --svm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --svm-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --svm-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.08);
+  --svm-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2), 0 8px 10px rgba(0, 0, 0, 0.12);
+  --svm-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
 
-    /* Border Radius - Consistent & Soft */
-    --svm-radius-xs: 4px;
+  /* Border Radius - Consistent & Soft */
+  --svm-radius-xs: 4px;
   --svm-radius-sm: 6px;
   --svm-radius-md: 8px;
   --svm-radius-lg: 12px;
   --svm-radius-xl: 16px;
-    --svm-radius-pill: 9999px;
+  --svm-radius-pill: 9999px;
 
-    /* Transitions - Smooth & Responsive */
-    --svm-transition-fast: 0.15s ease-out;
-    --svm-transition-base: 0.25s ease-out;
-    --svm-transition-slow: 0.35s ease-out;
-    --svm-transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Transitions - Smooth & Responsive */
+  --svm-transition-fast: 0.15s ease-out;
+  --svm-transition-base: 0.25s ease-out;
+  --svm-transition-slow: 0.35s ease-out;
+  --svm-transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    /* Spacing - Modular Scale */
+  /* Spacing - Modular Scale */
   --svm-space-1: 4px;
   --svm-space-2: 8px;
   --svm-space-3: 12px;
   --svm-space-4: 16px;
   --svm-space-5: 20px;
   --svm-space-6: 24px;
-    --svm-space-7: 28px;
+  --svm-space-7: 28px;
   --svm-space-8: 32px;
   --svm-space-10: 40px;
 
-    /* Z-index - Layering */
-    --svm-z-low: 10;
-    --svm-z-mid: 100;
+  /* Z-index - Layering */
+  --svm-z-low: 10;
+  --svm-z-mid: 100;
   --svm-z-high: 1000;
-    --svm-z-tooltip: 10000;
-    --svm-z-modal: 100000;
+  --svm-z-tooltip: 10000;
+  --svm-z-modal: 100000;
 
-    /* Typography - Apple System Fonts */
-    --svm-font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-    --svm-font-size-xs: 11px;
-    --svm-font-size-sm: 13px;
-    --svm-font-size-base: 15px;
-    --svm-font-size-lg: 17px;
-    --svm-font-size-xl: 20px;
-    --svm-font-weight-light: 300;
-    --svm-font-weight-normal: 400;
-    --svm-font-weight-medium: 500;
-    --svm-font-weight-semibold: 600;
-    --svm-font-weight-bold: 700;
+  /* Typography - Apple System Fonts */
+  --svm-font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --svm-font-size-xs: 11px;
+  --svm-font-size-sm: 13px;
+  --svm-font-size-base: 15px;
+  --svm-font-size-lg: 17px;
+  --svm-font-size-xl: 20px;
+  --svm-font-weight-light: 300;
+  --svm-font-weight-normal: 400;
+  --svm-font-weight-medium: 500;
+  --svm-font-weight-semibold: 600;
+  --svm-font-weight-bold: 700;
 }
 
 /* ========== RESET & BASE ========== */
@@ -150,13 +153,13 @@
 
 .svmessenger-widget {
   position: fixed;
-    bottom: var(--svm-space-6);
-    right: var(--svm-space-6);
-    z-index: var(--svm-z-high);
+  bottom: var(--svm-space-6);
+  right: var(--svm-space-6);
+  z-index: var(--svm-z-high);
   font-family: var(--svm-font-family);
-    font-size: var(--svm-font-size-base);
+  font-size: var(--svm-font-size-base);
   line-height: 1.5;
-    color: var(--svm-text-primary);
+  color: var(--svm-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -186,234 +189,250 @@
 
 /* Floating Animation */
 @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-8px) rotate(2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
 }
 
 .svmessenger-fab:hover {
-    animation: none;
-    background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
-    box-shadow: 0 20px 25px rgba(74, 222, 128, 0.4), 0 8px 10px rgba(0, 0, 0, 0.15);
-    transform: scale(1.1) translateY(-4px);
+  animation: none;
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+  box-shadow: 0 20px 25px rgba(74, 222, 128, 0.4), 0 8px 10px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1) translateY(-4px);
 }
 
 .svmessenger-fab:active {
-    transform: translateY(0) scale(0.98);
-    transition-duration: 100ms;
+  transform: translateY(0) scale(0.98);
+  transition-duration: 100ms;
 }
 
 /* Ripple Effect */
 .svmessenger-fab:before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s ease-out, height 0.6s ease-out;
-    pointer-events: none;
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease-out, height 0.6s ease-out;
+  pointer-events: none;
 }
 
 .svmessenger-fab:active:before {
-    width: 200px;
-    height: 200px;
-    opacity: 0;
-    transition: width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out;
+  width: 200px;
+  height: 200px;
+  opacity: 0;
+  transition: width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out;
 }
 
 /* Icon */
 .svmessenger-fab svg {
-    width: 28px;
-    height: 28px;
+  width: 28px;
+  height: 28px;
   color: var(--svm-white);
-    position: relative;
-    z-index: 1;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   transition: transform var(--svm-transition-base);
 }
 
 .svmessenger-fab:hover svg {
-    transform: scale(1.1) rotate(5deg);
+  transform: scale(1.1) rotate(5deg);
 }
 
 /* Badge */
 .svmessenger-badge {
   position: absolute;
-    top: -3px;
-    right: -3px;
+  top: -3px;
+  right: -3px;
   min-width: 20px;
   height: 20px;
-    padding: 0 6px;
-    background: var(--svm-error);
+  padding: 0 6px;
+  background: var(--svm-error);
   color: var(--svm-white);
-    border-radius: var(--svm-radius-pill);
-    border: 2px solid var(--svm-white);
-    font-size: var(--svm-font-size-xs);
-    font-weight: var(--svm-font-weight-bold);
+  border-radius: var(--svm-radius-pill);
+  border: 2px solid var(--svm-white);
+  font-size: var(--svm-font-size-xs);
+  font-weight: var(--svm-font-weight-bold);
   display: flex;
   align-items: center;
   justify-content: center;
-    box-shadow: var(--svm-shadow-md);
+  box-shadow: var(--svm-shadow-md);
   animation: badge-pulse 2s infinite;
-    z-index: calc(var(--svm-z-high) + 1);
+  z-index: calc(var(--svm-z-high) + 1);
 }
 
 @keyframes badge-pulse {
-  0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 /* ========== TASKBAR ========== */
 .svmessenger-taskbar {
-    position: fixed;
-    bottom: 30px;
-    right: 90px;
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 8px;
-    z-index: var(--svm-z-high);
-    max-width: 800px;
+  position: fixed;
+  bottom: 30px;
+  right: 90px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 8px;
+  z-index: var(--svm-z-high);
+  max-width: 800px;
 }
 
 .svmessenger-taskbar-button {
-    position: relative;
-    width: 200px;
-    height: 50px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all var(--svm-transition-fast);
-    overflow: hidden;
-    border: 1px solid #E5E7EB;
-    background: #FFFFFF;
-    padding: 6px 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    flex-shrink: 0;
+  position: relative;
+  width: 200px;
+  height: 50px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--svm-transition-fast);
+  overflow: hidden;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .svmessenger-taskbar-button:hover {
-    transform: translateY(-2px);
-    border-color: #22c55e;
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
-    background: #FFFFFF;
+  transform: translateY(-2px);
+  border-color: #22c55e;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+  background: #FFFFFF;
 }
 
 .svmessenger-taskbar-button.active {
-    border-color: #22c55e;
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
 .svmessenger-taskbar-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  position: relative;
 }
 
 .svmessenger-taskbar-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .svmessenger-taskbar-avatar .svmessenger-online-indicator {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 12px;
-    height: 12px;
-    background: var(--svm-success);
-    border: 2px solid var(--svm-white);
-    border-radius: 50%;
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--svm-success);
+  border: 2px solid var(--svm-white);
+  border-radius: 50%;
 }
 
 .svmessenger-taskbar-name {
-    flex: 1;
-    color: var(--svm-text-primary);
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
+  flex: 1;
+  color: var(--svm-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .svmessenger-taskbar-badge {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: var(--svm-white);
-    border-radius: 12px;
-    min-width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: bold;
-    flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: var(--svm-white);
+  border-radius: 12px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.25);
 }
 
 .svmessenger-taskbar-close {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 18px;
-    height: 18px;
-    color: #000000;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: all var(--svm-transition-fast);
-    font-size: 10px;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 10;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  color: #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--svm-transition-fast);
+  font-size: 10px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 10;
 }
 
 .svmessenger-taskbar-button:hover .svmessenger-taskbar-close {
-    opacity: 1;
+  opacity: 1;
 }
 
 .svmessenger-taskbar-close:hover {
-    transform: scale(1.2);
+  transform: scale(1.2);
 }
 
 /* ========== CONVERSATION LIST ========== */
 .svmessenger-conversation-list,
 .svmessenger-user-search {
   position: fixed;
-    bottom: 100px;
+  bottom: 100px;
   right: 20px;
-    width: 400px;
-    max-height: 600px;
+  width: 400px;
+  max-height: 600px;
   background: #FFFFFF;
-    border: 1px solid var(--svm-border-light);
+  border: 1px solid var(--svm-border-light);
   border-radius: var(--svm-radius-xl);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-    animation: slideUpFade 0.4s var(--svm-transition-bounce);
-    z-index: calc(var(--svm-z-high) + 10); /* По-висок от taskbar */
+  animation: slideUpFade 0.4s var(--svm-transition-bounce);
+  z-index: calc(var(--svm-z-high) + 10);
+  /* По-висок от taskbar */
 }
 
 @keyframes slideUpFade {
   0% {
     opacity: 0;
-        transform: translateY(30px) scale(0.95);
+    transform: translateY(30px) scale(0.95);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -425,7 +444,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-    padding: var(--svm-space-4) var(--svm-space-6);
+  padding: var(--svm-space-4) var(--svm-space-6);
   background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   color: var(--svm-white);
   position: sticky;
@@ -450,16 +469,21 @@
 }
 
 @keyframes shimmer {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .svmessenger-conversation-header h3 {
-    font-size: 1.4rem;
-    font-weight: 400;
+  font-size: 1.4rem;
+  font-weight: 400;
   margin: 0;
-    letter-spacing: -0.3px;
-    color: white;
+  letter-spacing: -0.3px;
+  color: white;
 }
 
 .svmessenger-conversation-actions {
@@ -469,8 +493,8 @@
 
 .svmessenger-search-btn,
 .svmessenger-close-btn {
-    width: 40px;
-    height: 40px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: rgba(255, 255, 255, 0.2);
   color: var(--svm-white);
@@ -520,157 +544,163 @@
 
 .svmessenger-search-btn svg,
 .svmessenger-close-btn svg {
-    width: 20px;
-    height: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 /* Search Input */
 .svmessenger-search-input {
-    padding: var(--svm-space-4) var(--svm-space-5);
-    background: #FFFFFF;
-    border-bottom: 1px solid var(--svm-border-light);
-    position: relative;
+  padding: var(--svm-space-4) var(--svm-space-5);
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--svm-border-light);
+  position: relative;
 }
 
 .svmessenger-search-input input {
   width: 100%;
-    padding: var(--svm-space-3) var(--svm-space-4);
-    background: #F8F9FA;
-    border: 1px solid var(--svm-border-light);
-    border-radius: var(--svm-radius-pill);
-    font-size: var(--svm-font-size-sm);
-    color: var(--svm-text-primary);
+  padding: var(--svm-space-3) var(--svm-space-4);
+  background: #F8F9FA;
+  border: 1px solid var(--svm-border-light);
+  border-radius: var(--svm-radius-pill);
+  font-size: var(--svm-font-size-sm);
+  color: var(--svm-text-primary);
   transition: all var(--svm-transition-fast);
   outline: none;
   font-family: var(--svm-font-family);
 }
 
 .svmessenger-search-input input:focus {
-    border-color: #22c55e;
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
 .svmessenger-search-input input::placeholder {
-    color: var(--svm-text-tertiary);
+  color: var(--svm-text-tertiary);
 }
 
 .svmessenger-search-mode-indicator {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: #FFFFFF;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    pointer-events: none;
-    opacity: 0.9;
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #FFFFFF;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .svmessenger-search-section-header {
-    padding: 8px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--svm-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: #f9fafb;
-    border-bottom: 1px solid var(--svm-border-light);
-    margin-bottom: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--svm-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--svm-border-light);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .svmessenger-search-count {
-    font-size: 10px;
-    color: var(--svm-text-tertiary);
-    font-weight: 500;
-    text-transform: none;
+  font-size: 10px;
+  color: var(--svm-text-tertiary);
+  font-weight: 500;
+  text-transform: none;
 }
 
 /* Search Results Panel - над панела със следваните потребители */
 .svmessenger-search-results-panel {
-    flex-shrink: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border-bottom: 3px solid #22c55e;
-    background: #FFFFFF;
-    order: 1; /* Показва се преди Following Users Panel */
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(34, 197, 94, 0.1);
-    z-index: 5; /* На преден план пред Following Users Panel */
-    position: relative;
-    border-radius: 0;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-bottom: 3px solid #22c55e;
+  background: #FFFFFF;
+  order: 1;
+  /* Показва се преди Following Users Panel */
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(34, 197, 94, 0.1);
+  z-index: 5;
+  /* На преден план пред Following Users Panel */
+  position: relative;
+  border-radius: 0;
 }
 
 .svmessenger-search-results-panel::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .svmessenger-search-results-panel::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  background: #f1f1f1;
 }
 
 .svmessenger-search-results-panel::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
 .svmessenger-search-results-panel::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+  background: #94a3b8;
 }
 
 /* Following Users Panel - долу, винаги видим */
 .svmessenger-following-users-panel {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 200px;
-    order: 2; /* Показва се след Search Results Panel */
-    position: relative;
-    z-index: 1; /* Под Search Results Panel */
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  order: 2;
+  /* Показва се след Search Results Panel */
+  position: relative;
+  z-index: 1;
+  /* Под Search Results Panel */
 }
 
 .svmessenger-following-users-panel::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .svmessenger-following-users-panel::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  background: #f1f1f1;
 }
 
 .svmessenger-following-users-panel::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
 .svmessenger-following-users-panel::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+  background: #94a3b8;
 }
 
 /* Loading indicator в search bar-а */
 .svmessenger-search-loading-indicator {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    pointer-events: none;
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .svmessenger-spinner-small {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #e5e7eb;
-    border-top-color: #22c55e;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #22c55e;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Conversations List */
@@ -678,30 +708,30 @@
 .svmessenger-search-results {
   flex: 1;
   overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    padding-bottom: 25px;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  padding-bottom: 25px;
 }
 
 .svmessenger-conversations::-webkit-scrollbar,
 .svmessenger-search-results::-webkit-scrollbar {
-    width: 4px;
+  width: 4px;
 }
 
 .svmessenger-conversations::-webkit-scrollbar-track,
 .svmessenger-search-results::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .svmessenger-conversations::-webkit-scrollbar-thumb,
 .svmessenger-search-results::-webkit-scrollbar-thumb {
-    background: var(--svm-border-light);
-    border-radius: var(--svm-radius-pill);
+  background: var(--svm-border-light);
+  border-radius: var(--svm-radius-pill);
 }
 
 .svmessenger-conversations::-webkit-scrollbar-thumb:hover,
 .svmessenger-search-results::-webkit-scrollbar-thumb:hover {
-    background: var(--svm-text-tertiary);
+  background: var(--svm-text-tertiary);
 }
 
 /* Conversation Item */
@@ -709,12 +739,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-    padding: 12px 16px;
+  padding: 12px 16px;
   cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-bottom: 1px solid #E5E7EB;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid #E5E7EB;
   position: relative;
-    min-height: 72px;
+  min-height: 72px;
   background: #FFFFFF;
   border-left: 4px solid transparent;
   overflow: hidden;
@@ -793,23 +823,23 @@
 }
 
 .svmessenger-conversation-item:hover {
-    background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
 }
 
 .svmessenger-conversation-item:hover::before {
-    transform: scaleY(1);
+  transform: scaleY(1);
 }
 
 .svmessenger-conversation-item.active {
-    background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
-    border-left: 4px solid #22c55e;
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+  background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
+  border-left: 4px solid #22c55e;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
 }
 
 .svmessenger-conversation-item.active::before {
-    transform: scaleY(1);
+  transform: scaleY(1);
 }
 
 /* Avatar */
@@ -846,14 +876,14 @@
   height: 100%;
   border-radius: 50%;
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: var(--svm-white);
+  color: var(--svm-white);
   display: flex;
   align-items: center;
   justify-content: center;
-    font-size: var(--svm-font-size-xl);
-    font-weight: var(--svm-font-weight-bold);
-    border: 2px solid var(--svm-white);
-    box-shadow: var(--svm-shadow-sm);
+  font-size: var(--svm-font-size-xl);
+  font-weight: var(--svm-font-weight-bold);
+  border: 2px solid var(--svm-white);
+  box-shadow: var(--svm-shadow-sm);
 }
 
 /* Online Indicator */
@@ -872,27 +902,37 @@
 }
 
 .svmessenger-online-indicator.offline {
-    background: #ef4444;
-    box-shadow: 0 0 0 2px #ef4444, 0 2px 8px rgba(239, 68, 68, 0.3);
-    animation: none;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #ef4444, 0 2px 8px rgba(239, 68, 68, 0.3);
+  animation: none;
 }
 
 @keyframes online-pulse-rich {
-    0%, 100% { 
-      opacity: 1;
-      transform: scale(1);
-      box-shadow: 0 0 0 2px #22c55e, 0 2px 8px rgba(34, 197, 94, 0.4);
-    }
-    50% { 
-      opacity: 0.8;
-      transform: scale(1.1);
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2), 0 2px 8px rgba(34, 197, 94, 0.6);
-    }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 2px #22c55e, 0 2px 8px rgba(34, 197, 94, 0.4);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2), 0 2px 8px rgba(34, 197, 94, 0.6);
+  }
 }
 
 @keyframes online-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Conversation Info */
@@ -901,8 +941,8 @@
   flex: 1;
   min-width: 0;
   display: flex;
-    flex-direction: column;
-    gap: 2px;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .svmessenger-conversation-top-row {
@@ -914,178 +954,179 @@
 }
 
 .svmessenger-conversation-name {
-    font-size: 15px;
-    font-weight: var(--svm-font-weight-semibold);
-    color: #212529;
+  font-size: 15px;
+  font-weight: var(--svm-font-weight-semibold);
+  color: #212529;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-    margin: 0;
-    line-height: 1.3;
+  margin: 0;
+  line-height: 1.3;
 }
 
 .svmessenger-conversation-preview {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
 }
 
 .svmessenger-conversation-text {
-    font-size: 13px;
-    color: #6C757D;
+  font-size: 13px;
+  color: #6C757D;
   white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  overflow: hidden;
+  text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
   margin: 0;
-    line-height: 1.4;
+  line-height: 1.4;
 }
 
 .svmessenger-conversation-item.unread .svmessenger-conversation-preview,
 .svmessenger-conversation-item.unread .svmessenger-conversation-text {
-    color: #212529;
-    font-weight: var(--svm-font-weight-medium);
+  color: #212529;
+  font-weight: var(--svm-font-weight-medium);
 }
 
 /* Conversation Meta */
 .svmessenger-conversation-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--svm-space-1);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--svm-space-1);
 }
 
 .svmessenger-conversation-time {
-    font-size: 12px;
-    color: #6C757D;
-    white-space: nowrap;
-    flex-shrink: 0;
+  font-size: 12px;
+  color: #6C757D;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .svmessenger-conversation-item.unread .svmessenger-conversation-time {
-    color: #16a34a;
-    font-weight: var(--svm-font-weight-semibold);
+  color: #16a34a;
+  font-weight: var(--svm-font-weight-semibold);
 }
 
 .svmessenger-unread-badge,
 .svmessenger-conversation-unread {
-    min-width: 22px;
-    height: 22px;
-    padding: 0 8px;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: #FFFFFF;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-    box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
-    flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(34, 197, 94, 0.3);
+  flex-shrink: 0;
 }
 
 /* ========== USER SEARCH ========== */
 .svmessenger-search-list {
   display: flex;
   flex-direction: column;
-    gap: var(--svm-space-1);
-    padding: var(--svm-space-2);
+  gap: var(--svm-space-1);
+  padding: var(--svm-space-2);
 }
 
 .svmessenger-search-user-item {
   display: flex;
   align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #FFFFFF;
-    border-radius: var(--svm-radius-md);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
-    min-height: 72px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border-radius: var(--svm-radius-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  min-height: 72px;
 }
 
 .svmessenger-search-user-item:hover {
-    background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
-    border-color: #22c55e;
-    transform: translateX(8px);
-    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
+  background: linear-gradient(90deg, #f0fdf4 0%, #f0fdf4 100%);
+  border-color: #22c55e;
+  transform: translateX(8px);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
 }
 
 
 .svmessenger-search-user-avatar img {
   width: 100%;
   height: 100%;
-    border-radius: 50%;
+  border-radius: 50%;
   object-fit: cover;
-    border: 2px solid var(--svm-white);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid var(--svm-white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .svmessenger-search-user-info {
   flex: 1;
   min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .svmessenger-search-user-name {
-    font-size: 14px;
-    font-weight: var(--svm-font-weight-semibold);
-    color: var(--svm-text-primary);
+  font-size: 14px;
+  font-weight: var(--svm-font-weight-semibold);
+  color: var(--svm-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-    margin: 0;
-    line-height: 1.2;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .svmessenger-search-user-username {
-    font-size: 12px;
-    color: var(--svm-text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0;
-    line-height: 1.3;
+  font-size: 12px;
+  color: var(--svm-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  line-height: 1.3;
 }
 
 /* ========== CHAT WINDOW ========== */
 .svmessenger-chat-window {
-    position: fixed;
-    width: 400px;
-    height: 600px;
-    min-width: 300px;
-    min-height: 400px;
-    max-width: 800px;
-    max-height: 90vh;
-    background: #FFFFFF;
-    border: 1px solid var(--svm-border-light);
-    border-radius: var(--svm-radius-xl);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  position: fixed;
+  width: 400px;
+  height: 600px;
+  min-width: 300px;
+  min-height: 400px;
+  max-width: 800px;
+  max-height: 90vh;
+  background: #FFFFFF;
+  border: 1px solid var(--svm-border-light);
+  border-radius: var(--svm-radius-xl);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   /* overflow: hidden; - ПРЕМАХНАТО ЗА ДА СЕ ВИЖДА EMOJI PICKER */
-  overflow: visible; /* Позволява emoji picker да се вижда извън границите */
-    animation: slideUpFade 0.4s var(--svm-transition-bounce);
-    user-select: none;
-    z-index: var(--svm-z-high);
-    /* ➕ GPU OPTIMIZATION */
-    contain: layout style paint;
-    backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    /* ✅ НЕ scale(0.01) тук - иначе всички са скрити! */
+  overflow: visible;
+  /* Позволява emoji picker да се вижда извън границите */
+  animation: slideUpFade 0.4s var(--svm-transition-bounce);
+  user-select: none;
+  z-index: var(--svm-z-high);
+  /* ➕ GPU OPTIMIZATION */
+  contain: layout style paint;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  /* ✅ НЕ scale(0.01) тук - иначе всички са скрити! */
 }
 
 .svmessenger-chat-window.dragging {
   cursor: move;
   transition: none;
-    z-index: var(--svm-z-modal);
+  z-index: var(--svm-z-modal);
 }
 
 .svmessenger-chat-window.resizing {
@@ -1101,7 +1142,7 @@
   width: 20px;
   height: 20px;
   cursor: nw-resize;
-    background: linear-gradient(-45deg, transparent 30%, var(--svm-border-medium) 30%, var(--svm-border-medium) 35%, transparent 35%, transparent 65%, var(--svm-border-medium) 65%, var(--svm-border-medium) 70%, transparent 70%);
+  background: linear-gradient(-45deg, transparent 30%, var(--svm-border-medium) 30%, var(--svm-border-medium) 35%, transparent 35%, transparent 65%, var(--svm-border-medium) 65%, var(--svm-border-medium) 70%, transparent 70%);
   opacity: 0;
   transition: opacity var(--svm-transition-fast);
 }
@@ -1111,15 +1152,15 @@
 }
 
 .svmessenger-resize-handle:hover {
-    opacity: 1 !important;
+  opacity: 1 !important;
 }
 
 /* Chat Header */
 .svmessenger-chat-header {
   display: flex;
   align-items: center;
-    gap: var(--svm-space-3);
-    padding: var(--svm-space-4) var(--svm-space-5);
+  gap: var(--svm-space-3);
+  padding: var(--svm-space-4) var(--svm-space-5);
   background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   color: var(--svm-white);
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
@@ -1129,27 +1170,27 @@
 }
 
 .svmessenger-chat-user-info {
-    display: flex;
-    align-items: center;
-    gap: var(--svm-space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--svm-space-3);
   flex: 1;
   min-width: 0;
 }
 
 .svmessenger-chat-avatar {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 .svmessenger-chat-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--svm-white);
-    box-shadow: var(--svm-shadow-sm);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--svm-white);
+  box-shadow: var(--svm-shadow-sm);
 }
 
 .svmessenger-chat-user-details,
@@ -1190,29 +1231,29 @@
 }
 
 .svmessenger-chat-header-name {
-    font-size: var(--svm-font-size-base);
-    font-weight: var(--svm-font-weight-semibold);
-    color: var(--svm-white);
+  font-size: var(--svm-font-size-base);
+  font-weight: var(--svm-font-weight-semibold);
+  color: var(--svm-white);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-    margin: 0;
+  margin: 0;
 }
 
 .svmessenger-chat-header-status {
-    font-size: var(--svm-font-size-xs);
-    color: rgba(255, 255, 255, 0.8);
-    white-space: nowrap;
+  font-size: var(--svm-font-size-xs);
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
   opacity: 0.9;
   display: flex;
   align-items: center;
-    gap: var(--svm-space-1);
+  gap: var(--svm-space-1);
 }
 
 .svmessenger-chat-controls,
 .svmessenger-chat-header-actions {
   display: flex;
-    gap: var(--svm-space-1);
+  gap: var(--svm-space-1);
   align-items: center;
 }
 
@@ -1281,6 +1322,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1380,8 +1422,8 @@
   align-items: center;
   justify-content: center;
   transition: all var(--svm-transition-fast);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .svmessenger-chat-minimize:hover,
@@ -1470,19 +1512,19 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-    padding: var(--svm-space-5) var(--svm-space-4);
-    background: #FFFFFF !important;
-    background-image: none !important;
+  padding: var(--svm-space-5) var(--svm-space-4);
+  background: #FFFFFF !important;
+  background-image: none !important;
   /* scroll-behavior: smooth; - ПРЕМАХНАТО ЗА МИГНОВЕНО СКРОЛВАНЕ */
   display: flex;
   flex-direction: column;
-    gap: var(--svm-space-2);
-    position: relative;
+  gap: var(--svm-space-2);
+  position: relative;
 }
 
 .svmessenger-chat-body::-webkit-scrollbar,
 .svmessenger-message-thread::-webkit-scrollbar {
-    width: 4px;
+  width: 4px;
 }
 
 .svmessenger-chat-body::-webkit-scrollbar-track,
@@ -1492,36 +1534,36 @@
 
 .svmessenger-chat-body::-webkit-scrollbar-thumb,
 .svmessenger-message-thread::-webkit-scrollbar-thumb {
-    background: var(--svm-border-light);
-    border-radius: var(--svm-radius-pill);
+  background: var(--svm-border-light);
+  border-radius: var(--svm-radius-pill);
 }
 
 .svmessenger-chat-body::-webkit-scrollbar-thumb:hover,
 .svmessenger-message-thread::-webkit-scrollbar-thumb:hover {
-    background: var(--svm-text-tertiary);
+  background: var(--svm-text-tertiary);
 }
 
 /* Messages */
 .svmessenger-messages {
-    display: flex;
-    flex-direction: column;
-    gap: var(--svm-space-1);
-    background: none !important;
-    background-image: none !important;
-    background-repeat: no-repeat !important;
+  display: flex;
+  flex-direction: column;
+  gap: var(--svm-space-1);
+  background: none !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
 }
 
 .svmessenger-message,
 .svmessenger-message-item {
   display: flex;
   align-items: flex-end;
-    gap: var(--svm-space-2);
-    animation: messageSlideIn 0.3s var(--svm-transition-base);
-    margin-bottom: var(--svm-space-1);
-    background: none !important;
-    background-image: none !important;
-    background-repeat: no-repeat !important;
-    background-attachment: fixed !important;
+  gap: var(--svm-space-2);
+  animation: messageSlideIn 0.3s var(--svm-transition-base);
+  margin-bottom: var(--svm-space-1);
+  background: none !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 
 @keyframes messageSlideIn {
@@ -1529,6 +1571,7 @@
     opacity: 0;
     transform: translateY(10px) scale(0.95);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1542,28 +1585,28 @@
 
 .svmessenger-message.received,
 .svmessenger-message-item.other {
-    flex-direction: row;
+  flex-direction: row;
 }
 
 .svmessenger-message-avatar {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    display: block !important;
-    position: relative;
-    z-index: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: block !important;
+  position: relative;
+  z-index: 1;
 }
 
 .svmessenger-message-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .svmessenger-message.sent .svmessenger-message-avatar,
@@ -1574,13 +1617,13 @@
 .svmessenger-message-content {
   display: flex;
   flex-direction: column;
-    gap: 4px;
-    max-width: 70%;
-    position: relative;
-    background: none !important;
-    background-image: none !important;
-    background-repeat: no-repeat !important;
-    align-items: flex-end;
+  gap: 4px;
+  max-width: 70%;
+  position: relative;
+  background: none !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  align-items: flex-end;
 }
 
 .svmessenger-message-item.other .svmessenger-message-content {
@@ -1594,173 +1637,183 @@
 
 /* Message Bubble */
 .svmessenger-message-bubble {
-    padding: var(--svm-space-3) var(--svm-space-4);
-    border-radius: 20px;
-    font-size: var(--svm-font-size-sm);
+  padding: var(--svm-space-3) var(--svm-space-4);
+  border-radius: 20px;
+  font-size: var(--svm-font-size-sm);
   line-height: 1.4;
   word-wrap: break-word;
   position: relative;
-    transition: all var(--svm-transition-fast);
+  transition: all var(--svm-transition-fast);
   box-shadow: var(--svm-shadow-sm);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .svmessenger-message.received .svmessenger-message-bubble,
 .svmessenger-message-item.other .svmessenger-message-bubble {
-    background: var(--svm-bubble-received-gradient);
-    color: var(--svm-bubble-received-text);
+  background: var(--svm-bubble-received-gradient);
+  color: var(--svm-bubble-received-text);
   border-bottom-left-radius: 6px;
-    box-shadow: var(--svm-bubble-received-shadow);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--svm-bubble-received-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .svmessenger-message.sent .svmessenger-message-bubble,
 .svmessenger-message-item.own .svmessenger-message-bubble {
-    background: var(--svm-bubble-sent-gradient);
-    color: var(--svm-bubble-sent-text);
+  background: var(--svm-bubble-sent-gradient);
+  color: var(--svm-bubble-sent-text);
   border-bottom-right-radius: 6px;
-    box-shadow: var(--svm-bubble-sent-shadow);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    position: relative;
+  box-shadow: var(--svm-bubble-sent-shadow);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  position: relative;
 }
 
 .svmessenger-message.sent .svmessenger-message-bubble::before,
 .svmessenger-message-item.own .svmessenger-message-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--svm-bubble-sent-glow);
-    border-radius: inherit;
-    opacity: 0;
-    transition: opacity var(--svm-transition-fast);
-    pointer-events: none;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--svm-bubble-sent-glow);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity var(--svm-transition-fast);
+  pointer-events: none;
 }
 
 .svmessenger-message.sent .svmessenger-message-bubble:hover::before,
 .svmessenger-message-item.own .svmessenger-message-bubble:hover::before {
-    opacity: 1;
+  opacity: 1;
 }
 
 .svmessenger-message-bubble.emoji-only {
-    font-size: 24px;
-    padding: var(--svm-space-2) var(--svm-space-3);
-    background: transparent;
-    box-shadow: none;
+  font-size: 24px;
+  padding: var(--svm-space-2) var(--svm-space-3);
+  background: transparent;
+  box-shadow: none;
 }
 
 .svmessenger-message-bubble:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: var(--svm-shadow-lg);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--svm-shadow-lg);
 }
 
 .svmessenger-message.received .svmessenger-message-bubble:hover,
 .svmessenger-message-item.other .svmessenger-message-bubble:hover {
-    box-shadow: var(--svm-bubble-received-shadow), var(--svm-bubble-received-glow);
+  box-shadow: var(--svm-bubble-received-shadow), var(--svm-bubble-received-glow);
 }
 
 .svmessenger-message.sent .svmessenger-message-bubble:hover,
 .svmessenger-message-item.own .svmessenger-message-bubble:hover {
-    box-shadow: var(--svm-bubble-sent-shadow), var(--svm-bubble-sent-glow);
+  box-shadow: var(--svm-bubble-sent-shadow), var(--svm-bubble-sent-glow);
 }
 
 .svmessenger-message-text {
-    white-space: pre-wrap;
-    word-break: break-word;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Message Time & Status */
 .svmessenger-message-time {
-    font-size: 8px;
-    color: #6b7280;
+  font-size: 8px;
+  color: #6b7280;
   display: flex;
-    align-items: center;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    margin-top: 2px;
-    opacity: 0.8;
-    transition: all var(--svm-transition-fast);
-    font-weight: 400;
-    line-height: 1.2;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  margin-top: 2px;
+  opacity: 0.8;
+  transition: all var(--svm-transition-fast);
+  font-weight: 400;
+  line-height: 1.2;
 }
 
-.svmessenger-message-bubble:hover + .svmessenger-message-time,
+.svmessenger-message-bubble:hover+.svmessenger-message-time,
 .svmessenger-message-time:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .svmessenger-message-status,
 .svmessenger-message-read-status {
   display: flex;
   align-items: center;
-    justify-content: flex-end;
-    gap: 1px;
-    font-size: 8px;
-    color: #6b7280;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    font-weight: 400;
-    line-height: 1.2;
+  justify-content: flex-end;
+  gap: 1px;
+  font-size: 8px;
+  color: #6b7280;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 .svmessenger-checkmark,
 .svmessenger-message-read-status svg {
-    width: 12px;
-    height: 12px;
-    color: #ffffff;
-    transition: all var(--svm-transition-fast);
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  width: 12px;
+  height: 12px;
+  color: #ffffff;
+  transition: all var(--svm-transition-fast);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .svmessenger-checkmark.sending {
-    color: #9ca3af;
-    opacity: 0.7;
+  color: #9ca3af;
+  opacity: 0.7;
 }
 
 .svmessenger-checkmark.sent {
-    color: #ffffff;
-    opacity: 0.8;
+  color: #ffffff;
+  opacity: 0.8;
 }
 
 .svmessenger-checkmark.delivered {
-    color: #ffffff;
-    opacity: 1;
+  color: #ffffff;
+  opacity: 1;
 }
 
 .svmessenger-checkmark.read {
-    color: #ffffff;
-    opacity: 1;
+  color: #ffffff;
+  opacity: 1;
 }
 
 /* По default всички лястовици са СИВИ */
 .svmessenger-message-read-status svg {
-    color: #6b7280; /* СИВО за всички */
+  color: #6b7280;
+  /* СИВО за всички */
 }
 
 /* Зелен цвят само за прочетени съобщения */
 .svmessenger-message-item.own .svmessenger-message-read-status svg.double-check-green {
-    color: #22c55e; /* ЗЕЛЕНО само за прочетени */
+  color: #22c55e;
+  /* ЗЕЛЕНО само за прочетени */
 }
 
 /* Анимация за seen статус */
 .svmessenger-message-status.seen {
-    animation: checkmarkPop 0.3s var(--svm-transition-bounce);
+  animation: checkmarkPop 0.3s var(--svm-transition-bounce);
 }
 
 .svmessenger-message-status.seen {
-    animation: checkmarkPop 0.3s var(--svm-transition-bounce);
+  animation: checkmarkPop 0.3s var(--svm-transition-bounce);
 }
 
 @keyframes checkmarkPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Message Meta (Time and Checkmarks separate) */
@@ -1832,119 +1885,132 @@
 
 /* Scroll to Bottom Button */
 .svmessenger-scroll-to-bottom {
-    position: fixed;
-    bottom: 100px;
-    right: 190px;
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  position: fixed;
+  bottom: 100px;
+  right: 190px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: var(--svm-white);
-    border: none;
+  border: none;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
   transition: all var(--svm-transition-fast);
-    z-index: 10;
+  z-index: 10;
 }
 
 .svmessenger-scroll-to-bottom:hover {
-    transform: scale(1.1);
-    box-shadow: var(--svm-shadow-lg);
+  transform: scale(1.1);
+  box-shadow: var(--svm-shadow-lg);
 }
 
 .svmessenger-scroll-to-bottom svg {
-    width: 20px;
-    height: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 /* ========== TYPING INDICATOR ========== */
 .svmessenger-typing-indicator {
   display: flex;
   align-items: center;
-    gap: 4px;
-    padding: var(--svm-space-2) 0;
+  gap: 4px;
+  padding: var(--svm-space-2) 0;
 }
 
 .svmessenger-typing-avatar {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .svmessenger-typing-avatar img {
   width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--svm-white);
-    box-shadow: var(--svm-shadow-xs);
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--svm-white);
+  box-shadow: var(--svm-shadow-xs);
 }
 
 .svmessenger-typing-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--svm-space-1);
-    max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--svm-space-1);
+  max-width: 70%;
 }
 
 .svmessenger-typing-bubble {
-    padding: var(--svm-space-3) var(--svm-space-4);
-    background: var(--svm-bubble-received);
-    border-radius: 20px;
-    border-bottom-left-radius: 6px;
-    box-shadow: var(--svm-shadow-sm);
+  padding: var(--svm-space-3) var(--svm-space-4);
+  background: var(--svm-bubble-received);
+  border-radius: 20px;
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--svm-shadow-sm);
 }
 
 .svmessenger-typing-dots {
   display: flex;
   align-items: center;
-    gap: 4px;
+  gap: 4px;
 }
 
 .svmessenger-typing-dot,
 .svmessenger-typing-dots span {
   width: 6px;
-    height: 6px;
-    background: var(--svm-text-tertiary);
-    border-radius: 50%;
-    animation: typing-bounce 1.4s infinite;
+  height: 6px;
+  background: var(--svm-text-tertiary);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite;
 }
 
 .svmessenger-typing-dot:nth-child(1),
-.svmessenger-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.svmessenger-typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
 .svmessenger-typing-dot:nth-child(2),
-.svmessenger-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.svmessenger-typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
 .svmessenger-typing-dot:nth-child(3),
-.svmessenger-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+.svmessenger-typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes typing-bounce {
-    0%, 60%, 100% {
-        transform: translateY(0);
-        opacity: 0.7;
-    }
-    30% {
-        transform: translateY(-6px);
-        opacity: 1;
-    }
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 .svmessenger-typing-text {
-    font-size: var(--svm-font-size-xs);
-    color: var(--svm-text-tertiary);
-    margin-top: var(--svm-space-1);
+  font-size: var(--svm-font-size-xs);
+  color: var(--svm-text-tertiary);
+  margin-top: var(--svm-space-1);
 }
 
 /* ========== MESSAGE INPUT ========== */
 .svmessenger-message-input,
 .svmessenger-chat-footer {
-    padding: 0 0;
-    background: #FFFFFF;
-    border-top: 1px solid var(--svm-border-light);
-    border-radius: 0 0 var(--svm-radius-xl) var(--svm-radius-xl);
-    position: relative; /* Added for emoji picker positioning */
+  padding: 0 0;
+  background: #FFFFFF;
+  border-top: 1px solid var(--svm-border-light);
+  border-radius: 0 0 var(--svm-radius-xl) var(--svm-radius-xl);
+  position: relative;
+  /* Added for emoji picker positioning */
 }
 
 .svmessenger-input-form {
@@ -1954,15 +2020,15 @@
 
 .svmessenger-input-container {
   display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    width: 100%;
-    padding: 8px 4px;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 4px;
 }
 
 .svmessenger-input-wrapper {
-    flex: 1;
-    position: relative;
+  flex: 1;
+  position: relative;
 }
 
 .svmessenger-attach-btn,
@@ -2009,80 +2075,85 @@
 }
 
 .svmessenger-text-input {
-    width: 100%;
-    min-height: 36px;
-    max-height: 60px; /* 2 реда * 20px line-height + padding */
-    padding: 8px 12px;
-    background: #F8F9FA;
-    border: 1px solid #E5E7EB;
-    border-radius: 18px; /* По-кръгло като Facebook */
-    font-size: 14px;
-    font-family: var(--svm-font-family);
-    color: var(--svm-text-primary);
-    resize: none;
-    overflow-y: hidden; /* Скрива скролера до 3-ти ред */
-    transition: all var(--svm-transition-fast);
-    outline: none;
-    line-height: 20px; /* Фиксиран line-height за точно 2 реда */
-    box-shadow: none;
+  width: 100%;
+  min-height: 36px;
+  max-height: 60px;
+  /* 2 реда * 20px line-height + padding */
+  padding: 8px 12px;
+  background: #F8F9FA;
+  border: 1px solid #E5E7EB;
+  border-radius: 18px;
+  /* По-кръгло като Facebook */
+  font-size: 14px;
+  font-family: var(--svm-font-family);
+  color: var(--svm-text-primary);
+  resize: none;
+  overflow-y: hidden;
+  /* Скрива скролера до 3-ти ред */
+  transition: all var(--svm-transition-fast);
+  outline: none;
+  line-height: 20px;
+  /* Фиксиран line-height за точно 2 реда */
+  box-shadow: none;
 }
 
 .svmessenger-text-input:focus {
-    border-color: #22c55e;
-    background: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
 /* Показва скролер когато има повече от 2 реда */
 .svmessenger-text-input.multi-line {
-    overflow-y: auto;
-    max-height: 120px; /* Максимум 6 реда */
+  overflow-y: auto;
+  max-height: 120px;
+  /* Максимум 6 реда */
 }
 
 .svmessenger-text-input::placeholder {
-    color: var(--svm-text-tertiary);
+  color: var(--svm-text-tertiary);
 }
 
 .svmessenger-send-btn {
-    width: 35px;
-    height: 35px;
+  width: 35px;
+  height: 35px;
   border: none;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: var(--svm-white);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-    transition: all var(--svm-transition-fast);
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
-    margin-left: 0;
+  transition: all var(--svm-transition-fast);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+  margin-left: 0;
 }
 
 .svmessenger-send-btn:hover {
   transform: scale(1.05);
-    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.35);
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.35);
 }
 
 .svmessenger-send-btn:active {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .svmessenger-send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .svmessenger-send-btn.active {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 }
 
 .svmessenger-send-btn svg {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 /* ========== LOADING & EMPTY STATES ========== */
@@ -2095,18 +2166,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-    padding: var(--svm-space-8) var(--svm-space-4);
-    color: var(--svm-text-secondary);
+  padding: var(--svm-space-8) var(--svm-space-4);
+  color: var(--svm-text-secondary);
   text-align: center;
-    gap: var(--svm-space-3);
+  gap: var(--svm-space-3);
 }
 
 .svmessenger-empty svg,
 .svmessenger-search-empty svg {
-    width: 64px;
-    height: 64px;
-    opacity: 0.3;
-    color: var(--svm-text-tertiary);
+  width: 64px;
+  height: 64px;
+  opacity: 0.3;
+  color: var(--svm-text-tertiary);
 }
 
 .svmessenger-search-empty svg {
@@ -2115,50 +2186,61 @@
 }
 
 .svmessenger-search-loading {
-    gap: var(--svm-space-2);
+  gap: var(--svm-space-2);
 }
 
 .svmessenger-search-loading span {
-    font-size: var(--svm-font-size-sm);
-    color: var(--svm-text-secondary);
+  font-size: var(--svm-font-size-sm);
+  color: var(--svm-text-secondary);
 }
 
 .svmessenger-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--svm-border-light);
-    border-top-color: #22c55e;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--svm-border-light);
+  border-top-color: #22c55e;
   border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ========== ANIMATIONS ========== */
 .svmessenger-fade-in {
-    animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .svmessenger-slide-in-right {
-    animation: slideInRight 0.3s ease;
+  animation: slideInRight 0.3s ease;
 }
 
 @keyframes slideInRight {
-    0% {
-        transform: translateX(100%);
+  0% {
+    transform: translateX(100%);
     opacity: 0;
   }
-    100% {
+
+  100% {
     transform: translateX(0);
-        opacity: 1;
+    opacity: 1;
   }
 }
 
@@ -2173,47 +2255,48 @@
 
 /* ========== ACCESSIBILITY ========== */
 * {
-    scroll-behavior: smooth;
+  scroll-behavior: smooth;
 }
 
 .svmessenger-widget *:focus-visible {
-    outline: 2px solid #22c55e;
+  outline: 2px solid #22c55e;
   outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
-    .svmessenger-chat-window {
-        width: 100vw;
-        height: 100vh;
-        left: 0 !important;
-        top: 0 !important;
-        border-radius: 0;
-    }
+  .svmessenger-chat-window {
+    width: 100vw;
+    height: 100vh;
+    left: 0 !important;
+    top: 0 !important;
+    border-radius: 0;
+  }
 
-    .svmessenger-taskbar {
-        bottom: 80px;
-        max-width: 95vw;
-    }
+  .svmessenger-taskbar {
+    bottom: 80px;
+    max-width: 95vw;
+  }
 
-    .svmessenger-conversation-list,
-    .svmessenger-user-search {
-        width: 100vw;
-        max-height: 100vh;
-        bottom: 0;
-        right: 0;
-        border-radius: 0;
-    }
+  .svmessenger-conversation-list,
+  .svmessenger-user-search {
+    width: 100vw;
+    max-height: 100vh;
+    bottom: 0;
+    right: 0;
+    border-radius: 0;
+  }
 }
 
 /* ========== SMOOTH SCROLL ========== */
@@ -2227,92 +2310,333 @@
 
 /* Premium minimal call history design - no bubbles, just elegant text with icons */
 .svmessenger-call-history-item {
-    margin: 4px 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 4px 0;
+  margin: 4px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 0;
 }
 
 .svmessenger-call-history-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .svmessenger-call-history-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .svmessenger-call-history-icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
 }
 
 .svmessenger-call-history-arrow-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 4px;
-    opacity: 0.7; /* Subtle arrow appearance */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  opacity: 0.7;
+  /* Subtle arrow appearance */
 }
 
 .svmessenger-call-history-type-text {
-    font-size: 13px;
-    font-weight: 400; /* Thin font (regular, not semibold) */
-    letter-spacing: 0.5px; /* Premium letter spacing for elegance */
-    color: var(--svm-text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  /* Thin font (regular, not semibold) */
+  letter-spacing: 0.5px;
+  /* Premium letter spacing for elegance */
+  color: var(--svm-text-secondary);
 }
 
 .svmessenger-call-history-time-text {
-    font-size: 13px;
-    font-weight: 400; /* Thin font */
-    color: var(--svm-text-tertiary);
-    letter-spacing: 0.3px;
-    margin-left: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  /* Thin font */
+  color: var(--svm-text-tertiary);
+  letter-spacing: 0.3px;
+  margin-left: 4px;
 }
 
 .svmessenger-call-history-date-text {
-    font-size: 11px;
-    font-weight: 400; /* Thin font */
-    color: var(--svm-text-tertiary);
-    margin-top: 3px;
-    letter-spacing: 0.2px;
-    opacity: 0.7; /* Subtle appearance */
+  font-size: 11px;
+  font-weight: 400;
+  /* Thin font */
+  color: var(--svm-text-tertiary);
+  margin-top: 3px;
+  letter-spacing: 0.2px;
+  opacity: 0.7;
+  /* Subtle appearance */
 }
 
 .svmessenger-call-history-accepted-details {
-    margin-top: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .svmessenger-call-history-detail-text {
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--svm-text-tertiary);
-    margin-top: 2px;
-    letter-spacing: 0.2px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--svm-text-tertiary);
+  margin-top: 2px;
+  letter-spacing: 0.2px;
 }
 
 .svmessenger-call-history-duration-text {
-    font-size: 12px;
-    font-weight: 500; /* Slightly bolder for duration */
-    color: #16a34a; /* green-600 */
-    margin-top: 4px;
-    letter-spacing: 0.3px;
+  font-size: 12px;
+  font-weight: 500;
+  /* Slightly bolder for duration */
+  color: #16a34a;
+  /* green-600 */
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* ========== CHAT MENU ========== */
+.svmessenger-chat-menu-container {
+  position: relative;
+}
+
+.svmessenger-chat-menu-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--svm-transition-fast);
+}
+
+.svmessenger-chat-menu-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.svmessenger-chat-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 200px;
+  background: var(--svm-white);
+  border: 1px solid var(--svm-border-light);
+  border-radius: var(--svm-radius-md);
+  box-shadow: var(--svm-shadow-lg);
+  z-index: 50;
+  overflow: hidden;
+  padding: 4px;
+  animation: menuFadeIn 0.2s ease-out;
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.svmessenger-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--svm-text-secondary);
+  font-size: 14px;
+  font-family: var(--svm-font-family);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all var(--svm-transition-fast);
+  gap: 10px;
+}
+
+.svmessenger-menu-item:hover {
+  background: #f3f4f6;
+  color: var(--svm-text-primary);
+}
+
+.svmessenger-menu-item svg,
+.svmessenger-menu-item i {
+  width: 16px;
+  height: 16px;
+  color: var(--svm-text-tertiary);
+}
+
+.svmessenger-menu-item:hover svg,
+.svmessenger-menu-item:hover i {
+  color: var(--svm-primary);
+}
+
+.svmessenger-menu-item-danger {
+  color: var(--svm-error);
+}
+
+.svmessenger-menu-item-danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.svmessenger-menu-item-danger svg,
+.svmessenger-menu-item-danger i {
+  color: #fca5a5;
+}
+
+.svmessenger-menu-item-danger:hover svg,
+.svmessenger-menu-item-danger:hover i {
+  color: #ef4444;
 }
 
 /* ========== PRINT STYLES ========== */
+/* ========== MODALS ========== */
+/* ========== MODALS ========== */
+.svmessenger-modal-overlay {
+  position: absolute;
+  /* Changed from fixed to absolute to fit inside chat window context */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--svm-z-modal);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+  border-radius: var(--svm-radius-xl);
+  /* Match chat window radius */
+}
+
+.svmessenger-modal-content {
+  background: var(--svm-white);
+  border-radius: var(--svm-radius-xl);
+  padding: 0;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: var(--svm-shadow-xl);
+  animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.svmessenger-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--svm-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.svmessenger-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.svmessenger-modal-header button {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--svm-text-tertiary);
+  padding: 4px;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--svm-transition-fast);
+}
+
+.svmessenger-modal-header button:hover {
+  background: var(--svm-bg-secondary);
+  color: var(--svm-text-primary);
+}
+
+.svmessenger-modal-body {
+  padding: 20px;
+}
+
+/* ========== SWITCH (TOGGLE) ========== */
+.svmessenger-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+
+.svmessenger-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.svmessenger-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e7eb;
+  transition: .4s;
+}
+
+.svmessenger-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.svmessenger-switch input:checked+.svmessenger-slider {
+  background-color: #22c55e;
+}
+
+.svmessenger-switch input:focus+.svmessenger-slider {
+  box-shadow: 0 0 1px #22c55e;
+}
+
+.svmessenger-switch input:checked+.svmessenger-slider:before {
+  transform: translateX(22px);
+}
+
+.svmessenger-slider.round {
+  border-radius: 34px;
+}
+
+.svmessenger-slider.round:before {
+  border-radius: 50%;
+}
+
 @media print {
   .svmessenger-widget {
     display: none !important;

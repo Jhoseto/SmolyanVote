@@ -38,6 +38,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const MAX_LENGTH = 3000;
+  const WARNING_THRESHOLD = 2700;
+
   const handleEmojiSelect = (emoji: string) => {
     onChangeText(value + emoji);
     setShowEmojiPicker(false);
@@ -152,7 +155,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             placeholder={replyPreview ? "Напиши отговор..." : "Напиши съобщение..."}
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             multiline
-            maxLength={1000}
+            maxLength={MAX_LENGTH}
             blurOnSubmit={false}
             returnKeyType="default"
           />
@@ -169,20 +172,33 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {/* Send Button */}
         <ScaleButton
           onPress={onSend}
-          disabled={!value.trim()}
+          disabled={!value.trim() || value.length > MAX_LENGTH}
           style={styles.sendButtonWrapper}
         >
           <LinearGradient
-            colors={value.trim()
+            colors={(value.trim() && value.length <= MAX_LENGTH)
               ? [Colors.green[500], Colors.green[600]]
               : [Colors.gray[400], Colors.gray[500]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.sendButton, !value.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!value.trim() || value.length > MAX_LENGTH) && styles.sendButtonDisabled]}
           >
             <SendIcon size={20} color={Colors.text.inverse} />
           </LinearGradient>
         </ScaleButton>
+
+        {/* Character Counter */}
+        {value.length > 0 && (
+          <Text
+            style={[
+              styles.charCounter,
+              value.length >= WARNING_THRESHOLD && styles.charCounterWarning,
+              value.length > MAX_LENGTH && styles.charCounterError,
+            ]}
+          >
+            {value.length}/{MAX_LENGTH}
+          </Text>
+        )}
       </View>
 
 
@@ -287,6 +303,38 @@ const styles = StyleSheet.create({
   cancelReplyButton: {
     padding: Spacing.xs,
     marginLeft: Spacing.xs,
+  },
+  warningContainer: {
+    position: 'absolute',
+    left: Spacing.md,
+    bottom: Spacing.xs,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  warningText: {
+    fontSize: Typography.fontSize.xs,
+    color: '#ffffff',
+    fontWeight: Typography.fontWeight.bold,
+  },
+  charCounter: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.xs,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.tertiary,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  charCounterWarning: {
+    color: '#f59e0b',
+  },
+  charCounterError: {
+    color: '#ef4444',
+    fontWeight: Typography.fontWeight.bold,
   },
 });
 

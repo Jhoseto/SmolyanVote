@@ -11,7 +11,7 @@ import { groupMessagesByDate } from '../utils/svDateFormatter';
  * Message Thread компонент
  * Показва списък с съобщения и call history, поддържа infinite scroll
  */
-const SVMessageThread = ({ conversationId, searchQuery = '', translatedMessages = {} }) => {
+const SVMessageThread = ({ conversationId, searchQuery = '' }) => {
   const {
     messagesByConversation,
     callHistoryByConversation,
@@ -117,7 +117,6 @@ const SVMessageThread = ({ conversationId, searchQuery = '', translatedMessages 
                 <SVMessageItem
                   message={item.message}
                   searchQuery={searchQuery}
-                  translatedText={translatedMessages[item.message.id]}
                 />
               </div>
             );
