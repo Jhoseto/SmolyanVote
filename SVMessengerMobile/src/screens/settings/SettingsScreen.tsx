@@ -17,6 +17,8 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Typography } from '../../theme';
 import { useAuthStore } from '../../store/authStore';
+import { useUIStore } from '../../store/uiStore';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useMessagesStore } from '../../store/messagesStore';
 import { ScreenBackground } from '../../components/common/ScreenBackground';
@@ -83,6 +85,8 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { language, setLanguage } = useUIStore();
+  const { t } = useTranslation();
 
   // Notification settings
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -99,16 +103,28 @@ export const SettingsScreen: React.FC = () => {
   // Chat settings
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-  const [language, setLanguage] = useState('bg');
+
+  const languages = [
+    { code: 'bg', flag: '🇧🇬' },
+    { code: 'en', flag: '🇬🇧' },
+    { code: 'el', flag: '🇬🇷' },
+    { code: 'tr', flag: '🇹🇷' },
+    { code: 'ru', flag: '🇷🇺' },
+    { code: 'de', flag: '🇩🇪' },
+    { code: 'fr', flag: '🇫🇷' },
+    { code: 'es', flag: '🇪🇸' },
+    { code: 'iw', flag: '🇮🇱' },
+    { code: 'zh-CN', flag: '🇨🇳' },
+  ];
 
   const handleClearCache = async () => {
     Alert.alert(
-      'Изчистване на кеша',
-      'Сигурен ли си, че искаш да изчистиш кеша?',
+      t('settings.items.clearCache'),
+      t('settings.items.clearCacheSubtitle') + '?',
       [
-        { text: 'Отказ', style: 'cancel' },
+        { text: t('settings.actions.cancel'), style: 'cancel' },
         {
-          text: 'Изчисти',
+          text: t('settings.actions.clear'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -120,10 +136,10 @@ export const SettingsScreen: React.FC = () => {
                 !key.includes('fcm')
               );
               await AsyncStorage.multiRemove(keysToRemove);
-              Alert.alert('Успех', 'Кешът е изчистен');
+              Alert.alert(t('settings.actions.success'), t('settings.items.clearCache'));
             } catch (error) {
               console.error('Error clearing cache:', error);
-              Alert.alert('Грешка', 'Неуспешно изчистване на кеша');
+              Alert.alert(t('settings.actions.error'), t('settings.actions.error'));
             }
           },
         },
@@ -133,12 +149,12 @@ export const SettingsScreen: React.FC = () => {
 
   const handleClearConversations = () => {
     Alert.alert(
-      'Изчистване на разговорите',
-      'Сигурен ли си, че искаш да изчистиш всички разговори? Това действие не може да бъде отменено.',
+      t('settings.items.clearConversations'),
+      t('settings.items.clearConversationsSubtitle') + '? ' + t('common.info'),
       [
-        { text: 'Отказ', style: 'cancel' },
+        { text: t('settings.actions.cancel'), style: 'cancel' },
         {
-          text: 'Изчисти',
+          text: t('settings.actions.clear'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -149,10 +165,10 @@ export const SettingsScreen: React.FC = () => {
               clearConversations();
               clearAllMessages();
 
-              Alert.alert('Успех', 'Разговорите са изчистени');
+              Alert.alert(t('settings.actions.success'), t('settings.items.clearConversations'));
             } catch (error) {
               console.error('Error clearing conversations:', error);
-              Alert.alert('Грешка', 'Неуспешно изчистване на разговорите');
+              Alert.alert(t('settings.actions.error'), t('settings.actions.error'));
             }
           },
         },
@@ -162,39 +178,65 @@ export const SettingsScreen: React.FC = () => {
 
   const handleFontSizePress = () => {
     Alert.alert(
-      'Размер на шрифта',
-      'Избери размер на шрифта',
+      t('settings.items.fontSize'),
+      t('settings.items.fontSize'),
       [
-        { text: 'Малък', onPress: () => setFontSize('small') },
-        { text: 'Среден', onPress: () => setFontSize('medium') },
-        { text: 'Голям', onPress: () => setFontSize('large') },
-        { text: 'Отказ', style: 'cancel' },
+        { text: t('settings.values.small'), onPress: () => setFontSize('small') },
+        { text: t('settings.values.medium'), onPress: () => setFontSize('medium') },
+        { text: t('settings.values.large'), onPress: () => setFontSize('large') },
+        { text: t('settings.actions.cancel'), style: 'cancel' },
       ]
     );
   };
 
   const handleThemePress = () => {
     Alert.alert(
-      'Тема',
-      'Избери тема',
+      t('settings.items.theme'),
+      t('settings.items.theme'),
       [
-        { text: 'Светла', onPress: () => setTheme('light') },
-        { text: 'Тъмна', onPress: () => setTheme('dark') },
-        { text: 'Системна', onPress: () => setTheme('system') },
-        { text: 'Отказ', style: 'cancel' },
+        { text: t('settings.values.light'), onPress: () => setTheme('light') },
+        { text: t('settings.values.dark'), onPress: () => setTheme('dark') },
+        { text: t('settings.values.system'), onPress: () => setTheme('system') },
+        { text: t('settings.actions.cancel'), style: 'cancel' },
       ]
     );
   };
 
   return (
     <ScreenBackground>
-      <GlassHeader title="Настройки" showBackButton onBackPress={() => navigation.goBack()} />
+      <GlassHeader title={t('settings.title')} showBackButton onBackPress={() => navigation.goBack()} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+        {/* Language Selection Section */}
+        <View style={styles.languageSection}>
+          <Text style={styles.sectionTitle}>{t('settings.sections.language')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.languageList}
+          >
+            {languages.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={[
+                  styles.languageButton,
+                  language === lang.code && styles.languageButtonActive
+                ]}
+                onPress={() => setLanguage(lang.code)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.flagEmoji}>{lang.flag}</Text>
+                {language === lang.code && <View style={styles.activeDot} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Notifications Section */}
-        <SettingsSection title="Известия">
+        <SettingsSection title={t('settings.sections.notifications')}>
           <SettingsItem
             icon={<BellIcon size={22} color={Colors.gold[400]} />}
-            title="Push известия"
+            title={t('settings.items.pushNotifications')}
             rightComponent={
               <Switch
                 value={pushNotifications}
@@ -207,7 +249,7 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<SpeakerWaveIcon size={22} color={Colors.gold[400]} />}
-            title="Звуци за съобщения"
+            title={t('settings.items.messageSounds')}
             rightComponent={
               <Switch
                 value={messageSounds}
@@ -220,7 +262,7 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<SpeakerWaveIcon size={22} color={Colors.gold[400]} />}
-            title="Звуци за обаждания"
+            title={t('settings.items.callSounds')}
             rightComponent={
               <Switch
                 value={callSounds}
@@ -233,8 +275,8 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<BellIcon size={22} color={Colors.gold[400]} />}
-            title="Преглед на известия"
-            subtitle="Показвай съдържанието на съобщенията в известията"
+            title={t('settings.items.notificationPreview')}
+            subtitle={t('settings.items.notificationPreviewSubtitle')}
             rightComponent={
               <Switch
                 value={notificationPreview}
@@ -247,8 +289,8 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<BellIcon size={22} color={Colors.gold[400]} />}
-            title="Не безпокой"
-            subtitle="Спиране на всички известия"
+            title={t('settings.items.doNotDisturb')}
+            subtitle={t('settings.items.doNotDisturbSubtitle')}
             rightComponent={
               <Switch
                 value={doNotDisturb}
@@ -262,10 +304,10 @@ export const SettingsScreen: React.FC = () => {
         </SettingsSection>
 
         {/* Privacy Section */}
-        <SettingsSection title="Поверителност">
+        <SettingsSection title={t('settings.sections.privacy')}>
           <SettingsItem
             icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
-            title="Видимост на онлайн статус"
+            title={t('settings.items.onlineStatus')}
             rightComponent={
               <Switch
                 value={onlineStatusVisible}
@@ -278,7 +320,7 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
-            title="Потвърждения за прочитане"
+            title={t('settings.items.readReceipts')}
             rightComponent={
               <Switch
                 value={readReceipts}
@@ -291,7 +333,7 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
-            title="Видимост на последно активен"
+            title={t('settings.items.lastSeen')}
             rightComponent={
               <Switch
                 value={lastSeenVisible}
@@ -304,90 +346,82 @@ export const SettingsScreen: React.FC = () => {
           />
           <SettingsItem
             icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
-            title="Блокирани потребители"
+            title={t('settings.items.blockedUsers')}
             onPress={() => {
-              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+              Alert.alert(t('common.info'), t('common.soon'));
             }}
           />
         </SettingsSection>
 
         {/* Chat Section */}
-        <SettingsSection title="Чат">
+        <SettingsSection title={t('settings.sections.chat')}>
           <SettingsItem
             icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
-            title="Размер на шрифта"
-            subtitle={fontSize === 'small' ? 'Малък' : fontSize === 'medium' ? 'Среден' : 'Голям'}
+            title={t('settings.items.fontSize')}
+            subtitle={t(`settings.values.${fontSize}`)}
             onPress={handleFontSizePress}
           />
           <SettingsItem
             icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
-            title="Тема"
-            subtitle={theme === 'light' ? 'Светла' : theme === 'dark' ? 'Тъмна' : 'Системна'}
+            title={t('settings.items.theme')}
+            subtitle={t(`settings.values.${theme}`)}
             onPress={handleThemePress}
-          />
-          <SettingsItem
-            icon={<ChatBubbleLeftRightIcon size={22} color={Colors.gold[400]} />}
-            title="Език"
-            subtitle="Български"
-            onPress={() => {
-              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
-            }}
           />
         </SettingsSection>
 
         {/* Accessibility Section */}
-        <SettingsSection title="Достъпност">
+        <SettingsSection title={t('settings.sections.accessibility')}>
           <SettingsItem
             icon={<ShieldCheckIcon size={22} color={Colors.gold[400]} />}
-            title="Настройки на разрешенията"
-            subtitle="Управление на системни разрешения за обаждания"
+            title={t('settings.items.permissions')}
+            subtitle={t('settings.items.permissionsSubtitle')}
             onPress={() => navigation.navigate('PermissionsSettings' as any)}
           />
         </SettingsSection>
 
         {/* Storage Section */}
-        <SettingsSection title="Хранилище">
+        <SettingsSection title={t('settings.sections.storage')}>
           <SettingsItem
             icon={<TrashIcon size={22} color={Colors.semantic.error} />}
-            title="Изчисти кеша"
-            subtitle="Освободи място на устройството"
+            title={t('settings.items.clearCache')}
+            subtitle={t('settings.items.clearCacheSubtitle')}
             onPress={handleClearCache}
           />
           <SettingsItem
             icon={<TrashIcon size={22} color={Colors.semantic.error} />}
-            title="Изчисти разговори"
-            subtitle="Изтрий всички локални разговори"
+            title={t('settings.items.clearConversations')}
+            subtitle={t('settings.items.clearConversationsSubtitle')}
             onPress={handleClearConversations}
           />
         </SettingsSection>
 
         {/* About Section */}
-        <SettingsSection title="За приложението">
+        <SettingsSection title={t('settings.sections.about')}>
           <SettingsItem
             icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
-            title="Версия"
+            title={t('settings.items.version')}
             subtitle="1.0.0"
             showArrow={false}
           />
           <SettingsItem
             icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
-            title="Условия за ползване"
+            title={t('settings.items.terms')}
             onPress={() => {
-              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+              Alert.alert(t('common.info'), t('common.soon'));
             }}
           />
           <SettingsItem
             icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
-            title="Политика за поверителност"
+            title={t('settings.items.privacyPolicy')}
             onPress={() => {
-              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+              Alert.alert(t('common.info'), t('common.soon'));
             }}
           />
           <SettingsItem
             icon={<InformationCircleIcon size={22} color={Colors.gold[400]} />}
-            title="Свържи се с поддръжката"
+            title={t('settings.items.support')}
             onPress={() => {
-              Alert.alert('Информация', 'Функционалността ще бъде добавена скоро');
+              Alert.alert(t('common.info'), t('common.soon'));
             }}
           />
         </SettingsSection>
@@ -450,6 +484,40 @@ const styles = StyleSheet.create({
   },
   rightComponent: {
     marginRight: Spacing.sm,
+  },
+  languageSection: {
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xs,
+  },
+  languageList: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  languageButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  languageButtonActive: {
+    backgroundColor: 'rgba(250, 204, 21, 0.15)',
+    borderColor: Colors.gold[400],
+  },
+  flagEmoji: {
+    fontSize: 28,
+  },
+  activeDot: {
+    position: 'absolute',
+    bottom: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.gold[400],
   },
 });
 

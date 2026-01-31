@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore';
 import { ScreenBackground } from '../../components/common/ScreenBackground';
 import { GlassHeader } from '../../components/common/GlassHeader';
 import { useUIStore } from '../../store/uiStore';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type NavigationProp = NativeStackNavigationProp<ProfileStackParamList>;
 
@@ -28,18 +29,19 @@ export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuthStore();
   const { setLoading } = useUIStore();
+  const { t, language } = useTranslation();
 
   const handleLogout = async () => {
     Alert.alert(
-      'Излизане',
-      'Сигурен ли си, че искаш да излезеш?',
+      t('common.logout'),
+      t('profile.logoutConfirm'),
       [
-        { text: 'Отказ', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Излез',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
-            setLoading(true, 'Излизане...');
+            setLoading(true, t('common.loading'));
             try {
               await logout();
             } finally {
@@ -55,7 +57,7 @@ export const ProfileScreen: React.FC = () => {
     return (
       <ScreenBackground>
         <View style={styles.container}>
-          <Text style={styles.errorText}>Няма данни за потребителя</Text>
+          <Text style={styles.errorText}>{t('profile.errorNoUser')}</Text>
         </View>
       </ScreenBackground>
     );
@@ -63,7 +65,7 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <ScreenBackground>
-      <GlassHeader title="Профил" />
+      <GlassHeader title={t('profile.title')} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.profileSection}>
           <Avatar
@@ -76,7 +78,7 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.username}>@{user.username}</Text>
           {user.lastSeen && (
             <Text style={styles.lastSeen}>
-              Последно активен: {new Date(user.lastSeen).toLocaleDateString('bg-BG')}
+              {t('profile.lastSeen')}: {new Date(user.lastSeen).toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-US')}
             </Text>
           )}
         </View>
@@ -89,7 +91,7 @@ export const ProfileScreen: React.FC = () => {
               navigation.navigate('EditProfile');
             }}
           >
-            <Text style={styles.settingLabel}>Редактирай профил</Text>
+            <Text style={styles.settingLabel}>{t('profile.editProfile')}</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
 
@@ -97,27 +99,27 @@ export const ProfileScreen: React.FC = () => {
             style={styles.settingItem}
             activeOpacity={0.7}
             onPress={() => {
-              navigation.navigate('Settings');
+              navigation.navigate('Settings' as any);
             }}
           >
-            <Text style={styles.settingLabel}>Настройки</Text>
+            <Text style={styles.settingLabel}>{t('settings.title')}</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-            <Text style={styles.settingLabel}>Помощ и поддръжка</Text>
+            <Text style={styles.settingLabel}>{t('profile.help')}</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
-            <Text style={styles.settingLabel}>За приложението</Text>
+            <Text style={styles.settingLabel}>{t('profile.about')}</Text>
             <Text style={styles.settingArrow}>›</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.logoutSection}>
           <Button
-            title="Излез"
+            title={t('profile.logout')}
             onPress={handleLogout}
             variant="outline"
             size="large"

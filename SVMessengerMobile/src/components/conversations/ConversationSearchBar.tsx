@@ -7,6 +7,7 @@ import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SearchIcon, XMarkIcon } from '../common/Icons';
 import { Colors, Spacing, Typography } from '../../theme';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ConversationSearchBarProps {
   searchQuery: string;
@@ -19,13 +20,15 @@ export const ConversationSearchBar: React.FC<ConversationSearchBarProps> = ({
   onSearchChange,
   onClearSearch,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         <SearchIcon size={20} color={Colors.text.secondary} style={styles.icon} />
         <TextInput
           style={styles.input}
-          placeholder="Търси разговори..."
+          placeholder={t('conversations.search')}
           placeholderTextColor={Colors.text.tertiary}
           value={searchQuery}
           onChangeText={onSearchChange}

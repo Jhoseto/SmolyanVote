@@ -28,6 +28,7 @@ import { UserSearchResult } from '../../types/user';
 import { useConversationsStore } from '../../store/conversationsStore';
 import { useAuthStore } from '../../store/authStore';
 import { debounce, APP_CONSTANTS } from '../../utils/constants';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Search'>,
@@ -44,6 +45,7 @@ export const UserSearchScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { fetchConversations } = useConversationsStore();
   const { user } = useAuthStore();
+  const { t } = useTranslation();
 
   // Load following users on mount
   useEffect(() => {
@@ -86,7 +88,7 @@ export const UserSearchScreen: React.FC = () => {
 
         setSearchResults(response.data || []);
       } catch (err: any) {
-        setError(err.message || 'Грешка при търсене');
+        setError(err.message || t('search.error'));
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -163,7 +165,7 @@ export const UserSearchScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error starting conversation:', error);
-      setError('Неуспешна връзка с този потребител');
+      setError(t('search.connectionError'));
     }
   };
 
@@ -173,12 +175,12 @@ export const UserSearchScreen: React.FC = () => {
   return (
     <ScreenBackground>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        <GlassHeader title="Търсене" />
+        <GlassHeader title={t('search.title')} />
 
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Търси потребители..."
+            placeholder={t('search.placeholder')}
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             value={searchQuery}
             onChangeText={handleSearchChange}
@@ -208,7 +210,7 @@ export const UserSearchScreen: React.FC = () => {
             ) : followingUsers.length > 0 ? (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Следвани потребители</Text>
+                  <Text style={styles.sectionTitle}>{t('search.following')}</Text>
                 </View>
                 {followingUsers.map((item) => (
                   <TouchableOpacity
@@ -235,8 +237,8 @@ export const UserSearchScreen: React.FC = () => {
               </>
             ) : (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Няма следвани потребители</Text>
-                <Text style={styles.emptySubtext}>Започни да следваш потребители за да ги видиш тук</Text>
+                <Text style={styles.emptyText}>{t('search.noFollowing')}</Text>
+                <Text style={styles.emptySubtext}>{t('search.noFollowingSub')}</Text>
               </View>
             )}
           </ScrollView>
@@ -268,7 +270,7 @@ export const UserSearchScreen: React.FC = () => {
             ListEmptyComponent={
               hasSearchQuery && !isSearching ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>Няма резултати</Text>
+                  <Text style={styles.emptyText}>{t('search.noResults')}</Text>
                 </View>
               ) : null
             }

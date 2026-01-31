@@ -27,6 +27,7 @@ import { Avatar } from '../../components/common';
 import { ArrowLeftIcon, CameraIcon } from '../../components/common/Icons';
 import { ScreenBackground } from '../../components/common/ScreenBackground';
 import { GlassHeader } from '../../components/common/GlassHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type NavigationProp = NativeStackNavigationProp<ProfileStackParamList>;
 
@@ -34,6 +35,7 @@ export const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user, setUser } = useAuthStore();
   const { setLoading } = useUIStore();
+  const { t } = useTranslation();
 
   const [bio, setBio] = useState(user?.bio || '');
   const [selectedImage, setSelectedImage] = useState<{ uri: string; type: string; name: string } | null>(null);
@@ -48,7 +50,7 @@ export const EditProfileScreen: React.FC = () => {
   const handleSelectImage = () => {
     const options = {
       mediaType: 'photo' as MediaType,
-      quality: 0.8,
+      quality: 0.8 as any,
       maxWidth: 1024,
       maxHeight: 1024,
     };
@@ -59,7 +61,7 @@ export const EditProfileScreen: React.FC = () => {
       }
 
       if (response.errorCode) {
-        Alert.alert('Грешка', 'Неуспешно избиране на снимка');
+        Alert.alert(t('common.error'), t('profile.selectImageError'));
         return;
       }
 
@@ -80,12 +82,12 @@ export const EditProfileScreen: React.FC = () => {
     const hasBioChange = bio.trim() !== (user?.bio || '');
 
     if (!hasImageChange && !hasBioChange) {
-      Alert.alert('Информация', 'Няма промени за запазване');
+      Alert.alert(t('common.info'), t('profile.noChangesAlert'));
       return;
     }
 
     setIsSaving(true);
-    setLoading(true, 'Запазване на профила...');
+    setLoading(true, t('profile.savingAlert'));
 
     try {
       const response = await profileService.updateProfile({
@@ -97,18 +99,18 @@ export const EditProfileScreen: React.FC = () => {
         // Update user in store
         setUser(response.user);
 
-        Alert.alert('Успех', 'Профилът е обновен успешно', [
+        Alert.alert(t('common.success'), t('profile.successAlert'), [
           {
             text: 'OK',
             onPress: () => navigation.goBack(),
           },
         ]);
       } else {
-        Alert.alert('Грешка', response.error || 'Неуспешно обновяване на профила');
+        Alert.alert(t('common.error'), response.error || t('profile.errorAlert'));
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      Alert.alert('Грешка', error.message || 'Неуспешно обновяване на профила');
+      Alert.alert(t('common.error'), error.message || t('profile.errorAlert'));
     } finally {
       setIsSaving(false);
       setLoading(false);
@@ -119,7 +121,7 @@ export const EditProfileScreen: React.FC = () => {
     return (
       <ScreenBackground>
         <View style={styles.container}>
-          <Text style={styles.errorText}>Няма данни за потребителя</Text>
+          <Text style={styles.errorText}>{t('profile.errorNoUser')}</Text>
         </View>
       </ScreenBackground>
     );
@@ -130,7 +132,7 @@ export const EditProfileScreen: React.FC = () => {
   return (
     <ScreenBackground>
       <GlassHeader
-        title="Редактирай профил"
+        title={t('profile.editProfile')}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -145,7 +147,7 @@ export const EditProfileScreen: React.FC = () => {
             {isSaving ? (
               <ActivityIndicator size="small" color={Colors.gold[400]} />
             ) : (
-              <Text style={styles.saveButtonText}>Запази</Text>
+              <Text style={styles.saveButtonText}>{t('profile.saveButton')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -171,17 +173,17 @@ export const EditProfileScreen: React.FC = () => {
               <CameraIcon size={24} color={Colors.text.inverse} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.imageHint}>Докосни за смяна на снимката</Text>
+          <Text style={styles.imageHint}>{t('profile.tapToChange')}</Text>
         </View>
 
         {/* Bio Section */}
         <View style={styles.bioSection}>
-          <Text style={styles.label}>Биография</Text>
+          <Text style={styles.label}>{t('profile.bioLabel')}</Text>
           <TextInput
             style={styles.bioInput}
             value={bio}
             onChangeText={setBio}
-            placeholder="Напиши нещо за себе си..."
+            placeholder={t('profile.bioPlaceholder')}
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             multiline
             maxLength={500}

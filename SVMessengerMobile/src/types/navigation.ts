@@ -25,6 +25,7 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   Settings: undefined;
   EditProfile: undefined;
+  PermissionsSettings: undefined;
 };
 
 export type ConversationsStackParamList = {
@@ -34,7 +35,7 @@ export type ConversationsStackParamList = {
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }
 

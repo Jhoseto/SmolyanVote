@@ -21,9 +21,11 @@ import { SearchIcon } from '../../components/common/Icons';
 import { Colors, Spacing } from '../../theme';
 import { Conversation } from '../../types/conversation';
 import { ScreenBackground } from '../../components/common/ScreenBackground';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const ConversationsListScreen = () => {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const { conversations, isLoading, fetchConversations, selectConversation } = useConversations();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +69,7 @@ export const ConversationsListScreen = () => {
     <ScreenBackground>
       <View style={styles.container}>
         <GlassHeader
-          title="Разговори"
+          title={t('conversations.title')}
           rightIcon={<SearchIcon size={24} color={Colors.text.inverse} />}
           onRightPress={toggleSearch}
         />
@@ -102,7 +104,7 @@ export const ConversationsListScreen = () => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {searchQuery.trim() ? 'Няма резултати' : 'Няма разговори'}
+                {searchQuery.trim() ? t('conversations.noResults') : t('conversations.noConversations')}
               </Text>
             </View>
           }

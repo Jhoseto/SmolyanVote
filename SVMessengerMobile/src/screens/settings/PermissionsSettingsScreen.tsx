@@ -17,11 +17,13 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { ScreenBackground } from '../../components/common/ScreenBackground';
 import { GlassHeader } from '../../components/common/GlassHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const { PermissionsModule } = NativeModules;
 
 export const PermissionsSettingsScreen: React.FC = () => {
     const navigation = useNavigation();
+    const { t } = useTranslation();
     const [overlayPermission, setOverlayPermission] = useState(false);
     const [batteryOptimization, setBatteryOptimization] = useState(true);
     const [isChecking, setIsChecking] = useState(true);
@@ -72,23 +74,22 @@ export const PermissionsSettingsScreen: React.FC = () => {
     return (
         <ScreenBackground>
             <GlassHeader
-                title="Настройки на Достъпност"
+                title={t('permissions.title')}
                 showBackButton
                 onBackPress={() => navigation.goBack()}
             />
             <ScrollView style={styles.container} contentContainerStyle={styles.content}>
                 {/* Info Box */}
                 <View style={styles.infoBox}>
-                    <Text style={styles.infoTitle}>За какво са тези разрешения?</Text>
+                    <Text style={styles.infoTitle}>{t('permissions.infoTitle')}</Text>
                     <Text style={styles.infoText}>
-                        Тези разрешения позволяват на приложението да показва входящи обаждания
-                        дори когато е минимизирано или затворено.
+                        {t('permissions.infoText')}
                     </Text>
                 </View>
 
                 {/* Permissions Section */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>СИСТЕМНИ РАЗРЕШЕНИЯ</Text>
+                    <Text style={styles.sectionTitle}>{t('permissions.sectionTitle')}</Text>
                     <View style={styles.sectionContent}>
                         {/* Overlay Permission */}
                         <View style={styles.permissionItem}>
@@ -104,28 +105,28 @@ export const PermissionsSettingsScreen: React.FC = () => {
                                 </View>
                                 <View style={styles.permissionInfo}>
                                     <Text style={styles.permissionName}>
-                                        Показване върху други приложения
+                                        {t('permissions.overlayName')}
                                     </Text>
                                     <Text
                                         style={[
                                             styles.permissionStatus,
                                             overlayPermission ? styles.statusTextSuccess : styles.statusTextError,
                                         ]}>
-                                        {overlayPermission ? 'Разрешено' : 'Не е разрешено'}
+                                        {overlayPermission ? t('permissions.overlayAllowed') : t('permissions.overlayNotAllowed')}
                                     </Text>
                                 </View>
                             </View>
 
                             <Text style={styles.permissionDescription}>
                                 {overlayPermission
-                                    ? 'Входящите обаждания ще се показват на цял екран.'
-                                    : 'ВАЖНО: Без това разрешение няма да виждате входящи обаждания.'}
+                                    ? t('permissions.overlayDescriptionAllowed')
+                                    : t('permissions.overlayDescriptionNotAllowed')}
                             </Text>
 
                             {!overlayPermission && (
                                 <View style={styles.warningBox}>
                                     <Text style={styles.warningText}>
-                                        ⚠️ Това разрешение е задължително за обаждания
+                                        {t('permissions.overlayWarning')}
                                     </Text>
                                 </View>
                             )}
@@ -135,7 +136,7 @@ export const PermissionsSettingsScreen: React.FC = () => {
                                     style={styles.actionButton}
                                     onPress={requestOverlayPermission}
                                     activeOpacity={0.8}>
-                                    <Text style={styles.actionButtonText}>Отвори Настройки</Text>
+                                    <Text style={styles.actionButtonText}>{t('permissions.openSettings')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -154,7 +155,7 @@ export const PermissionsSettingsScreen: React.FC = () => {
                                 </View>
                                 <View style={styles.permissionInfo}>
                                     <Text style={styles.permissionName}>
-                                        Без ограничения на батерията
+                                        {t('permissions.batteryName')}
                                     </Text>
                                     <Text
                                         style={[
@@ -163,15 +164,15 @@ export const PermissionsSettingsScreen: React.FC = () => {
                                                 ? styles.statusTextSuccess
                                                 : styles.statusTextWarning,
                                         ]}>
-                                        {batteryOptimization ? 'Разрешено' : 'Препоръчително'}
+                                        {batteryOptimization ? t('permissions.batteryAllowed') : t('permissions.batteryRecommended')}
                                     </Text>
                                 </View>
                             </View>
 
                             <Text style={styles.permissionDescription}>
                                 {batteryOptimization
-                                    ? 'Получаването на обаждания е оптимизирано.'
-                                    : 'Препоръчително: Осигурява надеждно получаване на обаждания.'}
+                                    ? t('permissions.batteryDescriptionAllowed')
+                                    : t('permissions.batteryDescriptionRecommended')}
                             </Text>
 
                             {!batteryOptimization && (
@@ -180,7 +181,7 @@ export const PermissionsSettingsScreen: React.FC = () => {
                                     onPress={requestBatteryOptimization}
                                     activeOpacity={0.8}>
                                     <Text style={styles.actionButtonSecondaryText}>
-                                        Отвори Настройки
+                                        {t('permissions.openSettings')}
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -190,12 +191,9 @@ export const PermissionsSettingsScreen: React.FC = () => {
 
                 {/* Help Section */}
                 <View style={styles.helpBox}>
-                    <Text style={styles.helpTitle}>💡 Нужна помощ?</Text>
+                    <Text style={styles.helpTitle}>{t('permissions.helpTitle')}</Text>
                     <Text style={styles.helpText}>
-                        След като натиснете "Отвори Настройки":{'\n'}
-                        1. Намерете "SVMessenger" в списъка{'\n'}
-                        2. Включете бутона{'\n'}
-                        3. Върнете се тук - статусът ще се обнови автоматично
+                        {t('permissions.helpText')}
                     </Text>
                 </View>
             </ScrollView>

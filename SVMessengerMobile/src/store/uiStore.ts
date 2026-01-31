@@ -4,6 +4,8 @@
  */
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UIState {
   isLoading: boolean;
@@ -11,6 +13,7 @@ interface UIState {
   activeModal: string | null;
   networkStatus: 'online' | 'offline' | 'unknown';
   theme: 'light' | 'dark';
+  language: string;
 }
 
 interface UIStore extends UIState {
@@ -20,42 +23,61 @@ interface UIStore extends UIState {
   hideModal: () => void;
   setNetworkStatus: (status: 'online' | 'offline' | 'unknown') => void;
   setTheme: (theme: 'light' | 'dark') => void;
+  setLanguage: (lang: string) => void;
 }
 
-export const useUIStore = create<UIStore>((set) => ({
-  // Initial state
-  isLoading: false,
-  loadingMessage: null,
-  activeModal: null,
-  networkStatus: 'unknown',
-  theme: 'light',
+export const useUIStore = create<UIStore>()(
+  persist(
+    (set) => ({
+      // Initial state
+      isLoading: false,
+      loadingMessage: null,
+      activeModal: null,
+      networkStatus: 'unknown',
+      theme: 'light',
+      language: 'bg',
 
-  // Set loading state
-  setLoading: (isLoading: boolean, message?: string) => {
-    set({
-      isLoading,
-      loadingMessage: message || null,
-    });
-  },
+      // Set loading state
+      setLoading: (isLoading: boolean, message?: string) => {
+        set({
+          isLoading,
+          loadingMessage: message || null,
+        });
+      },
 
-  // Show modal
-  showModal: (modalName: string) => {
-    set({ activeModal: modalName });
-  },
+      // Show modal
+      showModal: (modalName: string) => {
+        set({ activeModal: modalName });
+      },
 
-  // Hide modal
-  hideModal: () => {
-    set({ activeModal: null });
-  },
+      // Hide modal
+      hideModal: () => {
+        set({ activeModal: null });
+      },
 
-  // Set network status
-  setNetworkStatus: (status: 'online' | 'offline' | 'unknown') => {
-    set({ networkStatus: status });
-  },
+      // Set network status
+      setNetworkStatus: (status: 'online' | 'offline' | 'unknown') => {
+        set({ networkStatus: status });
+      },
 
-  // Set theme
-  setTheme: (theme: 'light' | 'dark') => {
-    set({ theme });
-  },
-}));
+      // Set theme
+      setTheme: (theme: 'light' | 'dark') => {
+        set({ theme });
+      },
+
+      // Set language
+      setLanguage: (lang: string) => {
+        set({ language: lang });
+      },
+    }),
+    {
+      name: 'ui-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        theme: state.theme,
+        language: state.language,
+      }),
+    }
+  )
+);
 

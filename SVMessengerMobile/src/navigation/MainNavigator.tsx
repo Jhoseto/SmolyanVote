@@ -18,6 +18,7 @@ import { PermissionsSettingsScreen } from '../screens/settings/PermissionsSettin
 import { Colors } from '../theme';
 import { ChatIcon, SearchIcon, PersonIcon, ChatIconSolid, SearchIconSolid, PersonIconSolid } from '../components/common/Icons';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { useTranslation } from '../hooks/useTranslation';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const ConversationsStack = createNativeStackNavigator<ConversationsStackParamList>();
@@ -25,6 +26,8 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 // Conversations Stack Navigator
 const ConversationsNavigator: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <ErrorBoundary>
       <ConversationsStack.Navigator
@@ -35,7 +38,7 @@ const ConversationsNavigator: React.FC = () => {
         <ConversationsStack.Screen
           name="ConversationsList"
           component={ConversationsListScreen}
-          options={{ title: 'Разговори' }}
+          options={{ title: t('navigation.conversations') }}
         />
         <ConversationsStack.Screen
           name="Chat"
@@ -51,6 +54,8 @@ const ConversationsNavigator: React.FC = () => {
 
 // Profile Stack Navigator
 const ProfileNavigator: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <ErrorBoundary>
       <ProfileStack.Navigator
@@ -61,22 +66,22 @@ const ProfileNavigator: React.FC = () => {
         <ProfileStack.Screen
           name="ProfileMain"
           component={ProfileScreen}
-          options={{ title: 'Профил' }}
+          options={{ title: t('navigation.profile') }}
         />
         <ProfileStack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ title: 'Настройки' }}
+          options={{ title: t('navigation.settings') }}
         />
         <ProfileStack.Screen
           name="EditProfile"
           component={EditProfileScreen}
-          options={{ title: 'Редактирай профил' }}
+          options={{ title: t('navigation.editProfile') }}
         />
         <ProfileStack.Screen
           name="PermissionsSettings"
           component={PermissionsSettingsScreen}
-          options={{ title: 'Настройки на разрешенията' }}
+          options={{ title: t('navigation.permissions') }}
         />
       </ProfileStack.Navigator>
     </ErrorBoundary>
@@ -86,6 +91,7 @@ const ProfileNavigator: React.FC = () => {
 // Main Tab Navigator
 export const MainNavigator: React.FC = () => {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener('keyboardDidShow', () => {
@@ -131,7 +137,7 @@ export const MainNavigator: React.FC = () => {
         name="Conversations"
         component={ConversationsNavigator}
         options={{
-          tabBarLabel: 'Разговори',
+          tabBarLabel: t('navigation.conversations'),
           tabBarIcon: ({ color, focused }) =>
             focused ? (
               <ChatIconSolid size={24} color={color} />
@@ -144,7 +150,7 @@ export const MainNavigator: React.FC = () => {
         name="Search"
         component={UserSearchScreen}
         options={{
-          tabBarLabel: 'Търсене',
+          tabBarLabel: t('navigation.search'),
           tabBarIcon: ({ color, focused }) =>
             focused ? (
               <SearchIconSolid size={24} color={color} />
@@ -157,7 +163,7 @@ export const MainNavigator: React.FC = () => {
         name="Profile"
         component={ProfileNavigator}
         options={{
-          tabBarLabel: 'Профил',
+          tabBarLabel: t('navigation.profile'),
           tabBarIcon: ({ color, focused }) =>
             focused ? (
               <PersonIconSolid size={24} color={color} />

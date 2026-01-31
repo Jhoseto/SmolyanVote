@@ -41,6 +41,7 @@ import { Message } from '../../types/message';
 import { CallHistory } from '../../types/callHistory';
 import { TelephoneIcon } from '../../components/common/Icons';
 import { logger } from '../../utils/logger';
+import { useTranslation } from '../../hooks/useTranslation';
 
 
 // Swipeable Wrapper Component
@@ -112,6 +113,7 @@ export const ChatScreen: React.FC = () => {
   const missedCalls = conversation?.missedCalls || 0;
   const { user } = useAuthStore();
   const { clearMissedCalls } = useConversationsStore();
+  const { t } = useTranslation();
 
   // Translation is now handled per-message in MessageBubble (on-demand)
 
@@ -311,8 +313,8 @@ export const ChatScreen: React.FC = () => {
 
   const handleReply = (message: Message) => {
     const senderName = message.senderId === user?.id
-      ? 'Вие'
-      : participantName || 'Потребител';
+      ? t('chat.you')
+      : participantName || t('chat.user');
     setReplyToMessage({
       id: message.id,
       text: message.text,
@@ -405,7 +407,7 @@ export const ChatScreen: React.FC = () => {
   if (isLoading && messages.length === 0) {
     return (
       <ScreenBackground>
-        <Loading message="Зареждане на съобщения..." />
+        <Loading message={t('chat.loadingMessages')} />
       </ScreenBackground>
     );
   }
@@ -491,8 +493,8 @@ export const ChatScreen: React.FC = () => {
                   <TelephoneIcon size={18} color={Colors.red[500]} />
                   <Text style={styles.missedCallsText}>
                     {missedCalls === 1
-                      ? 'Пропуснато обаждане'
-                      : `${missedCalls} пропуснати обаждания`}
+                      ? t('chat.missedCall')
+                      : `${missedCalls} ${t('chat.missedCalls')}`}
                   </Text>
                   <TouchableOpacity
                     onPress={() => clearMissedCalls(conversationId)}
@@ -504,7 +506,7 @@ export const ChatScreen: React.FC = () => {
               ) : isLoadingMore ? (
                 <View style={styles.loadingMoreContainer}>
                   <ActivityIndicator size="small" color={Colors.green[500]} />
-                  <Text style={styles.loadingMoreText}>Зареждане на по-стари съобщения...</Text>
+                  <Text style={styles.loadingMoreText}>{t('chat.loadingOlder')}</Text>
                 </View>
               ) : null
             }
