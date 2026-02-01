@@ -19,6 +19,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 
 const { width } = Dimensions.get('window');
+const HORIZONTAL_PADDING = Spacing.xl; // 32px от двете страни
+const CONTENT_MAX_WIDTH = Math.min(width - HORIZONTAL_PADDING * 2, 320); // по-тясна форма
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -78,14 +80,14 @@ export const LoginScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: HORIZONTAL_PADDING }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.content}>
+          <View style={[styles.content, { maxWidth: CONTENT_MAX_WIDTH }]}>
             <FadeInView delay={100} startY={-20}>
               <View style={styles.headerSection}>
-                <Text style={styles.title}>SVMessenger</Text>
+                <Text style={styles.title} numberOfLines={1}>SVMessenger</Text>
                 <View style={styles.titleUnderline} />
                 <Text style={styles.subtitle}>Влез в премиум света на общуването</Text>
               </View>
@@ -106,6 +108,7 @@ export const LoginScreen: React.FC = () => {
                     autoCorrect={false}
                     style={styles.input}
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    containerStyle={styles.inputContainer}
                   />
 
                   <Input
@@ -119,6 +122,7 @@ export const LoginScreen: React.FC = () => {
                     autoCapitalize="none"
                     style={styles.input}
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    containerStyle={styles.inputContainer}
                   />
 
                   <TouchableOpacity
@@ -174,14 +178,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   content: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
     width: '100%',
-    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: Spacing.lg,
   },
   headerSection: {
     alignItems: 'center',
-    marginBottom: Spacing.xl * 1.5,
+    marginBottom: Spacing.xl,
   },
   title: {
     fontSize: 48,
@@ -190,15 +193,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -1.5,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   titleUnderline: {
-    width: 60,
+    width: 64,
     height: 3,
-    backgroundColor: Colors.gold[500], // Premium gold underline
+    backgroundColor: Colors.gold[500],
     borderRadius: 2,
-    marginTop: -4,
+    marginTop: 4,
     marginBottom: Spacing.sm,
     shadowColor: Colors.gold[400],
     shadowOffset: { width: 0, height: 2 },
@@ -206,11 +209,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.75)',
     textAlign: 'center',
     fontWeight: '500',
-    maxWidth: width * 0.7,
+    paddingHorizontal: Spacing.sm,
     lineHeight: 22,
   },
   glassCard: {
@@ -219,45 +222,51 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
+  inputContainer: {
+    marginBottom: Spacing.md,
+  },
   inputLabel: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
-    marginLeft: 4,
+    marginLeft: 0,
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 14,
+    borderRadius: 12,
     color: Colors.text.inverse,
-    height: 56,
+    height: 52,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 16,
   },
   loginButton: {
     backgroundColor: Colors.gold[500],
-    borderRadius: 16,
-    height: 58,
-    marginTop: Spacing.md,
+    borderRadius: 12,
+    height: 52,
+    marginTop: Spacing.sm,
     borderWidth: 0,
     shadowColor: Colors.gold[700],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
   loginButtonText: {
-    color: '#000000', // Maximum contrast black text on gold
-    fontSize: 17,
-    fontWeight: '700', // Bold but not too heavy
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   forgotPasswordButton: {
     alignItems: 'flex-end',
     marginTop: -Spacing.xs,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   forgotPasswordText: {
     fontSize: 13,
