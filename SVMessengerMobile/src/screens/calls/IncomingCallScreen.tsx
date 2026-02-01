@@ -21,7 +21,7 @@ import { useCalls } from '../../hooks/useCalls';
 const { width } = Dimensions.get('window');
 
 export const IncomingCallScreen: React.FC = () => {
-  const { currentCall, answerCall, rejectCall } = useCalls();
+  const { currentCall, answerCall, rejectCall, isAccepting } = useCalls();
 
   // Анимации
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -165,6 +165,9 @@ export const IncomingCallScreen: React.FC = () => {
   }, []);
 
   const handleAcceptPress = () => {
+    // Immediate feedback
+    if (isAccepting) return; // Prevent double taps
+
     Animated.sequence([
       Animated.timing(acceptScaleAnim, {
         toValue: 0.85,
@@ -239,6 +242,7 @@ export const IncomingCallScreen: React.FC = () => {
         >
           {/* Avatar с premium ring waves */}
           <View style={styles.avatarContainer}>
+            {/* Ring waves - only show if NOT accepting yet, or maybe keep them? Keep for visual flair */}
             {/* Ring wave 3 - Premium green gradient */}
             <Animated.View
               style={[
@@ -291,80 +295,86 @@ export const IncomingCallScreen: React.FC = () => {
           <View style={styles.callerInfo}>
             <Text style={styles.callerName}>{currentCall.participant.name}</Text>
             <View style={styles.callingCard}>
-              <View style={styles.pulsingDot} />
-              <Text style={styles.callingText}>Входящо обаждане...</Text>
+              <View style={[styles.pulsingDot, isAccepting && { backgroundColor: '#eab308' }]} />
+              <Text style={[styles.callingText, isAccepting && { color: '#ca8a04' }]}>
+                {isAccepting ? 'Свързване...' : 'Входящо обаждане...'}
+              </Text>
             </View>
           </View>
 
           {/* Premium 3D Action buttons */}
           <View style={styles.actionsContainer}>
-            {/* Accept button with 3D effect - зелена слушалка отляво */}
-            <TouchableOpacity onPress={handleAcceptPress} activeOpacity={0.9}>
-              <Animated.View style={{ transform: [{ scale: acceptScaleAnim }] }}>
-                {/* Glow layer */}
-                <Animated.View
-                  style={[
-                    styles.buttonGlow,
-                    {
-                      backgroundColor: '#22c55e',
-                      opacity: acceptGlowOpacity,
-                      transform: [{ scale: acceptGlowScale }],
-                    },
-                  ]}
-                />
+            {!isAccepting && (
+              <>
+                {/* Accept button with 3D effect - зелена слушалка отляво */}
+                <TouchableOpacity onPress={handleAcceptPress} activeOpacity={0.9}>
+                  <Animated.View style={{ transform: [{ scale: acceptScaleAnim }] }}>
+                    {/* Glow layer */}
+                    <Animated.View
+                      style={[
+                        styles.buttonGlow,
+                        {
+                          backgroundColor: '#22c55e',
+                          opacity: acceptGlowOpacity,
+                          transform: [{ scale: acceptGlowScale }],
+                        },
+                      ]}
+                    />
 
-                {/* Shadow ring */}
-                <View style={[styles.buttonShadow, { backgroundColor: '#16a34a' }]} />
+                    {/* Shadow ring */}
+                    <View style={[styles.buttonShadow, { backgroundColor: '#16a34a' }]} />
 
-                {/* Middle ring */}
-                <View style={[styles.buttonMiddle, { backgroundColor: '#4ade80' }]} />
+                    {/* Middle ring */}
+                    <View style={[styles.buttonMiddle, { backgroundColor: '#4ade80' }]} />
 
-                {/* Inner button */}
-                <View style={[styles.buttonInner, { backgroundColor: '#22c55e' }]}>
-                  <View style={styles.buttonGloss} />
-                  <View style={styles.buttonIconContainer}>
-                    <TelephoneIcon size={28} color="#fff" />
-                  </View>
-                  <View style={styles.buttonDepth} />
-                </View>
+                    {/* Inner button */}
+                    <View style={[styles.buttonInner, { backgroundColor: '#22c55e' }]}>
+                      <View style={styles.buttonGloss} />
+                      <View style={styles.buttonIconContainer}>
+                        <TelephoneIcon size={28} color="#fff" />
+                      </View>
+                      <View style={styles.buttonDepth} />
+                    </View>
 
-                <Text style={styles.actionLabel}>Приеми</Text>
-              </Animated.View>
-            </TouchableOpacity>
+                    <Text style={styles.actionLabel}>Приеми</Text>
+                  </Animated.View>
+                </TouchableOpacity>
 
-            {/* Reject button with 3D effect - червена слушалка отдясно */}
-            <TouchableOpacity onPress={handleRejectPress} activeOpacity={0.9}>
-              <Animated.View style={{ transform: [{ scale: rejectScaleAnim }] }}>
-                {/* Glow layer */}
-                <Animated.View
-                  style={[
-                    styles.buttonGlow,
-                    {
-                      backgroundColor: '#ef4444',
-                      opacity: rejectGlowOpacity,
-                      transform: [{ scale: rejectGlowScale }],
-                    },
-                  ]}
-                />
+                {/* Reject button with 3D effect - червена слушалка отдясно */}
+                <TouchableOpacity onPress={handleRejectPress} activeOpacity={0.9}>
+                  <Animated.View style={{ transform: [{ scale: rejectScaleAnim }] }}>
+                    {/* Glow layer */}
+                    <Animated.View
+                      style={[
+                        styles.buttonGlow,
+                        {
+                          backgroundColor: '#ef4444',
+                          opacity: rejectGlowOpacity,
+                          transform: [{ scale: rejectGlowScale }],
+                        },
+                      ]}
+                    />
 
-                {/* Shadow ring */}
-                <View style={[styles.buttonShadow, { backgroundColor: '#dc2626' }]} />
+                    {/* Shadow ring */}
+                    <View style={[styles.buttonShadow, { backgroundColor: '#dc2626' }]} />
 
-                {/* Middle ring */}
-                <View style={[styles.buttonMiddle, { backgroundColor: '#f87171' }]} />
+                    {/* Middle ring */}
+                    <View style={[styles.buttonMiddle, { backgroundColor: '#f87171' }]} />
 
-                {/* Inner button */}
-                <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
-                  <View style={styles.buttonGloss} />
-                  <View style={styles.buttonIconContainer}>
-                    <XMarkIcon size={28} color="#fff" />
-                  </View>
-                  <View style={styles.buttonDepth} />
-                </View>
+                    {/* Inner button */}
+                    <View style={[styles.buttonInner, { backgroundColor: '#ef4444' }]}>
+                      <View style={styles.buttonGloss} />
+                      <View style={styles.buttonIconContainer}>
+                        <XMarkIcon size={28} color="#fff" />
+                      </View>
+                      <View style={styles.buttonDepth} />
+                    </View>
 
-                <Text style={styles.actionLabel}>Откажи</Text>
-              </Animated.View>
-            </TouchableOpacity>
+                    <Text style={styles.actionLabel}>Откажи</Text>
+                  </Animated.View>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </Animated.View>
       </View>

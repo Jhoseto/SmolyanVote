@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_incoming_call_gradient">
+
+    <!-- Pulse Animations (Behind Avatar) -->
+    <View
+        android:id="@+id/pulseRing1"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:background="@drawable/shape_avatar_pulse"
+        android:alpha="0.3"
+        app:layout_constraintBottom_toBottomOf="@+id/callerAvatar"
+        app:layout_constraintEnd_toEndOf="@+id/callerAvatar"
+        app:layout_constraintStart_toStartOf="@+id/callerAvatar"
+        app:layout_constraintTop_toTopOf="@+id/callerAvatar" />
+
+    <View
+        android:id="@+id/pulseRing2"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:background="@drawable/shape_avatar_pulse"
+        android:alpha="0.2"
+        app:layout_constraintBottom_toBottomOf="@+id/callerAvatar"
+        app:layout_constraintEnd_toEndOf="@+id/callerAvatar"
+        app:layout_constraintStart_toStartOf="@+id/callerAvatar"
+        app:layout_constraintTop_toTopOf="@+id/callerAvatar" />
+
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/callerAvatar"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_marginTop="100dp"
+        android:background="@drawable/bg_avatar_border"
+        android:scaleType="centerCrop"
+        android:src="@android:drawable/ic_menu_call"
+        android:elevation="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:src="@android:drawable/sym_def_app_icon" />
+
+    <!-- Name & Status -->
+    <LinearLayout
+        android:id="@+id/infoContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/callerAvatar">
+
+        <TextView
+            android:id="@+id/callerName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="Ivaylo Batchvarov"
+            android:textColor="#1F2937"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/callStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Incoming Video Call..."
+            android:textColor="#10B981"
+            android:textSize="18sp"
+            android:letterSpacing="0.05" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="via SVMessenger"
+            android:textColor="#6B7280"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Buttons Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Decline Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+            
+            <ImageButton
+                android:id="@+id/btnReject"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_btn_reject"
+                android:contentDescription="Decline Call"
+                android:elevation="6dp"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#FFFFFF" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Decline"
+                android:layout_marginTop="8dp"
+                android:textColor="#EF4444"
+                android:textStyle="bold"
+                android:textSize="14sp"/>
+        </LinearLayout>
+
+        <Space
+            android:layout_width="80dp"
+            android:layout_height="wrap_content" />
+
+        <!-- Accept Button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+            
+            <ImageButton
+                android:id="@+id/btnAccept"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_btn_accept"
+                android:contentDescription="Accept Call"
+                android:elevation="6dp"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_call"
+                android:tint="#FFFFFF" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Accept"
+                android:layout_marginTop="8dp"
+                android:textColor="#10B981"
+                android:textStyle="bold"
+                android:textSize="14sp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

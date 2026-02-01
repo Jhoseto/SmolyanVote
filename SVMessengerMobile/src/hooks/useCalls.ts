@@ -29,9 +29,11 @@ export const useCalls = () => {
     isMuted,
     isSpeakerOn,
     isVideoEnabled,
+    isAccepting, // Expose isAccepting
     setOutgoingCall,
     setConnected,
     setEnding,
+    setAccepting, // Get action
     clearCall,
     setCallStartTime,
     setCallEndTime,
@@ -75,6 +77,25 @@ export const useCalls = () => {
       InCallManager.setSpeakerphoneOn(isSpeakerOn);
     }
   }, [isSpeakerOn, isConnected]);
+
+  /**
+   * Cleanup sequence - stops everything
+   * Moved to top to avoid 'use before declaration' errors
+   */
+  const performCleanup = useCallback((reason: string = 'Unknown') => {
+    logger.debug(`🧹 [useCalls] Performing cleanup. Reason: ${reason}`);
+
+    // Stop all sounds
+    soundService.stopOutgoingCallSound();
+    soundService.stopIncomingCallSound();
+
+    // Disconnect LiveKit
+    liveKitService.disconnect();
+    liveKitService.resetConnectionTracking();
+
+    // Clear call state
+    clearCall();
+  }, [clearCall]);
 
   /**
    * Start outgoing call
@@ -182,13 +203,25 @@ export const useCalls = () => {
 
   /**
    * Answer incoming call
+   * CRITICAL FIX: Read state directly from store to avoid Stale Closures
    */
   const handleAnswerCall = useCallback(async () => {
     try {
+      // CRITICAL FIX: Get fresh state directly from store
+      // This prevents "race conditions" where the hook hasn't re-rendered yet
+      // but the store was updated by usePushNotifications
+      const { currentCall, isRinging } = useCallsStore.getState();
+
       if (!currentCall || !isRinging) {
-        logger.warn('⚠️ Cannot answer - no incoming call');
+        logger.warn('⚠️ Cannot answer - no incoming call (checked fresh state)');
         return;
       }
+
+      // Hybrid Flow UI Feedback: Mark as accepting immediately
+      setAccepting();
+
+      // Hybrid Flow UI Feedback: Mark as accepting immediately
+      setAccepting();
 
       // Request permissions
       const hasAudioPermission = await callPermissionsService.requestMicrophonePermission();
@@ -231,14 +264,18 @@ export const useCalls = () => {
       logger.error('❌ Error answering call:', error);
       performCleanup('Error answering call');
     }
-  }, [currentCall, isRinging, user]);
+  }, [user, performCleanup]);
 
   /**
    * Reject incoming call
+   * CRITICAL FIX: Read state directly from store to avoid Stale Closures
    */
   const handleRejectCall = useCallback(() => {
+    // CRITICAL FIX: Get fresh state directly from store
+    const { currentCall, isRinging } = useCallsStore.getState();
+
     if (!currentCall || !isRinging) {
-      logger.warn('⚠️ Cannot reject - no incoming call');
+      logger.warn('⚠️ Cannot reject - no incoming call (checked fresh state)');
       return;
     }
 
@@ -260,7 +297,7 @@ export const useCalls = () => {
 
     // Clear call
     clearCall();
-  }, [currentCall, isRinging, user, clearCall]);
+  }, [user, clearCall]);
 
   /**
    * End active call or cancel outgoing call
@@ -349,23 +386,7 @@ export const useCalls = () => {
     }, 500);
   }, [setEnding]);
 
-  /**
-   * Cleanup sequence - stops everything
-   */
-  const performCleanup = useCallback((reason: string = 'Unknown') => {
-    logger.debug(`🧹 [useCalls] Performing cleanup. Reason: ${reason}`);
 
-    // Stop all sounds
-    soundService.stopOutgoingCallSound();
-    soundService.stopIncomingCallSound();
-
-    // Disconnect LiveKit
-    liveKitService.disconnect();
-    liveKitService.resetConnectionTracking();
-
-    // Clear call state
-    clearCall();
-  }, [clearCall]);
 
   /**
    * Toggle microphone mute
@@ -565,6 +586,7 @@ export const useCalls = () => {
     isRinging,
     isDialing,
     isConnected,
+    isAccepting,
     isEnding,
     isMuted,
     isSpeakerOn,

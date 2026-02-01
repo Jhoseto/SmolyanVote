@@ -42,6 +42,7 @@ export interface CallsState {
   // Explicit state flags - NO AMBIGUITY
   isRinging: boolean;      // Incoming call, not yet answered
   isDialing: boolean;      // Outgoing call, not yet connected
+  isAccepting: boolean;    // Answered, waiting for connection (Hybrid Flow)
   isConnected: boolean;    // Active conversation
   isEnding: boolean;       // Call cleanup in progress
 
@@ -53,6 +54,7 @@ export interface CallsState {
   // Actions
   setIncomingCall: (data: CallData) => void;
   setOutgoingCall: (data: CallData) => void;
+  setAccepting: () => void;
   setConnected: () => void;
   setEnding: () => void;
   clearCall: () => void;
@@ -74,6 +76,7 @@ export const useCallsStore = create<CallsState>((set, get) => ({
   currentCall: null,
   isRinging: false,
   isDialing: false,
+  isAccepting: false,
   isConnected: false,
   isEnding: false,
   isMuted: false,
@@ -88,6 +91,7 @@ export const useCallsStore = create<CallsState>((set, get) => ({
       currentCall: { ...data, isOutgoing: false },
       isRinging: true,
       isDialing: false,
+      isAccepting: false,
       isConnected: false,
       isEnding: false,
     });
@@ -101,8 +105,22 @@ export const useCallsStore = create<CallsState>((set, get) => ({
       currentCall: { ...data, isOutgoing: true },
       isRinging: false,
       isDialing: true,
+      isAccepting: false,
       isConnected: false,
       isEnding: false,
+    });
+  },
+
+  /**
+   * Set accepting - used for immediate UI feedback (Hybrid Flow)
+   */
+  setAccepting: () => {
+    set({
+      isAccepting: true,
+      // Keep isRinging true until connected to prevent premature unmount if needed,
+      // BUT for Hybrid Flow we might want isRinging to remain true so IncomingCallScreen stays mounted
+      // to show the "Connecting..." state.
+      // So we just set isAccepting=true.
     });
   },
 
@@ -113,6 +131,7 @@ export const useCallsStore = create<CallsState>((set, get) => ({
     set({
       isRinging: false,
       isDialing: false,
+      isAccepting: false,
       isConnected: true,
       isEnding: false,
     });
@@ -128,6 +147,7 @@ export const useCallsStore = create<CallsState>((set, get) => ({
     set({
       isRinging: false,
       isDialing: false,
+      isAccepting: false,
       isConnected: false,
       isEnding: true,
       currentCall: {
@@ -145,6 +165,7 @@ export const useCallsStore = create<CallsState>((set, get) => ({
       currentCall: null,
       isRinging: false,
       isDialing: false,
+      isAccepting: false,
       isConnected: false,
       isEnding: false,
       isMuted: false,
