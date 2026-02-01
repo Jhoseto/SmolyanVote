@@ -129,15 +129,13 @@ export const LoginScreen: React.FC = () => {
                     <Text style={styles.forgotPasswordText}>Забравена парола?</Text>
                   </TouchableOpacity>
 
-                  <Button
-                    title="Влез в профила"
+                  <TouchableOpacity
                     onPress={handleLogin}
-                    variant="secondary"
-                    size="large"
-                    fullWidth
                     style={styles.loginButton}
-                    textStyle={styles.loginButtonText}
-                  />
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.loginButtonText}>Влез в профила</Text>
+                  </TouchableOpacity>
 
                   <OAuthButtons
                     onSuccess={() => { }}
@@ -176,7 +174,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   content: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
     width: '100%',
     alignItems: 'center',
   },
@@ -215,17 +214,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   glassCard: {
-    width: width - Spacing.lg * 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 32,
-    padding: Spacing.xl,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    width: '100%',
   },
   form: {
     width: '100%',
@@ -238,7 +227,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 14,
     color: Colors.text.inverse,
@@ -255,15 +244,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   loginButtonText: {
     color: '#000000', // Maximum contrast black text on gold
-    fontSize: 18,
-    fontWeight: '900', // Maximum weight
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    fontSize: 17,
+    fontWeight: '700', // Bold but not too heavy
+    letterSpacing: 0.3,
   },
   forgotPasswordButton: {
     alignItems: 'flex-end',

@@ -1,6 +1,6 @@
 /**
  * OAuth Buttons Component
- * Google и Facebook login бутони
+ * Вход с Google (един бутон – всеки Android има Google акаунт)
  */
 
 import React, { useState } from 'react';
@@ -17,26 +17,21 @@ interface OAuthButtonsProps {
 
 export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }) => {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const [loadingFacebook, setLoadingFacebook] = useState(false);
   const { setUser } = useAuthStore();
 
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     try {
       const response: OAuthTokenResponse = await oauthService.signInWithGoogle();
-
-      // Обновяване на auth store с user данните
-      // Конвертиране на OAuthTokenResponse user към User type
       setUser({
         id: response.user.id,
         username: response.user.username,
-        email: `${response.user.username}@oauth.local`, // OAuth users don't have email from server
+        email: `${response.user.username}@oauth.local`,
         fullName: response.user.fullName,
         imageUrl: response.user.imageUrl,
         isOnline: response.user.isOnline,
         lastSeen: response.user.lastSeen,
       });
-
       onSuccess?.();
     } catch (error: any) {
       const errorMessage = error.message || 'Грешка при вход с Google';
@@ -47,77 +42,28 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ onSuccess, onError }
     }
   };
 
-  const handleFacebookLogin = async () => {
-    setLoadingFacebook(true);
-    try {
-      const response: OAuthTokenResponse = await oauthService.signInWithFacebook();
-
-      // Обновяване на auth store с user данните
-      setUser({
-        id: response.user.id,
-        username: response.user.username,
-        email: `${response.user.username}@oauth.local`, // OAuth users don't have email from server
-        fullName: response.user.fullName,
-        imageUrl: response.user.imageUrl,
-        isOnline: response.user.isOnline,
-        lastSeen: response.user.lastSeen,
-      });
-
-      onSuccess?.();
-    } catch (error: any) {
-      const errorMessage = error.message || 'Грешка при вход с Facebook';
-      console.error('Facebook login error:', errorMessage);
-      onError?.(errorMessage);
-    } finally {
-      setLoadingFacebook(false);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      {/* Divider */}
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>или</Text>
         <View style={styles.dividerLine} />
       </View>
-
-      {/* OAuth Buttons */}
-      <View style={styles.buttonsContainer}>
-        {/* Google Button */}
-        <TouchableOpacity
-          style={[styles.oauthButton, styles.googleButton]}
-          onPress={handleGoogleLogin}
-          disabled={loadingGoogle || loadingFacebook}
-          activeOpacity={0.8}
-        >
-          {loadingGoogle ? (
-            <ActivityIndicator color="#3c4043" size="small" />
-          ) : (
-            <>
-              <GoogleIcon />
-              <Text style={styles.googleButtonText}>Google</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Facebook Button */}
-        <TouchableOpacity
-          style={[styles.oauthButton, styles.facebookButton]}
-          onPress={handleFacebookLogin}
-          disabled={loadingGoogle || loadingFacebook}
-          activeOpacity={0.8}
-        >
-          {loadingFacebook ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <FacebookIcon />
-              <Text style={styles.facebookButtonText}>Facebook</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[styles.oauthButton, styles.googleButton]}
+        onPress={handleGoogleLogin}
+        disabled={loadingGoogle}
+        activeOpacity={0.8}
+      >
+        {loadingGoogle ? (
+          <ActivityIndicator color="#3c4043" size="small" />
+        ) : (
+          <>
+            <GoogleIcon />
+            <Text style={styles.googleButtonText}>Вход с Google</Text>
+          </>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
@@ -129,13 +75,6 @@ const GoogleIcon: React.FC = () => (
     <Path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
     <Path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
     <Path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-  </Svg>
-);
-
-// Facebook Icon SVG Component - точно като в web версията
-const FacebookIcon: React.FC = () => (
-  <Svg width={16} height={16} viewBox="0 0 24 24" fill="#1877F2" style={styles.iconContainer}>
-    <Path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </Svg>
 );
 
@@ -162,10 +101,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  buttonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   oauthButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -175,7 +110,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     minHeight: 40,
-    flex: 1,
+    alignSelf: 'stretch',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -187,20 +122,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dadce0',
   },
-  facebookButton: {
-    backgroundColor: '#1877F2',
-    borderWidth: 1,
-    borderColor: '#1877F2',
-  },
   googleButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#3c4043',
-  },
-  facebookButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#ffffff',
   },
   iconContainer: {
     width: 16,

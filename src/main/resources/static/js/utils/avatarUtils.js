@@ -56,14 +56,14 @@ class AvatarUtils {
         if (!imageUrl || typeof imageUrl !== 'string') {
             return false;
         }
-        
+
         const trimmedUrl = imageUrl.trim();
-        
+
         // Ако е празен стринг, не е валидна
         if (trimmedUrl === '') {
             return false;
         }
-        
+
         // Проверява дали не е default avatar (различни варианти)
         const defaultAvatars = [
             '/default-avatar.jpg',
@@ -72,14 +72,14 @@ class AvatarUtils {
             '/images/default-avatar.jpg',
             'default-avatar'
         ];
-        
+
         // Ако съдържа някой от default стринговете, не е валидна
         for (const defaultAvatar of defaultAvatars) {
             if (trimmedUrl.includes(defaultAvatar)) {
                 return false;
             }
         }
-        
+
         // Ако минава всички проверки, е валидна
         return true;
     }
@@ -160,7 +160,7 @@ class AvatarUtils {
                 placeholder.dataset.avatarInitialized = 'true';
                 const username = placeholder.dataset.username || placeholder.getAttribute('data-username') || placeholder.textContent?.trim() || 'User';
                 const imageUrl = placeholder.dataset.userImage || placeholder.getAttribute('data-user-image') || null;
-                
+
                 // Ако има data-user-image атрибут, използваме createAvatar() за да създадем правилния avatar (IMG или DIV)
                 if (imageUrl !== null) {
                     const size = placeholder.offsetWidth || 40;
@@ -169,7 +169,7 @@ class AvatarUtils {
                     placeholder.outerHTML = avatarHtml;
                     return; // Не продължаваме, защото елементът е заменен
                 }
-                
+
                 // Ако няма снимка, попълваме с инициали
                 if (!placeholder.textContent || placeholder.textContent.trim() === '') {
                     const initials = this.getInitials(username);
@@ -280,23 +280,23 @@ class AvatarUtils {
 window.avatarUtils = new AvatarUtils();
 
 // Глобални функции за лесно използване
-window.getInitials = function(username) {
+window.getInitials = function (username) {
     return window.avatarUtils.getInitials(username);
 };
 
-window.getAvatarColor = function(username) {
+window.getAvatarColor = function (username) {
     return window.avatarUtils.getAvatarColor(username);
 };
 
-window.createAvatar = function(imageUrl, username, size = 40, className = 'user-avatar') {
+window.createAvatar = function (imageUrl, username, size = 40, className = 'user-avatar') {
     return window.avatarUtils.createAvatar(imageUrl, username, size, className);
 };
 
-window.handleAvatarError = function(img, username) {
+window.handleAvatarError = function (img, username) {
     return window.avatarUtils.handleImageError(img, username);
 };
 
-window.updateAllAvatars = function() {
+window.updateAllAvatars = function () {
     return window.avatarUtils.updateAll();
 };
 

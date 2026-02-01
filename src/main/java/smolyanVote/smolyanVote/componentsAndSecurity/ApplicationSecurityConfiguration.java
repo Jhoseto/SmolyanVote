@@ -86,6 +86,8 @@ public class ApplicationSecurityConfiguration {
                         .requestMatchers("/api/mobile/auth/login", "/api/mobile/auth/refresh",
                                 "/api/mobile/auth/logout")
                         .permitAll()
+                        // start-oauth: браузърът отваря този URL без JWT; задава cookie и редирект към OAuth
+                        .requestMatchers("/api/mobile/auth/start-oauth").permitAll()
                         // Mobile Device endpoints - изискват authentication
                         .requestMatchers("/api/mobile/device/**").authenticated()
                         // Статични ресурси и podcast window - трябва да са преди другите правила

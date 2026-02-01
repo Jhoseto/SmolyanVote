@@ -22,7 +22,8 @@ import java.util.Optional;
 
 /**
  * Mobile OAuth Service
- * Валидира Google ID token и Facebook access token и създава/обновява user accounts
+ * Валидира Google ID token и Facebook access token и създава/обновява user
+ * accounts
  */
 @Service
 @Slf4j
@@ -57,16 +58,16 @@ public class MobileOAuthService {
         try {
             // Google token info endpoint
             String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
-            
-            ResponseEntity<Map<String, Object>> response = restTemplate.getForEntity(url, 
-                (Class<Map<String, Object>>) (Class<?>) Map.class);
-            
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.getForEntity(url,
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
+
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new Exception("Invalid Google ID token");
             }
 
             Map<String, Object> tokenInfo = response.getBody();
-            
+
             // Проверка на audience (client ID)
             String audience = (String) tokenInfo.get("aud");
             if (!googleClientId.equals(audience)) {
@@ -95,12 +96,11 @@ public class MobileOAuthService {
         try {
             // Facebook Graph API endpoint
             String url = String.format(
-                "https://graph.facebook.com/v18.0/me?fields=id,name,email,picture.type(large)&access_token=%s",
-                accessToken
-            );
+                    "https://graph.facebook.com/v18.0/me?fields=id,name,email,picture.type(large)&access_token=%s",
+                    accessToken);
 
-            ResponseEntity<Map<String, Object>> response = restTemplate.getForEntity(url, 
-                (Class<Map<String, Object>>) (Class<?>) Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.getForEntity(url,
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
 
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new Exception("Invalid Facebook access token");
@@ -113,17 +113,9 @@ public class MobileOAuthService {
                 throw new Exception("Facebook account does not have email. Please use an account with email.");
             }
 
-            // Извличане на picture URL
-            String pictureUrl = null;
-            if (userInfo.containsKey("picture")) {
-                Map<String, Object> picture = (Map<String, Object>) userInfo.get("picture");
-                if (picture != null && picture.containsKey("data")) {
-                    Map<String, Object> data = (Map<String, Object>) picture.get("data");
-                    if (data != null && data.containsKey("url")) {
-                        pictureUrl = (String) data.get("url");
-                    }
-                }
-            }
+            // Извличане на picture URL - Използваме директен Graph API URL, който е
+            // по-надежден
+            String pictureUrl = String.format("https://graph.facebook.com/%s/picture?type=large", userInfo.get("id"));
 
             Map<String, Object> result = new HashMap<>();
             result.put("id", userInfo.get("id"));
@@ -158,8 +150,7 @@ public class MobileOAuthService {
             // Проверка за LOCAL auth provider
             if (user.getAuthProvider() == AuthProvider.LOCAL) {
                 throw new RuntimeException(
-                    "Този email адрес вече е регистриран с email и парола. Моля, влезте с вашия email и парола."
-                );
+                        "Този email адрес вече е регистриран с email и парола. Моля, влезте с вашия email и парола.");
             }
 
             // Обновяване на данните
@@ -172,24 +163,24 @@ public class MobileOAuthService {
             if (name != null && !name.isEmpty()) {
                 user.setRealName(name);
             }
-            if (pictureUrl != null && !pictureUrl.isEmpty() && 
-                (user.getImageUrl() == null || user.getImageUrl().isEmpty())) {
+            if (pictureUrl != null && !pictureUrl.isEmpty() &&
+                    (user.getImageUrl() == null || user.getImageUrl().isEmpty())) {
                 user.setImageUrl(pictureUrl);
             }
         } else {
             // Създаване на нов user
             user = new UserEntity();
             String username = generateUniqueUsername(name != null ? name : "user");
-            
+
             user.setEmail(email)
-                .setUsername(username)
-                .setRealName(name != null ? name : "")
-                .setImageUrl(pictureUrl != null ? pictureUrl : "")
-                .setAuthProvider(provider)
-                .setProviderId(providerId)
-                .setStatus(UserStatusEnum.ACTIVE)
-                .setRole(UserRole.USER)
-                .setPassword(null);
+                    .setUsername(username)
+                    .setRealName(name != null ? name : "")
+                    .setImageUrl(pictureUrl != null ? pictureUrl : "")
+                    .setAuthProvider(provider)
+                    .setProviderId(providerId)
+                    .setStatus(UserStatusEnum.ACTIVE)
+                    .setRole(UserRole.USER)
+                    .setPassword(null);
 
             user.setCreated(Instant.now());
             isNewUser = true;
@@ -205,17 +196,17 @@ public class MobileOAuthService {
         if (isNewUser) {
             try {
                 String providerName = provider == AuthProvider.GOOGLE ? "Google" : "Facebook";
-                String details = String.format("Username: %s, Email: %s, Provider: %s", 
-                    user.getUsername(), user.getEmail(), providerName);
-                
+                String details = String.format("Username: %s, Email: %s, Provider: %s",
+                        user.getUsername(), user.getEmail(), providerName);
+
                 activityLogService.logActivity(
-                    ActivityActionEnum.USER_REGISTER,
-                    user,
-                    ActivityTypeEnum.USER.name(),
-                    user.getId(),
-                    details,
-                    "unknown", // IP address - не е наличен в mobile context
-                    "Mobile App" // User agent
+                        ActivityActionEnum.USER_REGISTER,
+                        user,
+                        ActivityTypeEnum.USER.name(),
+                        user.getId(),
+                        details,
+                        "unknown", // IP address - не е наличен в mobile context
+                        "Mobile App" // User agent
                 );
             } catch (Exception e) {
                 log.warn("Failed to log OAuth registration activity", e);
@@ -235,9 +226,9 @@ public class MobileOAuthService {
 
         // Нормализиране на username
         String username = baseName.trim()
-            .replaceAll("[^a-zA-Z0-9а-яА-Я\\s]", "")
-            .replaceAll("\\s+", " ")
-            .trim();
+                .replaceAll("[^a-zA-Z0-9а-яА-Я\\s]", "")
+                .replaceAll("\\s+", " ")
+                .trim();
 
         if (username.length() > 30) {
             int lastSpace = username.substring(0, 30).lastIndexOf(' ');
@@ -261,4 +252,3 @@ public class MobileOAuthService {
         return finalUsername;
     }
 }
-

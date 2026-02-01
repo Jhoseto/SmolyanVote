@@ -10,6 +10,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
@@ -81,13 +84,16 @@ public class MobileAuthController {
             // Проверка за account lockout
             if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(Instant.now())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(createErrorResponse("Акаунтът е временно заключен поради множество неуспешни опити за вход. Опитайте отново след: " + user.getAccountLockedUntil()));
+                        .body(createErrorResponse(
+                                "Акаунтът е временно заключен поради множество неуспешни опити за вход. Опитайте отново след: "
+                                        + user.getAccountLockedUntil()));
             }
 
             // Проверка за статус
             if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(createErrorResponse("Акаунтът не е активиран. Моля, активирайте го чрез изпратения имейл."));
+                        .body(createErrorResponse(
+                                "Акаунтът не е активиран. Моля, активирайте го чрез изпратения имейл."));
             }
 
             // Проверка за бан
@@ -99,8 +105,7 @@ public class MobileAuthController {
             // Аутентикация
             try {
                 Authentication authentication = authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
-                );
+                        new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword()));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -134,24 +139,24 @@ public class MobileAuthController {
 
             } catch (BadCredentialsException e) {
                 log.warn("Mobile login failed - invalid credentials for: {}", normalizedEmail);
-                
+
                 // Увеличаване на failed login attempts
                 int failedAttempts = user.getFailedLoginAttempts() + 1;
                 user.setFailedLoginAttempts(failedAttempts);
-                
+
                 // Account lockout след 5 неуспешни опита за 30 минути
                 if (failedAttempts >= 5) {
                     Instant lockUntil = Instant.now().plusSeconds(30 * 60); // 30 минути
                     user.setAccountLockedUntil(lockUntil);
                     log.warn("Account locked for user: {} until: {}", normalizedEmail, lockUntil);
                 }
-                
+
                 userRepository.save(user);
-                
-                String errorMessage = failedAttempts >= 5 
-                    ? "Акаунтът е временно заключен поради множество неуспешни опити. Опитайте отново след 30 минути."
-                    : "Невалиден email или парола. Остават " + (5 - failedAttempts) + " опита преди заключване.";
-                
+
+                String errorMessage = failedAttempts >= 5
+                        ? "Акаунтът е временно заключен поради множество неуспешни опити. Опитайте отново след 30 минути."
+                        : "Невалиден email или парола. Остават " + (5 - failedAttempts) + " опита преди заключване.";
+
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(createErrorResponse(errorMessage));
             }
@@ -258,7 +263,8 @@ public class MobileAuthController {
      * POST /api/mobile/auth/oauth
      * OAuth login endpoint за Google и Facebook
      * 
-     * Request body: { "provider": "google|facebook", "idToken": "..." (за Google) или "accessToken": "..." (за Facebook) }
+     * Request body: { "provider": "google|facebook", "idToken": "..." (за Google)
+     * или "accessToken": "..." (за Facebook) }
      * Response: { "accessToken": "...", "refreshToken": "...", "user": {...} }
      */
     @PostMapping("/oauth")
@@ -339,5 +345,24 @@ public class MobileAuthController {
         error.put("error", message);
         return error;
     }
-}
 
+    /**
+     * GET /api/mobile/auth/start-oauth
+     * Start web-based OAuth flow for mobile app
+     * 
+     * Sets a cookie to indicate mobile context and redirects to Spring Security
+     * OAuth2 endpoint
+     */
+    @GetMapping("/start-oauth")
+    public void startOAuth(@RequestParam String provider, HttpServletResponse response) throws IOException {
+        // Set mobile indicator cookie
+        Cookie cookie = new Cookie("MOBILE_REDIRECT", "true");
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(300); // 5 minutes authentication window
+        response.addCookie(cookie);
+
+        // Redirect to OAuth2 authorization endpoint
+        response.sendRedirect("/oauth2/authorization/" + provider);
+    }
+}

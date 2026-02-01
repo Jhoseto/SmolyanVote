@@ -7,6 +7,7 @@ import { useSVMessenger } from '../context/SVMessengerContext';
 const SVDownloadModal = () => {
     const { isDownloadModalOpen, closeDownloadModal } = useSVMessenger();
     const [activeTab, setActiveTab] = useState('mission'); // 'mission', 'features', 'download'
+    const [isQREnlarged, setIsQREnlarged] = useState(false);
 
     if (!isDownloadModalOpen) return null;
 
@@ -51,7 +52,7 @@ const SVDownloadModal = () => {
                             </div>
                         ) : (
                             <div className="svm-qr-section-compact">
-                                <div className="svm-qr-container">
+                                <div className="svm-qr-container" onClick={() => setIsQREnlarged(true)} style={{ cursor: 'pointer' }} title="Кликни за да увеличиш">
                                     <img
                                         src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('https://smolyanvote.com/svmessenger.apk')}`}
                                         alt="QR Code"
@@ -60,7 +61,7 @@ const SVDownloadModal = () => {
                                 </div>
                                 <div className="svm-qr-text-compact">
                                     <strong>Сканирай с камерата</strong>
-                                    <p>Директен линк за твоя телефон.</p>
+                                    <p>Кликни на QR кода за увеличение.</p>
                                 </div>
                             </div>
                         )}
@@ -127,19 +128,95 @@ const SVDownloadModal = () => {
                 </div>
             </div>
 
+            {/* Enlarged QR Code Overlay */}
+            {/* Premium Enlarged QR Code Overlay */}
+            {isQREnlarged && (
+                <div className="svm-qr-overlay" onClick={() => setIsQREnlarged(false)}>
+                    <div className="svm-qr-enlarged-container" onClick={e => e.stopPropagation()}>
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent('https://smolyanvote.com/svmessenger.apk')}`}
+                            alt="Scan to Download"
+                            className="svm-qr-enlarged"
+                        />
+                        <div className="svm-qr-enlarged-footer">
+                            <span className="svm-qr-pulse"></span>
+                            <p>Сканирай, за да инсталираш</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .svm-modal-overlay {
                     position: fixed;
                     top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(2, 44, 34, 0.9);
-                    backdrop-filter: blur(12px);
+                    background: rgba(2, 44, 34, 0.7);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
                     z-index: 1000000;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     padding: 16px;
                     animation: svmFadeIn 0.3s ease-out;
+                    cursor: zoom-out;
+                }
+
+                @keyframes svmZoomInSpring {
+                    0% { opacity: 0; transform: scale(0.6) translateY(40px); }
+                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                }
+
+                @keyframes svmPulse {
+                    0% { transform: scale(1); opacity: 0.5; }
+                    50% { transform: scale(1.5); opacity: 0; }
+                    100% { transform: scale(1); opacity: 0; }
+                }
+
+                .svm-qr-enlarged-container {
+                     background: white;
+                     padding: 32px;
+                     border-radius: 32px;
+                     box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.2) inset;
+                     animation: svmZoomInSpring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+                     display: flex;
+                     flex-direction: column;
+                     align-items: center;
+                     max-width: 400px;
+                     width: 100%;
+                }
+
+                .svm-qr-enlarged {
+                    width: 100%;
+                    height: auto;
+                    border-radius: 12px;
+                    margin-bottom: 24px;
+                }
+
+                .svm-qr-enlarged-footer {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    color: #022c22;
+                    font-weight: 600;
+                }
+
+                .svm-qr-pulse {
+                    width: 8px;
+                    height: 8px;
+                    background: #16a34a;
+                    border-radius: 50%;
+                    position: relative;
+                }
+
+                .svm-qr-pulse::after {
+                     content: '';
+                     position: absolute;
+                     top: 0; left: 0; right: 0; bottom: 0;
+                     background: #16a34a;
+                     border-radius: 50%;
+                     animation: svmPulse 1.5s infinite;
                 }
 
                 .svm-download-modal-compact {
