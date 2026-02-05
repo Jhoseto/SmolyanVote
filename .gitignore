@@ -43,3 +43,4 @@ node_modules
 # Firebase Service Account Key (contains sensitive credentials)
 firebase-service-account.json
 **/firebase-service-account.json
+VIRTUAL_MAJOR_ENV_SETUP.md
