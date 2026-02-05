@@ -2,21 +2,21 @@
  * Footer Newsletter Functionality
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeNewsletterForm();
 });
 
 function initializeNewsletterForm() {
     const newsletterForm = document.getElementById('newsletterForm');
     const emailInput = document.getElementById('newsletterEmail');
-    const submitButton = newsletterForm.querySelector('.newsletter-btn');
+    const submitButton = newsletterForm ? newsletterForm.querySelector('.newsletter-btn') : null;
     const statusDiv = document.getElementById('newsletterStatus');
 
-    if (!newsletterForm) {
+    if (!newsletterForm || !submitButton || !emailInput) {
         return;
     }
 
-    newsletterForm.addEventListener('submit', function(e) {
+    newsletterForm.addEventListener('submit', function (e) {
         e.preventDefault();
         handleNewsletterSubmit();
     });
@@ -97,7 +97,7 @@ function initializeNewsletterForm() {
             const loginButton = document.createElement('button');
             loginButton.className = 'newsletter-btn';
             loginButton.innerHTML = '<i class="bi bi-person-plus"></i> Влез в профила';
-            loginButton.onclick = function() {
+            loginButton.onclick = function () {
                 // Проверяваме дали има login modal
                 const loginModal = document.getElementById('loginModal');
                 if (loginModal) {
@@ -153,7 +153,7 @@ function initializeNewsletterForm() {
     }
 
     // Real-time validation
-    emailInput.addEventListener('input', function() {
+    emailInput.addEventListener('input', function () {
         clearStatus();
         const email = this.value.trim();
 
@@ -172,7 +172,7 @@ function initializeNewsletterForm() {
 function initializeBackToTop() {
     // Check if back-to-top button exists, if not create it
     let backToTopBtn = document.querySelector('.back-to-top');
-    
+
     if (!backToTopBtn) {
         backToTopBtn = document.createElement('button');
         backToTopBtn.className = 'back-to-top';
@@ -183,7 +183,7 @@ function initializeBackToTop() {
 
     // Show/hide button based on scroll position
     let scrollTimeout;
-    window.addEventListener('scroll', function() {
+    window.addEventListener('scroll', function () {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
             if (window.pageYOffset > 400) {
@@ -195,7 +195,7 @@ function initializeBackToTop() {
     });
 
     // Scroll to top when clicked
-    backToTopBtn.addEventListener('click', function() {
+    backToTopBtn.addEventListener('click', function () {
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
@@ -203,7 +203,7 @@ function initializeBackToTop() {
     });
 
     // Keyboard accessibility
-    backToTopBtn.addEventListener('keydown', function(e) {
+    backToTopBtn.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             window.scrollTo({
@@ -215,6 +215,6 @@ function initializeBackToTop() {
 }
 
 // Initialize back to top button
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeBackToTop();
 });

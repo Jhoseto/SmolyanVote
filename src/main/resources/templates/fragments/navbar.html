@@ -194,6 +194,17 @@
                             </a>
                         </li>
                         <li class="nav-item-glass">
+                            <a sec:authorize="isAuthenticated()" class="nav-link-glass" href="/virtual-mayor">
+                                <i class="bi bi-person-workspace"></i>
+                                <span>Виртуален Кмет</span>
+                            </a>
+                            <a sec:authorize="!isAuthenticated()" class="nav-link-glass" href="javascript:void(0);"
+                                onclick="showLoginWarning('За да влезете в ролята на Виртуален Кмет, моля първо влезте в профила си!')">
+                                <i class="bi bi-person-workspace"></i>
+                                <span>Виртуален Кмет</span>
+                            </a>
+                        </li>
+                        <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/podcast">
                                 <i class="bi bi-broadcast"></i>
                                 <span>Podcast</span>
@@ -465,17 +476,17 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        window.showLoginWarning = function () {
+        window.showLoginWarning = function (customMessage) {
             console.log('showLoginWarning called');
 
             if (typeof Swal === 'undefined') {
-                alert('За да създадете събитие, моля влезте в системата!');
+                alert(customMessage || 'За да продължите, моля влезте в системата!');
                 return;
             }
 
             Swal.fire({
                 title: 'Недостъпно Съдържание!',
-                text: 'За да създадете събитие, моля влезте в системата или се регистрирайте.',
+                text: customMessage || 'За да създадете събитие, моля влезте в системата или се регистрирайте.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#198622',

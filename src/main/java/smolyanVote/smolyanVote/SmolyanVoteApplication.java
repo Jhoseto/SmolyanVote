@@ -8,9 +8,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.retry.annotation.EnableRetry;
 
 @EnableAspectJAutoProxy
-@SpringBootApplication
-@EntityScan(basePackages = "smolyanVote.smolyanVote.models")
-@EnableJpaRepositories(basePackages = "smolyanVote.smolyanVote.repositories")
+@SpringBootApplication(scanBasePackages = { "smolyanVote.smolyanVote", "smolyanVote.virtualMajor" })
+@EntityScan(basePackages = { "smolyanVote.smolyanVote.models", "smolyanVote.virtualMajor.models" })
+@EnableJpaRepositories(basePackages = { "smolyanVote.smolyanVote.repositories",
+		"smolyanVote.virtualMajor.repositories" })
 @EnableRetry
 
 public class SmolyanVoteApplication {
