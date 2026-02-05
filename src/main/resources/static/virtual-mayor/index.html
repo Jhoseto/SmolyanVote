@@ -70,6 +70,7 @@
         }
     </style>
 
+    <div th:replace="~{fragments/topHtmlStyles :: navbarStyles}"></div>
     <script type="importmap">
 {
   "imports": {
@@ -85,7 +86,9 @@
 </head>
 
 <body>
+    <nav th:replace="~{fragments/navbar :: navbar}"></nav>
     <div id="root"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 
 </html>

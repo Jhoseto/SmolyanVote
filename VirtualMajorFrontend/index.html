@@ -1,7 +1,26 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
 
 <head>
+    <!-- CSRF Tokens for API calls - injected by Thymeleaf -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <script th:inline="javascript">
+        // CSRF configuration - Thymeleaf injects values at runtime
+        window.CSRF_TOKEN = /*[[${_csrf.token}]]*/ '';
+        window.CSRF_HEADER = /*[[${_csrf.headerName}]]*/ 'X-XSRF-TOKEN';
+
+        window.getCsrfToken = function () {
+            // First try Thymeleaf-injected token
+            if (window.CSRF_TOKEN && window.CSRF_TOKEN !== '') return window.CSRF_TOKEN;
+            // Fallback to cookie
+            var match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : null;
+        };
+        window.getCsrfHeader = function () {
+            return window.CSRF_HEADER || 'X-XSRF-TOKEN';
+        };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Виртуален кмет</title>
@@ -69,6 +88,7 @@
             animation: float 6s ease-in-out infinite;
         }
     </style>
+
     <script type="importmap">
 {
   "imports": {
@@ -80,11 +100,11 @@
   }
 }
 </script>
+    <script type="module" src="/index.tsx"></script>
 </head>
 
 <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
 </body>
 
 </html>

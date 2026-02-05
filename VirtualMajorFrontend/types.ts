@@ -68,6 +68,7 @@ export interface GameState {
   consecutiveNegativeBudget: number;
   isGameOver: boolean;
   gameOverReason?: string;
+  username?: string;
   logs: string[];
 }
 

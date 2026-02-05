@@ -36,5 +36,9 @@ public class WebConfig implements WebMvcConfigurer {
                 // Virtual Major Game Assets
                 registry.addResourceHandler("/virtual-mayor-assets/**")
                                 .addResourceLocations("classpath:/static/virtual-mayor/");
+
+                // Virtual Major Game (Iframe Content)
+                registry.addResourceHandler("/virtual-mayor-game.html", "/virtual-mayor-game/**")
+                                .addResourceLocations("classpath:/static/virtual-mayor-game/");
         }
 }

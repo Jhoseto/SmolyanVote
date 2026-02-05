@@ -71,7 +71,7 @@ public class ApplicationSecurityConfiguration {
                                                 .httpStrictTransportSecurity(hsts -> hsts
                                                                 .maxAgeInSeconds(31536000) // 1 година
                                                                 .includeSubDomains(true))
-                                                .frameOptions(frame -> frame.deny())
+                                                .frameOptions(frame -> frame.sameOrigin())
                                                 .contentTypeOptions(contentType -> {
                                                 })
                                                 .xssProtection(xss -> {
@@ -124,7 +124,8 @@ public class ApplicationSecurityConfiguration {
                                                                 "/heartbeat", "/search", "/contacts", "/contact",
                                                                 "/publications/**", "/api/links/**",
                                                                 "/terms-and-conditions", "/faq", "/signals/**",
-                                                                "/oauth2/**", "/login/oauth2/**")
+                                                                "/oauth2/**", "/login/oauth2/**",
+                                                                "/virtual-mayor-game/**")
                                                 .permitAll()
                                                 // Публичен достъп до detail views (GET заявки) - за Facebook sharing и
                                                 // нелогнати потребители

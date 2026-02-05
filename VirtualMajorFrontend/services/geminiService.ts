@@ -95,3 +95,39 @@ export async function createNewGame(): Promise<GameState> {
   const session = await response.json();
   return session.gameState;
 }
+
+/**
+ * Interface for the strategic analysis result.
+ */
+export interface StrategicAnalysis {
+  narrative: string;
+  achievements: string[];
+  warnings: string[];
+  history: {
+    label: string;
+    budget: number;
+    trust: number;
+    population: number;
+  }[];
+}
+
+/**
+ * Fetches deep strategic analysis from the backend.
+ */
+export async function fetchStrategicAnalysis(): Promise<StrategicAnalysis> {
+  try {
+    const response = await fetch('/api/virtualmajor/strategic-analysis', {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching strategic analysis:", error);
+    throw error;
+  }
+}

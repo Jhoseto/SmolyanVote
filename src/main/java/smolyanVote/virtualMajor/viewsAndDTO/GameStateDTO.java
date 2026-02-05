@@ -19,6 +19,7 @@ public class GameStateDTO {
     private Integer consecutiveNegativeBudget;
     private Boolean isGameOver;
     private String gameOverReason;
+    private String username;
     private List<String> logs;
 
     // For region states (will be part of JSON in entity, but exposed here for
@@ -196,6 +197,14 @@ public class GameStateDTO {
 
     public void setLogs(List<String> logs) {
         this.logs = logs;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public List<RegionDTO> getRegions() {

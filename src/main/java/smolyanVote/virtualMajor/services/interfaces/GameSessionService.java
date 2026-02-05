@@ -19,6 +19,14 @@ public interface GameSessionService {
     GameSessionDTO createNewGame(Long userId);
 
     /**
+     * Create a new game session for a user with default initial values.
+     *
+     * @param userEmail the email of the user
+     * @return GameSessionDTO containing the new game state
+     */
+    GameSessionDTO createNewGameByEmail(String userEmail);
+
+    /**
      * Save the current game state for a user.
      * Updates the existing active session or creates a new one if none exists.
      *
@@ -29,6 +37,16 @@ public interface GameSessionService {
     GameSessionDTO saveGame(Long userId, GameStateDTO gameState);
 
     /**
+     * Save the current game state for a user.
+     * Updates the existing active session or creates a new one if none exists.
+     *
+     * @param userEmail the email of the user
+     * @param gameState the current game state to save
+     * @return GameSessionDTO confirming the save operation
+     */
+    GameSessionDTO saveGameByEmail(String userEmail, GameStateDTO gameState);
+
+    /**
      * Load the active game session for a user.
      *
      * @param userId the ID of the user
@@ -36,6 +54,15 @@ public interface GameSessionService {
      *         state
      */
     LoadGameResponse loadGame(Long userId);
+
+    /**
+     * Load the active game session for a user.
+     *
+     * @param userEmail the email of the user
+     * @return LoadGameResponse indicating if a game exists and providing the game
+     *         state
+     */
+    LoadGameResponse loadGameByEmail(String userEmail);
 
     /**
      * Delete a game session.

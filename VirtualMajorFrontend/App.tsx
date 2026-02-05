@@ -3,7 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StatsBar } from './components/StatsBar';
 import { Map } from './components/Map';
 import { InvestmentPanel } from './components/InvestmentPanel';
-import { processTurn, loadGame, createNewGame } from './services/geminiService';
+import {
+  Mountain, Play, TrendingUp, Calendar, Info,
+  BrainCircuit, Clock, Hammer, Trash2, Building,
+  Eye, UserCheck, MapPin, XCircle, AlertTriangle,
+  MessageSquare, Bell, Newspaper, Sparkles, ChevronRight,
+  TrendingDown, Target, ShieldAlert, LineChart, Trees, FileText, Sun, Moon, CheckCircle, ArrowRight, Users, Wallet, Map as MapIcon
+} from 'lucide-react';
+import { processTurn, loadGame, createNewGame, fetchStrategicAnalysis, StrategicAnalysis } from './services/geminiService';
 import {
   INITIAL_RESOURCES,
   ALL_POTENTIAL_PROJECTS,
@@ -16,7 +23,6 @@ import {
   AIResponse,
   Investment
 } from './types';
-import { TrendingUp, AlertTriangle, Calendar, ChevronRight, MessageSquare, Play, Bell, Map as MapIcon, XCircle, BrainCircuit, Trees, Mountain, Clock, Sparkles, MapPin, UserCheck, FileText, Newspaper, Building, Sun, Moon, Hammer, Info, Trash2, CheckCircle, ArrowRight, Eye, Users, Wallet } from 'lucide-react';
 
 const AnimatedNumber: React.FC<{ value: number, duration?: number }> = ({ value, duration = 3000 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -204,122 +210,103 @@ const LoadingOverlay: React.FC<{ month: number, prev?: CityResources, current?: 
 
 const InfoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
-    <div className="fixed inset-0 z-[500] bg-emerald-950/95 backdrop-blur-3xl flex items-center justify-center p-3 md:p-8 overflow-hidden scrollbar-hide">
-      <div className="bg-white/95 w-full max-w-5xl md:rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col animate-in zoom-in duration-500 h-[85vh]">
-        {/* Header Section */}
-        <div className="p-6 md:p-10 bg-gradient-to-br from-emerald-800 via-emerald-900 to-green-950 text-white flex justify-between items-center relative overflow-hidden shrink-0 border-b border-white/10">
-          <div className="absolute -right-16 -bottom-16 opacity-10 rotate-12 scale-125"><Info size={180} /></div>
+    <div className="fixed inset-0 z-[600] bg-emerald-950/40 backdrop-blur-2xl flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-500">
+      <div className="bg-white/90 w-full max-w-3xl rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-4 duration-500 h-[75vh] border border-white/40 ring-1 ring-emerald-900/5">
+
+        {/* Technical Compact Header */}
+        <div className="p-5 md:p-8 bg-gradient-to-br from-emerald-900 via-emerald-800 to-green-950 text-white flex justify-between items-center relative overflow-hidden shrink-0">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5"></div>
+          <div className="absolute -right-10 -bottom-10 opacity-10 rotate-12"><Info size={120} /></div>
+
           <div className="relative z-10">
-            <h2 className="font-['Cinzel'] text-2xl md:text-4xl font-black uppercase tracking-tight leading-none text-stone-100">Наръчник на кмета</h2>
+            <h2 className="font-['Cinzel'] text-xl md:text-2xl font-bold uppercase tracking-tight leading-none text-stone-100 drop-shadow-md">Наръчник на кмета</h2>
             <div className="flex items-center gap-3 mt-4">
-              <span className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">Техническа документация</span>
-              <div className="h-px w-16 bg-emerald-400/30" />
-              <p className="text-[10px] font-bold text-emerald-300 italic">Версия 2030.1 • Смолян</p>
+              <span className="px-3 py-1 bg-white/10 rounded-full text-[8px] font-bold uppercase tracking-[0.2em] border border-white/20 backdrop-blur-md">Technical Protocol</span>
+              <div className="h-px w-10 bg-emerald-400/30" />
+              <p className="text-[9px] font-medium text-emerald-200/50 uppercase tracking-widest italic leading-none">Смолян 2030 • Rev 2.1</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/20 text-white rounded-2xl transition-all active:scale-90 relative z-10 border border-white/10 group">
-            <XCircle size={32} className="group-hover:rotate-90 transition-transform" />
+
+          <button
+            onClick={onClose}
+            className="p-3 bg-white/5 hover:bg-white/15 text-white rounded-2xl transition-all active:scale-90 relative z-10 border border-white/5 group backdrop-blur-xl"
+          >
+            <XCircle size={28} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
         </div>
 
-        {/* Content Section */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-12 bg-white/40 scroll-smooth">
+        {/* Compact Content Section */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-12 scrollbar-hide bg-gradient-to-b from-white to-stone-50/30">
 
-          {/* Section: Quick Start Guide */}
-          <div className="relative">
-            <div className="absolute -left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-emerald-500 rounded-full" />
-            <h3 className="font-['Cinzel'] text-xl font-black text-emerald-950 mb-6 flex items-center gap-4">
-              <span className="text-blue-500 text-3xl opacity-30">01</span>
-              Първи стъпки: Как да започна?
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { step: "1", title: "Провери Оперативните задачи", desc: "Кликнете върху големия бутон 'Оперативни задачи' горе вдясно. Там ви очакват AI казуси, които изискват вашето решение за месеца.", color: "bg-amber-500" },
-                { step: "2", title: "Управлявай ресурсите", desc: "Погледнете левия панел – настройте данъците. Ако бюджетът е на червено, вдигнете ги леко, но не гонете хората!", color: "bg-blue-500" },
-                { step: "3", title: "Завърши хода", desc: "След като сте направили изборите си, натиснете 'Следващ ход' горе вдясно. AI ще изчисли ефекта от вашите действия.", color: "bg-emerald-500" }
-              ].map((item) => (
-                <div key={item.step} className="bg-white p-5 rounded-[2rem] border border-emerald-100 shadow-sm relative group hover:shadow-xl transition-all">
-                  <div className={`absolute -top-3 -left-3 w-9 h-9 ${item.color} text-white rounded-xl flex items-center justify-center font-black text-base shadow-lg`}>{item.step}</div>
-                  <h4 className="text-sm font-black text-emerald-900 mb-3 mt-2 leading-tight">{item.title}</h4>
-                  <p className="text-emerald-800/70 text-xs leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
+          <div className="relative grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-1 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full border border-emerald-100 flex items-center justify-center text-[10px] text-emerald-600 font-bold">01</div>
+              <div className="flex-1 w-px bg-gradient-to-b from-emerald-100 to-transparent mt-3"></div>
             </div>
-          </div>
 
-          {/* Section: Technical Interface Explanation */}
-          <div className="space-y-8">
-            <h3 className="font-['Cinzel'] text-xl font-black text-emerald-950 mb-6 flex items-center gap-4">
-              <span className="text-emerald-500 text-3xl opacity-30">02</span>
-              Интерфейс: Къде да натискам?
-            </h3>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              {/* UI Guide Item */}
-              <div className="flex gap-5 group">
-                <div className="shrink-0 w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500 shadow-inner">
-                  <MapIcon size={28} />
-                </div>
-                <div>
-                  <h4 className="font-black text-base text-emerald-950 mb-2 uppercase tracking-tight">Карта и Региони</h4>
-                  <p className="text-emerald-900/60 leading-relaxed text-xs">
-                    **Кликнете директно върху иконите на картата.** Жълтите маркери са квартали. Ако видите символ за криза, кликнете върху него, за да приложите **интервенция** (Ремонт, Патрул или Субсидия). Това струва пари, но спасява доверието.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-8 group">
-                <div className="shrink-0 w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500 shadow-inner">
-                  <Building size={36} />
-                </div>
-                <div>
-                  <h4 className="font-black text-xl text-emerald-950 mb-3 uppercase tracking-tight">Инвестиционни Проекти</h4>
-                  <p className="text-emerald-900/60 leading-relaxed text-sm">
-                    **Долният десен панел.** Там ще виждате предложения за инвестиции. Кликнете **"Започни"**, за да стартирате строителство. Проектите отнемат няколко месеца. Бутонът **"Отхвърли"** ще премахне предложението и ще генерира ново.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-8 group">
-                <div className="shrink-0 w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-all duration-500 shadow-inner">
-                  <BrainCircuit size={36} />
-                </div>
-                <div>
-                  <h4 className="font-black text-xl text-emerald-950 mb-3 uppercase tracking-tight">Анализ на състоянието</h4>
-                  <p className="text-emerald-900/60 leading-relaxed text-sm">
-                    **Бутонът "Анализ" в хедъра.** Използвайте го по всяко време, за да получите обобщение от вашия AI асистент за това какво е постигнато до момента, какви са основните проблеми и къде точно се намира градът в своето развитие.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-8 group">
-                <div className="shrink-0 w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all duration-500 shadow-inner">
-                  <Bell size={36} />
-                </div>
-                <div>
-                  <h4 className="font-black text-xl text-emerald-950 mb-3 uppercase tracking-tight">Оперативни Задачи</h4>
-                  <p className="text-emerald-900/60 leading-relaxed text-sm">
-                    **Бутонът вдясно на Хедъра.** Когато имате нови задачи, той ще свети и пулсира. Кликнете върху всяка задача, за да прочетете описанието и да изберете един от трите варианта за решение. Всяко решение се отразята на града мигновено.
-                  </p>
-                </div>
+            <div className="md:col-span-11">
+              <h3 className="font-['Cinzel'] text-lg font-bold text-emerald-950 mb-6 tracking-tight">Работен процес</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  { title: "Оперативни задачи", desc: "Следете пулсиращия бутон в хедъра. Там AI генерира критични ситуации.", icon: <Bell className="text-amber-500" size={18} /> },
+                  { title: "Ресурсна рамка", desc: "Балансирайте данъците в левия панел. Високите данъци гонят населението.", icon: <Wallet className="text-blue-500" size={18} /> },
+                  { title: "Динамика на хода", desc: "Бутонът 'Следващ ход' придвижва времето и AI анализира последствията.", icon: <Play className="text-emerald-500" size={18} /> }
+                ].map((item, i) => (
+                  <div key={i} className="group p-5 bg-white border border-emerald-50 shadow-sm rounded-2xl hover:shadow-md transition-all duration-300">
+                    <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 shadow-inner">
+                      {item.icon}
+                    </div>
+                    <h4 className="text-sm font-bold text-emerald-950 mb-2">{item.title}</h4>
+                    <p className="text-emerald-900/60 text-[11px] leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
+          <div className="relative grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-1 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full border border-emerald-100 flex items-center justify-center text-[10px] text-emerald-600 font-bold">02</div>
+              <div className="flex-1 w-px bg-gradient-to-b from-emerald-100 to-transparent mt-3"></div>
+            </div>
+
+            <div className="md:col-span-11">
+              <h3 className="font-['Cinzel'] text-lg font-bold text-emerald-950 mb-6 tracking-tight">Управление</h3>
+              <div className="space-y-4">
+                {[
+                  { icon: <MapIcon size={20} />, color: "blue", title: "Регионални Интервенции", desc: "Кликнете върху маркерите на картата. Всеки район има специфични изисквания и нужди." },
+                  { icon: <Building size={20} />, color: "amber", title: "Инвестиционна Политика", desc: "Дългосрочните проекти променят града фундаментално. Избирайте спрямо бюджета." },
+                  { icon: <BrainCircuit size={20} />, color: "emerald", title: "AI Анализ", desc: "Използвайте бутона 'Анализ' за подробен доклад върху историческите данни и тенденции." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-6 p-5 rounded-2xl hover:bg-emerald-50/20 transition-colors duration-300 border border-transparent hover:border-emerald-50 group">
+                    <div className={`shrink-0 w-12 h-12 bg-${item.color}-50 rounded-xl flex items-center justify-center text-${item.color}-600 shadow-inner`}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950 mb-1 uppercase tracking-tight">{item.title}</h4>
+                      <p className="text-emerald-950/60 leading-relaxed text-[11px]">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Footer Area */}
-        <div className="p-10 md:p-14 bg-white/80 border-t border-emerald-100 flex flex-col md:flex-row items-center justify-between gap-8 shrink-0">
-          <div className="flex flex-col">
-            <span className="text-lg font-black text-emerald-950 uppercase tracking-tighter">Спрете да четете, г-н Кмет.</span>
-            <p className="text-xs font-bold text-emerald-600/60 uppercase tracking-widest mt-1">Гражданите на Смолян очакват вашите решения.</p>
+        {/* Compact Footer */}
+        <div className="p-6 md:p-8 bg-white border-t border-emerald-50 flex items-center justify-between gap-6 shrink-0">
+          <div className="hidden md:block">
+            <span className="text-sm font-bold text-emerald-950 uppercase tracking-tighter">Време е за решения.</span>
+            <p className="text-[9px] font-medium text-emerald-600/40 uppercase tracking-widest mt-1 flex items-center gap-1">
+              <Sparkles size={10} /> Градът очаква вашето лидерство
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="w-full md:w-auto px-24 py-7 bg-emerald-700 hover:bg-emerald-800 text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-sm transition-all shadow-2xl shadow-emerald-200 active:scale-95 group overflow-hidden relative"
+            className="w-full md:w-auto px-12 py-4 bg-emerald-950 hover:bg-black text-white rounded-2xl font-bold uppercase tracking-[0.3em] text-[10px] transition-all shadow-lg active:scale-95 group relative overflow-hidden"
           >
-            <span className="relative z-10">Към управлението</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <span className="relative z-10">Към града</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </button>
         </div>
       </div>
@@ -327,7 +314,13 @@ const InfoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-const WelcomeScreen: React.FC<{ onStart: () => void, onOpenInfo: () => void, resources: CityResources }> = ({ onStart, onOpenInfo, resources }) => {
+const WelcomeScreen: React.FC<{
+  onContinue: () => void,
+  onNewStart: () => void,
+  onOpenInfo: () => void,
+  resources: CityResources,
+  hasSavedSession: boolean
+}> = ({ onContinue, onNewStart, onOpenInfo, resources, hasSavedSession }) => {
   return (
     <div className="absolute inset-0 z-[300] bg-black flex items-center justify-center overflow-hidden font-sans select-none">
       {/* Cinematic Background - Real Smolyan View */}
@@ -397,11 +390,11 @@ const WelcomeScreen: React.FC<{ onStart: () => void, onOpenInfo: () => void, res
 
             {/* Title Content */}
             <div className="relative z-10 text-center px-6">
-              <h2 className="font-['Cinzel'] text-[10px] md:text-sm font-bold tracking-[0.5em] text-stone-100/60 mb-1 drop-shadow-2xl">
+              <h2 className="font-['Cinzel'] text-[8px] md:text-[10px] font-bold tracking-[0.4em] text-stone-300 mb-1">
                 ВИРТУАЛЕН КМЕТ
               </h2>
-              <div className="w-16 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto my-2" />
-              <h1 className="font-['Cinzel'] text-3xl md:text-5xl font-black tracking-[-0.02em] leading-none text-stone-gold select-none filter contrast-125">
+              <div className="w-10 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto my-1.5" />
+              <h1 className="font-['Cinzel'] text-2xl md:text-3xl font-black tracking-[-0.01em] leading-none text-stone-gold select-none">
                 СМОЛЯН
               </h1>
             </div>
@@ -426,13 +419,33 @@ const WelcomeScreen: React.FC<{ onStart: () => void, onOpenInfo: () => void, res
           </div>
 
           <div className="mt-6 flex flex-col md:flex-row items-center gap-4">
-            <button
-              onClick={onStart}
-              className="group relative px-10 py-3 bg-white/5 hover:bg-emerald-600/20 text-white rounded-full font-['Inter'] font-light uppercase tracking-[0.4em] text-[10px] transition-all border border-white/20 hover:border-emerald-400 backdrop-blur-3xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
-            >
-              <span className="relative z-10">Започни мандата</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            </button>
+            {hasSavedSession ? (
+              <>
+                <button
+                  onClick={onContinue}
+                  className="group relative px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-['Inter'] font-black uppercase tracking-[0.4em] text-[10px] transition-all border border-emerald-400 backdrop-blur-3xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] animate-pulse hover:animate-none"
+                >
+                  <span className="relative z-10">Продължи мандата</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                </button>
+
+                <button
+                  onClick={onNewStart}
+                  className="group relative px-10 py-3 bg-white/5 hover:bg-red-600/20 text-white/70 hover:text-white rounded-full font-['Inter'] font-light uppercase tracking-[0.4em] text-[10px] transition-all border border-white/10 hover:border-red-400 backdrop-blur-3xl overflow-hidden"
+                >
+                  <span className="relative z-10">Нов мандат</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onNewStart}
+                className="group relative px-10 py-3 bg-white/5 hover:bg-emerald-600/20 text-white rounded-full font-['Inter'] font-light uppercase tracking-[0.4em] text-[10px] transition-all border border-white/20 hover:border-emerald-400 backdrop-blur-3xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
+              >
+                <span className="relative z-10">Започни мандата</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              </button>
+            )}
 
             <button
               onClick={onOpenInfo}
@@ -488,33 +501,133 @@ const WelcomeScreen: React.FC<{ onStart: () => void, onOpenInfo: () => void, res
   );
 };
 
-const LogsModal: React.FC<{ logs: string[], onClose: () => void }> = ({ logs, onClose }) => {
+const IntroModal: React.FC<{ username?: string, onClose: () => void }> = ({ username, onClose }) => {
   return (
-    <div className="absolute inset-0 z-[500] bg-emerald-950/60 backdrop-blur-md flex items-center justify-center p-6 overflow-hidden scrollbar-hide">
-      <div className="bg-white w-full max-w-4xl md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-500 h-[80vh] border-b-8 border-emerald-600">
-        <div className="p-8 md:p-12 bg-white flex justify-between items-center relative overflow-hidden shrink-0 border-b border-emerald-50">
-          <div>
-            <h2 className="text-3xl font-black text-emerald-950 uppercase tracking-tighter leading-none">Оперативен дневник</h2>
-            <p className="text-xs font-bold text-emerald-600/60 uppercase tracking-widest mt-2 flex items-center gap-2">
-              <Clock size={14} /> Пълна история на събитията • Община Смолян
-            </p>
+    <div className="fixed inset-0 z-[800] bg-emerald-950/70 backdrop-blur-3xl flex items-center justify-center p-2 md:p-4 overflow-hidden animate-in fade-in duration-1000">
+      <div className="bg-white/95 w-full max-w-4xl max-h-[95vh] rounded-[2rem] md:rounded-[3rem] shadow-[0_50px_120px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-12 duration-1000 border border-white/40 ring-1 ring-emerald-900/10">
+
+        {/* Cinematic Header */}
+        <div className="p-6 md:p-10 bg-gradient-to-br from-emerald-950 via-emerald-900 to-green-950 text-white relative overflow-hidden shrink-0 border-b border-white/10">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+          <div className="absolute -right-24 -bottom-24 opacity-10 rotate-12"><Mountain size={350} /></div>
+
+          <div className="relative z-10 max-w-2xl">
+            <span className="px-5 py-1.5 bg-emerald-400/20 backdrop-blur-md text-emerald-300 rounded-full text-[9px] font-black uppercase tracking-[0.4em] border border-emerald-400/30 mb-4 md:mb-6 inline-block shadow-lg">
+              Мисия: Сърцето на Родопите
+            </span>
+            <h2 className="font-['Cinzel'] text-3xl md:text-5xl font-black uppercase tracking-tight leading-tight text-stone-100 drop-shadow-2xl mb-4">
+              Вашият мандат започва
+            </h2>
+            <div className="h-1 w-24 bg-emerald-400/60 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.6)]" />
           </div>
-          <button onClick={onClose} className="p-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-3xl transition-all active:scale-90 shadow-sm">
-            <XCircle size={32} />
+        </div>
+
+        {/* Narrative Content */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-8 md:space-y-12 scrollbar-hide bg-gradient-to-b from-emerald-50/30 to-white">
+          <div className="space-y-8">
+            <div className="flex gap-4 md:gap-8 items-start group">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-emerald-100 rounded-xl md:rounded-2xl flex items-center justify-center text-emerald-700 shrink-0 border border-emerald-200 shadow-md group-hover:scale-110 transition-transform duration-500">
+                <MapIcon size={24} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl md:text-2xl font-black text-emerald-950 uppercase tracking-tight">Градът-феникс</h3>
+                <p className="text-emerald-900/80 leading-relaxed text-lg md:text-xl font-medium">
+                  Смолян не е просто град, а символ на обединението. Роден през 1960 г. от сливането на Смолян, Райково и Устово, той се разгръща на цели 25 км по поречието на река Черна. Това е най-високият и най-дългият областен град в България.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 md:gap-8 items-start group">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-rose-100 rounded-xl md:rounded-2xl flex items-center justify-center text-rose-700 shrink-0 border border-rose-200 shadow-md group-hover:scale-110 transition-transform duration-500">
+                <Users size={24} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl md:text-2xl font-black text-rose-950 uppercase tracking-tight">Тихата заплаха</h3>
+                <p className="text-rose-900/80 leading-relaxed text-lg md:text-xl font-medium">
+                  За последното десетилетие Смолян е загубил над 20% от своето население. Тишината в старите квартали Райково и Устово става все по-тежка. Младите търсят бъдеще другаде, а инфраструктурата едва издържа на планинския климат.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 md:gap-8 items-start group">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-blue-100 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-700 shrink-0 border border-blue-200 shadow-md group-hover:scale-110 transition-transform duration-500">
+                <Target size={24} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl md:text-2xl font-black text-blue-950 uppercase tracking-tight">Вашата цел, г-н Кмет {username || ''}</h3>
+                <p className="text-blue-900/80 leading-relaxed text-lg md:text-xl font-medium">
+                  Мисията ви е ясна: <span className="text-emerald-700 font-black">Спрете обезлюдяването.</span> Върнете младите семейства, модернизирайте кварталите и пазете природата. Всяко решение засяга доверието на родопчани.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-emerald-900/5 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 border border-emerald-950/10 italic text-emerald-900/70 text-center font-bold text-base md:text-lg leading-relaxed">
+            "Планината изпитва само най-смелите. Тя дава сила, но и изисква мъдрост."
+          </div>
+        </div>
+
+        {/* Footer Action */}
+        <div className="p-6 md:p-10 bg-white border-t border-emerald-100 flex justify-center shrink-0">
+          <button
+            onClick={onClose}
+            className="group relative px-12 md:px-20 py-4 md:py-6 bg-emerald-900 hover:bg-emerald-950 text-white rounded-full font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-xs md:text-sm transition-all shadow-[0_20px_50px_rgba(6,78,59,0.3)] hover:scale-105 active:scale-95 overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center gap-4">
+              Приемам мандата <ArrowRight size={22} className="group-hover:translate-x-3 transition-transform" />
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-4 bg-emerald-50/20">
+      </div>
+    </div>
+  );
+};
+
+const LogsModal: React.FC<{ logs: string[], onClose: () => void }> = ({ logs, onClose }) => {
+  return (
+    <div className="fixed inset-0 z-[600] bg-emerald-950/30 backdrop-blur-2xl flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-500">
+      <div className="bg-white/90 w-full max-w-2xl rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-4 duration-500 h-[70vh] border border-white/40">
+
+        <div className="p-5 md:p-8 bg-white/60 flex justify-between items-center relative overflow-hidden shrink-0 border-b border-emerald-50 backdrop-blur-md">
+          <div className="absolute -right-6 -bottom-6 opacity-5 rotate-12"><Clock size={100} /></div>
+          <div className="relative z-10">
+            <h2 className="text-xl font-bold text-emerald-950 uppercase tracking-tighter leading-none">Оперативен дневник</h2>
+            <p className="text-[9px] font-medium text-emerald-600/50 uppercase tracking-[0.2em] mt-2 flex items-center gap-1.5">
+              <Clock size={10} /> Хронология на мандата
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-3 bg-emerald-50/50 hover:bg-emerald-100 text-emerald-600 rounded-2xl transition-all active:scale-90 border border-emerald-100"
+          >
+            <XCircle size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 bg-gradient-to-b from-white/20 to-transparent scrollbar-hide">
           {logs.slice().reverse().map((log, i) => (
-            <div key={i} className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-sm flex gap-6 items-start animate-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100">
-                <FileText size={20} />
+            <div
+              key={i}
+              className="group bg-white/60 p-5 rounded-2xl border border-emerald-50/50 shadow-sm flex gap-5 items-start hover:bg-white transition-all duration-300 animate-in slide-in-from-bottom-2"
+              style={{ animationDelay: `${i * 20}ms` }}
+            >
+              <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100">
+                <FileText size={16} />
               </div>
-              <p className="text-emerald-900 font-medium leading-relaxed mt-2">{log}</p>
+              <div className="space-y-1">
+                <p className="text-emerald-950 font-medium leading-relaxed text-xs italic">"{log}"</p>
+                <div className="flex items-center gap-2">
+                  <span className="h-px w-5 bg-emerald-100"></span>
+                  <span className="text-[8px] font-bold text-emerald-300 uppercase tracking-widest">Протокол {logs.length - i}</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <div className="p-8 bg-white border-t border-emerald-50 text-center">
-          <p className="text-[10px] font-black text-emerald-300 uppercase tracking-[0.4em]">Край на дневника за текущия период</p>
+
+        <div className="p-5 bg-white/60 border-t border-emerald-50 text-center">
+          <p className="text-[8px] font-bold text-emerald-300 uppercase tracking-[0.4em]">Системен архив • Община Смолян</p>
         </div>
       </div>
     </div>
@@ -523,6 +636,7 @@ const LogsModal: React.FC<{ logs: string[], onClose: () => void }> = ({ logs, on
 
 const App: React.FC = () => {
   const [gameStarted, setGameStarted] = useState(false);
+  const [hasSavedSession, setHasSavedSession] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [prevResources, setPrevResources] = useState<CityResources | undefined>(undefined);
   const [state, setState] = useState<GameState>({
@@ -536,6 +650,7 @@ const App: React.FC = () => {
     history: [INITIAL_RESOURCES],
     consecutiveNegativeBudget: 0,
     isGameOver: false,
+    username: undefined,
     logs: ["Добре дошли, г-н Кмет. Смолян ви очаква за първия работен ден."]
   });
 
@@ -549,6 +664,9 @@ const App: React.FC = () => {
   const [resolvedCasesCount, setResolvedCasesCount] = useState(0);
   const [pendingImpacts, setPendingImpacts] = useState<Partial<CityResources>[]>([]);
   const [activeTab, setActiveTab] = useState<'map' | 'cases' | 'stats'>('map');
+  const [strategicData, setStrategicData] = useState<StrategicAnalysis | null>(null);
+  const [loadingStrategic, setLoadingStrategic] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -558,25 +676,21 @@ const App: React.FC = () => {
     const init = async () => {
       setLoading(true);
 
-      // Try to load existing session
+      // Try to check for existing session
       try {
         const savedSession = await loadGame();
 
         if (savedSession.exists && savedSession.gameState) {
           setState(savedSession.gameState);
-          setGameStarted(true);
-
-          // Fetch initial AI analysis if not already present
-          const data = await processTurn(savedSession.gameState);
-          setAiData(data);
+          setHasSavedSession(true);
+          // Don't auto-start anymore, wait for user to click "Continue"
         } else {
-          // No session, prepare starter projects but don't call processTurn yet
+          // No session, prepare starter projects
           const starterProjects = ALL_POTENTIAL_PROJECTS.filter(p => p.tier === 1).sort(() => 0.5 - Math.random()).slice(0, 4);
           setState(prev => ({ ...prev, availableProjects: starterProjects }));
         }
       } catch (error) {
         console.error("Initialization error:", error);
-        // Fallback to initial state
         const starterProjects = ALL_POTENTIAL_PROJECTS.filter(p => p.tier === 1).sort(() => 0.5 - Math.random()).slice(0, 4);
         setState(prev => ({ ...prev, availableProjects: starterProjects }));
       }
@@ -586,7 +700,30 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  const handleStartMandate = async () => {
+  const handleContinueMandate = async () => {
+    setLoading(true);
+    try {
+      // Game state is already loaded in init useEffect
+      setGameStarted(true);
+
+      // Fetch fresh AI context for current state
+      const data = await processTurn(state);
+      setAiData(data);
+      if (data.analysis) setShowAnalysisModal(true);
+    } catch (error) {
+      console.error("Error continuing mandate:", error);
+      setGameStarted(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartNewMandate = async () => {
+    // Confirm before starting new game if one exists
+    if (hasSavedSession && !window.confirm("Сигурни ли сте, че искате да започнете нов мандат? Настоящият прогрес ще бъде загубен.")) {
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Initialize session on backend
@@ -598,10 +735,11 @@ const App: React.FC = () => {
       setAiData(data);
       setState(initialState);
       setGameStarted(true);
+      setHasSavedSession(true);
+      setShowIntro(true); // Show intro for new game
       if (data.analysis) setShowAnalysisModal(true);
     } catch (error) {
       console.error("Error starting mandate:", error);
-      // Fallback: just start locally if backend is down
       setGameStarted(true);
     } finally {
       setLoading(false);
@@ -810,6 +948,19 @@ const App: React.FC = () => {
     setRegions(prev => prev.map(r => r.id === regionId ? { ...r, status: 'normal' } : r));
   };
 
+  const handleOpenAnalysis = async () => {
+    setLoadingStrategic(true);
+    setShowAnalysisModal(true);
+    try {
+      const data = await fetchStrategicAnalysis();
+      setStrategicData(data);
+    } catch (error) {
+      console.error("Analysis fetch failed:", error);
+    } finally {
+      setLoadingStrategic(false);
+    }
+  };
+
   if (state.isGameOver) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-emerald-950 p-6">
@@ -837,11 +988,31 @@ const App: React.FC = () => {
       {/* Modals & Overlays */}
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
       {showLogsModal && <LogsModal logs={state.logs} onClose={() => setShowLogsModal(false)} />}
-      {!gameStarted && <WelcomeScreen onStart={handleStartMandate} onOpenInfo={() => setShowInfo(true)} resources={state.resources} />}
+      {showIntro && <IntroModal username={state.username} onClose={() => setShowIntro(false)} />}
+      {!gameStarted && (
+        <WelcomeScreen
+          onContinue={handleContinueMandate}
+          onNewStart={handleStartNewMandate}
+          onOpenInfo={() => setShowInfo(true)}
+          resources={state.resources}
+          hasSavedSession={hasSavedSession}
+        />
+      )}
 
       {/* Header - Optimized for all screens */}
       <header className="fixed top-[80px] left-0 w-full px-4 py-2 flex justify-between items-center z-40 bg-white/95 backdrop-blur-xl border-b border-emerald-100 shadow-sm shrink-0 transition-all duration-300">
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Back to SmolyanVote Homepage */}
+          <a
+            href="/"
+            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-md"
+            title="Назад към SmolyanVote"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="hidden md:inline">SmolyanVote</span>
+          </a>
           <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-emerald-600 to-green-700 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 floating shrink-0">
             <Mountain className="text-white" size={16} />
           </div>
@@ -868,11 +1039,24 @@ const App: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setShowAnalysisModal(true)}
+            onClick={handleOpenAnalysis}
             className="hidden md:flex bg-white border border-emerald-100 text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-all items-center gap-1.5 shadow-sm group"
           >
             <BrainCircuit size={14} className="text-emerald-500 group-hover:rotate-12 transition-transform" />
             <span className="text-[9px] font-black uppercase tracking-widest text-emerald-900">Анализ</span>
+          </button>
+
+          <button
+            onClick={() => setShowCasesPanel(true)}
+            className="hidden md:flex bg-white border border-emerald-100 text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-all items-center gap-1.5 shadow-sm group relative"
+          >
+            <Bell size={14} className={`${unreadCases > 0 ? 'text-amber-500 animate-bounce' : 'text-emerald-500'} group-hover:rotate-12 transition-transform`} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-900">Оперативен щаб</span>
+            {unreadCases > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] flex items-center justify-center border-2 border-white text-white font-black">
+                {unreadCases}
+              </span>
+            )}
           </button>
 
           <button
@@ -950,7 +1134,7 @@ const App: React.FC = () => {
           </div>
 
           <div
-            onClick={() => setShowAnalysisModal(true)}
+            onClick={handleOpenAnalysis}
             className="bg-gradient-to-br from-emerald-800 to-green-950 p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden group cursor-pointer border-t border-white/10"
           >
             <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:rotate-12 transition-transform duration-700"><BrainCircuit size={80} /></div>
@@ -1081,69 +1265,195 @@ const App: React.FC = () => {
       </nav>
 
       {/* Persistent Modals */}
-      {showAnalysisModal && aiData && (
-        <div className="absolute inset-0 z-[600] bg-emerald-950/80 backdrop-blur-2xl flex items-center justify-center p-4 md:p-12 overflow-hidden scrollbar-hide">
-          <div className="bg-white w-full max-w-5xl h-full md:max-h-[90vh] md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-500 border-b-[20px] border-emerald-500">
-            <div className="p-8 md:p-12 bg-gradient-to-br from-emerald-600 to-green-700 text-white flex justify-between items-center relative overflow-hidden shrink-0">
-              <div className="absolute -right-10 -bottom-10 opacity-10"><Newspaper size={200} /></div>
-              <div className="relative z-10">
-                <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-none text-white drop-shadow-lg">Анализ на управлението</h2>
-                <div className="flex items-center gap-4 mt-6">
-                  <span className="px-4 py-1.5 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20">Сутрешен брифинг</span>
-                  <p className="text-xs font-bold text-emerald-100 uppercase tracking-wide">Месец {state.month}, {state.year} • Смолян</p>
+      {showAnalysisModal && (
+        <div className="fixed inset-0 z-[700] bg-emerald-950/40 backdrop-blur-2xl flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-500">
+          <div className="bg-white/90 w-full max-w-5xl h-full md:max-h-[75vh] rounded-[2rem] shadow-[0_30px_80px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-4 duration-500 relative border border-white/40">
+            {/* Elegant Technical Header */}
+            <div className="p-6 md:p-8 bg-gradient-to-br from-emerald-900 via-emerald-800 to-green-950 text-white flex justify-between items-center relative overflow-hidden shrink-0">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+              <div className="absolute -right-10 -bottom-10 opacity-5 rotate-12"><BrainCircuit size={200} /></div>
+              <div className="relative z-10 flex gap-6 items-center">
+                <div className="w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-2xl flex items-center justify-center border border-white/20 shadow-xl">
+                  <TrendingUp size={32} className="text-emerald-400" />
                 </div>
-              </div>
-              <button onClick={() => setShowAnalysisModal(false)} className="p-5 bg-white/10 hover:bg-white/30 text-white rounded-3xl transition-all active:scale-90 relative z-10 border border-white/10 group">
-                <XCircle size={40} className="group-hover:rotate-90 transition-transform" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-10 md:p-16 space-y-12 bg-emerald-50/20 scrollbar-hide">
-              <div className="bg-white p-10 rounded-[3rem] border border-emerald-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5"><BrainCircuit size={100} /></div>
-                <div className="flex gap-8 items-start relative z-10">
-                  <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-600 shrink-0 shadow-inner">
-                    <Sparkles size={40} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-emerald-950 mb-6 uppercase tracking-tight flex items-center gap-4">
-                      Статус на региона
-                    </h3>
-                    <p className="text-lg text-emerald-900/80 leading-relaxed font-medium italic">
-                      "{aiData.analysis}"
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tighter leading-none text-stone-100 drop-shadow-lg">Стратегически Анализ</h2>
+                  <div className="flex items-center gap-4 mt-3">
+                    <span className="px-3 py-1 bg-emerald-400/20 backdrop-blur-md text-emerald-300 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] border border-emerald-400/30">Executive Report</span>
+                    <p className="text-[10px] font-medium text-emerald-100/50 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={12} /> Месец {state.month}, {state.year}
                     </p>
                   </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="p-10 bg-white rounded-[3rem] border border-emerald-100 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><TrendingUp size={24} /></div>
-                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-widest">Профил на населението</h4>
-                  </div>
-                  <p className="text-sm font-medium text-emerald-800/70 leading-relaxed">
-                    Тенденциите сочат, че вашето доверие е в пряка зависимост от качеството на инфраструктурата. Демографският прираст изисква устойчива среда и добра екология.
-                  </p>
-                </div>
-                <div className="p-10 bg-white rounded-[3rem] border border-emerald-100 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600"><Sparkles size={24} /></div>
-                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-widest">Финансова прогноза</h4>
-                  </div>
-                  <p className="text-sm font-medium text-emerald-800/70 leading-relaxed">
-                    Планирането на следващите мащабни инвестиции зависи от събираемостта на местните данъци. Внимавайте с разходите за поддръжка на остарелите системи.
-                  </p>
-                </div>
-              </div>
+              <button
+                onClick={() => { setShowAnalysisModal(false); setStrategicData(null); }}
+                className="p-4 bg-white/5 hover:bg-white/15 text-white rounded-xl transition-all active:scale-90 relative z-10 border border-white/10 group backdrop-blur-xl"
+              >
+                <XCircle size={32} className="group-hover:rotate-90 transition-transform duration-500" />
+              </button>
             </div>
 
-            <div className="p-10 bg-white border-t border-emerald-100 flex justify-center shrink-0">
+            <div className="flex-1 overflow-y-auto p-8 md:p-14 space-y-12 scrollbar-hide bg-gradient-to-b from-white to-stone-50/20">
+              {loadingStrategic ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-6 py-10">
+                  <BrainCircuit size={60} className="text-emerald-500 animate-spin duration-[10000ms]" />
+                  <p className="text-lg font-bold text-emerald-950 uppercase tracking-[0.3em] animate-pulse">Синтезиране</p>
+                </div>
+              ) : strategicData ? (
+                <>
+                  {/* Narrative Card */}
+                  <div className="relative group max-w-4xl mx-auto">
+                    <div className="relative bg-white/40 backdrop-blur-sm p-8 md:p-12 rounded-3xl border border-emerald-50 shadow-sm flex flex-col items-center text-center">
+                      <div className="w-12 h-12 bg-emerald-950 rounded-xl flex items-center justify-center text-emerald-400 mb-6 shadow-lg border border-emerald-800">
+                        <Sparkles size={24} />
+                      </div>
+                      <h3 className="text-lg font-bold text-emerald-950 mb-6 uppercase tracking-tighter">Визия на Управлението</h3>
+                      <p className="text-base md:text-xl text-emerald-900/80 leading-relaxed font-medium italic px-4">
+                        "{strategicData.narrative}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Charts Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white p-8 rounded-3xl border border-emerald-50 shadow-sm relative overflow-hidden group">
+                      <div className="flex justify-between items-center mb-10">
+                        <div className="space-y-1">
+                          <h4 className="text-lg font-bold text-emerald-950 uppercase tracking-tighter leading-none">Бюджет</h4>
+                          <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Динамика на капитала</p>
+                        </div>
+                        <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 shadow-inner">
+                          <Wallet size={20} />
+                        </div>
+                      </div>
+                      <div className="h-48 relative">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="g-b-p" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#10b981" stopOpacity="0.1" />
+                              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {strategicData.history.length > 1 && (() => {
+                            const maxVal = Math.max(...strategicData.history.map(x => x.budget), 1);
+                            const minVal = Math.min(...strategicData.history.map(x => x.budget), 0);
+                            const range = maxVal - minVal || 1;
+                            const points = strategicData.history.map((h, i) => ({
+                              x: (i / (strategicData.history.length - 1)) * 100,
+                              y: 90 - ((h.budget - minVal) / range) * 80
+                            }));
+                            let d = `M ${points[0].x},${points[0].y}`;
+                            for (let i = 0; i < points.length - 1; i++) {
+                              const cp1x = points[i].x + (points[i + 1].x - points[i].x) / 2;
+                              d += ` C ${cp1x},${points[i].y} ${cp1x},${points[i + 1].y} ${points[i + 1].x},${points[i + 1].y}`;
+                            }
+                            return (
+                              <>
+                                <path d={`${d} L 100,100 L 0,100 Z`} fill="url(#g-b-p)" />
+                                <path d={d} fill="none" stroke="#10b981" strokeWidth="2.5" />
+                              </>
+                            );
+                          })()}
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-3xl border border-blue-50 shadow-sm relative overflow-hidden group">
+                      <div className="flex justify-between items-center mb-10">
+                        <div className="space-y-1">
+                          <h4 className="text-lg font-bold text-blue-950 uppercase tracking-tighter leading-none">Доверие</h4>
+                          <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Индекс на одобрение</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-xl text-blue-600 shadow-inner">
+                          <UserCheck size={20} />
+                        </div>
+                      </div>
+                      <div className="h-48 relative">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="g-t-p" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.1" />
+                              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {strategicData.history.length > 1 && (() => {
+                            const points = strategicData.history.map((h, i) => ({
+                              x: (i / (strategicData.history.length - 1)) * 100,
+                              y: 90 - (h.trust / 100) * 80
+                            }));
+                            let d = `M ${points[0].x},${points[0].y}`;
+                            for (let i = 0; i < points.length - 1; i++) {
+                              const cp1x = points[i].x + (points[i + 1].x - points[i].x) / 2;
+                              d += ` C ${cp1x},${points[i].y} ${cp1x},${points[i + 1].y} ${points[i + 1].x},${points[i + 1].y}`;
+                            }
+                            return (
+                              <>
+                                <path d={`${d} L 100,100 L 0,100 Z`} fill="url(#g-t-p)" />
+                                <path d={d} fill="none" stroke="#3b82f6" strokeWidth="2.5" />
+                              </>
+                            );
+                          })()}
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Achievements Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-white p-8 rounded-3xl border border-emerald-100 shadow-sm">
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                          <Target size={20} />
+                        </div>
+                        <h4 className="text-sm font-bold text-emerald-950 uppercase tracking-tighter">Ключови Постижения</h4>
+                      </div>
+                      <ul className="space-y-3">
+                        {strategicData.achievements.map((a, i) => (
+                          <li key={i} className="flex items-center gap-4 p-4 bg-emerald-50/30 rounded-2xl border border-emerald-50">
+                            <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                            <span className="text-[11px] font-medium text-emerald-900 leading-tight italic">"{a}"</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-3xl border border-red-100 shadow-sm">
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                          <ShieldAlert size={20} />
+                        </div>
+                        <h4 className="text-sm font-bold text-red-950 uppercase tracking-tighter">Идентифицирани Рискове</h4>
+                      </div>
+                      <ul className="space-y-3">
+                        {strategicData.warnings.map((w, i) => (
+                          <li key={i} className="flex items-center gap-4 p-4 bg-red-50/30 rounded-2xl border border-red-50">
+                            <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                            <span className="text-[11px] font-medium text-red-900 leading-tight italic">"{w}"</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
+                    <LineChart size={32} className="text-emerald-900" />
+                  </div>
+                  <h3 className="text-xl font-black text-emerald-950 uppercase tracking-widest mb-2">Няма данни за анализ</h3>
+                  <p className="text-xs font-bold text-emerald-800/60 uppercase tracking-[0.1em]">Мандатът все още е в началото си. Събираме информация от кварталите...</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 md:p-10 bg-white/50 backdrop-blur-md border-t border-stone-100 flex justify-center shrink-0">
               <button
-                onClick={() => setShowAnalysisModal(false)}
-                className="w-full md:w-auto px-24 py-6 bg-emerald-700 hover:bg-emerald-800 text-white rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-sm transition-all shadow-2xl shadow-emerald-200 active:scale-95"
+                onClick={() => { setShowAnalysisModal(false); setStrategicData(null); }}
+                className="w-full md:w-auto px-16 py-4 bg-emerald-950 hover:bg-black text-white rounded-2xl font-bold uppercase tracking-[0.3em] text-[10px] transition-all shadow-xl active:scale-95 group relative overflow-hidden"
               >
-                Приемам доклада
+                <span className="relative z-10">Към града</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </button>
             </div>
           </div>
@@ -1151,58 +1461,76 @@ const App: React.FC = () => {
       )}
 
       {showCasesPanel && (
-        <div className="absolute inset-0 z-[700] bg-emerald-950/80 backdrop-blur-2xl flex items-center justify-center lg:justify-end p-0 md:p-6 overflow-hidden">
-          <div className="w-full max-w-3xl h-full bg-white flex flex-col animate-in slide-in-from-right duration-500 lg:rounded-l-[5rem] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.4)] border-l-4 border-emerald-500">
-            <div className="p-8 md:p-12 border-b border-emerald-50 flex justify-between items-center bg-white relative">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-black text-emerald-950 uppercase tracking-tighter leading-none">Оперативен щаб</h2>
-                <div className="flex items-center gap-4 mt-3">
-                  <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse shadow-[0_0_10px_#f59e0b]"></span>
-                  <p className="text-[10px] md:text-xs text-emerald-600/70 font-black uppercase tracking-widest">Директни намеси • Месец {state.month}</p>
+        <div className="fixed inset-0 z-[700] bg-emerald-950/40 backdrop-blur-2xl flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-500">
+          <div className="bg-white/90 w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-4 duration-500 border border-white/40">
+            {/* Technical Compact Header */}
+            <div className="p-5 md:p-8 bg-white/60 flex justify-between items-center relative shrink-0 border-b border-emerald-50 backdrop-blur-md">
+              <div className="absolute -right-6 -bottom-6 opacity-5 rotate-12"><Bell size={100} /></div>
+              <div className="relative z-10">
+                <h2 className="text-xl md:text-2xl font-bold text-emerald-950 uppercase tracking-tighter leading-none">Оперативен щаб</h2>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                  <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-[0.15em] italic">Месец {state.month} • Директни сигнали</p>
                 </div>
               </div>
-              <button onClick={() => setShowCasesPanel(false)} className="p-4 md:p-6 bg-emerald-50 hover:bg-emerald-100 rounded-[2rem] text-emerald-500 shadow-sm border border-emerald-100 active:scale-90 transition-all"><XCircle size={36} /></button>
+              <button
+                onClick={() => setShowCasesPanel(false)}
+                className="p-3 bg-emerald-50/50 hover:bg-emerald-100 rounded-2xl text-emerald-500 shadow-sm border border-emerald-100 active:scale-90 transition-all backdrop-blur-sm"
+              >
+                <XCircle size={28} />
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-8 scroll-smooth scrollbar-hide bg-emerald-50/20">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scroll-smooth scrollbar-hide bg-gradient-to-b from-white/20 to-transparent">
               {aiData?.cases.map((c, i) => {
                 const isResolved = i < resolvedCasesCount;
                 return (
-                  <div key={i} className={`p-8 md:p-10 rounded-[3rem] transition-all relative overflow-hidden group border-2 ${isResolved ? 'opacity-30 scale-95 border-emerald-50' : 'bg-white border-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] hover:border-emerald-200'}`}>
-                    <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity"><Bell size={120} /></div>
-                    <div className="flex items-center gap-4 mb-8">
-                      <span className={`px-4 py-2 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-sm text-white ${c.type === 'emergency' ? 'bg-red-600 animate-pulse' :
+                  <div
+                    key={i}
+                    className={`p-6 md:p-8 rounded-2xl transition-all relative overflow-hidden group border ${isResolved ? 'opacity-30 scale-95 border-emerald-100/30' : 'bg-white border-stone-100 shadow-md hover:shadow-lg hover:border-emerald-200 active:scale-[0.99]'} animate-in fade-in slide-in-from-bottom-2`}
+                    style={{ animationDelay: `${i * 50}ms` }}
+                  >
+                    <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity"><Bell size={80} /></div>
+
+                    <div className="flex items-center flex-wrap gap-3 mb-6 relative z-10">
+                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-[0.1em] shadow-sm text-white border border-white/10 ${c.type === 'emergency' ? 'bg-red-600' :
                         c.type === 'strategic' ? 'bg-indigo-600' : 'bg-emerald-600'
                         }`}>
-                        {c.type === 'emergency' ? 'Критичен казус' : c.type === 'strategic' ? 'Стратегически избор' : 'Ежедневно управление'}
+                        {c.type === 'emergency' ? 'Спешен' : c.type === 'strategic' ? 'Стратегически' : 'Ежедневие'}
                       </span>
-                      {c.targetRegion && <span className="bg-emerald-50 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600 border border-emerald-100">Район: {regions.find(r => r.id === c.targetRegion)?.name}</span>}
+                      {c.targetRegion && (
+                        <span className="bg-emerald-50/50 backdrop-blur-md px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-emerald-600 border border-emerald-100/50">
+                          {regions.find(r => r.id === c.targetRegion)?.name}
+                        </span>
+                      )}
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black text-emerald-950 mb-5 leading-none tracking-tight">{c.title}</h3>
-                    <p className="text-base md:text-lg text-emerald-900/70 leading-relaxed mb-10 font-medium italic border-l-4 border-emerald-100 pl-6">"{c.description}"</p>
+
+                    <h3 className="text-base md:text-lg font-bold text-emerald-950 mb-3 leading-tight tracking-tight">{c.title}</h3>
+                    <div className="bg-emerald-50/20 rounded-xl p-5 border border-emerald-50/30 mb-8">
+                      <p className="text-xs md:text-sm text-emerald-900/80 leading-relaxed font-medium italic">"{c.description}"</p>
+                    </div>
 
                     {!isResolved && (
-                      <div className="grid gap-4">
+                      <div className="space-y-2 relative z-10">
                         {c.options.map((opt, idx) => (
                           <button
                             key={idx}
                             onClick={() => { setPendingImpacts(p => [...p, opt.impact]); setResolvedCasesCount(v => v + 1); }}
-                            className="w-full p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] bg-emerald-50/50 border-2 border-transparent hover:border-emerald-600 hover:bg-white text-left transition-all group flex justify-between items-center shadow-inner hover:shadow-xl"
+                            className="w-full p-4 md:p-5 rounded-2xl bg-white border border-emerald-50 hover:border-emerald-500 hover:bg-emerald-50/20 text-left transition-all group flex justify-between items-center shadow-sm hover:shadow-md"
                           >
-                            <div className="flex-1 pr-10">
-                              <span className="font-black text-emerald-950 block text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">{opt.label}</span>
-                              <div className="flex gap-4 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {Object.entries(opt.impact).map(([key, val]) => {
-                                  const numVal = val as number;
-                                  return (
-                                    <span key={key} className={`text-[9px] font-black uppercase tracking-widest ${numVal > 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-                                      {key}: {numVal > 0 ? '+' : ''}{numVal}
-                                    </span>
-                                  );
-                                })}
+                            <div className="flex-1 pr-6">
+                              <span className="font-bold text-emerald-950 block text-xs md:text-sm group-hover:translate-x-1.5 transition-transform duration-300">{opt.label}</span>
+                              <div className="flex gap-4 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                                {Object.entries(opt.impact).map(([key, val]) => (
+                                  <span key={key} className={`text-[8px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${Number(val) > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
+                                    {key === 'budget' ? '💰' : key === 'trust' ? '🤝' : '📈'} {Number(val) > 0 ? '+' : ''}{val}
+                                  </span>
+                                ))}
                               </div>
                             </div>
-                            <ChevronRight size={24} className="text-emerald-400 group-hover:text-emerald-600 transition-all group-hover:translate-x-3" />
+                            <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-400 group-hover:bg-emerald-950 group-hover:text-white transition-all">
+                              <ChevronRight size={18} />
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -1212,10 +1540,13 @@ const App: React.FC = () => {
               })}
             </div>
 
-            <div className="p-10 md:p-14 border-t border-emerald-50 bg-white shrink-0">
-              <button onClick={() => setShowCasesPanel(false)} className="w-full py-6 bg-emerald-950 hover:bg-black text-white rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-sm transition-all shadow-2xl active:scale-95 group relative overflow-hidden">
-                <span className="relative z-10">Приключване на сесията</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <div className="p-8 bg-white/40 backdrop-blur-xl border-t border-stone-100 flex justify-center shrink-0">
+              <button
+                onClick={() => setShowCasesPanel(false)}
+                className="w-full md:w-auto px-20 py-4 bg-emerald-950 hover:bg-black text-white rounded-2xl font-bold uppercase tracking-[0.3em] text-[10px] transition-all shadow-lg active:scale-95 group relative overflow-hidden"
+              >
+                <span className="relative z-10 font-bold">Затвори Щаба</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </button>
             </div>
           </div>

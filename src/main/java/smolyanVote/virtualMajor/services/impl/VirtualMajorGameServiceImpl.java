@@ -3,8 +3,10 @@ package smolyanVote.virtualMajor.services.impl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.virtualMajor.models.GameEventHistoryEntity;
+import smolyanVote.virtualMajor.models.GameResourceSnapshotEntity;
 import smolyanVote.virtualMajor.models.enums.GameEventType;
 import smolyanVote.virtualMajor.repositories.GameEventHistoryRepository;
+import smolyanVote.virtualMajor.repositories.GameResourceSnapshotRepository;
 import smolyanVote.virtualMajor.repositories.GameSessionRepository;
 import smolyanVote.virtualMajor.services.interfaces.GeminiAIService;
 import smolyanVote.virtualMajor.services.interfaces.VirtualMajorGameService;
@@ -21,13 +23,16 @@ public class VirtualMajorGameServiceImpl implements VirtualMajorGameService {
 
     private final GameSessionRepository gameSessionRepository;
     private final GameEventHistoryRepository gameEventHistoryRepository;
+    private final GameResourceSnapshotRepository gameResourceSnapshotRepository;
     private final GeminiAIService geminiAIService;
 
     public VirtualMajorGameServiceImpl(GameSessionRepository gameSessionRepository,
             GameEventHistoryRepository gameEventHistoryRepository,
+            GameResourceSnapshotRepository gameResourceSnapshotRepository,
             GeminiAIService geminiAIService) {
         this.gameSessionRepository = gameSessionRepository;
         this.gameEventHistoryRepository = gameEventHistoryRepository;
+        this.gameResourceSnapshotRepository = gameResourceSnapshotRepository;
         this.geminiAIService = geminiAIService;
     }
 
@@ -43,7 +48,26 @@ public class VirtualMajorGameServiceImpl implements VirtualMajorGameService {
         // Generate AI events for this turn
         AIResponseDTO aiResponse = geminiAIService.generateGameEvents(gameState);
 
+        // Save snapshot for charts
+        saveResourceSnapshot(userId, gameState);
+
         return aiResponse;
+    }
+
+    private void saveResourceSnapshot(Long userId, GameStateDTO gameState) {
+        gameSessionRepository.findByUserIdAndIsActiveTrue(userId).ifPresent(session -> {
+            GameResourceSnapshotEntity snapshot = new GameResourceSnapshotEntity();
+            snapshot.setSession(session);
+            snapshot.setMonth(gameState.getMonth());
+            snapshot.setYear(gameState.getYear());
+            snapshot.setBudget(gameState.getResources().getBudget());
+            snapshot.setTrust(gameState.getResources().getTrust());
+            snapshot.setPopulation(gameState.getResources().getPopulation());
+            snapshot.setInnovation(gameState.getResources().getInnovation());
+            snapshot.setEco(gameState.getResources().getEco());
+            snapshot.setInfrastructure(gameState.getResources().getInfrastructure());
+            gameResourceSnapshotRepository.save(snapshot);
+        });
     }
 
     @Override

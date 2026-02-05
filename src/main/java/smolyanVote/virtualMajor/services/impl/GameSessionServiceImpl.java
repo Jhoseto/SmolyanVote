@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.virtualMajor.models.GameSessionEntity;
+import smolyanVote.virtualMajor.repositories.GameResourceSnapshotRepository;
 import smolyanVote.virtualMajor.repositories.GameSessionRepository;
 import smolyanVote.virtualMajor.services.interfaces.GameSessionService;
 import smolyanVote.virtualMajor.services.interfaces.GameStatisticsService;
+import smolyanVote.virtualMajor.models.GameResourceSnapshotEntity;
 import smolyanVote.virtualMajor.viewsAndDTO.*;
 
 import java.time.Instant;
@@ -27,15 +29,18 @@ public class GameSessionServiceImpl implements GameSessionService {
 
     private final GameSessionRepository gameSessionRepository;
     private final UserRepository userRepository;
+    private final GameResourceSnapshotRepository gameResourceSnapshotRepository;
     private final GameStatisticsService gameStatisticsService;
     private final ObjectMapper objectMapper;
 
     public GameSessionServiceImpl(GameSessionRepository gameSessionRepository,
             UserRepository userRepository,
+            GameResourceSnapshotRepository gameResourceSnapshotRepository,
             GameStatisticsService gameStatisticsService,
             ObjectMapper objectMapper) {
         this.gameSessionRepository = gameSessionRepository;
         this.userRepository = userRepository;
+        this.gameResourceSnapshotRepository = gameResourceSnapshotRepository;
         this.gameStatisticsService = gameStatisticsService;
         this.objectMapper = objectMapper;
     }
@@ -49,7 +54,7 @@ public class GameSessionServiceImpl implements GameSessionService {
         gameSessionRepository.findByUserIdAndIsActiveTrue(userId)
                 .ifPresent(existingSession -> {
                     existingSession.setIsActive(false);
-                    gameSessionRepository.save(existingSession);
+                    gameSessionRepository.saveAndFlush(existingSession);
                 });
 
         // Create new session with default values (from frontend constants)
@@ -88,8 +93,28 @@ public class GameSessionServiceImpl implements GameSessionService {
 
         GameSessionEntity savedSession = gameSessionRepository.save(session);
 
+        // Save initial snapshot for charts and analysis
+        GameResourceSnapshotEntity snapshot = new GameResourceSnapshotEntity();
+        snapshot.setSession(savedSession);
+        snapshot.setMonth(savedSession.getCurrentMonth());
+        snapshot.setYear(savedSession.getCurrentYear());
+        snapshot.setBudget(savedSession.getBudget());
+        snapshot.setTrust(savedSession.getTrust());
+        snapshot.setPopulation(savedSession.getPopulation());
+        snapshot.setInfrastructure(savedSession.getInfrastructure());
+        snapshot.setEco(savedSession.getEco());
+        snapshot.setInnovation(savedSession.getInnovation());
+        gameResourceSnapshotRepository.save(snapshot);
+
         GameStateDTO gameState = convertToDTO(savedSession);
         return new GameSessionDTO(savedSession.getId(), gameState, "Нова игра създадена успешно");
+    }
+
+    @Override
+    public GameSessionDTO createNewGameByEmail(String userEmail) {
+        UserEntity user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+        return createNewGame(user.getId());
     }
 
     @Override
@@ -106,6 +131,13 @@ public class GameSessionServiceImpl implements GameSessionService {
     }
 
     @Override
+    public GameSessionDTO saveGameByEmail(String userEmail, GameStateDTO gameState) {
+        UserEntity user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+        return saveGame(user.getId(), gameState);
+    }
+
+    @Override
     public LoadGameResponse loadGame(Long userId) {
         return gameSessionRepository.findByUserIdAndIsActiveTrue(userId)
                 .map(session -> {
@@ -113,6 +145,13 @@ public class GameSessionServiceImpl implements GameSessionService {
                     return new LoadGameResponse(true, gameState);
                 })
                 .orElse(new LoadGameResponse(false, null));
+    }
+
+    @Override
+    public LoadGameResponse loadGameByEmail(String userEmail) {
+        UserEntity user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+        return loadGame(user.getId());
     }
 
     @Override
@@ -124,6 +163,9 @@ public class GameSessionServiceImpl implements GameSessionService {
         if (!session.getUser().getId().equals(userId)) {
             throw new RuntimeException("User is not authorized to delete this session");
         }
+
+        // Cleanup related data
+        gameResourceSnapshotRepository.deleteBySessionId(sessionId);
 
         gameSessionRepository.delete(session);
     }
@@ -144,6 +186,9 @@ public class GameSessionServiceImpl implements GameSessionService {
 
         // Update statistics
         gameStatisticsService.updateStatisticsOnGameEnd(userId, session, won);
+
+        // Cleanup snapshots to save space (user requested cleanup on game end)
+        gameResourceSnapshotRepository.deleteBySessionId(sessionId);
     }
 
     @Override
@@ -195,6 +240,7 @@ public class GameSessionServiceImpl implements GameSessionService {
         GameStateDTO dto = new GameStateDTO();
         dto.setMonth(session.getCurrentMonth());
         dto.setYear(session.getCurrentYear());
+        dto.setUsername(session.getUser().getUsername());
 
         // Resources
         CityResourcesDTO resources = new CityResourcesDTO(
