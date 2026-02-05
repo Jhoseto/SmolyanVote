@@ -3,8 +3,6 @@
 # ============================================
 # Add this to your system environment variables or .env file
 
-# This is the Gemini API key extracted from VirtualMajorFrontend/.env.local
-VIRTUAL_MAJOR_GEMINI_API_KEY=AIzaSyBYhrWs5bsg-5f51XEQ0-XMxmEDM1uRmIo
 
 # IMPORTANT NOTES:
 # 1. This key is separate from the main GEMINI_API_KEY used for other app features
