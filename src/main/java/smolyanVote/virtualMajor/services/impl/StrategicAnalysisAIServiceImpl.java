@@ -93,12 +93,12 @@ public class StrategicAnalysisAIServiceImpl implements StrategicAnalysisAIServic
 
                         HttpHeaders headers = new HttpHeaders();
                         headers.setContentType(MediaType.APPLICATION_JSON);
-                        headers.set("x-goog-api-key", apiKey);
 
                         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-                        // Call Gemini API
-                        ResponseEntity<String> response = restTemplate.postForEntity(GEMINI_API_URL, entity,
+                        // Using URL query param for authentication
+                        String url = GEMINI_API_URL + "?key=" + apiKey;
+                        ResponseEntity<String> response = restTemplate.postForEntity(url, entity,
                                         String.class);
 
                         JsonNode root = objectMapper.readTree(response.getBody());

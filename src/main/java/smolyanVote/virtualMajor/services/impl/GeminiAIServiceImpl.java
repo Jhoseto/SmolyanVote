@@ -290,15 +290,15 @@ public class GeminiAIServiceImpl implements GeminiAIService {
             String userPrompt = buildUserPrompt(gameState);
             String requestBody = buildGeminiRequest(userPrompt);
 
-            // Set headers (x-goog-api-key is required for Gemini 3 Flash)
+            // Set headers (no API key header - using query param instead)
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("x-goog-api-key", apiKey);
 
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-            // Call Gemini API
-            ResponseEntity<String> response = restTemplate.postForEntity(GEMINI_API_URL, entity, String.class);
+            // Call Gemini API - Using URL query param for authentication
+            String url = GEMINI_API_URL + "?key=" + apiKey;
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
             // Parse response
             return parseGeminiResponse(response.getBody());

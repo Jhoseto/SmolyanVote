@@ -1521,11 +1521,12 @@ const App: React.FC = () => {
                             <div className="flex-1 pr-6">
                               <span className="font-bold text-emerald-950 block text-xs md:text-sm group-hover:translate-x-1.5 transition-transform duration-300">{opt.label}</span>
                               <div className="flex gap-4 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
-                                {Object.entries(opt.impact).map(([key, val]) => (
-                                  <span key={key} className={`text-[8px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${Number(val) > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
-                                    {key === 'budget' ? '💰' : key === 'trust' ? '🤝' : '📈'} {Number(val) > 0 ? '+' : ''}{val}
+                                {/* Show only budget cost - other effects are hidden to make the game more challenging */}
+                                {opt.impact.budget !== undefined && (
+                                  <span className={`text-[8px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${Number(opt.impact.budget) > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
+                                    💰 {Number(opt.impact.budget) > 0 ? '+' : ''}{opt.impact.budget}
                                   </span>
-                                ))}
+                                )}
                               </div>
                             </div>
                             <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-400 group-hover:bg-emerald-950 group-hover:text-white transition-all">
