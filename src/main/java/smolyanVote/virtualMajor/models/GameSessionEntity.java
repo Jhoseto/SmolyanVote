@@ -13,9 +13,7 @@ import java.time.Instant;
  * progress.
  */
 @Entity
-@Table(name = "game_sessions", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "is_active" })
-})
+@Table(name = "game_sessions")
 public class GameSessionEntity extends BaseEntity {
 
     /**

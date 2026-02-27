@@ -58,7 +58,7 @@
             rgba(255, 255, 255, 0.3) 100%);
     backdrop-filter: blur(5px);
     border-radius: 0;
-    padding: 1.0rem 1rem;
+    padding: 0.75rem 1rem; /* по-тънък navbar */
     /* Само долен border */
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
@@ -113,11 +113,11 @@
     .navbar-nav-section-glass {
         display: flex;
         align-items: center;
-        gap: 5rem;
+        gap: 0.5rem; /* минимално разстояние между групите */
         flex: 1;
         justify-content: flex-end;
         max-width: none;
-        margin-right: 5rem;
+        margin-right: 1rem; /* почти залепено до дясната страна */
     }
 }
 
@@ -165,7 +165,7 @@
     .nav-links-glass {
         display: flex;
         align-items: center;
-        gap: 2.0rem;
+        gap: 0.35rem; /* максимално събрани бутони */
         list-style: none;
         margin: 0;
         padding: 0;
@@ -177,37 +177,87 @@
 
     .nav-link-glass {
         font-family: var(--font-primary);
-        font-size: 0.9rem;
-        font-weight: 100;
+        font-size: 0.8rem;        /* по-малък текст */
+        font-weight: 300;         /* тънък елегантен шрифт */
         color: var(--text-primary);
         text-decoration: none;
-        padding: 0.3rem 0;
-        transition: all 0.3s ease;
+        padding: 0.3rem 0.5rem;   /* по-малки „табове“ */
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         background: none;
         border: none;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border-radius: 999px;     /* компактни „pill“ бутони */
+        overflow: visible;
     }
 
-    .nav-link-glass::after {
+    /* Икони - по-големи с тънки контури */
+    .nav-link-glass>i:first-child {
+        font-size: 1.3rem;        /* по-малка икона до текста */
+        font-weight: 300;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-primary);
+        flex-shrink: 0;
+        z-index: 2;
+        transform: translateZ(0);
+        will-change: transform, color;
+    }
+
+    /* Текстови етикети - винаги видими, тънък изискан шрифт */
+    .nav-text-glass {
+        max-width: 150px;
+        opacity: 1;
+        overflow: visible;
+        white-space: nowrap;
+        margin-left: 12px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateX(0);
+        will-change: max-width, opacity, margin-left, transform;
+        font-weight: 300;
+        letter-spacing: 0.3px;
+    }
+
+    /* Premium hover – фино подчертаване, без бутон около текста */
+    .nav-link-glass::before {
         content: '';
         position: absolute;
-        bottom: -2px;
-        left: 0;
+        left: 50%;
+        bottom: 0;
         width: 0;
         height: 2px;
-        background: linear-gradient(45deg, var(--primary-green), var(--accent-green));
-        transition: all 0.3s ease;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary-green), var(--accent-green));
+        transform: translateX(-50%);
+        transition: width 0.3s ease;
     }
 
     .nav-link-glass:hover {
-        color: var(--primary-green);
+        background: transparent;
         text-decoration: none;
-        transform: translateY(-1px);
+        transform: translateY(0);
+        box-shadow: none;
     }
 
-    .nav-link-glass:hover::after {
-        width: 100%;
+    .nav-link-glass:hover::before {
+        width: 70%;
+    }
+
+    /* Premium hover – лек цветен акцент на текста и иконата */
+    .nav-link-glass:hover .nav-text-glass {
+        color: var(--primary-green);
+    }
+
+    .nav-link-glass:hover>i:first-child {
+        color: var(--primary-green);
+        transform: scale(1.05) translateZ(0);
+    }
+
+    /* Премахваме старата долна линия при hover */
+    .nav-link-glass::after {
+        display: none;
     }
 
     /* App Banner in Navbar */
@@ -268,20 +318,43 @@
         border: none !important;
         display: flex;
         align-items: center;
-        gap: 0.3rem;
-        font-weight: 100;
-        padding-bottom: 7px;
+        gap: 0;
+        font-weight: 400;
+        padding: 0.5rem 0.8rem;
+        border-radius: 12px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .vote-toggle-glass:hover {
-        color: var(--primary-green) !important;
+        background: rgba(76, 177, 92, 0.08) !important;
+    }
+
+    /* Икона в Vote toggle - по-голяма с тънки контури */
+    .vote-toggle-glass>i:first-child {
+        font-size: 1.7rem;
+        font-weight: 300;
+        color: var(--text-primary);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+    }
+
+    .vote-toggle-glass:hover>i:first-child {
+        color: var(--primary-green);
+        transform: scale(1.1);
     }
 
     .vote-arrow-glass {
-        transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
-        font-size: 0.7rem;
-        padding-top: 5px;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.9rem;
+        margin-left: 6px;
         will-change: transform;
+        opacity: 0;
+        color: var(--text-primary);
+        font-weight: 400;
+    }
+
+    .vote-toggle-glass:hover .vote-arrow-glass {
+        opacity: 1;
     }
 
     .vote-arrow-glass.rotated {

@@ -634,6 +634,80 @@ const LogsModal: React.FC<{ logs: string[], onClose: () => void }> = ({ logs, on
   );
 };
 
+const MonthlyAnalysisModal: React.FC<{ analysis: string, onClose: () => void }> = ({ analysis, onClose }) => {
+  return (
+    <div className="fixed inset-0 z-[600] bg-emerald-950/30 backdrop-blur-2xl flex items-center justify-center p-4 overflow-hidden animate-in fade-in duration-500">
+      <div className="bg-white/90 w-full max-w-3xl rounded-3xl shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-4 duration-500 max-h-[75vh] border border-white/40">
+
+        <div className="p-5 md:p-8 bg-gradient-to-br from-emerald-900 via-emerald-800 to-green-950 text-white flex justify-between items-center relative overflow-hidden shrink-0">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5"></div>
+          <div className="absolute -right-10 -bottom-10 opacity-10 rotate-12"><Newspaper size={120} /></div>
+          <div className="relative z-10">
+            <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tight leading-none text-stone-100 drop-shadow-md">AI Месечен доклад</h2>
+            <p className="text-[9px] font-medium text-emerald-200/50 uppercase tracking-[0.2em] mt-2 flex items-center gap-1.5">
+              <Sparkles size={10} /> Генериран анализ
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-3 bg-white/5 hover:bg-white/15 text-white rounded-2xl transition-all active:scale-90 relative z-10 border border-white/5 group backdrop-blur-xl"
+          >
+            <XCircle size={24} className="group-hover:rotate-90 transition-transform duration-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 scrollbar-hide bg-gradient-to-b from-white to-stone-50/30">
+          <div className="bg-white/60 rounded-2xl p-6 md:p-8 border border-emerald-50/50 shadow-sm">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100">
+                <Newspaper size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-black text-emerald-950 uppercase tracking-tight mb-1">Обобщение</h3>
+                <p className="text-[8px] font-medium text-emerald-600/50 uppercase tracking-widest">Месец {new Date().getMonth() + 1}</p>
+              </div>
+            </div>
+            <p className="text-emerald-950 font-medium leading-relaxed text-sm whitespace-pre-wrap">{analysis}</p>
+          </div>
+        </div>
+
+        <div className="p-5 bg-white/60 border-t border-emerald-50 text-center shrink-0">
+          <p className="text-[8px] font-bold text-emerald-300 uppercase tracking-[0.4em]">AI Анализ • Симулация Смолян</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MonthlyAnalysisPanel: React.FC<{ analysis: string, onClick: () => void }> = ({ analysis, onClick }) => {
+  const truncated = analysis.length > 80 ? analysis.substring(0, 80) + '...' : analysis;
+
+  return (
+    <div
+      onClick={onClick}
+      className="fixed bottom-6 right-6 z-30 w-72 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-emerald-100 p-4 cursor-pointer transition-all duration-300 hover:shadow-[0_15px_50px_rgba(0,0,0,0.2)] hover:scale-105 active:scale-95 animate-in slide-in-from-right-10 fade-in"
+    >
+      <div className="flex items-start gap-3 mb-2">
+        <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-md">
+          <Newspaper size={16} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xs font-black text-emerald-950 uppercase tracking-tight leading-none mb-1">AI Анализ</h3>
+          <p className="text-[8px] font-medium text-emerald-600/60 uppercase tracking-widest">Месечен доклад</p>
+        </div>
+        <div className="w-5 h-5 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
+          <ChevronRight size={12} className="text-emerald-600" />
+        </div>
+      </div>
+      <p className="text-[10px] text-emerald-900/70 leading-relaxed line-clamp-2">{truncated}</p>
+      <div className="mt-3 flex items-center gap-2">
+        <div className="flex-1 h-px bg-gradient-to-r from-emerald-100 to-transparent"></div>
+        <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">Кликни за повече</span>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [hasSavedSession, setHasSavedSession] = useState(false);
@@ -667,6 +741,7 @@ const App: React.FC = () => {
   const [strategicData, setStrategicData] = useState<StrategicAnalysis | null>(null);
   const [loadingStrategic, setLoadingStrategic] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [showMonthlyAnalysis, setShowMonthlyAnalysis] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -679,18 +754,24 @@ const App: React.FC = () => {
       // Try to check for existing session
       try {
         const savedSession = await loadGame();
+        console.log('[Virtual Mayor] loadGame response:', savedSession);
 
-        if (savedSession.exists && savedSession.gameState) {
+        // IMPORTANT: Backend returns hasActiveGame, not exists!
+        if (savedSession.hasActiveGame && savedSession.gameState) {
+          console.log('[Virtual Mayor] Found saved session, setting hasSavedSession=true');
           setState(savedSession.gameState);
           setHasSavedSession(true);
           // Don't auto-start anymore, wait for user to click "Continue"
         } else {
+          console.log('[Virtual Mayor] No saved session found, hasSavedSession=false');
+          setHasSavedSession(false);
           // No session, prepare starter projects
           const starterProjects = ALL_POTENTIAL_PROJECTS.filter(p => p.tier === 1).sort(() => 0.5 - Math.random()).slice(0, 4);
           setState(prev => ({ ...prev, availableProjects: starterProjects }));
         }
       } catch (error) {
-        console.error("Initialization error:", error);
+        console.error("[Virtual Mayor] Initialization error:", error);
+        setHasSavedSession(false);
         const starterProjects = ALL_POTENTIAL_PROJECTS.filter(p => p.tier === 1).sort(() => 0.5 - Math.random()).slice(0, 4);
         setState(prev => ({ ...prev, availableProjects: starterProjects }));
       }
@@ -989,6 +1070,7 @@ const App: React.FC = () => {
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
       {showLogsModal && <LogsModal logs={state.logs} onClose={() => setShowLogsModal(false)} />}
       {showIntro && <IntroModal username={state.username} onClose={() => setShowIntro(false)} />}
+      {showMonthlyAnalysis && aiData?.analysis && <MonthlyAnalysisModal analysis={aiData.analysis} onClose={() => setShowMonthlyAnalysis(false)} />}
       {!gameStarted && (
         <WelcomeScreen
           onContinue={handleContinueMandate}
@@ -1552,6 +1634,14 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Monthly AI Analysis Panel - Bottom Right */}
+      {gameStarted && aiData?.analysis && (
+        <MonthlyAnalysisPanel
+          analysis={aiData.analysis}
+          onClick={() => setShowMonthlyAnalysis(true)}
+        />
       )}
 
       {loading && <LoadingOverlay month={state.month} prev={prevResources} current={state.resources} />}

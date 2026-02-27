@@ -29,13 +29,13 @@
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/">
                                 <i class="bi bi-house-door"></i>
-                                <span>Начало</span>
+                                <span class="nav-text-glass">Начало</span>
                             </a>
                         </li>
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/about">
                                 <i class="bi bi-info-circle"></i>
-                                <span>За нас</span>
+                                <span class="nav-text-glass">За нас</span>
                             </a>
                         </li>
 
@@ -43,7 +43,7 @@
                         <li class="nav-item-glass">
                             <a class="nav-link-glass vote-toggle-glass" href="#" onclick="toggleVoteMenu(event)">
                                 <i class="bi bi-hand-index-thumb"></i>
-                                <span>Vote</span>
+                                <span class="nav-text-glass">Vote</span>
                                 <i class="bi bi-chevron-down vote-arrow-glass"></i>
                             </a>
 
@@ -184,50 +184,39 @@
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/publications">
                                 <i class="bi bi-newspaper"></i>
-                                <span>Публикации</span>
+                                <span class="nav-text-glass">Публикации</span>
                             </a>
                         </li>
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/signals/mainView">
                                 <i class="bi bi-geo-alt"></i>
-                                <span>Карта/Сигнали</span>
-                            </a>
-                        </li>
-                        <li class="nav-item-glass">
-                            <a sec:authorize="isAuthenticated()" class="nav-link-glass" href="/virtual-mayor">
-                                <i class="bi bi-person-workspace"></i>
-                                <span>Виртуален Кмет</span>
-                            </a>
-                            <a sec:authorize="!isAuthenticated()" class="nav-link-glass" href="javascript:void(0);"
-                                onclick="showLoginWarning('За да влезете в ролята на Виртуален Кмет, моля първо влезте в профила си!')">
-                                <i class="bi bi-person-workspace"></i>
-                                <span>Виртуален Кмет</span>
+                                <span class="nav-text-glass">Карта/Сигнали</span>
                             </a>
                         </li>
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/podcast">
                                 <i class="bi bi-broadcast"></i>
-                                <span>Podcast</span>
+                                <span class="nav-text-glass">Podcast</span>
                             </a>
                         </li>
                         <li class="nav-item-glass">
                             <a class="nav-link-glass" href="/contacts">
                                 <i class="bi bi-envelope"></i>
-                                <span>Контакти</span>
+                                <span class="nav-text-glass">Контакти</span>
                             </a>
                         </li>
                         <li class="nav-item-glass">
                             <a class="nav-link-glass app-banner-nav" href="#"
                                 onclick="if(window.SVMessenger) window.SVMessenger.openDownloadModal(); return false;">
                                 <i class="bi bi-phone"></i>
-                                <span>SVMessenger</span>
+                                <span class="nav-text-glass">SVMessenger</span>
                             </a>
                         </li>
                         <!-- Language Switcher -->
                         <li class="nav-item-glass language-switcher-item">
                             <a class="nav-link-glass language-toggle" href="#" onclick="toggleLanguageMenu(event)">
                                 <i class="bi bi-globe2"></i>
-                                <span>Езици</span>
+                                <span class="nav-text-glass">Езици</span>
                                 <i class="bi bi-chevron-down arrow-icon"></i>
                             </a>
                             <!-- Language Dropdown -->

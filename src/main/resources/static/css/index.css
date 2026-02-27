@@ -1076,31 +1076,189 @@ mux-player {
   z-index: 2;
 }
 
+/* ====== SVMESSENGER APP PROMO SECTION ====== */
+.app-promo-section {
+  padding: 4rem 0;
+  background: var(--white);
+}
+
+.app-promo-section .container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.app-promo-card {
+  background: radial-gradient(circle at top left, rgba(25, 134, 28, 0.06) 0%, transparent 55%),
+              radial-gradient(circle at bottom right, rgba(25, 134, 28, 0.08) 0%, transparent 60%),
+              #f8fafc;
+  border-radius: 28px;
+  box-shadow:
+    0 18px 45px rgba(15, 118, 110, 0.18),
+    0 1px 3px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 118, 110, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.app-promo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.16), transparent 55%);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.app-promo-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  padding: 2.75rem 2.5rem;
+}
+
+.app-promo-text {
+  flex: 1 1 50%;
+  max-width: 540px;
+}
+
+.app-promo-text .badge-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(22, 163, 74, 0.12);
+  color: #166534;
+  margin-bottom: 0.75rem;
+}
+
+.app-promo-text h2 {
+  font-family: var(--font-primary);
+  font-size: clamp(1.9rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.03em;
+}
+
+.app-promo-text p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
 .app-features-list {
   list-style: none;
   padding: 0;
-  margin: 0 0 40px 0;
+  margin: 0 0 1.75rem 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.55rem;
 }
 
 .app-features-list li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 16px;
-  font-weight: 500;
+  gap: 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
 }
 
 .app-features-list li i {
-  color: #4ade80;
-  font-size: 18px;
+  color: #16a34a;
+  font-size: 1rem;
+}
+
+.btn-app-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.9rem 1.7rem;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow:
+    0 12px 30px rgba(22, 163, 74, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.btn-app-download i {
+  font-size: 1.1rem;
+}
+
+.btn-app-download:hover,
+.btn-app-download:focus {
+  background: linear-gradient(135deg, var(--accent-green) 0%, var(--primary-green) 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 40px rgba(22, 163, 74, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  text-decoration: none;
+  outline: none;
+}
+
+.btn-app-download:active {
+  transform: translateY(0);
+}
+
+.app-promo-image {
+  flex: 1 1 40%;
+  max-width: 260px; /* приблизително ~половината визуален размер */
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-promo {
+  width: 80%;
+  height: auto;
+  display: block;
+  border-radius: 24px;
+  box-shadow:
+    0 30px 80px rgba(15, 23, 42, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 @media (max-width: 991px) {
+  .app-promo-content {
+    flex-direction: column-reverse;
+    padding: 2.25rem 1.75rem;
+  }
+
+  .app-promo-text {
+    text-align: center;
+  }
+
   .app-features-list {
-    align-items: center;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 575px) {
+  .app-promo-card {
+    border-radius: 22px;
+  }
+
+  .app-promo-content {
+    padding: 2rem 1.25rem;
   }
 }

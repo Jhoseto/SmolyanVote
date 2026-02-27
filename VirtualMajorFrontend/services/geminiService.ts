@@ -54,7 +54,7 @@ export async function processTurn(state: GameState): Promise<AIResponse> {
 /**
  * Loads an existing game session from the backend.
  */
-export async function loadGame(): Promise<{ exists: boolean, gameState?: GameState }> {
+export async function loadGame(): Promise<{ hasActiveGame: boolean, gameState?: GameState }> {
   try {
     const response = await fetch('/api/virtualmajor/load-game', {
       method: 'GET',
@@ -62,14 +62,14 @@ export async function loadGame(): Promise<{ exists: boolean, gameState?: GameSta
     });
 
     if (!response.ok) {
-      if (response.status === 401) return { exists: false };
+      if (response.status === 401) return { hasActiveGame: false };
       throw new Error(`Backend error: ${response.statusText}`);
     }
 
     return await response.json();
   } catch (error) {
     console.error("Error loading game:", error);
-    return { exists: false };
+    return { hasActiveGame: false };
   }
 }
 
