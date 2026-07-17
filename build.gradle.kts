@@ -1,7 +1,7 @@
 plugins {
 	id("java")
 	id("org.springframework.boot") version "3.4.4"
-	id("io.spring.dependency-management") version "1.0.11.RELEASE"
+	id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "smolyanVote"
@@ -20,6 +20,7 @@ repositories {
 dependencies {
 	// Spring Boot Starters
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.hibernate.common:hibernate-commons-annotations:7.0.3.Final")
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
