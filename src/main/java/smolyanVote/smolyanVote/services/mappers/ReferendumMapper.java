@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.ReferendumImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.ReferendumImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.ReferendumDetailViewDTO;
 
 import java.util.ArrayList;
@@ -38,12 +39,16 @@ public class ReferendumMapper {
 
         if (images != null && !images.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
+            List<ImageRefDTO> imageRefs = new ArrayList<>();
             for (ReferendumImageEntity image : images) {
                 imageUrls.add(image.getImageUrl()); // Вземаме URL на всяка снимка
+                imageRefs.add(new ImageRefDTO(image.getId(), image.getImageUrl()));
             }
             view.setImageUrls(imageUrls);
+            view.setImageRefs(imageRefs);
         } else {
             view.setImageUrls(List.of("/images/eventImages/defaultReferendum.jpg")); // Default изображение
+            view.setImageRefs(List.of());
         }
 
         // Присвояване на стойности

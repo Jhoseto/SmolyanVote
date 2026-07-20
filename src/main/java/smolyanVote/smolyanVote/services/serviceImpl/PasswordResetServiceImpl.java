@@ -1,9 +1,13 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.PasswordResetTokenEntity;
@@ -23,54 +27,72 @@ import java.util.UUID;
 @Service
 public class PasswordResetServiceImpl implements PasswordResetService {
 
+    private static final Logger log = LoggerFactory.getLogger(PasswordResetServiceImpl.class);
+
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final ActivityLogService activityLogService;
+    private final TransactionTemplate transactionTemplate;
 
     public PasswordResetServiceImpl(PasswordResetTokenRepository tokenRepository,
                                    UserRepository userRepository,
                                    PasswordEncoder passwordEncoder,
                                    EmailService emailService,
-                                   ActivityLogService activityLogService) {
+                                   ActivityLogService activityLogService,
+                                   PlatformTransactionManager transactionManager) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.activityLogService = activityLogService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
-    public void requestPasswordReset(String email) {
-        // Нормализиране на email на малки букви преди търсене
+    /**
+     * DB work commits first; Mailjet is called only after commit so a send failure
+     * is not hidden inside a rolled-back transaction (and AuthController can log it).
+     */
+    @Override
+    public Optional<String> requestPasswordReset(String email) {
         String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
-        Optional<UserEntity> userOpt = userRepository.findByEmail(normalizedEmail);
-        if (userOpt.isEmpty()) {
-            return; // Не разкриваме дали имейлът съществува
+
+        ResetMailJob job = transactionTemplate.execute(status -> {
+            Optional<UserEntity> userOpt = userRepository.findByEmail(normalizedEmail);
+            if (userOpt.isEmpty()) {
+                return null;
+            }
+
+            UserEntity user = userOpt.get();
+            tokenRepository.findByUserIdAndNotUsedAndNotExpired(user.getId(), Instant.now())
+                    .ifPresent(tokenRepository::delete);
+
+            String token = UUID.randomUUID().toString();
+            Instant expiresAt = Instant.now().plusSeconds(24 * 60 * 60);
+            tokenRepository.save(new PasswordResetTokenEntity(user, token, expiresAt));
+            return new ResetMailJob(user.getId(), user.getEmail(), token);
+        });
+
+        if (job == null) {
+            log.info("Password reset requested for unknown email (no mail sent)");
+            return Optional.empty();
         }
 
-        UserEntity user = userOpt.get();
-        
-        // Изтриваме стари токени за този потребител
-        tokenRepository.findByUserIdAndNotUsedAndNotExpired(user.getId(), Instant.now())
-                .ifPresent(token -> tokenRepository.delete(token));
-
-        // Създаваме нов токен
-        String token = UUID.randomUUID().toString();
-        Instant expiresAt = Instant.now().plusSeconds(24 * 60 * 60); // 24 часа
-
-        PasswordResetTokenEntity resetToken = new PasswordResetTokenEntity(user, token, expiresAt);
-        tokenRepository.save(resetToken);
-
-        // Изпращаме имейл
-        emailService.sendPasswordResetEmail(user.getEmail(), token);
+        emailService.sendPasswordResetEmail(job.email(), job.token());
+        log.info("Password reset email dispatched for userId={}", job.userId());
+        return Optional.of(job.token());
     }
 
     @Transactional
     public boolean resetPassword(String token, String newPassword) {
+        String normalizedToken = token == null ? "" : token.trim();
+        if (normalizedToken.isEmpty()) {
+            return false;
+        }
+
         Optional<PasswordResetTokenEntity> tokenOpt = tokenRepository
-                .findByTokenAndNotUsedAndNotExpired(token, Instant.now());
+                .findByTokenAndNotUsedAndNotExpired(normalizedToken, Instant.now());
 
         if (tokenOpt.isEmpty()) {
             return false;
@@ -79,15 +101,12 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         PasswordResetTokenEntity resetToken = tokenOpt.get();
         UserEntity user = resetToken.getUser();
 
-        // Обновяваме паролата
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // Маркираме токена като използван
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
 
-        // ✅ ЛОГИРАНЕ НА USER_PASSWORD_RESET
         try {
             String ipAddress = extractIpAddress();
             String userAgent = extractUserAgent();
@@ -95,13 +114,11 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             activityLogService.logActivity(ActivityActionEnum.USER_PASSWORD_RESET, user,
                     ActivityTypeEnum.USER.name(), user.getId(), details, ipAddress, userAgent);
         } catch (Exception e) {
-            System.err.println("Failed to log USER_PASSWORD_RESET activity: " + e.getMessage());
+            log.warn("Failed to log USER_PASSWORD_RESET activity: {}", e.getMessage());
         }
 
         return true;
     }
-
-    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
 
     private String extractIpAddress() {
         try {
@@ -148,4 +165,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     public void cleanupExpiredTokens() {
         tokenRepository.deleteExpiredTokens(Instant.now());
     }
+
+    private record ResetMailJob(long userId, String email, String token) {}
 }

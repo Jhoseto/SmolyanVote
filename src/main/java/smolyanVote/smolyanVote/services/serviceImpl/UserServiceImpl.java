@@ -143,7 +143,14 @@ public class UserServiceImpl implements UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             String identifier = null;
-            
+
+            // JWT автентикация (JwtAuthenticationFilter поставя UserEntity директно
+            // като principal) - authentication.getName() би върнал UserEntity#toString(),
+            // затова връщаме entity-то веднага, без email/username lookup.
+            if (authentication.getPrincipal() instanceof UserEntity) {
+                return (UserEntity) authentication.getPrincipal();
+            }
+
             // Проверка за OAuth2User (Google/Facebook login)
             if (authentication.getPrincipal() instanceof org.springframework.security.oauth2.core.user.OAuth2User) {
                 org.springframework.security.oauth2.core.user.OAuth2User oAuth2User = 
@@ -243,14 +250,21 @@ public class UserServiceImpl implements UserService {
 
     public void createNewUser(UserRegistrationViewModel userRegistrationViewModel) {
 
+        // Нормализиране на email на малки букви
+        String normalizedEmail = userRegistrationViewModel.getEmail() != null ?
+                userRegistrationViewModel.getEmail().toLowerCase().trim() : null;
+
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new IllegalStateException("Потребител с този имейл адрес вече съществува!");
+        }
+        if (userRepository.findByUsername(userRegistrationViewModel.getUsername()).isPresent()) {
+            throw new IllegalStateException("Потребител с това потребителско име вече съществува!");
+        }
+
         UserRole userRole = UserRole.USER;
         UserEntity newUser = new UserEntity();
         String confirmationCode = generateConfirmationCode();
         String defaultUserImage = "";
-        
-        // Нормализиране на email на малки букви
-        String normalizedEmail = userRegistrationViewModel.getEmail() != null ? 
-                userRegistrationViewModel.getEmail().toLowerCase().trim() : null;
 
         newUser.setUsername(userRegistrationViewModel.getUsername())
                 .setPassword(passwordEncoder.encode(userRegistrationViewModel.getRegPassword()))
@@ -262,10 +276,86 @@ public class UserServiceImpl implements UserService {
         setCurrentTimeStamps(newUser);
         userRepository.save(newUser);
 
+        // Outside any broader DB transaction: Mailjet failure must surface to AuthController.
         emailService.sendConfirmationEmail(newUser.getEmail());
-
-        System.out.println("Email sent to " + newUser.getEmail());
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public boolean confirmEmail(Long userId, String code) {
+        Optional<UserEntity> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            return false;
+        }
+
+        UserEntity user = userOptional.get();
+        if (user.getUserConfirmationCode() == null
+                || !user.getUserConfirmationCode().equals(code)
+                || user.getStatus() != UserStatusEnum.PENDING_ACTIVATION) {
+            return false;
+        }
+
+        user.setStatus(UserStatusEnum.ACTIVE);
+        userRepository.save(user);
+
+        try {
+            String ipAddress = extractIpAddress();
+            String userAgent = extractUserAgent();
+            activityLogService.logActivity(ActivityActionEnum.USER_EMAIL_VERIFY, user,
+                    ActivityTypeEnum.USER.name(), user.getId(), "Email verified successfully", ipAddress, userAgent);
+        } catch (Exception e) {
+            System.err.println("Failed to log USER_EMAIL_VERIFY activity: " + e.getMessage());
+        }
+
+        return true;
+    }
+
+    // ===== HELPER METHODS FOR ACTIVITY LOGGING (mirrors PasswordResetServiceImpl) =====
+
+    private String extractIpAddress() {
+        try {
+            org.springframework.web.context.request.ServletRequestAttributes attributes =
+                    (org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                jakarta.servlet.http.HttpServletRequest request = attributes.getRequest();
+                String ip = request.getHeader("X-Forwarded-For");
+                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                    ip = request.getHeader("X-Real-IP");
+                }
+                if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                    ip = request.getRemoteAddr();
+                }
+                if (ip != null && ip.contains(",")) {
+                    ip = ip.split(",")[0].trim();
+                }
+                return ip != null ? ip : "unknown";
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
+    private String extractUserAgent() {
+        try {
+            org.springframework.web.context.request.ServletRequestAttributes attributes =
+                    (org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                jakarta.servlet.http.HttpServletRequest request = attributes.getRequest();
+                String userAgent = request.getHeader("User-Agent");
+                return userAgent != null ? userAgent : "unknown";
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return "unknown";
+    }
+
     // Функция за поставяне на времеви печати
     private static void setCurrentTimeStamps(BaseEntity baseEntity) {
         baseEntity.setCreated(Instant.now());

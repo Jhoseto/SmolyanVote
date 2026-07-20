@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import smolyanVote.smolyanVote.config.FrontendProperties;
 import smolyanVote.smolyanVote.services.KeyGenerator;
 import smolyanVote.smolyanVote.services.serviceImpl.CustomOAuth2UserService;
 
@@ -41,6 +42,7 @@ public class ApplicationSecurityConfiguration {
         private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
         private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final FrontendProperties frontendProperties;
 
         public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
                         PasswordEncoder passwordEncoder,
@@ -48,11 +50,13 @@ public class ApplicationSecurityConfiguration {
                         CustomOAuth2UserService customOAuth2UserService,
                         OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
                         OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
-                        JwtAuthenticationFilter jwtAuthenticationFilter) {
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        FrontendProperties frontendProperties) {
                 this.customUserDetailsService = customUserDetailsService;
                 this.passwordEncoder = passwordEncoder;
                 this.customLogoutSuccessHandler = customLogoutSuccessHandler;
                 this.oAuth2UserService = customOAuth2UserService;
+                this.frontendProperties = frontendProperties;
                 this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
                 this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -83,7 +87,7 @@ public class ApplicationSecurityConfiguration {
                                                 // without
                                                 // 405
                                                 .requestMatchers(HttpMethod.OPTIONS, "/api/svmessenger/**",
-                                                                "/api/mobile/**")
+                                                                "/api/mobile/**", "/api/v1/**")
                                                 .permitAll()
                                                 // Mobile Auth endpoints - permitAll (JWT validation в filter)
                                                 .requestMatchers("/api/mobile/auth/login", "/api/mobile/auth/refresh",
@@ -96,19 +100,47 @@ public class ApplicationSecurityConfiguration {
                                                 .requestMatchers("/api/mobile/device/**").authenticated()
                                                 // Статични ресурси и podcast window - трябва да са преди другите
                                                 // правила
-                                                .requestMatchers("/podcast/**", "/css/**", "/js/**", "/templates/**",
+                                                .requestMatchers("/podcast/**",
                                                                 "/images/**", "/fonts/**",
                                                                 "/static/**", "/svmessenger.apk",
-                                                                "/virtual-mayor-assets/**")
+                                                                "/svmessenger/sounds/**", "/svmessenger/img/**")
                                                 .permitAll()
                                                 .requestMatchers("/api/podcast/**").permitAll()
-                                                .requestMatchers("/api/event/*/exists", "/api/referendum/*/exists",
-                                                                "/api/multipoll/*/exists")
+                                                // Public /api/v1 read endpoints for the new Next.js frontend
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/stats/**",
+                                                                "/api/v1/events/**", "/api/v1/publications/**",
+                                                                "/api/v1/signals/**")
+                                                .permitAll()
+                                                // Публичен профил (Фаза 7) - GET е публичен (viewing без логин, като
+                                                // legacy /user/{username}); /api/v1/users/me и PUT /me остават
+                                                // authenticated чрез generic-ия matcher по-долу
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/users/*",
+                                                                "/api/v1/users/*/events", "/api/v1/users/*/signals",
+                                                                "/api/v1/users/*/followers", "/api/v1/users/*/following")
+                                                .permitAll()
+                                                // Записване на share не изисква логин, както в legacy
+                                                // `PublicationsController#sharePublication`
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/publications/*/share")
                                                 .permitAll()
                                                 // WebSocket handshake endpoints - permitAll (authentication се
                                                 // проверява от JWT
-                                                // interceptor при STOMP CONNECT)
-                                                .requestMatchers("/ws-svmessenger/**").permitAll()
+                                                // interceptor при STOMP CONNECT / handshake handler)
+                                                .requestMatchers("/ws-svmessenger/**", "/ws/notifications/**",
+                                                                "/ws/admin/activity/**")
+                                                .permitAll()
+                                                // Нов JSON /api/v1/contact endpoint (тънък контролер) - публична
+                                                // форма за контакт, без authentication (v1 паритет с /contact)
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/contact").permitAll()
+                                                // Нови JSON /api/v1/auth/** endpoints (тънки контролери) за Next.js
+                                                // frontend - публични auth действия без session/CSRF (v1 паритет
+                                                // с /register, /forgotten_password, /reset-password, /confirm)
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register",
+                                                                "/api/v1/auth/forgot-password",
+                                                                "/api/v1/auth/reset-password")
+                                                .permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/auth/confirm",
+                                                                "/api/v1/auth/oauth/start")
+                                                .permitAll()
                                                 .requestMatchers(
                                                                 "/svmessenger/**",
                                                                 "/", "//", "/forgotten_password", "/reset-password",
@@ -122,10 +154,9 @@ public class ApplicationSecurityConfiguration {
                                                                 "/favicon.ico", "/robots.txt",
                                                                 "/sitemap.xml",
                                                                 "/heartbeat", "/search", "/contacts", "/contact",
-                                                                "/publications/**", "/api/links/**",
+                                                                "/publications/**",
                                                                 "/terms-and-conditions", "/faq", "/signals/**",
-                                                                "/oauth2/**", "/login/oauth2/**",
-                                                                "/virtual-mayor-game/**")
+                                                                "/oauth2/**", "/login/oauth2/**")
                                                 .permitAll()
                                                 // Публичен достъп до detail views (GET заявки) - за Facebook sharing и
                                                 // нелогнати потребители
@@ -136,26 +167,23 @@ public class ApplicationSecurityConfiguration {
                                                 .requestMatchers("/event/*/edit", "/referendum/*/edit",
                                                                 "/multipoll/*/edit")
                                                 .hasRole("ADMIN")
-                                                .requestMatchers("/admin/**", "/ws/admin/**", "/sockjs-node/**",
-                                                                "/stomp/**")
+                                                .requestMatchers("/admin/**", "/sockjs-node/**", "/stomp/**")
                                                 .hasRole("ADMIN")
                                                 // Гласуване и създаване изискват authentication
                                                 .requestMatchers(
-                                                                "/simpleVote", "/referendumVote", "/multipoll/vote",
-                                                                "/create", "/createEvent", "/createNewEvent",
-                                                                "/referendum/create", "/multipoll/create",
-                                                                "/multipoll", "/referendum",
-                                                                "/virtual-mayor/**", "/api/virtualmajor/**",
                                                                 "/user/**", "/profile/update", "/userProfile",
                                                                 "/comments/**", "/api/comments/**",
                                                                 "/user/logout",
-                                                                "/user/dashboard/**", "/subscription/**",
+                                                                "/user/dashboard/**",
+                                                                "/api/v1/subscriptions", "/api/v1/subscriptions/**",
+                                                                "/api/v1/users/**", "/api/v1/votes/**",
+                                                                "/api/v1/events/**", "/api/v1/publications/**",
+                                                                "/api/v1/signals/**",
                                                                 "/api/reports/**", "/api/user/**",
                                                                 "/profile/**", "/api/follow/**",
                                                                 "/api/notifications/**",
-                                                                "/ws/notifications/**", "/api/svmessenger/**",
-                                                                "/api/mobile/**") // Mobile API endpoints изискват
-                                                                                  // authentication (JWT или session)
+                                                                "/api/svmessenger/**",
+                                                                "/api/mobile/**") // Mobile + remaining hybrid APIs
                                                 .authenticated()
                                                 .anyRequest().denyAll())
                                 .logout(logout -> logout
@@ -164,13 +192,15 @@ public class ApplicationSecurityConfiguration {
                                                 .logoutSuccessUrl("/")
                                                 .invalidateHttpSession(true)
                                                 .clearAuthentication(true)
-                                                .deleteCookies("JSESSIONID", "remember-me", "XSRF-TOKEN")
+                                                .deleteCookies("JSESSIONID", "__Secure-JSESSIONID", "remember-me",
+                                                                "XSRF-TOKEN")
                                                 .permitAll())
                                 .rememberMe(rememberMe -> rememberMe
                                                 .key(rememberMeKey())
                                                 .rememberMeParameter("remember-me")
                                                 .userDetailsService(customUserDetailsService)
-                                                .useSecureCookie(true))
+                                                // Secure cookies break remember-me on local HTTP
+                                                .useSecureCookie(SecureCookieConfig.isProductionProfile(activeProfile)))
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo
                                                                 .userService(oAuth2UserService))
@@ -184,16 +214,36 @@ public class ApplicationSecurityConfiguration {
 
                                 .exceptionHandling(ex -> ex
                                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                                                        request.setAttribute("errorMessage",
-                                                                        "❌ Нямате достъп до това съдържание! Само администратори.");
-                                                        request.getRequestDispatcher("/error/general").forward(request,
-                                                                        response);
+                                                        if (wantsBrowserHtml(request) && !isApiPath(request)) {
+                                                                response.sendRedirect(
+                                                                                frontendProperties.origin() + "/");
+                                                                return;
+                                                        }
+                                                        if (isApiPath(request) || wantsJson(request)) {
+                                                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                                                response.setContentType("application/json;charset=UTF-8");
+                                                                response.getWriter().write(
+                                                                                "{\"message\":\"Forbidden\"}");
+                                                                return;
+                                                        }
+                                                        response.sendRedirect(frontendProperties.origin() + "/");
                                                 })
                                                 .authenticationEntryPoint((request, response, authException) -> {
-                                                        request.setAttribute("errorMessage",
-                                                                        "🔒 Моля, влезте в профила си, за да продължите.");
-                                                        request.getRequestDispatcher("/error/general").forward(request,
-                                                                        response);
+                                                        if (wantsBrowserHtml(request) && !isApiPath(request)) {
+                                                                response.sendRedirect(
+                                                                                frontendProperties.origin()
+                                                                                                + "/login");
+                                                                return;
+                                                        }
+                                                        if (isApiPath(request) || wantsJson(request)) {
+                                                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                                                response.setContentType("application/json;charset=UTF-8");
+                                                                response.getWriter().write(
+                                                                                "{\"message\":\"Unauthorized\"}");
+                                                                return;
+                                                        }
+                                                        response.sendRedirect(
+                                                                        frontendProperties.origin() + "/login");
                                                 }))
                                 .csrf(csrf -> csrf
                                                 // ✅ CSRF PROTECTION - Правилна имплементация за web и mobile
@@ -204,7 +254,7 @@ public class ApplicationSecurityConfiguration {
                                                 // X-XSRF-TOKEN header)
                                                 .ignoringRequestMatchers(
                                                                 // Static resources
-                                                                "/images/**", "/css/**", "/js/**", "/fonts/**",
+                                                                "/images/**", "/fonts/**",
                                                                 "/podcast/**", "/api/podcast/**",
                                                                 "/heartbeat",
                                                                 // WebSocket endpoints
@@ -214,6 +264,16 @@ public class ApplicationSecurityConfiguration {
                                                                 "/robots.txt", "/sitemap.xml",
                                                                 // Mobile API endpoints (JWT authentication)
                                                                 "/api/mobile/**",
+                                                                // Public JSON contact form (new Next.js frontend,
+                                                                // anonymous - honeypot + timestamp anti-spam instead)
+                                                                "/api/v1/contact",
+                                                                // Public JSON auth endpoints (new Next.js frontend,
+                                                                // anonymous - no session/CSRF token available yet)
+                                                                "/api/v1/auth/register", "/api/v1/auth/forgot-password",
+                                                                "/api/v1/auth/reset-password",
+                                                                // Next.js JWT vote writes (Idempotency-Key + Bearer;
+                                                                // Bearer matcher below also covers this — explicit for clarity)
+                                                                "/api/v1/votes/**",
                                                                 // LiveKit call token endpoint (used by mobile app with
                                                                 // JWT)
                                                                 "/api/svmessenger/call/token")
@@ -262,6 +322,38 @@ public class ApplicationSecurityConfiguration {
                 registration.addUrlPatterns("/*");
                 registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
                 return registration;
+        }
+
+        /**
+         * Redirects browser HTML navigations from Spring Thymeleaf routes to Next.js
+         * so local manual testing uses only the modern frontend.
+         */
+        @Bean
+        public FilterRegistrationBean<LegacyUiIsolationFilter> legacyUiIsolationFilterRegistration() {
+                FilterRegistrationBean<LegacyUiIsolationFilter> registration = new FilterRegistrationBean<>();
+                registration.setFilter(new LegacyUiIsolationFilter(frontendProperties));
+                registration.addUrlPatterns("/*");
+                registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 20);
+                registration.setName("legacyUiIsolationFilter");
+                return registration;
+        }
+
+        private static boolean isApiPath(jakarta.servlet.http.HttpServletRequest request) {
+                String path = request.getRequestURI();
+                String context = request.getContextPath();
+                if (context != null && !context.isEmpty() && path.startsWith(context)) {
+                        path = path.substring(context.length());
+                }
+                return path.startsWith("/api/");
+        }
+
+        private static boolean wantsJson(jakarta.servlet.http.HttpServletRequest request) {
+                String accept = request.getHeader("Accept");
+                return accept != null && accept.contains("application/json");
+        }
+
+        private static boolean wantsBrowserHtml(jakarta.servlet.http.HttpServletRequest request) {
+                return LegacyUiIsolationFilter.isBrowserDocumentRequest(request);
         }
 
         @Bean

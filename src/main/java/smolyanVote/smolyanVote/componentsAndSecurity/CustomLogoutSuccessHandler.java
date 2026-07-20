@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.annotations.LogActivity;
+import smolyanVote.smolyanVote.config.FrontendProperties;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
@@ -21,10 +22,10 @@ public class CustomLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
 
     private final UserRepository userRepository;
 
-    public CustomLogoutSuccessHandler(UserRepository userRepository) {
+    public CustomLogoutSuccessHandler(UserRepository userRepository, FrontendProperties frontendProperties) {
         this.userRepository = userRepository;
-        setDefaultTargetUrl("/");
-        setAlwaysUseDefaultTargetUrl(true); // Винаги използвай default target URL
+        setDefaultTargetUrl(frontendProperties.origin() + "/");
+        setAlwaysUseDefaultTargetUrl(true);
     }
 
     @Override

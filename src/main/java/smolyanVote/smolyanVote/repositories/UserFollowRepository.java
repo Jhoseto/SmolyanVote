@@ -39,6 +39,14 @@ public interface UserFollowRepository extends JpaRepository<UserFollowEntity, Lo
     @Query(value = "SELECT following_id FROM user_follows WHERE follower_id = :followerId AND following_id IN :userIds", nativeQuery = true)
     java.util.List<Long> findFollowingUserIds(@Param("followerId") Long followerId, @Param("userIds") java.util.List<Long> userIds);
 
+    /** All usernames the user follows (for client-side events hub filters). */
+    @Query(value = """
+        SELECT u.username FROM user_follows uf
+        INNER JOIN users u ON uf.following_id = u.id
+        WHERE uf.follower_id = :followerId
+        """, nativeQuery = true)
+    List<String> findFollowingUsernames(@Param("followerId") Long followerId);
+
     // Топ followed users
     @Query(value = "SELECT following_id, COUNT(*) as followers_count FROM user_follows GROUP BY following_id ORDER BY followers_count DESC LIMIT :limit", nativeQuery = true)
     java.util.List<Object[]> findTopFollowedUsers(@Param("limit") int limit);

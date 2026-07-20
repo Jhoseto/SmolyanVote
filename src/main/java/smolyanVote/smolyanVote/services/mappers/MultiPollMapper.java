@@ -7,6 +7,7 @@ import smolyanVote.smolyanVote.models.MultiPollImageEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.MultiPollImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.MultiPollDetailViewDTO;
 
 import java.util.ArrayList;
@@ -60,12 +61,16 @@ public class MultiPollMapper {
         List<MultiPollImageEntity> images = imageRepository.findByMultiPoll_Id(poll.getId());
         if (images != null && !images.isEmpty()) {
             List<String> urls = new ArrayList<>();
+            List<ImageRefDTO> imageRefs = new ArrayList<>();
             for (MultiPollImageEntity img : images) {
                 urls.add(img.getImageUrl());
+                imageRefs.add(new ImageRefDTO(img.getId(), img.getImageUrl()));
             }
             dto.setImageUrls(urls);
+            dto.setImageRefs(imageRefs);
         } else {
             dto.setImageUrls(List.of("/images/eventImages/defaultMultiPoll.jpg"));
+            dto.setImageRefs(List.of());
         }
 
         return dto;

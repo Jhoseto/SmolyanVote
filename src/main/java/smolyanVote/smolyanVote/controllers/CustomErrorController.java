@@ -1,26 +1,25 @@
 package smolyanVote.smolyanVote.controllers;
 
-import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import smolyanVote.smolyanVote.config.FrontendProperties;
+
+import java.io.IOException;
 
 @Controller
 public class CustomErrorController implements ErrorController {
 
+    private final FrontendProperties frontendProperties;
+
+    public CustomErrorController(FrontendProperties frontendProperties) {
+        this.frontendProperties = frontendProperties;
+    }
+
     @GetMapping("/error")
-    public String handleError(HttpServletRequest request) {
-        Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-
-        if (status != null) {
-            int statusCode = Integer.parseInt(status.toString());
-            if (statusCode == 404) {
-                return "error/404";
-            }
-            // Може други: 403, 500 и т.н.
-        }
-
-        return "error/general_error"; // резервна грешка, ако искаш
+    public void handleError(HttpServletResponse response) throws IOException {
+        response.setHeader("Cache-Control", "no-store");
+        response.sendRedirect(frontendProperties.origin() + "/");
     }
 }

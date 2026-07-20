@@ -14,7 +14,9 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
+import smolyanVote.smolyanVote.config.websocket.AdminActivityHandshakeHandler;
 import smolyanVote.smolyanVote.config.websocket.JwtWebSocketInterceptor;
+import smolyanVote.smolyanVote.config.websocket.NotificationHandshakeHandler;
 import smolyanVote.smolyanVote.config.websocket.WebSocketHandshakeInterceptor;
 
 /**
@@ -35,6 +37,8 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     private final NotificationWebSocketHandler notificationWebSocketHandler;
     private final JwtWebSocketInterceptor jwtWebSocketInterceptor;
     private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
+    private final NotificationHandshakeHandler notificationHandshakeHandler;
+    private final AdminActivityHandshakeHandler adminActivityHandshakeHandler;
 
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
@@ -43,12 +47,16 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
                            Environment environment,
                            NotificationWebSocketHandler notificationWebSocketHandler,
                            JwtWebSocketInterceptor jwtWebSocketInterceptor,
-                           WebSocketHandshakeInterceptor webSocketHandshakeInterceptor) {
+                           WebSocketHandshakeInterceptor webSocketHandshakeInterceptor,
+                           NotificationHandshakeHandler notificationHandshakeHandler,
+                           AdminActivityHandshakeHandler adminActivityHandshakeHandler) {
         this.activityWebSocketHandler = activityWebSocketHandler;
         this.environment = environment;
         this.notificationWebSocketHandler = notificationWebSocketHandler;
         this.jwtWebSocketInterceptor = jwtWebSocketInterceptor;
         this.webSocketHandshakeInterceptor = webSocketHandshakeInterceptor;
+        this.notificationHandshakeHandler = notificationHandshakeHandler;
+        this.adminActivityHandshakeHandler = adminActivityHandshakeHandler;
     }
 
     // ========== SOCKJS HANDLERS (WebSocketConfigurer) ==========
@@ -56,13 +64,18 @@ public class WebSocketConfig implements WebSocketConfigurer, WebSocketMessageBro
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String[] allowedOrigins = getAllowedOrigins();
 
+        // Admin activity wall — JWT handshake (?access_token=) + session Principal (V1)
         registry.addHandler(activityWebSocketHandler, "/ws/admin/activity")
                 .setAllowedOriginPatterns(allowedOrigins)
+                .setHandshakeHandler(adminActivityHandshakeHandler)
                 .withSockJS();
 
-        // ⭐ NEW: Notification handler за всички потребители
+        // Notification handler за всички потребители — JWT handshake handler
+        // разпознава новия Next.js frontend (Bearer token в ?access_token=)
+        // и пада обратно към HttpSession Principal за V1 браузър клиенти.
         registry.addHandler(notificationWebSocketHandler, "/ws/notifications")
                 .setAllowedOriginPatterns(allowedOrigins)
+                .setHandshakeHandler(notificationHandshakeHandler)
                 .withSockJS();
     }
 

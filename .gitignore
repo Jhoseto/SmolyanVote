@@ -40,7 +40,19 @@ out/
 src/main/resources/.env
 node_modules
 
+# New Next.js frontend (has its own frontend/.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/test-results/
+frontend/playwright-report/
+
 # Firebase Service Account Key (contains sensitive credentials)
 firebase-service-account.json
 **/firebase-service-account.json
 VIRTUAL_MAJOR_ENV_SETUP.md
+
+# Local JVM truststore (Avast/AVG HTTPS MITM root — machine-specific)
+config/jvm/cacerts-with-avast
+config/jvm/*.cer

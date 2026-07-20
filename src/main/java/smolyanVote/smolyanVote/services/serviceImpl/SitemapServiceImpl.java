@@ -93,8 +93,8 @@ public class SitemapServiceImpl implements SitemapService {
         urls.add(BASE_URL + "/faq");
         urls.add(BASE_URL + "/terms-and-conditions");
         urls.add(BASE_URL + "/publications");
-        urls.add(BASE_URL + "/mainEvents");
-        urls.add(BASE_URL + "/signals/mainView");
+        urls.add(BASE_URL + "/events");
+        urls.add(BASE_URL + "/signals");
         urls.add(BASE_URL + "/podcast");
 
         // Публикации
@@ -143,8 +143,8 @@ public class SitemapServiceImpl implements SitemapService {
 
         // Основни страници - висок приоритет
         addUrl(xml, BASE_URL + "/publications", "0.9", "daily", lastmod);
-        addUrl(xml, BASE_URL + "/mainEvents", "0.9", "daily", lastmod);
-        addUrl(xml, BASE_URL + "/signals/mainView", "0.8", "weekly", lastmod);
+        addUrl(xml, BASE_URL + "/events", "0.9", "daily", lastmod);
+        addUrl(xml, BASE_URL + "/signals", "0.8", "weekly", lastmod);
         addUrl(xml, BASE_URL + "/podcast", "0.8", "weekly", lastmod);
 
         // Информационни страници - среден приоритет

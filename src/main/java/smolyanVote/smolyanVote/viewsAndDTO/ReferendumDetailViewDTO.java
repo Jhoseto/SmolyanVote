@@ -19,6 +19,7 @@ public class ReferendumDetailViewDTO {
     private Instant createdAt;
     private UserEntity creator;
     private List<String> imageUrls;
+    private List<ImageRefDTO> imageRefs;
     private List<String> options;
     private List<Integer> votes;
     private List<Integer> votePercentages;
@@ -102,6 +103,14 @@ public class ReferendumDetailViewDTO {
 
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
+    }
+
+    public List<ImageRefDTO> getImageRefs() {
+        return imageRefs;
+    }
+
+    public void setImageRefs(List<ImageRefDTO> imageRefs) {
+        this.imageRefs = imageRefs;
     }
 
     public List<String> getOptions() {

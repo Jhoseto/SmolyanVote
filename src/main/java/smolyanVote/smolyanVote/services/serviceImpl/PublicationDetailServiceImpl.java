@@ -1,6 +1,8 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +60,27 @@ public class PublicationDetailServiceImpl implements PublicationDetailService {
         publicationRepository.save(publication);
 
         // Build and return DTO
+        return buildPublicationResponseDTO(publication, auth);
+    }
+
+    @Override
+    @Transactional
+    @LogActivity(action = ActivityActionEnum.VIEW_PUBLICATION, entityType = ActivityTypeEnum.PUBLICATION,
+            entityIdParam = "publicationId", includeTitle = true, includeText = true)
+
+    public PublicationResponseDTO getPublicationDetail(Long publicationId, Authentication auth) {
+        PublicationEntity publication = publicationService.findById(publicationId);
+        if (publication == null) {
+            throw new EntityNotFoundException("Публикацията не е намерена.");
+        }
+
+        if (!publicationService.canViewPublication(publication, auth)) {
+            throw new AccessDeniedException("Нямате права да видите тази публикация.");
+        }
+
+        publication.incrementViews();
+        publicationRepository.save(publication);
+
         return buildPublicationResponseDTO(publication, auth);
     }
 

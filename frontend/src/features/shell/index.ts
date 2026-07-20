@@ -1,0 +1,12 @@
+export { Navbar } from "./components/Navbar";
+export { VoteNavMenu } from "./components/VoteNavMenu";
+export { Footer } from "./components/Footer";
+export { Hero } from "./components/Hero";
+export { TitleSection } from "./components/TitleSection";
+export { StatsVideoSection } from "./components/StatsVideoSection";
+export { MotivationPanels } from "./components/MotivationPanels";
+export { CommunitySection } from "./components/CommunitySection";
+export { SupportCarousel } from "./components/SupportCarousel";
+export { AppPromoCard } from "./components/AppPromoCard";
+export { FinalRegistrationSection } from "./components/FinalRegistrationSection";
+export { LanguageSwitcher } from "./components/LanguageSwitcher";

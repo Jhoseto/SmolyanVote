@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.repositories.SimpleEventImageRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.viewsAndDTO.ImageRefDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SimpleEventDetailViewDTO;
 
 import java.util.ArrayList;
@@ -42,12 +43,16 @@ public class SimpleEventMapper {
 
         if (images != null && !images.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
+            List<ImageRefDTO> imageRefs = new ArrayList<>();
             for (SimpleEventImageEntity image : images) {
                 imageUrls.add(image.getImageUrl()); // Get the image URL
+                imageRefs.add(new ImageRefDTO(image.getId(), image.getImageUrl()));
             }
             view.setImages(imageUrls);
+            view.setImageRefs(imageRefs);
         } else {
             view.setImages(List.of("/images/eventImages/defaultEvent.jpg"));
+            view.setImageRefs(List.of());
         }
 
         view.setCreatedAt(event.getCreatedAt());

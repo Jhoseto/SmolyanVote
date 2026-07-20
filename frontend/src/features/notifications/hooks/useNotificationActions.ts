@@ -1,0 +1,95 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { notificationsApi } from "../api";
+import type { NotificationDto, NotificationPage } from "../types";
+
+const RECENT_KEY = ["notifications", "recent"] as const;
+const UNREAD_KEY = ["notifications", "unread-count"] as const;
+
+/** Optimistically decrements the unread badge — rollback handled by refetch on error. */
+function decrementUnread(queryClient: ReturnType<typeof useQueryClient>, by: number) {
+  queryClient.setQueryData<{ count: number }>(UNREAD_KEY, (prev) =>
+    prev ? { count: Math.max(0, prev.count - by) } : prev,
+  );
+}
+
+export function useMarkAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => notificationsApi.markAsRead(id),
+    onMutate: async (id) => {
+      const previous = queryClient.getQueryData<NotificationDto[]>(RECENT_KEY);
+      const wasUnread = previous?.find((n) => n.id === id)?.read === false;
+
+      queryClient.setQueryData<NotificationDto[]>(RECENT_KEY, (prev) =>
+        prev?.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
+      if (wasUnread) decrementUnread(queryClient, 1);
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
+      void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useMarkAllAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationsApi.markAllAsRead(),
+    onMutate: async () => {
+      const previous = queryClient.getQueryData<NotificationDto[]>(RECENT_KEY);
+      queryClient.setQueryData<NotificationDto[]>(RECENT_KEY, (prev) =>
+        prev?.map((n) => ({ ...n, read: true })),
+      );
+      queryClient.setQueryData(UNREAD_KEY, { count: 0 });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
+      void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => notificationsApi.remove(id),
+    onMutate: async (id) => {
+      const previous = queryClient.getQueryData<NotificationDto[]>(RECENT_KEY);
+      const removed = previous?.find((n) => n.id === id);
+
+      queryClient.setQueryData<NotificationDto[]>(RECENT_KEY, (prev) =>
+        prev?.filter((n) => n.id !== id),
+      );
+      queryClient.setQueryData<NotificationPage>(["notifications", "list"], (prev) =>
+        prev
+          ? { ...prev, content: prev.content.filter((n) => n.id !== id) }
+          : prev,
+      );
+      if (removed && !removed.read) decrementUnread(queryClient, 1);
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
+      void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}

@@ -26,6 +26,7 @@ public class UserRegistrationViewModel {
     private String email;
 
     @NotNull
+    @Size(min = 6, message = "Паролата трябва да съдържа поне 6 символа на латиница, една голяма буква и поне две цифри")
     @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).+$", message = "Паролата трябва да съдържа поне 6 символа на латиница, една голяма буква и поне две цифри")
     private String regPassword;
 

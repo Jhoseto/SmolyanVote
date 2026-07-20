@@ -39,6 +39,14 @@ public interface UserService {
     //CREATE NEW USER
     void createNewUser(UserRegistrationViewModel userRegistrationViewModel);
 
+    /**
+     * Активира акаунт по потвърдителния код от имейла (PENDING_ACTIVATION -&gt; ACTIVE).
+     *
+     * @return {@code true} ако акаунтът е активиран точно сега, {@code false} ако
+     * потребителят не съществува, кодът не съвпада, или акаунтът вече е активен
+     */
+    boolean confirmEmail(Long userId, String code);
+
     void updateUserProfile(Long userId, MultipartFile newImage, String bio, Locations location) throws IOException;
 
     // ====== SIDEBAR METHODS =====

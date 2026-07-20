@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -109,11 +110,11 @@ public class SimpleEventServiceImpl implements SimpleEventService {
     @LogActivity(action = ActivityActionEnum.CREATE_SIMPLE_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
             details = "Title: {title}, Location: {location}", includeTitle = true, includeText = true)
 
-    public List<String> createEvent(CreateEventView dto,
-                                    MultipartFile[] files,
-                                    String positiveLabel,
-                                    String negativeLabel,
-                                    String neutralLabel) {
+    public Long createEvent(CreateEventView dto,
+                            MultipartFile[] files,
+                            String positiveLabel,
+                            String negativeLabel,
+                            String neutralLabel) {
         SimpleEventEntity simpleEventEntity = new SimpleEventEntity();
         UserEntity user = userService.getCurrentUser();
 
@@ -127,8 +128,6 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         simpleEventEntity.setNeutralLabel(neutralLabel);
         user.setUserEventsCount(user.getUserEventsCount() + 1);
 
-        List<String> imagePaths = new ArrayList<>();
-
         // Инициализиране на изображенията, ако колекцията е null
         if (simpleEventEntity.getImages() == null) {
             simpleEventEntity.setImages(new ArrayList<>());
@@ -141,7 +140,6 @@ public class SimpleEventServiceImpl implements SimpleEventService {
                     // Взимаме ID на събитието след запазване в базата
                     SimpleEventEntity savedEvent = simpleEventRepository.save(simpleEventEntity);
                     String imagePath = imageStorageService.saveSingleImage(file, savedEvent.getId());
-                    imagePaths.add(imagePath);
 
                     SimpleEventImageEntity imageEntity = new SimpleEventImageEntity();
                     imageEntity.setImageUrl(imagePath);
@@ -160,11 +158,57 @@ public class SimpleEventServiceImpl implements SimpleEventService {
         }
 
         // Записване на събитието заедно с изображенията
-        simpleEventRepository.saveAndFlush(simpleEventEntity);
+        SimpleEventEntity saved = simpleEventRepository.saveAndFlush(simpleEventEntity);
         userRepository.save(user);
 
-        return imagePaths;
+        return saved.getId();
     }
 
+
+    @Transactional
+    @Override
+    @LogActivity(action = ActivityActionEnum.EDIT_EVENT, entityType = ActivityTypeEnum.SIMPLEEVENT,
+            entityIdParam = "id", details = "Title: {title}, Location: {location}", includeTitle = true)
+
+    public Long updateEvent(Long id,
+                            CreateEventView dto,
+                            MultipartFile[] newImages,
+                            String positiveLabel,
+                            String negativeLabel,
+                            String neutralLabel,
+                            List<Long> deleteImageIds) {
+        SimpleEventEntity event = simpleEventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Събитието не е намерено."));
+
+        event.setTitle(dto.getTitle());
+        event.setDescription(dto.getDescription());
+        event.setLocation(dto.getLocation());
+        event.setPositiveLabel(positiveLabel);
+        event.setNegativeLabel(negativeLabel);
+        event.setNeutralLabel(neutralLabel);
+
+        if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
+            List<SimpleEventImageEntity> toRemove = event.getImages().stream()
+                    .filter(img -> deleteImageIds.contains(img.getId()))
+                    .toList();
+            toRemove.forEach(img -> imageStorageService.deleteImage(img.getImageUrl()));
+            event.getImages().removeAll(toRemove);
+        }
+
+        if (newImages != null) {
+            for (MultipartFile file : newImages) {
+                if (file != null && !file.isEmpty()) {
+                    String imagePath = imageStorageService.saveSingleImage(file, event.getId());
+                    SimpleEventImageEntity imageEntity = new SimpleEventImageEntity();
+                    imageEntity.setImageUrl(imagePath);
+                    imageEntity.setEvent(event);
+                    event.getImages().add(imageEntity);
+                }
+            }
+        }
+
+        SimpleEventEntity saved = simpleEventRepository.saveAndFlush(event);
+        return saved.getId();
+    }
 
 }

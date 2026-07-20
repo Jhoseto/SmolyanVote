@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReferendumService {
-    void createReferendum(String topic,
+    /** @return the id of the newly created referendum (used by the JSON API to redirect to the detail page). */
+    Long createReferendum(String topic,
                           String description,
                           Locations location,
                           List<String> options,
@@ -23,5 +24,13 @@ public interface ReferendumService {
 
     @Transactional
     ReferendumDetailViewDTO getReferendumDetail(Long referendumId);
+
+    /**
+     * Admin inline edit: updates topic/description/location/options, removes
+     * images whose id is in {@code deleteImageIds}, appends {@code newImages}.
+     * @return the id of the updated referendum (used by the JSON API to re-fetch the fresh detail).
+     */
+    Long updateReferendum(Long id, String topic, String description, Locations location,
+                          List<String> options, List<MultipartFile> newImages, List<Long> deleteImageIds);
 }
 

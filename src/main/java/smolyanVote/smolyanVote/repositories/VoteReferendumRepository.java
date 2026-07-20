@@ -1,12 +1,16 @@
 package smolyanVote.smolyanVote.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
+
+import java.util.List;
 import java.util.Optional;
 
 
@@ -15,6 +19,9 @@ public interface VoteReferendumRepository extends JpaRepository<VoteReferendumEn
     boolean existsByUserAndReferendum(UserEntity user, ReferendumEntity event);
 
     Optional<VoteReferendumEntity> findByReferendum_IdAndUser_Id(Long referendumId, Long userId);
+
+    @Query("SELECT v.referendum.id FROM VoteReferendumEntity v WHERE v.user.id = :userId")
+    List<Long> findVotedReferendumIdsByUserId(@Param("userId") Long userId);
 
     @Transactional
     @LogActivity(action = ActivityActionEnum.DELETE_EVENT, entityType = ActivityTypeEnum.REFERENDUM)

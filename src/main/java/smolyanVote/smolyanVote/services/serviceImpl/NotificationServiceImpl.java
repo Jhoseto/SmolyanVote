@@ -203,7 +203,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifySignalReviewed(UserEntity author, Long signalId, String status) {
         create(author, "SIGNAL_REVIEWED",
                 "Вашият сигнал беше разгледан: " + status,
-                null, null, "SIGNAL", signalId, "/signals/mainView?openSignal=" + signalId);
+                null, null, "SIGNAL", signalId, "/signals?openSignal=" + signalId);
     }
 
     @Override
@@ -356,7 +356,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "SIMPLEEVENT", "SIMPLE_EVENT" -> "/event/" + entityId;
             case "REFERENDUM" -> "/referendum/" + entityId;
             case "MULTI_POLL", "MULTIPOLL" -> "/multipoll/" + entityId;
-            case "SIGNAL" -> "/signals/mainView?openSignal=" + entityId;
+            case "SIGNAL" -> "/signals?openSignal=" + entityId;
             default -> "/" + entityType.toLowerCase() + "s/" + entityId;
         };
     }

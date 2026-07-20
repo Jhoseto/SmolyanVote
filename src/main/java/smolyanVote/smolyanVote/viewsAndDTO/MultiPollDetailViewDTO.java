@@ -17,6 +17,7 @@ public class MultiPollDetailViewDTO {
     private Locations location;
     private UserEntity creator;
     private List<String> imageUrls;
+    private List<ImageRefDTO> imageRefs;
     private List<String> currentUserVotes;
     private List<String> optionsText;
     private List<Integer> votesForOptions; // брой гласове за всяка опция
@@ -91,6 +92,14 @@ public class MultiPollDetailViewDTO {
 
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
+    }
+
+    public List<ImageRefDTO> getImageRefs() {
+        return imageRefs;
+    }
+
+    public void setImageRefs(List<ImageRefDTO> imageRefs) {
+        this.imageRefs = imageRefs;
     }
 
     public List<String> getCurrentUserVotes() {

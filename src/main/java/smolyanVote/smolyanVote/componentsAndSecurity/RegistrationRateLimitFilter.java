@@ -98,10 +98,19 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Ако е POST към /user/registration, проверяваме и специалния лимит
-            if ("/user/registration".equals(requestURI)) {
+            // POST /api/v1/auth/register (Next.js) — registration-specific rate limit
+            if ("/api/v1/auth/register".equals(requestURI)) {
                 Bucket regBucket = resolveRegistrationBucket(ip);
                 if (!regBucket.tryConsume(1)) {
+                    if ("/api/v1/auth/register".equals(requestURI)) {
+                        if (!response.isCommitted()) {
+                            response.setStatus(429);
+                            response.setContentType("application/json");
+                            response.getWriter().write(
+                                    "{\"success\":false,\"message\":\"Прекалено много опити за регистрация. Опитайте по-късно.\"}");
+                        }
+                        return;
+                    }
                     if (!response.isCommitted()) {
                         request.getSession().setAttribute("rateLimitError", "Прекалено много опити за регистрация. Опитайте по-късно.");
                         response.sendRedirect("/register");

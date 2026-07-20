@@ -101,15 +101,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Прилага filter само за мобилни API endpoints
+     * Прилага filter за мобилни API endpoints и за endpoints, ползвани от
+     * новия Next.js frontend (MODERN_FRONTEND_PLAN.md), който е JWT-only и
+     * няма Spring Session. Тези endpoints вече изискват .authenticated() в
+     * {@link ApplicationSecurityConfiguration} — без JWT filter тук заявки
+     * с Bearer token биха връщали 401.
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        
-        // Прилагаме filter само за mobile API endpoints
-        // Auth endpoints са excluded (permitAll)
-        return !path.startsWith("/api/mobile/") && !path.startsWith("/api/svmessenger/");
+
+        return !path.startsWith("/api/mobile/")
+                && !path.startsWith("/api/svmessenger/")
+                && !path.startsWith("/api/notifications/")
+                && !path.startsWith("/api/v1/")
+                && !path.startsWith("/api/comments/")
+                && !path.startsWith("/api/reports/")
+                && !path.startsWith("/api/follow/")
+                && !path.startsWith("/admin/")
+                && !path.equals("/heartbeat")
+                && !path.startsWith("/subscription/");
     }
 }
 

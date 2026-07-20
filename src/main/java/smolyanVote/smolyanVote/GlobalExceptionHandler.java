@@ -1,84 +1,145 @@
 package smolyanVote.smolyanVote;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import smolyanVote.smolyanVote.componentsAndSecurity.LegacyUiIsolationFilter;
+import smolyanVote.smolyanVote.config.FrontendProperties;
 
-@ControllerAdvice
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * API-first exception handling. Browser document requests go to Next.js;
+ * JSON clients get structured bodies. Preserves {@link ResponseStatusException}
+ * status codes used by ApiV1 controllers.
+ */
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // === Обща грешка ===
-    @ExceptionHandler(Exception.class)
-    public String handleGenericException(Exception ex, RedirectAttributes redirectAttributes) {
-        ex.printStackTrace();
-        redirectAttributes.addFlashAttribute("errorMessage", "Обща грешка: " + ex.getMessage());
-        return "redirect:/error/general";
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final FrontendProperties frontendProperties;
+
+    public GlobalExceptionHandler(FrontendProperties frontendProperties) {
+        this.frontendProperties = frontendProperties;
     }
 
-    // === NullPointerException ===
-    @ExceptionHandler(NullPointerException.class)
-    public String handleNullPointerException(NullPointerException ex, RedirectAttributes redirectAttributes) {
-        ex.printStackTrace();
-        redirectAttributes.addFlashAttribute("errorMessage", "Вътрешна грешка: Липсващ ресурс или стойност.");
-        return "redirect:/error/general";
-    }
-
-    // === RuntimeException (напр. IndexOutOfBounds, IllegalArgument и др.) ===
-    @ExceptionHandler(RuntimeException.class)
-    public String handleRuntimeException(RuntimeException ex, RedirectAttributes redirectAttributes) {
-        ex.printStackTrace();
-        redirectAttributes.addFlashAttribute("errorMessage", "Вътрешна грешка (Runtime): " + ex.getMessage());
-        return "redirect:/error/general";
-    }
-
-    // === Грешка при валидация на форма ===
-    @ExceptionHandler(BindException.class)
-    public String handleBindException(BindException ex, RedirectAttributes redirectAttributes) {
-        StringBuilder errors = new StringBuilder("Формата съдържа грешки:<br>");
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            errors.append("- ").append(fieldError.getField()).append(": ").append(fieldError.getDefaultMessage()).append("<br>");
+    @ExceptionHandler(ResponseStatusException.class)
+    public Object handleResponseStatus(ResponseStatusException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
         }
-        redirectAttributes.addFlashAttribute("errorMessage", errors.toString());
-        return "redirect:/createEvent"; // Замени с подходяща страница
+        String message = ex.getReason() != null ? ex.getReason() : ex.getStatusCode().toString();
+        return ResponseEntity.status(ex.getStatusCode()).body(errorBody(ex.getStatusCode().value(), message));
     }
 
-    // === Грешка 404 ===
     @ExceptionHandler(NoHandlerFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String handleNotFound(NoHandlerFoundException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("errorMessage", "Страницата не беше намерена.");
-        return "redirect:/error/404";
+    public Object handleNotFound(NoHandlerFoundException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.NOT_FOUND, "Not found");
     }
 
-    // === Методът не е поддържан (напр. POST към GET) ===
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    public String handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("errorMessage", "Методът не е разрешен за този адрес.");
-        return "redirect:/error/general";
+    public Object handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed");
     }
 
-    // === Забрана на достъп (Spring Security) ===
     @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public String handleAccessDenied(AccessDeniedException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("errorMessage", "Нямате права за достъп до тази страница.");
-        return "redirect:/error/403";
+    public Object handleAccessDenied(AccessDeniedException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.FORBIDDEN, "Forbidden");
     }
 
-    // === Грешка при логин (Spring Security) ===
     @ExceptionHandler(AuthenticationException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public String handleAuthentication(AuthenticationException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("errorMessage", "Грешка при удостоверяване: " + ex.getMessage());
-        return "redirect:/viewLogin";
+    public Object handleAuthentication(AuthenticationException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/login")) {
+            return null;
+        }
+        return json(HttpStatus.UNAUTHORIZED, "Unauthorized");
+    }
+
+    @ExceptionHandler({ BindException.class, MethodArgumentNotValidException.class })
+    public Object handleValidation(Exception ex, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        String details;
+        if (ex instanceof BindException bind) {
+            details = bind.getBindingResult().getFieldErrors().stream()
+                    .map(FieldError::getDefaultMessage)
+                    .collect(Collectors.joining("; "));
+        } else {
+            MethodArgumentNotValidException manv = (MethodArgumentNotValidException) ex;
+            details = manv.getBindingResult().getFieldErrors().stream()
+                    .map(FieldError::getDefaultMessage)
+                    .collect(Collectors.joining("; "));
+        }
+        return json(HttpStatus.BAD_REQUEST, details.isBlank() ? "Validation failed" : details);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Object handleGeneric(Exception ex, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        log.error("Unhandled exception on {}", request.getRequestURI(), ex);
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    }
+
+    private boolean redirectBrowser(HttpServletRequest request, HttpServletResponse response, String path)
+            throws IOException {
+        if (isApiPath(request) || !LegacyUiIsolationFilter.isBrowserDocumentRequest(request)) {
+            return false;
+        }
+        response.setHeader("Cache-Control", "no-store");
+        response.sendRedirect(frontendProperties.origin() + path);
+        return true;
+    }
+
+    private static boolean isApiPath(HttpServletRequest request) {
+        String path = LegacyUiIsolationFilter.normalizedPath(request);
+        return path.startsWith("/api/") || path.startsWith("/admin/api/") || path.startsWith("/admin/users/")
+                || path.startsWith("/admin/manage-reports/");
+    }
+
+    private static ResponseEntity<Map<String, Object>> json(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(errorBody(status.value(), message));
+    }
+
+    private static Map<String, Object> errorBody(int status, String message) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", message);
+        body.put("status", status);
+        return body;
     }
 }

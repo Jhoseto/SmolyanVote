@@ -1,15 +1,20 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
+import java.util.Optional;
+
 /**
  * Service за възстановяване на забравена парола
  */
 public interface PasswordResetService {
 
     /**
-     * Заявява възстановяване на парола за даден имейл
+     * Заявява възстановяване на парола за даден имейл.
+     *
      * @param email имейл адресът на потребителя
+     * @return reset token when a matching user exists and the email was dispatched;
+     *         empty when the email is unknown (no enumeration in the HTTP layer)
      */
-    void requestPasswordReset(String email);
+    Optional<String> requestPasswordReset(String email);
 
     /**
      * Възстановява паролата с даден токен

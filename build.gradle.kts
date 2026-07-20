@@ -21,7 +21,6 @@ dependencies {
 	// Spring Boot Starters
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.hibernate.common:hibernate-commons-annotations:7.0.3.Final")
-	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
@@ -34,7 +33,6 @@ dependencies {
 
 	// Advanced
 	implementation("org.springframework.security:spring-security-crypto:6.4.5")
-	implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
 	implementation("com.mysql:mysql-connector-j:9.2.0")
 	implementation("org.modelmapper:modelmapper:2.4.4")
 	implementation("org.webjars:sockjs-client:1.1.2")
@@ -114,6 +112,18 @@ tasks.withType<JavaCompile> {
 // Exclude dev properties from ALL builds
 tasks.named<ProcessResources>("processResources") {
 	exclude("application-dev.properties")
+}
+
+// Local AV HTTPS scanning (Avast/AVG) breaks Google/Facebook OAuth with PKIX errors.
+// scripts/setup-local-truststore.ps1 builds config/jvm/cacerts-with-avast (gitignored).
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+	val trustStore = rootProject.file("config/jvm/cacerts-with-avast")
+	if (trustStore.exists()) {
+		jvmArgs(
+			"-Djavax.net.ssl.trustStore=${trustStore.absolutePath}",
+			"-Djavax.net.ssl.trustStorePassword=changeit",
+		)
+	}
 }
 
 

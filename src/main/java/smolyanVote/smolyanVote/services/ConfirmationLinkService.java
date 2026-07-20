@@ -1,18 +1,21 @@
 package smolyanVote.smolyanVote.services;
 
-
 import org.springframework.stereotype.Service;
+import smolyanVote.smolyanVote.config.FrontendProperties;
 
 /**
- * Service for generating confirmation links for user accounts.
+ * Confirmation links point at the Next.js {@code /confirm} page (not Thymeleaf).
  */
 @Service
 public class ConfirmationLinkService {
 
-    public String generateConfirmationLink(Long userId, String code) {
-        // Създаване на линк за потвърждение с userId и код
-        String serverUrl = "https://smolyanvote.com";
+    private final FrontendProperties frontendProperties;
 
-        return serverUrl + "/confirm?userId=" + userId + "&code=" + code;
+    public ConfirmationLinkService(FrontendProperties frontendProperties) {
+        this.frontendProperties = frontendProperties;
+    }
+
+    public String generateConfirmationLink(Long userId, String code) {
+        return frontendProperties.origin() + "/confirm?userId=" + userId + "&code=" + code;
     }
 }

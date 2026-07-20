@@ -14,7 +14,8 @@ public class PasswordResetTokenEntity extends BaseEntity {
     @Column(name = "token", nullable = false, unique = true)
     private String token;
 
-    @Column(name = "expires_at", nullable = false)
+    /** datetime(6) avoids MySQL TIMESTAMP session-TZ shifts that can make fresh tokens look expired. */
+    @Column(name = "expires_at", nullable = false, columnDefinition = "datetime(6)")
     private Instant expiresAt;
 
     @Column(name = "used", nullable = false)

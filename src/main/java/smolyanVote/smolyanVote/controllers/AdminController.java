@@ -18,11 +18,6 @@ public class AdminController {
         this.actuatorDataService = actuatorDataService;
     }
 
-    @GetMapping("/dashboard")
-    public String adminDashboard() {
-        return "admin/dashboard";
-    }
-
     @GetMapping("/api/health")
     @ResponseBody
     public Map<String, Object> getHealthData() {

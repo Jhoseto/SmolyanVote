@@ -1,32 +1,21 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
-import smolyanVote.smolyanVote.models.enums.EventStatus;
 import smolyanVote.smolyanVote.models.enums.EventType;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.apiv1.EventsCatalogResponse;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 public interface MainEventsService {
 
-
+    /**
+     * Full catalog for the events hub. Optional {@code currentUserId} enriches
+     * follow/vote meta used by client-side quick filters.
+     */
     @Transactional(readOnly = true)
-    Page<EventSimpleViewDTO> findAllEvents(String search, String location, EventType type, EventStatus status, Pageable pageable);
-
-    @Transactional(readOnly = true)
-    Page<EventSimpleViewDTO> findAllEvents(String search, String location, EventType type, EventStatus status, 
-                                           Instant dateFrom, Instant dateTo, Integer minVotes, Integer maxVotes, 
-                                           String creatorUsername, String popularityFilter, Pageable pageable);
-
-    @Transactional(readOnly = true)
-    Page<EventSimpleViewDTO> findAllEvents(String search, String location, EventType type, EventStatus status, 
-                                           Instant dateFrom, Instant dateTo, Integer minVotes, Integer maxVotes, 
-                                           String creatorUsername, String popularityFilter, 
-                                           String quickFilter, Long currentUserId, Pageable pageable);
+    EventsCatalogResponse getEventsCatalog(Long currentUserId);
 
     @Transactional(readOnly = true)
     List<EventSimpleViewDTO> getAllUserEvents(String username);

@@ -56,7 +56,7 @@ public class MultiPollServiceImpl implements MultiPollService {
     @LogActivity(action = ActivityActionEnum.CREATE_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
             details = "Title: {title}, Location: {location}", includeTitle = true)
 
-    public void createMultiPoll(CreateMultiPollView dto) {
+    public Long createMultiPoll(CreateMultiPollView dto) {
         MultiPollEntity poll = new MultiPollEntity();
         UserEntity currentUser = userService.getCurrentUser();
 
@@ -102,9 +102,71 @@ public class MultiPollServiceImpl implements MultiPollService {
         imageRepository.saveAll(imageEntities);
         savedPoll.setImages(imageEntities);
         multiPollRepository.save(savedPoll);
+
+        return savedPoll.getId();
     }
 
+    @Transactional
+    @Override
+    @LogActivity(action = ActivityActionEnum.EDIT_MULTI_POLL, entityType = ActivityTypeEnum.MULTI_POLL,
+            entityIdParam = "id", details = "Title: {title}, Location: {location}", includeTitle = true)
 
+    public Long updateMultiPoll(Long id, CreateMultiPollView dto, List<Long> deleteImageIds) {
+        MultiPollEntity poll = multiPollRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Анкетата не е намерена."));
+
+        poll.setTitle(dto.getTitle());
+        poll.setDescription(dto.getDescription());
+        poll.setLocation(dto.getLocation());
+
+        List<String> options = dto.getOptions()
+                .stream()
+                .filter(opt -> opt != null && !opt.trim().isEmpty())
+                .toList();
+
+        poll.setOption1(null);
+        poll.setOption2(null);
+        poll.setOption3(null);
+        poll.setOption4(null);
+        poll.setOption5(null);
+        poll.setOption6(null);
+        poll.setOption7(null);
+        poll.setOption8(null);
+        poll.setOption9(null);
+        poll.setOption10(null);
+        if (!options.isEmpty()) poll.setOption1(options.get(0));
+        if (options.size() > 1) poll.setOption2(options.get(1));
+        if (options.size() > 2) poll.setOption3(options.get(2));
+        if (options.size() > 3) poll.setOption4(options.get(3));
+        if (options.size() > 4) poll.setOption5(options.get(4));
+        if (options.size() > 5) poll.setOption6(options.get(5));
+        if (options.size() > 6) poll.setOption7(options.get(6));
+        if (options.size() > 7) poll.setOption8(options.get(7));
+        if (options.size() > 8) poll.setOption9(options.get(8));
+        if (options.size() > 9) poll.setOption10(options.get(9));
+
+        if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
+            List<MultiPollImageEntity> toRemove = poll.getImages().stream()
+                    .filter(img -> deleteImageIds.contains(img.getId()))
+                    .toList();
+            toRemove.forEach(img -> imageCloudinaryService.deleteImage(img.getImageUrl()));
+            poll.getImages().removeAll(toRemove);
+        }
+
+        List<MultipartFile> newFiles = List.of(dto.getImage1(), dto.getImage2(), dto.getImage3());
+        for (MultipartFile file : newFiles) {
+            if (file != null && !file.isEmpty()) {
+                String imageUrl = imageCloudinaryService.saveMultiPollImage(file, poll.getId());
+                MultiPollImageEntity imageEntity = new MultiPollImageEntity();
+                imageEntity.setImageUrl(imageUrl);
+                imageEntity.setMultiPoll(poll);
+                poll.getImages().add(imageEntity);
+            }
+        }
+
+        MultiPollEntity saved = multiPollRepository.save(poll);
+        return saved.getId();
+    }
 
 
 

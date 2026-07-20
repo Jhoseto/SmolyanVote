@@ -36,7 +36,18 @@ public class ActivityWebSocketHandler extends BaseWebSocketHandler {
 
     @Override
     protected boolean hasPermission(WebSocketSession session) {
-        return true;
+        // Session/JWT Principal се задава от AdminActivityHandshakeHandler.
+        // Без Principal (невалиден/липсващ token) — отказ.
+        if (session.getPrincipal() == null) {
+            return false;
+        }
+        try {
+            return userService.findUserByUsername(session.getPrincipal().getName())
+                    .map(user -> user.getRole() == UserRole.ADMIN)
+                    .orElse(false);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override

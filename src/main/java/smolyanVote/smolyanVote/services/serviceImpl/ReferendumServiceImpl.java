@@ -61,7 +61,7 @@ public class ReferendumServiceImpl implements ReferendumService {
     @LogActivity(action = ActivityActionEnum.CREATE_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
             details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
 
-    public void createReferendum(String topic,
+    public Long createReferendum(String topic,
                                  String description,
                                  Locations location,
                                  List<String> options,
@@ -110,6 +110,78 @@ public class ReferendumServiceImpl implements ReferendumService {
                 imageRepository.save(image);
             }
         }
+
+        return referendum.getId();
+    }
+
+    @Transactional
+    @Override
+    @LogActivity(action = ActivityActionEnum.EDIT_REFERENDUM, entityType = ActivityTypeEnum.REFERENDUM,
+            entityIdParam = "id", details = "Topic: {topic}, Location: {location}", includeTitle = true)
+
+    public Long updateReferendum(Long id,
+                                 String topic,
+                                 String description,
+                                 Locations location,
+                                 List<String> options,
+                                 List<MultipartFile> newImages,
+                                 List<Long> deleteImageIds) {
+        ReferendumEntity referendum = referendumRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Референдумът не е намерен."));
+
+        referendum.setTitle(topic);
+        referendum.setDescription(description);
+        referendum.setLocation(location);
+
+        // Изчистване на всички опции, после презадаване (мирор на createReferendum)
+        referendum.setOption1(null);
+        referendum.setOption2(null);
+        referendum.setOption3(null);
+        referendum.setOption4(null);
+        referendum.setOption5(null);
+        referendum.setOption6(null);
+        referendum.setOption7(null);
+        referendum.setOption8(null);
+        referendum.setOption9(null);
+        referendum.setOption10(null);
+        for (int i = 0; i < options.size(); i++) {
+            String option = options.get(i);
+            switch (i) {
+                case 0 -> referendum.setOption1(option);
+                case 1 -> referendum.setOption2(option);
+                case 2 -> referendum.setOption3(option);
+                case 3 -> referendum.setOption4(option);
+                case 4 -> referendum.setOption5(option);
+                case 5 -> referendum.setOption6(option);
+                case 6 -> referendum.setOption7(option);
+                case 7 -> referendum.setOption8(option);
+                case 8 -> referendum.setOption9(option);
+                case 9 -> referendum.setOption10(option);
+            }
+        }
+
+        if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
+            List<ReferendumImageEntity> toRemove = referendum.getImages().stream()
+                    .filter(img -> deleteImageIds.contains(img.getId()))
+                    .toList();
+            toRemove.forEach(img -> imageStorageService.deleteImage(img.getImageUrl()));
+            referendum.getImages().removeAll(toRemove);
+        }
+
+        if (newImages != null) {
+            for (MultipartFile file : newImages) {
+                if (file != null && !file.isEmpty()) {
+                    String imagePath = imageStorageService.saveSingleReferendumImage(file, referendum.getId());
+                    ReferendumImageEntity image = new ReferendumImageEntity();
+                    image.setImageUrl(imagePath);
+                    image.setReferendum(referendum);
+                    referendum.getImages().add(image);
+                }
+            }
+        }
+
+        ReferendumEntity saved = referendumRepository.save(referendum);
+        return saved.getId();
     }
 
     @Transactional

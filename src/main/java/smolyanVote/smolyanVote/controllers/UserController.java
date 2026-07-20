@@ -5,28 +5,26 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import smolyanVote.smolyanVote.models.UserEntity;
-import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
-import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.Locations;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.*;
+import smolyanVote.smolyanVote.services.support.ReputationCalculator;
 import smolyanVote.smolyanVote.services.mappers.UsersMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationResponseDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
 import smolyanVote.smolyanVote.viewsAndDTO.UserProfileViewModel;
 
-import java.io.IOException;
 import java.util.*;
 
+/**
+ * Legacy profile JSON endpoints. Page HTML lives in Next.js
+ * ({@code /profile}, {@code /user/[username]}).
+ */
 @Controller
 public class UserController {
 
@@ -37,8 +35,6 @@ public class UserController {
     private final SignalsService signalsService;
     private final SignalsRepository signalsRepository;
     private final PublicationService publicationService;
-    private final FollowService followService;
-    private final ActivityLogService activityLogService;
 
     @Autowired
     public UserController(UserService userService,
@@ -46,9 +42,7 @@ public class UserController {
                           UserRepository userRepository,
                           UsersMapper usersMapper, SignalsService signalsService,
                           SignalsRepository signalsRepository,
-                          PublicationService publicationService,
-                          FollowService followService,
-                          ActivityLogService activityLogService) {
+                          PublicationService publicationService) {
         this.userService = userService;
         this.mainEventsService = mainEventsService;
         this.userRepository = userRepository;
@@ -56,119 +50,6 @@ public class UserController {
         this.signalsService = signalsService;
         this.signalsRepository = signalsRepository;
         this.publicationService = publicationService;
-        this.followService = followService;
-        this.activityLogService = activityLogService;
-    }
-
-    // ===== UNIFIED PROFILE ENDPOINTS =====
-    @GetMapping("/profile")
-    public String showOwnProfile(Model model, Authentication auth) {
-        if (auth == null) {
-            return "redirect:/login";
-        }
-
-        UserEntity currentUser = userService.getCurrentUser();
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
-
-        model.addAttribute("followersCount", followService.getFollowersCount(currentUser.getId()));
-        model.addAttribute("followingCount", followService.getFollowingCount(currentUser.getId()));
-        return buildProfileView(currentUser, currentUser, model, true);
-    }
-
-    @GetMapping("/user/{username}")
-    public String showUserProfile(@PathVariable String username, Model model, Authentication auth) {
-        UserEntity targetUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Потребителят не е намерен"));
-
-        UserEntity currentUser = (auth != null) ? userService.getCurrentUser() : null;
-        boolean isOwnProfile = currentUser != null && currentUser.getUsername().equals(username);
-
-        model.addAttribute("followersCount", followService.getFollowersCount(targetUser.getId()));
-        model.addAttribute("followingCount", followService.getFollowingCount(targetUser.getId()));
-        return buildProfileView(targetUser, currentUser, model, isOwnProfile);
-    }
-
-    // ===== PROFILE VIEW BUILDER =====
-    private String buildProfileView(UserEntity profileUser, UserEntity currentUser, Model model, boolean isOwnProfile) {
-        List<EventSimpleViewDTO> userEvents = mainEventsService.getAllUserEvents(profileUser.getUsername());
-
-        model.addAttribute("user", profileUser);
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("userEvents", userEvents);
-        model.addAttribute("isOwnProfile", isOwnProfile);
-        model.addAttribute("locations", Locations.values());
-
-        // Check if current user follows the profile user (only for other profiles)
-        boolean isFollowing = false;
-        if (!isOwnProfile && currentUser != null) {
-            isFollowing = followService.isFollowing(currentUser.getId(), profileUser.getId());
-        }
-        model.addAttribute("isFollowing", isFollowing);
-
-        // Calculate reputation
-        int reputationScore = calculateReputation(profileUser);
-        model.addAttribute("reputationScore", reputationScore);
-        model.addAttribute("reputationBadge", getReputationBadge(reputationScore));
-
-        // ✅ ЛОГИРАНЕ НА VIEW_PROFILE (само ако не е собствен профил или ако е логнат потребител)
-        try {
-            if (currentUser != null && !isOwnProfile) {
-                String ipAddress = extractIpAddress();
-                String userAgent = extractUserAgent();
-                String details = String.format("Viewed profile: %s (ID: %d)", profileUser.getUsername(), profileUser.getId());
-                activityLogService.logActivity(ActivityActionEnum.VIEW_PROFILE, currentUser,
-                        ActivityTypeEnum.USER.name(), profileUser.getId(), details, ipAddress, userAgent);
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to log VIEW_PROFILE activity: " + e.getMessage());
-        }
-
-        return "unified-profile";
-    }
-
-    // ===== HELPER METHODS FOR ACTIVITY LOGGING =====
-
-    private String extractIpAddress() {
-        try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                if (request != null) {
-                    String ip = request.getHeader("X-Forwarded-For");
-                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                        ip = request.getHeader("X-Real-IP");
-                    }
-                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-                        ip = request.getRemoteAddr();
-                    }
-                    if (ip != null && ip.contains(",")) {
-                        ip = ip.split(",")[0].trim();
-                    }
-                    return ip != null ? ip : "unknown";
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return "unknown";
-    }
-
-    private String extractUserAgent() {
-        try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                if (request != null) {
-                    String userAgent = request.getHeader("User-Agent");
-                    return userAgent != null ? userAgent : "unknown";
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return "unknown";
     }
 
     // ===== API ENDPOINTS =====
@@ -340,25 +221,6 @@ public class UserController {
 
     // ===== PROFILE UPDATE ENDPOINTS =====
 
-    @PostMapping("/profile/update")
-    public String updateProfile(@RequestParam("profileImage") MultipartFile profileImage,
-                                @RequestParam("location") Locations location,
-                                @RequestParam("bio") String bio,
-                                Authentication auth) throws IOException {
-
-        if (auth == null) {
-            return "redirect:/login";
-        }
-
-        try {
-            Long userId = userService.getCurrentUser().getId();
-            userService.updateUserProfile(userId, profileImage, bio, location);
-            return "redirect:/profile";
-        } catch (Exception e) {
-            return "redirect:/profile?error=update_failed";
-        }
-    }
-
     @PostMapping(value = "/profile/update/ajax", produces = "application/json")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateProfileAjax(
@@ -410,19 +272,11 @@ public class UserController {
     }
 
     private int calculateReputation(UserEntity user) {
-        int score = 0;
-        score += (user.getUserEventsCount() * 10);
-        score += (user.getTotalVotes() * 2);
-        score += (user.getPublicationsCount() * 5);
-        return Math.max(0, score);
+        return ReputationCalculator.score(user);
     }
 
     private String getReputationBadge(int score) {
-        if (score >= 1000) return "VIP Потребител";
-        if (score >= 500) return "Експерт";
-        if (score >= 200) return "Активен";
-        if (score >= 50) return "Участник";
-        return "Нов потребител";
+        return ReputationCalculator.badge(score);
     }
 
     private Map<String, Object> createErrorResponse(String message) {

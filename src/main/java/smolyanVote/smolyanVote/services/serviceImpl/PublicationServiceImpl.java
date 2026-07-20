@@ -181,6 +181,10 @@ public class PublicationServiceImpl implements PublicationService {
         publication.setEmotion(request.getEmotion());
         publication.setEmotionText(request.getEmotionText());
 
+        // Update link (composer link preview) — липсваше преди, линкът не се пазеше при edit
+        publication.setLinkUrl(request.getLinkUrl());
+        publication.setLinkMetadata(request.getLinkMetadata());
+
         // ПОПРАВКА: Ако публикацията беше публикувана, сега става редактирана
         if (originalStatus == PublicationStatus.PUBLISHED) {
             publication.setStatus(PublicationStatus.EDITED);
