@@ -33,6 +33,10 @@ public class CommentResultMapper {
      * [13] entity_id (BigInteger)
      */
     public CommentOutputDto mapOptimizedQueryResult(Object[] row, String currentUsername) {
+        return mapOptimizedQueryResult(row, currentUsername, false);
+    }
+
+    public CommentOutputDto mapOptimizedQueryResult(Object[] row, String currentUsername, boolean isAdmin) {
         if (row == null || row.length < 14) {
             throw new IllegalArgumentException("Invalid query result row");
         }
@@ -52,7 +56,8 @@ public class CommentResultMapper {
             String userReaction = normalizeUserReaction((String) row[11]);
             String entityType = (String) row[12];
             Long entityId = convertToLong(row[13]);
-            boolean canEdit = currentUsername != null && currentUsername.equals(author);
+            boolean canEdit = isAdmin
+                    || (currentUsername != null && currentUsername.equals(author));
 
             return new CommentOutputDto(
                     id, text, createdAt, updatedAt, author, authorImage,
@@ -76,6 +81,10 @@ public class CommentResultMapper {
      * [12] parent_publication_id, [13] parent_event_id, [14] parent_referendum_id, [15] parent_multi_poll_id
      */
     public CommentOutputDto mapRepliesQueryResult(Object[] row, String currentUsername) {
+        return mapRepliesQueryResult(row, currentUsername, false);
+    }
+
+    public CommentOutputDto mapRepliesQueryResult(Object[] row, String currentUsername, boolean isAdmin) {
         if (row == null || row.length < 16) {
             throw new IllegalArgumentException("Invalid replies query result row");
         }
@@ -93,7 +102,8 @@ public class CommentResultMapper {
             Long parentId = convertToLong(row[9]);
             int repliesCount = 0; // Replies don't have replies
             String userReaction = normalizeUserReaction((String) row[11]);
-            boolean canEdit = currentUsername != null && currentUsername.equals(author);
+            boolean canEdit = isAdmin
+                    || (currentUsername != null && currentUsername.equals(author));
 
             // Determine entity type and ID from parent comment
             String entityType = null;

@@ -2,15 +2,25 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { profileApi } from "../api";
+import { normalizeUsername } from "../lib/normalizeUsername";
 
 export function profileQueryKey(username: string) {
-  return ["profile", username] as const;
+  return ["profile", normalizeUsername(username)] as const;
 }
 
 export function useProfile(username: string) {
+  const normalized = normalizeUsername(username);
+
   return useQuery({
-    queryKey: profileQueryKey(username),
-    queryFn: () => profileApi.get(username),
+    queryKey: profileQueryKey(normalized),
+    queryFn: async () => {
+      const data = await profileApi.get(normalized);
+      if (data == null) {
+        throw new Error("Профилът не върна данни.");
+      }
+      return data;
+    },
+    enabled: normalized.length > 0,
     staleTime: 30_000,
   });
 }

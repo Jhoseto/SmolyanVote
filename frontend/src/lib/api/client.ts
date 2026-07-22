@@ -125,7 +125,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("Content-Type") ?? "";
-  if (!contentType.includes("application/json")) return undefined as T;
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      res.status,
+      "INVALID_RESPONSE",
+      "Сървърът върна неочакван (не-JSON) отговор.",
+    );
+  }
   return (await res.json()) as T;
 }
 

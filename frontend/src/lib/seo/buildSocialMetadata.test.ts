@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSocialMetadata, firstImage } from "./buildSocialMetadata";
+import { brandedOgImageUrl, buildSocialMetadata, firstImage } from "./buildSocialMetadata";
 
 describe("buildSocialMetadata", () => {
   it("includes openGraph and twitter cards with image", () => {
@@ -12,6 +12,7 @@ describe("buildSocialMetadata", () => {
 
     expect(meta.title).toContain("Тестово събитие");
     expect(meta.openGraph?.url).toBe("https://smolyanvote.com/event/42");
+    expect(meta.alternates?.canonical).toBe("https://smolyanvote.com/event/42");
     expect(meta.openGraph?.images).toEqual([
       expect.objectContaining({ url: "https://cdn.example.com/img.jpg" }),
     ]);
@@ -32,6 +33,13 @@ describe("buildSocialMetadata", () => {
     expect(Array.isArray(images) && images[0]).toEqual(
       expect.objectContaining({ url: "https://smolyanvote.com/images/SMVshare.JPG" }),
     );
+  });
+
+  it("brandedOgImageUrl points at opengraph-image route", () => {
+    expect(brandedOgImageUrl("/publications/12")).toBe(
+      "https://smolyanvote.com/publications/12/opengraph-image",
+    );
+    expect(brandedOgImageUrl("event/3/")).toBe("https://smolyanvote.com/event/3/opengraph-image");
   });
 });
 

@@ -42,6 +42,23 @@ export function normalizeActionUrl(url: string | null | undefined): string | nul
       nextPath = "/signals";
     }
 
+    // Legacy: /publications?openModal=123 → canonical article + social open
+    if (path === "/publications") {
+      const openModal = parsed.searchParams.get("openModal");
+      if (openModal && /^\d+$/.test(openModal)) {
+        const focus = parsed.searchParams.get("focus");
+        const params = new URLSearchParams({ open: "social" });
+        if (focus) params.set("focus", focus);
+        return `/publications/${openModal}?${params.toString()}${parsed.hash}`;
+      }
+    }
+
+    // Ensure article deep-links open the social modal for in-app notifications
+    const publicationMatch = path.match(/^\/publications\/(\d+)$/);
+    if (publicationMatch && !parsed.searchParams.has("open")) {
+      parsed.searchParams.set("open", "social");
+    }
+
     const search = parsed.searchParams.toString();
     const hash = parsed.hash;
     return nextPath + (search ? `?${search}` : "") + hash;

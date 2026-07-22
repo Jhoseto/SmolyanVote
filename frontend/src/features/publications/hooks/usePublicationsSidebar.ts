@@ -48,7 +48,7 @@ export function useLastActivity() {
   });
 }
 
-export function useMostCommentedToday() {
+export function useMostCommented() {
   return useQuery({
     queryKey: ["publications", "sidebar", "most-commented"],
     queryFn: () => publicationsApi.sidebarMostCommented(),
@@ -57,10 +57,55 @@ export function useMostCommentedToday() {
   });
 }
 
-export function useTopViewedToday() {
+export function useTopViewed() {
   return useQuery({
     queryKey: ["publications", "sidebar", "top-viewed"],
     queryFn: () => publicationsApi.sidebarTopViewed(),
+    staleTime: SIDEBAR_REFETCH_INTERVAL,
+    refetchInterval: SIDEBAR_REFETCH_INTERVAL,
+  });
+}
+
+export function useFromAdmin() {
+  return useQuery({
+    queryKey: ["publications", "sidebar", "from-admin"],
+    queryFn: () => publicationsApi.sidebarFromAdmin(),
+    staleTime: SIDEBAR_REFETCH_INTERVAL,
+    refetchInterval: SIDEBAR_REFETCH_INTERVAL,
+  });
+}
+
+export function useOnlineUsers(limit = 5) {
+  return useQuery({
+    queryKey: ["publications", "sidebar", "online-users", limit],
+    queryFn: () => publicationsApi.sidebarOnlineUsers(limit),
+    staleTime: 30_000,
+    refetchInterval: 45_000,
+  });
+}
+
+export function useCityEventsTeaser() {
+  return useQuery({
+    queryKey: ["publications", "sidebar", "city-events"],
+    queryFn: async () => {
+      const catalog = await publicationsApi.cityEventsTeaser();
+      return (catalog.events ?? [])
+        .filter((e) => e.eventStatus === "ACTIVE")
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        .slice(0, 3);
+    },
+    staleTime: SIDEBAR_REFETCH_INTERVAL,
+    refetchInterval: SIDEBAR_REFETCH_INTERVAL,
+  });
+}
+
+export function useCitySignalsTeaser() {
+  return useQuery({
+    queryKey: ["publications", "sidebar", "city-signals"],
+    queryFn: async () => {
+      const signals = await publicationsApi.citySignalsTeaser();
+      return (signals ?? []).filter((s) => s.isActive).slice(0, 3);
+    },
     staleTime: SIDEBAR_REFETCH_INTERVAL,
     refetchInterval: SIDEBAR_REFETCH_INTERVAL,
   });

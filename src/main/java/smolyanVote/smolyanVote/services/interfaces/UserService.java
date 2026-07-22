@@ -53,4 +53,7 @@ public interface UserService {
 
     long getOnlineUsersCount();
 
+    /** Recent online users for the publications left-rail widget (capped). */
+    java.util.List<smolyanVote.smolyanVote.models.UserEntity> getOnlineUsers(int limit);
+
 }

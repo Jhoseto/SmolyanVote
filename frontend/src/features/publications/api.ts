@@ -31,6 +31,14 @@ function buildQuery(params: PublicationsListParams): string {
   return query.toString();
 }
 
+export interface OnlineUser {
+  id: number;
+  username: string;
+  imageUrl: string | null;
+  isFollowing: boolean;
+  isSelf: boolean;
+}
+
 /**
  * Thin wrappers over `PublicationsController` — public GET endpoints for
  * the publications feed. No business logic here (filtering lives in
@@ -65,6 +73,11 @@ export const publicationsApi = {
 
   bookmark: (id: number) => apiClient.post<PublicationBookmarkResponse>(`/api/v1/publications/${id}/bookmark`),
 
+  bookmarked: (params: { page: number; size: number }) =>
+    apiClient.get<PublicationsPageResponse>(
+      `/api/v1/publications/bookmarked?page=${params.page}&size=${params.size}`,
+    ),
+
   /** Recording a share doesn't require auth (mirrors legacy `sharePublication`). */
   share: (id: number) =>
     apiClient.post<PublicationShareResponse>(`/api/v1/publications/${id}/share`, { anonymous: true }),
@@ -81,9 +94,36 @@ export const publicationsApi = {
 
   sidebarLastActivity: () => apiClient.get<PublicationsLastActivity>("/api/v1/publications/sidebar/last-activity"),
 
-  sidebarMostCommented: () => apiClient.get<PublicationStatSummary>("/api/v1/publications/sidebar/most-commented"),
+  sidebarMostCommented: () =>
+    apiClient.get<PublicationStatSummary[]>("/api/v1/publications/sidebar/most-commented"),
 
   sidebarTopViewed: () => apiClient.get<PublicationStatSummary[]>("/api/v1/publications/sidebar/top-viewed"),
+
+  sidebarFromAdmin: () =>
+    apiClient.get<PublicationStatSummary>("/api/v1/publications/sidebar/from-admin"),
+
+  sidebarOnlineUsers: (limit = 5) =>
+    apiClient.get<OnlineUser[]>(`/api/v1/publications/sidebar/online-users?limit=${limit}`),
+
+  /** Cross-feed teasers — thin URL reuse (no feature→feature imports). */
+  cityEventsTeaser: () =>
+    apiClient.get<{ events: Array<{
+      id: number;
+      eventType: "SIMPLEEVENT" | "REFERENDUM" | "MULTI_POLL";
+      eventStatus: string;
+      title: string;
+      createdAt: string;
+      creatorName: string;
+    }> }>("/api/v1/events"),
+
+  citySignalsTeaser: () =>
+    apiClient.get<Array<{
+      id: number;
+      title: string;
+      categoryLabel: string;
+      createdAt: string;
+      isActive: boolean;
+    }>>("/api/v1/signals?sort=newest"),
 
   /** `/api/svmessenger/users/search` — reused directly (thin fetch, not a cross-feature import). */
   searchUsers: (query: string) =>

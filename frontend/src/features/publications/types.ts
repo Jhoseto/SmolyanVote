@@ -65,6 +65,8 @@ export interface CreatePublicationPayload {
   title: string;
   content: string;
   category: PublicationCategory;
+  /** Backend defaults to PUBLISHED; send explicitly so posts never land as PENDING. */
+  status?: "PUBLISHED" | "PENDING";
   imageUrl?: string;
   emotion?: string;
   emotionText?: string;
@@ -149,7 +151,7 @@ export interface PublicationsLastActivity {
   lastPostComments: number;
 }
 
-/** GET /api/v1/publications/sidebar/most-commented (single, `id === null` when absent) и .../top-viewed (list). */
+/** GET /api/v1/publications/sidebar/most-commented|top-viewed|from-admin (`id === null` when absent). */
 export interface PublicationStatSummary {
   id: number | null;
   title: string | null;
@@ -159,6 +161,7 @@ export interface PublicationStatSummary {
   authorId: number | null;
   authorName: string | null;
   authorImage: string | null;
+  imageUrl: string | null;
 }
 
 /** Mirrors `SVUserMinimalDTO` — GET /api/v1/publications/{id}/liked-users|disliked-users, GET /api/svmessenger/users/search. */

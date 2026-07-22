@@ -13,6 +13,8 @@ const CATEGORY_OPTIONS: PublicationCategory[] = [
 ];
 const SORT_OPTIONS: PublicationSortOption[] = ["date-desc", "date-asc", "likes", "dislikes", "views", "comments"];
 const TIME_OPTIONS: PublicationTimeFilter[] = ["today", "week", "month", "year"];
+const FEED_OPTIONS = ["all", "following"] as const;
+export type PublicationsFeedMode = (typeof FEED_OPTIONS)[number];
 
 /**
  * URL search params = единствен source of truth за филтрите (nuqs) —
@@ -26,6 +28,8 @@ export function usePublicationsFilters() {
       time: parseAsStringEnum<PublicationTimeFilter>(TIME_OPTIONS),
       sort: parseAsStringEnum<PublicationSortOption>(SORT_OPTIONS).withDefault("date-desc"),
       userIds: parseAsArrayOf(parseAsInteger).withDefault([]),
+      feed: parseAsStringEnum<PublicationsFeedMode>([...FEED_OPTIONS]).withDefault("all"),
+      author: parseAsStringEnum<"me">(["me"]),
     },
     { history: "push" },
   );

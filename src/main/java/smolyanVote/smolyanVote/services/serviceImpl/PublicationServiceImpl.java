@@ -111,12 +111,18 @@ public class PublicationServiceImpl implements PublicationService {
         publication.setCategory(request.getCategory());
         publication.setAuthor(author);
 
-        // Set status based on request
-        if ("PUBLISHED".equals(request.getStatus())) {
+        // Set status based on request — null/blank defaults to PUBLISHED (public feed).
+        // Only explicit PENDING stays out of the public feed.
+        if (request.getStatus() == null
+                || request.getStatus().isBlank()
+                || "PUBLISHED".equalsIgnoreCase(request.getStatus())) {
             publication.setStatus(PublicationStatus.PUBLISHED);
             publication.publish(); // Sets publishedAt
-        } else {
+        } else if ("PENDING".equalsIgnoreCase(request.getStatus())) {
             publication.setStatus(PublicationStatus.PENDING);
+        } else {
+            publication.setStatus(PublicationStatus.PUBLISHED);
+            publication.publish();
         }
 
         // Set image URL if provided
@@ -145,7 +151,7 @@ public class PublicationServiceImpl implements PublicationService {
         PublicationEntity savedPublication = publicationRepository.save(publication);
 
         // АКТУАЛИЗИРАМЕ БРОЯЧА НА АВТОРА
-        if ("PUBLISHED".equals(request.getStatus())) {
+        if (savedPublication.getStatus() == PublicationStatus.PUBLISHED) {
             author.setPublicationsCount(author.getPublicationsCount() + 1);
             userRepository.save(author);
         }
@@ -347,8 +353,9 @@ public class PublicationServiceImpl implements PublicationService {
             );
 
         } catch (Exception e) {
-            // Fallback към всички активни публикации
-            return publicationRepository.findByStatusWithAuthorOrderByCreatedDesc(PublicationStatus.PUBLISHED, pageable);
+            // Fallback: публичният фийд = PUBLISHED + EDITED (не само PUBLISHED)
+            return publicationRepository.findByStatusInWithAuthorOrderByCreatedDesc(
+                    List.of(PublicationStatus.PUBLISHED, PublicationStatus.EDITED), pageable);
         }
     }
 
@@ -676,12 +683,13 @@ public class PublicationServiceImpl implements PublicationService {
     @Override
     @Transactional(readOnly = true)
     public boolean canViewPublication(PublicationEntity publication, Authentication auth) {
-        // Публичните публикации могат да се виждат от всички
-        if (publication.getStatus() == PublicationStatus.PUBLISHED) {
+        // PUBLISHED + EDITED are public (edit flips status to EDITED).
+        if (publication.getStatus() == PublicationStatus.PUBLISHED
+                || publication.getStatus() == PublicationStatus.EDITED) {
             return true;
         }
 
-        // За непубличните трябва да е логнат
+        // PENDING (and any other non-public) — author only
         if (auth == null) {
             return false;
         }
@@ -689,7 +697,6 @@ public class PublicationServiceImpl implements PublicationService {
         UserEntity user = userService.getCurrentUser();
         if (user == null) return false;
 
-        // Авторите могат да виждат своите чернови
         return publication.getAuthor().getId().equals(user.getId());
     }
 

@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/shared/hooks/useToast";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { createPublicationSchema, type CreatePublicationFormValues } from "../schema";
+import {
+  clearPublicationDraft,
+  loadPublicationDraft,
+  savePublicationDraft,
+} from "../lib/publicationDraft";
 import { useCreatePublication } from "./useCreatePublication";
 import { useUploadPublicationImage } from "./useUploadPublicationImage";
 import { useLinkPreview } from "./useLinkPreview";
@@ -19,6 +24,7 @@ export function useCreatePublicationForm() {
   const { mutateAsync: createPublication, isPending: isCreating } = useCreatePublication();
   const { mutateAsync: uploadImage, isPending: isUploadingImage } = useUploadPublicationImage();
   const linkPreview = useLinkPreview();
+  const draftHydrated = useRef(false);
 
   const [expanded, setExpanded] = useState(false);
   const [image, setImage] = useState<File | null>(null);
@@ -26,12 +32,46 @@ export function useCreatePublicationForm() {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkMetadata, setLinkMetadata] = useState<LinkMetadata | null>(null);
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
 
   const form = useForm<CreatePublicationFormValues>({
     resolver: zodResolver(createPublicationSchema),
     mode: "onChange",
     defaultValues: { content: "", category: undefined },
   });
+
+  const content = form.watch("content");
+  const category = form.watch("category");
+
+  useEffect(() => {
+    if (draftHydrated.current) return;
+    draftHydrated.current = true;
+    const draft = loadPublicationDraft();
+    if (!draft?.content) return;
+    form.reset({ content: draft.content, category: draft.category });
+    setEmotion(draft.emotion ?? null);
+    setLinkUrl(draft.linkUrl ?? "");
+    setShowLinkInput(!!draft.linkUrl);
+    setExpanded(true);
+    setHasDraft(true);
+  }, [form]);
+
+  useEffect(() => {
+    if (!expanded || !draftHydrated.current) return;
+    const trimmed = content.trim();
+    if (!trimmed && !emotion && !linkUrl.trim()) {
+      clearPublicationDraft();
+      setHasDraft(false);
+      return;
+    }
+    savePublicationDraft({
+      content,
+      category,
+      emotion,
+      linkUrl: linkUrl.trim() || undefined,
+    });
+    setHasDraft(true);
+  }, [expanded, content, category, emotion, linkUrl]);
 
   function reset() {
     form.reset({ content: "", category: undefined });
@@ -41,6 +81,8 @@ export function useCreatePublicationForm() {
     setLinkMetadata(null);
     setShowLinkInput(false);
     setExpanded(false);
+    clearPublicationDraft();
+    setHasDraft(false);
   }
 
   async function fetchLinkPreview() {
@@ -70,11 +112,12 @@ export function useCreatePublicationForm() {
         imageUrl = uploaded.url;
       }
 
-      const content = values.content.trim();
+      const nextContent = values.content.trim();
       await createPublication({
-        title: content.slice(0, 100) || "Публикация",
-        content,
+        title: nextContent.slice(0, 100) || "Публикация",
+        content: nextContent,
         category: values.category,
+        status: "PUBLISHED",
         imageUrl,
         emotion: emotion?.emoji,
         emotionText: emotion?.text,
@@ -108,5 +151,6 @@ export function useCreatePublicationForm() {
     removeLink,
     isFetchingLinkPreview: linkPreview.isPending,
     cancel: reset,
+    hasDraft,
   };
 }

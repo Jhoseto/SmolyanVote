@@ -22,10 +22,16 @@ interface ProfilePageProps {
   /** "Следвай"/"Докладвай" — composed at the `app/` layer (features never import features). */
   renderFollowButton: (userId: number) => ReactNode;
   renderReportUserButton: (userId: number) => ReactNode;
+  renderMessageButton?: (userId: number) => ReactNode;
 }
 
 /** Unified profile (own `/profile` + public `/user/{username}`) — MODERN_FRONTEND_PLAN.md Фаза 7. */
-export function ProfilePage({ username, renderFollowButton, renderReportUserButton }: ProfilePageProps) {
+export function ProfilePage({
+  username,
+  renderFollowButton,
+  renderReportUserButton,
+  renderMessageButton,
+}: ProfilePageProps) {
   const { data: profile, isPending, isError, refetch } = useProfile(username);
   const [tab, setTab] = useQueryState("tab", parseAsStringEnum<ProfileTab>(TAB_VALUES).withDefault("overview"));
   const [connectionsKind, setConnectionsKind] = useState<ConnectionsKind>("followers");
@@ -72,6 +78,9 @@ export function ProfilePage({ username, renderFollowButton, renderReportUserButt
               Редактирай профила
             </button>
           ) : undefined
+        }
+        messageSlot={
+          !profile.isOwnProfile ? renderMessageButton?.(profile.id) : undefined
         }
         followSlot={!profile.isOwnProfile ? renderFollowButton(profile.id) : undefined}
         reportSlot={!profile.isOwnProfile ? renderReportUserButton(profile.id) : undefined}

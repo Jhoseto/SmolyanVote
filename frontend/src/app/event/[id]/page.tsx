@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { resolveApiUrl } from "@/config/env";
-import { buildSocialMetadata, firstImage } from "@/lib/seo/buildSocialMetadata";
+import { brandedOgImageUrl, buildSocialMetadata } from "@/lib/seo/buildSocialMetadata";
 import { SimpleEventDetailClient } from "./SimpleEventDetailClient";
 
 interface PageProps {
@@ -9,22 +9,27 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
+  const path = `/event/${id}`;
   try {
     const res = await fetch(resolveApiUrl(`/api/v1/events/simple/${id}`), {
       next: { revalidate: 60 },
     });
     if (!res.ok) throw new Error("not found");
     const data = await res.json();
+    const desc = [data.description, "Участвай в гласуването на SmolyanVote"]
+      .filter(Boolean)
+      .join(" — ");
     return buildSocialMetadata({
       title: data.title,
-      description: data.description,
-      path: `/event/${id}`,
-      image: firstImage(data.images),
+      description: desc,
+      path,
+      image: brandedOgImageUrl(path),
     });
   } catch {
     return buildSocialMetadata({
       title: "Събитие",
-      path: `/event/${id}`,
+      path,
+      image: brandedOgImageUrl(path),
       type: "website",
     });
   }

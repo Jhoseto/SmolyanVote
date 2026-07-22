@@ -13,6 +13,7 @@ interface ProfileHeaderProps {
   editSlot?: ReactNode;
   /** "Следвай" — composed at the `app/` layer (features never import features); hidden for own profile. */
   followSlot?: ReactNode;
+  messageSlot?: ReactNode;
   reportSlot?: ReactNode;
   onShowConnections: (kind: "followers" | "following") => void;
 }
@@ -23,6 +24,7 @@ export function ProfileHeader({
   onAvatarClick,
   editSlot,
   followSlot,
+  messageSlot,
   reportSlot,
   onShowConnections,
 }: ProfileHeaderProps) {
@@ -51,6 +53,7 @@ export function ProfileHeader({
 
           <div className="mx-auto flex items-center gap-2 sm:mx-0">
             {editSlot}
+            {messageSlot}
             {followSlot}
             {reportSlot}
           </div>

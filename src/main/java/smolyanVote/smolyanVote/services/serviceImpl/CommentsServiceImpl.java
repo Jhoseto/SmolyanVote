@@ -109,7 +109,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForPublication(
                 publicationId, currentUsername, sort, pageable);
 
-        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername, isAdmin));
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +122,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForEvent(
                 eventId, currentUsername, sort, pageable);
 
-        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername, isAdmin));
     }
 
     @Transactional(readOnly = true)
@@ -133,7 +135,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForReferendum(
                 referendumId, currentUsername, sort, pageable);
 
-        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername, isAdmin));
     }
 
     @Transactional(readOnly = true)
@@ -145,7 +148,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForMultiPoll(
                 multiPollId, currentUsername, sort, pageable);
 
-        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername, isAdmin));
     }
 
     private Page<CommentOutputDto> getOptimizedCommentsForSignal(Long signalId, int page, int size, String sort, String currentUsername) {
@@ -159,7 +163,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedCommentsForSignal(
                 signalId, currentUsername, sort, pageable);
 
-        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapOptimizedQueryResult(row, currentUsername, isAdmin));
     }
 
     @Override
@@ -176,7 +181,8 @@ public class CommentsServiceImpl implements CommentsService {
         Page<Object[]> rawResults = commentsRepository.findOptimizedRepliesForComment(
                 commentId, currentUsername, pageable);
 
-        return rawResults.map(row -> resultMapper.mapRepliesQueryResult(row, currentUsername));
+        boolean isAdmin = isCurrentUserAdmin();
+        return rawResults.map(row -> resultMapper.mapRepliesQueryResult(row, currentUsername, isAdmin));
     }
 
     // ====== СЪЗДАВАНЕ НА КОМЕНТАРИ ======
@@ -664,8 +670,8 @@ public class CommentsServiceImpl implements CommentsService {
         String entityType = determineEntityType(comment);
         Long entityId = determineEntityId(comment);
         long repliesCount = commentsRepository.countRepliesByParentId(comment.getId());
-        boolean canEdit = currentUsername != null && (currentUsername.equals(comment.getAuthor()) ||
-                userService.getCurrentUser().getRole().equals(UserRole.ADMIN));
+        boolean canEdit = isCurrentUserAdmin()
+                || (currentUsername != null && currentUsername.equals(comment.getAuthor()));
 
         // Вземаме снимката от UserEntity вместо от authorImage полето в коментара
         String authorImageUrl = userRepository.findByUsername(comment.getAuthor())
@@ -702,6 +708,15 @@ public class CommentsServiceImpl implements CommentsService {
         } catch (Exception e) {
             logger.warn("Error getting current username: {}", e.getMessage());
             return null; // Guest user
+        }
+    }
+
+    private boolean isCurrentUserAdmin() {
+        try {
+            UserEntity currentUser = userService.getCurrentUser();
+            return currentUser != null && currentUser.getRole() == UserRole.ADMIN;
+        } catch (Exception e) {
+            return false;
         }
     }
 

@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import { Avatar } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
-import { useAuth } from "@/shared/lib/authContext";
-import { useDebounce } from "@/shared/hooks/useDebounce";
 import { usePublicationsFilters } from "../hooks/usePublicationsFilters";
 import { CATEGORIES } from "../data/categories";
-import { AuthorSearchFilter } from "./AuthorSearchFilter";
+import { loadRememberedAuthors } from "../lib/selectedAuthorsStorage";
 
 const selectClass =
-  "h-10 rounded-[var(--radius-md)] border border-border-default/60 bg-white px-3 text-sm text-[color:var(--color-text-primary)] outline-none transition-colors focus:border-primary";
+  "h-10 w-full rounded-[var(--radius-md)] border border-border-default/60 bg-white px-3 text-sm text-[color:var(--color-text-primary)] outline-none transition-colors focus:border-primary";
 
 const TIME_LABELS: Record<string, string> = {
   today: "Днес",
@@ -19,73 +18,84 @@ const TIME_LABELS: Record<string, string> = {
   year: "Тази година",
 };
 
-function FiltersContent() {
-  const { isAuthenticated } = useAuth();
-  const [filters, setFilters] = usePublicationsFilters();
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const debouncedSearch = useDebounce(searchInput, 350);
+const RAIL_PRIMARY = 4;
 
-  useEffect(() => {
-    if (debouncedSearch !== filters.search) {
-      setFilters({ search: debouncedSearch || null });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to the debounced value, not filters.search
-  }, [debouncedSearch]);
+/** Filters only — search lives in `PublicationsUnifiedSearch`. */
+function FiltersContent({ stacked = false }: { stacked?: boolean }) {
+  const [filters, setFilters] = usePublicationsFilters();
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const hasActiveFilters =
-    !!filters.search || !!filters.category || !!filters.time || filters.sort !== "date-desc" || filters.userIds.length > 0;
+    !!filters.search ||
+    !!filters.category ||
+    !!filters.time ||
+    filters.sort !== "date-desc" ||
+    filters.userIds.length > 0 ||
+    filters.author === "me";
+
+  const selectedAuthors = loadRememberedAuthors(filters.userIds);
+  const visibleCategories =
+    stacked && !showAllCategories ? CATEGORIES.slice(0, RAIL_PRIMARY) : CATEGORIES;
+  const hasMoreCategories = stacked && CATEGORIES.length > RAIL_PRIMARY;
 
   function clearAll() {
-    setSearchInput("");
-    setFilters({ search: null, category: null, time: null, sort: "date-desc", userIds: [] });
+    setFilters({
+      search: null,
+      category: null,
+      time: null,
+      sort: "date-desc",
+      userIds: [],
+      author: null,
+    });
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
+    <div className={cn("flex flex-col gap-4", stacked && "gap-3")}>
+      <div className={cn("flex flex-wrap gap-2", stacked && "flex-col")}>
         <button
           type="button"
           onClick={() => setFilters({ category: null })}
           className={cn(
             "inline-flex items-center gap-2 rounded-[var(--radius-pill)] px-4 py-2 text-sm font-medium transition-colors",
+            stacked && "w-full justify-start",
             !filters.category
               ? "bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-md)]"
-              : "bg-white text-[color:var(--color-text-secondary)] border border-border-default/60 hover:border-primary/40 hover:text-primary",
+              : "border border-border-default/60 bg-white text-[color:var(--color-text-secondary)] hover:border-primary/40 hover:text-primary",
           )}
         >
           <i className="bi bi-grid-fill" />
           Всички
         </button>
-        {CATEGORIES.map((cat) => (
+        {visibleCategories.map((cat) => (
           <button
             key={cat.value}
             type="button"
             onClick={() => setFilters({ category: filters.category === cat.value ? null : cat.value })}
             className={cn(
               "inline-flex items-center gap-2 rounded-[var(--radius-pill)] px-4 py-2 text-sm font-medium transition-colors",
+              stacked && "w-full justify-start",
               filters.category === cat.value
                 ? "bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-md)]"
-                : "bg-white text-[color:var(--color-text-secondary)] border border-border-default/60 hover:border-primary/40 hover:text-primary",
+                : "border border-border-default/60 bg-white text-[color:var(--color-text-secondary)] hover:border-primary/40 hover:text-primary",
             )}
           >
             <i className={cn("bi", cat.icon)} />
             {cat.label}
           </button>
         ))}
+        {hasMoreCategories && (
+          <button
+            type="button"
+            onClick={() => setShowAllCategories((v) => !v)}
+            className="inline-flex w-full items-center justify-start gap-2 rounded-[var(--radius-pill)] border border-dashed border-border-default/60 px-4 py-2 text-sm font-medium text-[color:var(--color-text-muted)] hover:border-primary/40 hover:text-primary"
+          >
+            <i className={cn("bi", showAllCategories ? "bi-chevron-up" : "bi-three-dots")} />
+            {showAllCategories ? "По-малко" : `Още ${CATEGORIES.length - RAIL_PRIMARY}`}
+          </button>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <i className="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Търсене по заглавие или съдържание…"
-            className="h-10 w-full rounded-[var(--radius-md)] border border-border-default/60 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
-          />
-        </div>
-
+      <div className={cn("flex flex-wrap items-center gap-3", stacked && "flex-col items-stretch")}>
         <select
           value={filters.time ?? ""}
           onChange={(e) => setFilters({ time: (e.target.value || null) as never })}
@@ -117,21 +127,25 @@ function FiltersContent() {
             className="inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-md)] px-3 text-sm font-medium text-[color:var(--color-text-secondary)] hover:text-primary"
           >
             <i className="bi bi-x-circle" />
-            Изчисти филтрите
+            Изчисти
           </button>
         )}
       </div>
 
-      {isAuthenticated && (
-        <AuthorSearchFilter selectedIds={filters.userIds} onChange={(userIds) => setFilters({ userIds })} />
-      )}
-
-      {(filters.search || filters.time) && (
+      {(filters.search || filters.time || filters.author === "me" || selectedAuthors.length > 0) && (
         <div className="flex flex-wrap gap-1.5">
+          {filters.author === "me" && (
+            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary">
+              Моите
+              <button type="button" onClick={() => setFilters({ author: null })} aria-label="Премахни">
+                <i className="bi bi-x-lg text-[10px]" />
+              </button>
+            </span>
+          )}
           {filters.search && (
             <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-[color:var(--color-surface-muted)] px-2.5 py-1 text-xs text-[color:var(--color-text-secondary)]">
               „{filters.search}“
-              <button type="button" onClick={() => setSearchInput("")} aria-label="Премахни търсенето">
+              <button type="button" onClick={() => setFilters({ search: null })} aria-label="Премахни търсенето">
                 <i className="bi bi-x-lg text-[10px] hover:text-[color:var(--color-error)]" />
               </button>
             </span>
@@ -139,18 +153,34 @@ function FiltersContent() {
           {filters.time && (
             <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-[color:var(--color-surface-muted)] px-2.5 py-1 text-xs text-[color:var(--color-text-secondary)]">
               {TIME_LABELS[filters.time]}
-              <button type="button" onClick={() => setFilters({ time: null })} aria-label="Премахни филтъра за време">
+              <button type="button" onClick={() => setFilters({ time: null })} aria-label="Премахни времето">
                 <i className="bi bi-x-lg text-[10px] hover:text-[color:var(--color-error)]" />
               </button>
             </span>
           )}
+          {selectedAuthors.map((author) => (
+            <span
+              key={author.id}
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-primary-50 py-1 pl-1 pr-2 text-xs font-medium text-primary"
+            >
+              <Avatar username={author.username} imageUrl={author.imageUrl} size={18} />
+              {author.username}
+              <button
+                type="button"
+                onClick={() => setFilters({ userIds: filters.userIds.filter((id) => id !== author.id) })}
+                aria-label={`Премахни ${author.username}`}
+                className="hover:text-[color:var(--color-error)]"
+              >
+                <i className="bi bi-x-lg text-[10px]" />
+              </button>
+            </span>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-/**Брой активни филтри — за badge-а на мобилния toggle бутон. */
 function useActiveFilterCount() {
   const [filters] = usePublicationsFilters();
   return (
@@ -158,23 +188,29 @@ function useActiveFilterCount() {
     (filters.category ? 1 : 0) +
     (filters.time ? 1 : 0) +
     (filters.sort !== "date-desc" ? 1 : 0) +
-    filters.userIds.length
+    filters.userIds.length +
+    (filters.author === "me" ? 1 : 0)
   );
 }
 
-/**
- * Desktop: филтрите се показват inline (винаги видими). Mobile (`<lg`): скрити
- * зад toggle бутон с badge, отварят се в bottom-sheet drawer (MODERN_FRONTEND_PLAN.md
- * §Filters sidebar "mobile drawer + badge") — центриран Base UI `Dialog`, стилизиран
- * като долен sheet вместо нов drawer-primitive.
- */
-export function PublicationsFilters() {
+export function PublicationsFilters({ variant = "default" }: { variant?: "default" | "rail" } = {}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const activeCount = useActiveFilterCount();
 
+  if (variant === "rail") {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-border-default/50 bg-white/90 p-4 shadow-[var(--shadow-sm)] backdrop-blur-sm">
+        <h2 className="mb-3 font-display text-sm font-semibold text-[color:var(--color-text-heading)]">
+          Филтри
+        </h2>
+        <FiltersContent stacked />
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="lg:hidden">
+      <div className="xl:hidden">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
@@ -190,7 +226,7 @@ export function PublicationsFilters() {
         </button>
       </div>
 
-      <div className="hidden lg:block">
+      <div className="hidden lg:block xl:hidden">
         <FiltersContent />
       </div>
 
@@ -210,7 +246,7 @@ export function PublicationsFilters() {
                   <i className="bi bi-x-lg" />
                 </Dialog.Close>
               </div>
-              <FiltersContent />
+              <FiltersContent stacked />
             </div>
           </Dialog.Popup>
         </Dialog.Portal>

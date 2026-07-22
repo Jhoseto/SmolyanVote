@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Avatar, Button, Card, ImageDropzone } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
@@ -19,7 +19,13 @@ const inputClass =
  * category + submit). Mirrors the legacy `#createPostExpanded` fields —
  * `title`/`excerpt` stay auto-derived from `content`, never user-facing.
  */
-export function PublicationComposer() {
+export function PublicationComposer({
+  forceExpanded = false,
+  onExpandedChange,
+}: {
+  forceExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+} = {}) {
   const { isAuthenticated, user } = useAuth();
   const requireAuth = useRequireAuth();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -44,6 +50,7 @@ export function PublicationComposer() {
     removeLink,
     isFetchingLinkPreview,
     cancel,
+    hasDraft,
   } = useCreatePublicationForm();
   const {
     register,
@@ -53,9 +60,28 @@ export function PublicationComposer() {
 
   const { ref: contentRef, ...contentField } = register("content");
 
-  async function handleExpand() {
-    if (!(await requireAuth("да създадеш публикация"))) return;
-    setExpanded(true);
+  useEffect(() => {
+    if (forceExpanded && isAuthenticated) setExpanded(true);
+  }, [forceExpanded, isAuthenticated, setExpanded]);
+
+  useEffect(() => {
+    if (!expanded) onExpandedChange?.(false);
+    // Only notify parent when collapsing (clears ?compose=)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-firing on unstable callback identity
+  }, [expanded]);
+
+  function onPasteImage(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const file = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    setImage(file);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!isPending && isValid) void onSubmit();
+    }
   }
 
   if (!isAuthenticated) {
@@ -72,17 +98,56 @@ export function PublicationComposer() {
     );
   }
 
+  async function expandWith(mode?: "photo" | "mood") {
+    if (!(await requireAuth("да създадеш публикация"))) return;
+    setExpanded(true);
+    if (mode === "photo") {
+      /* ImageDropzone appears in expanded form */
+    }
+    if (mode === "mood") setEmotionPickerOpen(true);
+  }
+
   if (!expanded) {
     return (
-      <Card className="flex items-center gap-3 p-3.5">
-        <Avatar username={user?.username ?? "?"} imageUrl={user?.imageUrl} size={40} />
-        <button
-          type="button"
-          onClick={handleExpand}
-          className="flex-1 rounded-[var(--radius-pill)] border border-border-default/60 bg-[color:var(--color-surface-muted)] px-4 py-2.5 text-left text-sm text-[color:var(--color-text-muted)] transition-colors hover:border-primary/40"
-        >
-          Какво мислиш, {user?.username ?? "потребител"}?
-        </button>
+      <Card className="flex flex-col gap-2 p-3.5">
+        <div className="flex items-center gap-3">
+          <Avatar username={user?.username ?? "?"} imageUrl={user?.imageUrl} size={40} />
+          <button
+            type="button"
+            onClick={() => void expandWith()}
+            className="flex-1 rounded-[var(--radius-pill)] border border-border-default/60 bg-[color:var(--color-surface-muted)] px-4 py-2.5 text-left text-sm text-[color:var(--color-text-muted)] transition-colors hover:border-primary/40"
+          >
+            {hasDraft
+              ? "Продължи черновата…"
+              : `Какво мислиш, ${user?.username ?? "потребител"}?`}
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-1 border-t border-border-default/40 pt-2">
+          <button
+            type="button"
+            onClick={() => void expandWith()}
+            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+          >
+            <i className="bi bi-pencil-square text-primary" />
+            <span className="hidden sm:inline">Публикация</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void expandWith("photo")}
+            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+          >
+            <i className="bi bi-image text-[color:var(--color-info)]" />
+            <span className="hidden sm:inline">Снимка</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void expandWith("mood")}
+            className="flex items-center justify-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-sm font-medium text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+          >
+            <i className="bi bi-emoji-smile text-[color:var(--color-warning)]" />
+            <span className="hidden sm:inline">Настроение</span>
+          </button>
+        </div>
       </Card>
     );
   }
@@ -95,6 +160,8 @@ export function PublicationComposer() {
           textareaRef.current = el;
         }}
         {...contentField}
+        onPaste={onPasteImage}
+        onKeyDown={onKeyDown}
         onInput={(e) => {
           const el = e.currentTarget;
           el.style.height = "auto";
@@ -103,7 +170,7 @@ export function PublicationComposer() {
         rows={3}
         maxLength={MAX_CONTENT_LENGTH}
         autoFocus
-        placeholder="Напиши твоя пост..."
+        placeholder="Напиши твоя пост… (Ctrl/⌘+Enter за публикуване)"
         className={cn(inputClass, "resize-none")}
       />
       <div className="flex items-center justify-between">
@@ -231,13 +298,22 @@ export function PublicationComposer() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" onClick={cancel} disabled={isPending}>
-          Отказ
-        </Button>
-        <Button type="submit" onClick={onSubmit} disabled={isPending || !isValid}>
-          {isPending ? "Публикуване…" : "Публикувай"}
-        </Button>
+      <div className="flex items-center justify-between gap-2">
+        {hasDraft ? (
+          <span className="text-xs text-[color:var(--color-text-muted)]">
+            <i className="bi bi-cloud-check" /> Черновата се пази локално
+          </span>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={cancel} disabled={isPending}>
+            Отказ
+          </Button>
+          <Button type="submit" onClick={onSubmit} disabled={isPending || !isValid}>
+            {isPending ? "Публикуване…" : "Публикувай"}
+          </Button>
+        </div>
       </div>
     </Card>
   );

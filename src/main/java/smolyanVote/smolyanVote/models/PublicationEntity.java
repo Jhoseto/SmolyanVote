@@ -201,13 +201,14 @@ public class PublicationEntity extends BaseEntity {
     }
 
     public boolean canBeViewedBy(UserEntity user) {
-        if (status == PublicationStatus.PUBLISHED) return true;
+        // EDITED stays publicly visible (same as PUBLISHED in the feed).
+        if (status == PublicationStatus.PUBLISHED || status == PublicationStatus.EDITED) return true;
         if (user == null) return false;
         return author.getId().equals(user.getId());
     }
 
     public boolean isPublished() {
-        return status == PublicationStatus.PUBLISHED;
+        return status == PublicationStatus.PUBLISHED || status == PublicationStatus.EDITED;
     }
 
     public boolean isDraft() {

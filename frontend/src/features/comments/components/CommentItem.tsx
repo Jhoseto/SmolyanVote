@@ -6,6 +6,7 @@ import { Avatar, LogoLoader } from "@/shared/ui";
 import { useToast } from "@/shared/hooks/useToast";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useAuth } from "@/shared/lib/authContext";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
 import { cn } from "@/shared/lib/cn";
@@ -32,11 +33,17 @@ export function CommentItem({ comment, entityType, entityId, sort, isReply }: Co
   const toast = useToast();
   const confirm = useConfirm();
   const requireAuth = useRequireAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
+
+  const canModify =
+    comment.canEdit ||
+    user?.role === "ADMIN" ||
+    (!!user?.username && user.username === comment.author);
 
   const updateComment = useUpdateComment();
   const deleteComment = useDeleteComment();
@@ -78,7 +85,13 @@ export function CommentItem({ comment, entityType, entityId, sort, isReply }: Co
     );
   }
 
+  async function handleEditStart() {
+    if (!(await requireAuth("да редактираш коментар"))) return;
+    setIsEditing(true);
+  }
+
   async function handleDelete() {
+    if (!(await requireAuth("да изтриеш коментар"))) return;
     const ok = await confirm({
       title: "Изтриване на коментар",
       description: "Сигурни ли сте, че искате да изтриете този коментар?",
@@ -169,12 +182,22 @@ export function CommentItem({ comment, entityType, entityId, sort, isReply }: Co
               Отговори
             </button>
           )}
-          {comment.canEdit && (
+          {canModify && !isEditing && (
             <>
-              <button type="button" onClick={() => setIsEditing(true)} className="hover:text-primary">
+              <button
+                type="button"
+                onClick={handleEditStart}
+                disabled={updateComment.isPending || deleteComment.isPending}
+                className="hover:text-primary disabled:opacity-50"
+              >
                 Редактирай
               </button>
-              <button type="button" onClick={handleDelete} className="hover:text-[color:var(--color-error)]">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={updateComment.isPending || deleteComment.isPending}
+                className="hover:text-[color:var(--color-error)] disabled:opacity-50"
+              >
                 Изтрий
               </button>
             </>

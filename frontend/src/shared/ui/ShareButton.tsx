@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useToast } from "@/shared/hooks/useToast";
 
 interface ShareButtonProps {
@@ -9,10 +10,11 @@ interface ShareButtonProps {
   url?: string;
   /** Called after a successful share/copy (not on cancel) — e.g. to record a share count server-side. */
   onShared?: () => void;
+  children?: ReactNode;
 }
 
 /** Native share sheet on mobile, clipboard-copy fallback on desktop — domain-agnostic. */
-export function ShareButton({ title, className, url: urlProp, onShared }: ShareButtonProps) {
+export function ShareButton({ title, className, url: urlProp, onShared, children }: ShareButtonProps) {
   const toast = useToast();
 
   async function handleShare() {
@@ -37,8 +39,12 @@ export function ShareButton({ title, className, url: urlProp, onShared }: ShareB
       onClick={handleShare}
       className={className ?? "inline-flex items-center gap-1.5 text-sm text-[color:var(--color-text-muted)] hover:text-primary"}
     >
-      <i className="bi bi-share-fill" />
-      Сподели
+      {children ?? (
+        <>
+          <i className="bi bi-share-fill" />
+          Сподели
+        </>
+      )}
     </button>
   );
 }

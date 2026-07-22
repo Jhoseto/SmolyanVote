@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
@@ -12,6 +13,7 @@ import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.viewsAndDTO.apiv1.OnlineUserResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.PublicationStatSummaryResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.PublicationsLastActivityResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.PublicationsSidebarStatsResponse;
@@ -60,6 +62,24 @@ public class PublicationsSidebarController {
                 userService.getOnlineUsersCount()));
     }
 
+    @GetMapping("/online-users")
+    public ResponseEntity<List<OnlineUserResponse>> onlineUsers(
+            @RequestParam(defaultValue = "6") int limit,
+            Authentication auth) {
+        UserEntity currentUser = currentUser(auth);
+        // Include self — otherwise a lone online user sees an empty "Активни сега" list.
+        List<OnlineUserResponse> users = userService.getOnlineUsers(limit).stream()
+                .map(u -> {
+                    boolean isSelf = currentUser != null && u.getId().equals(currentUser.getId());
+                    boolean isFollowing = !isSelf && currentUser != null
+                            && followService.isFollowing(currentUser.getId(), u.getId());
+                    return new OnlineUserResponse(
+                            u.getId(), u.getUsername(), u.getImageUrl(), isFollowing, isSelf);
+                })
+                .toList();
+        return ResponseEntity.ok(users);
+    }
+
     @GetMapping("/top-authors")
     public ResponseEntity<TopAuthorsResponse> topAuthors(Authentication auth) {
         List<Map<String, Object>> authorsData =
@@ -100,25 +120,48 @@ public class PublicationsSidebarController {
     }
 
     @GetMapping("/most-commented")
-    public ResponseEntity<PublicationStatSummaryResponse> mostCommented() {
-        PublicationEntity post = publicationService.getMostCommentedPostToday(startOfDay());
-        return ResponseEntity.ok(toStatSummary(post));
+    public ResponseEntity<List<PublicationStatSummaryResponse>> mostCommented() {
+        List<PublicationEntity> posts = publicationRepository.findTopCommentedPublic(PageRequest.of(0, 3));
+        if (posts.isEmpty()) {
+            // Fallback: today's legacy query if all-time table is empty.
+            PublicationEntity today = publicationService.getMostCommentedPostToday(startOfDay());
+            return ResponseEntity.ok(today == null ? List.of() : List.of(toStatSummary(today)));
+        }
+        return ResponseEntity.ok(posts.stream().map(this::toStatSummary).toList());
     }
 
     @GetMapping("/top-viewed")
     public ResponseEntity<List<PublicationStatSummaryResponse>> topViewed() {
-        List<PublicationEntity> posts = publicationRepository.findTopByOrderByViewsCountDesc(
-                startOfDay(), PageRequest.of(0, 3));
+        List<PublicationEntity> posts = publicationRepository.findTopViewedPublic(PageRequest.of(0, 3));
+        if (posts.isEmpty()) {
+            posts = publicationRepository.findTopByOrderByViewsCountDesc(startOfDay(), PageRequest.of(0, 3));
+        }
         return ResponseEntity.ok(posts.stream().map(this::toStatSummary).toList());
+    }
+
+    @GetMapping("/from-admin")
+    public ResponseEntity<PublicationStatSummaryResponse> fromAdmin() {
+        List<PublicationEntity> posts = publicationRepository.findLatestFromAdmin(PageRequest.of(0, 1));
+        if (posts.isEmpty()) {
+            return ResponseEntity.ok(toStatSummary(null));
+        }
+        return ResponseEntity.ok(toStatSummary(posts.get(0)));
     }
 
     private PublicationStatSummaryResponse toStatSummary(PublicationEntity post) {
         if (post == null) {
-            return new PublicationStatSummaryResponse(null, null, 0, 0, 0, null, null, null);
+            return new PublicationStatSummaryResponse(null, null, 0, 0, 0, null, null, null, null);
         }
-        return new PublicationStatSummaryResponse(post.getId(), post.getTitle(), post.getCommentsCount(),
-                post.getViewsCount(), post.getLikesCount(), post.getAuthor().getId(),
-                post.getAuthor().getUsername(), post.getAuthor().getImageUrl());
+        return new PublicationStatSummaryResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getCommentsCount(),
+                post.getViewsCount(),
+                post.getLikesCount(),
+                post.getAuthor().getId(),
+                post.getAuthor().getUsername(),
+                post.getAuthor().getImageUrl(),
+                post.getImageUrl());
     }
 
     private Instant startOfDay() {

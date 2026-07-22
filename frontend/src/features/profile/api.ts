@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { normalizeUsername } from "./lib/normalizeUsername";
 import type {
   ConnectionsKind,
   ConnectionsListResponse,
@@ -9,6 +10,10 @@ import type {
   UpdateProfilePayload,
 } from "./types";
 
+function userPath(username: string, suffix = "") {
+  return `/api/v1/users/${encodeURIComponent(normalizeUsername(username))}${suffix}`;
+}
+
 /**
  * Thin wrappers over `UsersController` (MODERN_FRONTEND_PLAN.md Фаза 7).
  * Publications intentionally reuse the existing `GET /api/v1/publications?userIds=`
@@ -18,13 +23,11 @@ import type {
  * shared JSON contract).
  */
 export const profileApi = {
-  get: (username: string) => apiClient.get<PublicProfile>(`/api/v1/users/${encodeURIComponent(username)}`),
+  get: (username: string) => apiClient.get<PublicProfile>(userPath(username)),
 
-  events: (username: string) =>
-    apiClient.get<ProfileEventItem[]>(`/api/v1/users/${encodeURIComponent(username)}/events`),
+  events: (username: string) => apiClient.get<ProfileEventItem[]>(userPath(username, "/events")),
 
-  signals: (username: string) =>
-    apiClient.get<ProfileSignalItem[]>(`/api/v1/users/${encodeURIComponent(username)}/signals`),
+  signals: (username: string) => apiClient.get<ProfileSignalItem[]>(userPath(username, "/signals")),
 
   publications: (authorId: number, page: number, size = 9) =>
     apiClient.get<ProfilePublicationsPage>(
@@ -34,9 +37,7 @@ export const profileApi = {
   connections: (username: string, kind: ConnectionsKind, page: number, size: number, search?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (search) params.set("search", search);
-    return apiClient.get<ConnectionsListResponse>(
-      `/api/v1/users/${encodeURIComponent(username)}/${kind}?${params.toString()}`,
-    );
+    return apiClient.get<ConnectionsListResponse>(`${userPath(username, `/${kind}`)}?${params.toString()}`);
   },
 
   updateMe: ({ bio, location, avatar }: UpdateProfilePayload) => {

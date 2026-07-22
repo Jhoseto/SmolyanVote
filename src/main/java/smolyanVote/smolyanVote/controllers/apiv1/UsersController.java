@@ -61,6 +61,19 @@ public class UsersController {
         return ResponseEntity.ok(CurrentUserResponse.fromEntity(user));
     }
 
+    /**
+     * Compact id list of users the current session follows — powers the
+     * publications “Следвани” feed without fragile username path encoding.
+     */
+    @GetMapping("/me/following-ids")
+    public ResponseEntity<?> myFollowingIds() {
+        UserEntity user = userService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(401).body(ApiMessageResponse.error("Необходима е автентикация"));
+        }
+        return ResponseEntity.ok(new FollowingIdsResponse(userFollowRepository.findAllFollowingIds(user.getId())));
+    }
+
     @GetMapping("/{username}")
     public ResponseEntity<?> profile(@PathVariable String username, Authentication auth) {
         UserEntity profileUser = userService.findUserByUsername(username).orElse(null);

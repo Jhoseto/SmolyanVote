@@ -23,12 +23,26 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
     @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status = :status ORDER BY p.created DESC")
     Page<PublicationEntity> findByStatusWithAuthorOrderByCreatedDesc(@Param("status") PublicationStatus status, Pageable pageable);
 
+    /**
+     * Public feed statuses: PUBLISHED + EDITED (edited posts stay visible;
+     * PENDING is moderation-only and excluded when {@code status=PUBLISHED}).
+     */
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE p.status IN :statuses ORDER BY p.created DESC")
+    Page<PublicationEntity> findByStatusInWithAuthorOrderByCreatedDesc(
+            @Param("statuses") List<PublicationStatus> statuses, Pageable pageable);
+
+    /**
+     * When {@code status} is PUBLISHED, also match EDITED (posts flip to EDITED on update).
+     * PENDING / exact status filters stay strict.
+     */
     @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE " +
             "(:search IS NULL OR :search = '' OR " +
             " LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " LOWER(p.content) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
             "(:category IS NULL OR p.category = :category) AND " +
-            "(:status IS NULL OR p.status = :status) AND " +
+            "(:status IS NULL OR p.status = :status OR " +
+            " (:status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+            "  AND p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED)) AND " +
             "(:timeFilter IS NULL OR p.created >= :timeFilter) AND " +
             "(:authorId IS NULL OR p.author.id = :authorId)")
     Page<PublicationEntity> findWithFilters(@Param("search") String search,
@@ -40,12 +54,15 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
 
     @Query("SELECT DISTINCT p FROM PublicationEntity p " +
            "LEFT JOIN FETCH p.author " +
-           "WHERE p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           "WHERE (p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           "    OR p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED) " +
            "AND (:search IS NULL OR :search = '' OR " +
            "    LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "    LOWER(p.content) LIKE LOWER(CONCAT('%', :search, '%'))) " +
            "AND (:category IS NULL OR p.category = :category) " +
-           "AND (:status IS NULL OR p.status = :status) " +
+           "AND (:status IS NULL OR p.status = :status OR " +
+           " (:status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           "  AND p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED)) " +
            "AND (:timeFilter IS NULL OR p.created >= :timeFilter) " +
            "AND (p.author.id IN :authorIds)")
     Page<PublicationEntity> findWithFiltersAndAuthorIds(
@@ -132,6 +149,26 @@ public interface PublicationRepository extends JpaRepository<PublicationEntity, 
            "AND p.created >= :startOfDay ORDER BY p.viewsCount DESC")
     List<PublicationEntity> findTopByOrderByViewsCountDesc(
         @Param("startOfDay") Instant startOfDay, Pageable pageable);
+
+    /** Public posts (PUBLISHED + EDITED), all-time — sidebar “Най-гледани / Най-коментирани”. */
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE " +
+           "(p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           " OR p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED) " +
+           "ORDER BY p.viewsCount DESC")
+    List<PublicationEntity> findTopViewedPublic(Pageable pageable);
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author WHERE " +
+           "(p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           " OR p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED) " +
+           "ORDER BY p.commentsCount DESC")
+    List<PublicationEntity> findTopCommentedPublic(Pageable pageable);
+
+    @Query("SELECT p FROM PublicationEntity p JOIN FETCH p.author a WHERE " +
+           "a.role = smolyanVote.smolyanVote.models.enums.UserRole.ADMIN AND " +
+           "(p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.PUBLISHED " +
+           " OR p.status = smolyanVote.smolyanVote.models.enums.PublicationStatus.EDITED) " +
+           "ORDER BY p.created DESC")
+    List<PublicationEntity> findLatestFromAdmin(Pageable pageable);
 
     long countByAuthorAndCreatedAfter(UserEntity author, Instant created);
 

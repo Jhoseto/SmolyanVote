@@ -185,6 +185,11 @@ public class CommentsController {
             @Valid @RequestBody CommentInputDto request) {
         try {
             UserEntity user = userService.getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of(
+                        "success", false,
+                        "message", "Трябва да сте влезли, за да редактирате коментар."));
+            }
             CommentsEntity updatedComment = commentsService.updateComment(commentId, request.getText(), user);
             CommentOutputDto commentDto = commentsService.convertEntityToDto(updatedComment);
             Map<String, Object> response = new HashMap<>();
@@ -192,10 +197,15 @@ public class CommentsController {
             response.put("comment", commentDto);
             response.put("message", "Коментарът е обновен успешно");
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(errorResponse);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
-            errorResponse.put("error", "Грешка при обновяването на коментар: " + e.getMessage());
+            errorResponse.put("message", "Грешка при обновяването на коментар: " + e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
@@ -208,15 +218,25 @@ public class CommentsController {
     public ResponseEntity<Map<String, Object>> deleteComment(@PathVariable Long commentId) {
         try {
             UserEntity user = userService.getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of(
+                        "success", false,
+                        "message", "Трябва да сте влезли, за да изтриете коментар."));
+            }
             commentsService.deleteComment(commentId, user);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Коментарът е изтрит успешно");
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(errorResponse);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
-            errorResponse.put("error", "Грешка при изтриването на коментар: " + e.getMessage());
+            errorResponse.put("message", "Грешка при изтриването на коментар: " + e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }
     }

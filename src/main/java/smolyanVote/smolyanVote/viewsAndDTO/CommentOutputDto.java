@@ -106,6 +106,7 @@ public class CommentOutputDto {
     public boolean isEdited() { return edited; }
     public void setEdited(boolean edited) { this.edited = edited; }
 
+    @JsonProperty("canEdit")
     public boolean isCanEdit() { return canEdit; }
     public void setCanEdit(boolean canEdit) { this.canEdit = canEdit; }
 

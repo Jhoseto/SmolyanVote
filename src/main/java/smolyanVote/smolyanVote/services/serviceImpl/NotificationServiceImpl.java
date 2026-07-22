@@ -64,10 +64,15 @@ public class NotificationServiceImpl implements NotificationService {
     public void notifyComment(UserEntity author, UserEntity commenter, String entityType, Long entityId) {
         if (isSelf(author, commenter)) return;
 
+        String actionUrl = buildUrl(entityType, entityId);
+        if ("PUBLICATION".equalsIgnoreCase(entityType) && actionUrl != null && !actionUrl.isBlank()) {
+            actionUrl = actionUrl + (actionUrl.contains("?") ? "&" : "?") + "focus=comments";
+        }
+
         create(author, "COMMENT",
                 commenter.getUsername() + " коментира вашето съдържание",
                 commenter.getUsername(), commenter.getImageUrl(),
-                entityType, entityId, buildUrl(entityType, entityId));
+                entityType, entityId, actionUrl);
     }
 
     @Override
@@ -99,7 +104,7 @@ public class NotificationServiceImpl implements NotificationService {
                     }
                     
                     if (entityType != null && entityId != null) {
-                        return buildUrl(entityType, entityId) + "#comment-" + commentId;
+                        return withCommentFocus(buildUrl(entityType, entityId), commentId);
                     }
                     return "#comment-" + commentId; // Fallback
                 })
@@ -164,7 +169,7 @@ public class NotificationServiceImpl implements NotificationService {
                         }
                         
                         if (parentEntityType != null && parentEntityId != null) {
-                            return buildUrl(parentEntityType, parentEntityId) + "#comment-" + entityId;
+                            return withCommentFocus(buildUrl(parentEntityType, parentEntityId), entityId);
                         }
                         return "#comment-" + entityId; // Fallback
                     })
@@ -172,6 +177,15 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             return buildUrl(entityType, entityId);
         }
+    }
+
+    /** Appends focus=comments (+ hash) for publication deep-links into the social comments pane. */
+    private String withCommentFocus(String baseUrl, Long commentId) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return "#comment-" + commentId;
+        }
+        String joiner = baseUrl.contains("?") ? "&" : "?";
+        return baseUrl + joiner + "focus=comments#comment-" + commentId;
     }
 
     @Override
@@ -352,7 +366,8 @@ public class NotificationServiceImpl implements NotificationService {
         }
         
         return switch (entityType.toUpperCase()) {
-            case "PUBLICATION" -> "/publications?openModal=" + entityId;
+            // Canonical article URL + open=social so the Next client can land in the feed modal.
+            case "PUBLICATION" -> "/publications/" + entityId + "?open=social";
             case "SIMPLEEVENT", "SIMPLE_EVENT" -> "/event/" + entityId;
             case "REFERENDUM" -> "/referendum/" + entityId;
             case "MULTI_POLL", "MULTIPOLL" -> "/multipoll/" + entityId;

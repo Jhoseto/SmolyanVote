@@ -1,17 +1,27 @@
 "use client";
 
-import { parseAsInteger, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringLiteral, useQueryStates } from "nuqs";
+
+const focusParser = parseAsStringLiteral(["comments"] as const);
 
 /**
- * `?openModal={id}` deep-link (mirrors legacy `redirect:/publications?openModal=` +
- * `filtersManager.js`). Independent nuqs key from `usePublicationsFilters` — filter
- * changes never touch/clear it (MODERN_FRONTEND_PLAN §Filters sidebar "пази `openModal`").
+ * `?openModal={id}` deep-link + optional `?focus=comments`.
+ * Independent from `usePublicationsFilters`.
  */
 export function usePublicationDetailModal() {
-  const [openId, setOpenId] = useQueryState("openModal", parseAsInteger);
+  const [state, setState] = useQueryStates({
+    openModal: parseAsInteger,
+    focus: focusParser,
+  });
+
   return {
-    openId,
-    open: (id: number) => void setOpenId(id),
-    close: () => void setOpenId(null),
+    openId: state.openModal,
+    focusComments: state.focus === "comments",
+    open: (id: number, opts?: { focusComments?: boolean }) =>
+      void setState({
+        openModal: id,
+        focus: opts?.focusComments ? "comments" : null,
+      }),
+    close: () => void setState({ openModal: null, focus: null }),
   };
 }

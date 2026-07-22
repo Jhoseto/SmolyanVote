@@ -118,6 +118,40 @@ public class PublicationsController {
         return ResponseEntity.ok(PublicationsPageResponse.from(dtoPage));
     }
 
+    /**
+     * Bookmarked publications for the current user (paginated).
+     * Registered before {@code /{id}} so "bookmarked" is not parsed as an id.
+     */
+    @GetMapping("/bookmarked")
+    public ResponseEntity<?> bookmarked(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            Authentication auth) {
+        UserEntity user = currentUser(auth);
+        if (user == null) {
+            return unauthenticated();
+        }
+
+        page = Math.max(0, page);
+        size = Math.min(Math.max(1, size), 50);
+
+        List<Long> allIds = publicationService.getBookmarkedPublicationIdsByUsername(user.getUsername());
+        int total = allIds.size();
+        int from = Math.min(page * size, total);
+        int to = Math.min(from + size, total);
+        List<Long> pageIds = allIds.subList(from, to);
+
+        List<PublicationResponseDTO> content = pageIds.stream()
+                .map(publicationService::findById)
+                .filter(Objects::nonNull)
+                .map(pub -> publicationDetailService.buildPublicationResponseDTO(pub, auth))
+                .collect(Collectors.toList());
+
+        int totalPages = size == 0 ? 0 : (int) Math.ceil((double) total / size);
+        return ResponseEntity.ok(new PublicationsPageResponse(
+                content, page, size, total, totalPages, page + 1 < totalPages, page > 0));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> detail(@PathVariable Long id, Authentication auth) {
         try {

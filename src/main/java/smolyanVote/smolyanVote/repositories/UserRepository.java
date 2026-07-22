@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.repositories;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,4 +42,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     // ===== ONLINE USERS COUNT =====
     long countByOnlineStatus(int status);
+
+    @Query("SELECT u FROM UserEntity u WHERE u.onlineStatus = :status ORDER BY u.lastOnline DESC")
+    List<UserEntity> findOnlineUsers(@Param("status") int status, Pageable pageable);
 }

@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -408,6 +409,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public long getOnlineUsersCount() {
         return userRepository.countByOnlineStatus(1); // 1 = online
+    }
+
+    @Override
+    public List<UserEntity> getOnlineUsers(int limit) {
+        int size = Math.min(Math.max(limit, 1), 20);
+        return userRepository.findOnlineUsers(1, PageRequest.of(0, size));
     }
 
 }
