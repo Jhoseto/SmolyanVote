@@ -90,6 +90,12 @@ public class SignalsEntity extends BaseEntity {
     @JoinColumn(name = "resolved_by")
     private UserEntity resolvedBy;
 
+    @Column(name = "resolved_reports_escalated", nullable = false)
+    private Boolean resolvedReportsEscalated = false;
+
+    @Column(name = "resolved_report_count", nullable = false)
+    private Integer resolvedReportCount = 0;
+
     @Column(name = "comments_count", nullable = false, columnDefinition = "int default 0")
     private Integer commentsCount = 0;
 
@@ -184,6 +190,14 @@ public class SignalsEntity extends BaseEntity {
 
     public UserEntity getResolvedBy() { return resolvedBy; }
     public void setResolvedBy(UserEntity resolvedBy) { this.resolvedBy = resolvedBy; }
+
+    public Boolean getResolvedReportsEscalated() { return resolvedReportsEscalated; }
+    public void setResolvedReportsEscalated(Boolean resolvedReportsEscalated) {
+        this.resolvedReportsEscalated = resolvedReportsEscalated;
+    }
+
+    public Integer getResolvedReportCount() { return resolvedReportCount; }
+    public void setResolvedReportCount(Integer resolvedReportCount) { this.resolvedReportCount = resolvedReportCount; }
 
     public Integer getCommentsCount() {
         return commentsCount;

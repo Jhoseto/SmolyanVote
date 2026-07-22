@@ -14,6 +14,7 @@ export function useEditSignalForm(signal: Signal, onSaved?: () => void) {
   const toast = useToast();
   const { mutateAsync: updateSignal, isPending } = useUpdateSignal(signal.id);
   const [image, setImage] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   const form = useForm<SignalFormValues>({
     resolver: zodResolver(signalFormSchema),
@@ -34,6 +35,7 @@ export function useEditSignalForm(signal: Signal, onSaved?: () => void) {
         category: values.category,
         expirationDays: values.expirationDays,
         image: image ?? undefined,
+        removeImage: removeImage && !image,
       });
       toast.success("Сигналът е обновен успешно!");
       onSaved?.();
@@ -42,5 +44,5 @@ export function useEditSignalForm(signal: Signal, onSaved?: () => void) {
     }
   });
 
-  return { form, onSubmit, isPending, image, setImage };
+  return { form, onSubmit, isPending, image, setImage, removeImage, setRemoveImage };
 }

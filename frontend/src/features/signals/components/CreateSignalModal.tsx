@@ -1,34 +1,43 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Dialog } from "@base-ui/react/dialog";
+import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, ImageDropzone, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { SIGNAL_CATEGORIES } from "../data/categories";
 import { isWithinSmolyanRegion } from "../lib/geo";
+import { findDuplicateCandidates } from "../lib/findDuplicateSignals";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../schema";
 import { useCreateSignalForm } from "../hooks/useCreateSignalForm";
+import { useReverseGeocode } from "../hooks/useReverseGeocode";
+import { SIGNALS_DATASET_QUERY_KEY } from "../api";
+import { SignalModalShell, SignalFieldLabel, SignalSection, signalFieldClass } from "./SignalModalShell";
 import type { Signal } from "../types";
+import { applyPriorityTiers } from "../lib/computePriorityLevel";
 
 const LocationPickerMap = dynamic(
   () => import("./LocationPickerMap").then((m) => m.LocationPickerMap),
   {
     ssr: false,
-    loading: () => <Skeleton className="h-48 w-full rounded-[var(--radius-md)]" />,
+    loading: () => <Skeleton className="h-[200px] w-full rounded-[var(--radius-md)] sm:h-[220px]" />,
   },
 );
-
-const inputClass =
-  "w-full rounded-[var(--radius-md)] border border-border-default/60 px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-primary";
 
 interface CreateSignalModalProps {
   open: boolean;
   onClose: () => void;
   onCreated?: (signal: Signal) => void;
+  dataset?: Signal[];
 }
 
-/** Map click / image dropzone (5MB, JPG/PNG/WEBP) / category+expiration/validation/submit (MODERN_FRONTEND_PLAN §Create signal). */
-export function CreateSignalModal({ open, onClose, onCreated }: CreateSignalModalProps) {
+export function CreateSignalModal({ open, onClose, onCreated, dataset }: CreateSignalModalProps) {
+  const queryClient = useQueryClient();
+  const allSignals = useMemo(() => {
+    const cached = queryClient.getQueryData<Signal[]>(SIGNALS_DATASET_QUERY_KEY);
+    return applyPriorityTiers(dataset ?? cached ?? []);
+  }, [dataset, queryClient]);
+
   const { form, onSubmit, isPending, location, setLocation, image, setImage, cancel } = useCreateSignalForm((signal) => {
     onCreated?.(signal);
     onClose();
@@ -40,6 +49,24 @@ export function CreateSignalModal({ open, onClose, onCreated }: CreateSignalModa
   } = form;
 
   const locationValid = location ? isWithinSmolyanRegion(location.latitude, location.longitude) : true;
+  const { label: addressLabel, isLoading: isGeocoding } = useReverseGeocode(
+    location?.latitude ?? null,
+    location?.longitude ?? null,
+  );
+
+  const canSubmit = isValid && location && locationValid && !isPending;
+
+  const duplicates = useMemo(
+    () =>
+      findDuplicateCandidates(
+        allSignals,
+        watch("title"),
+        watch("category"),
+        location?.latitude ?? null,
+        location?.longitude ?? null,
+      ),
+    [allSignals, watch("title"), watch("category"), location],
+  );
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -49,95 +76,124 @@ export function CreateSignalModal({ open, onClose, onCreated }: CreateSignalModa
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-[1090] bg-black/50 backdrop-blur-[2px] transition-opacity data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
-        <Dialog.Popup className="fixed inset-0 z-[1091] flex items-start justify-center overflow-y-auto p-4 outline-none sm:items-center">
-          <div className="my-8 w-full max-w-[640px] rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-lg)] transition-all data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0">
-            <div className="flex items-center justify-between border-b border-border-default/60 p-4">
-              <Dialog.Title className="text-base font-semibold text-[color:var(--color-text-heading)]">
-                Нов сигнал
-              </Dialog.Title>
-              <Dialog.Close
-                aria-label="Затвори"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--color-text-muted)] hover:bg-[color:var(--color-surface-muted)]"
-              >
-                <i className="bi bi-x-lg" />
-              </Dialog.Close>
-            </div>
+    <SignalModalShell
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Нов сигнал"
+      subtitle="Маркирай проблема на картата и опиши го"
+      icon="bi-megaphone-fill"
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+            Отказ
+          </Button>
+          <Button type="submit" onClick={onSubmit} disabled={!canSubmit} className="shadow-[0_4px_14px_rgba(13,110,253,0.3)]">
+            {isPending ? "Подаване…" : "Подай сигнал"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5">
+        <SignalSection title="Местоположение">
+          <LocationPickerMap
+            value={location}
+            onChange={setLocation}
+            className="h-[min(36dvh,240px)] w-full overflow-hidden rounded-[var(--radius-md)] border border-border-default/30 shadow-[0_4px_20px_rgba(15,23,42,0.06)] sm:h-[220px]"
+          />
+          {location && !locationValid && (
+            <p className="flex items-start gap-1.5 rounded-[var(--radius-md)] bg-red-50 px-3 py-2 text-xs text-red-700">
+              <i className="bi bi-exclamation-circle mt-0.5 shrink-0" />
+              Местоположението трябва да е в границите на област Смолян.
+            </p>
+          )}
+          {!location && (
+            <p className="text-xs text-[color:var(--color-text-muted)]">Докоснете картата, за да маркирате проблема.</p>
+          )}
+          {location && locationValid && (
+            <p className="flex items-start gap-2 rounded-[var(--radius-md)] bg-primary-50/60 px-3 py-2 text-xs text-[color:var(--color-text-secondary)]">
+              <i className="bi bi-geo-alt mt-0.5 shrink-0 text-primary" />
+              {isGeocoding
+                ? "Определяне на адрес…"
+                : addressLabel ?? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`}
+            </p>
+          )}
+        </SignalSection>
 
-            <div className="flex flex-col gap-4 p-4 sm:p-6">
-              <LocationPickerMap value={location} onChange={setLocation} className="h-[240px] w-full overflow-hidden rounded-[var(--radius-md)]" />
-              {location && !locationValid && (
-                <p className="text-xs text-[color:var(--color-error)]">
-                  Местоположението трябва да е в границите на област Смолян. Изберете точка вътре в очертаната зона.
-                </p>
-              )}
-              {!location && <p className="text-xs text-[color:var(--color-text-muted)]">Още не сте избрали местоположение.</p>}
-
-              <div className="flex flex-col gap-1.5">
-                <input {...register("title")} maxLength={MAX_TITLE_LENGTH} placeholder="Заглавие на сигнала" className={inputClass} />
-                <div className="flex items-center justify-between">
-                  {errors.title ? <p className="text-xs text-red-600">{errors.title.message}</p> : <span />}
-                  <span className="text-xs text-[color:var(--color-text-muted)]">
-                    {watch("title").length}/{MAX_TITLE_LENGTH}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <textarea
-                  {...register("description")}
-                  rows={4}
-                  maxLength={MAX_DESCRIPTION_LENGTH}
-                  placeholder="Описание на проблема"
-                  className={cn(inputClass, "resize-none")}
-                />
-                <div className="flex items-center justify-between">
-                  {errors.description ? <p className="text-xs text-red-600">{errors.description.message}</p> : <span />}
-                  <span className="text-xs text-[color:var(--color-text-muted)]">
-                    {watch("description").length}/{MAX_DESCRIPTION_LENGTH}
-                  </span>
-                </div>
-              </div>
-
-              <select {...register("category")} className={cn(inputClass, errors.category && "border-[color:var(--color-error)]")}>
-                <option value="" disabled>
-                  Избери категория
-                </option>
-                {SIGNAL_CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
+        <SignalSection title="Детайли">
+          {duplicates.length > 0 ? (
+            <div className="rounded-[var(--radius-md)] border border-amber-200/70 bg-amber-50/80 px-3 py-2.5 text-xs text-amber-950">
+              <p className="mb-1.5 font-semibold">
+                <i className="bi bi-exclamation-triangle mr-1" />
+                Възможен дубликат наблизо
+              </p>
+              <ul className="space-y-1">
+                {duplicates.map((d) => (
+                  <li key={d.signal.id}>
+                    „{d.signal.title}“ — {(d.distanceKm * 1000).toFixed(0)} m
+                  </li>
                 ))}
-              </select>
+              </ul>
+            </div>
+          ) : null}
 
-              <select {...register("expirationDays", { valueAsNumber: true })} className={inputClass}>
-                <option value={1}>Активен 1 ден</option>
-                <option value={3}>Активен 3 дни</option>
-                <option value={7}>Активен 7 дни</option>
-              </select>
-
-              <ImageDropzone
-                files={image ? [image] : []}
-                onChange={(files) => setImage(files[0] ?? null)}
-                maxFiles={1}
-                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                maxSizeBytes={5 * 1024 * 1024}
-              />
-
-              <div className="flex items-center justify-end gap-2 border-t border-border-default/60 pt-3">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-                  Отказ
-                </Button>
-                <Button type="submit" onClick={onSubmit} disabled={isPending || !isValid || !location || !locationValid}>
-                  {isPending ? "Подаване…" : "Подай сигнал"}
-                </Button>
-              </div>
+          <div className="flex flex-col gap-1.5">
+            <SignalFieldLabel>Заглавие</SignalFieldLabel>
+            <input {...register("title")} maxLength={MAX_TITLE_LENGTH} placeholder="Кратко заглавие на проблема" className={signalFieldClass} />
+            <div className="flex items-center justify-between">
+              {errors.title ? <p className="text-xs text-red-600">{errors.title.message}</p> : <span />}
+              <span className="text-xs text-[color:var(--color-text-muted)]">
+                {watch("title").length}/{MAX_TITLE_LENGTH}
+              </span>
             </div>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+
+          <div className="flex flex-col gap-1.5">
+            <SignalFieldLabel>Описание</SignalFieldLabel>
+            <textarea
+              {...register("description")}
+              rows={4}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+              placeholder="Опиши проблема подробно — къде точно, от колко време, допълнителни детайли…"
+              className={cn(signalFieldClass, "resize-none")}
+            />
+            <div className="flex items-center justify-between">
+              {errors.description ? <p className="text-xs text-red-600">{errors.description.message}</p> : <span />}
+              <span className="text-xs text-[color:var(--color-text-muted)]">
+                {watch("description").length}/{MAX_DESCRIPTION_LENGTH}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <SignalFieldLabel htmlFor="signal-category">Категория</SignalFieldLabel>
+            <select
+              id="signal-category"
+              {...register("category")}
+              className={cn(signalFieldClass, errors.category && "border-[color:var(--color-error)]")}
+            >
+              <option value="" disabled>
+                Избери категория
+              </option>
+              {SIGNAL_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </SignalSection>
+
+        <SignalSection title="Снимка">
+          <p className="text-xs text-[color:var(--color-text-muted)]">По избор — снимката помага за по-бърза реакция.</p>
+          <ImageDropzone
+            files={image ? [image] : []}
+            onChange={(files) => setImage(files[0] ?? null)}
+            maxFiles={1}
+            acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+            maxSizeBytes={5 * 1024 * 1024}
+          />
+        </SignalSection>
+      </div>
+    </SignalModalShell>
   );
 }

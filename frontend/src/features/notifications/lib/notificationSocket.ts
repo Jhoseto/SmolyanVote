@@ -13,6 +13,7 @@ import type { NotificationDto } from "../types";
 export type SocketStatus = "idle" | "connecting" | "open" | "reconnecting" | "failed";
 
 type MessageListener = (notification: NotificationDto) => void;
+type GlobalActivityListener = (toast: { kind: string; title: string; message: string; actionUrl?: string; icon?: string }) => void;
 type StatusListener = (status: SocketStatus) => void;
 
 const BASE_DELAY_MS = 1000;
@@ -26,6 +27,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let manuallyDisconnected = true;
 
 const messageListeners = new Set<MessageListener>();
+const globalActivityListeners = new Set<GlobalActivityListener>();
 const statusListeners = new Set<StatusListener>();
 
 function setStatus(next: SocketStatus): void {
@@ -61,8 +63,20 @@ function connect(): void {
   };
   instance.onmessage = (event: MessageEvent<string>) => {
     try {
-      const data = JSON.parse(event.data) as NotificationDto;
-      messageListeners.forEach((fn) => fn(data));
+      const data = JSON.parse(event.data) as Record<string, unknown>;
+      if (data.kind === "GLOBAL_ACTIVITY") {
+        globalActivityListeners.forEach((fn) =>
+          fn({
+            kind: String(data.kind),
+            title: String(data.title ?? ""),
+            message: String(data.message ?? ""),
+            actionUrl: data.actionUrl != null ? String(data.actionUrl) : undefined,
+            icon: data.icon != null ? String(data.icon) : undefined,
+          }),
+        );
+        return;
+      }
+      messageListeners.forEach((fn) => fn(data as unknown as NotificationDto));
     } catch {
       // Malformed frame — explicit drop, not a silent success path.
     }
@@ -94,6 +108,11 @@ export function disconnectNotificationSocket(): void {
 export function onNotificationMessage(listener: MessageListener): () => void {
   messageListeners.add(listener);
   return () => messageListeners.delete(listener);
+}
+
+export function onGlobalActivityMessage(listener: GlobalActivityListener): () => void {
+  globalActivityListeners.add(listener);
+  return () => globalActivityListeners.delete(listener);
 }
 
 export function subscribeNotificationSocketStatus(listener: StatusListener): () => void {

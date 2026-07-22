@@ -75,6 +75,8 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
     Page<SignalsEntity> findByAuthorIdOrderByCreatedDesc(Long authorId, Pageable pageable);
     long countByAuthorId(Long authorId);
 
+    long countByAuthorIdAndCreatedAfter(Long authorId, Instant since);
+
     // ===== ПОПУЛЯРНИ СИГНАЛИ =====
 
     @Query("SELECT s FROM SignalsEntity s JOIN FETCH s.author WHERE s.likesCount > :minLikes ORDER BY s.likesCount DESC")

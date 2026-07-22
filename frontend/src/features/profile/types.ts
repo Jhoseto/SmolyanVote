@@ -39,7 +39,7 @@ export interface ProfileSignalItem {
   imageUrl: string | null;
   isActive: boolean;
   viewsCount: number;
-  likesCount: number;
+  priorityBoostCount: number;
   commentsCount: number;
   createdAt: string;
 }

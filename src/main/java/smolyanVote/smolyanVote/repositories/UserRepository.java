@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.UserEntity;
 
 import java.time.Instant;
@@ -45,4 +46,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Query("SELECT u FROM UserEntity u WHERE u.onlineStatus = :status ORDER BY u.lastOnline DESC")
     List<UserEntity> findOnlineUsers(@Param("status") int status, Pageable pageable);
+
+    List<UserEntity> findByRole(UserRole role);
 }

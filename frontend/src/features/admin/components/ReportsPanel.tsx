@@ -26,7 +26,7 @@ function entityPreviewHref(entityType: string, entityId: number): string | null 
   if (t.includes("REFERENDUM")) return `/referendum/${entityId}`;
   if (t.includes("MULTI")) return `/multipoll/${entityId}`;
   if (t.includes("PUBLICATION") || t.includes("POST")) return `/publications?highlight=${entityId}`;
-  if (t.includes("SIGNAL")) return `/signals?id=${entityId}`;
+  if (t.includes("SIGNAL")) return `/signals?openSignal=${entityId}`;
   if (t.includes("USER")) return `/user/id-${entityId}`;
   return null;
 }

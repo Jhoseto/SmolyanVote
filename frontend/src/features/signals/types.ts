@@ -19,7 +19,11 @@ export type SignalCategory =
   | "ACCESSIBILITY"
   | "OTHER";
 
-export type SignalSortOption = "newest" | "oldest" | "popular" | "viewed";
+export type SignalSortOption = "newest" | "oldest" | "popular" | "viewed" | "distance";
+
+export type SignalTimeFilter = "" | "today" | "week" | "month";
+
+export type PriorityTier = "low" | "medium" | "high";
 
 /** `GET/POST/PUT /api/v1/signals` — mirrors backend `SignalResponseDTO`. */
 export interface Signal {
@@ -39,11 +43,21 @@ export interface Signal {
   authorImageUrl: string | null;
   createdAt: string;
   modifiedAt: string;
-  likesCount: number;
+  priorityBoostCount: number;
   viewsCount: number;
   commentsCount: number;
-  isLiked: boolean;
+  hasBoosted: boolean;
   isOwner: boolean;
+  isResolved: boolean;
+  resolvedByUsername: string | null;
+  adminNotes: string | null;
+  isSubscribed: boolean;
+  hasReportedResolved: boolean;
+  resolvedReportCount: number;
+  /** Client-computed from per-category tertiles — not from API. */
+  priorityTier?: PriorityTier | null;
+  /** Client-computed when "near me" filter is active. */
+  distanceKm?: number | null;
 }
 
 export interface SignalsListParams {
@@ -69,11 +83,17 @@ export interface UpdateSignalPayload {
   category: SignalCategory;
   expirationDays: 1 | 3 | 7;
   image?: File;
+  removeImage?: boolean;
+}
+
+export interface ModerateSignalPayload {
+  adminNotes?: string;
+  markResolved: boolean;
 }
 
 export interface SignalReactionResponse {
-  isLiked: boolean;
-  likesCount: number;
+  hasBoosted: boolean;
+  priorityBoostCount: number;
 }
 
 export interface ApiMessageResponse {

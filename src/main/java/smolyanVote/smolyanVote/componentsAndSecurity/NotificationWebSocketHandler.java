@@ -75,6 +75,29 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /** Ephemeral toast for all connected users (any page). */
+    public void broadcastGlobalActivity(smolyanVote.smolyanVote.viewsAndDTO.GlobalActivityToastDTO toast) {
+        try {
+            String json = mapper.writeValueAsString(toast);
+            TextMessage message = new TextMessage(json);
+            sessions.forEach((username, session) -> {
+                if (session.isOpen()) {
+                    try {
+                        session.sendMessage(message);
+                    } catch (Exception e) {
+                        System.err.println("Failed global activity toast to " + username + ": " + e.getMessage());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("Failed to broadcast global activity: " + e.getMessage());
+        }
+    }
+
+    public int getOnlineSessionCount() {
+        return sessions.size();
+    }
+
     /**
      * Обновява онлайн статуса на user в базата данни
      */

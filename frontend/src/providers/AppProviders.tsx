@@ -10,6 +10,7 @@ import { CookieConsentRoot } from "@/features/cookie-consent";
 import { LoginGateModal } from "@/features/auth";
 import { PodcastMiniPlayer } from "@/features/podcast";
 import { MessengerRoot } from "@/features/messenger";
+import { GlobalActivityRoot } from "@/features/notifications/components/GlobalActivityRoot";
 
 /** Single wiring point for all client-side providers (keeps layout.tsx thin). */
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -27,6 +28,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <HeartbeatBeacon />
           <PodcastMiniPlayer />
           <MessengerRoot />
+          <GlobalActivityRoot />
         </AuthProvider>
       </QueryProvider>
     </NuqsAdapter>

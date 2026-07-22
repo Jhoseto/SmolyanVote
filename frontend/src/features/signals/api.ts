@@ -2,20 +2,11 @@ import { apiClient } from "@/lib/api/client";
 import type {
   ApiMessageResponse,
   CreateSignalPayload,
+  ModerateSignalPayload,
   Signal,
   SignalReactionResponse,
-  SignalsListParams,
   UpdateSignalPayload,
 } from "./types";
-
-function buildQuery(params: SignalsListParams): string {
-  const query = new URLSearchParams();
-  if (params.search) query.set("search", params.search);
-  if (params.category) query.set("category", params.category);
-  if (params.showExpired) query.set("showExpired", "true");
-  if (params.sort) query.set("sort", params.sort);
-  return query.toString();
-}
 
 function toFormData(payload: CreateSignalPayload | UpdateSignalPayload): FormData {
   const form = new FormData();
@@ -27,23 +18,31 @@ function toFormData(payload: CreateSignalPayload | UpdateSignalPayload): FormDat
     form.append("latitude", String(payload.latitude));
     form.append("longitude", String(payload.longitude));
   }
+  if ("removeImage" in payload && payload.removeImage) {
+    form.append("removeImage", "true");
+  }
   if (payload.image) form.append("image", payload.image);
   return form;
 }
 
+function toModerateForm(payload: ModerateSignalPayload): FormData {
+  const form = new FormData();
+  if (payload.adminNotes != null) form.append("adminNotes", payload.adminNotes);
+  form.append("markResolved", String(payload.markResolved));
+  return form;
+}
+
 /**
- * Thin wrappers over `SignalsController` — no business logic here
- * (filtering/validation lives in `SignalsService`, per-item shaping in the
- * controller's `SignalResponseDTO.from`). List returns a flat array (not a
- * page) — the map needs every matching signal at once for clustering, and
- * the list panel shares the same query (no infinite scroll for signals).
+ * Thin wrappers over `SignalsController`. The map page loads `/dataset` once;
+ * filtering/sorting/priority tiers are client-side.
  */
 export const signalsApi = {
-  list: (params: SignalsListParams) => apiClient.get<Signal[]>(`/api/v1/signals?${buildQuery(params)}`),
+  dataset: () => apiClient.get<Signal[]>("/api/v1/signals/dataset"),
 
   detail: (id: number) => apiClient.get<Signal>(`/api/v1/signals/${id}`),
 
-  liked: () => apiClient.get<number[]>("/api/v1/signals/liked"),
+  recordView: (id: number) =>
+    apiClient.post<{ viewsCount: number }>(`/api/v1/signals/${id}/view`, { anonymous: true }),
 
   create: (payload: CreateSignalPayload) =>
     apiClient.postForm<Signal>("/api/v1/signals", { body: toFormData(payload) }),
@@ -51,7 +50,18 @@ export const signalsApi = {
   update: (id: number, payload: UpdateSignalPayload) =>
     apiClient.putForm<Signal>(`/api/v1/signals/${id}`, { body: toFormData(payload) }),
 
+  moderate: (id: number, payload: ModerateSignalPayload) =>
+    apiClient.putForm<Signal>(`/api/v1/signals/${id}/moderate`, { body: toModerateForm(payload) }),
+
   remove: (id: number) => apiClient.delete<ApiMessageResponse>(`/api/v1/signals/${id}`),
 
-  like: (id: number) => apiClient.post<SignalReactionResponse>(`/api/v1/signals/${id}/like`),
+  boost: (id: number) => apiClient.post<SignalReactionResponse>(`/api/v1/signals/${id}/boost`),
+
+  subscribe: (id: number) => apiClient.post<Signal>(`/api/v1/signals/${id}/subscribe`),
+
+  unsubscribe: (id: number) => apiClient.delete<Signal>(`/api/v1/signals/${id}/subscribe`),
+
+  reportResolved: (id: number) => apiClient.post<Signal>(`/api/v1/signals/${id}/report-resolved`),
 };
+
+export const SIGNALS_DATASET_QUERY_KEY = ["signals", "dataset"] as const;

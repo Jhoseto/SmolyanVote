@@ -1,17 +1,23 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { signalDetailQueryKey } from "../hooks/useSignalDetail";
+import { SIGNALS_DATASET_QUERY_KEY } from "../api";
 import type { Signal } from "../types";
 
-/** Patches every mounted `["signals","list",...]` query + the standalone detail query — mirrors `publications/lib/feedCache.ts#patchPublicationCaches`. */
+/** Patches dataset cache + optional detail query. */
 export function patchSignalCaches(queryClient: QueryClient, id: number, patch: Partial<Signal>) {
-  queryClient.setQueriesData<Signal[]>({ queryKey: ["signals", "list"] }, (data) =>
+  queryClient.setQueryData<Signal[]>(SIGNALS_DATASET_QUERY_KEY, (data) =>
     data?.map((signal) => (signal.id === id ? { ...signal, ...patch } : signal)),
   );
   queryClient.setQueryData<Signal>(signalDetailQueryKey(id), (old) => (old ? { ...old, ...patch } : old));
 }
 
-/** DELETE — removes the signal from every mounted list query, drops the detail cache. */
+/** Prepends a newly created signal to the dataset cache. */
+export function prependSignalToDataset(queryClient: QueryClient, signal: Signal) {
+  queryClient.setQueryData<Signal[]>(SIGNALS_DATASET_QUERY_KEY, (data) => [signal, ...(data ?? [])]);
+}
+
+/** Removes the signal from dataset cache, drops detail cache. */
 export function removeSignalFromCaches(queryClient: QueryClient, id: number) {
-  queryClient.setQueriesData<Signal[]>({ queryKey: ["signals", "list"] }, (data) => data?.filter((s) => s.id !== id));
+  queryClient.setQueryData<Signal[]>(SIGNALS_DATASET_QUERY_KEY, (data) => data?.filter((s) => s.id !== id));
   queryClient.removeQueries({ queryKey: signalDetailQueryKey(id) });
 }

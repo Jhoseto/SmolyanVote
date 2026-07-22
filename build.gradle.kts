@@ -35,8 +35,6 @@ dependencies {
 	implementation("org.springframework.security:spring-security-crypto:6.4.5")
 	implementation("com.mysql:mysql-connector-j:9.2.0")
 	implementation("org.modelmapper:modelmapper:2.4.4")
-	implementation("org.webjars:sockjs-client:1.1.2")
-	implementation("org.webjars:stomp-websocket:2.3.3")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	implementation("org.springframework.boot:spring-boot-configuration-processor")
 	implementation("org.projectlombok:lombok")

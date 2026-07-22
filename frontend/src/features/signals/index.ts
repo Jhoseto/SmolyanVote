@@ -6,9 +6,12 @@ export { SignalDetailModal } from "./components/SignalDetailModal";
 export { CreateSignalModal } from "./components/CreateSignalModal";
 export { LocationPickerMap } from "./components/LocationPickerMap";
 export { DeleteSignalButton } from "./components/DeleteSignalButton";
-export { signalsApi } from "./api";
+export { SignalsInfoPanel } from "./components/SignalsInfoPanel";
+export { PriorityBadge } from "./components/PriorityBadge";
+export { signalsApi, SIGNALS_DATASET_QUERY_KEY } from "./api";
 export { useSignalsFilters } from "./hooks/useSignalsFilters";
-export { useSignalsList } from "./hooks/useSignalsList";
+export { useSignalsDataset } from "./hooks/useSignalsDataset";
+export { useDerivedSignals } from "./hooks/useDerivedSignals";
 export { useSignalDetail, signalDetailQueryKey } from "./hooks/useSignalDetail";
 export { useSignalDetailModal } from "./hooks/useSignalDetailModal";
 export { useCreateSignal } from "./hooks/useCreateSignal";
@@ -16,13 +19,18 @@ export { useCreateSignalForm, type SelectedLocation } from "./hooks/useCreateSig
 export { useUpdateSignal } from "./hooks/useUpdateSignal";
 export { useEditSignalForm } from "./hooks/useEditSignalForm";
 export { useDeleteSignal } from "./hooks/useDeleteSignal";
-export { useToggleSignalLike } from "./hooks/useToggleSignalLike";
+export { useToggleSignalBoost } from "./hooks/useToggleSignalBoost";
 export { isWithinSmolyanRegion } from "./lib/geo";
+export { filterSignals } from "./lib/filterSignals";
+export { sortSignals } from "./lib/sortSignals";
+export { computePriorityLevels, applyPriorityTiers, priorityLabel, priorityShortLabel } from "./lib/computePriorityLevel";
 export { categoryLabel, categoryIcon, SIGNAL_CATEGORIES } from "./data/categories";
 export type {
   Signal,
   SignalCategory,
   SignalSortOption,
+  SignalTimeFilter,
+  PriorityTier,
   SignalsListParams,
   CreateSignalPayload,
   UpdateSignalPayload,

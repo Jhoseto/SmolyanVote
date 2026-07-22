@@ -30,8 +30,8 @@ export function ProfileSignalCard({ signal }: { signal: ProfileSignalItem }) {
           <p className="line-clamp-2 text-sm font-semibold text-[color:var(--color-text-heading)]">{signal.title}</p>
           <div className="mt-auto flex items-center gap-3 text-xs text-[color:var(--color-text-muted)]">
             <span className="flex items-center gap-1">
-              <i className="bi bi-hand-thumbs-up" />
-              {signal.likesCount}
+              <i className="bi bi-arrow-up-circle" />
+              {signal.priorityBoostCount}
             </span>
             <span className="flex items-center gap-1">
               <i className="bi bi-chat" />

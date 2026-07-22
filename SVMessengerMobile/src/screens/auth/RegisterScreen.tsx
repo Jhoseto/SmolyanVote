@@ -68,8 +68,16 @@ export const RegisterScreen: React.FC = () => {
         email: email.toLowerCase().trim(),
         username: username.trim(),
         password,
-        realName: realName.trim() || username.trim(),
+        confirmPassword,
+        middleName: '',
+        formRenderedAt: Date.now() - 6000,
       });
+
+      const data = response.data as { success?: boolean; message?: string };
+      if (data.success === false) {
+        Alert.alert('Грешка', data.message || 'Грешка при регистрация.');
+        return;
+      }
 
       Alert.alert(
         'Успешна регистрация',
@@ -86,7 +94,9 @@ export const RegisterScreen: React.FC = () => {
       );
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.error || 'Грешка при регистрация. Моля, опитайте отново.';
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Грешка при регистрация. Моля, опитайте отново.';
       Alert.alert('Грешка', errorMessage);
     } finally {
       setLoading(false);

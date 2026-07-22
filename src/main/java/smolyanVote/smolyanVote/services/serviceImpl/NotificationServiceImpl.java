@@ -8,12 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.models.NotificationEntity;
+import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
 import smolyanVote.smolyanVote.repositories.NotificationRepository;
+import smolyanVote.smolyanVote.repositories.SignalSubscriptionRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.GlobalActivityToastDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,15 +32,18 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationWebSocketHandler webSocket;
     private final UserRepository userRepository;
     private final CommentsRepository commentsRepository;
+    private final SignalSubscriptionRepository signalSubscriptionRepository;
 
     public NotificationServiceImpl(NotificationRepository repository,
                                    NotificationWebSocketHandler webSocket,
                                    UserRepository userRepository,
-                                   CommentsRepository commentsRepository) {
+                                   CommentsRepository commentsRepository,
+                                   SignalSubscriptionRepository signalSubscriptionRepository) {
         this.repository = repository;
         this.webSocket = webSocket;
         this.userRepository = userRepository;
         this.commentsRepository = commentsRepository;
+        this.signalSubscriptionRepository = signalSubscriptionRepository;
     }
 
     @Override
@@ -428,5 +435,39 @@ public class NotificationServiceImpl implements NotificationService {
             case "MULTI_POLL", "MULTIPOLL" -> "/multipoll/" + eventId;
             default -> "/event/" + eventId;
         };
+    }
+
+    @Override
+    @Async
+    public void broadcastGlobalActivity(String title, String message, String actionUrl, String icon) {
+        webSocket.broadcastGlobalActivity(GlobalActivityToastDTO.of(title, message, actionUrl, icon));
+    }
+
+    @Override
+    @Async
+    public void notifyAdminsSignalResolvedReports(SignalsEntity signal, long reportCount) {
+        List<UserEntity> admins = userRepository.findByRole(UserRole.ADMIN);
+        String msg = reportCount + " потребителя докладват, че „" + signal.getTitle() + "“ е решен. Моля, прегледайте.";
+        String actionUrl = "/signals?openSignal=" + signal.getId();
+        for (UserEntity admin : admins) {
+            create(admin, "SIGNAL_RESOLVED_REPORTS", msg,
+                    "Система", null,
+                    "SIGNAL", signal.getId(), actionUrl);
+        }
+    }
+
+    @Override
+    @Async
+    public void notifySignalSubscribers(SignalsEntity signal, UserEntity actor, String type, String message) {
+        if (signal == null || signal.getId() == null) return;
+        String actionUrl = "/signals?openSignal=" + signal.getId();
+        String actorUsername = actor != null ? actor.getUsername() : "Система";
+        String actorImage = actor != null ? actor.getImageUrl() : null;
+
+        signalSubscriptionRepository.findBySignalId(signal.getId()).forEach(sub -> {
+            UserEntity recipient = sub.getUser();
+            if (recipient == null || isSelf(recipient, actor)) return;
+            create(recipient, type, message, actorUsername, actorImage, "SIGNAL", signal.getId(), actionUrl);
+        });
     }
 }

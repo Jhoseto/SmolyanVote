@@ -9,8 +9,10 @@ import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
+import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalEnrichment;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 public interface SignalsService {
@@ -28,7 +30,10 @@ public interface SignalsService {
                          MultipartFile image, UserEntity author);
 
     SignalsEntity update(SignalsEntity signal, String title, String description,
-                         SignalsCategory category, Integer expirationDays, MultipartFile image);
+                         SignalsCategory category, Integer expirationDays, MultipartFile image,
+                         boolean removeImage);
+
+    SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, UserEntity admin);
 
     void delete(Long id);
 
@@ -39,6 +44,9 @@ public interface SignalsService {
 
     List<SignalsEntity> findByLocationBounds(Double minLat, Double maxLat,
                                              Double minLon, Double maxLon);
+
+    /** All signals in the Smolyan region bbox — for frontend dataset (client-side filter/sort). */
+    List<SignalsEntity> findAllInRegion();
 
     // ====== СТАТИСТИКИ ======
 
@@ -63,10 +71,26 @@ public interface SignalsService {
     boolean canEditSignal(SignalsEntity signal, Authentication auth);
     boolean canDeleteSignal(SignalsEntity signal, Authentication auth);
 
+    boolean canModerateSignal(Authentication auth);
+
+    long countRecentSignalsByAuthor(Long authorId, Instant since);
+
     // ====== ПОТРЕБИТЕЛСКИ СИГНАЛИ ======
 
     Page<SignalsEntity> getSignalsByAuthor(Long authorId, Pageable pageable);
 
     @Transactional(readOnly = true)
     long getSignalsCountByAuthor(Long authorId);
+
+    // ====== SUBSCRIPTIONS & RESOLVED REPORTS ======
+
+    SignalEnrichment buildEnrichment(SignalsEntity signal, UserEntity currentUser);
+
+    java.util.Map<Long, SignalEnrichment> buildEnrichmentBatch(java.util.List<SignalsEntity> signals, UserEntity currentUser);
+
+    boolean subscribe(Long signalId, UserEntity user);
+
+    boolean unsubscribe(Long signalId, UserEntity user);
+
+    SignalsEntity reportResolved(Long signalId, UserEntity user);
 }

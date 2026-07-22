@@ -79,8 +79,9 @@ export const API_CONFIG = {
       UPDATE: '/api/mobile/profile/update', // PUT /api/mobile/profile/update
     },
     
-    // Registration
-    REGISTRATION: '/api/user/registration', // POST /api/user/registration
+    // Registration / password reset (JSON API v1)
+    REGISTRATION: '/api/v1/auth/register',
+    FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
   },
   
   // Request timeout (ms)

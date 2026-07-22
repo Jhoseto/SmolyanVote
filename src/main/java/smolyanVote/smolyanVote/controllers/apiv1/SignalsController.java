@@ -20,11 +20,16 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.utils.SignalBoostRateLimiter;
+import smolyanVote.smolyanVote.utils.SmolyanRegionValidator;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.ApiMessageResponse;
+import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalEnrichment;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalReactionResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalResponseDTO;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -42,12 +47,30 @@ public class SignalsController {
     private static final double SMOLYAN_MIN_LNG = 24.318;
     private static final double SMOLYAN_MAX_LNG = 25.168;
 
+    private static final int MAX_SIGNALS_PER_HOUR = 5;
+
     private final SignalsService signalsService;
     private final UserService userService;
+    private final SignalBoostRateLimiter boostRateLimiter;
 
-    public SignalsController(SignalsService signalsService, UserService userService) {
+    public SignalsController(SignalsService signalsService, UserService userService,
+                             SignalBoostRateLimiter boostRateLimiter) {
         this.signalsService = signalsService;
         this.userService = userService;
+        this.boostRateLimiter = boostRateLimiter;
+    }
+
+    /** Full region dataset — frontend filters/sorts client-side (one fetch). */
+    @GetMapping("/dataset")
+    public ResponseEntity<List<SignalResponseDTO>> dataset(Authentication auth) {
+        UserEntity currentUser = currentUser(auth);
+        List<SignalsEntity> signals = signalsService.findAllInRegion();
+        var enrichmentMap = signalsService.buildEnrichmentBatch(signals, currentUser);
+        List<SignalResponseDTO> result = signals.stream()
+                .map(signal -> SignalResponseDTO.from(signal,
+                        enrichmentMap.getOrDefault(signal.getId(), SignalEnrichment.guest())))
+                .toList();
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping
@@ -69,7 +92,7 @@ public class SignalsController {
 
         UserEntity currentUser = currentUser(auth);
         List<SignalResponseDTO> result = signalsPage.getContent().stream()
-                .map(signal -> SignalResponseDTO.from(signal, isLiked(signal, currentUser), currentUser != null ? currentUser.getId() : null))
+                .map(signal -> toDto(signal, currentUser))
                 .toList();
 
         return ResponseEntity.ok(result);
@@ -82,22 +105,37 @@ public class SignalsController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
         }
 
-        signalsService.incrementViews(id);
-        signal = signalsService.findById(id);
-
         UserEntity currentUser = currentUser(auth);
-        return ResponseEntity.ok(SignalResponseDTO.from(signal, isLiked(signal, currentUser),
-                currentUser != null ? currentUser.getId() : null));
+        return ResponseEntity.ok(toDto(signal, currentUser));
     }
 
-    /** Liked signal ids за текущия потребител — `AuthorSearchFilter`-стил cache (за map/list "isLiked" маркиране без re-fetch). */
-    @GetMapping("/liked")
-    public ResponseEntity<List<Long>> liked(Authentication auth) {
+    /** Record a view — called once per session from the frontend. */
+    @PostMapping("/{id}/view")
+    public ResponseEntity<?> recordView(@PathVariable Long id) {
+        SignalsEntity signal = signalsService.findById(id);
+        if (signal == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        signalsService.incrementViews(id);
+        signal = signalsService.findById(id);
+        int views = signal != null && signal.getViewsCount() != null ? signal.getViewsCount() : 0;
+        return ResponseEntity.ok(java.util.Map.of("viewsCount", views));
+    }
+
+    /** Boosted signal ids for the current user. */
+    @GetMapping("/boosted")
+    public ResponseEntity<List<Long>> boosted(Authentication auth) {
         UserEntity currentUser = currentUser(auth);
         if (currentUser == null) {
             return ResponseEntity.ok(List.of());
         }
         return ResponseEntity.ok(signalsService.getLikedSignalIdsByUser(currentUser.getUsername()));
+    }
+
+    /** @deprecated use {@link #boosted} */
+    @GetMapping("/liked")
+    public ResponseEntity<List<Long>> liked(Authentication auth) {
+        return boosted(auth);
     }
 
     @PostMapping
@@ -121,12 +159,22 @@ public class SignalsController {
             return ResponseEntity.badRequest().body(ApiMessageResponse.error(validationError));
         }
 
+        Instant oneHourAgo = Instant.now().minus(1, ChronoUnit.HOURS);
+        if (signalsService.countRecentSignalsByAuthor(currentUser.getId(), oneHourAgo) >= MAX_SIGNALS_PER_HOUR) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiMessageResponse.error("Достигнахте лимита от " + MAX_SIGNALS_PER_HOUR + " сигнала на час. Опитайте по-късно."));
+        }
+
         SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
         BigDecimal lat = new BigDecimal(latitude);
         BigDecimal lon = new BigDecimal(longitude);
 
-        SignalsEntity created = signalsService.create(title, description, categoryEnum, expirationDays, lat, lon, image, currentUser);
-        return ResponseEntity.ok(SignalResponseDTO.from(created, false, currentUser.getId()));
+        try {
+            SignalsEntity created = signalsService.create(title, description, categoryEnum, expirationDays, lat, lon, image, currentUser);
+            return ResponseEntity.ok(toDto(created, currentUser));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
@@ -137,6 +185,7 @@ public class SignalsController {
             @RequestParam String category,
             @RequestParam Integer expirationDays,
             @RequestParam(required = false) MultipartFile image,
+            @RequestParam(defaultValue = "false") boolean removeImage,
             Authentication auth) {
 
         UserEntity currentUser = currentUser(auth);
@@ -159,8 +208,37 @@ public class SignalsController {
         }
 
         SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
-        SignalsEntity updated = signalsService.update(signal, title, description, categoryEnum, expirationDays, image);
-        return ResponseEntity.ok(SignalResponseDTO.from(updated, isLiked(updated, currentUser), currentUser.getId()));
+        try {
+            SignalsEntity updated = signalsService.update(signal, title, description, categoryEnum, expirationDays, image, removeImage);
+            return ResponseEntity.ok(toDto(updated, currentUser));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/moderate")
+    public ResponseEntity<?> moderate(
+            @PathVariable Long id,
+            @RequestParam(required = false) String adminNotes,
+            @RequestParam(defaultValue = "false") boolean markResolved,
+            Authentication auth) {
+
+        UserEntity currentUser = currentUser(auth);
+        if (currentUser == null) {
+            return unauthenticated();
+        }
+        if (!signalsService.canModerateSignal(auth)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiMessageResponse.error("Само администратори могат да модерират сигнали."));
+        }
+
+        SignalsEntity signal = signalsService.findById(id);
+        if (signal == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+
+        SignalsEntity updated = signalsService.moderate(signal, adminNotes, markResolved, currentUser);
+        return ResponseEntity.ok(toDto(updated, currentUser));
     }
 
     @DeleteMapping("/{id}")
@@ -183,20 +261,86 @@ public class SignalsController {
         return ResponseEntity.ok(ApiMessageResponse.ok("Сигналът е изтрит успешно."));
     }
 
+    @PostMapping("/{id}/boost")
+    public ResponseEntity<?> boost(@PathVariable Long id, Authentication auth) {
+        return toggleBoost(id, auth);
+    }
+
+    /** @deprecated use {@link #boost} */
     @PostMapping("/{id}/like")
     public ResponseEntity<?> like(@PathVariable Long id, Authentication auth) {
+        return toggleBoost(id, auth);
+    }
+
+    private ResponseEntity<?> toggleBoost(@PathVariable Long id, Authentication auth) {
         UserEntity currentUser = currentUser(auth);
         if (currentUser == null) {
             return unauthenticated();
         }
 
-        boolean isNowLiked = signalsService.toggleLike(id, currentUser);
+        SignalsEntity existing = signalsService.findById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+
+        if (!boostRateLimiter.tryConsume(currentUser.getId())) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiMessageResponse.error("Достигнахте лимита от 10 вдигания на приоритет на минута. Опитайте по-късно."));
+        }
+
+        boolean hasBoosted = signalsService.toggleLike(id, currentUser);
         SignalsEntity signal = signalsService.findById(id);
-        return ResponseEntity.ok(new SignalReactionResponse(isNowLiked, signal.getLikesCount() != null ? signal.getLikesCount() : 0));
+        if (signal == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        return ResponseEntity.ok(new SignalReactionResponse(hasBoosted,
+                signal.getLikesCount() != null ? signal.getLikesCount() : 0));
     }
 
-    private boolean isLiked(SignalsEntity signal, UserEntity currentUser) {
-        return currentUser != null && signalsService.isLikedByUser(signal.getId(), currentUser.getUsername());
+    @PostMapping("/{id}/subscribe")
+    public ResponseEntity<?> subscribe(@PathVariable Long id, Authentication auth) {
+        UserEntity currentUser = currentUser(auth);
+        if (currentUser == null) return unauthenticated();
+        SignalsEntity existing = signalsService.findById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        signalsService.subscribe(id, currentUser);
+        SignalsEntity signal = signalsService.findById(id);
+        return ResponseEntity.ok(toDto(signal, currentUser));
+    }
+
+    @DeleteMapping("/{id}/subscribe")
+    public ResponseEntity<?> unsubscribe(@PathVariable Long id, Authentication auth) {
+        UserEntity currentUser = currentUser(auth);
+        if (currentUser == null) return unauthenticated();
+        SignalsEntity existing = signalsService.findById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        signalsService.unsubscribe(id, currentUser);
+        SignalsEntity signal = signalsService.findById(id);
+        return ResponseEntity.ok(toDto(signal, currentUser));
+    }
+
+    @PostMapping("/{id}/report-resolved")
+    public ResponseEntity<?> reportResolved(@PathVariable Long id, Authentication auth) {
+        UserEntity currentUser = currentUser(auth);
+        if (currentUser == null) return unauthenticated();
+        SignalsEntity existing = signalsService.findById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        try {
+            SignalsEntity updated = signalsService.reportResolved(id, currentUser);
+            return ResponseEntity.ok(toDto(updated, currentUser));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiMessageResponse.error(e.getMessage()));
+        }
+    }
+
+    private SignalResponseDTO toDto(SignalsEntity signal, UserEntity currentUser) {
+        return SignalResponseDTO.from(signal, signalsService.buildEnrichment(signal, currentUser));
     }
 
     private UserEntity currentUser(Authentication auth) {
@@ -238,6 +382,9 @@ public class SignalsController {
             if (lat < SMOLYAN_MIN_LAT || lat > SMOLYAN_MAX_LAT || lon < SMOLYAN_MIN_LNG || lon > SMOLYAN_MAX_LNG) {
                 return "Местоположението трябва да е в границите на област Смолян";
             }
+            if (!SmolyanRegionValidator.isWithinSmolyanRegion(lat, lon)) {
+                return "Местоположението трябва да е в границите на област Смолян (полигон)";
+            }
         } catch (NumberFormatException e) {
             return "Невалидни координати";
         }
@@ -245,7 +392,7 @@ public class SignalsController {
     }
 
     /**
-     * Update не пипа координатите (легacy паритет — `PUT /signals/{id}` няма lat/lng
+     * Update не пипа координатите (лegacy паритет — `PUT /signals/{id}` няма lat/lng
      * params). Отделен от {@link #validateSignalInput}, за да не наследи неговия
      * bbox-check с фиктивни координати ("0","0") — реален bug в legacy
      * `SignalsController#validateSignalUpdateInput`, който щеше винаги да отхвърля

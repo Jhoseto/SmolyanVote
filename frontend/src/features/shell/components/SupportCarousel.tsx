@@ -33,10 +33,10 @@ const SUPPORTERS: Supporter[] = [
   },
 ];
 
-/** Smaller cards than v1 (250×360) so the orbit reads wider. */
-const CARD_W = 180;
-const CARD_H = 270;
-const IMG_H = 140;
+/** Slightly smaller than v1 (250×360) so the orbit reads wider. */
+const CARD_W = 210;
+const CARD_H = 315;
+const IMG_H = 165;
 const STAGE_H = CARD_H + 80;
 
 function round2(n: number) {
@@ -78,37 +78,74 @@ function SupporterCard({
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-[14px] border border-black/10 bg-white/95 p-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.18)]",
-        active && "shadow-[0_18px_40px_rgba(0,0,0,0.28)] ring-2 ring-primary/25",
+        "group relative overflow-hidden rounded-[18px] border bg-gradient-to-b from-white via-white to-primary-50/40",
+        "shadow-[0_10px_30px_rgba(25,134,28,0.1),0_4px_12px_rgba(0,0,0,0.06)]",
+        "transition-[box-shadow,border-color] duration-300",
+        active
+          ? "border-primary/25 shadow-[var(--shadow-promo)] ring-1 ring-primary/20"
+          : "border-white/90",
       )}
       style={style}
     >
-      <div className="relative w-full overflow-hidden rounded-[10px]" style={{ height: `${IMG_H}px` }}>
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 h-[3px] bg-[image:var(--gradient-primary)] transition-opacity duration-300",
+          active ? "opacity-100" : "opacity-50",
+        )}
+      />
+
+      <div
+        className="relative mx-3 mt-3 overflow-hidden rounded-[14px] ring-1 ring-black/[0.06]"
+        style={{ height: `${IMG_H}px` }}
+      >
         <Image
           src="/images/web/riple.jpeg"
           alt={supporter.name}
           fill
           sizes={`${CARD_W}px`}
-          className="object-cover"
+          className={cn(
+            "object-cover transition-transform duration-700 ease-out",
+            active && "scale-[1.03]",
+          )}
           draggable={false}
         />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent" />
         {active && (
-          <span className="pointer-events-none absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+          <span className="pointer-events-none absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/25 to-transparent" />
         )}
       </div>
-      <div className="px-1.5 pt-2.5 text-center">
-        <h3 className="text-gradient-brand truncate border-b border-black/10 pb-1.5 text-[13px] font-semibold">
+
+      <div className="px-3.5 pb-4 pt-3 text-center">
+        <h3 className="font-display truncate text-[13px] font-bold tracking-[-0.01em] text-gradient-brand">
           {supporter.name}
         </h3>
-        <p className="mt-1.5 text-[11px] leading-snug text-[#333]">
+        <div
+          className={cn(
+            "mx-auto my-2 h-px w-10 bg-gradient-to-r from-transparent via-primary/35 to-transparent transition-all duration-300",
+            active && "w-14 via-primary/55",
+          )}
+        />
+        <div className="space-y-0.5">
           {supporter.lines.map((line, idx) => (
-            <span key={line}>
+            <p
+              key={line}
+              className={cn(
+                idx === 0 &&
+                  "text-[9px] font-semibold uppercase tracking-[0.07em] text-primary-700/85",
+                idx === 1 && "text-[9px] text-[color:var(--color-text-muted)]",
+                idx === 2 &&
+                  "text-[10px] leading-snug text-[color:var(--color-text-secondary)]",
+              )}
+            >
               {line}
-              {idx < supporter.lines.length - 1 && <br />}
-            </span>
+            </p>
           ))}
-        </p>
+        </div>
       </div>
+
+      {active && (
+        <div className="pointer-events-none absolute -bottom-6 -right-6 h-20 w-20 rounded-full bg-primary/10 blur-2xl" />
+      )}
     </article>
   );
 }

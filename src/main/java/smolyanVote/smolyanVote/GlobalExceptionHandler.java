@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import smolyanVote.smolyanVote.componentsAndSecurity.LegacyUiIsolationFilter;
+import smolyanVote.smolyanVote.componentsAndSecurity.BrowserRequestUtils;
 import smolyanVote.smolyanVote.config.FrontendProperties;
 
 import java.io.IOException;
@@ -118,18 +118,12 @@ public class GlobalExceptionHandler {
 
     private boolean redirectBrowser(HttpServletRequest request, HttpServletResponse response, String path)
             throws IOException {
-        if (isApiPath(request) || !LegacyUiIsolationFilter.isBrowserDocumentRequest(request)) {
+        if (BrowserRequestUtils.isApiPath(request) || !BrowserRequestUtils.isBrowserDocumentRequest(request)) {
             return false;
         }
         response.setHeader("Cache-Control", "no-store");
         response.sendRedirect(frontendProperties.origin() + path);
         return true;
-    }
-
-    private static boolean isApiPath(HttpServletRequest request) {
-        String path = LegacyUiIsolationFilter.normalizedPath(request);
-        return path.startsWith("/api/") || path.startsWith("/admin/api/") || path.startsWith("/admin/users/")
-                || path.startsWith("/admin/manage-reports/");
     }
 
     private static ResponseEntity<Map<String, Object>> json(HttpStatus status, String message) {

@@ -18,6 +18,7 @@ public final class ReputationCalculator {
         score += user.getUserEventsCount() * 10;
         score += user.getTotalVotes() * 2;
         score += user.getPublicationsCount() * 5;
+        score += user.getSignalsCount() * 8;
         return Math.max(0, score);
     }
 

@@ -20,6 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { ArrowLeftIcon, EnvelopeIcon } from '../../components/common/Icons';
 import { Colors, Typography, Spacing } from '../../theme';
 import apiClient from '../../services/api/client';
+import { API_CONFIG } from '../../config/api';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -50,7 +51,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
 
     try {
       // Call backend API for password reset
-      await apiClient.post('/api/user/forgot-password', { email });
+      await apiClient.post(API_CONFIG.ENDPOINTS.FORGOT_PASSWORD, { email });
       
       setEmailSent(true);
       Alert.alert(

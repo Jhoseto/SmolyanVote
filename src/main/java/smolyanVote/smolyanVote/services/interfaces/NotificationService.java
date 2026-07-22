@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
 
@@ -52,4 +53,10 @@ public interface NotificationService {
     void notifyNewFollower(UserEntity followed, UserEntity follower);
     void notifyUnfollow(UserEntity unfollowed, UserEntity unfollower);
     void notifyNewVote(UserEntity eventCreator, UserEntity voter, String eventType, Long eventId, String eventTitle);
+
+    void broadcastGlobalActivity(String title, String message, String actionUrl, String icon);
+
+    void notifyAdminsSignalResolvedReports(SignalsEntity signal, long reportCount);
+
+    void notifySignalSubscribers(SignalsEntity signal, UserEntity actor, String type, String message);
 }

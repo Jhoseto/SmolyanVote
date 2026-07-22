@@ -15,22 +15,32 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.SignalsCategory;
+import smolyanVote.smolyanVote.models.SignalResolvedReportEntity;
+import smolyanVote.smolyanVote.models.SignalSubscriptionEntity;
 import smolyanVote.smolyanVote.repositories.CommentVoteRepository;
 import smolyanVote.smolyanVote.repositories.CommentsRepository;
+import smolyanVote.smolyanVote.repositories.SignalResolvedReportRepository;
+import smolyanVote.smolyanVote.repositories.SignalSubscriptionRepository;
 import smolyanVote.smolyanVote.repositories.SignalsRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.SignalsMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.SignalsDto;
+import smolyanVote.smolyanVote.viewsAndDTO.apiv1.SignalEnrichment;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SignalsServiceImpl implements SignalsService {
@@ -42,6 +52,11 @@ public class SignalsServiceImpl implements SignalsService {
     private final CommentVoteRepository commentVoteRepository;
     private final ActivityLogService activityLogService;
     private final UserRepository userRepository;
+    private final SignalSubscriptionRepository subscriptionRepository;
+    private final SignalResolvedReportRepository resolvedReportRepository;
+    private final NotificationService notificationService;
+
+    private static final int RESOLVED_REPORT_ESCALATION_THRESHOLD = 2;
 
     @Autowired
     public SignalsServiceImpl(SignalsRepository signalsRepository,
@@ -49,7 +64,11 @@ public class SignalsServiceImpl implements SignalsService {
                               UserService userService,
                               CommentsRepository commentsRepository,
                               CommentVoteRepository commentVoteRepository,
-                              ActivityLogService activityLogService, UserRepository userRepository) {
+                              ActivityLogService activityLogService,
+                              UserRepository userRepository,
+                              SignalSubscriptionRepository subscriptionRepository,
+                              SignalResolvedReportRepository resolvedReportRepository,
+                              NotificationService notificationService) {
         this.signalsRepository = signalsRepository;
         this.imageCloudinaryService = imageCloudinaryService;
         this.userService = userService;
@@ -57,6 +76,9 @@ public class SignalsServiceImpl implements SignalsService {
         this.commentVoteRepository = commentVoteRepository;
         this.activityLogService = activityLogService;
         this.userRepository = userRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.resolvedReportRepository = resolvedReportRepository;
+        this.notificationService = notificationService;
     }
 
     // ====== ОСНОВНИ CRUD ОПЕРАЦИИ ======
@@ -109,15 +131,21 @@ public class SignalsServiceImpl implements SignalsService {
             try {
                 String imageUrl = imageCloudinaryService.saveSingleSignalImage(image, signalId);
                 signal.setImageUrl(imageUrl);
-                signalsRepository.save(signal); // Запазваме отново с imageUrl
+                signalsRepository.save(signal);
             } catch (Exception e) {
                 System.err.println("Error uploading image for signal: " + e.getMessage());
+                // Signal is saved; client may warn user to add image via edit.
             }
         }
         UserEntity user = userService.getCurrentUser();
         user.setSignalsCount(user.getSignalsCount() + 1);
         userRepository.save(user);
 
+        notificationService.broadcastGlobalActivity(
+                "Нов граждански сигнал",
+                author.getUsername() + " подаде: " + title,
+                "/signals/" + signalId,
+                "bi-megaphone-fill");
         return signal;
     }
 
@@ -126,7 +154,8 @@ public class SignalsServiceImpl implements SignalsService {
     //@LogActivity - manual Log try/catch logic
 
     public SignalsEntity update(SignalsEntity signal, String title, String description,
-                                SignalsCategory category, Integer expirationDays, MultipartFile image) {
+                                SignalsCategory category, Integer expirationDays, MultipartFile image,
+                                boolean removeImage) {
 
         // Запазваме старите данни ПРЕДИ промяната
         String oldTitle = signal.getTitle();
@@ -138,18 +167,28 @@ public class SignalsServiceImpl implements SignalsService {
         signal.setDescription(description);
         signal.setCategory(category);
         signal.setExpirationDays(expirationDays);
+        if (expirationDays != null) {
+            signal.setActiveUntil(Instant.now().plus(expirationDays, ChronoUnit.DAYS));
+        }
         signal.setModified(Instant.now());
+
+        if (removeImage) {
+            deleteSignalImageIfPresent(signal);
+            signal.setImageUrl(null);
+        }
 
         signalsRepository.save(signal);
         Long signalId = signal.getId();
 
         if (image != null && !image.isEmpty()) {
             try {
+                deleteSignalImageIfPresent(signal);
                 String imageUrl = imageCloudinaryService.saveSingleSignalImage(image, signalId);
                 signal.setImageUrl(imageUrl);
                 signalsRepository.save(signal);
             } catch (Exception e) {
                 System.err.println("Error uploading new image for signal: " + e.getMessage());
+                throw new IllegalStateException("Снимката не можа да се качи. Опитайте отново.");
             }
         }
 
@@ -168,6 +207,35 @@ public class SignalsServiceImpl implements SignalsService {
         }
 
         return signal;
+    }
+
+    @Override
+    @Transactional
+    public SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, UserEntity admin) {
+        if (adminNotes != null) {
+            signal.setAdminNotes(adminNotes.trim().isEmpty() ? null : adminNotes.trim());
+        }
+        boolean wasResolved = signal.getResolvedBy() != null;
+        signal.setResolvedBy(markResolved ? admin : null);
+        signal.setModified(Instant.now());
+        signalsRepository.save(signal);
+
+        if (markResolved && !wasResolved) {
+            notificationService.broadcastGlobalActivity(
+                    "Сигналът е решен",
+                    "„" + signal.getTitle() + "“ бе отбелязан като решен",
+                    "/signals/" + signal.getId(),
+                    "bi-check-circle-fill");
+            notificationService.notifySignalSubscribers(signal, admin, "SIGNAL_RESOLVED",
+                    "Сигналът „" + signal.getTitle() + "“ бе отбелязан като решен.");
+        }
+        return signal;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countRecentSignalsByAuthor(Long authorId, Instant since) {
+        return signalsRepository.countByAuthorIdAndCreatedAfter(authorId, since);
     }
 
     @Override
@@ -201,6 +269,7 @@ public class SignalsServiceImpl implements SignalsService {
             String deletedTitle = signal != null ? signal.getTitle() : "Unknown";
             String authorName = signal != null && signal.getAuthor() != null ?
                     signal.getAuthor().getUsername() : "Unknown";
+            UserEntity author = signal != null ? signal.getAuthor() : null;
 
             signalsRepository.deleteById(id);
 
@@ -215,9 +284,10 @@ public class SignalsServiceImpl implements SignalsService {
             } catch (Exception e) {
                 System.err.println("Failed to log signal deletion: " + e.getMessage());
             }
-            UserEntity user = userService.getCurrentUser();
-            user.setSignalsCount(user.getSignalsCount() - 1);
-            userRepository.save(user);
+            if (author != null) {
+                author.setSignalsCount(Math.max(0, author.getSignalsCount() - 1));
+                userRepository.save(author);
+            }
 
         } catch (Exception e) {
             System.err.println("FATAL ERROR in delete signal service:");
@@ -303,6 +373,17 @@ public class SignalsServiceImpl implements SignalsService {
         });
 
         return results;
+    }
+
+    private static final double SMOLYAN_MIN_LAT = 41.336;
+    private static final double SMOLYAN_MAX_LAT = 41.926;
+    private static final double SMOLYAN_MIN_LNG = 24.318;
+    private static final double SMOLYAN_MAX_LNG = 25.168;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SignalsEntity> findAllInRegion() {
+        return findByLocationBounds(SMOLYAN_MIN_LAT, SMOLYAN_MAX_LAT, SMOLYAN_MIN_LNG, SMOLYAN_MAX_LNG);
     }
 
     // ====== СТАТИСТИКИ ======
@@ -482,6 +563,14 @@ public class SignalsServiceImpl implements SignalsService {
                 currentUser.getRole().name().equals("ADMIN");
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canModerateSignal(Authentication auth) {
+        if (auth == null) return false;
+        UserEntity currentUser = userService.getCurrentUser();
+        return currentUser != null && "ADMIN".equals(currentUser.getRole().name());
+    }
+
     // ====== ПОТРЕБИТЕЛСКИ СИГНАЛИ ======
 
     @Override
@@ -503,6 +592,115 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     public long getSignalsCountByAuthor(Long authorId) {
         return signalsRepository.countByAuthorId(authorId);
+    }
+
+    // ====== SUBSCRIPTIONS & RESOLVED REPORTS ======
+
+    @Override
+    @Transactional(readOnly = true)
+    public SignalEnrichment buildEnrichment(SignalsEntity signal, UserEntity currentUser) {
+        Map<Long, SignalEnrichment> batch = buildEnrichmentBatch(List.of(signal), currentUser);
+        return batch.getOrDefault(signal.getId(), SignalEnrichment.guest());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, SignalEnrichment> buildEnrichmentBatch(List<SignalsEntity> signals, UserEntity currentUser) {
+        Map<Long, SignalEnrichment> result = new HashMap<>();
+        if (signals == null || signals.isEmpty()) {
+            return result;
+        }
+
+        if (currentUser == null) {
+            for (SignalsEntity signal : signals) {
+                result.put(signal.getId(), enrichmentForGuest(signal));
+            }
+            return result;
+        }
+
+        Long userId = currentUser.getId();
+        Set<Long> subscribedIds = subscriptionRepository.findByUserId(userId).stream()
+                .map(s -> s.getSignal().getId())
+                .collect(Collectors.toSet());
+        Set<Long> reportedIds = resolvedReportRepository.findByUserId(userId).stream()
+                .map(r -> r.getSignal().getId())
+                .collect(Collectors.toSet());
+        boolean isAdmin = currentUser.getRole() != null && "ADMIN".equals(currentUser.getRole().name());
+        String username = currentUser.getUsername();
+
+        for (SignalsEntity signal : signals) {
+            int count = signal.getResolvedReportCount() != null ? signal.getResolvedReportCount() : 0;
+            result.put(signal.getId(), new SignalEnrichment(
+                    isLikedByUser(signal.getId(), username),
+                    subscribedIds.contains(signal.getId()),
+                    reportedIds.contains(signal.getId()),
+                    count,
+                    userId,
+                    isAdmin));
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public boolean subscribe(Long signalId, UserEntity user) {
+        SignalsEntity signal = findById(signalId);
+        if (signal == null || user == null) {
+            throw new IllegalArgumentException("Invalid signal or user");
+        }
+        if (subscriptionRepository.existsByUserIdAndSignalId(user.getId(), signalId)) {
+            return true;
+        }
+        subscriptionRepository.save(new SignalSubscriptionEntity(user, signal));
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public boolean unsubscribe(Long signalId, UserEntity user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User required");
+        }
+        subscriptionRepository.deleteByUserIdAndSignalId(user.getId(), signalId);
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public SignalsEntity reportResolved(Long signalId, UserEntity user) {
+        SignalsEntity signal = findById(signalId);
+        if (signal == null) {
+            throw new IllegalArgumentException("Signal not found");
+        }
+        if (user == null) {
+            throw new IllegalArgumentException("User required");
+        }
+        if (signal.getResolvedBy() != null) {
+            throw new IllegalStateException("Сигналът вече е отбелязан като решен.");
+        }
+        if (resolvedReportRepository.existsByUserIdAndSignalId(user.getId(), signalId)) {
+            throw new IllegalStateException("Вече сте докладвали този сигнал като решен.");
+        }
+
+        resolvedReportRepository.save(new SignalResolvedReportEntity(user, signal));
+        int count = (signal.getResolvedReportCount() != null ? signal.getResolvedReportCount() : 0) + 1;
+        signal.setResolvedReportCount(count);
+        signal.setModified(Instant.now());
+
+        boolean shouldEscalate = count >= RESOLVED_REPORT_ESCALATION_THRESHOLD
+                && !Boolean.TRUE.equals(signal.getResolvedReportsEscalated());
+        if (shouldEscalate) {
+            signal.setResolvedReportsEscalated(true);
+            notificationService.notifyAdminsSignalResolvedReports(signal, count);
+        }
+
+        signalsRepository.save(signal);
+        return signal;
+    }
+
+    private SignalEnrichment enrichmentForGuest(SignalsEntity signal) {
+        int count = signal.getResolvedReportCount() != null ? signal.getResolvedReportCount() : 0;
+        return new SignalEnrichment(false, false, false, count, null, false);
     }
 
     // ====== ПОМОЩНИ МЕТОДИ ======
@@ -581,6 +779,13 @@ public class SignalsServiceImpl implements SignalsService {
 
         } catch (Exception e) {
             System.err.println("Error removing like: " + e.getMessage());
+        }
+    }
+
+    private void deleteSignalImageIfPresent(SignalsEntity signal) {
+        String imageUrl = signal.getImageUrl();
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            imageCloudinaryService.deleteImage(imageUrl);
         }
     }
 }

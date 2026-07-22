@@ -23,6 +23,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import smolyanVote.smolyanVote.config.FrontendProperties;
+import smolyanVote.smolyanVote.componentsAndSecurity.BrowserRequestUtils;
 import smolyanVote.smolyanVote.services.KeyGenerator;
 import smolyanVote.smolyanVote.services.serviceImpl.CustomOAuth2UserService;
 
@@ -111,6 +112,12 @@ public class ApplicationSecurityConfiguration {
                                                                 "/api/v1/events/**", "/api/v1/publications/**",
                                                                 "/api/v1/signals/**")
                                                 .permitAll()
+                                                // Коментари — публично четене за гости (сигнали/публикации са public)
+                                                .requestMatchers(HttpMethod.GET, "/api/comments/**")
+                                                .permitAll()
+                                                // View counting — public (once per session from frontend)
+                                                .requestMatchers(HttpMethod.POST, "/api/v1/signals/*/view")
+                                                .permitAll()
                                                 // Публичен профил (Фаза 7) - GET е публичен (viewing без логин, като
                                                 // legacy /user/{username}); /api/v1/users/me и PUT /me остават
                                                 // authenticated чрез generic-ия matcher по-долу
@@ -142,48 +149,29 @@ public class ApplicationSecurityConfiguration {
                                                                 "/api/v1/auth/oauth/start")
                                                 .permitAll()
                                                 .requestMatchers(
-                                                                "/svmessenger/**",
-                                                                "/", "//", "/forgotten_password", "/reset-password",
-                                                                "/user/registration",
-                                                                "/registration",
-                                                                "/register", "/about", "/login", "/viewLogin",
-                                                                "/logout", "/user/login",
-                                                                "/user/logout", "/confirm/**", "/mainEvents/**",
-                                                                "/mainEventPage", "/event",
-                                                                "/eventDetailView", "/posts", "/podcast", "/error/**",
-                                                                "/favicon.ico", "/robots.txt",
-                                                                "/sitemap.xml",
-                                                                "/heartbeat", "/search", "/contacts", "/contact",
-                                                                "/publications/**",
-                                                                "/terms-and-conditions", "/faq", "/signals/**",
-                                                                "/oauth2/**", "/login/oauth2/**")
+                                                                "/oauth2/**", "/login/oauth2/**",
+                                                                "/heartbeat", "/favicon.ico",
+                                                                "/actuator/**")
                                                 .permitAll()
-                                                // Публичен достъп до detail views (GET заявки) - за Facebook sharing и
-                                                // нелогнати потребители
-                                                .requestMatchers(HttpMethod.GET, "/event/**", "/referendum/**",
-                                                                "/multipoll/**")
-                                                .permitAll()
-                                                // Endpoints за редактиране - само за администратори (GET и POST)
-                                                .requestMatchers("/event/*/edit", "/referendum/*/edit",
-                                                                "/multipoll/*/edit")
-                                                .hasRole("ADMIN")
                                                 .requestMatchers("/admin/**", "/sockjs-node/**", "/stomp/**")
+                                                .hasRole("ADMIN")
+                                                // Signal moderation — admin only (before generic /api/v1/signals/** auth)
+                                                .requestMatchers(org.springframework.http.HttpMethod.PUT,
+                                                                "/api/v1/signals/*/moderate")
                                                 .hasRole("ADMIN")
                                                 // Гласуване и създаване изискват authentication
                                                 .requestMatchers(
-                                                                "/user/**", "/profile/update", "/userProfile",
                                                                 "/comments/**", "/api/comments/**",
                                                                 "/user/logout",
-                                                                "/user/dashboard/**",
                                                                 "/api/v1/subscriptions", "/api/v1/subscriptions/**",
                                                                 "/api/v1/users/**", "/api/v1/votes/**",
                                                                 "/api/v1/events/**", "/api/v1/publications/**",
                                                                 "/api/v1/signals/**",
-                                                                "/api/reports/**", "/api/user/**",
-                                                                "/profile/**", "/api/follow/**",
+                                                                "/api/reports/**",
+                                                                "/api/follow/**",
                                                                 "/api/notifications/**",
                                                                 "/api/svmessenger/**",
-                                                                "/api/mobile/**") // Mobile + remaining hybrid APIs
+                                                                "/api/mobile/**")
                                                 .authenticated()
                                                 .anyRequest().denyAll())
                                 .logout(logout -> logout
@@ -274,6 +262,9 @@ public class ApplicationSecurityConfiguration {
                                                                 // Next.js JWT vote writes (Idempotency-Key + Bearer;
                                                                 // Bearer matcher below also covers this — explicit for clarity)
                                                                 "/api/v1/votes/**",
+                                                                // Public view/share counters (anonymous session)
+                                                                "/api/v1/signals/*/view",
+                                                                "/api/v1/publications/*/share",
                                                                 // LiveKit call token endpoint (used by mobile app with
                                                                 // JWT)
                                                                 "/api/svmessenger/call/token")
@@ -325,37 +316,8 @@ public class ApplicationSecurityConfiguration {
         }
 
         /**
-         * Redirects browser HTML navigations from Spring Thymeleaf routes to Next.js
-         * so local manual testing uses only the modern frontend.
+         * Cookie attribute normalization for session / CSRF cookies.
          */
-        @Bean
-        public FilterRegistrationBean<LegacyUiIsolationFilter> legacyUiIsolationFilterRegistration() {
-                FilterRegistrationBean<LegacyUiIsolationFilter> registration = new FilterRegistrationBean<>();
-                registration.setFilter(new LegacyUiIsolationFilter(frontendProperties));
-                registration.addUrlPatterns("/*");
-                registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 20);
-                registration.setName("legacyUiIsolationFilter");
-                return registration;
-        }
-
-        private static boolean isApiPath(jakarta.servlet.http.HttpServletRequest request) {
-                String path = request.getRequestURI();
-                String context = request.getContextPath();
-                if (context != null && !context.isEmpty() && path.startsWith(context)) {
-                        path = path.substring(context.length());
-                }
-                return path.startsWith("/api/");
-        }
-
-        private static boolean wantsJson(jakarta.servlet.http.HttpServletRequest request) {
-                String accept = request.getHeader("Accept");
-                return accept != null && accept.contains("application/json");
-        }
-
-        private static boolean wantsBrowserHtml(jakarta.servlet.http.HttpServletRequest request) {
-                return LegacyUiIsolationFilter.isBrowserDocumentRequest(request);
-        }
-
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
@@ -391,6 +353,19 @@ public class ApplicationSecurityConfiguration {
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
+        }
+
+        private static boolean isApiPath(jakarta.servlet.http.HttpServletRequest request) {
+                return BrowserRequestUtils.isApiPath(request);
+        }
+
+        private static boolean wantsJson(jakarta.servlet.http.HttpServletRequest request) {
+                String accept = request.getHeader("Accept");
+                return accept != null && accept.contains("application/json");
+        }
+
+        private static boolean wantsBrowserHtml(jakarta.servlet.http.HttpServletRequest request) {
+                return BrowserRequestUtils.isBrowserDocumentRequest(request);
         }
 
         @Bean

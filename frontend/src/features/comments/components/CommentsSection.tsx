@@ -21,10 +21,11 @@ const SORT_OPTIONS: { value: CommentSort; label: string }[] = [
 interface CommentsSectionProps {
   entityType: CommentEntityType;
   entityId: number;
+  onCommentAdded?: () => void;
 }
 
 /** Self-contained comments block — used on event detail pages and publication modal. */
-export function CommentsSection({ entityType, entityId }: CommentsSectionProps) {
+export function CommentsSection({ entityType, entityId, onCommentAdded }: CommentsSectionProps) {
   const toast = useToast();
   const requireAuth = useRequireAuth();
   const queryClient = useQueryClient();
@@ -45,6 +46,7 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
     addComment.mutate(text, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: commentsQueryKey(entityType, entityId, sort) });
+        onCommentAdded?.();
       },
       onError: (error) => toast.error(errorMessage(error, "Коментарът не бе публикуван.")),
     });
