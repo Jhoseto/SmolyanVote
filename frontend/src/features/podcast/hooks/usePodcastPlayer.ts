@@ -7,8 +7,8 @@ import * as audio from "../lib/podcastAudioController";
 import type { PodcastEpisode } from "../types";
 
 /**
- * Single hook driving both `<PodcastPlayer/>` (full `/podcast` page) and
- * `<PodcastMiniPlayer/>` (floating widget, mounted app-wide) — both read the
+ * Single hook driving `<PodcastPlayer/>` (full `/podcast` page) and
+ * `<PodcastMiniPlayer/>` (app-wide dock, mounted in `AppProviders`) — both read the
  * same module-singleton `<audio>` element, so switching between them never
  * restarts playback (MODERN_FRONTEND_PLAN §Фаза 6).
  */
@@ -20,6 +20,7 @@ export function usePodcastPlayer() {
   const duration = usePodcastPlayerStore((s) => s.duration);
   const volume = usePodcastPlayerStore((s) => s.volume);
   const isMuted = usePodcastPlayerStore((s) => s.isMuted);
+  const playbackRate = usePodcastPlayerStore((s) => s.playbackRate);
 
   // Registers "what plays next" for the audio element's native `ended` event —
   // keeps the controller module free of a TanStack Query dependency.
@@ -61,11 +62,14 @@ export function usePodcastPlayer() {
     duration,
     volume,
     isMuted,
+    playbackRate,
     playEpisode,
     togglePlay: audio.togglePlay,
     seekTo: audio.seekTo,
     setVolume: audio.setVolume,
     toggleMute: audio.toggleMute,
+    cyclePlaybackRate: audio.cyclePlaybackRate,
+    setPlaybackRate: audio.setPlaybackRate,
     playNext,
     playPrevious,
     close: audio.closePlayer,

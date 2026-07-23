@@ -5,4 +5,7 @@ export { podcastApi } from "./api";
 export { useEpisodesList } from "./hooks/useEpisodesList";
 export { usePodcastPlayer } from "./hooks/usePodcastPlayer";
 export { usePodcastSubscription } from "./hooks/usePodcastSubscription";
+export { usePodcastFilters } from "./hooks/usePodcastFilters";
+export { useFilteredEpisodes, usePodcastInsights } from "./hooks/useFilteredEpisodes";
 export type { PodcastEpisode, PodcastSubscriptionType, SubscriptionResponse } from "./types";
+export type { PodcastSortOption } from "./hooks/usePodcastFilters";

@@ -24,6 +24,6 @@ export function useDeepLinkAutoplay(): void {
 
     consumed.current = true;
     loadEpisode(episode, true);
-    void setEpisodeId(null);
+    void setEpisodeId(null, { history: "replace" });
   }, [episodeId, episodes, setEpisodeId]);
 }

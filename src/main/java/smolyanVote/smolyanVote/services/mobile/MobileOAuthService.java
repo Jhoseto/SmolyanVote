@@ -14,6 +14,7 @@ import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.serviceImpl.OAuthAvatarSyncService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ public class MobileOAuthService {
 
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
+    private final OAuthAvatarSyncService oauthAvatarSyncService;
     private final RestTemplate restTemplate;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id:}")
@@ -44,9 +46,11 @@ public class MobileOAuthService {
 
     public MobileOAuthService(
             UserRepository userRepository,
-            ActivityLogService activityLogService) {
+            ActivityLogService activityLogService,
+            OAuthAvatarSyncService oauthAvatarSyncService) {
         this.userRepository = userRepository;
         this.activityLogService = activityLogService;
+        this.oauthAvatarSyncService = oauthAvatarSyncService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -113,9 +117,11 @@ public class MobileOAuthService {
                 throw new Exception("Facebook account does not have email. Please use an account with email.");
             }
 
-            // Извличане на picture URL - Използваме директен Graph API URL, който е
-            // по-надежден
-            String pictureUrl = String.format("https://graph.facebook.com/%s/picture?type=large", userInfo.get("id"));
+            // Извличане на picture URL — предпочитаме директния CDN URL от Graph API
+            String pictureUrl = extractFacebookPictureUrl(userInfo);
+            if (pictureUrl == null && userInfo.get("id") != null) {
+                pictureUrl = String.format("https://graph.facebook.com/%s/picture?type=large", userInfo.get("id"));
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("id", userInfo.get("id"));
@@ -163,10 +169,7 @@ public class MobileOAuthService {
             if (name != null && !name.isEmpty()) {
                 user.setRealName(name);
             }
-            if (pictureUrl != null && !pictureUrl.isEmpty() &&
-                    (user.getImageUrl() == null || user.getImageUrl().isEmpty())) {
-                user.setImageUrl(pictureUrl);
-            }
+            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl);
         } else {
             // Създаване на нов user
             user = new UserEntity();
@@ -175,7 +178,7 @@ public class MobileOAuthService {
             user.setEmail(email)
                     .setUsername(username)
                     .setRealName(name != null ? name : "")
-                    .setImageUrl(pictureUrl != null ? pictureUrl : "")
+                    .setImageUrl("")
                     .setAuthProvider(provider)
                     .setProviderId(providerId)
                     .setStatus(UserStatusEnum.ACTIVE)
@@ -183,6 +186,7 @@ public class MobileOAuthService {
                     .setPassword(null);
 
             user.setCreated(Instant.now());
+            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl);
             isNewUser = true;
         }
 
@@ -250,5 +254,18 @@ public class MobileOAuthService {
         }
 
         return finalUsername;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String extractFacebookPictureUrl(Map<String, Object> userInfo) {
+        Object picture = userInfo.get("picture");
+        if (!(picture instanceof Map<?, ?> pictureMap)) {
+            return null;
+        }
+        Object data = pictureMap.get("data");
+        if (data instanceof Map<?, ?> dataMap && dataMap.get("url") instanceof String url) {
+            return url;
+        }
+        return null;
     }
 }

@@ -34,10 +34,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final ActivityLogService activityLogService;
+    private final OAuthAvatarSyncService oauthAvatarSyncService;
 
-    public CustomOAuth2UserService(UserRepository userRepository, ActivityLogService activityLogService) {
+    public CustomOAuth2UserService(UserRepository userRepository,
+                                  ActivityLogService activityLogService,
+                                  OAuthAvatarSyncService oauthAvatarSyncService) {
         this.userRepository = userRepository;
         this.activityLogService = activityLogService;
+        this.oauthAvatarSyncService = oauthAvatarSyncService;
     }
 
     @Override
@@ -152,12 +156,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setEmail(normalizedEmail)
                 .setUsername(username)
                 .setRealName(realName)
-                .setImageUrl(oAuth2UserInfo.getImageUrl() != null ? oAuth2UserInfo.getImageUrl() : "")
+                .setImageUrl("")
                 .setAuthProvider(authProvider)
                 .setProviderId(oAuth2UserInfo.getId())
                 .setStatus(UserStatusEnum.ACTIVE) // OAuth потребителите са автоматично активни
                 .setRole(UserRole.USER)
                 .setPassword(null); // OAuth потребителите нямат парола
+
+        oauthAvatarSyncService.applyProviderAvatar(user, oAuth2UserInfo.getImageUrl());
 
         user.setCreated(Instant.now());
         user.setModified(Instant.now());
@@ -171,11 +177,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setRealName(oAuth2UserInfo.getName());
         }
 
-        // Обновяване на профилна снимка, ако е празна или се е променила
-        if ((user.getImageUrl() == null || user.getImageUrl().isEmpty()) &&
-                oAuth2UserInfo.getImageUrl() != null && !oAuth2UserInfo.getImageUrl().isEmpty()) {
-            user.setImageUrl(oAuth2UserInfo.getImageUrl());
-        }
+        oauthAvatarSyncService.applyProviderAvatar(user, oAuth2UserInfo.getImageUrl());
 
         user.setModified(Instant.now());
     }
@@ -389,34 +391,36 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         @Override
         public String getImageUrl() {
-            // Най-надеждният начин за получаване на Facebook снимка е чрез директен Graph
-            // API URL с ID-то
+            String fromPicture = extractPictureUrlFromAttributes();
+            if (fromPicture != null && !fromPicture.isEmpty()) {
+                return fromPicture;
+            }
+
             String facebookId = getId();
             if (facebookId != null && !facebookId.isEmpty()) {
                 return "https://graph.facebook.com/" + facebookId + "/picture?type=large";
             }
 
-            // Fallback: опит за извличане от атрибутите, ако случайно ID липсва
+            return null;
+        }
+
+        private String extractPictureUrlFromAttributes() {
             try {
-                if (attributes.containsKey("picture")) {
-                    Object pictureAttribute = attributes.get("picture");
-                    if (pictureAttribute instanceof Map) {
-                        Map<?, ?> pictureObj = (Map<?, ?>) pictureAttribute;
-                        if (pictureObj.containsKey("data")) {
-                            Object dataAttribute = pictureObj.get("data");
-                            if (dataAttribute instanceof Map) {
-                                Map<?, ?> dataObj = (Map<?, ?>) dataAttribute;
-                                if (dataObj.containsKey("url")) {
-                                    return (String) dataObj.get("url");
-                                }
-                            }
-                        }
-                    } else if (pictureAttribute instanceof String) {
-                        return (String) pictureAttribute;
+                if (!attributes.containsKey("picture")) {
+                    return null;
+                }
+                Object pictureAttribute = attributes.get("picture");
+                if (pictureAttribute instanceof Map<?, ?> pictureObj && pictureObj.containsKey("data")) {
+                    Object dataAttribute = pictureObj.get("data");
+                    if (dataAttribute instanceof Map<?, ?> dataObj && dataObj.get("url") instanceof String url) {
+                        return url;
                     }
                 }
-            } catch (Exception e) {
-                // Ignore parsing errors
+                if (pictureAttribute instanceof String url) {
+                    return url;
+                }
+            } catch (Exception ignored) {
+                // fall through to Graph API URL
             }
             return null;
         }

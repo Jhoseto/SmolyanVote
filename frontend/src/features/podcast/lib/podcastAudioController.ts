@@ -1,4 +1,5 @@
 import { podcastApi } from "../api";
+import { syncPodcastWaveform } from "./podcastWaveformController";
 import { usePodcastPlayerStore } from "../store/podcastPlayerStore";
 import { hasListenedThisSession, markEpisodeListened } from "./listenTracking";
 import type { PodcastEpisode } from "../types";
@@ -19,6 +20,33 @@ import type { PodcastEpisode } from "../types";
 
 let audioEl: HTMLAudioElement | null = null;
 let autoAdvanceProvider: (() => PodcastEpisode | null) | null = null;
+
+function isPlayInterrupted(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { name?: string; message?: string };
+  return (
+    err.name === "AbortError" ||
+    err.name === "NotAllowedError" ||
+    /interrupted by a new load request/i.test(err.message ?? "")
+  );
+}
+
+function safePlay(audio: HTMLAudioElement): void {
+  const attempt = () => {
+    void audio.play().catch((error) => {
+      if (!isPlayInterrupted(error)) {
+        console.warn("[Podcast] play failed:", error);
+      }
+    });
+  };
+
+  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    attempt();
+    return;
+  }
+
+  audio.addEventListener("canplay", attempt, { once: true });
+}
 
 function getAudio(): HTMLAudioElement {
   if (audioEl) return audioEl;
@@ -59,7 +87,9 @@ export function loadEpisode(episode: PodcastEpisode, autoplay = true): void {
   const store = usePodcastPlayerStore.getState();
 
   if (store.currentEpisode?.id !== episode.id) {
+    audio.pause();
     audio.src = episode.audioUrl;
+    audio.playbackRate = store.playbackRate;
     store.setCurrentEpisode(episode);
     store.setProgress(0, episode.durationSeconds ?? 0);
 
@@ -71,11 +101,11 @@ export function loadEpisode(episode: PodcastEpisode, autoplay = true): void {
     }
   }
 
-  if (autoplay) void audio.play();
+  if (autoplay) safePlay(audio);
 }
 
 export function play(): void {
-  void getAudio().play();
+  safePlay(getAudio());
 }
 
 export function pause(): void {
@@ -84,7 +114,7 @@ export function pause(): void {
 
 export function togglePlay(): void {
   const audio = getAudio();
-  if (audio.paused) void audio.play();
+  if (audio.paused) safePlay(audio);
   else audio.pause();
 }
 
@@ -107,11 +137,29 @@ export function toggleMute(): void {
   usePodcastPlayerStore.getState().setMuted(audio.muted);
 }
 
+const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2] as const;
+
+export function cyclePlaybackRate(): void {
+  const audio = getAudio();
+  const current = usePodcastPlayerStore.getState().playbackRate;
+  const idx = PLAYBACK_RATES.indexOf(current as (typeof PLAYBACK_RATES)[number]);
+  const next = PLAYBACK_RATES[(idx + 1) % PLAYBACK_RATES.length];
+  audio.playbackRate = next;
+  usePodcastPlayerStore.getState().setPlaybackRate(next);
+}
+
+export function setPlaybackRate(rate: number): void {
+  const audio = getAudio();
+  audio.playbackRate = rate;
+  usePodcastPlayerStore.getState().setPlaybackRate(rate);
+}
+
 export function closePlayer(): void {
   const audio = getAudio();
   audio.pause();
   audio.removeAttribute("src");
   audio.load();
+  syncPodcastWaveform(undefined);
   usePodcastPlayerStore.getState().setCurrentEpisode(null);
   usePodcastPlayerStore.getState().setProgress(0, 0);
 }

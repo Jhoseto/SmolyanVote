@@ -6,6 +6,9 @@ public interface ImageCloudinaryService {
 
     String saveUserImage(MultipartFile file, String username);
 
+    /** Download a trusted OAuth provider avatar and store it in Cloudinary. */
+    String saveUserImageFromUrl(String imageUrl, String username);
+
     String saveSingleImage(MultipartFile file, Long eventId);
     String saveSingleSignalImage(MultipartFile file, Long signalId);
 

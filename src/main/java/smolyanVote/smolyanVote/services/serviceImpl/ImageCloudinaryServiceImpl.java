@@ -13,9 +13,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
+
+    private static final Pattern TRUSTED_OAUTH_AVATAR_HOST = Pattern.compile(
+            "(googleusercontent\\.com|graph\\.facebook\\.com|fbcdn\\.net|platform-lookaside\\.fbsbx\\.com)",
+            Pattern.CASE_INSENSITIVE);
 
     private final Cloudinary cloudinary;
     private final ImageModerationService imageModerationService;
@@ -37,6 +42,19 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
     public String saveUserImage(MultipartFile file, String username) {
         String publicId = "users/user_" + username + "/" + UUID.randomUUID();
         return uploadImage(file, publicId, "smolyanVote/users/user_" + username, false);
+    }
+
+    @Override
+    public String saveUserImageFromUrl(String imageUrl, String username) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new IllegalArgumentException("imageUrl is required");
+        }
+        if (!TRUSTED_OAUTH_AVATAR_HOST.matcher(imageUrl).find()) {
+            throw new IllegalArgumentException("Untrusted OAuth avatar URL");
+        }
+
+        String publicId = "users/user_" + username + "/" + UUID.randomUUID();
+        return uploadRemoteImage(imageUrl.trim(), publicId, "smolyanVote/users/user_" + username);
     }
 
     // 🌟 Метод за качване на снимка на събитие (с воден знак)
@@ -87,6 +105,30 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
     }
 
 
+
+    @SuppressWarnings("unchecked")
+    private String uploadRemoteImage(String remoteUrl, String publicId, String folder) {
+        try {
+            Transformation transformation = new Transformation()
+                    .width(512)
+                    .height(512)
+                    .crop("fill")
+                    .gravity("face")
+                    .quality("auto")
+                    .fetchFormat("auto");
+
+            Map<String, Object> uploadOptions = ObjectUtils.asMap(
+                    "public_id", publicId,
+                    "folder", folder,
+                    "transformation", transformation
+            );
+
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(remoteUrl, uploadOptions);
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to import OAuth avatar into Cloudinary", e);
+        }
+    }
 
     // 🌟 Общ метод за качване на изображение в Cloudinary
     @SuppressWarnings("unchecked")

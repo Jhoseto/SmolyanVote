@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { PodcastPlayer } from "@/features/podcast";
 
 export const metadata: Metadata = {
-  title: "SmolyanVote - Подкаст",
-  description: "Разговори за живота в Смолян — слушай епизодите на подкаста на SmolyanVote.",
+  title: "SmolyanVote Studio — Подкаст",
+  description:
+    "SmolyanVote Studio — модерен подкаст за Смолян. Слушай популярни и нови епизоди, търси в реално време и управлявай плейъра от долния dock.",
   alternates: { canonical: "/podcast" },
 };
 

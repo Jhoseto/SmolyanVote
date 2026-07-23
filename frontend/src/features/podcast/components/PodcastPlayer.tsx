@@ -1,26 +1,21 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { Card, Skeleton } from "@/shared/ui";
-import { usePodcastPlayer } from "../hooks/usePodcastPlayer";
+import { Skeleton } from "@/shared/ui";
 import { useDeepLinkAutoplay } from "../hooks/useDeepLinkAutoplay";
+import { useFilteredEpisodes, usePodcastInsights } from "../hooks/useFilteredEpisodes";
+import { usePodcastFilters } from "../hooks/usePodcastFilters";
 import { usePodcastKeyboardShortcuts } from "../hooks/usePodcastKeyboardShortcuts";
-import { formatDuration } from "../lib/formatDuration";
-import { EpisodeList } from "./EpisodeList";
-import { PodcastSubscribeButton } from "./PodcastSubscribeButton";
+import { usePodcastPlayer } from "../hooks/usePodcastPlayer";
+import { PodcastEpisodeGridCard } from "./PodcastEpisodeGridCard";
+import { PodcastFeaturedCarousel } from "./PodcastFeaturedCarousel";
+import { PodcastHeroSection } from "./PodcastHeroSection";
+import { PodcastToolbar } from "./PodcastToolbar";
 
-const PodcastWaveform = dynamic(
-  () => import("./PodcastWaveform").then((m) => m.PodcastWaveform),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-16 w-full rounded-[var(--radius-md)]" />,
-  },
-);
-
-/** Full `/podcast` page player (MODERN_FRONTEND_PLAN §Фаза 6) — waveform, transport controls, episode list. */
+/** Full `/podcast` studio experience — hero, carousels, live filters, dock player. */
 export function PodcastPlayer() {
   useDeepLinkAutoplay();
 
+  const [filters, setFilters] = usePodcastFilters();
   const {
     episodes,
     isPending,
@@ -28,124 +23,123 @@ export function PodcastPlayer() {
     refetch,
     currentEpisode,
     isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isMuted,
     playEpisode,
     togglePlay,
-    setVolume,
-    toggleMute,
     playNext,
     playPrevious,
   } = usePodcastPlayer();
 
   usePodcastKeyboardShortcuts({ onTogglePlay: togglePlay, onNext: playNext, onPrevious: playPrevious });
 
+  const filteredEpisodes = useFilteredEpisodes(episodes, filters.q, filters.sort);
+  const { totalListens, featured, latest } = usePodcastInsights(episodes);
+  const showDualCarousels = !filters.q.trim();
+
   return (
-    <div className="mx-auto flex max-w-[900px] flex-col gap-6 px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[color:var(--color-text-heading)]">Подкаст</h1>
-          <p className="text-sm text-[color:var(--color-text-secondary)]">Разговори за живота в Смолян.</p>
-        </div>
-        <PodcastSubscribeButton />
-      </div>
+    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,#eef8ef_0%,#f7faf7_38%,#ffffff_100%)] pb-[7rem]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_20%_0%,rgba(72,162,76,0.12),transparent_55%)]" />
 
-      <Card className="flex flex-col gap-4 p-5">
-        {currentEpisode ? (
-          <>
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-[color:var(--color-surface-muted)]">
-                {currentEpisode.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- remote/Cloudinary cover art
-                  <img src={currentEpisode.imageUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <i className="bi bi-mic-fill text-3xl text-[color:var(--color-text-muted)]" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-lg font-semibold text-[color:var(--color-text-heading)]">
-                  {currentEpisode.title}
-                </p>
-                {currentEpisode.formattedPublishDate && (
-                  <p className="text-sm text-[color:var(--color-text-muted)]">{currentEpisode.formattedPublishDate}</p>
-                )}
-              </div>
-            </div>
+      <div className="relative mx-auto flex max-w-[1280px] flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
+        <PodcastHeroSection episodeCount={episodes.length} totalListens={totalListens} />
 
-            <PodcastWaveform />
+        <PodcastToolbar
+          search={filters.q}
+          sort={filters.sort}
+          resultCount={filteredEpisodes.length}
+          onSearchChange={(q) => setFilters({ q })}
+          onSortChange={(sort) => setFilters({ sort })}
+        />
 
-            <div className="flex items-center justify-between text-xs text-[color:var(--color-text-muted)]">
-              <span>{formatDuration(currentTime)}</span>
-              <span>{formatDuration(duration)}</span>
-            </div>
-
-            <div className="flex items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={playPrevious}
-                aria-label="Предишен епизод"
-                className="text-2xl text-[color:var(--color-text-secondary)] transition-colors hover:text-primary"
-              >
-                <i className="bi bi-skip-start-fill" />
-              </button>
-              <button
-                type="button"
-                onClick={togglePlay}
-                aria-label={isPlaying ? "Пауза" : "Пусни"}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-2xl text-white shadow-[var(--shadow-md)] transition-shadow hover:shadow-[var(--shadow-lg)]"
-              >
-                <i className={isPlaying ? "bi bi-pause-fill" : "bi bi-play-fill"} />
-              </button>
-              <button
-                type="button"
-                onClick={playNext}
-                aria-label="Следващ епизод"
-                className="text-2xl text-[color:var(--color-text-secondary)] transition-colors hover:text-primary"
-              >
-                <i className="bi bi-skip-end-fill" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={toggleMute}
-                aria-label={isMuted ? "Включи звука" : "Заглуши"}
-                className="text-lg text-[color:var(--color-text-secondary)] transition-colors hover:text-primary"
-              >
-                <i className={isMuted || volume === 0 ? "bi bi-volume-mute-fill" : "bi bi-volume-up-fill"} />
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="h-1.5 w-32 accent-[var(--color-primary)]"
-                aria-label="Сила на звука"
-              />
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-2 py-10 text-center text-[color:var(--color-text-muted)]">
-            <i className="bi bi-mic text-3xl" />
-            <p>Избери епизод от списъка, за да го пуснеш.</p>
+        {isPending && (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-[360px] rounded-[22px]" />
+            ))}
           </div>
         )}
-      </Card>
 
-      <EpisodeList
-        episodes={episodes}
-        isPending={isPending}
-        isError={isError}
-        onRetry={() => refetch()}
-        currentEpisodeId={currentEpisode?.id ?? null}
-        isPlaying={isPlaying}
-        onSelect={playEpisode}
-      />
+        {isError && (
+          <div className="rounded-[24px] border border-[color:var(--color-error)]/20 bg-white p-8 text-center">
+            <p className="text-[color:var(--color-text-secondary)]">Епизодите не можаха да се заредят.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="mt-4 rounded-full bg-[image:var(--gradient-primary)] px-5 py-2.5 text-sm text-white"
+            >
+              Опитай отново
+            </button>
+          </div>
+        )}
+
+        {!isPending && !isError && (
+          <>
+            {showDualCarousels ? (
+              <div className="space-y-10">
+                <PodcastFeaturedCarousel
+                  title="Популярни"
+                  subtitle="Епизодите, които общността слуша най-често."
+                  icon="bi-fire"
+                  episodes={featured}
+                  currentEpisodeId={currentEpisode?.id ?? null}
+                  isPlaying={isPlaying}
+                  onSelect={playEpisode}
+                />
+                <PodcastFeaturedCarousel
+                  title="Най-нови"
+                  subtitle="Последните разговори, пуснати от SmolyanVote Studio."
+                  icon="bi-stars"
+                  episodes={latest}
+                  currentEpisodeId={currentEpisode?.id ?? null}
+                  isPlaying={isPlaying}
+                  onSelect={playEpisode}
+                />
+              </div>
+            ) : (
+              <PodcastFeaturedCarousel
+                title="Резултати"
+                subtitle="Епизоди, които отговарят на твоето търсене."
+                icon="bi-search"
+                episodes={filteredEpisodes.slice(0, 12)}
+                currentEpisodeId={currentEpisode?.id ?? null}
+                isPlaying={isPlaying}
+                onSelect={playEpisode}
+              />
+            )}
+
+            <section className="space-y-4">
+              <div>
+                <h2 className="font-display text-[1.6rem] font-bold tracking-[-0.03em] text-[color:var(--color-text-heading)]">
+                  {filters.q.trim() ? "Намерени епизоди" : "Всички епизоди"}
+                </h2>
+                <p className="mt-1 text-[0.9rem] text-[color:var(--color-text-secondary)]">
+                  Подробни карти с описание, дата, продължителност и брой прослушвания.
+                </p>
+              </div>
+
+              {filteredEpisodes.length === 0 ? (
+                <div className="rounded-[24px] border border-black/[0.06] bg-white p-10 text-center">
+                  <i className="bi bi-search mb-3 block text-3xl text-[color:var(--color-text-muted)]" />
+                  <p className="text-[color:var(--color-text-secondary)]">
+                    Няма епизоди, които да отговарят на търсенето.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredEpisodes.map((episode) => (
+                    <PodcastEpisodeGridCard
+                      key={episode.id}
+                      episode={episode}
+                      isActive={currentEpisode?.id === episode.id}
+                      isPlaying={isPlaying}
+                      onSelect={() => playEpisode(episode)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
     </div>
   );
 }

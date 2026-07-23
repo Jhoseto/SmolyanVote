@@ -8,11 +8,13 @@ interface PodcastPlayerState {
   duration: number;
   volume: number;
   isMuted: boolean;
+  playbackRate: number;
   setCurrentEpisode: (episode: PodcastEpisode | null) => void;
   setPlaying: (isPlaying: boolean) => void;
   setProgress: (currentTime: number, duration: number) => void;
   setVolume: (volume: number) => void;
   setMuted: (isMuted: boolean) => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 /**
@@ -28,9 +30,11 @@ export const usePodcastPlayerStore = create<PodcastPlayerState>((set) => ({
   duration: 0,
   volume: 1,
   isMuted: false,
+  playbackRate: 1,
   setCurrentEpisode: (episode) => set({ currentEpisode: episode }),
   setPlaying: (isPlaying) => set({ isPlaying }),
   setProgress: (currentTime, duration) => set({ currentTime, duration }),
   setVolume: (volume) => set({ volume }),
   setMuted: (isMuted) => set({ isMuted }),
+  setPlaybackRate: (playbackRate) => set({ playbackRate }),
 }));
