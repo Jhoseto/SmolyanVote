@@ -23,7 +23,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import smolyanVote.smolyanVote.config.FrontendProperties;
-import smolyanVote.smolyanVote.componentsAndSecurity.BrowserRequestUtils;
 import smolyanVote.smolyanVote.services.KeyGenerator;
 import smolyanVote.smolyanVote.services.serviceImpl.CustomOAuth2UserService;
 

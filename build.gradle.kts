@@ -122,6 +122,8 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 			"-Djavax.net.ssl.trustStorePassword=changeit",
 		)
 	}
+	// ANSI colors in Gradle bootRun on Windows CMD
+	jvmArgs("-Dspring.output.ansi.enabled=ALWAYS")
 }
 
 

@@ -1,8 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+
+/** Lazy — tsparticles stays out of the initial hero JS chunk / LCP path. */
+const ParticlesBackground = dynamic(
+  () =>
+    import("@/shared/ui/ParticlesBackground").then((m) => m.ParticlesBackground),
+  { ssr: false },
+);
 
 /**
  * Full-bleed hero — left-aligned green typography.
@@ -17,6 +25,7 @@ const BUTTON_NUDGE_Y = -90; // бутон „Участвай сега“
 export function Hero() {
   return (
     <section className="relative flex min-h-[85vh] items-center overflow-hidden">
+      {/* 1. Background photo */}
       <Image
         src="/images/web/hero3.jpg"
         alt="Смолян"
@@ -26,15 +35,35 @@ export function Hero() {
         className="object-cover"
         style={{ objectPosition: "center top" }}
       />
-      {/* v1 light wash — not dark overlay */}
+
+      {/* 2. Soft wash under the particles (so dots stay readable) */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         style={{
           background:
             "linear-gradient(105deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.25) 45%, rgba(76,175,80,0.12) 100%)",
         }}
       />
 
+      {/* 3. Particles — left-weighted, fades out toward the right */}
+      <div
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          WebkitMaskImage:
+            "linear-gradient(90deg, #000 0%, #000 38%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.18) 72%, transparent 92%)",
+          maskImage:
+            "linear-gradient(90deg, #000 0%, #000 38%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.18) 72%, transparent 92%)",
+        }}
+      >
+        <ParticlesBackground
+          subtle
+          theme="green"
+          count={56}
+          className="absolute inset-0 h-full w-full [&_canvas]:h-full [&_canvas]:w-full"
+        />
+      </div>
+
+      {/* 4. Titles / CTA above everything */}
       <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-col px-4 md:px-8 lg:ml-[8%] lg:mr-auto lg:max-w-[55%]">
         <motion.h1
           initial={{ opacity: 0, x: -40 }}

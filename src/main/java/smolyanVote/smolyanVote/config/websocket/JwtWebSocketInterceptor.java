@@ -48,14 +48,13 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
         if (accessor != null) {
             StompCommand command = accessor.getCommand();
             if (command != null) {
-                log.info("🔍 STOMP command received: {} - Session ID: {}", command, accessor.getSessionId());
-                log.info("🔍 STOMP message type: {}", message.getClass().getSimpleName());
-                log.info("🔍 STOMP channel: {}", channel.getClass().getSimpleName());
-                
-                // Логване на всички headers за debugging
+                log.debug("STOMP command received: {} - Session ID: {}", command, accessor.getSessionId());
+                log.debug("STOMP message type: {}", message.getClass().getSimpleName());
+                log.debug("STOMP channel: {}", channel.getClass().getSimpleName());
+
                 if (command == StompCommand.CONNECT) {
-                    log.info("🔍 CONNECT command - All headers: {}", accessor.toMap());
-                    log.info("🔍 CONNECT command - Native headers: {}", accessor.toNativeHeaderMap());
+                    log.debug("CONNECT command - All headers: {}", accessor.toMap());
+                    log.debug("CONNECT command - Native headers: {}", accessor.toNativeHeaderMap());
                 }
             } else {
                 log.debug("🔍 Message received but no STOMP command - Message type: {}", message.getClass().getSimpleName());
@@ -128,20 +127,20 @@ public class JwtWebSocketInterceptor implements ChannelInterceptor {
                     // Валидация на token
                     boolean isValid = jwtTokenService.validateToken(token);
                     boolean isAccessToken = jwtTokenService.isAccessToken(token);
-                    log.info("🔐 Token validation: isValid={}, isAccessToken={}", isValid, isAccessToken);
+                    log.debug("Token validation: isValid={}, isAccessToken={}", isValid, isAccessToken);
 
                     if (isValid && isAccessToken) {
                         // Извличане на user info
                         String email = jwtTokenService.extractEmail(token);
                         Long userId = jwtTokenService.extractUserId(token);
-                        log.info("🔐 Extracted user info: email={}, userId={}", email, userId);
+                        log.debug("Extracted user info: email={}, userId={}", email, userId);
 
                         if (email != null && userId != null) {
                             Optional<UserEntity> userOptional = userRepository.findByEmail(email);
 
                             if (userOptional.isPresent()) {
                                 UserEntity user = userOptional.get();
-                                log.info("🔐 UserEntity found: ID={}, Email={}", user.getId(), user.getEmail());
+                                log.info("WebSocket authenticated: userId={}, email={}", user.getId(), user.getEmail());
 
                                     if (user.getId().equals(userId)) {
                                         // Създаване на UserPrincipal за правилно WebSocket routing

@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.componentsAndSecurity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -22,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * И за tracking на online статус на всички logged users
  */
 @Component
+@Slf4j
 public class NotificationWebSocketHandler extends TextWebSocketHandler {
 
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -41,7 +43,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         String username = getUsername(session);
         if (username != null) {
             sessions.put(username, session);
-            System.out.println("✅ Notification WS connected: " + username);
+            log.info("Notification WS connected: {}", username);
 
             // ✅ ОБНОВИ ОНЛАЙН СТАТУС В DB
             updateUserOnlineStatus(username, true);
@@ -53,7 +55,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         String username = getUsername(session);
         if (username != null) {
             sessions.remove(username);
-            System.out.println("❌ Notification WS disconnected: " + username);
+            log.info("Notification WS disconnected: {}", username);
 
             // ✅ ОБНОВИ OFFLINE СТАТУС В DB
             updateUserOnlineStatus(username, false);
@@ -70,7 +72,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                 String json = mapper.writeValueAsString(notification);
                 session.sendMessage(new TextMessage(json));
             } catch (Exception e) {
-                System.err.println("Failed to send notification: " + e.getMessage());
+                log.error("Failed to send notification: {}", e.getMessage());
             }
         }
     }
@@ -85,12 +87,12 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                     try {
                         session.sendMessage(message);
                     } catch (Exception e) {
-                        System.err.println("Failed global activity toast to " + username + ": " + e.getMessage());
+                        log.warn("Failed global activity toast to {}: {}", username, e.getMessage());
                     }
                 }
             });
         } catch (Exception e) {
-            System.err.println("Failed to broadcast global activity: " + e.getMessage());
+            log.error("Failed to broadcast global activity: {}", e.getMessage());
         }
     }
 
@@ -111,11 +113,10 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                 user.setLastOnline(Instant.now());
                 userRepository.save(user);
 
-                System.out.println("✅ User " + username + " set to " +
-                        (isOnline ? "ONLINE" : "OFFLINE") + " in DB");
+                log.debug("User {} set to {} in DB", username, isOnline ? "ONLINE" : "OFFLINE");
             }
         } catch (Exception e) {
-            System.err.println("❌ Failed to update online status for " + username + ": " + e.getMessage());
+            log.error("Failed to update online status for {}: {}", username, e.getMessage());
         }
     }
 
@@ -126,7 +127,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                 return principal.getName();
             }
         } catch (Exception e) {
-            System.err.println("Error getting username from session: " + e.getMessage());
+            log.warn("Error getting username from session: {}", e.getMessage());
         }
         return null;
     }

@@ -5,6 +5,7 @@ export { EventDetailShell } from "./components/EventDetailShell";
 export { CreateSimpleEventForm } from "./components/CreateSimpleEventForm";
 export { CreateReferendumForm } from "./components/CreateReferendumForm";
 export { CreateMultiPollForm } from "./components/CreateMultiPollForm";
+export { CreateEventShell } from "./components/CreateEventShell";
 export { DeleteEventButton } from "./components/DeleteEventButton";
 export { EditEventButton } from "./components/EditEventButton";
 export { EditSimpleEventForm } from "./components/EditSimpleEventForm";

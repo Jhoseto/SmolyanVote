@@ -5,7 +5,6 @@ import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { hapticSuccess } from "@/shared/lib/haptic";
-import { Button } from "@/shared/ui";
 import { useCastSimpleEventVote } from "../hooks/useCastSimpleEventVote";
 import { VoteResultsBars } from "./VoteResultsBars";
 
@@ -24,10 +23,10 @@ interface SimpleEventVoteWidgetProps {
   onVoted: () => void;
 }
 
-const OPTIONS: { value: "1" | "2" | "3"; icon: string; colorClass: string }[] = [
-  { value: "1", icon: "bi-hand-thumbs-up-fill", colorClass: "bg-[color:var(--color-success)]" },
-  { value: "2", icon: "bi-hand-thumbs-down-fill", colorClass: "bg-[color:var(--color-error)]" },
-  { value: "3", icon: "bi-dash-circle-fill", colorClass: "bg-[color:var(--color-text-muted)]" },
+const OPTIONS: { value: "1" | "2" | "3"; colorClass: string; iconClass: string }[] = [
+  { value: "1", colorClass: "bg-[color:var(--color-success)]", iconClass: "bi-hand-thumbs-up-fill" },
+  { value: "2", colorClass: "bg-[color:var(--color-error)]", iconClass: "bi-hand-thumbs-down-fill" },
+  { value: "3", colorClass: "bg-[color:var(--color-text-muted)]", iconClass: "bi-dash-lg" },
 ];
 
 /** Yes / No / Neutral vote — mirrors backend's 3-way `SimpleEventDetail` contract. */
@@ -75,34 +74,17 @@ export function SimpleEventVoteWidget(props: SimpleEventVoteWidgetProps) {
     percent: opt.value === "1" ? props.yesPercent : opt.value === "2" ? props.noPercent : props.neutralPercent,
     active: props.currentUserVote === opt.value,
     colorClass: opt.colorClass,
+    iconClass: opt.iconClass,
   }));
 
   return (
-    <div className="flex flex-col gap-4">
-      {!hasVoted && (
-        <div className="flex flex-wrap gap-2">
-          {OPTIONS.map((opt) => (
-            <Button
-              key={opt.value}
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => handleVote(opt.value)}
-              className="flex-1"
-            >
-              <i className={`bi ${opt.icon}`} />
-              {labels[opt.value]}
-            </Button>
-          ))}
-        </div>
-      )}
-      {hasVoted && (
-        <p className="text-sm text-[color:var(--color-text-muted)]">
-          <i className="bi bi-check-circle-fill mr-1.5 text-primary" />
-          Вече гласувахте &ldquo;{labels[props.currentUserVote as "1" | "2" | "3"]}&rdquo;.
-        </p>
-      )}
-      <VoteResultsBars rows={rows} />
-    </div>
+    <VoteResultsBars
+      rows={rows}
+      totalVotes={props.yesVotes + props.noVotes + props.neutralVotes}
+      interactive={!hasVoted}
+      disabled={isPending}
+      onSelect={(index) => handleVote(OPTIONS[index].value)}
+      hint={hasVoted ? undefined : "Изберете ЗА, ПРОТИВ или неутрална позиция"}
+    />
   );
 }

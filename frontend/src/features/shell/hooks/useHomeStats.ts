@@ -5,9 +5,9 @@ import { apiClient, ApiError } from "@/lib/api/client";
 
 export interface HomeStats {
   usersCount: number;
-  simpleEventsCount: number;
-  referendumsCount: number;
-  multiPollsCount: number;
+  eventsCount: number;
+  publicationsCount: number;
+  signalsCount: number;
 }
 
 /** Home counters from `GET /api/v1/stats/home` — public, no auth required. */

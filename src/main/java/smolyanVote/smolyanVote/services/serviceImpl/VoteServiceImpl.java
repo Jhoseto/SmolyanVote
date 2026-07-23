@@ -145,6 +145,15 @@ public class VoteServiceImpl implements VoteService {
             throw new IllegalStateException("Вече сте гласували в този референдум.");
         }
 
+        if (ipAddress != null && !ipAddress.trim().isEmpty()) {
+            long ipVoteCount = voteIpRepository.countByIpAddressAndEventIdAndEventType(
+                    ipAddress, referendumId, EVENT_TYPE_REFERENDUM);
+            if (ipVoteCount >= MAX_VOTES_PER_IP) {
+                throw new IllegalStateException(
+                        "Достигнат е лимитът от " + MAX_VOTES_PER_IP + " гласа от този IP адрес за този референдум.");
+            }
+        }
+
         int voteIndex;
         try {
             voteIndex = Integer.parseInt(voteValue);

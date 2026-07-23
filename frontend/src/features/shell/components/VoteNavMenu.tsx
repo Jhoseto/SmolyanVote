@@ -159,22 +159,21 @@ export function VoteNavMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
-          "group relative flex items-center gap-1.5 px-3 py-2 text-[0.8rem] font-light tracking-[0.3px] text-[color:var(--color-text-nav)] transition-colors hover:text-primary",
-          open && "text-primary",
+          "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary",
+          open && "bg-primary-50 text-primary",
         )}
       >
-        <i className="bi bi-hand-index-thumb text-[1.1rem]" />
+        <i
+          className={cn(
+            "bi bi-hand-index-thumb text-[1.05rem]",
+            open ? "text-primary" : "text-[color:var(--color-text-nav-muted)]",
+          )}
+        />
         <span>{label}</span>
         <i
           className={cn(
-            "bi bi-chevron-down text-[0.7rem] transition-transform duration-200",
+            "bi bi-chevron-down text-[0.65rem] transition-transform duration-200",
             open && "rotate-180",
-          )}
-        />
-        <span
-          className={cn(
-            "absolute -bottom-0.5 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-[image:var(--gradient-primary)] transition-all duration-300",
-            open ? "w-[70%]" : "w-0 group-hover:w-[70%]",
           )}
         />
       </button>

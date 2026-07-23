@@ -45,7 +45,15 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":%FRONTEND_PORT% " ^| findst
 echo   Done.
 echo.
 
-rem --- Local JVM truststore (Avast/AVG HTTPS scan breaks Google/Facebook OAuth) ---
+rem --- Clear corrupted Next.js dev cache (fixes Turbopack / @swc/helpers errors) ---
+if exist "%ROOT%frontend\.next" (
+  echo   Clearing frontend\.next cache...
+  rmdir /s /q "%ROOT%frontend\.next" 2>nul
+)
+timeout /t 2 /nobreak >nul
+echo.
+
+rem --- Local JVM truststore
 if not exist "%ROOT%config\jvm\cacerts-with-avast" (
   echo [truststore] Creating local JVM truststore for AV HTTPS scanning...
   powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\setup-local-truststore.ps1"

@@ -40,6 +40,11 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
     private final ActivityLogService activityLogService;
     private final smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler;
     private final UserService userService;
+    private final VoteIpRepository voteIpRepository;
+
+    private static final String VOTE_IP_SIMPLE = "SIMPLE_EVENT";
+    private static final String VOTE_IP_REFERENDUM = "REFERENDUM";
+    private static final String VOTE_IP_MULTI_POLL = "MULTI_POLL";
 
     @Autowired
     public DeleteEventsServiceImpl(SimpleEventRepository simpleEventRepository,
@@ -56,7 +61,10 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                                    SimpleEventServiceImpl simpleEventService,
                                    ReferendumServiceImpl referendumService,
                                    MultiPollServiceImpl multiPollService,
-                                   ActivityLogService activityLogService, smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler, UserService userService) {
+                                   ActivityLogService activityLogService,
+                                   smolyanVote.smolyanVote.scheduling.UserScheduler userScheduler,
+                                   UserService userService,
+                                   VoteIpRepository voteIpRepository) {
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
         this.voteSimpleEventRepository = voteSimpleEventRepository;
@@ -74,6 +82,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
         this.activityLogService = activityLogService;
         this.userScheduler = userScheduler;
         this.userService = userService;
+        this.voteIpRepository = voteIpRepository;
     }
 
     public EventType getEventTypeById(Long id) {
@@ -102,6 +111,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
 
         switch (type) {
             case SIMPLEEVENT:
+                voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_SIMPLE);
                 // Изтриване на гласове и коментари
                 voteSimpleEventRepository.deleteAllByEventId(eventId);
                 commentsRepository.deleteAllByEvent_Id(eventId);
@@ -119,6 +129,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                 break;
 
             case REFERENDUM:
+                voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_REFERENDUM);
                 // Изтриване на папката със снимки от Cloudinary
                 String folderPathReferendums = "smolyanVote/referendums/referendum_" + eventId;
                 imageCloudinaryService.deleteFolder(folderPathReferendums);
@@ -136,6 +147,7 @@ public class DeleteEventsServiceImpl implements DeleteEventsService {
                 break;
 
             case MULTI_POLL:
+                voteIpRepository.deleteByEventIdAndEventType(eventId, VOTE_IP_MULTI_POLL);
                 String folderPathMultiPoll = "smolyanVote/multipolls/poll_" + eventId;
                 imageCloudinaryService.deleteFolder(folderPathMultiPoll);
 

@@ -66,7 +66,7 @@
 
   /* Layout (DESIGN_BRIEF §5) */
   --container-max: min(1200px, calc(100vw - 2rem));
-  --navbar-height: 64px;
+  --navbar-height: 72px;
 
   /* Motion (DESIGN_BRIEF §9) */
   --duration-fast: 180ms;
@@ -79,13 +79,15 @@
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #19861c 0%, #48a24c 100%);
   --gradient-hero: linear-gradient(135deg, #0f7b59 0%, #4caf50 100%);
+  /* Navbar 2.0 — denser frosted glass (higher base opacity reads as "solid premium
+     glass" instead of the washed-out v1 look) + a whisper of brand tint at the edge. */
   --gradient-navbar: linear-gradient(
     180deg,
-    rgba(248, 249, 250, 0.95) 0%,
-    rgba(248, 249, 250, 0.85) 40%,
-    rgba(255, 255, 255, 0.6) 70%,
-    rgba(255, 255, 255, 0.3) 100%
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(252, 253, 252, 0.86) 55%,
+    rgba(247, 250, 248, 0.78) 100%
   );
+  --shadow-navbar-2: 0 1px 0 rgba(15, 23, 42, 0.04), 0 12px 32px -8px rgba(15, 23, 42, 0.1);
 
   /* Fonts — loaded via Google Fonts <link> in layout.tsx (browser-side) */
   --font-sans: "Inter", system-ui, sans-serif;

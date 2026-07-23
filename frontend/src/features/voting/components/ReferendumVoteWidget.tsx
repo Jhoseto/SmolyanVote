@@ -5,7 +5,6 @@ import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { hapticSuccess } from "@/shared/lib/haptic";
-import { Button } from "@/shared/ui";
 import { useCastReferendumVote } from "../hooks/useCastReferendumVote";
 import { VoteResultsBars } from "./VoteResultsBars";
 
@@ -26,6 +25,7 @@ export function ReferendumVoteWidget(props: ReferendumVoteWidgetProps) {
   const { mutate, isPending } = useCastReferendumVote();
 
   const hasVoted = props.currentUserVote !== null;
+  const totalVotes = props.votes.reduce((sum, n) => sum + n, 0);
 
   async function handleVote(optionIndex: number) {
     if (!(await requireAuth("да гласуваш"))) return;
@@ -60,30 +60,13 @@ export function ReferendumVoteWidget(props: ReferendumVoteWidgetProps) {
   }));
 
   return (
-    <div className="flex flex-col gap-4">
-      {!hasVoted && (
-        <div className="flex flex-col gap-2">
-          {props.options.map((label, index) => (
-            <Button
-              key={index}
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => handleVote(index)}
-              className="justify-start text-left"
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )}
-      {hasVoted && (
-        <p className="text-sm text-[color:var(--color-text-muted)]">
-          <i className="bi bi-check-circle-fill mr-1.5 text-primary" />
-          Вече гласувахте &ldquo;{props.options[props.currentUserVote as number]}&rdquo;.
-        </p>
-      )}
-      <VoteResultsBars rows={rows} />
-    </div>
+    <VoteResultsBars
+      rows={rows}
+      totalVotes={totalVotes}
+      interactive={!hasVoted}
+      disabled={isPending}
+      onSelect={handleVote}
+      hint={hasVoted ? undefined : "Докоснете опция, за да гласувате"}
+    />
   );
 }

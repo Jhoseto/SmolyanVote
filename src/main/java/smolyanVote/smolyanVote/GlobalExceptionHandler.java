@@ -4,10 +4,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -104,6 +106,26 @@ public class GlobalExceptionHandler {
                     .collect(Collectors.joining("; "));
         }
         return json(HttpStatus.BAD_REQUEST, details.isBlank() ? "Validation failed" : details);
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public Object handleBusinessRule(RuntimeException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        HttpStatus status = ex instanceof IllegalStateException ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+        return json(status, ex.getMessage());
+    }
+
+    @ExceptionHandler({DataIntegrityViolationException.class, UnexpectedRollbackException.class})
+    public Object handleDataIntegrity(Exception ex, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        log.warn("Data integrity failure on {}: {}", request.getRequestURI(), ex.getMessage());
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.CONFLICT, "Операцията не можа да бъде завършена поради конфликт в данните.");
     }
 
     @ExceptionHandler(Exception.class)

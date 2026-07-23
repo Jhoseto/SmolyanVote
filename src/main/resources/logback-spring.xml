@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Plain console for production (no ANSI). -->
+    <springProfile name="prod">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- Colored, readable console for local dev / bootRun. -->
+    <springProfile name="!prod">
+        <appender name="COLORED_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <withJansi>true</withJansi>
+            <encoder>
+                <pattern>%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level){ERROR=bright_red bold, WARN=bright_yellow bold, INFO=bright_green, DEBUG=bright_cyan, TRACE=magenta} %clr(%logger{36}){cyan} %clr(:){faint} %m%n%wEx</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="COLORED_CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- App code — keep visible. -->
+    <logger name="smolyanVote" level="INFO"/>
+
+    <!-- Framework noise — only warnings/errors in dev console. -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.springframework.messaging" level="WARN"/>
+    <logger name="org.springframework.web.socket.messaging" level="WARN"/>
+    <logger name="org.springframework.web.socket.config.WebSocketMessageBrokerStats" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+
+    <!-- STOMP debug spam — enable with logging.level.smolyanVote.smolyanVote.config.websocket=DEBUG -->
+    <logger name="smolyanVote.smolyanVote.config.websocket.JwtWebSocketInterceptor" level="WARN"/>
+
+</configuration>

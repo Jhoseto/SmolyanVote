@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { hapticTap } from "@/shared/lib/haptic";
@@ -39,27 +39,39 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
     openAuth("register");
   }
 
+  /** Already on home → scroll to top instead of a no-op navigation. */
+  function handleHomeNavClick(e: MouseEvent) {
+    if (pathname !== "/") return;
+    e.preventDefault();
+    hapticTap();
+    setMobileOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <nav className="fixed inset-x-0 top-0 z-[1030] w-full">
       <div
-        className="flex w-full items-center justify-center border-b border-white/20 px-3 py-2.5 shadow-[0_2px_15px_rgba(0,0,0,0.08)] backdrop-blur-[5px] sm:px-4"
+        className="flex w-full items-center justify-center border-b border-black/[0.06] px-4 py-2.5 shadow-[var(--shadow-navbar-2)] backdrop-blur-xl backdrop-saturate-150 sm:px-6 lg:px-8"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(248,249,250,0.95) 0%, rgba(248,249,250,0.85) 40%, rgba(255,255,255,0.6) 70%, rgba(255,255,255,0.3) 100%)",
+          background: "var(--gradient-navbar)",
           minHeight: "var(--navbar-height)",
         }}
       >
-        <div className="flex w-full max-w-[1400px] items-center justify-between gap-2">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        <div className="flex w-full max-w-[1440px] items-center justify-between gap-3">
+          <Link
+            href="/"
+            onClick={handleHomeNavClick}
+            className="flex shrink-0 items-center gap-2.5"
+          >
             <Image
               src="/images/logoNew.png"
               alt="SmolyanVote"
-              width={38}
-              height={38}
-              className="h-9 w-9 object-contain"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
               priority
             />
-            <span className="bg-gradient-to-r from-[#19861c] to-[#48a24c] bg-clip-text text-[1.15rem] font-bold tracking-tight text-transparent">
+            <span className="bg-gradient-to-r from-[#19861c] to-[#48a24c] bg-clip-text font-sans text-[1.25rem] font-bold tracking-tight text-transparent">
               SMOLYANVOTE
             </span>
           </Link>
@@ -74,24 +86,20 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={item.href === "/" ? handleHomeNavClick : undefined}
                   className={cn(
-                    "group relative flex items-center gap-1.5 px-2.5 py-2 text-[0.8rem] font-light tracking-[0.3px] text-[color:var(--color-text-nav)] transition-colors hover:text-primary",
-                    active && "text-primary",
+                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary",
+                    active && "bg-primary-50 text-primary",
                   )}
                 >
-                  <i className={cn("bi", item.icon, "text-[1.05rem]")} />
+                  <i className={cn("bi", item.icon, "text-[1.05rem]", active ? "text-primary" : "text-[color:var(--color-text-nav-muted)]")} />
                   <span>{t.nav[item.key]}</span>
-                  <span
-                    className={cn(
-                      "absolute -bottom-0.5 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-[image:var(--gradient-primary)] transition-all duration-300",
-                      active ? "w-[70%]" : "w-0 group-hover:w-[70%]",
-                    )}
-                  />
                 </Link>
               );
             })}
 
-            <LanguageSwitcher className="ml-1" label={t.nav.languages} />
+            <span className="mx-2 h-5 w-px shrink-0 bg-black/[0.08]" aria-hidden />
+            <LanguageSwitcher label={t.nav.languages} />
           </div>
 
           <div className="hidden items-center gap-2 xl:flex">
@@ -104,14 +112,14 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                 <button
                   type="button"
                   onClick={handleLoginClick}
-                  className="rounded-[8px] px-3.5 py-2 text-[0.85rem] font-medium text-[color:var(--color-text-nav)] transition-colors hover:text-primary"
+                  className="rounded-full px-4 py-2.5 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary"
                 >
                   {t.nav.login}
                 </button>
                 <button
                   type="button"
                   onClick={handleRegisterClick}
-                  className="btn-brand rounded-[8px] px-4 py-2 text-[0.85rem] font-semibold shadow-[var(--shadow-md)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
+                  className="btn-brand rounded-full px-5 py-2.5 font-sans text-[0.875rem] font-normal tracking-wide shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(25,134,28,0.32)]"
                 >
                   {t.nav.register}
                 </button>
@@ -153,7 +161,7 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
       </div>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100vh-var(--navbar-height))] overflow-y-auto border-t border-white/20 bg-white/95 px-4 py-3 backdrop-blur-md xl:hidden">
+        <div className="max-h-[calc(100vh-var(--navbar-height))] overflow-y-auto border-t border-black/[0.06] bg-white/95 px-4 py-3 backdrop-blur-xl xl:hidden">
           <div className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => {
               if (item.key === "vote") {
@@ -167,12 +175,22 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                   </div>
                 );
               }
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex min-h-[44px] items-center gap-3 rounded-[8px] px-3 text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary"
+                  onClick={(e) => {
+                    if (item.href === "/") {
+                      handleHomeNavClick(e);
+                      return;
+                    }
+                    setMobileOpen(false);
+                  }}
+                  className={cn(
+                    "flex min-h-[44px] items-center gap-3 rounded-[12px] px-3 font-sans text-[0.95rem] font-light tracking-wide text-[color:var(--color-text-nav)] transition-colors hover:bg-primary-50 hover:text-primary",
+                    active && "bg-primary-50 text-primary",
+                  )}
                 >
                   <i className={cn("bi", item.icon, "text-[1.2rem]")} />
                   <span>{t.nav[item.key]}</span>
@@ -191,14 +209,14 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                   <button
                     type="button"
                     onClick={handleLoginClick}
-                    className="rounded-[8px] border border-primary/40 px-4 py-2 text-sm font-medium text-primary"
+                    className="rounded-full border border-primary/40 px-4 py-2 font-sans text-sm font-normal tracking-wide text-primary"
                   >
                     {t.nav.login}
                   </button>
                   <button
                     type="button"
                     onClick={handleRegisterClick}
-                    className="btn-brand rounded-[8px] px-4 py-2 text-sm font-semibold"
+                    className="btn-brand rounded-full px-4 py-2 font-sans text-sm font-normal tracking-wide"
                   >
                     {t.nav.register}
                   </button>

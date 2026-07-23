@@ -36,9 +36,9 @@ export function LanguageSwitcher({ className, label }: LanguageSwitcherProps) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-[var(--radius-pill)] px-3 py-2 text-[0.8rem] font-light text-[color:var(--color-text-nav)] transition-colors hover:text-primary"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-sans text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-nav-muted)] transition-all duration-200 hover:bg-black/[0.035] hover:text-primary"
       >
-        <i className="bi bi-globe2 text-[1.1rem]" />
+        <i className="bi bi-globe2 text-[1.05rem]" />
         <span>{label}</span>
         <i
           className={cn(
@@ -59,7 +59,7 @@ export function LanguageSwitcher({ className, label }: LanguageSwitcherProps) {
               key={lang}
               type="button"
               onClick={() => translateTo(lang)}
-              className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50"
+              className="flex w-full items-center gap-3 px-4 py-2 text-left text-[0.875rem] font-light tracking-wide text-[color:var(--color-text-primary)] transition-colors hover:bg-primary-50 hover:text-primary"
             >
               <span className={`fi fi-${LANGUAGE_LABELS[lang].flag}`} />
               <span>{LANGUAGE_LABELS[lang].native}</span>

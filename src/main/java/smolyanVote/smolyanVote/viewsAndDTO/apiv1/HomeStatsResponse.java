@@ -6,8 +6,8 @@ package smolyanVote.smolyanVote.viewsAndDTO.apiv1;
  */
 public record HomeStatsResponse(
         long usersCount,
-        long simpleEventsCount,
-        long referendumsCount,
-        long multiPollsCount
+        long eventsCount,
+        long publicationsCount,
+        long signalsCount
 ) {
 }

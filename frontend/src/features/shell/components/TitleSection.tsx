@@ -20,19 +20,19 @@ export function TitleSection() {
   }
 
   return (
-    <section className="py-14 md:py-20">
+    <section className="bg-[#f8f9fa] pb-2 pt-14 md:pb-4 md:pt-16">
       <Container className="text-center">
         <button
           type="button"
           onClick={scrollToMotivation}
-          className="mx-auto block w-full max-w-3xl rounded-[16px] px-4 py-6 transition-all duration-300 hover:-translate-y-1 hover:bg-[rgba(25,134,28,0.04)]"
+          className="mx-auto block w-full max-w-3xl rounded-[20px] px-4 py-4 transition-colors duration-300 hover:bg-[rgba(25,134,28,0.04)]"
         >
-          <h2 className="text-gradient-brand text-[clamp(1.85rem,4.2vw,3.2rem)] font-bold">
+          <h2 className="font-display text-gradient-brand text-[clamp(1.85rem,4vw,3rem)] font-semibold tracking-[-0.03em]">
             Какво е SmolyanVote?
           </h2>
-          <p className="mt-4 flex flex-wrap items-center justify-center gap-x-2 text-[clamp(1.1rem,2.5vw,1.4rem)] text-[color:var(--color-text-secondary)]">
+          <p className="mt-3 flex flex-wrap items-center justify-center gap-x-2 font-sans text-[clamp(1rem,2.2vw,1.25rem)] font-light tracking-wide text-[color:var(--color-text-secondary)]">
             <span>Гражданска платформа, създадена</span>
-            <span className="relative inline-flex h-[1.7em] min-w-[12ch] items-center justify-center overflow-hidden">
+            <span className="relative inline-flex h-[1.6em] min-w-[12ch] items-center justify-center overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={ROTATING[index]}
@@ -40,7 +40,7 @@ export function TitleSection() {
                   animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
                   exit={{ opacity: 0, filter: "blur(4px)", y: -8 }}
                   transition={{ duration: 0.5 }}
-                  className="text-gradient-brand font-semibold"
+                  className="text-gradient-brand font-medium"
                 >
                   {ROTATING[index]}
                 </motion.span>

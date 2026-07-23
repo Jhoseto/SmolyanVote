@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { useConfirmStore } from "@/shared/lib/confirmStore";
 import { Button } from "./Button";
+import { AlertDialogDescriptionPanel } from "./DialogDescriptionPanel";
 
 /**
  * Single global confirm-dialog host (Base UI AlertDialog). Mounted once in
@@ -48,11 +49,11 @@ export function ConfirmDialogHost() {
                   </AlertDialog.Title>
                 </div>
 
-                <AlertDialog.Description className="mt-5 space-y-4 text-sm text-[color:var(--color-text-secondary)]">
+                <AlertDialogDescriptionPanel className="mt-5 space-y-4 text-sm text-[color:var(--color-text-secondary)]">
                   <div className="text-center">
-                    <p className="text-[color:var(--color-text-primary)]">
+                    <div className="text-[color:var(--color-text-primary)]">
                       {plural ? "Вие избрахте да гласувате за:" : "Вие избрахте да гласувате с:"}
-                    </p>
+                    </div>
                     <ul className="mt-3 flex flex-col items-center gap-2">
                       {vote.selectedLabels.map((label) => (
                         <li
@@ -97,7 +98,7 @@ export function ConfirmDialogHost() {
                         : "Разбирам, че след потвърждение гласът не може да бъде променян."}
                     </span>
                   </label>
-                </AlertDialog.Description>
+                </AlertDialogDescriptionPanel>
               </>
             ) : (
               <>

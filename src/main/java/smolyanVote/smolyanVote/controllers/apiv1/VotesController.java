@@ -2,8 +2,10 @@ package smolyanVote.smolyanVote.controllers.apiv1;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -117,6 +119,18 @@ public class VotesController {
             }
         }
         return request.getRemoteAddr();
+    }
+
+    @ExceptionHandler({DataIntegrityViolationException.class, UnexpectedRollbackException.class})
+    public ResponseEntity<VoteAckResponse> handlePersistenceFailure(Exception ex) {
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String message = root.getMessage() != null && root.getMessage().contains("vote_ips")
+                ? "Гласуването не можа да бъде записано поради проблем с базата данни. Рестартирайте сървъра и опитайте отново."
+                : "Гласуването не успя. Моля, опитайте отново.";
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new VoteAckResponse(false, message));
     }
 
     @ExceptionHandler(IllegalStateException.class)

@@ -74,10 +74,24 @@ export function EventDetailShell(props: EventDetailShellProps) {
           <div className="flex items-center gap-4 border-t border-border-default/60 pt-4">{props.actionsSlot}</div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Card className="p-5">
-            <h2 className="mb-4 text-base font-semibold text-[color:var(--color-text-heading)]">Гласуване</h2>
-            {props.voteSlot}
+        <div className="flex flex-col gap-6 lg:sticky lg:top-[calc(var(--navbar-height)+16px)]">
+          <Card className="overflow-hidden border-primary/10 p-0 shadow-[0_16px_40px_-24px_rgba(25,134,28,0.35)]">
+            <div className="border-b border-primary/10 bg-gradient-to-br from-primary-50/90 via-white to-white px-5 py-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-primary text-white shadow-[0_8px_18px_-10px_rgba(25,134,28,0.75)]">
+                  <i className="bi bi-check2-square text-[1.05rem]" />
+                </span>
+                <div>
+                  <h2 className="font-display text-[1.05rem] font-semibold tracking-[-0.02em] text-[color:var(--color-text-heading)]">
+                    Гласуване
+                  </h2>
+                  <p className="font-sans text-[0.75rem] font-light text-[color:var(--color-text-muted)]">
+                    Резултатите се обновяват на живо
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">{props.voteSlot}</div>
           </Card>
         </div>
       </div>

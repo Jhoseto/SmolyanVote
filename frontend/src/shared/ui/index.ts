@@ -3,6 +3,7 @@ export { Card } from "./Card";
 export { Container } from "./Container";
 export { Toaster } from "./Toaster";
 export { ConfirmDialogHost } from "./ConfirmDialog";
+export { AlertDialogDescriptionPanel, DialogDescriptionPanel } from "./DialogDescriptionPanel";
 export { Skeleton } from "./Skeleton";
 export { LogoLoader } from "./LogoLoader";
 export { EmptyState } from "./EmptyState";

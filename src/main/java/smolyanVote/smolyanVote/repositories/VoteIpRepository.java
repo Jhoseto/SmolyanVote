@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -10,6 +11,10 @@ import java.util.List;
 
 @Repository
 public interface VoteIpRepository extends JpaRepository<VoteIpEntity, Long> {
+
+    @Modifying
+    @Query("DELETE FROM VoteIpEntity v WHERE v.eventId = :eventId AND v.eventType = :eventType")
+    void deleteByEventIdAndEventType(@Param("eventId") Long eventId, @Param("eventType") String eventType);
 
     /**
      * Брои колко пъти един IP адрес е гласувал за дадено събитие
