@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.PublicationEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.repositories.PublicationRepository;
+import smolyanVote.smolyanVote.repositories.PublicationRepository;
 import smolyanVote.smolyanVote.services.interfaces.PublicationDetailService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationLinkMetadataService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationLinkValidationService;
@@ -45,6 +47,8 @@ import smolyanVote.smolyanVote.viewsAndDTO.apiv1.PublicationsPageResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -66,6 +70,7 @@ public class PublicationsController {
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS =
             List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
     private static final long MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+    private static final int MAX_PUBLICATIONS_PER_HOUR = 5;
 
     private final PublicationService publicationService;
     private final PublicationDetailService publicationDetailService;
@@ -73,6 +78,7 @@ public class PublicationsController {
     private final ImageCloudinaryServiceImpl imageCloudinaryService;
     private final PublicationLinkValidationService linkValidationService;
     private final PublicationLinkMetadataService linkMetadataService;
+    private final PublicationRepository publicationRepository;
     private final Tika tika = new Tika();
 
     public PublicationsController(PublicationService publicationService,
@@ -80,13 +86,15 @@ public class PublicationsController {
                                         UserService userService,
                                         ImageCloudinaryServiceImpl imageCloudinaryService,
                                         PublicationLinkValidationService linkValidationService,
-                                        PublicationLinkMetadataService linkMetadataService) {
+                                        PublicationLinkMetadataService linkMetadataService,
+                                        PublicationRepository publicationRepository) {
         this.publicationService = publicationService;
         this.publicationDetailService = publicationDetailService;
         this.userService = userService;
         this.imageCloudinaryService = imageCloudinaryService;
         this.linkValidationService = linkValidationService;
         this.linkMetadataService = linkMetadataService;
+        this.publicationRepository = publicationRepository;
     }
 
     @GetMapping
@@ -171,6 +179,13 @@ public class PublicationsController {
         }
         if (request.getCategory() == null) {
             return ResponseEntity.badRequest().body(ApiMessageResponse.error("Изберете категория."));
+        }
+
+        Instant oneHourAgo = Instant.now().minus(1, ChronoUnit.HOURS);
+        if (publicationRepository.countRecentPostsByAuthor(user, oneHourAgo) >= MAX_PUBLICATIONS_PER_HOUR) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiMessageResponse.error(
+                            "Достигнахте лимита от " + MAX_PUBLICATIONS_PER_HOUR + " публикации на час. Опитайте по-късно."));
         }
 
         PublicationEntity created = publicationService.create(request, user);

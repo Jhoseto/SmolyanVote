@@ -5,6 +5,7 @@ import { podcastApi } from "../api";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
 import { useAuth } from "@/shared/lib/authContext";
 import { toast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import type { PodcastSubscriptionType } from "../types";
 
 const QUERY_KEY = ["podcast", "subscription"];
@@ -25,8 +26,16 @@ export function usePodcastSubscription() {
 
   const mutation = useMutation({
     mutationFn: (nextTypes: PodcastSubscriptionType[]) => podcastApi.updateSubscription(nextTypes),
-    onSuccess: (response) => queryClient.setQueryData(QUERY_KEY, response),
-    onError: () => toast.error("Възникна грешка. Моля, опитайте отново."),
+    onSuccess: (response, nextTypes) => {
+      queryClient.setQueryData(QUERY_KEY, response);
+      const subscribed = nextTypes.includes("PODCAST_EPISODES");
+      if (subscribed) {
+        toast.success("Абонирахте се успешно. Ще получавате имейл и известия при нови епизоди.");
+      } else {
+        toast.info("Абонаментът за нови епизоди е премахнат.");
+      }
+    },
+    onError: (error) => toast.error(errorMessage(error, "Възникна грешка. Моля, опитайте отново.")),
   });
 
   async function toggle() {

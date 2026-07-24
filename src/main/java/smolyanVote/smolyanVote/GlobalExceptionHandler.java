@@ -16,10 +16,13 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import smolyanVote.smolyanVote.componentsAndSecurity.BrowserRequestUtils;
 import smolyanVote.smolyanVote.config.FrontendProperties;
+import smolyanVote.smolyanVote.exceptions.ModerationViolationException;
+import smolyanVote.smolyanVote.exceptions.UserBannedException;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -108,6 +111,39 @@ public class GlobalExceptionHandler {
         return json(HttpStatus.BAD_REQUEST, details.isBlank() ? "Validation failed" : details);
     }
 
+    @ExceptionHandler(ModerationViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleModerationViolation(ModerationViolationException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", ex.getMessage());
+        body.put("status", HttpStatus.UNPROCESSABLE_ENTITY.value());
+        body.put("code", ex.isAutoBanned() ? "MODERATION_AUTO_BAN" : "MODERATION_VIOLATION");
+        body.put("violationType", ex.getViolationType().name());
+        body.put("strikeCount", ex.getStrikeCount());
+        body.put("strikesUntilBan", ex.getStrikesUntilBan());
+        body.put("autoBanned", ex.isAutoBanned());
+        if (ex.getBanEndDate() != null) {
+            body.put("banEndDate", ex.getBanEndDate().toString());
+        }
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
+    @ExceptionHandler(UserBannedException.class)
+    public ResponseEntity<Map<String, Object>> handleUserBanned(UserBannedException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", ex.getMessage());
+        body.put("status", HttpStatus.FORBIDDEN.value());
+        body.put("code", "USER_BANNED");
+        body.put("readOnly", true);
+        body.put("permanent", ex.isPermanent());
+        if (ex.getBanEndDate() != null) {
+            body.put("banEndDate", ex.getBanEndDate().toString());
+        }
+        if (ex.getBanReason() != null) {
+            body.put("banReason", ex.getBanReason());
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public Object handleBusinessRule(RuntimeException ex, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
@@ -126,6 +162,16 @@ public class GlobalExceptionHandler {
             return null;
         }
         return json(HttpStatus.CONFLICT, "Операцията не можа да бъде завършена поради конфликт в данните.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Object handleMaxUpload(MaxUploadSizeExceededException ex, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        log.warn("Upload too large on {}: {}", request.getRequestURI(), ex.getMessage());
+        if (redirectBrowser(request, response, "/")) {
+            return null;
+        }
+        return json(HttpStatus.PAYLOAD_TOO_LARGE, "Файлът е твърде голям (макс. 100MB).");
     }
 
     @ExceptionHandler(Exception.class)

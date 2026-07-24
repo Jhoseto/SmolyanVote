@@ -195,7 +195,11 @@ public class ReportsServiceImpl implements ReportsService {
         }
 
         ReportsEntity report = reportOpt.get();
-        report.setStatus("REVIEWED");
+        String resolvedStatus = (status != null && !status.isBlank()) ? status.trim().toUpperCase() : "REVIEWED";
+        if (!Set.of("REVIEWED", "DISMISSED", "RESOLVED", "PENDING").contains(resolvedStatus)) {
+            throw new IllegalArgumentException("Невалиден статус: " + status);
+        }
+        report.setStatus(resolvedStatus);
         report.setReviewedAt(LocalDateTime.now());
         report.setReviewedByUsername(admin.getUsername());
 
@@ -349,46 +353,7 @@ public class ReportsServiceImpl implements ReportsService {
         // Използваме custom query за групиране
         List<Object[]> groupedResults = reportsRepository.findGroupedReports(limit, offset);
 
-        List<GroupedReportsDTO> groupedReports = new ArrayList<>();
-
-        for (Object[] row : groupedResults) {
-            // Native query връща String за enum
-            String entityTypeStr = (String) row[0];
-            ReportableEntityType entityType = ReportableEntityType.valueOf(entityTypeStr);
-
-            Long entityId = (Long) row[1];
-            Long reportCount = (Long) row[2];
-
-            // Native query връща Timestamp, не LocalDateTime
-            Timestamp firstReportTs = (Timestamp) row[3];
-            Timestamp lastReportTs = (Timestamp) row[4];
-            LocalDateTime firstReport = firstReportTs.toLocalDateTime();
-            LocalDateTime lastReport = lastReportTs.toLocalDateTime();
-
-            String mostCommonReason = (String) row[5];
-            String mostRecentDescription = (String) row[6]; // НОВО
-            String status = (String) row[7]; // ВНИМАНИЕ: индексът се променя!
-
-            GroupedReportsDTO dto = new GroupedReportsDTO();
-            dto.setEntityType(entityType);
-            dto.setEntityId(entityId);
-            dto.setReportCount(reportCount.intValue());
-            dto.setFirstReportDate(firstReport);
-            dto.setLastReportDate(lastReport);
-            dto.setMostCommonReason(mostCommonReason);
-            dto.setMostRecentDescription(mostRecentDescription); // НОВО
-            dto.setStatus(status);
-
-            // Получаваме всички reporter usernames за това entity
-            List<String> reporters = reportsRepository.findReportersByEntity(entityType, entityId);
-            dto.setReporterUsernames(reporters);
-
-            // Получаваме всички report ID-та за bulk operations
-            List<Long> reportIds = reportsRepository.findReportIdsByEntity(entityType, entityId);
-            dto.setReportIds(reportIds);
-
-            groupedReports.add(dto);
-        }
+        List<GroupedReportsDTO> groupedReports = mapGroupedResults(groupedResults);
 
         // Получаваме общия брой групирани репорти за правилен pagination
         Long totalElements = reportsRepository.countGroupedReports();
@@ -399,7 +364,123 @@ public class ReportsServiceImpl implements ReportsService {
 
     @Transactional(readOnly = true)
     @Override
+    public Page<GroupedReportsDTO> getGroupedReportsFiltered(
+            Pageable pageable,
+            ReportableEntityType entityType,
+            boolean pendingOnly,
+            String status) {
+
+        int limit = pageable.getPageSize();
+        int offset = (int) pageable.getOffset();
+        String entityTypeStr = entityType != null ? entityType.name() : null;
+
+        List<Object[]> groupedResults = reportsRepository.findGroupedReportsFiltered(
+                entityTypeStr, pendingOnly, limit, offset);
+
+        List<GroupedReportsDTO> groupedReports = mapGroupedResults(groupedResults);
+
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            String wanted = status.trim().toUpperCase();
+            groupedReports = groupedReports.stream()
+                    .filter(d -> wanted.equalsIgnoreCase(d.getStatus()))
+                    .toList();
+        }
+
+        Long totalElements = reportsRepository.countGroupedReportsFiltered(entityTypeStr, pendingOnly);
+        return new PageImpl<>(groupedReports, pageable, totalElements != null ? totalElements : 0);
+    }
+
+    private List<GroupedReportsDTO> mapGroupedResults(List<Object[]> groupedResults) {
+        List<GroupedReportsDTO> groupedReports = new ArrayList<>();
+
+        for (Object[] row : groupedResults) {
+            String entityTypeStr = (String) row[0];
+            ReportableEntityType et = ReportableEntityType.valueOf(entityTypeStr);
+
+            Long entityId = (Long) row[1];
+            Long reportCount = (Long) row[2];
+
+            Timestamp firstReportTs = (Timestamp) row[3];
+            Timestamp lastReportTs = (Timestamp) row[4];
+            LocalDateTime firstReport = firstReportTs.toLocalDateTime();
+            LocalDateTime lastReport = lastReportTs.toLocalDateTime();
+
+            String mostCommonReason = (String) row[5];
+            String mostRecentDescription = (String) row[6];
+            String groupStatus = (String) row[7];
+
+            GroupedReportsDTO dto = new GroupedReportsDTO();
+            dto.setEntityType(et);
+            dto.setEntityId(entityId);
+            dto.setReportCount(reportCount.intValue());
+            dto.setFirstReportDate(firstReport);
+            dto.setLastReportDate(lastReport);
+            dto.setMostCommonReason(mostCommonReason);
+            dto.setMostRecentDescription(mostRecentDescription);
+            dto.setStatus(groupStatus);
+            dto.setEntityLabel(resolveEntityLabel(et, entityId));
+
+            List<String> reporters = reportsRepository.findReportersByEntity(et, entityId);
+            dto.setReporterUsernames(reporters);
+
+            List<Long> reportIds = reportsRepository.findReportIdsByEntity(et, entityId);
+            dto.setReportIds(reportIds);
+
+            groupedReports.add(dto);
+        }
+        return groupedReports;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public List<Long> getReportIdsByEntity(ReportableEntityType entityType, Long entityId) {
         return reportsRepository.findReportIdsByEntity(entityType, entityId);
+    }
+
+    @Override
+    @Transactional
+    public void bulkDeleteReports(List<Long> reportIds, UserEntity admin) {
+        if (reportIds == null || reportIds.isEmpty()) {
+            return;
+        }
+        List<Long> distinctIds = reportIds.stream().distinct().toList();
+        reportsRepository.deleteAllById(distinctIds);
+        if (admin != null) {
+            activityLogService.logActivity(
+                    ActivityActionEnum.ADMIN_DELETE_CONTENT,
+                    admin,
+                    ActivityTypeEnum.REPORT.name(),
+                    null,
+                    "Deleted " + distinctIds.size() + " report(s): " + distinctIds,
+                    null,
+                    null);
+        }
+    }
+
+    private String resolveEntityLabel(ReportableEntityType entityType, Long entityId) {
+        if (entityId == null) {
+            return null;
+        }
+        return switch (entityType) {
+            case USER -> userRepository.findById(entityId).map(UserEntity::getUsername).orElse(null);
+            case PUBLICATION -> publicationRepository.findById(entityId)
+                    .map(PublicationEntity::getTitle)
+                    .orElse(null);
+            case SIMPLE_EVENT -> simpleEventRepository.findById(entityId)
+                    .map(SimpleEventEntity::getTitle)
+                    .orElse(null);
+            case REFERENDUM -> referendumRepository.findById(entityId)
+                    .map(ReferendumEntity::getTitle)
+                    .orElse(null);
+            case MULTI_POLL -> multiPollRepository.findById(entityId)
+                    .map(MultiPollEntity::getTitle)
+                    .orElse(null);
+            case SIGNAL -> signalsRepository.findById(entityId)
+                    .map(SignalsEntity::getTitle)
+                    .orElse(null);
+            case COMMENT -> commentsRepository.findById(entityId)
+                    .map(c -> "коментар #" + c.getId())
+                    .orElse(null);
+        };
     }
 }

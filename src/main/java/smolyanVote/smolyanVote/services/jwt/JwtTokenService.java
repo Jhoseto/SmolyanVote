@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserRoleDefaults;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -52,7 +53,7 @@ public class JwtTokenService {
         claims.put("userId", user.getId());
         claims.put("username", user.getUsername());
         claims.put("email", user.getEmail());
-        claims.put("role", user.getRole() != null ? user.getRole().name() : "USER");
+        claims.put("role", UserRoleDefaults.effective(user.getRole()).name());
         claims.put("type", "ACCESS");
 
         return Jwts.builder()

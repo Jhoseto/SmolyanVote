@@ -40,6 +40,7 @@ public final class BrowserRequestUtils {
         return path.startsWith("/api/")
                 || path.startsWith("/admin/api/")
                 || path.startsWith("/admin/users/")
-                || path.startsWith("/admin/manage-reports/");
+                || path.startsWith("/admin/manage-reports/")
+                || path.startsWith("/admin/moderation/");
     }
 }

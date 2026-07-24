@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
@@ -30,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Configuration
+@EnableMethodSecurity
 public class ApplicationSecurityConfiguration {
 
         @Value("${spring.profiles.active:prod}")
@@ -42,6 +44,7 @@ public class ApplicationSecurityConfiguration {
         private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
         private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final UserBanEnforcementFilter userBanEnforcementFilter;
         private final FrontendProperties frontendProperties;
 
         public ApplicationSecurityConfiguration(UserDetailsService customUserDetailsService,
@@ -51,6 +54,7 @@ public class ApplicationSecurityConfiguration {
                         OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
                         OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
                         JwtAuthenticationFilter jwtAuthenticationFilter,
+                        UserBanEnforcementFilter userBanEnforcementFilter,
                         FrontendProperties frontendProperties) {
                 this.customUserDetailsService = customUserDetailsService;
                 this.passwordEncoder = passwordEncoder;
@@ -60,6 +64,7 @@ public class ApplicationSecurityConfiguration {
                 this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
                 this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.userBanEnforcementFilter = userBanEnforcementFilter;
         }
 
         @Bean
@@ -157,6 +162,9 @@ public class ApplicationSecurityConfiguration {
                                                 // Signal moderation — admin only (before generic /api/v1/signals/** auth)
                                                 .requestMatchers(org.springframework.http.HttpMethod.PUT,
                                                                 "/api/v1/signals/*/moderate")
+                                                .hasRole("ADMIN")
+                                                // Podcast admin API — JWT + ROLE_ADMIN (list/update/delete/upload)
+                                                .requestMatchers("/api/v1/podcast/**")
                                                 .hasRole("ADMIN")
                                                 // Гласуване и създаване изискват authentication
                                                 .requestMatchers(
@@ -283,7 +291,8 @@ public class ApplicationSecurityConfiguration {
                                                 .csrfTokenRepository(csrfTokenRepository))
                                 // Добавяне на JWT filter преди UsernamePasswordAuthenticationFilter
                                 .addFilterBefore(jwtAuthenticationFilter,
-                                                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                                                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(userBanEnforcementFilter, JwtAuthenticationFilter.class);
 
                 return http.build();
         }

@@ -2,6 +2,7 @@ package smolyanVote.smolyanVote.services.interfaces;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import smolyanVote.smolyanVote.models.PodcastEpisodeEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
@@ -59,4 +60,7 @@ public interface NotificationService {
     void notifyAdminsSignalResolvedReports(SignalsEntity signal, long reportCount);
 
     void notifySignalSubscribers(SignalsEntity signal, UserEntity actor, String type, String message);
+
+    /** In-app + WebSocket известия до всички email-абонати за подкаст при нов епизод. */
+    void notifyPodcastSubscribers(PodcastEpisodeEntity episode);
 }

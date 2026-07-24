@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { isEmojiOnly, linkifyText } from "../lib/linkify";
 import { messengerApi } from "../api";
 import { messagesQueryKey } from "../hooks/useMessages";
@@ -35,6 +36,7 @@ function highlight(text: string, query: string) {
 export function MessageBubble({ message, isOwn, searchQuery = "", onReply }: MessageBubbleProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const canInteract = useCanInteract();
   const [langOpen, setLangOpen] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -169,6 +171,7 @@ export function MessageBubble({ message, isOwn, searchQuery = "", onReply }: Mes
       </div>
 
       {/* Actions */}
+      {canInteract && (
       <div
         className={cn(
           "absolute top-0 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100",
@@ -221,8 +224,9 @@ export function MessageBubble({ message, isOwn, searchQuery = "", onReply }: Mes
           </button>
         )}
       </div>
+      )}
 
-      {langOpen && !isOwn && (
+      {canInteract && langOpen && !isOwn && (
         <div className="absolute left-0 top-full z-10 mt-1 flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-border-default/60 bg-white shadow-[var(--shadow-md)]">
           {TRANSLATE_LANGUAGES.map((lang) => (
             <button

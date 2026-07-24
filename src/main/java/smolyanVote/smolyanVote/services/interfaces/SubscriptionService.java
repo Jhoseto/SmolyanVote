@@ -15,6 +15,9 @@ public interface SubscriptionService {
     Set<SubscriptionType> getUserSubscriptions(UserEntity user);
     List<UserEntity> getSubscribersForType(SubscriptionType type);
 
+    /** Активни абонати за подкаст известия — {@code PODCAST_EPISODES} + {@code ALL_NOTIFICATIONS}, без дубликати. */
+    List<UserEntity> getPodcastNotificationSubscribers();
+
     // Token операции
     String getUnsubscribeToken(UserEntity user, SubscriptionType type);
     boolean unsubscribeByToken(String token);

@@ -96,13 +96,18 @@ public class MobileAuthController {
                                 "Акаунтът не е активиран. Моля, активирайте го чрез изпратения имейл."));
             }
 
-            // Проверка за бан
-            if (user.getBanEndDate() != null && user.getBanEndDate().isAfter(Instant.now())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(createErrorResponse("Акаунтът е блокиран до: " + user.getBanEndDate()));
+            // Проверка за перманентен бан — входът е забранен
+            if (UserStatusEnum.PERMANENTLY_BANNED.equals(user.getStatus())) {
+                Map<String, Object> body = createErrorResponse(
+                        user.getBanReason() != null && !user.getBanReason().isBlank()
+                                ? user.getBanReason()
+                                : "Профилът ви е перманентно блокиран.");
+                body.put("code", "PERMANENT_BAN");
+                body.put("banReason", user.getBanReason());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
             }
 
-            // Аутентикация
+            // Временен бан — позволяваме вход (read-only режим), без блокиране тук
             try {
                 Authentication authentication = authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword()));
@@ -207,6 +212,16 @@ public class MobileAuthController {
 
             UserEntity user = userOptional.get();
 
+            if (UserStatusEnum.PERMANENTLY_BANNED.equals(user.getStatus())) {
+                Map<String, Object> body = createErrorResponse(
+                        user.getBanReason() != null && !user.getBanReason().isBlank()
+                                ? user.getBanReason()
+                                : "Профилът ви е перманентно блокиран.");
+                body.put("code", "PERMANENT_BAN");
+                body.put("banReason", user.getBanReason());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+            }
+
             // Проверка за статус
             if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -301,10 +316,15 @@ public class MobileAuthController {
                         .body(createErrorResponse("Акаунтът не е активиран"));
             }
 
-            // Проверка за бан
-            if (user.getBanEndDate() != null && user.getBanEndDate().isAfter(Instant.now())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(createErrorResponse("Акаунтът е блокиран до: " + user.getBanEndDate()));
+            // Перманентен бан — входът е забранен
+            if (UserStatusEnum.PERMANENTLY_BANNED.equals(user.getStatus())) {
+                Map<String, Object> body = createErrorResponse(
+                        user.getBanReason() != null && !user.getBanReason().isBlank()
+                                ? user.getBanReason()
+                                : "Профилът ви е перманентно блокиран.");
+                body.put("code", "PERMANENT_BAN");
+                body.put("banReason", user.getBanReason());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
             }
 
             // Генериране на JWT tokens
@@ -340,8 +360,8 @@ public class MobileAuthController {
     /**
      * Helper method за създаване на error response
      */
-    private Map<String, String> createErrorResponse(String message) {
-        Map<String, String> error = new HashMap<>();
+    private Map<String, Object> createErrorResponse(String message) {
+        Map<String, Object> error = new HashMap<>();
         error.put("error", message);
         return error;
     }

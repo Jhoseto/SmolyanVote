@@ -136,6 +136,8 @@ export function useCreatePublicationForm() {
     form,
     onSubmit,
     isPending: isCreating || isUploadingImage,
+    isCreating,
+    isUploadingImage,
     expanded,
     setExpanded,
     image,

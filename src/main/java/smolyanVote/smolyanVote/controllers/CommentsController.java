@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import smolyanVote.smolyanVote.exceptions.ModerationViolationException;
+import smolyanVote.smolyanVote.exceptions.UserBannedException;
 import smolyanVote.smolyanVote.models.CommentsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.CommentReactionType;
@@ -125,6 +127,8 @@ public class CommentsController {
             response.put("comment", commentDto);
             response.put("message", "Коментарът е добавен успешно");
             return ResponseEntity.ok(response);
+        } catch (ModerationViolationException | UserBannedException e) {
+            throw e;
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -165,6 +169,8 @@ public class CommentsController {
             response.put("comment", commentDto);
             response.put("message", "Отговорът е добавен успешно");
             return ResponseEntity.status(201).body(response);
+        } catch (ModerationViolationException | UserBannedException e) {
+            throw e;
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);

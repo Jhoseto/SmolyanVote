@@ -23,7 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    setHasToken(tokenStore.getAccess() !== null);
+    const access = tokenStore.getAccess();
+    setHasToken(access !== null);
+    if (access) tokenStore.syncAccessCookie();
     setIsHydrated(true);
   }, []);
 

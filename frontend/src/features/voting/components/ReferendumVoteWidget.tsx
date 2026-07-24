@@ -3,6 +3,7 @@
 import { useToast } from "@/shared/hooks/useToast";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { hapticSuccess } from "@/shared/lib/haptic";
 import { useCastReferendumVote } from "../hooks/useCastReferendumVote";
@@ -22,6 +23,7 @@ export function ReferendumVoteWidget(props: ReferendumVoteWidgetProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const { mutate, isPending } = useCastReferendumVote();
 
   const hasVoted = props.currentUserVote !== null;
@@ -63,10 +65,16 @@ export function ReferendumVoteWidget(props: ReferendumVoteWidgetProps) {
     <VoteResultsBars
       rows={rows}
       totalVotes={totalVotes}
-      interactive={!hasVoted}
-      disabled={isPending}
+      interactive={!hasVoted && canInteract}
+      disabled={isPending || !canInteract}
       onSelect={handleVote}
-      hint={hasVoted ? undefined : "Докоснете опция, за да гласувате"}
+      hint={
+        !canInteract
+          ? "Гласуването е изключено, докато профилът е ограничен"
+          : hasVoted
+            ? undefined
+            : "Докоснете опция, за да гласувате"
+      }
     />
   );
 }

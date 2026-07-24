@@ -1,6 +1,7 @@
 package smolyanVote.smolyanVote.services.mappers;
 
 import org.springframework.stereotype.Component;
+import smolyanVote.smolyanVote.componentsAndSecurity.MasterAdminPolicy;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.AdminUserViewDTO;
 
@@ -9,6 +10,12 @@ import java.util.stream.Collectors;
 
 @Component
 public class AdminUserManagementMapper {
+
+    private final MasterAdminPolicy masterAdminPolicy;
+
+    public AdminUserManagementMapper(MasterAdminPolicy masterAdminPolicy) {
+        this.masterAdminPolicy = masterAdminPolicy;
+    }
 
     /**
      * Maps a single UserEntity to AdminUserViewDTO
@@ -47,6 +54,8 @@ public class AdminUserManagementMapper {
         dto.setBanDate(user.getBanDate());
         dto.setBanEndDate(user.getBanEndDate());
         dto.setBannedBy(user.getBannedByUsername());
+        dto.setModerationStrikeCount(user.getModerationStrikeCount());
+        dto.setMasterAdmin(masterAdminPolicy.isMasterAdmin(user));
 
         // Notifications
         dto.setNotification(user.getNotification());

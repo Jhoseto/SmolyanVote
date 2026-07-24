@@ -4,6 +4,10 @@ import { useState, type KeyboardEvent } from "react";
 import { EmojiPicker } from "frimousse";
 import { LogoLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { useToast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
+import { ReadOnlyInteractionNotice } from "@/features/moderation/components/ReadOnlyInteractionNotice";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useTypingIndicator } from "../hooks/useTypingIndicator";
 import { MESSAGE_MAX_LENGTH, type Message } from "../types";
@@ -17,8 +21,18 @@ interface MessageInputProps {
 export function MessageInput({ conversationId, replyTo, onClearReply }: MessageInputProps) {
   const [text, setText] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const toast = useToast();
+  const canInteract = useCanInteract();
   const { mutate: send, isPending } = useSendMessage(conversationId);
   const { onInputActivity } = useTypingIndicator(conversationId);
+
+  if (!canInteract) {
+    return (
+      <div className="border-t border-border-default/60 p-3">
+        <ReadOnlyInteractionNotice context="изпращане на съобщения" />
+      </div>
+    );
+  }
 
   function submit() {
     const trimmed = text.trim();
@@ -31,6 +45,7 @@ export function MessageInput({ conversationId, replyTo, onClearReply }: MessageI
           onClearReply?.();
           setEmojiOpen(false);
         },
+        onError: (error) => toast.error(errorMessage(error, "Съобщението не бе изпратено.")),
       },
     );
   }

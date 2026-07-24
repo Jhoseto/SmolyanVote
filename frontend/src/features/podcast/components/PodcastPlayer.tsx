@@ -76,19 +76,19 @@ export function PodcastPlayer() {
             {showDualCarousels ? (
               <div className="space-y-10">
                 <PodcastFeaturedCarousel
-                  title="Популярни"
-                  subtitle="Епизодите, които общността слуша най-често."
-                  icon="bi-fire"
-                  episodes={featured}
+                  title="Най-нови"
+                  subtitle="Последните разговори, пуснати от SmolyanVote Studio."
+                  icon="bi-stars"
+                  episodes={latest}
                   currentEpisodeId={currentEpisode?.id ?? null}
                   isPlaying={isPlaying}
                   onSelect={playEpisode}
                 />
                 <PodcastFeaturedCarousel
-                  title="Най-нови"
-                  subtitle="Последните разговори, пуснати от SmolyanVote Studio."
-                  icon="bi-stars"
-                  episodes={latest}
+                  title="Популярни"
+                  subtitle="Епизодите, които общността слуша най-често."
+                  icon="bi-fire"
+                  episodes={featured}
                   currentEpisodeId={currentEpisode?.id ?? null}
                   isPlaying={isPlaying}
                   onSelect={playEpisode}

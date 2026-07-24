@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { cn } from "@/shared/lib/cn";
 import { SMOLYAN_CENTER, smolyanPolygonGeoJsonRing } from "../data/smolyanBoundary";
-import { createSignalsMapStyle, SIGNALS_MAP_MAX_ZOOM } from "../lib/mapRasterStyle";
+import { SIGNALS_MAP_MAX_ZOOM, SIGNALS_MAP_STYLE_URL } from "../lib/mapRasterStyle";
 import { isWithinSmolyanRegion } from "../lib/geo";
 import type { SelectedLocation } from "../hooks/useCreateSignalForm";
 
@@ -36,7 +36,7 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: createSignalsMapStyle(),
+      style: SIGNALS_MAP_STYLE_URL,
       center: SMOLYAN_CENTER,
       zoom: 13,
       minZoom: 9,
@@ -57,7 +57,7 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
         id: "smolyan-boundary-line",
         type: "line",
         source: "smolyan-boundary",
-        paint: { "line-color": "#0d6efd", "line-width": 1.5, "line-dasharray": [2, 2] },
+        paint: { "line-color": "#19861c", "line-width": 1.5, "line-dasharray": [2, 2] },
       });
     });
 

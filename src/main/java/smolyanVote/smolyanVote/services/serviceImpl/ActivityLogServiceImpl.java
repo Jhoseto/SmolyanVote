@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
@@ -142,7 +144,10 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Transactional(readOnly = true)
     public List<ActivityLogEntity> getRecentActivities(int limit) {
         try {
-            return activityLogRepository.findAllByOrderByTimestampDesc();
+            int effectiveLimit = limit <= 0 ? 100 : Math.min(limit, 500);
+            return activityLogRepository
+                    .findAll(PageRequest.of(0, effectiveLimit, Sort.by(Sort.Direction.DESC, "timestamp")))
+                    .getContent();
         } catch (Exception e) {
             System.err.println("Error fetching recent activities: " + e.getMessage());
             return Collections.emptyList();
@@ -380,5 +385,11 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             System.err.println("Error filtering activities: " + e.getMessage());
             return Page.empty(pageable);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivityLogEntity> getAdminActivities(Pageable pageable) {
+        return activityLogRepository.findByActionStartingWithOrderByTimestampDesc("ADMIN_", pageable);
     }
 }

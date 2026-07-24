@@ -29,6 +29,16 @@ export const tokenStore = {
   isPersistent(): boolean {
     return isBrowser && window.localStorage.getItem(REFRESH_KEY) !== null;
   },
+  syncAccessCookie(): void {
+    const access = read(ACCESS_KEY);
+    if (!access || !isBrowser) return;
+    const persistent = window.localStorage.getItem(REFRESH_KEY) !== null;
+    const maxAge = persistent ? 60 * 60 * 24 * 30 : undefined;
+    let cookie = `sv_access_token=${encodeURIComponent(access)}; path=/; SameSite=Lax`;
+    if (maxAge) cookie += `; max-age=${maxAge}`;
+    if (window.location.protocol === "https:") cookie += "; Secure";
+    document.cookie = cookie;
+  },
   set(access: string, refresh?: string, persist = true): void {
     if (!isBrowser) return;
     const target = persist ? window.localStorage : window.sessionStorage;
@@ -40,6 +50,7 @@ export const tokenStore = {
       target.setItem(REFRESH_KEY, refresh);
       other.removeItem(REFRESH_KEY);
     }
+    this.syncAccessCookie();
   },
   clear(): void {
     if (!isBrowser) return;
@@ -47,5 +58,6 @@ export const tokenStore = {
     window.localStorage.removeItem(REFRESH_KEY);
     window.sessionStorage.removeItem(ACCESS_KEY);
     window.sessionStorage.removeItem(REFRESH_KEY);
+    document.cookie = "sv_access_token=; path=/; max-age=0; SameSite=Lax";
   },
 };

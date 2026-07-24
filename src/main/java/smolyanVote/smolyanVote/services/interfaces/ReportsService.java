@@ -74,8 +74,20 @@ public interface ReportsService {
      */
     void deleteAllReportsForEntity(ReportableEntityType entityType, Long entityId);
 
+    /**
+     * Bulk delete reports (admin) with audit logging.
+     */
+    void bulkDeleteReports(List<Long> reportIds, UserEntity admin);
+
     @Transactional(readOnly = true)
     Page<GroupedReportsDTO> getGroupedReports(Pageable pageable);
+
+    @Transactional(readOnly = true)
+    Page<GroupedReportsDTO> getGroupedReportsFiltered(
+            Pageable pageable,
+            ReportableEntityType entityType,
+            boolean pendingOnly,
+            String status);
 
     @Transactional(readOnly = true)
     List<Long> getReportIdsByEntity(ReportableEntityType entityType, Long entityId);

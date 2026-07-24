@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
-import { Avatar, Button, Card, ImageDropzone } from "@/shared/ui";
+import { Avatar, Button, Card, ImageDropzone, LogoLoader } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { CATEGORIES } from "../data/categories";
 import { EMOTIONS } from "../data/emotions";
 import { MAX_CONTENT_LENGTH } from "../schema";
@@ -27,6 +28,7 @@ export function PublicationComposer({
   onExpandedChange?: (expanded: boolean) => void;
 } = {}) {
   const { isAuthenticated, user } = useAuth();
+  const canInteract = useCanInteract();
   const requireAuth = useRequireAuth();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [emotionPickerOpen, setEmotionPickerOpen] = useState(false);
@@ -35,6 +37,7 @@ export function PublicationComposer({
     form,
     onSubmit,
     isPending,
+    isUploadingImage,
     expanded,
     setExpanded,
     image,
@@ -98,6 +101,17 @@ export function PublicationComposer({
     );
   }
 
+  if (!canInteract) {
+    return (
+      <Card className="flex flex-col items-center gap-2 border-amber-200/80 bg-amber-50/60 p-5 text-center">
+        <i className="bi bi-shield-exclamation text-2xl text-amber-600" />
+        <p className="text-sm text-amber-950">
+          Профилът ви е временно ограничен. Можете само да разглеждате публикации.
+        </p>
+      </Card>
+    );
+  }
+
   async function expandWith(mode?: "photo" | "mood") {
     if (!(await requireAuth("да създадеш публикация"))) return;
     setExpanded(true);
@@ -153,7 +167,21 @@ export function PublicationComposer({
   }
 
   return (
-    <Card className="flex flex-col gap-4 p-4">
+    <Card
+      className="relative flex flex-col gap-4 overflow-hidden p-4"
+      aria-busy={isPending}
+    >
+      {isPending && (
+        <LogoLoader
+          overlay
+          size="md"
+          label={
+            isUploadingImage
+              ? "Качване на снимка… Моля, изчакайте."
+              : "Публикуване… Моля, изчакайте."
+          }
+        />
+      )}
       <textarea
         ref={(el) => {
           contentRef(el);

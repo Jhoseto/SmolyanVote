@@ -34,6 +34,27 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/:path*", destination: `${API_ORIGIN}/api/:path*` },
       { source: "/admin/api/:path*", destination: `${API_ORIGIN}/admin/api/:path*` },
+      { source: "/admin/users/:path*", destination: `${API_ORIGIN}/admin/users/:path*` },
+      {
+        source: "/admin/manage-reports/:path*",
+        destination: `${API_ORIGIN}/admin/manage-reports/:path*`,
+      },
+      {
+        source: "/admin/moderation/:path*",
+        destination: `${API_ORIGIN}/admin/moderation/:path*`,
+      },
+      {
+        source: "/admin/events/:path*",
+        destination: `${API_ORIGIN}/admin/events/:path*`,
+      },
+      {
+        source: "/admin/subscriptions",
+        destination: `${API_ORIGIN}/admin/subscriptions`,
+      },
+      {
+        source: "/admin/subscriptions/:path*",
+        destination: `${API_ORIGIN}/admin/subscriptions/:path*`,
+      },
       { source: "/heartbeat", destination: `${API_ORIGIN}/heartbeat` },
       {
         source: "/ws-svmessenger/:path*",

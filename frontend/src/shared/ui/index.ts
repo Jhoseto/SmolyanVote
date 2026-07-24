@@ -3,6 +3,8 @@ export { Card } from "./Card";
 export { Container } from "./Container";
 export { Toaster } from "./Toaster";
 export { ConfirmDialogHost } from "./ConfirmDialog";
+export { ModerationWarningHost } from "./ModerationWarningHost";
+export { PermanentBanModalHost } from "./PermanentBanModalHost";
 export { AlertDialogDescriptionPanel, DialogDescriptionPanel } from "./DialogDescriptionPanel";
 export { Skeleton } from "./Skeleton";
 export { LogoLoader } from "./LogoLoader";

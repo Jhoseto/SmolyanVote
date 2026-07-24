@@ -24,6 +24,7 @@ public class GroupedReportsDTO {
     private String mostRecentDescription;
     private String adminNotes;
     private List<Long> reportIds; // Всички ID-та за bulk operations
+    private String entityLabel; // Username, заглавие и т.н. за preview линкове
 
     // Constructors
     public GroupedReportsDTO() {}
@@ -129,5 +130,13 @@ public class GroupedReportsDTO {
 
     public void setReportIds(List<Long> reportIds) {
         this.reportIds = reportIds;
+    }
+
+    public String getEntityLabel() {
+        return entityLabel;
+    }
+
+    public void setEntityLabel(String entityLabel) {
+        this.entityLabel = entityLabel;
     }
 }

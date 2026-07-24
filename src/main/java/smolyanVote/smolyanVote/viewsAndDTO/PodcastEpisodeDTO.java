@@ -21,6 +21,7 @@ public class PodcastEpisodeDTO {
     private String formattedDuration;
     private Integer episodeNumber;
     private Long listenCount;
+    private Boolean isPublished;
 
     // Constructors
     public PodcastEpisodeDTO() {}
@@ -43,6 +44,7 @@ public class PodcastEpisodeDTO {
         this.durationSeconds = episode.getDurationSeconds();
         this.episodeNumber = episode.getEpisodeNumber();
         this.listenCount = episode.getListenCount();
+        this.isPublished = episode.getPublished();
 
         // Format date and duration - с защита от грешки
         try {
@@ -166,6 +168,14 @@ public class PodcastEpisodeDTO {
 
     public void setListenCount(Long listenCount) {
         this.listenCount = listenCount;
+    }
+
+    public Boolean getIsPublished() {
+        return isPublished;
+    }
+
+    public void setIsPublished(Boolean isPublished) {
+        this.isPublished = isPublished;
     }
 
     // Default image if no image provided

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AdminPageClient } from "@/features/admin";
+import { LogoLoader } from "@/shared/ui";
 
 export const metadata: Metadata = {
   title: "SmolyanVote - Админ панел",
@@ -7,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <AdminPageClient />;
+  return (
+    <Suspense fallback={<LogoLoader fullScreen size="lg" label="Зареждане…" />}>
+      <AdminPageClient />
+    </Suspense>
+  );
 }

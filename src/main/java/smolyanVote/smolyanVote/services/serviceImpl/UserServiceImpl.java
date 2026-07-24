@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.annotations.LogActivity;
+import smolyanVote.smolyanVote.componentsAndSecurity.MasterAdminPolicy;
 import smolyanVote.smolyanVote.models.BaseEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.*;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
     private final ConfirmationLinkService confirmationLinkService;
     private final EmailService emailService;
     private final ActivityLogService activityLogService;
+    private final MasterAdminPolicy masterAdminPolicy;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -54,7 +56,8 @@ public class UserServiceImpl implements UserService {
                            ImageCloudinaryServiceImpl imageStorageService,
                            ConfirmationLinkService confirmationLinkService,
                            EmailService emailService,
-                           ActivityLogService activityLogService) {
+                           ActivityLogService activityLogService,
+                           MasterAdminPolicy masterAdminPolicy) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userDetailsService = userDetailsService;
@@ -63,6 +66,7 @@ public class UserServiceImpl implements UserService {
         this.confirmationLinkService = confirmationLinkService;
         this.emailService = emailService;
         this.activityLogService = activityLogService;
+        this.masterAdminPolicy = masterAdminPolicy;
     }
 
     /**
@@ -200,6 +204,10 @@ public class UserServiceImpl implements UserService {
         Optional<UserEntity> user = userRepository.findById(userId);
         if (user.isPresent()){
             UserEntity currentUser = user.get();
+
+            if (masterAdminPolicy.isMasterAdmin(currentUser)) {
+                throw new RuntimeException("Master admin профилът не може да бъде изтрит.");
+            }
 
             // Запазваме данните ПРЕДИ изтриване
             String deletedUsername = user.get().getUsername();

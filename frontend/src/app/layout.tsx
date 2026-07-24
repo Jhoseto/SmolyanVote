@@ -223,7 +223,7 @@ export default async function RootLayout({
           <ShellNavbar notificationSlot={<NotificationBell />} lang={lang} />
           <main
             id="main-content"
-            className="flex-1 pt-[var(--navbar-height)]"
+            className="flex-1 pt-[var(--navbar-offset)]"
             tabIndex={-1}
           >
             {children}

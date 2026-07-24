@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Container, EmptyState, LogoLoader, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 import type { AdminTab } from "../types";
+import { OverviewPanel } from "./OverviewPanel";
 import { HealthDashboard } from "./HealthDashboard";
 import { UsersPanel } from "./UsersPanel";
 import { ReportsPanel } from "./ReportsPanel";
+import { ModerationInboxPanel } from "./ModerationInboxPanel";
+import { ModerationPanel } from "./ModerationPanel";
+import { ContentPanel } from "./ContentPanel";
+import { PodcastAdminPanel } from "./PodcastAdminPanel";
+import { EventsAdminPanel } from "./EventsAdminPanel";
+import { SubscriptionsPanel } from "./SubscriptionsPanel";
 
 const ActivityPanel = dynamic(
   () => import("./ActivityPanel").then((m) => m.ActivityPanel),
@@ -21,16 +28,40 @@ const ActivityPanel = dynamic(
 );
 
 const TABS: { id: AdminTab; label: string; icon: string }[] = [
-  { id: "health", label: "Health", icon: "bi-heart-pulse" },
+  { id: "overview", label: "Обзор", icon: "bi-grid" },
+  { id: "health", label: "Здраве", icon: "bi-heart-pulse" },
+  { id: "inbox", label: "Inbox", icon: "bi-inbox" },
   { id: "users", label: "Потребители", icon: "bi-people" },
   { id: "reports", label: "Репорти", icon: "bi-flag" },
-  { id: "activity", label: "Activity", icon: "bi-activity" },
+  { id: "content", label: "Съдържание", icon: "bi-collection" },
+  { id: "podcast", label: "Подкаст", icon: "bi-mic" },
+  { id: "events", label: "Събития", icon: "bi-calendar-event" },
+  { id: "moderation", label: "Profanity", icon: "bi-shield-check" },
+  { id: "activity", label: "Активност", icon: "bi-activity" },
+  { id: "subscriptions", label: "Абонати", icon: "bi-envelope" },
 ];
+
+const TAB_IDS = new Set(TABS.map((t) => t.id));
+
+function parseTab(value: string | null): AdminTab {
+  if (value && TAB_IDS.has(value as AdminTab)) return value as AdminTab;
+  return "overview";
+}
 
 export function AdminPageClient() {
   const { user, isLoadingUser } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<AdminTab>("health");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<AdminTab>(() => parseTab(searchParams.get("tab")));
+
+  useEffect(() => {
+    setTab(parseTab(searchParams.get("tab")));
+  }, [searchParams]);
+
+  const selectTab = (next: AdminTab) => {
+    setTab(next);
+    router.replace(`/admin?tab=${next}`, { scroll: false });
+  };
 
   if (isLoadingUser) {
     return <LogoLoader fullScreen size="lg" label="Зареждане на админ панел…" />;
@@ -79,7 +110,7 @@ export function AdminPageClient() {
           Админ панел
         </h1>
         <p className="mt-1 text-sm text-[color:var(--color-text-secondary)]">
-          Мониторинг, потребители, репорти и activity wall
+          Модерация, потребители, съдържание и системен мониторинг
         </p>
       </header>
 
@@ -88,7 +119,7 @@ export function AdminPageClient() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => selectTab(t.id)}
             className={cn(
               "flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition-colors",
               tab === t.id
@@ -102,10 +133,17 @@ export function AdminPageClient() {
         ))}
       </nav>
 
+      {tab === "overview" && <OverviewPanel enabled />}
       {tab === "health" && <HealthDashboard enabled />}
+      {tab === "inbox" && <ModerationInboxPanel enabled />}
       {tab === "users" && <UsersPanel enabled />}
       {tab === "reports" && <ReportsPanel enabled />}
+      {tab === "content" && <ContentPanel enabled />}
+      {tab === "podcast" && <PodcastAdminPanel enabled />}
+      {tab === "events" && <EventsAdminPanel enabled />}
+      {tab === "moderation" && <ModerationPanel enabled />}
       {tab === "activity" && <ActivityPanel enabled />}
+      {tab === "subscriptions" && <SubscriptionsPanel enabled />}
     </Container>
   );
 }

@@ -1,9 +1,12 @@
 package smolyanVote.smolyanVote.services.interfaces;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserRole;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
+import smolyanVote.smolyanVote.viewsAndDTO.AdminUserViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.UserBanAndRolesHistoryDto;
 
 import java.util.List;
@@ -13,6 +16,7 @@ public interface AdminUserManagementService {
 
     // ===== USER RETRIEVAL =====
     List<UserEntity> getAllUsers();
+    Page<AdminUserViewDTO> getUsersPage(String search, UserRole role, UserStatusEnum status, Integer minStrikes, Pageable pageable);
     UserEntity getUserById(Long userId);
 
     // ===== USER STATISTICS =====
@@ -23,9 +27,9 @@ public interface AdminUserManagementService {
     Map<String, Object> bulkRoleChange(List<Long> userIds, String newRole);
 
     // ===== BAN MANAGEMENT =====
-    Map<String, String> banUser(Long userId, String reason, String banType, Integer durationDays);
+    Map<String, String> banUser(Long userId, String reason, String banType, Integer durationDays, Integer durationHours);
     Map<String, String> unbanUser(Long userId);
-    Map<String, Object> bulkBanUsers(List<Long> userIds, String banType, String reason, Integer durationDays);
+    Map<String, Object> bulkBanUsers(List<Long> userIds, String banType, String reason, Integer durationDays, Integer durationHours);
 
     // ===== USER ACTIVATION =====
     Map<String, String> activateUser(Long userId);
@@ -34,9 +38,20 @@ public interface AdminUserManagementService {
     // ===== USER DELETION =====
     Map<String, String> deleteUser(Long userId);
 
+    // ===== MODERATION STRIKES =====
+    Map<String, String> resetModerationStrikes(Long userId);
+
+    Map<String, Object> bulkResetModerationStrikes(List<Long> userIds);
+
+    Map<String, Object> bulkDeleteUsers(List<Long> userIds);
+
+    Map<String, Object> getStrikeStatistics();
+
+    String exportUsersCsv(String search, UserRole role, UserStatusEnum status, Integer minStrikes);
+
     // ===== HISTORY MANAGEMENT =====
     void recordRoleChange(UserEntity targetUser, UserEntity adminUser, UserRole oldRole, UserRole newRole, String reason);
-    void recordBanAction(UserEntity targetUser, UserEntity adminUser, String banType, String reason, Integer durationDays, UserStatusEnum oldStatus, UserStatusEnum newStatus);
+    void recordBanAction(UserEntity targetUser, UserEntity adminUser, String banType, String reason, Integer durationDays, Integer durationHours, UserStatusEnum oldStatus, UserStatusEnum newStatus);
     void recordUnbanAction(UserEntity targetUser, UserEntity adminUser, String reason, UserStatusEnum oldStatus);
     void recordActivationAction(UserEntity targetUser, UserEntity adminUser, UserStatusEnum oldStatus);
 

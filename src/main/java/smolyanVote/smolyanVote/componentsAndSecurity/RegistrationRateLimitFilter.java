@@ -91,6 +91,15 @@ public class RegistrationRateLimitFilter extends OncePerRequestFilter {
             // Първо проверяваме глобалния лимит
             Bucket globalBucket = resolveGlobalPostBucket(ip);
             if (!globalBucket.tryConsume(1)) {
+                if (requestURI != null && requestURI.startsWith("/api/")) {
+                    if (!response.isCommitted()) {
+                        response.setStatus(429);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write(
+                                "{\"success\":false,\"message\":\"Прекалено много POST заявки. Опитайте по-късно.\",\"code\":\"RATE_LIMIT\",\"status\":429}");
+                    }
+                    return;
+                }
                 if (!response.isCommitted()) {
                     request.getSession().setAttribute("rateLimitError", "Прекалено много POST заявки. Опитайте по-късно.");
                     response.sendRedirect(request.getRequestURI());

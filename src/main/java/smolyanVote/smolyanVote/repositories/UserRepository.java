@@ -1,11 +1,13 @@
 package smolyanVote.smolyanVote.repositories;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.models.UserEntity;
 
 import java.time.Instant;
@@ -31,6 +33,24 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query("SELECT u FROM UserEntity u ORDER BY u.created DESC")
     List<UserEntity> findAllUsersForAdminDashboard();
 
+    @Query("""
+            SELECT u FROM UserEntity u
+            WHERE (:search IS NULL OR :search = '' OR
+                   LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                   LOWER(u.realName) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:role IS NULL OR u.role = :role)
+              AND (:status IS NULL OR u.status = :status)
+              AND (:minStrikes IS NULL OR u.moderationStrikeCount >= :minStrikes)
+            ORDER BY u.created DESC
+            """)
+    Page<UserEntity> findAdminUsers(
+            @Param("search") String search,
+            @Param("role") UserRole role,
+            @Param("status") UserStatusEnum status,
+            @Param("minStrikes") Integer minStrikes,
+            Pageable pageable);
+
     // ===== МЕТОДИ ЗА SVMESSENGER =====
 
     @Query("SELECT u FROM UserEntity u WHERE " +
@@ -48,4 +68,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     List<UserEntity> findOnlineUsers(@Param("status") int status, Pageable pageable);
 
     List<UserEntity> findByRole(UserRole role);
+
+    @Query("SELECT u FROM UserEntity u WHERE u.role IS NULL")
+    List<UserEntity> findAllWithNullRole();
 }

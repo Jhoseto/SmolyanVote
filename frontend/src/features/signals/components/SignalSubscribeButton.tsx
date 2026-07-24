@@ -2,6 +2,7 @@
 
 import { cn } from "@/shared/lib/cn";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { useSignalSubscribe } from "../hooks/useSignalSubscribe";
@@ -14,6 +15,7 @@ interface SignalSubscribeButtonProps {
 
 export function SignalSubscribeButton({ signal, className }: SignalSubscribeButtonProps) {
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const toast = useToast();
   const { mutate, isPending } = useSignalSubscribe();
 
@@ -33,7 +35,7 @@ export function SignalSubscribeButton({ signal, className }: SignalSubscribeButt
     <button
       type="button"
       onClick={toggle}
-      disabled={isPending}
+      disabled={isPending || !canInteract}
       className={cn(
         "inline-flex items-center gap-2 rounded-[var(--radius-pill)] border px-3.5 py-2 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50",
         signal.isSubscribed

@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.models.enums.UserRoleDefaults;
 import smolyanVote.smolyanVote.services.CustomUserDetails;
 
 @Service
@@ -36,8 +37,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         
         // Връщаме потребителя, като използваме имейла и паролата
         return User.withUsername(user.getEmail())
-                .password(password) // паролата е вече хеширана в базата данни или {noop} за OAuth потребители
-                .roles(user.getRole().name()) // роли на потребителя
+                .password(password)
+                .roles(UserRoleDefaults.effective(user.getRole()).name())
                 .build();
     }
 

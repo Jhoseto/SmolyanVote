@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.componentsAndSecurity.NotificationWebSocketHandler;
 import smolyanVote.smolyanVote.models.NotificationEntity;
+import smolyanVote.smolyanVote.models.PodcastEpisodeEntity;
 import smolyanVote.smolyanVote.models.SignalsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.UserRole;
@@ -16,6 +17,7 @@ import smolyanVote.smolyanVote.repositories.NotificationRepository;
 import smolyanVote.smolyanVote.repositories.SignalSubscriptionRepository;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
+import smolyanVote.smolyanVote.services.interfaces.SubscriptionService;
 import smolyanVote.smolyanVote.viewsAndDTO.NotificationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.GlobalActivityToastDTO;
 
@@ -33,17 +35,20 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final CommentsRepository commentsRepository;
     private final SignalSubscriptionRepository signalSubscriptionRepository;
+    private final SubscriptionService subscriptionService;
 
     public NotificationServiceImpl(NotificationRepository repository,
                                    NotificationWebSocketHandler webSocket,
                                    UserRepository userRepository,
                                    CommentsRepository commentsRepository,
-                                   SignalSubscriptionRepository signalSubscriptionRepository) {
+                                   SignalSubscriptionRepository signalSubscriptionRepository,
+                                   SubscriptionService subscriptionService) {
         this.repository = repository;
         this.webSocket = webSocket;
         this.userRepository = userRepository;
         this.commentsRepository = commentsRepository;
         this.signalSubscriptionRepository = signalSubscriptionRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Override
@@ -468,6 +473,20 @@ public class NotificationServiceImpl implements NotificationService {
             UserEntity recipient = sub.getUser();
             if (recipient == null || isSelf(recipient, actor)) return;
             create(recipient, type, message, actorUsername, actorImage, "SIGNAL", signal.getId(), actionUrl);
+        });
+    }
+
+    @Override
+    @Async
+    public void notifyPodcastSubscribers(PodcastEpisodeEntity episode) {
+        if (episode == null || episode.getId() == null) return;
+
+        String actionUrl = "/podcast?episode=" + episode.getId();
+        String title = episode.getTitle() == null ? "Нов епизод" : episode.getTitle();
+        String message = "Нов епизод: " + title;
+
+        subscriptionService.getPodcastNotificationSubscribers().forEach(user -> {
+            create(user, "PODCAST_EPISODE", message, "SmolyanVote", null, "PODCAST", episode.getId(), actionUrl);
         });
     }
 }

@@ -234,7 +234,28 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendSubscriptionConfirmation(UserEntity user, Set<SubscriptionType> subscriptions) {
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank() || subscriptions == null || subscriptions.isEmpty()) {
+            return;
+        }
 
+        String username = user.getUsername() == null ? "" : user.getUsername();
+        String subscriptionList = subscriptions.stream()
+                .map(SubscriptionType::getDisplayName)
+                .collect(java.util.stream.Collectors.joining(", "));
+        String podcastLink = frontendProperties.origin() + "/podcast";
+        String settingsLink = frontendProperties.origin() + "/podcast";
+
+        String htmlContent = htmlTemplate.render("email/subscription-confirmation.html", Map.of(
+                "usernameSuffix", username.isBlank() ? "" : ", " + username,
+                "subscriptionList", subscriptionList,
+                "podcastLink", podcastLink,
+                "settingsLink", settingsLink));
+
+        sendHtmlEmail(
+                user.getEmail(),
+                "Потвърждение на абонамент — SmolyanVote",
+                htmlContent,
+                "Успешно се абонирахте за: " + subscriptionList + ". Ще получавате известия на този имейл. Подкаст: " + podcastLink);
     }
 
     @Override

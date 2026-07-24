@@ -45,6 +45,9 @@ public class UserRoleAndBansHistoryEntity {
     @Column(name = "ban_duration_days")
     private Integer banDurationDays;
 
+    @Column(name = "ban_duration_hours")
+    private Integer banDurationHours;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "old_status")
     private UserStatusEnum oldStatus;
@@ -86,6 +89,9 @@ public class UserRoleAndBansHistoryEntity {
 
     public Integer getBanDurationDays() { return banDurationDays; }
     public void setBanDurationDays(Integer banDurationDays) { this.banDurationDays = banDurationDays; }
+
+    public Integer getBanDurationHours() { return banDurationHours; }
+    public void setBanDurationHours(Integer banDurationHours) { this.banDurationHours = banDurationHours; }
 
     public UserStatusEnum getOldStatus() { return oldStatus; }
     public void setOldStatus(UserStatusEnum oldStatus) { this.oldStatus = oldStatus; }

@@ -26,6 +26,7 @@ public class UserBanAndRolesHistoryDto {
     // Полета за BAN/UNBAN операции (nullable за role операции)
     private String banType; // PERMANENT, TEMPORARY
     private Integer banDurationDays; // null за permanent ban
+    private Integer banDurationHours; // null за permanent ban или bans само по дни
     private UserStatusEnum oldStatus;
     private UserStatusEnum newStatus;
 
@@ -113,6 +114,14 @@ public class UserBanAndRolesHistoryDto {
 
     public void setBanDurationDays(Integer banDurationDays) {
         this.banDurationDays = banDurationDays;
+    }
+
+    public Integer getBanDurationHours() {
+        return banDurationHours;
+    }
+
+    public void setBanDurationHours(Integer banDurationHours) {
+        this.banDurationHours = banDurationHours;
     }
 
     public UserStatusEnum getOldStatus() {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import { signalsApi } from "../api";
 import { patchSignalCaches } from "../lib/signalsCache";
 
@@ -13,6 +15,8 @@ export function useToggleSignalBoost() {
         hasBoosted: result.hasBoosted,
         priorityBoostCount: result.priorityBoostCount,
       });
+      toast.success(result.hasBoosted ? "Приоритетът на сигнала е вдигнат." : "Вдигането на приоритет е премахнато.");
     },
+    onError: (error) => toast.error(errorMessage(error, "Вдигането на приоритет не успя.")),
   });
 }

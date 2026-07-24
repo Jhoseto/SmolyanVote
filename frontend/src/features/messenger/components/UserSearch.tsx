@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, EmptyState, ErrorState, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
+import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { messengerApi } from "../api";
 import { useStartConversation } from "../hooks/useStartConversation";
 import { useMessengerUiStore } from "../store/messengerUiStore";
@@ -16,6 +18,8 @@ export function UserSearch() {
   const [tab, setTab] = useState<SearchTab>("all");
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
+  const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const { mutate: start, isPending: isStarting } = useStartConversation();
 
   useEffect(() => {
@@ -84,6 +88,13 @@ export function UserSearch() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {!canInteract && (
+          <p className="mx-3 my-3 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            <i className="bi bi-shield-exclamation mr-1" aria-hidden />
+            Нови разговори са изключени, докато профилът е ограничен.
+          </p>
+        )}
+
         {tab === "all" && query.length < 2 && (
           <p className="px-4 py-8 text-center text-sm text-[color:var(--color-text-muted)]">
             Въведи поне 2 символа за търсене.
@@ -107,8 +118,11 @@ export function UserSearch() {
           <button
             key={u.id}
             type="button"
-            disabled={isStarting}
-            onClick={() => start(u.id)}
+            disabled={isStarting || !canInteract}
+            onClick={async () => {
+              if (!(await requireAuth("да започнеш разговор"))) return;
+              start(u.id);
+            }}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[color:var(--color-surface-muted)] disabled:opacity-50"
           >
             <div className="relative shrink-0">

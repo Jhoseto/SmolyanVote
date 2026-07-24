@@ -45,6 +45,12 @@ public class AdminUserViewDTO {
     private Instant banEndDate;
     private String bannedBy;
 
+    /** Auto-moderation strikes (3 → 1h read-only ban). */
+    private int moderationStrikeCount;
+
+    /** Platform owner account — protected from ban/delete/demotion in admin UI. */
+    private boolean masterAdmin;
+
     // Notifications
     private List<Long> notification;
 
@@ -110,6 +116,19 @@ public class AdminUserViewDTO {
 
     public String getBannedBy() { return bannedBy; }
     public void setBannedBy(String bannedBy) { this.bannedBy = bannedBy; }
+
+    public int getModerationStrikeCount() { return moderationStrikeCount; }
+    public void setModerationStrikeCount(int moderationStrikeCount) {
+        this.moderationStrikeCount = moderationStrikeCount;
+    }
+
+    public boolean isMasterAdmin() {
+        return masterAdmin;
+    }
+
+    public void setMasterAdmin(boolean masterAdmin) {
+        this.masterAdmin = masterAdmin;
+    }
 
     public List<Long> getNotification() { return notification; }
     public void setNotification(List<Long> notification) { this.notification = notification; }

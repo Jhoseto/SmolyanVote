@@ -4,6 +4,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserRoleDefaults;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -31,7 +32,7 @@ public class CustomUserDetails implements UserDetails {
         this.password = password;
         this.userEntity = userEntity;
         this.authorities = Collections.singleton(
-                new SimpleGrantedAuthority("ROLE_" + userEntity.getRole().name())
+                new SimpleGrantedAuthority("ROLE_" + UserRoleDefaults.effective(userEntity.getRole()).name())
         );
     }
 

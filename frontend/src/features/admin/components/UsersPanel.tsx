@@ -1,11 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
@@ -19,8 +17,9 @@ import { useToast } from "@/shared/hooks/useToast";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
+import { formatBanExpiry } from "@/shared/lib/formatBanExpiry";
 import { adminApi } from "../api";
-import type { AdminUser, BanHistoryItem, UserRole, UserStatus } from "../types";
+import type { AdminUser, BanHistoryItem, BulkResult, UserRole, UserStatus } from "../types";
 import { MetricGrid } from "./MetricGrid";
 
 const STATUS_LABEL: Record<UserStatus, string> = {
@@ -30,19 +29,45 @@ const STATUS_LABEL: Record<UserStatus, string> = {
   PERMANENTLY_BANNED: "Перм. бан",
 };
 
+function isUserBanned(user: AdminUser): boolean {
+  return user.status === "TEMPORARILY_BANNED" || user.status === "PERMANENTLY_BANNED";
+}
+
+function isMasterAdminUser(user: AdminUser): boolean {
+  return user.masterAdmin === true;
+}
+
+function formatBanHistoryDuration(h: BanHistoryItem): string {
+  const parts: string[] = [];
+  if (h.banDurationDays) parts.push(`${h.banDurationDays}д`);
+  if (h.banDurationHours) parts.push(`${h.banDurationHours}ч`);
+  return parts.join(" ");
+}
+
 export function UsersPanel({ enabled }: { enabled: boolean }) {
   const toast = useToast();
   const confirm = useConfirm();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"users" | "history">("users");
+  const [tab, setTab] = useState<"users" | "history" | "strikes">("users");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
   const [roleFilter, setRoleFilter] = useState<"ALL" | UserRole>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | UserStatus>("ALL");
+  const [minStrikesFilter, setMinStrikesFilter] = useState<0 | 1 | 2>(0);
   const [sorting, setSorting] = useState<SortingState>([{ id: "created", desc: true }]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [detail, setDetail] = useState<AdminUser | null>(null);
   const [banTarget, setBanTarget] = useState<AdminUser[] | null>(null);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [search]);
 
   const statsQ = useQuery({
     queryKey: ["admin", "user-stats"],
@@ -52,10 +77,19 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
   });
 
   const usersQ = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: () => adminApi.users(),
+    queryKey: ["admin", "users", page, debouncedSearch, roleFilter, statusFilter, minStrikesFilter],
+    queryFn: () =>
+      adminApi.users({
+        page,
+        size: 20,
+        search: debouncedSearch,
+        role: roleFilter,
+        status: statusFilter,
+        minStrikes: minStrikesFilter > 0 ? minStrikesFilter : undefined,
+      }),
     enabled,
     staleTime: 15_000,
+    placeholderData: (prev) => prev,
   });
 
   const historyQ = useQuery({
@@ -64,27 +98,21 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
     enabled: enabled && tab === "history",
   });
 
+  const strikesStatsQ = useQuery({
+    queryKey: ["admin", "strike-stats"],
+    queryFn: () => adminApi.strikeStatistics(),
+    enabled: enabled && tab === "strikes",
+  });
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     void queryClient.invalidateQueries({ queryKey: ["admin", "user-stats"] });
     void queryClient.invalidateQueries({ queryKey: ["admin", "user-history"] });
   };
 
-  const filtered = useMemo(() => {
-    let list = usersQ.data?.users ?? [];
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (u) =>
-          u.username.toLowerCase().includes(q) ||
-          (u.email?.toLowerCase().includes(q) ?? false) ||
-          (u.realName?.toLowerCase().includes(q) ?? false),
-      );
-    }
-    if (roleFilter !== "ALL") list = list.filter((u) => u.role === roleFilter);
-    if (statusFilter !== "ALL") list = list.filter((u) => u.status === statusFilter);
-    return list;
-  }, [usersQ.data, search, roleFilter, statusFilter]);
+  const users = usersQ.data?.users ?? [];
+  const totalPages = usersQ.data?.totalPages ?? 1;
+  const totalCount = usersQ.data?.totalCount ?? users.length;
 
   const columns = useMemo<ColumnDef<AdminUser>[]>(
     () => [
@@ -101,6 +129,7 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
           <input
             type="checkbox"
             checked={row.getIsSelected()}
+            disabled={isMasterAdminUser(row.original)}
             onChange={row.getToggleSelectedHandler()}
           />
         ),
@@ -124,12 +153,54 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
       {
         accessorKey: "role",
         header: "Роля",
-        cell: ({ getValue }) => (getValue() === "ADMIN" ? "Admin" : "User"),
+        cell: ({ row }) => (
+          <span className="inline-flex items-center gap-1.5">
+            {row.original.role === "ADMIN" ? "Admin" : "User"}
+            {isMasterAdminUser(row.original) && (
+              <span className="rounded-[var(--radius-pill)] bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900">
+                Master
+              </span>
+            )}
+          </span>
+        ),
       },
       {
         accessorKey: "status",
         header: "Статус",
         cell: ({ getValue }) => STATUS_LABEL[getValue() as UserStatus] ?? String(getValue()),
+      },
+      {
+        id: "banEndDate",
+        header: "Бан до",
+        cell: ({ row }) => {
+          const user = row.original;
+          if (user.status === "PERMANENTLY_BANNED") {
+            return <span className="text-[color:var(--color-text-muted)]">Перманентен</span>;
+          }
+          if (user.status !== "TEMPORARILY_BANNED") {
+            return "—";
+          }
+          const expiry = formatBanExpiry(user.banEndDate);
+          if (!expiry) return "—";
+          return (
+            <div className="min-w-[8.5rem]">
+              <p className={cn("text-sm font-medium", expiry.expired ? "text-emerald-700" : "text-amber-800")}>
+                {expiry.primary}
+              </p>
+              <p className="text-[11px] text-[color:var(--color-text-muted)]">{expiry.secondary}</p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "moderationStrikeCount",
+        header: "Strikes",
+        cell: ({ getValue }) => {
+          const n = (getValue() as number | undefined) ?? 0;
+          return (
+            <span className={cn(n >= 2 && "font-semibold text-amber-700")}>{n}/3</span>
+          );
+        },
       },
       {
         accessorKey: "created",
@@ -145,8 +216,16 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
         cell: ({ row }) => (
           <div className="flex gap-1">
             <IconBtn title="Детайли" icon="bi-eye" onClick={() => setDetail(row.original)} />
-            <IconBtn title="Роля" icon="bi-shield" onClick={() => setRoleTarget(row.original)} />
-            <IconBtn title="Бан" icon="bi-slash-circle" onClick={() => setBanTarget([row.original])} />
+            {!isMasterAdminUser(row.original) && (
+              <>
+                <IconBtn title="Роля" icon="bi-shield" onClick={() => setRoleTarget(row.original)} />
+                <IconBtn
+                  title={isUserBanned(row.original) ? "Бан / премахни бан" : "Бан"}
+                  icon="bi-slash-circle"
+                  onClick={() => setBanTarget([row.original])}
+                />
+              </>
+            )}
           </div>
         ),
       },
@@ -155,17 +234,16 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
   );
 
   const table = useReactTable({
-    data: filtered,
+    data: users,
     columns,
     state: { sorting, rowSelection },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getRowId: (r) => String(r.id),
-    initialState: { pagination: { pageSize: 20 } },
+    manualPagination: true,
+    pageCount: totalPages,
   });
 
   const selectedUsers = table.getSelectedRowModel().rows.map((r) => r.original);
@@ -176,12 +254,14 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
       reason: string;
       banType: string;
       durationDays?: number;
+      durationHours?: number;
     }) => {
       if (args.users.length === 1) {
         return adminApi.banUser(args.users[0].id, {
           reason: args.reason,
           banType: args.banType,
           durationDays: args.durationDays,
+          durationHours: args.durationHours,
         });
       }
       return adminApi.bulkBan({
@@ -189,10 +269,24 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
         banType: args.banType,
         reason: args.reason,
         durationDays: args.durationDays,
+        durationHours: args.durationHours,
       });
     },
-    onSuccess: () => {
-      toast.success("Банът е приложен");
+    onSuccess: (result) => {
+      if (result && typeof result === "object" && "errorCount" in result) {
+        const r = result as BulkResult & { errorCount?: number; successCount?: number };
+        if ((r.errorCount ?? 0) > 0 && (r.successCount ?? 0) === 0) {
+          toast.error(r.errorMessages?.[0] ?? r.errors?.[0] ?? "Банът не успя");
+          return;
+        }
+        if ((r.errorCount ?? 0) > 0) {
+          toast.success(`Частичен успех: ${r.successCount ?? 0} OK, ${r.errorCount} грешки`);
+        } else {
+          toast.success("Банът е приложен");
+        }
+      } else {
+        toast.success("Банът е приложен");
+      }
       setBanTarget(null);
       invalidate();
     },
@@ -228,19 +322,74 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
     }
   }
 
-  async function runUnban(user: AdminUser) {
+  async function runBulkDelete() {
+    if (selectedUsers.length === 0) return;
     const ok = await confirm({
-      title: "Премахване на бан",
-      description: `Премахване на бана на ${user.username}?`,
-      confirmText: "Unban",
+      title: "Изтриване на профили",
+      description: `Изтриване на ${selectedUsers.length} потребител(я)? Това е необратимо.`,
+      confirmText: "Изтрий",
+      destructive: true,
     });
     if (!ok) return;
     try {
-      await adminApi.unbanUser(user.id);
-      toast.success("Банът е премахнат");
+      const r = await adminApi.bulkDeleteUsers(selectedUsers.map((u) => u.id));
+      if ((r.errorCount ?? 0) > 0 && (r.successCount ?? 0) === 0) {
+        toast.error(r.errorMessages?.[0] ?? "Изтриването не успя");
+        return;
+      }
+      if ((r.errorCount ?? 0) > 0) {
+        toast.success(`Частичен успех: ${r.successCount ?? 0} изтрити, ${r.errorCount} грешки`);
+      } else {
+        toast.success("Профилите са изтрити");
+      }
+      setRowSelection({});
       invalidate();
     } catch (e) {
-      toast.error(errorMessage(e, "Unban не успя"));
+      toast.error(errorMessage(e, "Изтриването не успя"));
+    }
+  }
+
+  async function runUnban(users: AdminUser | AdminUser[]) {
+    const list = (Array.isArray(users) ? users : [users]).filter(isUserBanned);
+    if (list.length === 0) return;
+    const ok = await confirm({
+      title: "Премахване на бан",
+      description:
+        list.length === 1
+          ? `Премахване на бана на ${list[0].username}?`
+          : `Премахване на бана на ${list.length} потребителя?`,
+      confirmText: "Премахни бан",
+    });
+    if (!ok) return;
+    try {
+      let errors = 0;
+      for (const user of list) {
+        try {
+          await adminApi.unbanUser(user.id);
+        } catch {
+          errors += 1;
+        }
+      }
+      if (errors === list.length) {
+        toast.error("Премахването на бана не успя");
+        return;
+      }
+      if (errors > 0) {
+        toast.success(`Частичен успех: ${list.length - errors} от ${list.length} отблокирани`);
+      } else {
+        toast.success(list.length === 1 ? "Банът е премахнат" : "Бановете са премахнати");
+      }
+      setBanTarget(null);
+      if (detail && list.some((u) => u.id === detail.id)) {
+        try {
+          setDetail(await adminApi.user(detail.id));
+        } catch {
+          setDetail(null);
+        }
+      }
+      invalidate();
+    } catch (e) {
+      toast.error(errorMessage(e, "Премахването на бана не успя"));
     }
   }
 
@@ -287,7 +436,13 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
       )}
 
       <div className="flex gap-2 border-b border-border-default/60">
-        {(["users", "history"] as const).map((t) => (
+        {(
+          [
+            ["users", "Потребители"],
+            ["strikes", "Strikes"],
+            ["history", "История роли/банове"],
+          ] as const
+        ).map(([t, label]) => (
           <button
             key={t}
             type="button"
@@ -299,13 +454,36 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
                 : "text-[color:var(--color-text-muted)]",
             )}
           >
-            {t === "users" ? "Потребители" : "История роли/банове"}
+            {label}
           </button>
         ))}
       </div>
 
       {tab === "history" ? (
         <HistoryTable items={historyQ.data ?? []} loading={historyQ.isPending} />
+      ) : tab === "strikes" ? (
+        <div className="flex flex-col gap-4">
+          {strikesStatsQ.data && (
+            <MetricGrid
+              items={[
+                { label: "1 strike", value: String(strikesStatsQ.data.withOneStrike) },
+                { label: "2 strikes", value: String(strikesStatsQ.data.withTwoStrikes), tone: "warn" },
+                { label: "≥3 strikes", value: String(strikesStatsQ.data.withThreeOrMore), tone: "bad" },
+                { label: "Auto-ban сега", value: String(strikesStatsQ.data.autoBannedNow), tone: "bad" },
+              ]}
+            />
+          )}
+          <button
+            type="button"
+            className="self-start rounded border px-3 py-1.5 text-sm"
+            onClick={() => {
+              setMinStrikesFilter(2);
+              setTab("users");
+            }}
+          >
+            Покажи потребители с ≥2 strikes
+          </button>
+        </div>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
@@ -317,7 +495,10 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
             />
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
+              onChange={(e) => {
+                setRoleFilter(e.target.value as typeof roleFilter);
+                setPage(0);
+              }}
               className="rounded-[var(--radius-md)] border border-border-default/60 px-2 py-1.5 text-sm"
             >
               <option value="ALL">Всички роли</option>
@@ -326,7 +507,10 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
             </select>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as typeof statusFilter);
+                setPage(0);
+              }}
               className="rounded-[var(--radius-md)] border border-border-default/60 px-2 py-1.5 text-sm"
             >
               <option value="ALL">Всички статуси</option>
@@ -336,6 +520,32 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
                 </option>
               ))}
             </select>
+            <select
+              value={minStrikesFilter}
+              onChange={(e) => {
+                setMinStrikesFilter(Number(e.target.value) as 0 | 1 | 2);
+                setPage(0);
+              }}
+              className="rounded-[var(--radius-md)] border border-border-default/60 px-2 py-1.5 text-sm"
+            >
+              <option value={0}>Всички strikes</option>
+              <option value={1}>≥1 strike</option>
+              <option value={2}>≥2 strikes</option>
+            </select>
+            <button
+              type="button"
+              onClick={() =>
+                adminApi.exportUsersCsv({
+                  search: debouncedSearch,
+                  role: roleFilter,
+                  status: statusFilter,
+                  minStrikes: minStrikesFilter > 0 ? minStrikesFilter : undefined,
+                })
+              }
+              className="rounded-[var(--radius-md)] border px-3 py-1.5 text-sm"
+            >
+              Export CSV
+            </button>
             {selectedUsers.length > 0 && (
               <div className="ml-auto flex flex-wrap gap-2">
                 <button
@@ -351,6 +561,13 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
                   className="rounded-[var(--radius-md)] bg-[color:var(--color-error)] px-3 py-1.5 text-xs text-white"
                 >
                   Бан ({selectedUsers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runBulkDelete()}
+                  className="rounded-[var(--radius-md)] bg-red-800 px-3 py-1.5 text-xs text-white"
+                >
+                  Изтрий ({selectedUsers.length})
                 </button>
                 <button
                   type="button"
@@ -376,6 +593,31 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
                   className="rounded-[var(--radius-md)] border border-border-default/60 px-3 py-1.5 text-xs"
                 >
                   → ADMIN
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Demote to USER",
+                      description: `${selectedUsers.length} потребителя → USER?`,
+                      confirmText: "Demote",
+                    });
+                    if (!ok) return;
+                    try {
+                      await adminApi.bulkRoleChange(
+                        selectedUsers.map((u) => u.id),
+                        "USER",
+                      );
+                      toast.success("Ролите са обновени");
+                      setRowSelection({});
+                      invalidate();
+                    } catch (e) {
+                      toast.error(errorMessage(e, "Bulk role не успя"));
+                    }
+                  }}
+                  className="rounded-[var(--radius-md)] border border-border-default/60 px-3 py-1.5 text-xs"
+                >
+                  → USER
                 </button>
               </div>
             )}
@@ -415,22 +657,21 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
 
           <div className="flex items-center justify-between text-xs text-[color:var(--color-text-muted)]">
             <span>
-              {filtered.length} резултата · стр. {table.getState().pagination.pageIndex + 1}/
-              {table.getPageCount() || 1}
+              {totalCount} общо · стр. {page + 1}/{totalPages || 1}
             </span>
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => table.previousPage()}
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
                 className="rounded border px-2 py-1 disabled:opacity-40"
               >
                 Назад
               </button>
               <button
                 type="button"
-                disabled={!table.getCanNextPage()}
-                onClick={() => table.nextPage()}
+                disabled={page + 1 >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
                 className="rounded border px-2 py-1 disabled:opacity-40"
               >
                 Напред
@@ -447,6 +688,21 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
           onBan={() => setBanTarget([detail])}
           onRole={() => setRoleTarget(detail)}
           onUnban={() => void runUnban(detail)}
+          onResetStrikes={async () => {
+            const ok = await confirm({
+              title: "Нулиране на strikes",
+              description: `Нулиране на moderation strikes за ${detail.username}?`,
+              confirmText: "Нулирай",
+            });
+            if (!ok) return;
+            try {
+              await adminApi.resetModerationStrikes(detail.id);
+              toast.success("Strikes са нулирани");
+              invalidate();
+            } catch (e) {
+              toast.error(errorMessage(e, "Нулирането не успя"));
+            }
+          }}
           onActivate={async () => {
             try {
               await adminApi.activateUser(detail.id);
@@ -466,6 +722,7 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
           busy={banMut.isPending}
           onClose={() => setBanTarget(null)}
           onSubmit={(payload) => banMut.mutate({ users: banTarget, ...payload })}
+          onUnban={(users) => void runUnban(users)}
         />
       )}
 
@@ -500,6 +757,7 @@ function UserDetailModal({
   onBan,
   onRole,
   onUnban,
+  onResetStrikes,
   onActivate,
   onDelete,
 }: {
@@ -508,9 +766,12 @@ function UserDetailModal({
   onBan: () => void;
   onRole: () => void;
   onUnban: () => void;
+  onResetStrikes: () => void;
   onActivate: () => void;
   onDelete: () => void;
 }) {
+  const banExpiry = user.status === "TEMPORARILY_BANNED" ? formatBanExpiry(user.banEndDate) : null;
+
   return (
     <Modal title={`Потребител · ${user.username}`} onClose={onClose}>
       <div className="flex items-center gap-3">
@@ -526,30 +787,58 @@ function UserDetailModal({
         <Field label="Събития" value={String(user.userEventsCount)} />
         <Field label="Гласове" value={String(user.totalVotes)} />
         <Field label="Публикации" value={String(user.publicationsCount)} />
+        <Field
+          label="Moderation strikes"
+          value={`${user.moderationStrikeCount ?? 0}/3`}
+        />
         <Field label="Локация" value={user.location || "—"} />
         <Field label="Бан причина" value={user.banReason || "—"} />
         <Field label="Бан от" value={user.bannedBy || "—"} />
+        {banExpiry && <Field label="Бан до" value={`${banExpiry.secondary} (${banExpiry.primary})`} />}
       </dl>
+      {isMasterAdminUser(user) && (
+        <p className="mt-4 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          Master admin акаунт — защитен от бан, изтриване и понижение до USER.
+        </p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={onRole} className="rounded bg-primary px-3 py-1.5 text-xs text-white">
-          Смяна на роля
-        </button>
-        <button type="button" onClick={onBan} className="rounded bg-amber-600 px-3 py-1.5 text-xs text-white">
-          Бан
-        </button>
-        <button type="button" onClick={onUnban} className="rounded border px-3 py-1.5 text-xs">
-          Unban
-        </button>
-        <button type="button" onClick={onActivate} className="rounded border px-3 py-1.5 text-xs">
-          Активирай
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded bg-[color:var(--color-error)] px-3 py-1.5 text-xs text-white"
-        >
-          Изтрий
-        </button>
+        {!isMasterAdminUser(user) && (
+          <>
+            <button type="button" onClick={onRole} className="rounded bg-primary px-3 py-1.5 text-xs text-white">
+              Смяна на роля
+            </button>
+            {isUserBanned(user) ? (
+              <button
+                type="button"
+                onClick={onUnban}
+                className="rounded bg-emerald-600 px-3 py-1.5 text-xs text-white"
+              >
+                Премахни бан
+              </button>
+            ) : (
+              <button type="button" onClick={onBan} className="rounded bg-amber-600 px-3 py-1.5 text-xs text-white">
+                Бан
+              </button>
+            )}
+            {!isUserBanned(user) && (
+              <button type="button" onClick={onActivate} className="rounded border px-3 py-1.5 text-xs">
+                Активирай
+              </button>
+            )}
+            {(user.moderationStrikeCount ?? 0) > 0 && (
+              <button type="button" onClick={onResetStrikes} className="rounded border px-3 py-1.5 text-xs">
+                Нулирай strikes
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded bg-[color:var(--color-error)] px-3 py-1.5 text-xs text-white"
+            >
+              Изтрий
+            </button>
+          </>
+        )}
       </div>
     </Modal>
   );
@@ -560,64 +849,141 @@ function BanModal({
   busy,
   onClose,
   onSubmit,
+  onUnban,
 }: {
   users: AdminUser[];
   busy: boolean;
   onClose: () => void;
-  onSubmit: (p: { reason: string; banType: string; durationDays?: number }) => void;
+  onSubmit: (p: { reason: string; banType: string; durationDays?: number; durationHours?: number }) => void;
+  onUnban: (users: AdminUser[]) => void;
 }) {
   const [reason, setReason] = useState("");
-  const [banType, setBanType] = useState("TEMPORARY");
-  const [days, setDays] = useState(7);
+  const [banType, setBanType] = useState("temporary");
+  const [durationUnit, setDurationUnit] = useState<"days" | "hours">("days");
+  const [duration, setDuration] = useState(7);
+
+  const bannedUsers = users.filter(isUserBanned);
+  const notBannedUsers = users.filter((u) => !isUserBanned(u));
+  const allBanned = bannedUsers.length === users.length;
 
   return (
-    <Modal title={`Бан · ${users.length} потребител(я)`} onClose={onClose}>
-      <label className="block text-xs">
-        Тип
-        <select
-          value={banType}
-          onChange={(e) => setBanType(e.target.value)}
-          className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
-        >
-          <option value="TEMPORARY">Временен</option>
-          <option value="PERMANENT">Постоянен</option>
-        </select>
-      </label>
-      {banType === "TEMPORARY" && (
-        <label className="mt-2 block text-xs">
-          Дни
-          <input
-            type="number"
-            min={1}
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
-          />
-        </label>
+    <Modal
+      title={allBanned ? `Блокиран · ${users.length} потребител(я)` : `Бан · ${users.length} потребител(я)`}
+      onClose={onClose}
+    >
+      {bannedUsers.length > 0 && (
+        <div className="mb-4 rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+            {bannedUsers.length === 1 ? "Текущ бан" : "Блокирани потребители"}
+          </p>
+          {bannedUsers.length === 1 ? (
+            <div className="mt-2 space-y-1 text-sm text-emerald-950">
+              <p>
+                <span className="font-medium">{bannedUsers[0].username}</span> ·{" "}
+                {STATUS_LABEL[bannedUsers[0].status]}
+              </p>
+              {bannedUsers[0].banReason && (
+                <p className="text-xs text-emerald-900">Причина: {bannedUsers[0].banReason}</p>
+              )}
+              {bannedUsers[0].bannedBy && (
+                <p className="text-xs text-emerald-900">От: {bannedUsers[0].bannedBy}</p>
+              )}
+              {bannedUsers[0].status === "TEMPORARILY_BANNED" && formatBanExpiry(bannedUsers[0].banEndDate) && (
+                <p className="text-xs text-emerald-900">
+                  Изтича: {formatBanExpiry(bannedUsers[0].banEndDate)!.secondary} (
+                  {formatBanExpiry(bannedUsers[0].banEndDate)!.primary})
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-emerald-950">
+              {bannedUsers.length} от {users.length} са блокирани.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => onUnban(bannedUsers)}
+            className="mt-3 rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+          >
+            Премахни бан{bannedUsers.length > 1 ? ` (${bannedUsers.length})` : ""}
+          </button>
+        </div>
       )}
-      <label className="mt-2 block text-xs">
-        Причина
-        <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={3}
-          className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
-        />
-      </label>
-      <button
-        type="button"
-        disabled={!reason.trim() || busy}
-        onClick={() =>
-          onSubmit({
-            reason: reason.trim(),
-            banType,
-            durationDays: banType === "TEMPORARY" ? days : undefined,
-          })
-        }
-        className="mt-3 rounded bg-[color:var(--color-error)] px-4 py-2 text-sm text-white disabled:opacity-40"
-      >
-        Потвърди бан
-      </button>
+
+      {!allBanned && (
+        <>
+          {notBannedUsers.length > 0 && bannedUsers.length > 0 && (
+            <p className="mb-3 text-xs text-[color:var(--color-text-muted)]">
+              Формата по-долу ще блокира {notBannedUsers.length} неблокиран(и) потребител(я).
+            </p>
+          )}
+          <label className="block text-xs">
+            Тип
+            <select
+              value={banType}
+              onChange={(e) => setBanType(e.target.value)}
+              className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+            >
+              <option value="temporary">Временен</option>
+              <option value="permanent">Постоянен</option>
+            </select>
+          </label>
+          {banType === "temporary" && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="block text-xs">
+                Единица
+                <select
+                  value={durationUnit}
+                  onChange={(e) => {
+                    const unit = e.target.value as "days" | "hours";
+                    setDurationUnit(unit);
+                    setDuration(unit === "days" ? 7 : 24);
+                  }}
+                  className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+                >
+                  <option value="days">Дни</option>
+                  <option value="hours">Часове</option>
+                </select>
+              </label>
+              <label className="block text-xs">
+                {durationUnit === "days" ? "Дни" : "Часове"}
+                <input
+                  type="number"
+                  min={1}
+                  max={durationUnit === "hours" ? 720 : 365}
+                  value={duration}
+                  onChange={(e) => setDuration(Math.max(1, Number(e.target.value) || 1))}
+                  className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+          )}
+          <label className="mt-2 block text-xs">
+            Причина
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={!reason.trim() || busy || (banType === "temporary" && duration < 1)}
+            onClick={() =>
+              onSubmit({
+                reason: reason.trim(),
+                banType,
+                durationDays: banType === "temporary" && durationUnit === "days" ? duration : undefined,
+                durationHours: banType === "temporary" && durationUnit === "hours" ? duration : undefined,
+              })
+            }
+            className="mt-3 rounded bg-[color:var(--color-error)] px-4 py-2 text-sm text-white disabled:opacity-40"
+          >
+            Потвърди бан
+          </button>
+        </>
+      )}
     </Modal>
   );
 }
@@ -695,7 +1061,7 @@ function HistoryTable({ items, loading }: { items: BanHistoryItem[]; loading: bo
                 {h.actionType === "ROLE_CHANGE"
                   ? `${h.oldRole} → ${h.newRole}`
                   : h.banType
-                    ? `${h.banType}${h.banDurationDays ? ` (${h.banDurationDays}д)` : ""}`
+                    ? `${h.banType}${formatBanHistoryDuration(h) ? ` (${formatBanHistoryDuration(h)})` : ""}`
                     : ""}
                 {h.reason ? ` · ${h.reason}` : ""}
               </td>

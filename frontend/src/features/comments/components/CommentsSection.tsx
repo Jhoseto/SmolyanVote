@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button, Skeleton, EmptyState, ErrorState, LogoLoader } from "@/shared/ui";
 import { useToast } from "@/shared/hooks/useToast";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { useComments, commentsQueryKey } from "../hooks/useComments";
 import { useAddComment } from "../hooks/useCommentMutations";
@@ -28,6 +29,7 @@ interface CommentsSectionProps {
 export function CommentsSection({ entityType, entityId, onCommentAdded }: CommentsSectionProps) {
   const toast = useToast();
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const queryClient = useQueryClient();
   const [sort, setSort] = useState<CommentSort>("newest");
 
@@ -77,7 +79,14 @@ export function CommentsSection({ entityType, entityId, onCommentAdded }: Commen
       </div>
 
       <div className="shrink-0">
-        <CommentForm isPending={addComment.isPending} onSubmit={handleAddComment} />
+        {canInteract ? (
+          <CommentForm isPending={addComment.isPending} onSubmit={handleAddComment} />
+        ) : (
+          <p className="rounded-[var(--radius-md)] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            <i className="bi bi-shield-exclamation mr-1.5" aria-hidden />
+            Коментирането е изключено, докато профилът ви е ограничен.
+          </p>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

@@ -43,6 +43,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             details = "Updated subscriptions: {types}")
 
     public void updateUserSubscriptions(UserEntity user, Set<SubscriptionType> types) {
+        Set<SubscriptionType> previousActive = getUserSubscriptions(user);
+
         emailSubscriptionRepository.deactivateAllByUser(user);
 
         types.forEach(type -> {
@@ -68,6 +70,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             emailSubscriptionRepository.save(subscription);
         });
 
+        Set<SubscriptionType> newlyAdded = types.stream()
+                .filter(t -> !previousActive.contains(t))
+                .collect(Collectors.toSet());
+        if (!newlyAdded.isEmpty()) {
+            try {
+                emailService.sendSubscriptionConfirmation(user, newlyAdded);
+            } catch (Exception e) {
+                log.error("Failed to send subscription confirmation to {}", user.getEmail(), e);
+            }
+        }
+
         log.info("Updated subscriptions for user {}: {}", user.getEmail(), types);
     }
 
@@ -82,6 +95,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public List<UserEntity> getSubscribersForType(SubscriptionType type) {
         return emailSubscriptionRepository.findActiveSubscribersByType(type);
+    }
+
+    @Override
+    public List<UserEntity> getPodcastNotificationSubscribers() {
+        Map<Long, UserEntity> byId = new LinkedHashMap<>();
+        for (SubscriptionType type : List.of(SubscriptionType.PODCAST_EPISODES, SubscriptionType.ALL_NOTIFICATIONS)) {
+            for (UserEntity user : getSubscribersForType(type)) {
+                if (user != null && user.getId() != null) {
+                    byId.putIfAbsent(user.getId(), user);
+                }
+            }
+        }
+        return new ArrayList<>(byId.values());
     }
 
     @Override
@@ -135,9 +161,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Async
     @Override
     public void sendPodcastNotificationToSubscribers(Object podcastEpisode) {
-        List<UserEntity> subscribers = getSubscribersForType(SubscriptionType.PODCAST_EPISODES);
+        List<UserEntity> subscribers = getPodcastNotificationSubscribers();
 
-        log.info("Sending podcast notification to {} subscribers", subscribers.size());
+        log.info("Sending podcast email notification to {} subscribers", subscribers.size());
 
         subscribers.forEach(user -> {
             try {

@@ -153,6 +153,29 @@ public class AdminActivityController {
         }
     }
 
+    @GetMapping("/admin-actions")
+    public ResponseEntity<Map<String, Object>> getAdminActions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        try {
+            size = Math.min(Math.max(1, size), 100);
+            page = Math.max(0, page);
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+            Page<ActivityLogEntity> activitiesPage = activityLogService.getAdminActivities(pageable);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("activities", convertActivitiesToJson(activitiesPage.getContent()));
+            response.put("totalElements", activitiesPage.getTotalElements());
+            response.put("totalPages", activitiesPage.getTotalPages());
+            response.put("currentPage", page);
+            response.put("size", size);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(createErrorResponse("Грешка: " + e.getMessage()));
+        }
+    }
+
     // ===== STATISTICS =====
 
     @GetMapping("/stats")

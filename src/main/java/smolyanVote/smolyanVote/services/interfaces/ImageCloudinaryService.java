@@ -23,4 +23,7 @@ public interface ImageCloudinaryService {
     void deleteFolder(String folderPath);
 
     String savePodcastImage(MultipartFile file, Long episodeId);
+
+    /** Uploads a podcast episode's audio track (Cloudinary treats audio as a "video" resource). */
+    String savePodcastAudio(MultipartFile file, Long episodeId);
 }

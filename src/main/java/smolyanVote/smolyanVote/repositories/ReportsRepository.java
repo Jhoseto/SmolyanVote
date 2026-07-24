@@ -146,4 +146,51 @@ public interface ReportsRepository extends JpaRepository<ReportsEntity, Long> {
 
     @Query(value = "SELECT COUNT(DISTINCT CONCAT(r.entity_type, '-', r.entity_id)) FROM reports r", nativeQuery = true)
     Long countGroupedReports();
+
+    @Query(value = """
+    SELECT
+        r.entity_type,
+        r.entity_id,
+        COUNT(*) as report_count,
+        MIN(r.created_at) as first_report,
+        MAX(r.created_at) as last_report,
+        (SELECT reason FROM reports r2
+         WHERE r2.entity_type = r.entity_type AND r2.entity_id = r.entity_id
+         GROUP BY reason
+         ORDER BY COUNT(*) DESC, reason
+         LIMIT 1) as most_common_reason,
+        (SELECT description FROM reports r3
+         WHERE r3.entity_type = r.entity_type AND r3.entity_id = r.entity_id
+         AND r3.description IS NOT NULL AND r3.description != ''
+         ORDER BY r3.created_at DESC
+         LIMIT 1) as most_recent_description,
+        CASE
+            WHEN COUNT(CASE WHEN r.status = 'PENDING' THEN 1 END) > 0 THEN 'PENDING'
+            WHEN COUNT(CASE WHEN r.status = 'REVIEWED' THEN 1 END) = COUNT(*) THEN 'REVIEWED'
+            ELSE 'MIXED'
+        END as overall_status
+    FROM reports r
+    WHERE (:entityType IS NULL OR r.entity_type = :entityType)
+    GROUP BY r.entity_type, r.entity_id
+    HAVING (:pendingOnly = false OR SUM(CASE WHEN r.status = 'PENDING' THEN 1 ELSE 0 END) > 0)
+    ORDER BY COUNT(*) DESC, MAX(r.created_at) DESC
+    LIMIT :limit OFFSET :offset
+    """, nativeQuery = true)
+    List<Object[]> findGroupedReportsFiltered(
+            @Param("entityType") String entityType,
+            @Param("pendingOnly") boolean pendingOnly,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+    SELECT COUNT(*) FROM (
+        SELECT 1 FROM reports r
+        WHERE (:entityType IS NULL OR r.entity_type = :entityType)
+        GROUP BY r.entity_type, r.entity_id
+        HAVING (:pendingOnly = false OR SUM(CASE WHEN r.status = 'PENDING' THEN 1 ELSE 0 END) > 0)
+    ) grouped
+    """, nativeQuery = true)
+    Long countGroupedReportsFiltered(
+            @Param("entityType") String entityType,
+            @Param("pendingOnly") boolean pendingOnly);
 }

@@ -7,12 +7,9 @@ import maplibregl from "maplibre-gl";
 import Supercluster from "supercluster";
 import { cn } from "@/shared/lib/cn";
 import { categoryIcon } from "../data/categories";
-import { signalMapPopupHtml } from "../lib/signalMapPopupHtml";
+import { signalClusterListPopupHtml, signalMapPopupHtml } from "../lib/signalMapPopupHtml";
 import { SMOLYAN_CENTER, smolyanPolygonGeoJsonRing } from "../data/smolyanBoundary";
-import {
-  createSignalsMapStyle,
-  SIGNALS_MAP_MAX_ZOOM,
-} from "../lib/mapRasterStyle";
+import { SIGNALS_MAP_MAX_ZOOM, SIGNALS_MAP_STYLE_URL } from "../lib/mapRasterStyle";
 import { SignalsMapHud } from "./SignalsMapHud";
 import type { Signal } from "../types";
 
@@ -33,6 +30,11 @@ interface SignalPointProperties {
 
 const DESKTOP_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 const FLY_DURATION_MS = 1400;
+/** Must match the `maxZoom` passed to `new Supercluster(...)` below — points within
+ * the cluster radius (e.g. identical/near-identical coordinates) never separate
+ * beyond this zoom, so we detect that case and offer a pick-list instead of
+ * endlessly re-zooming into the same spot. */
+const SUPERCLUSTER_MAX_ZOOM = 17;
 
 function isClusterFeature(
   feature: Supercluster.ClusterFeature<Supercluster.AnyProps> | Supercluster.PointFeature<SignalPointProperties>,
@@ -64,17 +66,17 @@ function addBoundaryLayers(map: maplibregl.Map) {
     id: "smolyan-boundary-fill",
     type: "fill",
     source: "smolyan-boundary",
-    paint: { "fill-color": "#0d6efd", "fill-opacity": 0.05 },
+    paint: { "fill-color": "#19861c", "fill-opacity": 0.04 },
   });
   map.addLayer({
     id: "smolyan-boundary-glow",
     type: "line",
     source: "smolyan-boundary",
     paint: {
-      "line-color": "#0d6efd",
+      "line-color": "#19861c",
       "line-width": 6,
       "line-blur": 4,
-      "line-opacity": 0.15,
+      "line-opacity": 0.12,
     },
   });
   map.addLayer({
@@ -82,10 +84,10 @@ function addBoundaryLayers(map: maplibregl.Map) {
     type: "line",
     source: "smolyan-boundary",
     paint: {
-      "line-color": "#0d6efd",
+      "line-color": "#19861c",
       "line-width": 2,
       "line-dasharray": [2, 2],
-      "line-opacity": 0.75,
+      "line-opacity": 0.7,
     },
   });
 }
@@ -150,6 +152,7 @@ export function SignalsMap({
   const onAdminQuickDeleteRef = useRef(onAdminQuickDelete);
   const focusSignalIdRef = useRef(focusSignalId);
   const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
+  const clusterPopupRef = useRef<maplibregl.Popup | null>(null);
   const hoverHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -174,7 +177,7 @@ export function SignalsMap({
         geometry: { type: "Point", coordinates: [signal.longitude, signal.latitude] },
       }));
 
-    const cluster = new Supercluster<SignalPointProperties>({ radius: 56, maxZoom: 17 });
+    const cluster = new Supercluster<SignalPointProperties>({ radius: 56, maxZoom: SUPERCLUSTER_MAX_ZOOM });
     cluster.load(points);
     return cluster;
   }, [signals]);
@@ -247,7 +250,7 @@ export function SignalsMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: createSignalsMapStyle(),
+      style: SIGNALS_MAP_STYLE_URL,
       center: SMOLYAN_CENTER,
       zoom: 12.5,
       minZoom: 9,
@@ -270,6 +273,16 @@ export function SignalsMap({
     return () => {
       if (flyTimerRef.current) clearTimeout(flyTimerRef.current);
       hoverPopupRef.current?.remove();
+      clusterPopupRef.current?.remove();
+      // Dispose every marker tied to this map instance — otherwise (e.g. React
+      // StrictMode's mount→cleanup→remount dance in dev) a stale Marker object
+      // survives into the next map instance's render cycle. `setLngLat` on it
+      // is a no-op against the dead map, so it visually freezes at whatever
+      // pixel position it last held (often the container's 0,0 corner from the
+      // very first, not-yet-sized paint) instead of tracking pan/zoom.
+      for (const marker of markersRef.current.values()) marker.remove();
+      markersRef.current.clear();
+      seenMarkerKeysRef.current.clear();
       map.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -307,12 +320,13 @@ export function SignalsMap({
         hoverHideTimerRef.current = null;
       }
       hoverPopupRef.current?.remove();
+      clusterPopupRef.current?.remove();
 
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
         offset: 20,
-        maxWidth: "280px",
+        maxWidth: "320px",
         className: "sv-signal-hover-popup",
         anchor: "bottom",
       })
@@ -345,6 +359,56 @@ export function SignalsMap({
           else onAdminQuickResolveRef.current?.(id);
         });
       }
+    }
+
+    function showClusterListPopup(leaves: Signal[], lng: number, lat: number) {
+      clearHoverPopup();
+      clusterPopupRef.current?.remove();
+
+      const popup = new maplibregl.Popup({
+        closeButton: true,
+        closeOnClick: false,
+        offset: 14,
+        maxWidth: "300px",
+        className: "sv-cluster-list-popup",
+        anchor: "bottom",
+      })
+        .setLngLat([lng, lat])
+        .setHTML(signalClusterListPopupHtml(leaves))
+        .addTo(map);
+
+      clusterPopupRef.current = popup;
+
+      popup.getElement()?.addEventListener("click", (e) => {
+        const row = (e.target as HTMLElement).closest(".sv-cluster-pick-row") as HTMLElement | null;
+        if (!row) return;
+        const id = Number(row.dataset.signalId);
+        if (!Number.isFinite(id)) return;
+        popup.remove();
+        onMarkerClickRef.current(id);
+      });
+    }
+
+    function bindClusterClick(
+      el: HTMLElement,
+      feature: Supercluster.ClusterFeature<Supercluster.AnyProps>,
+      lng: number,
+      lat: number,
+    ) {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const clusterId = feature.properties.cluster_id;
+        const rawExpansionZoom = index.getClusterExpansionZoom(clusterId);
+        if (rawExpansionZoom >= SUPERCLUSTER_MAX_ZOOM) {
+          // Points are within clustering radius at every zoom (often identical
+          // coordinates) — zooming in further would never split them apart, so
+          // offer a pick-list of the grouped signals instead.
+          showClusterListPopup(index.getLeaves(clusterId, Infinity).map((leaf) => leaf.properties.signal), lng, lat);
+          return;
+        }
+        clearHoverPopup();
+        flyTo({ center: [lng, lat], zoom: Math.min(SUPERCLUSTER_MAX_ZOOM, rawExpansionZoom) });
+      };
     }
 
     function bindHover(el: HTMLElement, signal: Signal, marker: maplibregl.Marker) {
@@ -382,7 +446,14 @@ export function SignalsMap({
       for (const feature of clusters) {
         const [lng, lat] = feature.geometry.coordinates;
         const isCluster = isClusterFeature(feature);
-        const key = isCluster ? `cluster-${feature.properties.cluster_id}` : `signal-${feature.properties.signalId}`;
+        // Cluster keys are derived from the cluster's rounded position + size
+        // (not Supercluster's own `cluster_id`, which is re-assigned from scratch
+        // every time the index rebuilds) so the *same* geographic grouping keeps
+        // the *same* marker across data refreshes instead of flickering away and
+        // being recreated.
+        const key = isCluster
+          ? `cluster-${zoom}-${lng.toFixed(4)}-${lat.toFixed(4)}-${feature.properties.point_count}`
+          : `signal-${feature.properties.signalId}`;
         nextKeys.add(key);
 
         let marker = markersRef.current.get(key);
@@ -398,12 +469,7 @@ export function SignalsMap({
             el.style.height = `${size}px`;
             el.style.fontSize = count > 99 ? "11px" : "13px";
             el.textContent = String(count);
-            el.onclick = (e) => {
-              e.stopPropagation();
-              clearHoverPopup();
-              const expansionZoom = Math.min(17, index.getClusterExpansionZoom(feature.properties.cluster_id));
-              flyTo({ center: [lng, lat], zoom: expansionZoom });
-            };
+            bindClusterClick(el, feature, lng, lat);
             marker = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]);
           } else {
             const signal = feature.properties.signal;
@@ -425,7 +491,13 @@ export function SignalsMap({
           marker.addTo(map);
         } else {
           marker.setLngLat([lng, lat]);
-          if (!isCluster) {
+          if (isCluster) {
+            // Rebind against this render pass's `feature`/`index` closure — a
+            // reused cluster marker (same rounded position + count as before)
+            // must not keep firing against a stale, possibly-rebuilt Supercluster
+            // index from an earlier effect run.
+            bindClusterClick(marker.getElement(), feature, lng, lat);
+          } else {
             const signal = feature.properties.signal;
             const el = marker.getElement();
             const fp = signalFingerprint(signal);
@@ -470,6 +542,8 @@ export function SignalsMap({
       map.off("moveend", render);
       map.off("zoomend", render);
       clearHoverPopup();
+      clusterPopupRef.current?.remove();
+      clusterPopupRef.current = null;
     };
   }, [index, signals, flyTo, mapReady]);
 

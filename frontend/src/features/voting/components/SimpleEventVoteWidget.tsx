@@ -3,6 +3,7 @@
 import { useToast } from "@/shared/hooks/useToast";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { hapticSuccess } from "@/shared/lib/haptic";
 import { useCastSimpleEventVote } from "../hooks/useCastSimpleEventVote";
@@ -34,6 +35,7 @@ export function SimpleEventVoteWidget(props: SimpleEventVoteWidgetProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const { mutate, isPending } = useCastSimpleEventVote();
 
   const hasVoted = props.currentUserVote !== null;
@@ -81,10 +83,16 @@ export function SimpleEventVoteWidget(props: SimpleEventVoteWidgetProps) {
     <VoteResultsBars
       rows={rows}
       totalVotes={props.yesVotes + props.noVotes + props.neutralVotes}
-      interactive={!hasVoted}
-      disabled={isPending}
+      interactive={!hasVoted && canInteract}
+      disabled={isPending || !canInteract}
       onSelect={(index) => handleVote(OPTIONS[index].value)}
-      hint={hasVoted ? undefined : "Изберете ЗА, ПРОТИВ или неутрална позиция"}
+      hint={
+        !canInteract
+          ? "Гласуването е изключено, докато профилът е ограничен"
+          : hasVoted
+            ? undefined
+            : "Изберете ЗА, ПРОТИВ или неутрална позиция"
+      }
     />
   );
 }

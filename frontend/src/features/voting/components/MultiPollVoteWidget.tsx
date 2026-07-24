@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useToast } from "@/shared/hooks/useToast";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { hapticSuccess } from "@/shared/lib/haptic";
 import { Button } from "@/shared/ui";
@@ -26,6 +27,7 @@ export function MultiPollVoteWidget(props: MultiPollVoteWidgetProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const { mutate, isPending } = useCastMultiPollVote();
   const [selected, setSelected] = useState<number[]>([]);
 
@@ -33,6 +35,7 @@ export function MultiPollVoteWidget(props: MultiPollVoteWidgetProps) {
   const totalVotes = props.votesForOptions.reduce((sum, n) => sum + n, 0);
 
   function toggle(index: number) {
+    if (!canInteract) return;
     const optionIndex = index + 1;
     setSelected((prev) => {
       if (prev.includes(optionIndex)) return prev.filter((i) => i !== optionIndex);
@@ -86,19 +89,21 @@ export function MultiPollVoteWidget(props: MultiPollVoteWidgetProps) {
       <VoteResultsBars
         rows={rows}
         totalVotes={totalVotes}
-        interactive={!hasVoted}
+        interactive={!hasVoted && canInteract}
         multiSelect
-        disabled={isPending}
+        disabled={isPending || !canInteract}
         selectedIndices={hasVoted ? [] : selectedRowIndices}
         onSelect={toggle}
         hint={
-          hasVoted
-            ? undefined
-            : `Изберете до ${MAX_SELECTABLE} опции, после потвърдете`
+          !canInteract
+            ? "Гласуването е изключено, докато профилът е ограничен"
+            : hasVoted
+              ? undefined
+              : `Изберете до ${MAX_SELECTABLE} опции, после потвърдете`
         }
       />
 
-      {!hasVoted && (
+      {!hasVoted && canInteract && (
         <Button
           type="button"
           disabled={selected.length === 0 || isPending}

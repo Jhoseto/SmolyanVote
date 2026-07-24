@@ -1,11 +1,13 @@
 export { PodcastPlayer } from "./components/PodcastPlayer";
 export { PodcastMiniPlayer } from "./components/PodcastMiniPlayer";
 export { PodcastSubscribeButton } from "./components/PodcastSubscribeButton";
+export { UploadEpisodeButton } from "./components/UploadEpisodeButton";
 export { podcastApi } from "./api";
 export { useEpisodesList } from "./hooks/useEpisodesList";
 export { usePodcastPlayer } from "./hooks/usePodcastPlayer";
 export { usePodcastSubscription } from "./hooks/usePodcastSubscription";
 export { usePodcastFilters } from "./hooks/usePodcastFilters";
+export { useCreatePodcastEpisode } from "./hooks/useCreatePodcastEpisode";
 export { useFilteredEpisodes, usePodcastInsights } from "./hooks/useFilteredEpisodes";
-export type { PodcastEpisode, PodcastSubscriptionType, SubscriptionResponse } from "./types";
+export type { PodcastEpisode, PodcastSubscriptionType, SubscriptionResponse, CreatePodcastEpisodePayload } from "./types";
 export type { PodcastSortOption } from "./hooks/usePodcastFilters";

@@ -71,6 +71,16 @@ export function resolveApiUrl(path: string): string {
   return normalized;
 }
 
+/**
+ * Browser multipart uploads (podcast audio) must hit Spring directly — the Next.js
+ * dev proxy drops long-running large-body requests (`socket hang up` → HTTP 500).
+ */
+export function resolveDirectApiUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${stripTrailingSlash(env.NEXT_PUBLIC_BACKEND_ORIGIN)}${normalized}`;
+}
+
 /** Full-page OAuth start — must hit Spring, not the Next rewrite. */
 export function resolveOAuthStartUrl(provider: "google" | "facebook"): string {
   return `${stripTrailingSlash(env.NEXT_PUBLIC_BACKEND_ORIGIN)}/api/v1/auth/oauth/start?provider=${provider}`;

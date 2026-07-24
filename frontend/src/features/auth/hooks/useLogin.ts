@@ -7,6 +7,8 @@ import { useAuth } from "@/shared/lib/authContext";
 import { authApi } from "../api";
 import { loginSchema, type LoginFormValues } from "../schema";
 import { errorMessage } from "@/shared/lib/errorMessage";
+import { notifyModerationFromApiBody } from "@/shared/lib/moderationStore";
+import { ApiError } from "@/lib/api/client";
 import type { LoginUserSummary } from "../types";
 
 /**
@@ -45,6 +47,13 @@ export function useLogin(onSuccess?: (user: LoginUserSummary) => void) {
     try {
       await submit(event);
     } catch (error) {
+      if (error instanceof ApiError) {
+        notifyModerationFromApiBody(error.body);
+        if (error.status === 403) {
+          setServerError(null);
+          return;
+        }
+      }
       setServerError(errorMessage(error, "Грешка при вход. Моля, опитайте отново."));
     }
   };

@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { newsletterApi } from "../api";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
 import { toast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 
 /**
  * Footer newsletter (ports v1 `footer.js` newsletter form). The v1 email
@@ -19,8 +20,8 @@ export function useNewsletterSubscribe() {
     onSuccess: () => {
       toast.success("Успешно се абонирахте и за напред ще получавате известия на вашата поща.");
     },
-    onError: () => {
-      toast.error("Възникна грешка. Моля, опитайте отново.");
+    onError: (error) => {
+      toast.error(errorMessage(error, "Възникна грешка. Моля, опитайте отново."));
     },
   });
 

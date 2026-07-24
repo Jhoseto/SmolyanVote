@@ -50,11 +50,16 @@ export interface AdminUser {
   banDate: string | null;
   banEndDate: string | null;
   bannedBy: string | null;
+  moderationStrikeCount?: number;
+  masterAdmin?: boolean;
 }
 
 export interface AdminUsersResponse {
   users: AdminUser[];
   totalCount: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
 }
 
 export interface UserStatistics {
@@ -85,13 +90,16 @@ export interface BanHistoryItem {
   newRole?: UserRole | null;
   banType?: string | null;
   banDurationDays?: number | null;
+  banDurationHours?: number | null;
   oldStatus?: UserStatus | null;
   newStatus?: UserStatus | null;
 }
 
 export interface BulkResult {
   successCount?: number;
+  errorCount?: number;
   errors?: string[];
+  errorMessages?: string[];
   message?: string;
 }
 
@@ -110,6 +118,7 @@ export interface GroupedReport {
   mostRecentDescription: string | null;
   adminNotes: string | null;
   reportIds: number[];
+  entityLabel?: string | null;
 }
 
 export interface PageResponse<T> {
@@ -177,4 +186,83 @@ export interface ActivitiesResponse {
   timestamp?: string;
 }
 
-export type AdminTab = "health" | "users" | "reports" | "activity";
+export type AdminTab =
+  | "overview"
+  | "health"
+  | "users"
+  | "reports"
+  | "inbox"
+  | "content"
+  | "podcast"
+  | "events"
+  | "moderation"
+  | "activity"
+  | "subscriptions";
+
+export interface HealthAlert {
+  level: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+}
+
+export interface AdminOverview {
+  users: UserStatistics;
+  reports: ReportStatistics;
+  activity: ActivityStats;
+  subscriptions: Record<string, number>;
+  strikes: Record<string, number>;
+  content: Record<string, number>;
+  healthAlerts: { alerts: HealthAlert[]; criticalCount: number; warningCount: number };
+}
+
+export interface ModerationInboxItem {
+  entityType: string;
+  entityId: number;
+  entityLabel?: string | null;
+  authorUsername?: string | null;
+  authorId?: number | null;
+  reportCount: number;
+  status: string;
+  lastReportDate: string | null;
+  reportIds: number[];
+  preview?: string | null;
+}
+
+export interface AdminEventRow {
+  id: number;
+  type: string;
+  title: string;
+  creatorName: string | null;
+  createdAt: string | null;
+  status: string | null;
+  reportCount: number;
+  editPath: string;
+}
+
+export interface AdminPodcastEpisode {
+  id: number;
+  title: string;
+  description?: string | null;
+  audioUrl: string;
+  imageUrl?: string | null;
+  publishDate?: string | null;
+  durationSeconds?: number | null;
+  episodeNumber?: number | null;
+  listenCount?: number | null;
+  formattedDuration?: string;
+  isPublished?: boolean;
+}
+
+export interface StrikeStatistics {
+  withOneStrike: number;
+  withTwoStrikes: number;
+  withThreeOrMore: number;
+  autoBannedNow: number;
+}
+
+export interface ProfanityWord {
+  id: number;
+  word: string;
+  active: boolean;
+  createdAt?: string;
+}

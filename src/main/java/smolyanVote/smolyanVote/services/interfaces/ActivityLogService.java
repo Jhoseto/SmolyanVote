@@ -46,6 +46,8 @@ public interface ActivityLogService {
     Page<ActivityLogEntity> getActivitiesWithFilters(String action, String username,
                                                      String entityType, LocalDateTime since,
                                                      Pageable pageable);
+
+    Page<ActivityLogEntity> getAdminActivities(Pageable pageable);
     List<ActivityLogEntity> getActivitiesForEntity(String entityType, Long entityId);
 
     Page<ActivityLogEntity> getActivitiesForUser(Long userId, Pageable pageable);

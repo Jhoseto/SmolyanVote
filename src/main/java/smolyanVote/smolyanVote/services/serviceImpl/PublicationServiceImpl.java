@@ -13,7 +13,10 @@ import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.NotificationService;
+import smolyanVote.smolyanVote.exceptions.ModerationViolationException;
+import smolyanVote.smolyanVote.services.interfaces.ContentModerationService;
 import smolyanVote.smolyanVote.services.interfaces.PublicationService;
+import smolyanVote.smolyanVote.services.interfaces.UserBanService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.PublicationMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.PublicationRequestDTO;
@@ -42,6 +45,8 @@ public class PublicationServiceImpl implements PublicationService {
     private final CommentVoteRepository commentVoteRepository;
     private final ActivityLogService activityLogService;
     private final NotificationService notificationService;
+    private final ContentModerationService contentModerationService;
+    private final UserBanService userBanService;
 
     public PublicationServiceImpl(PublicationRepository publicationRepository,
                                   UserService userService,
@@ -52,7 +57,9 @@ public class PublicationServiceImpl implements PublicationService {
                                   CommentsRepository commentsRepository,
                                   CommentVoteRepository commentVoteRepository,
                                   ActivityLogService activityLogService,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  ContentModerationService contentModerationService,
+                                  UserBanService userBanService) {
         this.publicationRepository = publicationRepository;
         this.userService = userService;
         this.userRepository = userRepository;
@@ -63,6 +70,8 @@ public class PublicationServiceImpl implements PublicationService {
         this.commentVoteRepository = commentVoteRepository;
         this.activityLogService = activityLogService;
         this.notificationService = notificationService;
+        this.contentModerationService = contentModerationService;
+        this.userBanService = userBanService;
     }
 
 
@@ -100,6 +109,12 @@ public class PublicationServiceImpl implements PublicationService {
             details = "Topic: {topic}, Location: {location}", includeTitle = true, includeText = true)
 
     public PublicationEntity create(PublicationRequestDTO request, UserEntity author) {
+        userBanService.ensureCanInteract(author);
+        contentModerationService.validateTextOrThrow(
+                request.getTitle() + " " + request.getContent(),
+                author,
+                ModerationViolationException.ViolationType.PROFANITY);
+
         PublicationEntity publication = new PublicationEntity();
 
         // Задаваме датите първо

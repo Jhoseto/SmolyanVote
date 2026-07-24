@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import { publicationsApi } from "../api";
 import { patchPublicationCaches } from "../lib/feedCache";
 
@@ -16,5 +18,6 @@ export function useTogglePublicationLike() {
         dislikesCount: res.dislikesCount,
       });
     },
+    onError: (error) => toast.error(errorMessage(error, "Харесването не бе успешно.")),
   });
 }

@@ -3,12 +3,14 @@ package smolyanVote.smolyanVote.controllers;
 import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.models.ReportsEntity;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.enums.ReportableEntityType;
 import smolyanVote.smolyanVote.repositories.ReportsRepository;
+import smolyanVote.smolyanVote.services.interfaces.AdminContentActionService;
 import smolyanVote.smolyanVote.services.interfaces.ReportsService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.GroupedReportsDTO;
@@ -17,18 +19,22 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/admin/manage-reports")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminReportsController {
 
     private final ReportsService reportsService;
     private final UserService userService;
     private final ReportsRepository reportsRepository;
+    private final AdminContentActionService adminContentActionService;
 
     public AdminReportsController(ReportsService reportsService,
                                   UserService userService,
-                                  ReportsRepository reportsRepository) {
+                                  ReportsRepository reportsRepository,
+                                  AdminContentActionService adminContentActionService) {
         this.reportsService = reportsService;
         this.userService = userService;
         this.reportsRepository = reportsRepository;
+        this.adminContentActionService = adminContentActionService;
     }
 
     @GetMapping(value = "/statistics", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -44,15 +50,43 @@ public class AdminReportsController {
     @GetMapping(value = "/grouped", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Page<GroupedReportsDTO>> getGroupedReports(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(defaultValue = "false") boolean pendingOnly,
+            @RequestParam(required = false) String status) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<GroupedReportsDTO> groupedReports = reportsService.getGroupedReports(pageable);
+            ReportableEntityType typeFilter = null;
+            if (entityType != null && !entityType.isBlank() && !"ALL".equalsIgnoreCase(entityType)) {
+                typeFilter = ReportableEntityType.valueOf(entityType.toUpperCase());
+            }
+            Page<GroupedReportsDTO> groupedReports = reportsService.getGroupedReportsFiltered(
+                    pageable, typeFilter, pendingOnly, status);
             return ResponseEntity.ok(groupedReports);
         } catch (Exception e) {
             System.err.println("Error in getGroupedReports: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/entity-action", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> entityAction(@RequestBody Map<String, Object> request) {
+        try {
+            UserEntity admin = userService.getCurrentUser();
+            String entityTypeStr = (String) request.get("entityType");
+            Long entityId = Long.valueOf(request.get("entityId").toString());
+            String action = (String) request.getOrDefault("action", "DELETE");
+            String adminNotes = (String) request.get("adminNotes");
+            boolean banAuthor = Boolean.TRUE.equals(request.get("banAuthor"));
+            String banReason = (String) request.get("banReason");
+
+            ReportableEntityType entityType = ReportableEntityType.valueOf(entityTypeStr.toUpperCase());
+            Map<String, Object> result = adminContentActionService.takeActionOnEntity(
+                    entityType, entityId, admin, action, adminNotes, banAuthor, banReason);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -90,7 +124,8 @@ public class AdminReportsController {
     @PostMapping(value = "/bulk-delete", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> bulkDeleteReports(@RequestBody List<Long> reportIds) {
         try {
-            reportsRepository.deleteAllById(reportIds);
+            UserEntity admin = userService.getCurrentUser();
+            reportsService.bulkDeleteReports(reportIds, admin);
             return ResponseEntity.ok(Map.of("message", reportIds.size() + " репорта изтрити успешно"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Грешка при изтриване: " + e.getMessage()));

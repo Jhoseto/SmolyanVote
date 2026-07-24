@@ -3,6 +3,7 @@
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { useFollowStatus } from "../hooks/useFollowStatus";
@@ -17,6 +18,7 @@ interface FollowButtonProps {
 export function FollowButton({ userId, className }: FollowButtonProps) {
   const { isAuthenticated } = useAuth();
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const toast = useToast();
   const { data } = useFollowStatus(userId, isAuthenticated);
   const { mutate, isPending } = useToggleFollow(userId);
@@ -26,6 +28,9 @@ export function FollowButton({ userId, className }: FollowButtonProps) {
   async function handleClick() {
     if (!(await requireAuth("да следваш автори"))) return;
     mutate(isFollowing, {
+      onSuccess: () => {
+        toast.success(isFollowing ? "Вече не следвате този автор." : "Започнахте да следвате автора.");
+      },
       onError: (error) => toast.error(errorMessage(error, "Действието не бе успешно.")),
     });
   }
@@ -34,7 +39,8 @@ export function FollowButton({ userId, className }: FollowButtonProps) {
     <button
       type="button"
       onClick={handleClick}
-      disabled={isPending}
+      disabled={isPending || (isAuthenticated && !canInteract)}
+      title={isAuthenticated && !canInteract ? "Профилът е временно ограничен" : undefined}
       className={
         className ??
         cn(

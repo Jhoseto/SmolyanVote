@@ -34,6 +34,7 @@ public class UserBanAndRolesHistoryMapper {
         if ("BAN".equals(entity.getActionType()) || "UNBAN".equals(entity.getActionType())) {
             dto.setBanType(entity.getBanType());
             dto.setBanDurationDays(entity.getBanDurationDays());
+            dto.setBanDurationHours(entity.getBanDurationHours());
             dto.setOldStatus(entity.getOldStatus());
             dto.setNewStatus(entity.getNewStatus());
         }

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/shared/lib/authContext";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
+import { useModerationStore } from "@/shared/lib/moderationStore";
 
 /**
  * Landing target for the web OAuth JWT bridge (see backend
@@ -19,16 +20,25 @@ export function OAuthCallbackPage() {
   const accessToken = searchParams.get("accessToken");
   const refreshToken = searchParams.get("refreshToken");
   const error = searchParams.get("error");
+  const banReason = searchParams.get("banReason");
 
   useEffect(() => {
     if (handled.current) return;
     handled.current = true;
 
+    if (error === "permanent_ban") {
+      useModerationStore.getState().showPermanentBan({
+        banReason: banReason ? decodeURIComponent(banReason.replace(/\+/g, " ")) : null,
+      });
+      router.replace("/");
+      return;
+    }
+
     if (accessToken) {
       setSession(accessToken, refreshToken ?? undefined, true);
       router.replace("/");
     }
-  }, [accessToken, refreshToken, setSession, router]);
+  }, [accessToken, refreshToken, error, banReason, setSession, router]);
 
   if (error || !accessToken) {
     const message = decodeOAuthError(error);
@@ -68,6 +78,9 @@ function decodeOAuthError(error: string | null): string {
     const decoded = decodeURIComponent(error.replace(/\+/g, " "));
     if (decoded.includes("вече е регистриран с email и парола")) {
       return decoded;
+    }
+    if (decoded === "permanent_ban") {
+      return "Профилът е перманентно блокиран.";
     }
     if (decoded === "user_not_found") {
       return "Акаунтът не бе намерен след OAuth вход. Опитайте отново.";

@@ -1,11 +1,15 @@
 package smolyanVote.smolyanVote.services.serviceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import smolyanVote.smolyanVote.componentsAndSecurity.MasterAdminPolicy;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.UserRoleAndBansHistoryEntity;
 import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
@@ -17,7 +21,9 @@ import smolyanVote.smolyanVote.repositories.UserRoleAndBansHistoryRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.interfaces.AdminUserManagementService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
+import smolyanVote.smolyanVote.services.mappers.AdminUserManagementMapper;
 import smolyanVote.smolyanVote.services.mappers.UserBanAndRolesHistoryMapper;
+import smolyanVote.smolyanVote.viewsAndDTO.AdminUserViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.UserBanAndRolesHistoryDto;
 
 import java.time.Instant;
@@ -32,19 +38,25 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     private final UserService userService;
     private final UserRoleAndBansHistoryRepository historyRepository;
     private final UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper;
+    private final AdminUserManagementMapper adminUserManagementMapper;
     private final ActivityLogService activityLogService;
+    private final MasterAdminPolicy masterAdminPolicy;
 
     @Autowired
     public AdminUserManagementServiceImpl(UserRepository userRepository,
                                           UserService userService,
                                           UserRoleAndBansHistoryRepository historyRepository,
                                           UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper,
-                                          ActivityLogService activityLogService) {
+                                          AdminUserManagementMapper adminUserManagementMapper,
+                                          ActivityLogService activityLogService,
+                                          MasterAdminPolicy masterAdminPolicy) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.historyRepository = historyRepository;
         this.userBanAndRolesHistoryMapper = userBanAndRolesHistoryMapper;
+        this.adminUserManagementMapper = adminUserManagementMapper;
         this.activityLogService = activityLogService;
+        this.masterAdminPolicy = masterAdminPolicy;
     }
 
     // ===== USER RETRIEVAL =====
@@ -53,6 +65,14 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     @Transactional(readOnly = true)
     public List<UserEntity> getAllUsers() {
         return userRepository.findAllUsersForAdminDashboard();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AdminUserViewDTO> getUsersPage(String search, UserRole role, UserStatusEnum status, Integer minStrikes, Pageable pageable) {
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+        return userRepository.findAdminUsers(normalizedSearch, role, status, minStrikes, pageable)
+                .map(adminUserManagementMapper::mapUserToAdminView);
     }
 
     @Override
@@ -141,6 +161,22 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
 
             UserRole targetRole = "ADMIN".equals(newRole) ? UserRole.ADMIN : UserRole.USER;
 
+            if (UserRole.USER.equals(targetRole)) {
+                Optional<String> demoteBlocked = masterAdminPolicy.demoteBlockedReason(user);
+                if (demoteBlocked.isPresent()) {
+                    return Map.of("error", demoteBlocked.get());
+                }
+            }
+
+            if (UserRole.ADMIN.equals(targetRole)
+                    && (currentAdmin == null || !UserRole.ADMIN.equals(currentAdmin.getRole()))) {
+                return Map.of("error", "Само администратор може да повишава потребители до ADMIN");
+            }
+
+            if (UserRole.ADMIN.equals(targetRole) && user.getId().equals(currentAdmin.getId())) {
+                return Map.of("error", "Не можете да повишите собствения си акаунт");
+            }
+
             if (targetRole.equals(user.getRole())) {
                 return Map.of("error", "Потребителят вече има тази роля");
             }
@@ -190,14 +226,21 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     // ===== BAN MANAGEMENT =====
 
     @Override
-    public Map<String, String> banUser(Long userId, String reason, String banType, Integer durationDays) {
+    public Map<String, String> banUser(Long userId, String reason, String banType, Integer durationDays, Integer durationHours) {
         try {
-            if ("permanent".equals(banType)) {
+            UserEntity user = getUserById(userId);
+            Optional<String> banBlocked = masterAdminPolicy.banBlockedReason(user);
+            if (banBlocked.isPresent()) {
+                return Map.of("error", banBlocked.get());
+            }
+
+            String normalizedBanType = banType != null ? banType.trim().toLowerCase(Locale.ROOT) : "";
+            if ("permanent".equals(normalizedBanType)) {
                 banUserPermanently(userId, reason);
                 return Map.of("message", "Потребителят е блокиран перманентно");
-            } else if ("temporary".equals(banType) && durationDays != null) {
-                banUserTemporarily(userId, reason, durationDays);
-                return Map.of("message", "Потребителят е блокиран за " + durationDays + " дни");
+            } else if ("temporary".equals(normalizedBanType) && hasValidTemporaryDuration(durationDays, durationHours)) {
+                banUserTemporarily(userId, reason, durationDays, durationHours);
+                return Map.of("message", "Потребителят е блокиран за " + formatTemporaryBanDuration(durationDays, durationHours));
             } else {
                 return Map.of("error", "Невалиден тип блокиране");
             }
@@ -235,13 +278,13 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     }
 
     @Override
-    public Map<String, Object> bulkBanUsers(List<Long> userIds, String banType, String reason, Integer durationDays) {
+    public Map<String, Object> bulkBanUsers(List<Long> userIds, String banType, String reason, Integer durationDays, Integer durationHours) {
         int successCount = 0;
         List<String> errors = new ArrayList<>();
 
         for (Long userId : userIds) {
             try {
-                Map<String, String> result = banUser(userId, reason, banType, durationDays);
+                Map<String, String> result = banUser(userId, reason, banType, durationDays, durationHours);
                 if (result.containsKey("error")) {
                     errors.add("User ID " + userId + ": " + result.get("error"));
                 } else {
@@ -279,19 +322,23 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
 
         userRepository.save(user);
 
-        recordBanAction(user, currentAdmin, "PERMANENT", reason, null, oldStatus, UserStatusEnum.PERMANENTLY_BANNED);
+        recordBanAction(user, currentAdmin, "PERMANENT", reason, null, null, oldStatus, UserStatusEnum.PERMANENTLY_BANNED);
     }
 
-    private void banUserTemporarily(Long userId, String reason, int durationDays) {
+    private void banUserTemporarily(Long userId, String reason, Integer durationDays, Integer durationHours) {
         UserEntity user = getUserById(userId);
         UserEntity currentAdmin = userService.getCurrentUser();
 
-        if (durationDays <= 0) {
-            throw new IllegalArgumentException("Продължителността на бана трябва да е положително число");
+        int days = durationDays != null ? durationDays : 0;
+        int hours = durationHours != null ? durationHours : 0;
+        if (days <= 0 && hours <= 0) {
+            throw new IllegalArgumentException("Продължителността на бана трябва да е поне 1 ден или 1 час");
         }
 
         UserStatusEnum oldStatus = user.getStatus();
-        Instant banEndDate = Instant.now().plus(durationDays, ChronoUnit.DAYS);
+        Instant banEndDate = Instant.now()
+                .plus(days, ChronoUnit.DAYS)
+                .plus(hours, ChronoUnit.HOURS);
 
         user.setStatus(UserStatusEnum.TEMPORARILY_BANNED);
         user.setBanEndDate(banEndDate);
@@ -301,7 +348,33 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
 
         userRepository.save(user);
 
-        recordBanAction(user, currentAdmin, "TEMPORARY", reason, durationDays, oldStatus, UserStatusEnum.TEMPORARILY_BANNED);
+        recordBanAction(
+                user,
+                currentAdmin,
+                "TEMPORARY",
+                reason,
+                days > 0 ? days : null,
+                hours > 0 ? hours : null,
+                oldStatus,
+                UserStatusEnum.TEMPORARILY_BANNED);
+    }
+
+    private static boolean hasValidTemporaryDuration(Integer durationDays, Integer durationHours) {
+        int days = durationDays != null ? durationDays : 0;
+        int hours = durationHours != null ? durationHours : 0;
+        return days > 0 || hours > 0;
+    }
+
+    private static String formatTemporaryBanDuration(Integer durationDays, Integer durationHours) {
+        int days = durationDays != null ? durationDays : 0;
+        int hours = durationHours != null ? durationHours : 0;
+        if (days > 0 && hours > 0) {
+            return days + " дни и " + hours + " часа";
+        }
+        if (days > 0) {
+            return days + " дни";
+        }
+        return hours + " часа";
     }
 
     // ===== USER ACTIVATION =====
@@ -367,11 +440,135 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     @Override
     public Map<String, String> deleteUser(Long userId) {
         try {
+            UserEntity user = getUserById(userId);
+            Optional<String> deleteBlocked = masterAdminPolicy.deleteBlockedReason(user);
+            if (deleteBlocked.isPresent()) {
+                return Map.of("error", deleteBlocked.get());
+            }
+
             userService.deleteUser(userId);
             return Map.of("message", "Потребителят е изтрит успешно");
         } catch (Exception e) {
             return Map.of("error", "Грешка при изтриване: " + e.getMessage());
         }
+    }
+
+    @Override
+    public Map<String, String> resetModerationStrikes(Long userId) {
+        try {
+            UserEntity user = getUserById(userId);
+            UserEntity admin = userService.getCurrentUser();
+            int previous = user.getModerationStrikeCount();
+            user.setModerationStrikeCount(0);
+            userRepository.save(user);
+            activityLogService.logActivity(
+                    ActivityActionEnum.ADMIN_REVIEW_REPORT,
+                    admin,
+                    ActivityTypeEnum.USER.name(),
+                    userId,
+                    "Reset moderation strikes: " + previous + " → 0",
+                    null,
+                    null);
+            return Map.of("message", "Strike count е нулиран");
+        } catch (Exception e) {
+            return Map.of("error", "Грешка при нулиране: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, Object> bulkResetModerationStrikes(List<Long> userIds) {
+        int success = 0;
+        List<String> errors = new ArrayList<>();
+        for (Long userId : userIds) {
+            Map<String, String> result = resetModerationStrikes(userId);
+            if (result.containsKey("error")) {
+                errors.add(userId + ": " + result.get("error"));
+            } else {
+                success++;
+            }
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("successCount", success);
+        response.put("errorCount", errors.size());
+        response.put("errors", errors);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> bulkDeleteUsers(List<Long> userIds) {
+        Map<String, Object> result = new HashMap<>();
+        List<String> successMessages = new ArrayList<>();
+        List<String> errorMessages = new ArrayList<>();
+        int successCount = 0;
+        int errorCount = 0;
+
+        UserEntity currentAdmin = userService.getCurrentUser();
+
+        for (Long userId : userIds) {
+            if (currentAdmin != null && currentAdmin.getId().equals(userId)) {
+                errorMessages.add("User ID " + userId + ": Не можете да изтриете собствения си профил от bulk.");
+                errorCount++;
+                continue;
+            }
+            Map<String, String> singleResult = deleteUser(userId);
+            if (singleResult.containsKey("message")) {
+                successMessages.add("User ID " + userId + ": " + singleResult.get("message"));
+                successCount++;
+            } else {
+                errorMessages.add("User ID " + userId + ": " + singleResult.get("error"));
+                errorCount++;
+            }
+        }
+
+        result.put("successCount", successCount);
+        result.put("errorCount", errorCount);
+        result.put("successMessages", successMessages);
+        result.put("errorMessages", errorMessages);
+        result.put("totalProcessed", userIds.size());
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrikeStatistics() {
+        List<UserEntity> allUsers = userRepository.findAll();
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("withOneStrike", allUsers.stream().filter(u -> u.getModerationStrikeCount() == 1).count());
+        stats.put("withTwoStrikes", allUsers.stream().filter(u -> u.getModerationStrikeCount() == 2).count());
+        stats.put("withThreeOrMore", allUsers.stream().filter(u -> u.getModerationStrikeCount() >= 3).count());
+        stats.put("autoBannedNow", allUsers.stream()
+                .filter(u -> UserStatusEnum.TEMPORARILY_BANNED.equals(u.getStatus())
+                        && u.getModerationStrikeCount() >= 3)
+                .count());
+        return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String exportUsersCsv(String search, UserRole role, UserStatusEnum status, Integer minStrikes) {
+        Page<AdminUserViewDTO> page = getUsersPage(search, role, status, minStrikes, PageRequest.of(0, 10_000));
+        StringBuilder csv = new StringBuilder(
+                "id,username,email,role,status,strikes,lastOnline,created,publications,votes\n");
+        for (AdminUserViewDTO user : page.getContent()) {
+            csv.append(user.getId()).append(',')
+                    .append(csvCell(user.getUsername())).append(',')
+                    .append(csvCell(user.getEmail())).append(',')
+                    .append(user.getRole()).append(',')
+                    .append(user.getStatus()).append(',')
+                    .append(user.getModerationStrikeCount()).append(',')
+                    .append(user.getLastOnline()).append(',')
+                    .append(user.getCreated()).append(',')
+                    .append(user.getPublicationsCount()).append(',')
+                    .append(user.getTotalVotes()).append('\n');
+        }
+        return csv.toString();
+    }
+
+    private static String csvCell(String value) {
+        if (value == null) {
+            return "";
+        }
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     // ===== HISTORY MANAGEMENT =====
@@ -408,7 +605,7 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
 
     @Override
     public void recordBanAction(UserEntity targetUser, UserEntity adminUser,
-                                String banType, String reason, Integer durationDays,
+                                String banType, String reason, Integer durationDays, Integer durationHours,
                                 UserStatusEnum oldStatus, UserStatusEnum newStatus) {
         UserRoleAndBansHistoryEntity history = new UserRoleAndBansHistoryEntity();
         history.setTargetUsername(targetUser.getUsername());
@@ -418,6 +615,7 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         history.setReason(reason);
         history.setBanType(banType);
         history.setBanDurationDays(durationDays);
+        history.setBanDurationHours(durationHours);
         history.setOldStatus(oldStatus);
         history.setNewStatus(newStatus);
 
@@ -427,10 +625,12 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         try {
             String ipAddress = extractIpAddress();
             String userAgent = extractUserAgent();
-            String details = String.format("Banned user: %s (Type: %s, Reason: %s%s)", 
-                    targetUser.getUsername(), banType, reason != null ? reason : "N/A",
-                    durationDays != null ? ", Duration: " + durationDays + " days" : "");
-            activityLogService.logActivity(ActivityActionEnum.ADMIN_BAN_USER, adminUser, 
+            String durationText = "TEMPORARY".equals(banType)
+                    ? ", Duration: " + formatTemporaryBanDuration(durationDays, durationHours)
+                    : "";
+            String details = String.format("Banned user: %s (Type: %s, Reason: %s%s)",
+                    targetUser.getUsername(), banType, reason != null ? reason : "N/A", durationText);
+            activityLogService.logActivity(ActivityActionEnum.ADMIN_BAN_USER, adminUser,
                     ActivityTypeEnum.USER.name(), targetUser.getId(), details, ipAddress, userAgent);
         } catch (Exception e) {
             System.err.println("Failed to log ban activity: " + e.getMessage());

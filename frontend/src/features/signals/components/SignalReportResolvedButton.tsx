@@ -2,6 +2,7 @@
 
 import { cn } from "@/shared/lib/cn";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { useReportSignalResolved } from "../hooks/useReportSignalResolved";
@@ -14,6 +15,7 @@ interface SignalReportResolvedButtonProps {
 
 export function SignalReportResolvedButton({ signal, className }: SignalReportResolvedButtonProps) {
   const requireAuth = useRequireAuth();
+  const canInteract = useCanInteract();
   const toast = useToast();
   const { mutate, isPending } = useReportSignalResolved();
 
@@ -36,7 +38,7 @@ export function SignalReportResolvedButton({ signal, className }: SignalReportRe
     <button
       type="button"
       onClick={handleReport}
-      disabled={isPending || signal.hasReportedResolved}
+      disabled={isPending || signal.hasReportedResolved || !canInteract}
       className={cn(
         "inline-flex items-center gap-2 rounded-[var(--radius-pill)] border px-3.5 py-2 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50",
         signal.hasReportedResolved

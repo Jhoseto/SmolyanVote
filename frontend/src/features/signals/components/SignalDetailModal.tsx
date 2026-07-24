@@ -9,8 +9,7 @@ import { Avatar, ErrorState, ShareButton, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
-import { useToast } from "@/shared/hooks/useToast";
-import { errorMessage } from "@/shared/lib/errorMessage";
+import { useCanInteract } from "@/features/moderation/hooks/useCanInteract";
 import { formatRelativeDate } from "@/shared/lib/formatRelativeDate";
 import { categoryIcon } from "../data/categories";
 import { priorityLabel, applyPriorityTiers } from "../lib/computePriorityLevel";
@@ -106,7 +105,7 @@ export function SignalDetailModal({
 
   const { user } = useAuth();
   const requireAuth = useRequireAuth();
-  const toast = useToast();
+  const canInteract = useCanInteract();
   const [isEditing, setIsEditing] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -161,9 +160,7 @@ export function SignalDetailModal({
 
   async function handleBoost() {
     if (!signal || !(await requireAuth("да вдигнеш приоритета на сигнал"))) return;
-    boost(signal.id, {
-      onError: (error) => toast.error(errorMessage(error, "Вдигането на приоритет не успя.")),
-    });
+    boost(signal.id);
   }
 
   const headerExtra =
@@ -332,7 +329,8 @@ export function SignalDetailModal({
                     <button
                       type="button"
                       onClick={handleBoost}
-                      disabled={isBoosting}
+                      disabled={isBoosting || !canInteract}
+                      title={!canInteract ? "Профилът е временно ограничен" : undefined}
                       className={cn(
                         "inline-flex items-center gap-1.5 font-semibold transition-colors hover:text-primary disabled:opacity-50",
                         signal.hasBoosted && "text-primary",

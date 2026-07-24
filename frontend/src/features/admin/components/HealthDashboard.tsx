@@ -1,7 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ErrorState, Skeleton } from "@/shared/ui";
 import { useAdminDashboard } from "../hooks/useAdminDashboard";
+import { adminApi } from "../api";
 import {
   asString,
   dig,
@@ -17,6 +19,13 @@ import { MetricGrid, StatusPill } from "./MetricGrid";
 export function HealthDashboard({ enabled }: { enabled: boolean }) {
   const { data, isPending, isError, refetch, isFetching, dataUpdatedAt } =
     useAdminDashboard(enabled);
+
+  const alertsQ = useQuery({
+    queryKey: ["admin", "health-alerts"],
+    queryFn: () => adminApi.healthAlerts(),
+    enabled,
+    refetchInterval: 30_000,
+  });
 
   if (isPending) {
     return (
@@ -46,6 +55,25 @@ export function HealthDashboard({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {(alertsQ.data?.alerts?.length ?? 0) > 0 && (
+        <ul className="flex flex-col gap-2">
+          {alertsQ.data!.alerts.map((a, i) => (
+            <li
+              key={i}
+              className={
+                a.level === "critical"
+                  ? "rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm"
+                  : a.level === "warning"
+                    ? "rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+                    : "rounded-md border border-border-default/60 px-3 py-2 text-sm"
+              }
+            >
+              <strong>{a.title}:</strong> {a.message}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-[color:var(--color-text-muted)]">
           Последно обновяване:{" "}

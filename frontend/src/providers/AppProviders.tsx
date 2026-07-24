@@ -5,7 +5,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { QueryProvider } from "./QueryProvider";
 import { AuthProvider } from "./AuthProvider";
 import { GoogleTranslateProvider } from "@/lib/i18n-web-translate";
-import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon } from "@/shared/ui";
+import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon, ModerationWarningHost, PermanentBanModalHost } from "@/shared/ui";
 import { CookieConsentRoot } from "@/features/cookie-consent";
 import { LoginGateModal } from "@/features/auth";
 import { PodcastMiniPlayer } from "@/features/podcast";
@@ -22,6 +22,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <GoogleTranslateProvider />
           <Toaster />
           <ConfirmDialogHost />
+          <ModerationWarningHost />
+          <PermanentBanModalHost />
           <LoginGateModal />
           <CookieConsentRoot />
           <BackToTop />

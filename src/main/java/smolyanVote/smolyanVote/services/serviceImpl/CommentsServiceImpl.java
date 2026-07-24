@@ -16,10 +16,12 @@ import smolyanVote.smolyanVote.annotations.LogActivity;
 import smolyanVote.smolyanVote.models.*;
 import smolyanVote.smolyanVote.models.enums.*;
 import smolyanVote.smolyanVote.repositories.*;
+import smolyanVote.smolyanVote.exceptions.ModerationViolationException;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
-import smolyanVote.smolyanVote.services.interfaces.NotificationService;
-import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.CommentsService;
+import smolyanVote.smolyanVote.services.interfaces.ContentModerationService;
+import smolyanVote.smolyanVote.services.interfaces.NotificationService;
+import smolyanVote.smolyanVote.services.interfaces.UserBanService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.mappers.CommentResultMapper;
 import smolyanVote.smolyanVote.viewsAndDTO.CommentOutputDto;
@@ -48,6 +50,8 @@ public class CommentsServiceImpl implements CommentsService {
     private final UserRepository userRepository;
 
     private final ActivityLogService activityLogService;
+    private final ContentModerationService contentModerationService;
+    private final UserBanService userBanService;
 
     @Autowired
     public CommentsServiceImpl(CommentsRepository commentsRepository,
@@ -61,7 +65,9 @@ public class CommentsServiceImpl implements CommentsService {
                                SignalsRepository signalsRepository,
                                ActivityLogService activityLogService,
                                NotificationService notificationService,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               ContentModerationService contentModerationService,
+                               UserBanService userBanService) {
         this.commentsRepository = commentsRepository;
         this.simpleEventRepository = simpleEventRepository;
         this.referendumRepository = referendumRepository;
@@ -74,6 +80,8 @@ public class CommentsServiceImpl implements CommentsService {
         this.activityLogService = activityLogService;
         this.notificationService = notificationService;
         this.userRepository = userRepository;
+        this.contentModerationService = contentModerationService;
+        this.userBanService = userBanService;
     }
 
     // ====== ОСНОВНИ МЕТОДИ ======
@@ -193,6 +201,8 @@ public class CommentsServiceImpl implements CommentsService {
 //            entityIdParam = "entityId", details = "Comment on {entityType}: {text}")
 
     public CommentsEntity addCommentToEntity(String entityType, Long entityId, String text, UserEntity author) {
+        userBanService.ensureCanInteract(author);
+        contentModerationService.validateTextOrThrow(text, author, ModerationViolationException.ViolationType.PROFANITY);
         logger.info("Adding comment to entityType: {}, entityId: {}, text: {}, author: {}",
                 entityType, entityId, text, author.getUsername());
         return switch (entityType) {
@@ -375,6 +385,8 @@ public class CommentsServiceImpl implements CommentsService {
             entityIdParam = "parentCommentId", details = "Reply: {text}")
 
     public CommentsEntity addReplyToComment(Long parentCommentId, String text, UserEntity author) {
+        userBanService.ensureCanInteract(author);
+        contentModerationService.validateTextOrThrow(text, author, ModerationViolationException.ViolationType.PROFANITY);
         logger.info("Adding reply to parentCommentId: {}, text: {}, author: {}",
                 parentCommentId, text, author.getUsername());
         CommentsEntity parentComment = commentsRepository.findById(parentCommentId)

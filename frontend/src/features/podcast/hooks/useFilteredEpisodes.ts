@@ -12,7 +12,7 @@ function sortEpisodes(episodes: PodcastEpisode[], sort: PodcastSortOption) {
   const copy = [...episodes];
   switch (sort) {
     case "oldest":
-      return copy.sort((a, b) => dateValue(b) - dateValue(a));
+      return copy.sort((a, b) => dateValue(a) - dateValue(b));
     case "popular":
       return copy.sort((a, b) => (b.listenCount ?? 0) - (a.listenCount ?? 0));
     case "longest":
@@ -21,7 +21,7 @@ function sortEpisodes(episodes: PodcastEpisode[], sort: PodcastSortOption) {
       return copy.sort((a, b) => (a.durationSeconds ?? 0) - (b.durationSeconds ?? 0));
     case "newest":
     default:
-      return copy.sort((a, b) => dateValue(a) - dateValue(b));
+      return copy.sort((a, b) => dateValue(b) - dateValue(a));
   }
 }
 
@@ -58,7 +58,7 @@ export function usePodcastInsights(episodes: PodcastEpisode[]) {
     const featured = [...episodes]
       .sort((a, b) => (b.listenCount ?? 0) - (a.listenCount ?? 0))
       .slice(0, 8);
-    const latest = [...episodes].sort((a, b) => dateValue(a) - dateValue(b)).slice(0, 8);
+    const latest = [...episodes].sort((a, b) => dateValue(b) - dateValue(a)).slice(0, 8);
 
     return { totalListens, totalDuration, featured, latest };
   }, [episodes]);

@@ -51,6 +51,9 @@ public class UserEntity extends BaseEntity {
     @Column(name = "ban_date")
     private Instant banDate;
 
+    @Column(name = "moderation_strike_count", nullable = false)
+    private int moderationStrikeCount = 0;
+
     @Column(name = "failed_login_attempts", nullable = false)
     private int failedLoginAttempts = 0;
 
@@ -66,7 +69,8 @@ public class UserEntity extends BaseEntity {
     private int userEventsCount;
 
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    @Column(nullable = false, length = 20)
+    private UserRole role = UserRole.USER;
 
     @Column(columnDefinition = "TIMESTAMP")
     protected Instant lastOnline;
@@ -168,6 +172,14 @@ public class UserEntity extends BaseEntity {
         this.banDate = banDate;
     }
 
+    public int getModerationStrikeCount() {
+        return moderationStrikeCount;
+    }
+
+    public void setModerationStrikeCount(int moderationStrikeCount) {
+        this.moderationStrikeCount = moderationStrikeCount;
+    }
+
     public String getImageUrl() {
         return imageUrl;
     }
@@ -204,12 +216,20 @@ public class UserEntity extends BaseEntity {
     }
 
     public UserRole getRole() {
-        return role;
+        return role != null ? role : UserRole.USER;
     }
 
     public UserEntity setRole(UserRole role) {
-        this.role = role;
+        this.role = role != null ? role : UserRole.USER;
         return this;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeRoleBeforeSave() {
+        if (role == null) {
+            role = UserRole.USER;
+        }
     }
 
     public Instant getLastOnline() {

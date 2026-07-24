@@ -24,3 +24,14 @@ export interface SubscriptionResponse {
   success: boolean;
   types: PodcastSubscriptionType[];
 }
+
+/** Admin-only — `POST /api/v1/podcast/episodes` (multipart), mirrors `PodcastAdminController`. */
+export interface CreatePodcastEpisodePayload {
+  title: string;
+  description?: string;
+  /** Direct MP3 URL (Internet Archive) — stored as-is, not uploaded to Cloudinary. */
+  audioUrl: string;
+  imageFile?: File | null;
+  durationSeconds?: number | null;
+  isPublished: boolean;
+}

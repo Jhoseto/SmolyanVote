@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.config.FrontendProperties;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.services.jwt.JwtTokenService;
 
@@ -120,6 +121,18 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         }
 
         UserEntity user = userOpt.get();
+
+        if (UserStatusEnum.PERMANENTLY_BANNED.equals(user.getStatus())) {
+            String reason = user.getBanReason() != null && !user.getBanReason().isBlank()
+                    ? user.getBanReason()
+                    : "Профилът ви е перманентно блокиран.";
+            String target = isMobile
+                    ? "svmessenger://oauth/callback?error=permanent_ban"
+                    : frontendUrl() + "/oauth-callback?error=permanent_ban&banReason=" + encode(reason);
+            getRedirectStrategy().sendRedirect(request, response, target);
+            return;
+        }
+
         String accessToken = jwtTokenService.generateAccessToken(user);
         String refreshToken = jwtTokenService.generateRefreshToken(user);
         String encodedAccess = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);

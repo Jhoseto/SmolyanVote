@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/shared/hooks/useToast";
+import { errorMessage } from "@/shared/lib/errorMessage";
 import { notificationsApi } from "../api";
 import type { NotificationDto, NotificationPage } from "../types";
 
@@ -30,9 +32,10 @@ export function useMarkAsRead() {
 
       return { previous };
     },
-    onError: (_err, _id, context) => {
+    onError: (err, _id, context) => {
       if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
       void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+      toast.error(errorMessage(err, "Известието не бе маркирано като прочетено."));
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -53,9 +56,13 @@ export function useMarkAllAsRead() {
       queryClient.setQueryData(UNREAD_KEY, { count: 0 });
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onSuccess: () => {
+      toast.success("Всички известия са маркирани като прочетени.");
+    },
+    onError: (err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
       void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+      toast.error(errorMessage(err, "Маркирането не бе успешно."));
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -84,9 +91,13 @@ export function useDeleteNotification() {
 
       return { previous };
     },
-    onError: (_err, _id, context) => {
+    onSuccess: () => {
+      toast.success("Известието е изтрито.");
+    },
+    onError: (err, _id, context) => {
       if (context?.previous) queryClient.setQueryData(RECENT_KEY, context.previous);
       void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
+      toast.error(errorMessage(err, "Известието не бе изтрито."));
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });

@@ -14,6 +14,7 @@ import smolyanVote.smolyanVote.repositories.UserFollowRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.MainEventsService;
 import smolyanVote.smolyanVote.services.interfaces.SignalsService;
+import smolyanVote.smolyanVote.services.interfaces.UserBanService;
 import smolyanVote.smolyanVote.services.interfaces.UserService;
 import smolyanVote.smolyanVote.viewsAndDTO.EventSimpleViewDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.apiv1.*;
@@ -39,17 +40,20 @@ public class UsersController {
     private final UserFollowRepository userFollowRepository;
     private final MainEventsService mainEventsService;
     private final SignalsService signalsService;
+    private final UserBanService userBanService;
 
     public UsersController(UserService userService,
                                  FollowService followService,
                                  UserFollowRepository userFollowRepository,
                                  MainEventsService mainEventsService,
-                                 SignalsService signalsService) {
+                                 SignalsService signalsService,
+                                 UserBanService userBanService) {
         this.userService = userService;
         this.followService = followService;
         this.userFollowRepository = userFollowRepository;
         this.mainEventsService = mainEventsService;
         this.signalsService = signalsService;
+        this.userBanService = userBanService;
     }
 
     @GetMapping("/me")
@@ -58,7 +62,7 @@ public class UsersController {
         if (user == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(CurrentUserResponse.fromEntity(user));
+        return ResponseEntity.ok(CurrentUserResponse.fromEntity(user, userBanService));
     }
 
     /**

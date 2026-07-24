@@ -1,5 +1,6 @@
-import { resolveApiUrl } from "@/config/env";
+import { resolveApiUrl, resolveDirectApiUrl } from "@/config/env";
 import { tokenStore } from "./tokenStore";
+import { notifyModerationFromApiBody } from "@/shared/lib/moderationStore";
 
 /** Typed API error surfaced to callers (explicit over silent fallbacks). */
 export class ApiError extends Error {
@@ -20,6 +21,8 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
   idempotencyKey?: string;
   /** Skip Authorization header + refresh (public endpoints). */
   anonymous?: boolean;
+  /** Hit Spring directly from the browser (large multipart uploads). */
+  direct?: boolean;
 }
 
 interface FormRequestOptions extends Omit<RequestOptions, "body"> {
@@ -83,12 +86,17 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, code, message, body);
 }
 
+function throwParsedError(error: ApiError): never {
+  notifyModerationFromApiBody(error.body);
+  throw error;
+}
+
 async function doFetch(
   path: string,
   options: RequestOptions,
   retryOn401: boolean,
 ): Promise<Response> {
-  const { body, idempotencyKey, anonymous, headers, ...rest } = options;
+  const { body, idempotencyKey, anonymous, direct, headers, ...rest } = options;
   const isFormData = body instanceof FormData;
 
   const finalHeaders = new Headers(headers);
@@ -102,7 +110,8 @@ async function doFetch(
     if (access) finalHeaders.set("Authorization", `Bearer ${access}`);
   }
 
-  const url = resolveApiUrl(path);
+  const url =
+    direct && typeof window !== "undefined" ? resolveDirectApiUrl(path) : resolveApiUrl(path);
 
   const res = await fetch(url, {
     ...rest,
@@ -121,7 +130,7 @@ async function doFetch(
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const res = await doFetch(path, options, true);
 
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok) throwParsedError(await parseError(res));
 
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("Content-Type") ?? "";

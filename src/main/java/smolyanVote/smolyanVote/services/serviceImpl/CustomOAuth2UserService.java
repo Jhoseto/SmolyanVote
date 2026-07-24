@@ -16,6 +16,7 @@ import smolyanVote.smolyanVote.models.enums.ActivityActionEnum;
 import smolyanVote.smolyanVote.models.enums.ActivityTypeEnum;
 import smolyanVote.smolyanVote.models.enums.AuthProvider;
 import smolyanVote.smolyanVote.models.enums.UserRole;
+import smolyanVote.smolyanVote.models.enums.UserRoleDefaults;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
@@ -110,7 +111,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // Създаване на authorities
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        authorities.add(new SimpleGrantedAuthority(
+                "ROLE_" + UserRoleDefaults.effective(user.getRole()).name()));
 
         // Запазване на оригиналните атрибути от OAuth2User
         // Не променяме оригиналните атрибути, за да не счупим name attribute

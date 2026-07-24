@@ -68,6 +68,8 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
      */
     Page<ActivityLogEntity> findByActionOrderByTimestampDesc(String action, Pageable pageable);
 
+    Page<ActivityLogEntity> findByActionStartingWithOrderByTimestampDesc(String actionPrefix, Pageable pageable);
+
     /**
      * Намира активности по тип entity
      */
