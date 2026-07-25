@@ -7,6 +7,7 @@ const API_ORIGIN =
   "http://localhost:2662";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async redirects() {
     return [
       // Legacy Thymeleaf / bookmark URLs → Next routes (preserve query, e.g. openSignal)

@@ -56,3 +56,6 @@ VIRTUAL_MAJOR_ENV_SETUP.md
 # Local JVM truststore (Avast/AVG HTTPS MITM root — machine-specific)
 config/jvm/cacerts-with-avast
 config/jvm/*.cer
+
+# Droplet server configs + secrets (upload manually to /opt/smolyanvote/server/)
+NewServerConfig/
