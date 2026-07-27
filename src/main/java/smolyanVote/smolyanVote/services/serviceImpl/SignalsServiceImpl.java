@@ -365,10 +365,13 @@ public class SignalsServiceImpl implements SignalsService {
                                                     Double minLon, Double maxLon) {
         List<SignalsEntity> results = signalsRepository.findByLocationBounds(minLat, maxLat, minLon, maxLon);
 
-        // Принудително зареждане на author за всички сигнали
+        // Eager-touch lazy associations while the read transaction is open (open-in-view=false in prod).
         results.forEach(signal -> {
             if (signal.getAuthor() != null) {
                 signal.getAuthor().getUsername();
+            }
+            if (signal.getResolvedBy() != null) {
+                signal.getResolvedBy().getUsername();
             }
         });
 

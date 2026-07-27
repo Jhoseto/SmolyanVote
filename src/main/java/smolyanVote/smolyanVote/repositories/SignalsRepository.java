@@ -60,7 +60,7 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
 
     // ===== ГЕОЛОКАЦИОННИ ЗАЯВКИ =====
 
-    @Query("SELECT s FROM SignalsEntity s JOIN FETCH s.author WHERE " +
+    @Query("SELECT s FROM SignalsEntity s JOIN FETCH s.author LEFT JOIN FETCH s.resolvedBy WHERE " +
             "s.latitude BETWEEN :minLat AND :maxLat AND " +
             "s.longitude BETWEEN :minLon AND :maxLon " +
             "ORDER BY s.created DESC")
