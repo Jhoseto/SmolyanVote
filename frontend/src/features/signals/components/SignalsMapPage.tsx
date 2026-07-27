@@ -123,7 +123,7 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
   }
 
   return (
-    <Container className="relative flex flex-col gap-5 py-6 pb-24 lg:pb-8">
+    <Container className="relative flex flex-col gap-5 py-6 pb-8">
       <div className="relative overflow-hidden rounded-[var(--radius-xl)] border border-primary/10 bg-gradient-to-br from-primary-50/90 via-white to-white p-5 shadow-[0_8px_40px_rgba(25,134,28,0.08)] md:p-6">
         <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -135,14 +135,6 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
               Карта на активните сигнали в област Смолян — подай, сподели, вдигни приоритет.
             </p>
           </div>
-          <Button
-            onClick={handleCreateClick}
-            disabled={!canInteract}
-            className="hidden shadow-[0_4px_16px_rgba(25,134,28,0.35)] lg:inline-flex disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <i className="bi bi-megaphone-fill" />
-            Подай сигнал
-          </Button>
         </div>
         {!canInteract && (
           <p className="relative mt-4 rounded-[var(--radius-md)] border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950">
@@ -166,15 +158,26 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
 
       <SignalsCategoryChips dataset={dataset} />
 
-      <SignalsMap
-        signals={signals}
-        onMarkerClick={handleSelect}
-        focusSignalId={focusSignalId}
-        adminQuickMode={isAdmin && adminQuickMode}
-        onAdminQuickResolve={(id) => quickResolve(id)}
-        onAdminQuickDelete={isAdmin && adminQuickMode ? handleAdminQuickDelete : undefined}
-        className="h-[min(60dvh,620px)] w-full overflow-hidden rounded-[var(--radius-xl)] shadow-[0_8px_40px_rgba(15,23,42,0.1)]"
-      />
+      <div className="relative">
+        <SignalsMap
+          signals={signals}
+          onMarkerClick={handleSelect}
+          focusSignalId={focusSignalId}
+          adminQuickMode={isAdmin && adminQuickMode}
+          onAdminQuickResolve={(id) => quickResolve(id)}
+          onAdminQuickDelete={isAdmin && adminQuickMode ? handleAdminQuickDelete : undefined}
+          className="h-[min(60dvh,620px)] w-full rounded-[var(--radius-xl)] shadow-[0_8px_40px_rgba(15,23,42,0.1)]"
+        />
+        {canInteract && (
+          <Button
+            onClick={handleCreateClick}
+            className="absolute bottom-4 right-4 z-[15] shadow-[0_4px_16px_rgba(25,134,28,0.45)] sm:bottom-14 sm:right-5"
+          >
+            <i className="bi bi-megaphone-fill" />
+            Подай сигнал
+          </Button>
+        )}
+      </div>
 
       <SignalsLanesSection signals={signals} onSelect={handleSelect} selectedId={openId} />
 
@@ -207,17 +210,6 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
       />
 
       <CreateSignalModal open={createOpen} onClose={() => setCreateOpen(false)} dataset={dataset} />
-
-      {canInteract && (
-      <button
-        type="button"
-        onClick={handleCreateClick}
-        className="fixed bottom-6 right-6 z-[1080] flex h-14 w-14 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[0_8px_28px_rgba(25,134,28,0.45)] transition-transform hover:scale-105 active:scale-95 lg:hidden"
-        aria-label="Подай сигнал"
-      >
-        <i className="bi bi-megaphone text-xl" />
-      </button>
-      )}
     </Container>
   );
 }

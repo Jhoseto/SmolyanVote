@@ -6,6 +6,8 @@ import maplibregl from "maplibre-gl";
 import { cn } from "@/shared/lib/cn";
 import { SMOLYAN_CENTER, smolyanPolygonGeoJsonRing } from "../data/smolyanBoundary";
 import { SIGNALS_MAP_MAX_ZOOM, SIGNALS_MAP_STYLE_URL } from "../lib/mapRasterStyle";
+import { observeMaplibreContainer } from "../lib/syncMaplibreContainer";
+import { configureMaplibreBasemap } from "../lib/configureMaplibreBasemap";
 import { isWithinSmolyanRegion } from "../lib/geo";
 import type { SelectedLocation } from "../hooks/useCreateSignalForm";
 
@@ -13,6 +15,8 @@ interface LocationPickerMapProps {
   value: SelectedLocation | null;
   onChange: (location: SelectedLocation) => void;
   className?: string;
+  /** When false (e.g. dialog closed), skip resize work — map may stay mounted. */
+  active?: boolean;
 }
 
 /**
@@ -22,11 +26,13 @@ interface LocationPickerMapProps {
  * click == tap в браузъра, така че не се нуждаем от два отделни UX-а. Без
  * reverse geocode (виж решението в чата) — само координати, без адрес текст.
  */
-export function LocationPickerMap({ value, onChange, className }: LocationPickerMapProps) {
+export function LocationPickerMap({ value, onChange, className, active = true }: LocationPickerMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const onChangeRef = useRef(onChange);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+  const basemapCleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
@@ -47,6 +53,8 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), "top-right");
 
+    basemapCleanupRef.current = configureMaplibreBasemap(map);
+
     map.on("load", () => {
       const ring = smolyanPolygonGeoJsonRing();
       map.addSource("smolyan-boundary", {
@@ -59,6 +67,10 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
         source: "smolyan-boundary",
         paint: { "line-color": "#19861c", "line-width": 1.5, "line-dasharray": [2, 2] },
       });
+      if (containerRef.current) {
+        resizeCleanupRef.current?.();
+        resizeCleanupRef.current = observeMaplibreContainer(map, containerRef.current);
+      }
     });
 
     map.on("click", (e) => {
@@ -68,10 +80,28 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
 
     mapRef.current = map;
     return () => {
+      basemapCleanupRef.current?.();
+      basemapCleanupRef.current = null;
+      resizeCleanupRef.current?.();
+      resizeCleanupRef.current = null;
+      markerRef.current?.remove();
+      markerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!active || !map || !container) return;
+    resizeCleanupRef.current?.();
+    resizeCleanupRef.current = observeMaplibreContainer(map, container);
+    return () => {
+      resizeCleanupRef.current?.();
+      resizeCleanupRef.current = null;
+    };
+  }, [active]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -85,7 +115,7 @@ export function LocationPickerMap({ value, onChange, className }: LocationPicker
         isValid ? "bg-primary" : "bg-[color:var(--color-error)]",
       );
       el.innerHTML = '<i class="bi bi-geo-alt-fill" style="font-size:16px"></i>';
-      markerRef.current = new maplibregl.Marker({ element: el, anchor: "bottom" })
+      markerRef.current = new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat([value.longitude, value.latitude])
         .addTo(map);
     } else {

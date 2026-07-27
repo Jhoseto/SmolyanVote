@@ -6,10 +6,15 @@ RUN npm ci
 
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
+ARG API_INTERNAL_URL=http://backend:2662
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
+ENV NEXT_PUBLIC_BACKEND_ORIGIN=$API_INTERNAL_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Low-RAM Docker hosts (1GB Droplets): cap Node heap and use webpack to avoid OOM during build.
+ENV NODE_OPTIONS=--max-old-space-size=512
+RUN npm run build -- --webpack
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app

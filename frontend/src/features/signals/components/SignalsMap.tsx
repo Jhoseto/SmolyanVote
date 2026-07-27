@@ -10,6 +10,9 @@ import { categoryIcon } from "../data/categories";
 import { signalClusterListPopupHtml, signalMapPopupHtml } from "../lib/signalMapPopupHtml";
 import { SMOLYAN_CENTER, smolyanPolygonGeoJsonRing } from "../data/smolyanBoundary";
 import { SIGNALS_MAP_MAX_ZOOM, SIGNALS_MAP_STYLE_URL } from "../lib/mapRasterStyle";
+import { observeMaplibreContainer } from "../lib/syncMaplibreContainer";
+import { configureMaplibreBasemap } from "../lib/configureMaplibreBasemap";
+import { addMapPopupFitViewport, MAP_POPUP_GAP_PX } from "../lib/fitMapPopup";
 import { SignalsMapHud } from "./SignalsMapHud";
 import type { Signal } from "../types";
 
@@ -30,11 +33,50 @@ interface SignalPointProperties {
 
 const DESKTOP_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 const FLY_DURATION_MS = 1400;
+/** Pixel radius for grouping nearby markers — larger = merge sooner when zoomed out. */
+const SUPERCLUSTER_RADIUS_PX = 80;
 /** Must match the `maxZoom` passed to `new Supercluster(...)` below — points within
  * the cluster radius (e.g. identical/near-identical coordinates) never separate
  * beyond this zoom, so we detect that case and offer a pick-list instead of
  * endlessly re-zooming into the same spot. */
-const SUPERCLUSTER_MAX_ZOOM = 17;
+const SUPERCLUSTER_MAX_ZOOM = 18;
+
+function clusterMarkerSize(count: number): number {
+  return Math.min(68, Math.max(40, 34 + Math.log2(count) * 9));
+}
+
+function clusterLabelFontSize(count: number): string {
+  if (count > 99) return "12px";
+  if (count > 9) return "15px";
+  return "17px";
+}
+
+function buildClusterElement(count: number, animateIn: boolean): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = "sv-signal-cluster";
+  el.dataset.clusterCount = String(count);
+  const size = clusterMarkerSize(count);
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  const label = document.createElement("span");
+  label.className = cn("sv-signal-cluster__label", animateIn && "sv-signal-cluster--enter");
+  label.style.fontSize = clusterLabelFontSize(count);
+  label.textContent = String(count);
+  el.appendChild(label);
+  return el;
+}
+
+function updateClusterElement(el: HTMLElement, count: number): void {
+  const size = clusterMarkerSize(count);
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.dataset.clusterCount = String(count);
+  const label = el.querySelector(".sv-signal-cluster__label");
+  if (label) {
+    label.textContent = String(count);
+    (label as HTMLElement).style.fontSize = clusterLabelFontSize(count);
+  }
+}
 
 function isClusterFeature(
   feature: Supercluster.ClusterFeature<Supercluster.AnyProps> | Supercluster.PointFeature<SignalPointProperties>,
@@ -102,18 +144,22 @@ function buildMarkerElement(
     "sv-signal-marker",
     markerTierClass(signal),
     opts.focused && "sv-signal-marker--focused",
-    opts.animateIn && "sv-signal-marker--enter",
   );
   root.dataset.signalId = String(signal.id);
 
+  // MapLibre positions this root via inline `transform` — never animate/transform the root.
+  const body = document.createElement("div");
+  body.className = cn("sv-signal-marker__body", opts.animateIn && "sv-signal-marker--enter");
+  root.appendChild(body);
+
   const ring = document.createElement("div");
   ring.className = "sv-signal-marker__ring";
-  root.appendChild(ring);
+  body.appendChild(ring);
 
   const pin = document.createElement("div");
   pin.className = "sv-signal-marker__pin";
   pin.innerHTML = `<i class="bi ${categoryIcon(signal.category)}"></i>`;
-  root.appendChild(pin);
+  body.appendChild(pin);
 
   root.onclick = (e) => {
     e.stopPropagation();
@@ -155,6 +201,10 @@ export function SignalsMap({
   const clusterPopupRef = useRef<maplibregl.Popup | null>(null);
   const hoverHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const renderMarkersRef = useRef<(() => void) | null>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+  const basemapCleanupRef = useRef<(() => void) | null>(null);
+  const markersLayoutReadyRef = useRef(false);
 
   const [visibleCount, setVisibleCount] = useState(signals.length);
   const [isFlying, setIsFlying] = useState(false);
@@ -177,7 +227,11 @@ export function SignalsMap({
         geometry: { type: "Point", coordinates: [signal.longitude, signal.latitude] },
       }));
 
-    const cluster = new Supercluster<SignalPointProperties>({ radius: 56, maxZoom: SUPERCLUSTER_MAX_ZOOM });
+    const cluster = new Supercluster<SignalPointProperties>({
+      radius: SUPERCLUSTER_RADIUS_PX,
+      maxZoom: SUPERCLUSTER_MAX_ZOOM,
+      minPoints: 2,
+    });
     cluster.load(points);
     return cluster;
   }, [signals]);
@@ -222,8 +276,8 @@ export function SignalsMap({
         flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
           zoom: 15,
-          pitch: 24,
-          bearing: map.getBearing(),
+          pitch: 0,
+          bearing: 0,
         });
       },
       () => {
@@ -261,8 +315,17 @@ export function SignalsMap({
       fadeDuration: 300,
     });
 
+    basemapCleanupRef.current = configureMaplibreBasemap(map);
+
     map.on("load", () => {
       addBoundaryLayers(map);
+      if (containerRef.current) {
+        resizeCleanupRef.current?.();
+        resizeCleanupRef.current = observeMaplibreContainer(map, containerRef.current, () => {
+          renderMarkersRef.current?.();
+          setVisibleCount(countVisibleSignals(map, signals));
+        });
+      }
       setMapReady(true);
       setVisibleCount(countVisibleSignals(map, signals));
     });
@@ -272,6 +335,12 @@ export function SignalsMap({
     mapRef.current = map;
     return () => {
       if (flyTimerRef.current) clearTimeout(flyTimerRef.current);
+      basemapCleanupRef.current?.();
+      basemapCleanupRef.current = null;
+      resizeCleanupRef.current?.();
+      resizeCleanupRef.current = null;
+      renderMarkersRef.current = null;
+      markersLayoutReadyRef.current = false;
       hoverPopupRef.current?.remove();
       clusterPopupRef.current?.remove();
       // Dispose every marker tied to this map instance — otherwise (e.g. React
@@ -296,8 +365,17 @@ export function SignalsMap({
   }, [signals, mapReady]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !mapReady) return;
     const map = mapRef.current;
+
+    if (!markersLayoutReadyRef.current) {
+      for (const marker of markersRef.current.values()) marker.remove();
+      markersRef.current.clear();
+      seenMarkerKeysRef.current.clear();
+      map.resize();
+      markersLayoutReadyRef.current = true;
+    }
+
     const desktopHover = window.matchMedia(DESKTOP_HOVER_QUERY).matches;
 
     function clearHoverPopup() {
@@ -325,14 +403,13 @@ export function SignalsMap({
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
-        offset: 20,
         maxWidth: "320px",
         className: "sv-signal-hover-popup",
         anchor: "bottom",
       })
-        .setLngLat([lng, lat])
-        .setHTML(signalMapPopupHtml(signal, { adminQuickMode: adminQuickModeRef.current }))
-        .addTo(map);
+        .setHTML(signalMapPopupHtml(signal, { adminQuickMode: adminQuickModeRef.current }));
+
+      addMapPopupFitViewport(popup, map, lng, lat, MAP_POPUP_GAP_PX);
 
       hoverPopupRef.current = popup;
 
@@ -368,14 +445,12 @@ export function SignalsMap({
       const popup = new maplibregl.Popup({
         closeButton: true,
         closeOnClick: false,
-        offset: 14,
         maxWidth: "300px",
         className: "sv-cluster-list-popup",
         anchor: "bottom",
-      })
-        .setLngLat([lng, lat])
-        .setHTML(signalClusterListPopupHtml(leaves))
-        .addTo(map);
+      }).setHTML(signalClusterListPopupHtml(leaves));
+
+      addMapPopupFitViewport(popup, map, lng, lat, MAP_POPUP_GAP_PX);
 
       clusterPopupRef.current = popup;
 
@@ -439,7 +514,7 @@ export function SignalsMap({
         bounds.getEast(),
         bounds.getNorth(),
       ];
-      const zoom = Math.round(map.getZoom());
+      const zoom = Math.floor(map.getZoom());
       const clusters = index.getClusters(bbox, zoom);
       const nextKeys = new Set<string>();
 
@@ -462,13 +537,7 @@ export function SignalsMap({
         if (!marker) {
           if (isCluster) {
             const count = feature.properties.point_count;
-            const el = document.createElement("div");
-            el.className = "sv-signal-cluster";
-            const size = Math.min(56, 36 + Math.log2(count) * 7);
-            el.style.width = `${size}px`;
-            el.style.height = `${size}px`;
-            el.style.fontSize = count > 99 ? "11px" : "13px";
-            el.textContent = String(count);
+            const el = buildClusterElement(count, isNew);
             bindClusterClick(el, feature, lng, lat);
             marker = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]);
           } else {
@@ -492,10 +561,8 @@ export function SignalsMap({
         } else {
           marker.setLngLat([lng, lat]);
           if (isCluster) {
-            // Rebind against this render pass's `feature`/`index` closure — a
-            // reused cluster marker (same rounded position + count as before)
-            // must not keep firing against a stale, possibly-rebuilt Supercluster
-            // index from an earlier effect run.
+            const count = feature.properties.point_count;
+            updateClusterElement(marker.getElement(), count);
             bindClusterClick(marker.getElement(), feature, lng, lat);
           } else {
             const signal = feature.properties.signal;
@@ -535,10 +602,27 @@ export function SignalsMap({
       setVisibleCount(countVisibleSignals(map, signals));
     }
 
+    renderMarkersRef.current = render;
     render();
+
+    let renderRaf = 0;
+    function scheduleRender() {
+      if (renderRaf) return;
+      renderRaf = requestAnimationFrame(() => {
+        renderRaf = 0;
+        render();
+      });
+    }
+
+    map.on("move", scheduleRender);
+    map.on("zoom", scheduleRender);
     map.on("moveend", render);
     map.on("zoomend", render);
     return () => {
+      renderMarkersRef.current = null;
+      if (renderRaf) cancelAnimationFrame(renderRaf);
+      map.off("move", scheduleRender);
+      map.off("zoom", scheduleRender);
       map.off("moveend", render);
       map.off("zoomend", render);
       clearHoverPopup();
@@ -556,8 +640,8 @@ export function SignalsMap({
     flyTo({
       center: [signal.longitude, signal.latitude],
       zoom: Math.min(16.5, SIGNALS_MAP_MAX_ZOOM),
-      pitch: 28,
-      bearing: map.getBearing(),
+      pitch: 0,
+      bearing: 0,
     });
 
     for (const marker of markersRef.current.values()) {

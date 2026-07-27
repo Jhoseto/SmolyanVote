@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, ImageDropzone, Skeleton } from "@/shared/ui";
+import { Button, ImageDropzone, LogoLoader, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { SIGNAL_CATEGORIES } from "../data/categories";
 import { isWithinSmolyanRegion } from "../lib/geo";
@@ -69,6 +69,7 @@ export function CreateSignalModal({ open, onClose, onCreated, dataset }: CreateS
   );
 
   function handleOpenChange(next: boolean) {
+    if (!next && isPending) return;
     if (!next) {
       cancel();
       onClose();
@@ -84,20 +85,37 @@ export function CreateSignalModal({ open, onClose, onCreated, dataset }: CreateS
       icon="bi-megaphone-fill"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
             Отказ
           </Button>
           <Button type="submit" onClick={onSubmit} disabled={!canSubmit} className="shadow-[0_4px_14px_rgba(13,110,253,0.3)]">
-            {isPending ? "Подаване…" : "Подай сигнал"}
+            {isPending ? (
+              <>
+                <i className="bi bi-arrow-repeat animate-spin" aria-hidden />
+                Качване…
+              </>
+            ) : (
+              "Подай сигнал"
+            )}
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5">
+      <div className="relative">
+        {isPending ? (
+          <LogoLoader overlay label="Качване на сигнала…" showLabel size="md" />
+        ) : null}
+        <div
+          className={cn(
+            "flex flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5",
+            isPending && "pointer-events-none select-none opacity-60",
+          )}
+        >
         <SignalSection title="Местоположение">
           <LocationPickerMap
             value={location}
             onChange={setLocation}
+            active={open}
             className="h-[min(36dvh,240px)] w-full overflow-hidden rounded-[var(--radius-md)] border border-border-default/30 shadow-[0_4px_20px_rgba(15,23,42,0.06)] sm:h-[220px]"
           />
           {location && !locationValid && (
@@ -193,6 +211,7 @@ export function CreateSignalModal({ open, onClose, onCreated, dataset }: CreateS
             maxSizeBytes={5 * 1024 * 1024}
           />
         </SignalSection>
+        </div>
       </div>
     </SignalModalShell>
   );

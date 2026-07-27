@@ -59,3 +59,6 @@ config/jvm/*.cer
 
 # Droplet server configs + secrets (upload manually to /opt/smolyanvote/server/)
 NewServerConfig/
+deploy.local.env
+NewServerConfig/deploy.local.env
+.deploy/
