@@ -45,11 +45,11 @@ export function PodcastEpisodeGridCard({
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
           <div>
             {episode.episodeNumber != null && (
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/70">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] !text-white/80">
                 Епизод {episode.episodeNumber}
               </p>
             )}
-            <h3 className="line-clamp-2 font-display text-[1rem] font-semibold leading-snug text-white">
+            <h3 className="line-clamp-2 font-display text-[1rem] font-semibold leading-snug !text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]">
               {episode.title}
             </h3>
           </div>

@@ -56,7 +56,7 @@ export function PodcastHeroSection({ episodeCount, totalListens }: PodcastHeroSe
             </div>
             <div className="rounded-[16px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-md">
               <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/55">Качество</p>
-              <p className="font-display text-2xl font-semibold text-white">HD</p>
+              <p className="font-display text-2xl font-semibold text-white">HQs</p>
             </div>
           </div>
         </div>
