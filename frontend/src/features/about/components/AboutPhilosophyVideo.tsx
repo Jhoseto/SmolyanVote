@@ -49,18 +49,17 @@ export function AboutPhilosophyVideo({
     return () => observer.disconnect();
   }, []);
 
-  const mediaStyle = {
-    "--media-object-fit": "cover",
+  const rootStyle = {
     "--media-object-position": objectPosition,
-    ...(mediaZoom !== 1
+  } as CSSProperties;
+
+  const zoomStyle: CSSProperties | undefined =
+    mediaZoom !== 1
       ? {
           transform: `scale(${mediaZoom})`,
-          transformOrigin: objectPosition.includes("%")
-            ? objectPosition
-            : "center center",
+          transformOrigin: objectPosition.includes("%") ? objectPosition : "center center",
         }
-      : null),
-  } as CSSProperties;
+      : undefined;
 
   return (
     <div
@@ -70,25 +69,27 @@ export function AboutPhilosophyVideo({
         "shadow-[0_20px_50px_-24px_rgba(25,134,28,0.45)] ring-1 ring-black/[0.08]",
         className,
       )}
+      style={rootStyle}
     >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
       />
       {shouldLoad ? (
-        <MuxPlayer
-          playbackId={playbackId}
-          metadataVideoTitle={videoTitle}
-          autoPlay="muted"
-          muted
-          loop
-          playsInline
-          nohotkeys
-          preload="metadata"
-          streamType="on-demand"
-          className="about-philosophy-video absolute inset-0 h-full w-full"
-          style={mediaStyle}
-        />
+        <div className="absolute inset-0" style={zoomStyle}>
+          <MuxPlayer
+            playbackId={playbackId}
+            metadataVideoTitle={videoTitle}
+            autoPlay="muted"
+            muted
+            loop
+            playsInline
+            nohotkeys
+            preload="metadata"
+            streamType="on-demand"
+            className="about-philosophy-video absolute inset-0 h-full w-full"
+          />
+        </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#14532d]/40 to-[#19861c]/25" />
       )}

@@ -16,7 +16,6 @@ export function Toaster() {
       expand={false}
       richColors={false}
       closeButton
-      swipeToClose
       style={{ zIndex: 1200 }}
       toastOptions={{
         duration: 4800,
