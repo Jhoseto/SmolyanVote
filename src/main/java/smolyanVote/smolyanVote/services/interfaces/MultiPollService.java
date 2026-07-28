@@ -13,6 +13,10 @@ public interface MultiPollService {
     @Transactional
     MultiPollDetailViewDTO getMultiPollDetail(Long id);
 
+    /** Detail payload without incrementing view counter or logging a VIEW activity (admin edit response). */
+    @Transactional(readOnly = true)
+    MultiPollDetailViewDTO getMultiPollDetailSnapshot(Long id);
+
     /**
      * Admin inline edit: updates title/description/location/options, removes
      * images whose id is in {@code deleteImageIds}, appends new images from {@code dto}.

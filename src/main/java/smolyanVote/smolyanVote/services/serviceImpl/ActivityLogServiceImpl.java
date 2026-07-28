@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.config.websocket.ActivityWebSocketHandler;
 import smolyanVote.smolyanVote.models.ActivityLogEntity;
@@ -42,6 +43,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Async("activityLogExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logActivity(ActivityActionEnum action, UserEntity user, String entityType, Long entityId,
                             String details, String ipAddress, String userAgent) {
         try {
@@ -65,12 +67,14 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Async("activityLogExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logActivity(ActivityActionEnum action, UserEntity user, String ipAddress, String userAgent) {
         logActivity(action, user, null, null, null, ipAddress, userAgent);
     }
 
     @Override
     @Async("activityLogExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logActivity(ActivityActionEnum action, Long userId, String username, String entityType,
                             Long entityId, String details, String ipAddress, String userAgent) {
         try {
@@ -90,6 +94,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     @Override
     @Async("activityLogExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logActivity(String action, UserEntity user, String entityType, Long entityId,
                             String details, String ipAddress, String userAgent) {
         ActivityActionEnum actionEnum = ActivityActionEnum.fromString(action);

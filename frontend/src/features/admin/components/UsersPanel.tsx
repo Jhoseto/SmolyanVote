@@ -60,6 +60,7 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
   const [detail, setDetail] = useState<AdminUser | null>(null);
   const [banTarget, setBanTarget] = useState<AdminUser[] | null>(null);
   const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -216,6 +217,7 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
         cell: ({ row }) => (
           <div className="flex gap-1">
             <IconBtn title="Детайли" icon="bi-eye" onClick={() => setDetail(row.original)} />
+            <IconBtn title="Парола" icon="bi-key" onClick={() => setPasswordTarget(row.original)} />
             {!isMasterAdminUser(row.original) && (
               <>
                 <IconBtn title="Роля" icon="bi-shield" onClick={() => setRoleTarget(row.original)} />
@@ -302,6 +304,20 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
       invalidate();
     },
     onError: (e) => toast.error(errorMessage(e, "Смяната на роля не успя")),
+  });
+
+  const passwordMut = useMutation({
+    mutationFn: (args: { user: AdminUser; password: string; confirmPassword: string; reason: string }) =>
+      adminApi.changePassword(args.user.id, {
+        password: args.password,
+        confirmPassword: args.confirmPassword,
+        reason: args.reason,
+      }),
+    onSuccess: () => {
+      toast.success("Паролата е сменена");
+      setPasswordTarget(null);
+    },
+    onError: (e) => toast.error(errorMessage(e, "Смяната на парола не успя")),
   });
 
   async function runBulkActivate() {
@@ -687,6 +703,7 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
           onClose={() => setDetail(null)}
           onBan={() => setBanTarget([detail])}
           onRole={() => setRoleTarget(detail)}
+          onPassword={() => setPasswordTarget(detail)}
           onUnban={() => void runUnban(detail)}
           onResetStrikes={async () => {
             const ok = await confirm({
@@ -734,6 +751,17 @@ export function UsersPanel({ enabled }: { enabled: boolean }) {
           onSubmit={(role, reason) => roleMut.mutate({ user: roleTarget, role, reason })}
         />
       )}
+
+      {passwordTarget && (
+        <PasswordModal
+          user={passwordTarget}
+          busy={passwordMut.isPending}
+          onClose={() => setPasswordTarget(null)}
+          onSubmit={(password, confirmPassword, reason) =>
+            passwordMut.mutate({ user: passwordTarget, password, confirmPassword, reason })
+          }
+        />
+      )}
     </div>
   );
 }
@@ -756,6 +784,7 @@ function UserDetailModal({
   onClose,
   onBan,
   onRole,
+  onPassword,
   onUnban,
   onResetStrikes,
   onActivate,
@@ -765,6 +794,7 @@ function UserDetailModal({
   onClose: () => void;
   onBan: () => void;
   onRole: () => void;
+  onPassword: () => void;
   onUnban: () => void;
   onResetStrikes: () => void;
   onActivate: () => void;
@@ -802,6 +832,9 @@ function UserDetailModal({
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" onClick={onPassword} className="rounded border px-3 py-1.5 text-xs">
+          Смяна на парола
+        </button>
         {!isMasterAdminUser(user) && (
           <>
             <button type="button" onClick={onRole} className="rounded bg-primary px-3 py-1.5 text-xs text-white">
@@ -1026,6 +1059,78 @@ function RoleModal({
         className="mt-3 rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-40"
       >
         Запази
+      </button>
+    </Modal>
+  );
+}
+
+function PasswordModal({
+  user,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  user: AdminUser;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (password: string, confirmPassword: string, reason: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [reason, setReason] = useState("");
+
+  const passwordsMatch = password === confirmPassword;
+  const validLength = password.length >= 6;
+  const canSubmit = validLength && passwordsMatch && reason.trim().length > 0 && !busy;
+
+  return (
+    <Modal title={`Парола · ${user.username}`} onClose={onClose}>
+      <p className="mb-3 text-xs text-[color:var(--color-text-muted)]">
+        Задава нова парола за потребителя. Минимум 6 символа. Действието се записва в activity log.
+      </p>
+      <label className="block text-xs">
+        Нова парола
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+        />
+      </label>
+      {password.length > 0 && !validLength && (
+        <p className="mt-1 text-xs text-[color:var(--color-error)]">Поне 6 символа</p>
+      )}
+      <label className="mt-2 block text-xs">
+        Потвърди парола
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+        />
+      </label>
+      {confirmPassword.length > 0 && !passwordsMatch && (
+        <p className="mt-1 text-xs text-[color:var(--color-error)]">Паролите не съвпадат</p>
+      )}
+      <label className="mt-2 block text-xs">
+        Причина
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Защо се сменя паролата"
+          rows={2}
+          className="mt-1 w-full rounded border px-2 py-1.5 text-sm"
+        />
+      </label>
+      <button
+        type="button"
+        disabled={!canSubmit}
+        onClick={() => onSubmit(password, confirmPassword, reason.trim())}
+        className="mt-3 rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-40"
+      >
+        Смени паролата
       </button>
     </Modal>
   );

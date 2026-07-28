@@ -104,6 +104,21 @@ public class AdminUserManagementController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/{userId}/password")
+    public ResponseEntity<Map<String, String>> changeUserPassword(@PathVariable Long userId, @RequestBody Map<String, String> request) {
+        String password = request.get("password");
+        String confirmPassword = request.get("confirmPassword");
+        String reason = request.get("reason");
+
+        Map<String, String> result = adminUserManagementService.changeUserPassword(
+                userId, password, confirmPassword, reason);
+
+        if (result.containsKey("error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/{userId}/activate")
     public ResponseEntity<Map<String, String>> activateUser(@PathVariable Long userId) {
         Map<String, String> result = adminUserManagementService.activateUser(userId);

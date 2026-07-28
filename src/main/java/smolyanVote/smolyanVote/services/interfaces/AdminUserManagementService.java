@@ -24,6 +24,7 @@ public interface AdminUserManagementService {
 
     // ===== ROLE MANAGEMENT =====
     Map<String, String> changeUserRole(Long userId, String newRole, String reason);
+    Map<String, String> changeUserPassword(Long userId, String password, String confirmPassword, String reason);
     Map<String, Object> bulkRoleChange(List<Long> userIds, String newRole);
 
     // ===== BAN MANAGEMENT =====

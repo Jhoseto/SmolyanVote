@@ -157,7 +157,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({DataIntegrityViolationException.class, UnexpectedRollbackException.class})
     public Object handleDataIntegrity(Exception ex, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        log.warn("Data integrity failure on {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Data integrity failure on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         if (redirectBrowser(request, response, "/")) {
             return null;
         }

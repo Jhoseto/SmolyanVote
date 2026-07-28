@@ -123,27 +123,7 @@ public class MultiPollServiceImpl implements MultiPollService {
                 .stream()
                 .filter(opt -> opt != null && !opt.trim().isEmpty())
                 .toList();
-
-        poll.setOption1(null);
-        poll.setOption2(null);
-        poll.setOption3(null);
-        poll.setOption4(null);
-        poll.setOption5(null);
-        poll.setOption6(null);
-        poll.setOption7(null);
-        poll.setOption8(null);
-        poll.setOption9(null);
-        poll.setOption10(null);
-        if (!options.isEmpty()) poll.setOption1(options.get(0));
-        if (options.size() > 1) poll.setOption2(options.get(1));
-        if (options.size() > 2) poll.setOption3(options.get(2));
-        if (options.size() > 3) poll.setOption4(options.get(3));
-        if (options.size() > 4) poll.setOption5(options.get(4));
-        if (options.size() > 5) poll.setOption6(options.get(5));
-        if (options.size() > 6) poll.setOption7(options.get(6));
-        if (options.size() > 7) poll.setOption8(options.get(7));
-        if (options.size() > 8) poll.setOption9(options.get(8));
-        if (options.size() > 9) poll.setOption10(options.get(9));
+        applyOptions(poll, options);
 
         if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
             List<MultiPollImageEntity> toRemove = poll.getImages().stream()
@@ -176,20 +156,27 @@ public class MultiPollServiceImpl implements MultiPollService {
             entityIdParam = "id", includeTitle = true, includeText = true)
 
     public MultiPollDetailViewDTO getMultiPollDetail(Long id) {
-        // Вземане на анкетата
         MultiPollEntity poll = multiPollRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Анкетата не е намерена"));
 
-        poll.setViewCounter(poll.getViewCounter() +1);
+        poll.setViewCounter(poll.getViewCounter() + 1);
+        multiPollRepository.save(poll);
 
-        // Текущ потребител (може да върнеш null ако е анонимен)
+        return buildMultiPollDetailDto(poll);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public MultiPollDetailViewDTO getMultiPollDetailSnapshot(Long id) {
+        MultiPollEntity poll = multiPollRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Анкетата не е намерена"));
+        return buildMultiPollDetailDto(poll);
+    }
+
+    private MultiPollDetailViewDTO buildMultiPollDetailDto(MultiPollEntity poll) {
         UserEntity currentUser = userService.getCurrentUser();
-
-        // Мапване на основната структура (заглавие, описание, локация и т.н.)
         MultiPollDetailViewDTO dto = multiPollMapper.mapToDetailView(poll);
 
-
-        // Взимане на опциите
         List<String> options = dto.getOptionsText();
         if (options == null || options.isEmpty()) {
             dto.setVotesForOptions(List.of());
@@ -201,7 +188,6 @@ public class MultiPollServiceImpl implements MultiPollService {
         List<Integer> voteCounts = new ArrayList<>();
         int totalVotes = 0;
 
-        // Изчисляване на брой гласове за всяка опция
         for (String option : options) {
             int count = voteMultiPollRepository.countByMultiPoll_IdAndOptionText(poll.getId(), option);
             voteCounts.add(count);
@@ -211,14 +197,12 @@ public class MultiPollServiceImpl implements MultiPollService {
         dto.setVotesForOptions(voteCounts);
         dto.setTotalVotes(totalVotes);
 
-        // Изчисляване на проценти за всяка опция
         int finalTotalVotes = totalVotes;
         List<Integer> percentages = voteCounts.stream()
                 .map(count -> finalTotalVotes == 0 ? 0 : (int) Math.round((count * 100.0) / finalTotalVotes))
                 .toList();
         dto.setVotePercentages(percentages);
 
-        // Глас(ове) на текущия потребител (ако е логнат)
         if (currentUser != null) {
             List<VoteMultiPollEntity> userVotes =
                     voteMultiPollRepository.findAllByMultiPoll_IdAndUser_Id(poll.getId(), currentUser.getId());
@@ -227,14 +211,30 @@ public class MultiPollServiceImpl implements MultiPollService {
                 List<String> votedOptions = userVotes.stream().map(VoteMultiPollEntity::getOptionText).toList();
                 dto.setCurrentUserVotes(votedOptions);
 
-                // По избор: само първият индекс (1-based) за съвместимост
                 String firstOption = votedOptions.get(0);
                 int index = options.indexOf(firstOption);
                 dto.setCurrentUserVote(index >= 0 ? index + 1 : null);
             }
         }
-        multiPollRepository.save(poll);
+
         return dto;
+    }
+
+    private static void applyOptions(MultiPollEntity poll, List<String> options) {
+        poll.setOption1(optionAt(options, 0));
+        poll.setOption2(optionAt(options, 1));
+        poll.setOption3(optionAt(options, 2));
+        poll.setOption4(optionAt(options, 3));
+        poll.setOption5(optionAt(options, 4));
+        poll.setOption6(optionAt(options, 5));
+        poll.setOption7(optionAt(options, 6));
+        poll.setOption8(optionAt(options, 7));
+        poll.setOption9(optionAt(options, 8));
+        poll.setOption10(optionAt(options, 9));
+    }
+
+    private static String optionAt(List<String> options, int index) {
+        return index < options.size() ? options.get(index) : null;
     }
 
 

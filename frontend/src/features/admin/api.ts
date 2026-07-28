@@ -89,6 +89,9 @@ export const adminApi = {
   changeRole: (id: number, body: { role: string; reason: string }) =>
     apiClient.post<{ message?: string; error?: string }>(`/admin/users/${id}/role`, { body }),
 
+  changePassword: (id: number, body: { password: string; confirmPassword: string; reason: string }) =>
+    apiClient.post<{ message?: string; error?: string }>(`/admin/users/${id}/password`, { body }),
+
   activateUser: (id: number) =>
     apiClient.post<{ message?: string; error?: string }>(`/admin/users/${id}/activate`),
 

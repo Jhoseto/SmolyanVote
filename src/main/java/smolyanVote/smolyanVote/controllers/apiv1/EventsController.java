@@ -271,7 +271,7 @@ public class EventsController {
 
         try {
             Long updatedId = multiPollService.updateMultiPoll(id, dto, deleteImageIds);
-            return ResponseEntity.ok(MultiPollDetailResponse.from(multiPollService.getMultiPollDetail(updatedId)));
+            return ResponseEntity.ok(MultiPollDetailResponse.from(multiPollService.getMultiPollDetailSnapshot(updatedId)));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error(e.getMessage()));
         }

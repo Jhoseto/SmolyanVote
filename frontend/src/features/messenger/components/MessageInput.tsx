@@ -24,6 +24,8 @@ const INPUT_MAX_H = 108;
 
 interface MessageInputProps {
   conversationId: number;
+  /** In-chat polls are group-only — hide the composer affordance in 1:1 chats. */
+  allowPolls?: boolean;
   replyTo?: Message | null;
   onClearReply?: () => void;
   /** `↑` on an empty composer opens the last own message for editing. */
@@ -33,6 +35,7 @@ interface MessageInputProps {
 
 export function MessageInput({
   conversationId,
+  allowPolls = false,
   replyTo,
   onClearReply,
   onEditLast,
@@ -80,6 +83,10 @@ export function MessageInput({
   useLayoutEffect(() => {
     autosize(textareaRef.current);
   }, [text, recording, autosize]);
+
+  useEffect(() => {
+    if (!allowPolls) setPollOpen(false);
+  }, [allowPolls]);
 
   if (!canInteract) {
     return (
@@ -136,7 +143,7 @@ export function MessageInput({
   return (
     <div className="sv-msg-composer relative shrink-0 px-2 py-2">
       <AnimatePresence>
-        {pollOpen && (
+        {allowPolls && pollOpen && (
           <PollComposer conversationId={conversationId} onClose={() => setPollOpen(false)} />
         )}
       </AnimatePresence>
@@ -236,16 +243,18 @@ export function MessageInput({
               </>
             )}
 
-            <button
-              type="button"
-              onClick={() => setPollOpen((v) => !v)}
-              aria-label="Създай анкета"
-              title="Създай анкета"
-              className="sv-msg-composer-btn"
-              data-active={pollOpen}
-            >
-              <i className="bi bi-bar-chart" />
-            </button>
+            {allowPolls && (
+              <button
+                type="button"
+                onClick={() => setPollOpen((v) => !v)}
+                aria-label="Създай анкета"
+                title="Създай анкета"
+                className="sv-msg-composer-btn"
+                data-active={pollOpen}
+              >
+                <i className="bi bi-bar-chart" />
+              </button>
+            )}
 
             <textarea
               ref={textareaRef}

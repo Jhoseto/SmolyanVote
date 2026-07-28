@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +42,7 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
     private final AdminUserManagementMapper adminUserManagementMapper;
     private final ActivityLogService activityLogService;
     private final MasterAdminPolicy masterAdminPolicy;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public AdminUserManagementServiceImpl(UserRepository userRepository,
@@ -49,7 +51,8 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
                                           UserBanAndRolesHistoryMapper userBanAndRolesHistoryMapper,
                                           AdminUserManagementMapper adminUserManagementMapper,
                                           ActivityLogService activityLogService,
-                                          MasterAdminPolicy masterAdminPolicy) {
+                                          MasterAdminPolicy masterAdminPolicy,
+                                          PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.historyRepository = historyRepository;
@@ -57,6 +60,7 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         this.adminUserManagementMapper = adminUserManagementMapper;
         this.activityLogService = activityLogService;
         this.masterAdminPolicy = masterAdminPolicy;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ===== USER RETRIEVAL =====
@@ -194,6 +198,44 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
             return Map.of("message", message);
         } catch (Exception e) {
             return Map.of("error", "Грешка при промяна на роля: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, String> changeUserPassword(Long userId, String password, String confirmPassword, String reason) {
+        try {
+            if (password == null || password.isBlank()) {
+                return Map.of("error", "Паролата е задължителна");
+            }
+            if (password.length() < 6) {
+                return Map.of("error", "Паролата трябва да бъде поне 6 символа");
+            }
+            if (!password.equals(confirmPassword)) {
+                return Map.of("error", "Паролите не съвпадат");
+            }
+            if (reason == null || reason.isBlank()) {
+                return Map.of("error", "Причината е задължителна");
+            }
+
+            UserEntity user = getUserById(userId);
+            UserEntity currentAdmin = userService.getCurrentUser();
+
+            user.setPassword(passwordEncoder.encode(password));
+            userRepository.save(user);
+
+            String details = "Admin password reset for " + user.getUsername() + ": " + reason.trim();
+            activityLogService.logActivity(
+                    ActivityActionEnum.ADMIN_RESET_USER_PASSWORD,
+                    currentAdmin,
+                    ActivityTypeEnum.USER.name(),
+                    userId,
+                    details,
+                    extractIpAddress(),
+                    extractUserAgent());
+
+            return Map.of("message", "Паролата е сменена успешно");
+        } catch (Exception e) {
+            return Map.of("error", "Грешка при смяна на парола: " + e.getMessage());
         }
     }
 

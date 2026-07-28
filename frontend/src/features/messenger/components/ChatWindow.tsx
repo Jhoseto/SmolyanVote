@@ -463,6 +463,7 @@ export function ChatWindow({
 
       <MessageInput
         conversationId={conversationId}
+        allowPolls={conversation?.type === "GROUP"}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         onAttach={attachFiles}

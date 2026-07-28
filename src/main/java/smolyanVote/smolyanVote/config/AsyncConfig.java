@@ -38,9 +38,8 @@ public class AsyncConfig {
         // Keep alive time за idle threads
         executor.setKeepAliveSeconds(60);
 
-        // Reject policy при пълен pool - CallerRunsPolicy означава че
-        // при пълен pool, задачата ще се изпълни от calling thread
-        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        // Never run activity logging on the request thread — it can poison the caller transaction.
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy());
 
         // Graceful shutdown - чака текущите задачи да завършат
         executor.setWaitForTasksToCompleteOnShutdown(true);

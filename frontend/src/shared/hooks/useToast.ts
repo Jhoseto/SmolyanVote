@@ -14,7 +14,9 @@ function mergeOptions(variant: ToastVariant, options?: ExternalToast): ExternalT
     classNames: {
       ...toastClassNames,
       ...options?.classNames,
-      toast: `${toastClassNames.toast} ${variant !== "default" ? toastClassNames[variant] : ""}`.trim(),
+      toast: [toastClassNames.toast, variant !== "default" ? toastClassNames[variant] : ""]
+        .filter(Boolean)
+        .join(" "),
     },
   };
 }

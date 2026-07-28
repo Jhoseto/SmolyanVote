@@ -513,6 +513,15 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Transactional
     public SVMessageDTO createPoll(Long conversationId, String question, List<String> options,
                                    UserEntity sender) {
+        SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Разговорът не е намерен"));
+        if (!hasAccess(conversation, sender)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        if (!conversation.isGroup()) {
+            throw new IllegalArgumentException("Анкетите са достъпни само в групови чатове");
+        }
+
         List<String> cleaned = options == null ? List.of()
                 : options.stream()
                         .filter(option -> option != null && !option.isBlank())

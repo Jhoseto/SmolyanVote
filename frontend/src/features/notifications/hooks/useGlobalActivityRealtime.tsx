@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/shared/lib/authContext";
 import { toast } from "@/shared/hooks/useToast";
+import { ToastIcon } from "@/shared/lib/toastPresentation";
 import { hapticNotify } from "@/shared/lib/haptic";
 import {
   connectNotificationSocket,
@@ -34,7 +35,13 @@ export function useGlobalActivityRealtime(): void {
       toast(payload.title, {
         description: payload.message,
         duration: 5000,
-        icon: payload.icon ? <i className={`bi ${payload.icon}`} /> : undefined,
+        icon: payload.icon ? (
+          <span className="sv-toast-icon sv-toast-icon--info" aria-hidden>
+            <i className={`bi sv-toast-icon__glyph ${payload.icon}`} />
+          </span>
+        ) : (
+          ToastIcon({ variant: "info" })
+        ),
         action: payload.actionUrl
           ? {
               label: "Виж",

@@ -73,6 +73,7 @@ public enum ActivityActionEnum {
     ADMIN_UNBAN_USER("Отблокира потребител", "moderate"),
     ADMIN_PROMOTE_USER("Повиши потребител", "moderate"),
     ADMIN_DEMOTE_USER("Понижи потребител", "moderate"),
+    ADMIN_RESET_USER_PASSWORD("Смяна на парола (админ)", "moderate"),
     CONTACT_MESSAGE("Съобщение до контакт", "moderate"),
 
     // ===== АВТЕНТИКАЦИЯ =====
