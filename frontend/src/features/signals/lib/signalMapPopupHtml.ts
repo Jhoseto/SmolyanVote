@@ -22,6 +22,18 @@ function truncateText(value: string, max: number): string {
   return `${trimmed.slice(0, max - 1).trim()}…`;
 }
 
+/** Up to two lines in compact popup badges (category themes with long labels). */
+const TEXT_2_LINES =
+  "display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;word-break:break-word;";
+
+function categoryBadgeHtml(category: Signal["category"], label: string): string {
+  return `
+    <span style="display:inline-flex;align-items:flex-start;gap:4px;max-width:62%;padding:4px 10px;border-radius:12px;background:rgba(15,23,42,0.45);border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(8px);font-size:10px;font-weight:600;color:#fff;">
+      <i class="bi ${categoryIcon(category)}" style="flex-shrink:0;line-height:1.25;margin-top:1px;"></i>
+      <span style="${TEXT_2_LINES}">${escapeHtml(label)}</span>
+    </span>`;
+}
+
 function formatRelativeShort(iso: string): string {
   const date = new Date(iso);
   const now = Date.now();
@@ -54,7 +66,7 @@ function statusBadge(signal: Signal): string {
     return `<span style="padding:3px 8px;border-radius:9999px;background:rgba(14,165,233,0.15);color:#0369a1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Решен</span>`;
   }
   if (!signal.isActive) {
-    return `<span style="padding:3px 8px;border-radius:9999px;background:rgba(100,116,139,0.15);color:#475569;font-size:10px;font-weight:600;">Изтекъл</span>`;
+    return `<span style="padding:3px 8px;border-radius:9999px;background:rgba(100,116,139,0.15);color:#475569;font-size:10px;font-weight:600;">Неактивен</span>`;
   }
   return `<span style="padding:3px 8px;border-radius:9999px;background:rgba(25,134,28,0.12);color:${SIGNAL_BRAND.primary};font-size:10px;font-weight:700;">Активен</span>`;
 }
@@ -93,9 +105,6 @@ export function signalMapPopupHtml(signal: Signal, options?: { adminQuickMode?: 
     distance
       ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:9999px;background:${SIGNAL_BRAND.primaryMuted};color:${SIGNAL_BRAND.primary};font-size:10px;font-weight:600;"><i class="bi bi-geo-alt"></i>${distance}</span>`
       : "",
-    signal.isActive && signal.activeUntil
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:9999px;background:#f1f5f9;color:#64748b;font-size:10px;font-weight:500;"><i class="bi bi-hourglass-split"></i>${formatRelativeShort(signal.activeUntil)}</span>`
-      : "",
     signal.resolvedReportCount > 0 && !signal.isResolved
       ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:9999px;background:#fffbeb;color:#b45309;font-size:10px;font-weight:600;"><i class="bi bi-flag"></i>${signal.resolvedReportCount}</span>`
       : "",
@@ -104,16 +113,13 @@ export function signalMapPopupHtml(signal: Signal, options?: { adminQuickMode?: 
     .join("");
 
   return `
-    <article class="sv-signal-popup-card" style="width:300px;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;border-radius:18px;background:#fff;">
+    <article class="sv-signal-popup-card" data-signal-id="${signal.id}" style="width:300px;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;border-radius:18px;background:#fff;cursor:pointer;">
       <div style="position:relative;height:108px;overflow:hidden;">
         ${heroImage}
         <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,23,42,0.82) 0%,rgba(15,23,42,0.35) 45%,rgba(15,23,42,0.15) 100%);"></div>
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(15,23,42,0.35),transparent 55%);"></div>
         <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:10px 10px 0;">
-          <span style="display:inline-flex;align-items:center;gap:4px;max-width:58%;padding:4px 10px;border-radius:9999px;background:rgba(15,23,42,0.45);border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(8px);font-size:10px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            <i class="bi ${categoryIcon(signal.category)}"></i>
-            ${escapeHtml(signal.categoryLabel)}
-          </span>
+          ${categoryBadgeHtml(signal.category, signal.categoryLabel)}
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
             ${statusBadge(signal)}
             ${signal.isActive && signal.priorityTier ? priorityBadge(signal.priorityTier) : ""}
@@ -194,9 +200,9 @@ export function signalClusterListPopupHtml(signals: Signal[]): string {
           ${thumb}
           <div style="min-width:0;flex:1;">
             <p style="margin:0;font-size:12px;font-weight:700;color:#0f172a;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(signal.title)}</p>
-            <p style="margin:2px 0 0;font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:4px;">
-              <span style="width:6px;height:6px;border-radius:9999px;background:${accent};display:inline-block;"></span>
-              ${escapeHtml(signal.categoryLabel)}
+            <p style="margin:2px 0 0;font-size:10px;color:#94a3b8;display:flex;align-items:flex-start;gap:4px;">
+              <span style="width:6px;height:6px;border-radius:9999px;background:${accent};display:inline-block;flex-shrink:0;margin-top:3px;"></span>
+              <span style="${TEXT_2_LINES}flex:1;min-width:0;">${escapeHtml(signal.categoryLabel)}</span>
             </p>
           </div>
           <i class="bi bi-chevron-right" style="color:#cbd5e1;font-size:12px;"></i>
@@ -214,5 +220,89 @@ export function signalClusterListPopupHtml(signals: Signal[]): string {
       <div style="overflow-y:auto;padding:6px;">
         ${rows}
       </div>
+    </div>`;
+}
+
+const CLUSTER_HOVER_PREVIEW_MAX = 4;
+
+function tierRank(tier: Signal["priorityTier"]): number {
+  if (tier === "high") return 3;
+  if (tier === "medium") return 2;
+  if (tier === "low") return 1;
+  return 0;
+}
+
+function sortSignalsForClusterPreview(signals: Signal[]): Signal[] {
+  return [...signals].sort((a, b) => {
+    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+    const tierDiff = tierRank(b.priorityTier) - tierRank(a.priorityTier);
+    if (tierDiff !== 0) return tierDiff;
+    return b.priorityBoostCount - a.priorityBoostCount;
+  });
+}
+
+function clusterHoverSummary(signals: Signal[]): string {
+  const categories = new Set(signals.map((s) => s.categoryLabel));
+  if (categories.size === 1) return [...categories][0] ?? "Сигнали";
+  if (categories.size === 2) return [...categories].join(" · ");
+  return `${categories.size} категории`;
+}
+
+/** Compact hover bubble for overlapping signal clusters on the map. */
+export function signalClusterHoverPopupHtml(signals: Signal[]): string {
+  const sorted = sortSignalsForClusterPreview(signals);
+  const preview = sorted.slice(0, CLUSTER_HOVER_PREVIEW_MAX);
+  const hiddenCount = sorted.length - preview.length;
+  const summary = clusterHoverSummary(signals);
+
+  const rows = preview
+    .map((signal) => {
+      const accent = tierAccentColor(signal.priorityTier);
+      const inactive = !signal.isActive;
+      return `
+        <button type="button" class="sv-cluster-hover-row" data-signal-id="${signal.id}" style="display:flex;align-items:flex-start;gap:8px;width:100%;padding:5px 6px;border:none;background:transparent;border-radius:10px;cursor:pointer;text-align:left;opacity:${inactive ? 0.72 : 1};">
+          <span style="width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${inactive ? "#f1f5f9" : `${accent}14`};border:1px solid ${inactive ? "#e2e8f0" : `${accent}28`};margin-top:1px;">
+            <i class="bi ${categoryIcon(signal.category)}" style="font-size:12px;color:${inactive ? "#94a3b8" : accent};"></i>
+          </span>
+          <span style="min-width:0;flex:1;">
+            <span style="display:block;font-size:11px;font-weight:600;color:#0f172a;${TEXT_2_LINES}">
+              ${escapeHtml(signal.title)}
+            </span>
+            <span style="display:flex;align-items:flex-start;gap:4px;margin-top:2px;font-size:9px;color:#94a3b8;">
+              <span style="width:5px;height:5px;border-radius:9999px;background:${accent};flex-shrink:0;margin-top:3px;"></span>
+              <span style="${TEXT_2_LINES}flex:1;min-width:0;">${escapeHtml(signal.categoryLabel)}</span>
+              ${signal.priorityBoostCount > 0 ? `<span style="color:${SIGNAL_BRAND.primary};font-weight:600;flex-shrink:0;">▲${signal.priorityBoostCount}</span>` : ""}
+            </span>
+          </span>
+        </button>`;
+    })
+    .join("");
+
+  const moreLine =
+    hiddenCount > 0
+      ? `<p style="margin:4px 0 0;padding:4px 8px;font-size:9px;font-weight:600;color:#64748b;text-align:center;">
+           +${hiddenCount} още · кликни cluster за zoom
+         </p>`
+      : `<p style="margin:4px 0 0;padding:4px 8px;font-size:9px;font-weight:600;color:#64748b;text-align:center;">
+           Кликни cluster · zoom за разделяне
+         </p>`;
+
+  return `
+    <div class="sv-cluster-hover-card" style="width:228px;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 6px;border-bottom:1px solid rgba(15,23,42,0.06);">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${SIGNAL_BRAND.primary};">
+          <span style="min-width:20px;height:20px;padding:0 6px;border-radius:9999px;background:${SIGNAL_BRAND.primary};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">
+            ${signals.length}
+          </span>
+          сигнала
+        </span>
+        <span style="font-size:9px;font-weight:600;color:#94a3b8;max-width:110px;text-align:right;${TEXT_2_LINES}">
+          ${escapeHtml(summary)}
+        </span>
+      </div>
+      <div style="padding:4px 4px 2px;max-height:168px;overflow-y:auto;">
+        ${rows}
+      </div>
+      ${moreLine}
     </div>`;
 }

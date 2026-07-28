@@ -177,8 +177,8 @@ export function PublicationCard({
         )}
 
         {linkMetadata && (
-          <div className="mt-3 px-4">
-            <LinkPreviewCard metadata={linkMetadata} />
+          <div className="mt-3 px-4" onClick={(e) => e.stopPropagation()}>
+            <LinkPreviewCard metadata={linkMetadata} inlinePlay />
           </div>
         )}
 

@@ -90,7 +90,7 @@ public class AdminContentActionServiceImpl implements AdminContentActionService 
             case "RESOLVE_SIGNAL" -> {
                 SignalsEntity signal = signalsRepository.findById(entityId)
                         .orElseThrow(() -> new IllegalArgumentException("Сигналът не е намерен"));
-                signalsService.moderate(signal, adminNotes, true, admin);
+                signalsService.moderate(signal, adminNotes, true, null, admin);
                 resolveAllReports(entityType, entityId, admin, adminNotes, "RESOLVED");
             }
             case "DISMISS" -> resolveAllReports(entityType, entityId, admin, adminNotes, "DISMISSED");

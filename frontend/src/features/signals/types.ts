@@ -32,8 +32,7 @@ export interface Signal {
   description: string;
   category: SignalCategory;
   categoryLabel: string;
-  expirationDays: number | null;
-  activeUntil: string | null;
+  /** Admin moderation — visible on platform (not time-based). */
   isActive: boolean;
   latitude: number;
   longitude: number;
@@ -63,7 +62,7 @@ export interface Signal {
 export interface SignalsListParams {
   search?: string;
   category?: SignalCategory;
-  showExpired?: boolean;
+  showInactive?: boolean;
   sort?: SignalSortOption;
 }
 
@@ -71,7 +70,6 @@ export interface CreateSignalPayload {
   title: string;
   description: string;
   category: SignalCategory;
-  expirationDays: 1 | 3 | 7;
   latitude: number;
   longitude: number;
   image?: File;
@@ -81,7 +79,6 @@ export interface UpdateSignalPayload {
   title: string;
   description: string;
   category: SignalCategory;
-  expirationDays: 1 | 3 | 7;
   image?: File;
   removeImage?: boolean;
 }
@@ -89,6 +86,7 @@ export interface UpdateSignalPayload {
 export interface ModerateSignalPayload {
   adminNotes?: string;
   markResolved: boolean;
+  markActive?: boolean;
 }
 
 export interface SignalReactionResponse {

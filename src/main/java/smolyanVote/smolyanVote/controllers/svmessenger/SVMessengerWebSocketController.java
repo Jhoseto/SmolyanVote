@@ -12,6 +12,7 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVAttachmentDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVSendMessageRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVTypingStatusDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallSignalDTO;
@@ -62,12 +63,21 @@ public class SVMessengerWebSocketController {
 
             // Изпрати съобщението (през service)
             // Message се изпраща автоматично от service към получателя
+            SVAttachmentDTO attachment = request.getAttachmentUrl() == null ? null
+                    : new SVAttachmentDTO(
+                            request.getAttachmentUrl(),
+                            request.getAttachmentName(),
+                            request.getAttachmentSize(),
+                            request.getAttachmentMime());
+
             ((smolyanVote.smolyanVote.services.serviceImpl.SVMessengerServiceImpl) messengerService)
                     .sendMessage(
                             request.getConversationId(),
                             request.getText(),
                             sender,
-                            request.getParentMessageId());
+                            request.getParentMessageId(),
+                            request.getMessageType(),
+                            attachment);
 
             log.debug("Message sent via WebSocket: conversationId={}, senderId={}",
                     request.getConversationId(), sender.getId());

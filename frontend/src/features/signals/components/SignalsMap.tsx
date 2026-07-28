@@ -2,17 +2,21 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./signals-map.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import Supercluster from "supercluster";
 import { cn } from "@/shared/lib/cn";
 import { categoryIcon } from "../data/categories";
-import { signalClusterListPopupHtml, signalMapPopupHtml } from "../lib/signalMapPopupHtml";
+import { signalClusterListPopupHtml, signalClusterHoverPopupHtml, signalMapPopupHtml } from "../lib/signalMapPopupHtml";
 import { SMOLYAN_CENTER, smolyanPolygonGeoJsonRing } from "../data/smolyanBoundary";
 import { SIGNALS_MAP_MAX_ZOOM, SIGNALS_MAP_STYLE_URL } from "../lib/mapRasterStyle";
 import { observeMaplibreContainer } from "../lib/syncMaplibreContainer";
 import { configureMaplibreBasemap } from "../lib/configureMaplibreBasemap";
-import { addMapPopupFitViewport, MAP_POPUP_GAP_PX } from "../lib/fitMapPopup";
+import { addMapPopupFitViewport, addMapPopupNearScreenPoint, MAP_POPUP_GAP_PX } from "../lib/fitMapPopup";
+import {
+  clusterByScreenOverlap,
+  clusterStableKey,
+  willStayOverlappedAtMaxZoom,
+} from "../lib/clusterByScreenOverlap";
 import { SignalsMapHud } from "./SignalsMapHud";
 import type { Signal } from "../types";
 
@@ -26,20 +30,9 @@ interface SignalsMapProps {
   onAdminQuickDelete?: (id: number) => void;
 }
 
-interface SignalPointProperties {
-  signalId: number;
-  signal: Signal;
-}
-
 const DESKTOP_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 const FLY_DURATION_MS = 1400;
-/** Pixel radius for grouping nearby markers — larger = merge sooner when zoomed out. */
-const SUPERCLUSTER_RADIUS_PX = 80;
-/** Must match the `maxZoom` passed to `new Supercluster(...)` below — points within
- * the cluster radius (e.g. identical/near-identical coordinates) never separate
- * beyond this zoom, so we detect that case and offer a pick-list instead of
- * endlessly re-zooming into the same spot. */
-const SUPERCLUSTER_MAX_ZOOM = 18;
+const CLUSTER_ZOOM_STEP = 1.5;
 
 function clusterMarkerSize(count: number): number {
   return Math.min(68, Math.max(40, 34 + Math.log2(count) * 9));
@@ -78,14 +71,8 @@ function updateClusterElement(el: HTMLElement, count: number): void {
   }
 }
 
-function isClusterFeature(
-  feature: Supercluster.ClusterFeature<Supercluster.AnyProps> | Supercluster.PointFeature<SignalPointProperties>,
-): feature is Supercluster.ClusterFeature<Supercluster.AnyProps> {
-  return "cluster" in feature.properties && feature.properties.cluster === true;
-}
-
 function markerTierClass(signal: Signal): string {
-  if (!signal.isActive) return "sv-signal-marker--expired";
+  if (!signal.isActive) return "sv-signal-marker--inactive";
   if (signal.priorityTier === "high") return "sv-signal-marker--high";
   if (signal.priorityTier === "medium") return "sv-signal-marker--medium";
   if (signal.priorityTier === "low") return "sv-signal-marker--low";
@@ -198,10 +185,13 @@ export function SignalsMap({
   const onAdminQuickDeleteRef = useRef(onAdminQuickDelete);
   const focusSignalIdRef = useRef(focusSignalId);
   const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
+  const hoverDetailPopupRef = useRef<maplibregl.Popup | null>(null);
   const clusterPopupRef = useRef<maplibregl.Popup | null>(null);
   const hoverHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverDetailHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const renderMarkersRef = useRef<(() => void) | null>(null);
+  const signalsRef = useRef(signals);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
   const basemapCleanupRef = useRef<(() => void) | null>(null);
   const markersLayoutReadyRef = useRef(false);
@@ -211,30 +201,16 @@ export function SignalsMap({
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
+    signalsRef.current = signals;
+  }, [signals]);
+
+  useEffect(() => {
     onMarkerClickRef.current = onMarkerClick;
     adminQuickModeRef.current = adminQuickMode;
     onAdminQuickResolveRef.current = onAdminQuickResolve;
     onAdminQuickDeleteRef.current = onAdminQuickDelete;
     focusSignalIdRef.current = focusSignalId;
   }, [onMarkerClick, adminQuickMode, onAdminQuickResolve, onAdminQuickDelete, focusSignalId]);
-
-  const index = useMemo(() => {
-    const points: Array<GeoJSON.Feature<GeoJSON.Point, SignalPointProperties>> = signals
-      .filter((s) => Number.isFinite(s.latitude) && Number.isFinite(s.longitude))
-      .map((signal) => ({
-        type: "Feature",
-        properties: { signalId: signal.id, signal },
-        geometry: { type: "Point", coordinates: [signal.longitude, signal.latitude] },
-      }));
-
-    const cluster = new Supercluster<SignalPointProperties>({
-      radius: SUPERCLUSTER_RADIUS_PX,
-      maxZoom: SUPERCLUSTER_MAX_ZOOM,
-      minPoints: 2,
-    });
-    cluster.load(points);
-    return cluster;
-  }, [signals]);
 
   const flyTo = useCallback((options: maplibregl.FlyToOptions) => {
     const map = mapRef.current;
@@ -378,6 +354,21 @@ export function SignalsMap({
 
     const desktopHover = window.matchMedia(DESKTOP_HOVER_QUERY).matches;
 
+    let activeClusterHoverRow: HTMLElement | null = null;
+    let activeDetailSignalId: number | null = null;
+
+    function clearHoverDetailPopup() {
+      if (hoverDetailHideTimerRef.current) {
+        clearTimeout(hoverDetailHideTimerRef.current);
+        hoverDetailHideTimerRef.current = null;
+      }
+      hoverDetailPopupRef.current?.remove();
+      hoverDetailPopupRef.current = null;
+      activeDetailSignalId = null;
+      activeClusterHoverRow?.classList.remove("sv-cluster-hover-row--active");
+      activeClusterHoverRow = null;
+    }
+
     function clearHoverPopup() {
       if (hoverHideTimerRef.current) {
         clearTimeout(hoverHideTimerRef.current);
@@ -385,11 +376,124 @@ export function SignalsMap({
       }
       hoverPopupRef.current?.remove();
       hoverPopupRef.current = null;
+      clearHoverDetailPopup();
     }
 
     function scheduleHideHoverPopup() {
       if (hoverHideTimerRef.current) clearTimeout(hoverHideTimerRef.current);
       hoverHideTimerRef.current = setTimeout(clearHoverPopup, 160);
+    }
+
+    function scheduleHideHoverDetailPopup() {
+      if (hoverDetailHideTimerRef.current) clearTimeout(hoverDetailHideTimerRef.current);
+      hoverDetailHideTimerRef.current = setTimeout(clearHoverDetailPopup, 140);
+    }
+
+    function bindSignalPopupClick(popupEl: HTMLElement, signalId: number) {
+      popupEl.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const resolveBtn = target.closest(".sv-admin-resolve-btn") as HTMLElement | null;
+        const deleteBtn = target.closest(".sv-admin-delete-btn") as HTMLElement | null;
+        const btn = resolveBtn ?? deleteBtn;
+        if (btn) {
+          e.stopPropagation();
+          const id = Number(btn.dataset.signalId);
+          if (!Number.isFinite(id)) return;
+          clearHoverPopup();
+          if (deleteBtn) onAdminQuickDeleteRef.current?.(id);
+          else onAdminQuickResolveRef.current?.(id);
+          return;
+        }
+
+        const card = target.closest(".sv-signal-popup-card") as HTMLElement | null;
+        if (!card) return;
+        e.stopPropagation();
+        clearHoverPopup();
+        onMarkerClickRef.current(signalId);
+      });
+    }
+
+    function attachClusterDetailPopupHandlers(popup: maplibregl.Popup, signalId: number) {
+      const popupEl = popup.getElement();
+      if (!popupEl) return;
+      popupEl.addEventListener("mouseenter", () => {
+        if (hoverDetailHideTimerRef.current) {
+          clearTimeout(hoverDetailHideTimerRef.current);
+          hoverDetailHideTimerRef.current = null;
+        }
+        if (hoverHideTimerRef.current) {
+          clearTimeout(hoverHideTimerRef.current);
+          hoverHideTimerRef.current = null;
+        }
+      });
+      popupEl.addEventListener("mouseleave", scheduleHideHoverDetailPopup);
+      bindSignalPopupClick(popupEl, signalId);
+    }
+
+    function showClusterRowDetailPopup(signal: Signal, rowEl: HTMLElement) {
+      if (hoverDetailHideTimerRef.current) {
+        clearTimeout(hoverDetailHideTimerRef.current);
+        hoverDetailHideTimerRef.current = null;
+      }
+
+      if (activeDetailSignalId === signal.id && hoverDetailPopupRef.current) {
+        activeClusterHoverRow?.classList.remove("sv-cluster-hover-row--active");
+        activeClusterHoverRow = rowEl;
+        rowEl.classList.add("sv-cluster-hover-row--active");
+        return;
+      }
+
+      hoverDetailPopupRef.current?.remove();
+
+      const mapRect = map.getContainer().getBoundingClientRect();
+      const rowRect = rowEl.getBoundingClientRect();
+      const midY = rowRect.top + rowRect.height / 2 - mapRect.top;
+      const spaceRight = mapRect.right - rowRect.right;
+      const preferRight = spaceRight >= 260;
+      const screenX = preferRight ? rowRect.right - mapRect.left + 6 : rowRect.left - mapRect.left - 6;
+
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        maxWidth: "320px",
+        className: preferRight
+          ? "sv-signal-hover-popup sv-cluster-detail-hover-popup"
+          : "sv-signal-hover-popup sv-cluster-detail-hover-popup sv-cluster-detail-hover-popup--left",
+        anchor: preferRight ? "left" : "right",
+      }).setHTML(signalMapPopupHtml(signal, { adminQuickMode: adminQuickModeRef.current }));
+
+      addMapPopupNearScreenPoint(popup, map, screenX, midY, preferRight ? 12 : -12);
+
+      hoverDetailPopupRef.current = popup;
+      activeDetailSignalId = signal.id;
+      activeClusterHoverRow?.classList.remove("sv-cluster-hover-row--active");
+      activeClusterHoverRow = rowEl;
+      rowEl.classList.add("sv-cluster-hover-row--active");
+
+      attachClusterDetailPopupHandlers(popup, signal.id);
+    }
+
+    function bindClusterHoverListInteractions(popupEl: HTMLElement, clusterSignals: Signal[]) {
+      popupEl.addEventListener("mouseover", (e) => {
+        const row = (e.target as HTMLElement).closest(".sv-cluster-hover-row") as HTMLElement | null;
+        if (!row) return;
+        const id = Number(row.dataset.signalId);
+        if (!Number.isFinite(id)) return;
+        const signal = clusterSignals.find((s) => s.id === id);
+        if (!signal) return;
+        if (hoverHideTimerRef.current) {
+          clearTimeout(hoverHideTimerRef.current);
+          hoverHideTimerRef.current = null;
+        }
+        showClusterRowDetailPopup(signal, row);
+      });
+
+      popupEl.addEventListener("mouseleave", (e) => {
+        const next = e.relatedTarget as Node | null;
+        const detailEl = hoverDetailPopupRef.current?.getElement();
+        if (detailEl && next && (popupEl.contains(next) || detailEl.contains(next))) return;
+        scheduleHideHoverDetailPopup();
+      });
     }
 
     function showHoverPopup(signal: Signal, lng: number, lat: number) {
@@ -399,6 +503,7 @@ export function SignalsMap({
       }
       hoverPopupRef.current?.remove();
       clusterPopupRef.current?.remove();
+      clearHoverDetailPopup();
 
       const popup = new maplibregl.Popup({
         closeButton: false,
@@ -422,18 +527,53 @@ export function SignalsMap({
           }
         });
         popupEl.addEventListener("mouseleave", scheduleHideHoverPopup);
+        bindSignalPopupClick(popupEl, signal.id);
+      }
+    }
+
+    function showClusterHoverPopup(clusterSignals: Signal[], lng: number, lat: number) {
+      if (hoverHideTimerRef.current) {
+        clearTimeout(hoverHideTimerRef.current);
+        hoverHideTimerRef.current = null;
+      }
+      hoverPopupRef.current?.remove();
+      clearHoverDetailPopup();
+
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        maxWidth: "240px",
+        className: "sv-cluster-hover-popup",
+        anchor: "bottom",
+      }).setHTML(signalClusterHoverPopupHtml(clusterSignals));
+
+      addMapPopupFitViewport(popup, map, lng, lat, MAP_POPUP_GAP_PX);
+
+      hoverPopupRef.current = popup;
+
+      const popupEl = popup.getElement();
+      if (popupEl) {
+        popupEl.addEventListener("mouseenter", () => {
+          if (hoverHideTimerRef.current) {
+            clearTimeout(hoverHideTimerRef.current);
+            hoverHideTimerRef.current = null;
+          }
+        });
+        popupEl.addEventListener("mouseleave", (e) => {
+          const next = e.relatedTarget as Node | null;
+          const detailEl = hoverDetailPopupRef.current?.getElement();
+          if (detailEl && next && detailEl.contains(next)) return;
+          scheduleHideHoverPopup();
+        });
+        bindClusterHoverListInteractions(popupEl, clusterSignals);
         popupEl.addEventListener("click", (e) => {
-          const target = e.target as HTMLElement;
-          const resolveBtn = target.closest(".sv-admin-resolve-btn") as HTMLElement | null;
-          const deleteBtn = target.closest(".sv-admin-delete-btn") as HTMLElement | null;
-          const btn = resolveBtn ?? deleteBtn;
-          if (!btn) return;
+          const row = (e.target as HTMLElement).closest(".sv-cluster-hover-row") as HTMLElement | null;
+          if (!row) return;
           e.stopPropagation();
-          const id = Number(btn.dataset.signalId);
+          const id = Number(row.dataset.signalId);
           if (!Number.isFinite(id)) return;
           clearHoverPopup();
-          if (deleteBtn) onAdminQuickDeleteRef.current?.(id);
-          else onAdminQuickResolveRef.current?.(id);
+          onMarkerClickRef.current(id);
         });
       }
     }
@@ -464,25 +604,50 @@ export function SignalsMap({
       });
     }
 
-    function bindClusterClick(
-      el: HTMLElement,
-      feature: Supercluster.ClusterFeature<Supercluster.AnyProps>,
-      lng: number,
-      lat: number,
-    ) {
+    function bindClusterHover(el: HTMLElement, clusterSignals: Signal[], marker: maplibregl.Marker) {
+      if (!desktopHover) return;
+      el.onmouseenter = () => {
+        const { lng, lat } = marker.getLngLat();
+        showClusterHoverPopup(clusterSignals, lng, lat);
+      };
+      el.onmouseleave = scheduleHideHoverPopup;
+    }
+
+    function bindClusterClick(el: HTMLElement, clusterSignals: Signal[], lng: number, lat: number) {
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+      el.onpointerdown = () => {
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          showClusterListPopup(clusterSignals, lng, lat);
+        }, 550);
+      };
+      const cancelLongPress = () => {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+      el.onpointerup = cancelLongPress;
+      el.onpointercancel = cancelLongPress;
+      el.onpointerleave = cancelLongPress;
+
       el.onclick = (e) => {
         e.stopPropagation();
-        const clusterId = feature.properties.cluster_id;
-        const rawExpansionZoom = index.getClusterExpansionZoom(clusterId);
-        if (rawExpansionZoom >= SUPERCLUSTER_MAX_ZOOM) {
-          // Points are within clustering radius at every zoom (often identical
-          // coordinates) — zooming in further would never split them apart, so
-          // offer a pick-list of the grouped signals instead.
-          showClusterListPopup(index.getLeaves(clusterId, Infinity).map((leaf) => leaf.properties.signal), lng, lat);
+        if (longPressTimer) {
+          cancelLongPress();
+          return;
+        }
+        const coords = clusterSignals.map((s) => ({ lng: s.longitude, lat: s.latitude }));
+        if (willStayOverlappedAtMaxZoom(map, coords, SIGNALS_MAP_MAX_ZOOM)) {
+          showClusterListPopup(clusterSignals, lng, lat);
           return;
         }
         clearHoverPopup();
-        flyTo({ center: [lng, lat], zoom: Math.min(SUPERCLUSTER_MAX_ZOOM, rawExpansionZoom) });
+        flyTo({
+          center: [lng, lat],
+          zoom: Math.min(SIGNALS_MAP_MAX_ZOOM, map.getZoom() + CLUSTER_ZOOM_STEP),
+        });
       };
     }
 
@@ -508,27 +673,29 @@ export function SignalsMap({
 
     function render() {
       const bounds = map.getBounds();
-      const bbox: [number, number, number, number] = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth(),
-      ];
-      const zoom = Math.floor(map.getZoom());
-      const clusters = index.getClusters(bbox, zoom);
+      const visiblePoints = signals
+        .filter(
+          (s) =>
+            Number.isFinite(s.latitude) &&
+            Number.isFinite(s.longitude) &&
+            bounds.contains([s.longitude, s.latitude]),
+        )
+        .map((signal) => ({
+          lng: signal.longitude,
+          lat: signal.latitude,
+          data: signal,
+        }));
+
+      const grouped = clusterByScreenOverlap(map, visiblePoints);
       const nextKeys = new Set<string>();
 
-      for (const feature of clusters) {
-        const [lng, lat] = feature.geometry.coordinates;
-        const isCluster = isClusterFeature(feature);
-        // Cluster keys are derived from the cluster's rounded position + size
-        // (not Supercluster's own `cluster_id`, which is re-assigned from scratch
-        // every time the index rebuilds) so the *same* geographic grouping keeps
-        // the *same* marker across data refreshes instead of flickering away and
-        // being recreated.
+      for (const item of grouped) {
+        const isCluster = item.kind === "cluster";
+        const lng = item.lng;
+        const lat = item.lat;
         const key = isCluster
-          ? `cluster-${zoom}-${lng.toFixed(4)}-${lat.toFixed(4)}-${feature.properties.point_count}`
-          : `signal-${feature.properties.signalId}`;
+          ? `cluster-${clusterStableKey(item.items)}`
+          : `signal-${item.data.id}`;
         nextKeys.add(key);
 
         let marker = markersRef.current.get(key);
@@ -536,12 +703,13 @@ export function SignalsMap({
 
         if (!marker) {
           if (isCluster) {
-            const count = feature.properties.point_count;
+            const count = item.count;
             const el = buildClusterElement(count, isNew);
-            bindClusterClick(el, feature, lng, lat);
+            bindClusterClick(el, item.items, lng, lat);
             marker = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]);
+            bindClusterHover(el, item.items, marker);
           } else {
-            const signal = feature.properties.signal;
+            const signal = item.data;
             const focused = focusSignalIdRef.current === signal.id;
             const el = buildMarkerElement(
               signal,
@@ -561,11 +729,11 @@ export function SignalsMap({
         } else {
           marker.setLngLat([lng, lat]);
           if (isCluster) {
-            const count = feature.properties.point_count;
-            updateClusterElement(marker.getElement(), count);
-            bindClusterClick(marker.getElement(), feature, lng, lat);
+            updateClusterElement(marker.getElement(), item.count);
+            bindClusterClick(marker.getElement(), item.items, lng, lat);
+            bindClusterHover(marker.getElement(), item.items, marker);
           } else {
-            const signal = feature.properties.signal;
+            const signal = item.data;
             const el = marker.getElement();
             const fp = signalFingerprint(signal);
             const focused = focusSignalIdRef.current === signal.id;
@@ -599,7 +767,7 @@ export function SignalsMap({
       }
 
       updateMarkerFocusClasses();
-      setVisibleCount(countVisibleSignals(map, signals));
+      setVisibleCount(countVisibleSignals(map, signalsRef.current));
     }
 
     renderMarkersRef.current = render;
@@ -629,12 +797,12 @@ export function SignalsMap({
       clusterPopupRef.current?.remove();
       clusterPopupRef.current = null;
     };
-  }, [index, signals, flyTo, mapReady]);
+  }, [signals, flyTo, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || focusSignalId == null) return;
-    const signal = signals.find((s) => s.id === focusSignalId);
+    const signal = signalsRef.current.find((s) => s.id === focusSignalId);
     if (!signal) return;
 
     flyTo({
@@ -650,7 +818,7 @@ export function SignalsMap({
       if (!sid) continue;
       el.classList.toggle("sv-signal-marker--focused", Number(sid) === focusSignalId);
     }
-  }, [focusSignalId, signals, flyTo]);
+  }, [focusSignalId, flyTo]);
 
   return (
     <div className={cn("sv-map-shell h-full w-full", className)}>

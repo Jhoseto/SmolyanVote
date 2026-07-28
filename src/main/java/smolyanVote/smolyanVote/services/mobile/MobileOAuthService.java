@@ -15,6 +15,7 @@ import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
 import smolyanVote.smolyanVote.services.serviceImpl.OAuthAvatarSyncService;
+import smolyanVote.smolyanVote.services.support.OAuthAvatarUrls;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -83,7 +84,7 @@ public class MobileOAuthService {
             userInfo.put("id", tokenInfo.get("sub"));
             userInfo.put("email", tokenInfo.get("email"));
             userInfo.put("name", tokenInfo.get("name"));
-            userInfo.put("picture", tokenInfo.get("picture"));
+            userInfo.put("picture", OAuthAvatarUrls.upgrade((String) tokenInfo.get("picture")));
 
             return userInfo;
         } catch (Exception e) {
@@ -98,9 +99,9 @@ public class MobileOAuthService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> validateFacebookToken(String accessToken) throws Exception {
         try {
-            // Facebook Graph API endpoint
+            // Facebook Graph API — request a 512² photo, not the default thumb.
             String url = String.format(
-                    "https://graph.facebook.com/v18.0/me?fields=id,name,email,picture.type(large)&access_token=%s",
+                    "https://graph.facebook.com/v18.0/me?fields=id,name,email,picture.width(512).height(512)&access_token=%s",
                     accessToken);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.getForEntity(url,
@@ -117,10 +118,10 @@ public class MobileOAuthService {
                 throw new Exception("Facebook account does not have email. Please use an account with email.");
             }
 
-            // Извличане на picture URL — предпочитаме директния CDN URL от Graph API
-            String pictureUrl = extractFacebookPictureUrl(userInfo);
+            // Prefer the sized CDN URL from Graph attributes (works without a token).
+            String pictureUrl = OAuthAvatarUrls.upgrade(extractFacebookPictureUrl(userInfo));
             if (pictureUrl == null && userInfo.get("id") != null) {
-                pictureUrl = String.format("https://graph.facebook.com/%s/picture?type=large", userInfo.get("id"));
+                pictureUrl = OAuthAvatarUrls.facebookGraphAvatar(String.valueOf(userInfo.get("id")));
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -137,10 +138,13 @@ public class MobileOAuthService {
     }
 
     /**
-     * Създава или обновява user от OAuth provider
+     * Създава или обновява user от OAuth provider.
+     *
+     * @param accessToken Facebook user access token (required for avatar import);
+     *                    unused for Google.
      */
     @Transactional
-    public UserEntity processOAuthUser(Map<String, Object> userInfo, AuthProvider provider) {
+    public UserEntity processOAuthUser(Map<String, Object> userInfo, AuthProvider provider, String accessToken) {
         String email = ((String) userInfo.get("email")).toLowerCase().trim();
         String providerId = (String) userInfo.get("id");
         String name = (String) userInfo.get("name");
@@ -169,7 +173,7 @@ public class MobileOAuthService {
             if (name != null && !name.isEmpty()) {
                 user.setRealName(name);
             }
-            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl);
+            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl, accessToken);
         } else {
             // Създаване на нов user
             user = new UserEntity();
@@ -186,7 +190,7 @@ public class MobileOAuthService {
                     .setPassword(null);
 
             user.setCreated(Instant.now());
-            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl);
+            oauthAvatarSyncService.applyProviderAvatar(user, pictureUrl, accessToken);
             isNewUser = true;
         }
 

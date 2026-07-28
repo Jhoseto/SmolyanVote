@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
 
     private static final Pattern TRUSTED_OAUTH_AVATAR_HOST = Pattern.compile(
-            "(googleusercontent\\.com|graph\\.facebook\\.com|fbcdn\\.net|platform-lookaside\\.fbsbx\\.com)",
+            "(googleusercontent\\.com|graph\\.facebook\\.com|fbcdn\\.net|fbsbx\\.com|scontent)",
             Pattern.CASE_INSENSITIVE);
 
     private final Cloudinary cloudinary;
@@ -46,11 +46,11 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         this.contentModerationService = contentModerationService;
     }
 
-    // 🌟 Метод за качване на потребителска снимка (без воден знак)
+    // Manual profile photo — separate folder so OAuth refresh never overwrites it.
     @Override
     public String saveUserImage(MultipartFile file, String username) {
-        String publicId = "users/user_" + username + "/" + UUID.randomUUID();
-        return uploadImage(file, publicId, "smolyanVote/users/user_" + username, false);
+        String publicId = "avatar_" + UUID.randomUUID();
+        return uploadImage(file, publicId, "smolyanVote/profile/user_" + username, false);
     }
 
     @Override
@@ -62,8 +62,18 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
             throw new IllegalArgumentException("Untrusted OAuth avatar URL");
         }
 
-        String publicId = "users/user_" + username + "/" + UUID.randomUUID();
-        return uploadRemoteImage(imageUrl.trim(), publicId, "smolyanVote/users/user_" + username);
+        // Stable public_id so a quality upgrade overwrites the previous mirror.
+        String publicId = "avatar";
+        return uploadRemoteImage(imageUrl.trim(), publicId, "smolyanVote/oauth_v4/user_" + username);
+    }
+
+    @Override
+    public String saveUserImageFromBytes(byte[] imageBytes, String username) {
+        if (imageBytes == null || imageBytes.length < 100) {
+            throw new IllegalArgumentException("imageBytes is required");
+        }
+        String publicId = "avatar";
+        return uploadAvatarBytes(imageBytes, publicId, "smolyanVote/oauth_v4/user_" + username);
     }
 
     // 🌟 Метод за качване на снимка на събитие (с воден знак)
@@ -118,24 +128,46 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
     @SuppressWarnings("unchecked")
     private String uploadRemoteImage(String remoteUrl, String publicId, String folder) {
         try {
-            Transformation transformation = new Transformation()
-                    .width(512)
-                    .height(512)
-                    .crop("fill")
-                    .gravity("face")
-                    .quality("auto")
-                    .fetchFormat("auto");
-
+            // Let Cloudinary fetch the URL (works well for Google; Facebook CDN is
+            // usually blocked — prefer saveUserImageFromBytes for Facebook).
             Map<String, Object> uploadOptions = ObjectUtils.asMap(
                     "public_id", publicId,
                     "folder", folder,
-                    "transformation", transformation
+                    "overwrite", true,
+                    "invalidate", true,
+                    "resource_type", "image"
             );
 
             Map<String, Object> uploadResult = cloudinary.uploader().upload(remoteUrl, uploadOptions);
-            return (String) uploadResult.get("secure_url");
+            String secureUrl = (String) uploadResult.get("secure_url");
+            if (secureUrl == null || secureUrl.isBlank()) {
+                throw new IllegalStateException("Cloudinary returned empty secure_url");
+            }
+            return secureUrl;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to import OAuth avatar into Cloudinary", e);
+            throw new RuntimeException("Failed to import OAuth avatar into Cloudinary: " + e.getMessage(), e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String uploadAvatarBytes(byte[] imageBytes, String publicId, String folder) {
+        try {
+            Map<String, Object> uploadOptions = ObjectUtils.asMap(
+                    "public_id", publicId,
+                    "folder", folder,
+                    "overwrite", true,
+                    "invalidate", true,
+                    "resource_type", "image"
+            );
+
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(imageBytes, uploadOptions);
+            String secureUrl = (String) uploadResult.get("secure_url");
+            if (secureUrl == null || secureUrl.isBlank()) {
+                throw new IllegalStateException("Cloudinary returned empty secure_url");
+            }
+            return secureUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload OAuth avatar bytes to Cloudinary: " + e.getMessage(), e);
         }
     }
 
@@ -249,6 +281,36 @@ public class ImageCloudinaryServiceImpl implements ImageCloudinaryService {
         }
     }
 
+
+    // 🌟 Прикачени файлове в SVMessenger
+    @SuppressWarnings("unchecked")
+    @Override
+    public String saveMessengerAttachment(MultipartFile file, Long conversationId) {
+        String folder = "smolyanVote/messenger/conversation_" + conversationId;
+        String contentType = file.getContentType() == null ? "" : file.getContentType();
+
+        // Снимките минават през модерация и общия image pipeline
+        if (contentType.startsWith("image/")) {
+            String publicId = "messenger/conversation_" + conversationId + "/" + UUID.randomUUID();
+            return uploadImage(file, publicId, folder, false);
+        }
+
+        try {
+            String resourceType = contentType.startsWith("audio/") || contentType.startsWith("video/")
+                    ? "video"
+                    : "raw";
+            Map<String, Object> uploadOptions = ObjectUtils.asMap(
+                    "public_id", "messenger/conversation_" + conversationId + "/" + UUID.randomUUID(),
+                    "folder", folder,
+                    "resource_type", resourceType
+            );
+
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadOptions);
+            return (String) uploadResult.get("secure_url");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save messenger attachment in Cloudinary", e);
+        }
+    }
 
     // Helper метод
     private String extractPublicIdFromUrl(String imageUrl) {

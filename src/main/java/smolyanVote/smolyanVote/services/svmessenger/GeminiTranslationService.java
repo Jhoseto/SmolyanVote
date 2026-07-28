@@ -33,11 +33,7 @@ public class GeminiTranslationService {
         if (this.geminiApiKey == null || this.geminiApiKey.isEmpty()) {
             System.err.println("❌ GeminiTranslationService: API KEY IS MISSING!");
         } else {
-            String masked = this.geminiApiKey.length() > 8
-                    ? this.geminiApiKey.substring(0, 4) + "..."
-                            + this.geminiApiKey.substring(this.geminiApiKey.length() - 4)
-                    : "****";
-            System.out.println("✅ GeminiTranslationService: Key loaded: " + masked);
+            System.out.println("✅ GeminiTranslationService: API key configured");
         }
 
         this.client = new OkHttpClient.Builder()

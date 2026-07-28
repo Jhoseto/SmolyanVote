@@ -26,20 +26,22 @@ public interface SignalsService {
     List<SignalsDto> findAllByAuthorId(Long authorId);
 
     SignalsEntity create(String title, String description, SignalsCategory category,
-                         Integer expirationDays, BigDecimal latitude, BigDecimal longitude,
+                         BigDecimal latitude, BigDecimal longitude,
                          MultipartFile image, UserEntity author);
 
     SignalsEntity update(SignalsEntity signal, String title, String description,
-                         SignalsCategory category, Integer expirationDays, MultipartFile image,
+                         SignalsCategory category, MultipartFile image,
                          boolean removeImage);
 
-    SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, UserEntity admin);
+    SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, Boolean markActive, UserEntity admin);
+
+    SignalsEntity setResolved(SignalsEntity signal, boolean markResolved, UserEntity user);
 
     void delete(Long id);
 
     // ====== ФИЛТРИРАНЕ И ТЪРСЕНЕ ======
 
-    Page<SignalsEntity> findWithFilters(String search, String category, boolean showExpired,
+    Page<SignalsEntity> findWithFilters(String search, String category, boolean showInactive,
                                         String timeFilter, String sort, Pageable pageable);
 
     List<SignalsEntity> findByLocationBounds(Double minLat, Double maxLat,
@@ -72,6 +74,8 @@ public interface SignalsService {
     boolean canDeleteSignal(SignalsEntity signal, Authentication auth);
 
     boolean canModerateSignal(Authentication auth);
+
+    boolean canSetResolvedStatus(SignalsEntity signal, Authentication auth);
 
     long countRecentSignalsByAuthor(Long authorId, Instant since);
 

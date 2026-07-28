@@ -6,6 +6,7 @@ import { Container } from "@/shared/ui";
 import { useAuth } from "@/shared/lib/authContext";
 import { useLoginGateStore } from "@/shared/lib/loginGateStore";
 import { getShellMessages, type Language } from "@/lib/i18n/locales";
+import { ContactTrigger } from "@/features/contacts";
 import { cn } from "@/shared/lib/cn";
 
 interface FooterProps {
@@ -37,7 +38,6 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
     { label: t.nav.podcast, href: "/podcast" },
     { label: t.footer.nav.about, href: "/about" },
     { label: t.footer.nav.faq, href: "/faq" },
-    { label: t.nav.contacts, href: "/contacts" },
   ];
 
   const PARTICIPATE = [
@@ -68,9 +68,6 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
           <div className="sm:col-span-2 lg:col-span-1">
             <p className="font-display text-gradient-brand text-xl font-extrabold tracking-[-0.03em]">
               SmolyanVote
-            </p>
-            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[color:var(--color-text-muted)]">
-              {t.footer.tagline}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {SOCIAL.map((item) => (
@@ -160,6 +157,10 @@ export function Footer({ cookiePreferencesSlot, newsletterSlot, lang }: FooterPr
               {cookiePreferencesSlot}
             </nav>
             <div className="mt-3 flex flex-col gap-1 text-[0.8rem] text-[color:var(--color-text-muted)]">
+              <ContactTrigger className={cn(linkClass, "text-left")}>
+                <i className="bi bi-envelope mr-1.5" aria-hidden />
+                {t.nav.contacts}
+              </ContactTrigger>
               <a href="mailto:smolyanvote@gmail.com" className={linkClass}>
                 smolyanvote@gmail.com
               </a>

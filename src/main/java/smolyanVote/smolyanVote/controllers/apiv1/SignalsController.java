@@ -77,7 +77,7 @@ public class SignalsController {
     public ResponseEntity<List<SignalResponseDTO>> list(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "false") boolean showExpired,
+            @RequestParam(defaultValue = "false") boolean showInactive,
             @RequestParam(defaultValue = "") String sort,
             @RequestParam(defaultValue = "") String time,
             @RequestParam(defaultValue = "0") int page,
@@ -88,7 +88,7 @@ public class SignalsController {
         size = Math.min(Math.max(1, size), 100);
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<SignalsEntity> signalsPage = signalsService.findWithFilters(search, category, showExpired, time, sort, pageable);
+        Page<SignalsEntity> signalsPage = signalsService.findWithFilters(search, category, showInactive, time, sort, pageable);
 
         UserEntity currentUser = currentUser(auth);
         List<SignalResponseDTO> result = signalsPage.getContent().stream()
@@ -133,6 +133,7 @@ public class SignalsController {
     }
 
     /** @deprecated use {@link #boosted} */
+    @Deprecated
     @GetMapping("/liked")
     public ResponseEntity<List<Long>> liked(Authentication auth) {
         return boosted(auth);
@@ -143,7 +144,6 @@ public class SignalsController {
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam String category,
-            @RequestParam Integer expirationDays,
             @RequestParam String latitude,
             @RequestParam String longitude,
             @RequestParam(required = false) MultipartFile image,
@@ -154,7 +154,7 @@ public class SignalsController {
             return unauthenticated();
         }
 
-        String validationError = validateSignalInput(title, description, category, expirationDays, latitude, longitude);
+        String validationError = validateSignalInput(title, description, category, latitude, longitude);
         if (validationError != null) {
             return ResponseEntity.badRequest().body(ApiMessageResponse.error(validationError));
         }
@@ -170,7 +170,7 @@ public class SignalsController {
         BigDecimal lon = new BigDecimal(longitude);
 
         try {
-            SignalsEntity created = signalsService.create(title, description, categoryEnum, expirationDays, lat, lon, image, currentUser);
+            SignalsEntity created = signalsService.create(title, description, categoryEnum, lat, lon, image, currentUser);
             return ResponseEntity.ok(toDto(created, currentUser));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
@@ -183,7 +183,6 @@ public class SignalsController {
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam String category,
-            @RequestParam Integer expirationDays,
             @RequestParam(required = false) MultipartFile image,
             @RequestParam(defaultValue = "false") boolean removeImage,
             Authentication auth) {
@@ -202,14 +201,14 @@ public class SignalsController {
                     .body(ApiMessageResponse.error("Нямате права да редактирате този сигнал."));
         }
 
-        String validationError = validateSignalUpdateInput(title, description, category, expirationDays);
+        String validationError = validateSignalUpdateInput(title, description, category);
         if (validationError != null) {
             return ResponseEntity.badRequest().body(ApiMessageResponse.error(validationError));
         }
 
         SignalsCategory categoryEnum = SignalsCategory.valueOf(category.toUpperCase());
         try {
-            SignalsEntity updated = signalsService.update(signal, title, description, categoryEnum, expirationDays, image, removeImage);
+            SignalsEntity updated = signalsService.update(signal, title, description, categoryEnum, image, removeImage);
             return ResponseEntity.ok(toDto(updated, currentUser));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ApiMessageResponse.error(e.getMessage()));
@@ -221,6 +220,7 @@ public class SignalsController {
             @PathVariable Long id,
             @RequestParam(required = false) String adminNotes,
             @RequestParam(defaultValue = "false") boolean markResolved,
+            @RequestParam(required = false) Boolean markActive,
             Authentication auth) {
 
         UserEntity currentUser = currentUser(auth);
@@ -237,7 +237,31 @@ public class SignalsController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
         }
 
-        SignalsEntity updated = signalsService.moderate(signal, adminNotes, markResolved, currentUser);
+        SignalsEntity updated = signalsService.moderate(signal, adminNotes, markResolved, markActive, currentUser);
+        return ResponseEntity.ok(toDto(updated, currentUser));
+    }
+
+    @PutMapping("/{id}/resolve")
+    public ResponseEntity<?> setResolved(
+            @PathVariable Long id,
+            @RequestParam boolean markResolved,
+            Authentication auth) {
+
+        UserEntity currentUser = currentUser(auth);
+        if (currentUser == null) {
+            return unauthenticated();
+        }
+
+        SignalsEntity signal = signalsService.findById(id);
+        if (signal == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiMessageResponse.error("Сигналът не е намерен."));
+        }
+        if (!signalsService.canSetResolvedStatus(signal, auth)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiMessageResponse.error("Нямате права да променяте статуса „решено“ на този сигнал."));
+        }
+
+        SignalsEntity updated = signalsService.setResolved(signal, markResolved, currentUser);
         return ResponseEntity.ok(toDto(updated, currentUser));
     }
 
@@ -267,6 +291,7 @@ public class SignalsController {
     }
 
     /** @deprecated use {@link #boost} */
+    @Deprecated
     @PostMapping("/{id}/like")
     public ResponseEntity<?> like(@PathVariable Long id, Authentication auth) {
         return toggleBoost(id, auth);
@@ -355,7 +380,7 @@ public class SignalsController {
     }
 
     private String validateSignalInput(String title, String description, String category,
-                                        Integer expirationDays, String latitude, String longitude) {
+                                        String latitude, String longitude) {
         if (title == null || title.trim().length() < 5) {
             return "Заглавието трябва да е поне 5 символа";
         }
@@ -372,9 +397,6 @@ public class SignalsController {
             SignalsCategory.valueOf(category.toUpperCase());
         } catch (Exception e) {
             return "Невалидна категория";
-        }
-        if (expirationDays == null || (expirationDays != 1 && expirationDays != 3 && expirationDays != 7)) {
-            return "Периодът на активност трябва да е 1, 3 или 7 дни";
         }
         try {
             double lat = new BigDecimal(latitude).doubleValue();
@@ -398,7 +420,7 @@ public class SignalsController {
      * `SignalsController#validateSignalUpdateInput`, който щеше винаги да отхвърля
      * ъпдейти (0,0 е извън Смолян). Не го пренасяме тук.
      */
-    private String validateSignalUpdateInput(String title, String description, String category, Integer expirationDays) {
+    private String validateSignalUpdateInput(String title, String description, String category) {
         if (title == null || title.trim().length() < 5) {
             return "Заглавието трябва да е поне 5 символа";
         }
@@ -415,9 +437,6 @@ public class SignalsController {
             SignalsCategory.valueOf(category.toUpperCase());
         } catch (Exception e) {
             return "Невалидна категория";
-        }
-        if (expirationDays == null || (expirationDays != 1 && expirationDays != 3 && expirationDays != 7)) {
-            return "Периодът на активност трябва да е 1, 3 или 7 дни";
         }
         return null;
     }

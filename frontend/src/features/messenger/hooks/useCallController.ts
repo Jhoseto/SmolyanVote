@@ -181,8 +181,8 @@ export function useCallController() {
         serverUrl: tokenRes.serverUrl,
         conversationId,
         otherUserId,
-        otherUserName: conversation.otherUser.fullName || conversation.otherUser.username,
-        otherUserAvatar: conversation.otherUser.imageUrl ?? "",
+        otherUserName: conversation.otherUser?.fullName || conversation.otherUser?.username || "Потребител",
+        otherUserAvatar: conversation.otherUser?.imageUrl ?? "",
         callState: "outgoing",
         isVideoCall,
       });
@@ -206,12 +206,13 @@ export function useCallController() {
       const list = queryClient.getQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY);
       const conversation = list?.find((c) => c.id === conversationId);
       if (!conversation || !user) return;
+      if (conversation.type === "GROUP" || !conversation.otherUser) return;
 
       if (useCallStore.getState().callState !== "idle") return;
 
       if (!hasDeviceSettings()) {
         useCallStore.getState().setPendingAction(() => {
-          void proceedStart(conversationId, conversation.otherUser.id, conversation, isVideoCall);
+          void proceedStart(conversationId, conversation.otherUser!.id, conversation, isVideoCall);
         });
         useCallStore.getState().setShowDeviceSelector(true, "call");
         return;
@@ -254,11 +255,11 @@ export function useCallController() {
       conversationId: call.conversationId,
       otherUserId: call.otherUserId,
       otherUserName:
-        call.conversation?.otherUser.fullName ||
-        call.conversation?.otherUser.username ||
+        call.conversation?.otherUser?.fullName ||
+        call.conversation?.otherUser?.username ||
         call.callerName ||
         "Потребител",
-      otherUserAvatar: call.conversation?.otherUser.imageUrl ?? call.callerAvatar ?? "",
+      otherUserAvatar: call.conversation?.otherUser?.imageUrl ?? call.callerAvatar ?? "",
       callState: "connected",
       isVideoCall: call.isVideoCall,
     });

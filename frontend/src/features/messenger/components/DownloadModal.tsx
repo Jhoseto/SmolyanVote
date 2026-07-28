@@ -5,6 +5,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Button } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import { useMessengerUiStore } from "../store/messengerUiStore";
+import { E2ESecurityNotice } from "./E2ESecurityNotice";
 
 /** Guest / mobile FAB destination — port of legacy `SVDownloadModal`. */
 export function DownloadModal() {
@@ -18,9 +19,9 @@ export function DownloadModal() {
         <Dialog.Popup className="fixed inset-0 z-[1091] flex items-start justify-center overflow-y-auto p-3 outline-none sm:items-center sm:p-4">
           <div
             className={cn(
-              "relative my-3 flex w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55)]",
+              "relative my-3 flex w-full max-w-[880px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55)]",
               "transition-all data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0 data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0",
-              "max-h-[min(92dvh,560px)] sm:my-0 sm:max-h-[min(90dvh,520px)] sm:flex-row",
+              "max-h-[min(94dvh,680px)] sm:my-0 sm:max-h-[min(92dvh,640px)] sm:flex-row",
             )}
           >
             <Dialog.Close
@@ -30,13 +31,13 @@ export function DownloadModal() {
               <i className="bi bi-x-lg" />
             </Dialog.Close>
 
-            <div className="relative h-[180px] shrink-0 overflow-hidden bg-[#022c22] sm:h-auto sm:w-[280px] md:w-[320px]">
+            <div className="flex shrink-0 items-center justify-center bg-[#022c22] px-4 py-5 sm:w-[min(42%,280px)] sm:py-6">
               <Image
                 src="/svmessenger/img/svapp_promo_premium.jpg"
                 alt="SVMessenger приложение"
-                width={640}
-                height={960}
-                className="h-full w-full object-cover object-[center_20%] sm:absolute sm:inset-0"
+                width={453}
+                height={1024}
+                className="h-auto max-h-[min(44dvh,460px)] w-auto max-w-full object-contain sm:max-h-[min(82dvh,580px)]"
                 priority
               />
             </div>
@@ -56,6 +57,7 @@ export function DownloadModal() {
               </div>
 
               <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+                <E2ESecurityNotice className="mb-4" />
                 <ul className="space-y-2 text-sm text-[color:var(--color-text-secondary)]">
                   <li className="flex items-start gap-2">
                     <i className="bi bi-check-circle-fill mt-0.5 text-emerald-600" />

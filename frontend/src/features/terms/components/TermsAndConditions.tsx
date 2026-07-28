@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/shared/ui";
+import { ContactInlineLink } from "@/features/contacts";
 import { TermsSection } from "./TermsSection";
 import { TermsToc } from "./TermsToc";
 
@@ -18,7 +19,7 @@ export function TermsAndConditions() {
               УСЛОВИЯ ЗА ПОЛЗВАНЕ (SmolyanVote.com)
             </h1>
             <p className="mt-2 text-sm font-semibold text-[color:var(--color-text-muted)]">
-              Последна актуализация: 30.06.2025г.
+              Последна актуализация: 30.06.2026г.
             </p>
 
             <div className="mt-6 divide-y divide-border-default/60">
@@ -167,7 +168,7 @@ export function TermsAndConditions() {
               ПОЛИТИКА ЗА ПОВЕРИТЕЛНОСТ (SmolyanVote.com)
             </h1>
             <p className="mt-2 text-sm font-semibold text-[color:var(--color-text-muted)]">
-              Последна актуализация: 30.06.2025
+              Последна актуализация: 30.06.2026
             </p>
 
             <div className="mt-6 divide-y divide-border-default/60">
@@ -266,9 +267,7 @@ export function TermsAndConditions() {
               <TermsSection title="10. Контакт по въпросите на поверителността">
                 <p>
                   Можете да се свържете с нас чрез{" "}
-                  <Link href="/contacts" className="text-primary underline">
-                    формата за контакти
-                  </Link>{" "}
+                  <ContactInlineLink>формата за контакти</ContactInlineLink>{" "}
                   или на:{" "}
                   <a href="mailto:smolyanvote@gmail.com" className="text-primary underline">
                     smolyanvote@gmail.com

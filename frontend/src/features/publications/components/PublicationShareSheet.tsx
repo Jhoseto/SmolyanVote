@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useToast } from "@/shared/hooks/useToast";
 import { cn } from "@/shared/lib/cn";
+import { shareToChat } from "@/shared/lib/shareToChat";
 import { SocialModalShell } from "./SocialModalShell";
 
 interface PublicationShareSheetProps {
@@ -82,6 +83,18 @@ export function PublicationShareSheet({
           >
             <i className="bi bi-link-45deg text-primary" />
             Копирай линк
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              shareToChat({ url, title });
+              onShared?.();
+              setOpen(false);
+            }}
+            className="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-sm hover:bg-primary-50"
+          >
+            <i className="bi bi-chat-dots-fill text-primary" />
+            Изпрати в чат
           </button>
           <a
             href={`https://wa.me/?text=${encodedTitle}%20${encodedUrl}`}

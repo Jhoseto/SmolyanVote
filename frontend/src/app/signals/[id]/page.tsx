@@ -104,7 +104,7 @@ export default async function SignalSocialPage({ params }: PageProps) {
           </p>
           <p className="mt-2 text-xs text-[color:var(--color-text-muted)]">
             {data.priorityBoostCount} вдигания · {data.viewsCount} прегледа · {data.commentsCount} коментара
-            {data.isResolved ? " · Решен" : data.isActive ? " · Активен" : " · Изтекъл"}
+            {data.isResolved ? " · Решен" : data.isActive ? " · Активен" : " · Неактивен"}
           </p>
         </header>
 

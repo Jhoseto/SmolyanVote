@@ -5,6 +5,10 @@ export interface AboutSection {
   playbackId: string;
   videoTitle: string;
   body: string[];
+  /** CSS object-position for Mux media (e.g. "center top"). */
+  objectPosition?: string;
+  /** Extra zoom to crop baked-in letterbox/pillarbox in source. */
+  mediaZoom?: number;
 }
 
 /** 1:1 content parity with v1 `aboutUs.html` (9 alternating Mux video sections). */
@@ -98,6 +102,9 @@ export const ABOUT_SECTIONS: AboutSection[] = [
     title: "От идеи до институции",
     playbackId: "LCKYVZBXiamJKMMW02AiIZiyqU02lH00WxGAXutTofq1tw",
     videoTitle: "SmolyanVote_section7",
+    /** Source has baked-in side bars — zoom past them. */
+    objectPosition: "center 42%",
+    mediaZoom: 1.42,
     body: [
       "Всеки референдум, всяка анкета, всяка дискусия по важна обществена тема може да се документира, обобщава и представя пред официални институции и местни медии.",
       "Събираме данните, анализираме резултатите и ги превръщаме в структуриран, достоверен обществен глас, който може да изпратим до:",
@@ -111,6 +118,8 @@ export const ABOUT_SECTIONS: AboutSection[] = [
     title: "Прозрачност, не популярност",
     playbackId: "tXYgvSL5zgjXVo8bzY5UKOdJEbpT02YYKI29lmFzq02I8",
     videoTitle: "SmolyanVote_section8",
+    /** Prefer faces — keep heads inside the frame. */
+    objectPosition: "center 28%",
     body: [
       "В социалните мрежи водеща е популярността. При нас – стойността на съдържанието.",
       "Всяка тема, независимо от броя харесвания, получава място за обсъждане.",

@@ -38,6 +38,37 @@ const CARD_W = 210;
 const CARD_H = 315;
 const IMG_H = 165;
 const STAGE_H = CARD_H + 80;
+const LOGO_SIZE = "clamp(148px, 20vw, 240px)";
+
+/** Static 3D hub — logo only, fixed orientation while cards orbit around it. */
+function CarouselHubLogo() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute left-1/2 top-1/2 select-none"
+      style={{
+        width: LOGO_SIZE,
+        height: LOGO_SIZE,
+        transformStyle: "preserve-3d",
+        transform: "translate(-50%, -50%) translate3d(0, -32px, -28px) rotateX(16deg)",
+        zIndex: 0,
+      }}
+    >
+      <Image
+        src="/images/logoNew.png"
+        alt=""
+        fill
+        sizes="(max-width:640px) 148px, 240px"
+        className="object-contain select-none"
+        style={{
+          filter:
+            "drop-shadow(0 22px 34px rgba(25,134,28,0.42)) drop-shadow(0 8px 16px rgba(15,23,42,0.18))",
+        }}
+        draggable={false}
+      />
+    </div>
+  );
+}
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -79,7 +110,7 @@ function SupporterCard({
     <article
       className={cn(
         "group relative overflow-hidden rounded-[18px] border bg-gradient-to-b from-white via-white to-primary-50/40",
-        "shadow-[0_10px_30px_rgba(25,134,28,0.1),0_4px_12px_rgba(0,0,0,0.06)]",
+        "select-none shadow-[0_10px_30px_rgba(25,134,28,0.1),0_4px_12px_rgba(0,0,0,0.06)]",
         "transition-[box-shadow,border-color] duration-300",
         active
           ? "border-primary/25 shadow-[var(--shadow-promo)] ring-1 ring-primary/20"
@@ -104,7 +135,7 @@ function SupporterCard({
           fill
           sizes={`${CARD_W}px`}
           className={cn(
-            "object-cover transition-transform duration-700 ease-out",
+            "object-cover transition-transform duration-700 ease-out select-none",
             active && "scale-[1.03]",
           )}
           draggable={false}
@@ -205,7 +236,7 @@ export function SupportCarousel() {
 
   return (
     <section className="relative overflow-hidden bg-[#f0f7f1] py-16 md:py-24">
-      <ParticlesBackground theme="green" count={70} className="absolute inset-0 opacity-70" />
+      <ParticlesBackground theme="green" count={52} className="absolute inset-0 opacity-70" />
       <Container className="relative z-10">
         <h2 className="text-gradient-brand text-center text-[clamp(1.5rem,3.5vw,2rem)] font-bold uppercase tracking-[0.18em]">
           Подкрепа
@@ -214,7 +245,7 @@ export function SupportCarousel() {
 
       <div
         ref={stageRef}
-        className="relative z-10 mx-auto mt-8 w-full max-w-[1400px] cursor-grab touch-pan-y active:cursor-grabbing"
+        className="relative z-10 mx-auto mt-8 w-full max-w-[1400px] cursor-grab touch-pan-y select-none active:cursor-grabbing"
         style={{ height: `${STAGE_H}px`, perspective: "1300px" }}
         onPointerDown={(e) => {
           if (!mounted) return;
@@ -227,7 +258,7 @@ export function SupportCarousel() {
           if (!dragging.current) return;
           const dx = e.clientX - lastX.current;
           lastX.current = e.clientX;
-          const delta = dx * 0.003;
+          const delta = -dx * 0.003;
           velocity.current = delta;
           angleRef.current += delta;
           setAngle(angleRef.current);
@@ -240,8 +271,11 @@ export function SupportCarousel() {
         }}
       >
         {!mounted ? (
-          // SSR + first paint: static front card — avoids float/style hydration mismatch
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ width: `${CARD_W}px`, height: `${CARD_H}px`, transformStyle: "preserve-3d" }}
+          >
+            <CarouselHubLogo />
             <SupporterCard
               supporter={SUPPORTERS[0]}
               active
@@ -257,6 +291,7 @@ export function SupportCarousel() {
               transformStyle: "preserve-3d",
             }}
           >
+            <CarouselHubLogo />
             {SUPPORTERS.map((s, i) => {
               const a = angle + i * step;
               const x = round2(Math.cos(a) * radiusX);

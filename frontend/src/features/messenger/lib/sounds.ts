@@ -1,3 +1,8 @@
+import {
+  useMessengerPrefsStore,
+  type MessengerSoundTheme,
+} from "../store/messengerPrefsStore";
+
 const SOUND = {
   incoming: "/svmessenger/sounds/IncomingCall.mp3",
   outgoing: "/svmessenger/sounds/OutCall.mp3",
@@ -16,9 +21,51 @@ function playOnce(src: string, volume = 0.5): void {
   });
 }
 
+/** Two soft sine blips — the "subtle" theme, synthesised so it ships no asset. */
+function playBlip(): void {
+  if (typeof window === "undefined") return;
+  const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return;
+
+  try {
+    const context = new Ctor();
+    const now = context.currentTime;
+    for (const [index, frequency] of [880, 1320].entries()) {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+      const start = now + index * 0.07;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.12, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.14);
+    }
+    window.setTimeout(() => void context.close(), 400);
+  } catch {
+    /* audio unavailable — stay silent */
+  }
+}
+
 export const messengerSounds = {
+  /** Honours the user's sound theme; `off` plays nothing at all. */
   playMessage(): void {
+    const theme = useMessengerPrefsStore.getState().soundTheme;
+    if (theme === "off") return;
+    if (theme === "subtle") {
+      playBlip();
+      return;
+    }
     playOnce(SOUND.message, 0.4);
+  },
+
+  /** Preview used by the settings panel. */
+  preview(theme: MessengerSoundTheme): void {
+    if (theme === "off") return;
+    if (theme === "subtle") playBlip();
+    else playOnce(SOUND.message, 0.4);
   },
 
   startIncomingLoop(): void {

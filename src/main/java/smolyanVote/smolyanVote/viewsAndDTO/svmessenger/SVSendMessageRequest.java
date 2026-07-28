@@ -1,6 +1,5 @@
 package smolyanVote.smolyanVote.viewsAndDTO.svmessenger;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -18,11 +17,17 @@ public class SVSendMessageRequest {
     @NotNull(message = "Conversation ID е задължително")
     private Long conversationId;
     
-    @NotBlank(message = "Съобщението не може да е празно")
-    @Size(min = 1, max = 5000, message = "Съобщението трябва да е между 1 и 5000 символа")
+    /** Може да е празен, когато съобщението носи прикачен файл. */
+    @Size(max = 5000, message = "Съобщението трябва да е до 5000 символа")
     private String text;
     
     private String messageType = "TEXT";
     
     private Long parentMessageId; // For reply functionality
+
+    // Прикачен файл — попълва се след POST /messages/upload
+    private String attachmentUrl;
+    private String attachmentName;
+    private Long attachmentSize;
+    private String attachmentMime;
 }

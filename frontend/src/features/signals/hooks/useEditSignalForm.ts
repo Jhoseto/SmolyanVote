@@ -23,7 +23,6 @@ export function useEditSignalForm(signal: Signal, onSaved?: () => void) {
       title: signal.title,
       description: signal.description,
       category: signal.category,
-      expirationDays: (signal.expirationDays ?? 3) as 1 | 3 | 7,
     },
   });
 
@@ -33,7 +32,6 @@ export function useEditSignalForm(signal: Signal, onSaved?: () => void) {
         title: values.title.trim(),
         description: values.description.trim(),
         category: values.category,
-        expirationDays: values.expirationDays,
         image: image ?? undefined,
         removeImage: removeImage && !image,
       });

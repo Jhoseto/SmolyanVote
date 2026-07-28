@@ -4,7 +4,6 @@ export interface SignalCreateDraft {
   title: string;
   description: string;
   category?: string;
-  expirationDays: number;
   latitude?: number;
   longitude?: number;
   savedAt: string;
@@ -15,7 +14,16 @@ export function loadSignalCreateDraft(): SignalCreateDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SignalCreateDraft;
+    const parsed = JSON.parse(raw) as Partial<SignalCreateDraft>;
+    if (!parsed.title?.trim() && !parsed.description?.trim() && !parsed.category) return null;
+    return {
+      title: parsed.title ?? "",
+      description: parsed.description ?? "",
+      category: parsed.category,
+      latitude: parsed.latitude,
+      longitude: parsed.longitude,
+      savedAt: parsed.savedAt ?? new Date().toISOString(),
+    };
   } catch {
     return null;
   }
@@ -33,4 +41,8 @@ export function saveSignalCreateDraft(draft: Omit<SignalCreateDraft, "savedAt">)
 export function clearSignalCreateDraft(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(DRAFT_KEY);
+}
+
+export function hasSignalCreateDraft(): boolean {
+  return loadSignalCreateDraft() != null;
 }

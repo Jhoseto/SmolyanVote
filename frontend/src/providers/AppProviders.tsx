@@ -7,6 +7,7 @@ import { AuthProvider } from "./AuthProvider";
 import { GoogleTranslateProvider } from "@/lib/i18n-web-translate";
 import { Toaster, ConfirmDialogHost, BackToTop, HeartbeatBeacon, ModerationWarningHost, PermanentBanModalHost } from "@/shared/ui";
 import { CookieConsentRoot } from "@/features/cookie-consent";
+import { ContactModal } from "@/features/contacts";
 import { LoginGateModal } from "@/features/auth";
 import { PodcastMiniPlayer } from "@/features/podcast";
 import { MessengerRoot } from "@/features/messenger";
@@ -25,6 +26,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <ModerationWarningHost />
           <PermanentBanModalHost />
           <LoginGateModal />
+          <ContactModal />
           <CookieConsentRoot />
           <BackToTop />
           <HeartbeatBeacon />

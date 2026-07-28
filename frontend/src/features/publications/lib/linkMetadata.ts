@@ -11,3 +11,15 @@ export function parseLinkMetadata(raw: string | null | undefined): LinkMetadata 
     return null;
   }
 }
+
+const YOUTUBE_ID_PATTERN =
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]+)/;
+
+/** Resolves a YouTube iframe URL from stored link metadata. */
+export function getYoutubeEmbedUrl(metadata: LinkMetadata): string | null {
+  if (metadata.type !== "youtube") return null;
+  if (metadata.embedUrl) return metadata.embedUrl;
+  if (metadata.videoId) return `https://www.youtube.com/embed/${metadata.videoId}`;
+  const match = metadata.url.match(YOUTUBE_ID_PATTERN);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}

@@ -11,8 +11,6 @@ public class SignalsMapper {
         dto.setTitle(s.getTitle());
         dto.setDescription(s.getDescription());
         dto.setCategory(s.getCategory());
-        dto.setExpirationDays(s.getExpirationDays());
-        dto.setActiveUntil(s.getActiveUntil());
         dto.setIsActive(s.isActive());
 
         // НОВИ РЕДОВЕ - ПОПЪЛВАМЕ БЪЛГАРСКИ ИМЕНА

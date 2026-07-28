@@ -80,15 +80,15 @@ export function SignalsMapHud({
           <LegendDot color="high" label="Висок" />
           <LegendDot color="medium" label="Среден" />
           <LegendDot color="low" label="Нисък" />
-          <LegendDot color="expired" label="Изтекъл" />
+          <LegendDot color="inactive" label="Неактивен" />
         </div>
       </div>
 
       {/* Bottom-right: hint */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10 hidden sm:block sm:bottom-4 sm:right-4">
-        <p className="sv-map-hud-pill px-3 py-1.5 text-[10px] text-[color:var(--color-text-muted)]">
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4">
+        <p className="sv-map-hud-pill max-w-[min(280px,70vw)] px-3 py-1.5 text-[10px] text-[color:var(--color-text-muted)]">
           <i className="bi bi-cursor mr-1" />
-          Кликни маркер · hover за преглед · cluster за zoom
+          Кликни маркер · за преглед на сигнал
         </p>
       </div>
     </>
@@ -103,7 +103,7 @@ function HudButton({ icon, label, onClick }: { icon: string; label: string; onCl
   );
 }
 
-function LegendDot({ color, label }: { color: "high" | "medium" | "low" | "expired"; label: string }) {
+function LegendDot({ color, label }: { color: "high" | "medium" | "low" | "inactive"; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[color:var(--color-text-secondary)]">
       <span className={cn("h-2.5 w-2.5 rounded-full ring-2 ring-white", `sv-legend-dot--${color}`)} />

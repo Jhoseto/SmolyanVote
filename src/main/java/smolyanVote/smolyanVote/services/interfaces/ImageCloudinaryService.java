@@ -9,6 +9,9 @@ public interface ImageCloudinaryService {
     /** Download a trusted OAuth provider avatar and store it in Cloudinary. */
     String saveUserImageFromUrl(String imageUrl, String username);
 
+    /** Store already-downloaded OAuth avatar bytes (required for Facebook CDN URLs). */
+    String saveUserImageFromBytes(byte[] imageBytes, String username);
+
     String saveSingleImage(MultipartFile file, Long eventId);
     String saveSingleSignalImage(MultipartFile file, Long signalId);
 
@@ -26,4 +29,10 @@ public interface ImageCloudinaryService {
 
     /** Uploads a podcast episode's audio track (Cloudinary treats audio as a "video" resource). */
     String savePodcastAudio(MultipartFile file, Long episodeId);
+
+    /**
+     * Uploads a chat attachment (image, document or voice note). Images go
+     * through moderation; other types are stored as raw resources.
+     */
+    String saveMessengerAttachment(MultipartFile file, Long conversationId);
 }

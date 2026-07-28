@@ -8,8 +8,6 @@ function mockSignal(overrides: Partial<Signal> & Pick<Signal, "id">): Signal {
     description: "Test description long enough",
     category: "OTHER",
     categoryLabel: "Друго",
-    expirationDays: 7,
-    activeUntil: null,
     isActive: true,
     latitude: 41.5,
     longitude: 24.7,

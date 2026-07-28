@@ -5,7 +5,9 @@ package smolyanVote.smolyanVote.models.svmessenger;
  */
 public enum MessageType {
     TEXT,      // Текстово съобщение
-    IMAGE,     // Изображение (за бъдещо development)
-    FILE,      // Файл (за бъдещо development)
+    IMAGE,     // Изображение с attachment_url
+    FILE,      // Прикачен файл с attachment_url
+    AUDIO,     // Гласово съобщение с attachment_url
+    POLL,      // Бърза анкета — текстът е въпросът
     EMOJI      // Само emoji съобщение
 }

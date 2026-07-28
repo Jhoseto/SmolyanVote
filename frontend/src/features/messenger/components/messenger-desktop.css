@@ -1,0 +1,647 @@
+/*
+ * SVMessenger — desktop-only premium shell.
+ *
+ * Material rules of thumb used throughout:
+ *   · light comes from above, so every raised surface gets a 1px white inset
+ *     highlight on its top edge and a darker inset on its bottom edge;
+ *   · depth is two shadows — a tight contact shadow plus a wide ambient one;
+ *   · gradients are 3-stop so surfaces read as curved rather than flat.
+ *
+ * Performance: this is all gradients + box-shadow, which the compositor
+ * handles cheaply. `backdrop-filter` is the one expensive effect and is
+ * applied to the focused window only. Nothing animates continuously except
+ * the typing dots, which are 6px and GPU-transformed.
+ *
+ * Guarded by `min-width: 769px` — mobile web only ever sees DownloadModal.
+ */
+
+@keyframes sv-msg-dots {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@keyframes sv-msg-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@keyframes sv-msg-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(25, 134, 28, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(25, 134, 28, 0);
+  }
+}
+
+@keyframes sv-msg-bubble-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(-5px);
+  }
+  70% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes sv-msg-flash {
+  from {
+    background-color: var(--color-primary-100);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@media (min-width: 769px) {
+  .sv-msg {
+    /* ---------------------------------------------------------- material */
+    --msg-glass: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(251, 253, 251, 0.9) 52%,
+      rgba(244, 248, 245, 0.86) 100%
+    );
+    --msg-glass-filter: blur(20px) saturate(140%);
+
+    /* Bevel: specular top edge, hairline body, occluded bottom edge. */
+    --msg-bevel:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+      inset 0 -1px 0 rgba(15, 23, 42, 0.05);
+    --msg-bevel-sm:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(15, 23, 42, 0.055);
+
+    --msg-brand-line: linear-gradient(
+      90deg,
+      transparent,
+      rgba(25, 134, 28, 0.26) 28%,
+      rgba(25, 134, 28, 0.26) 72%,
+      transparent
+    );
+
+    /* --------------------------------------------------------- elevation */
+    --msg-elev-rest: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 26px -10px rgba(15, 23, 42, 0.14);
+    --msg-elev-hover: 0 2px 5px rgba(15, 23, 42, 0.07), 0 16px 34px -12px rgba(15, 23, 42, 0.2);
+    --msg-elev-focus:
+      0 4px 10px rgba(15, 23, 42, 0.08), 0 28px 64px -20px rgba(15, 23, 42, 0.3),
+      0 0 0 1px rgba(25, 134, 28, 0.14);
+    --msg-elev-drag: 0 8px 18px rgba(15, 23, 42, 0.13), 0 40px 90px -26px rgba(15, 23, 42, 0.38);
+
+    /* ----------------------------------------------------------- bubbles */
+    --msg-bubble-own: linear-gradient(168deg, #23a026 0%, #19861c 46%, #157419 100%);
+    --msg-bubble-peer: linear-gradient(
+      168deg,
+      #ffffff 0%,
+      #fbfdfb 55%,
+      var(--color-surface-light) 100%
+    );
+    --msg-bubble-shadow-peer:
+      0 1px 1px rgba(15, 23, 42, 0.045), 0 4px 10px -6px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+    --msg-bubble-shadow-own:
+      0 1px 2px rgba(21, 116, 25, 0.3), 0 6px 14px -8px rgba(21, 116, 25, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+
+    /* Colourless grain — gives the glass density without a new hue. */
+    --msg-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    /* ------------------------------------------------------------ scale */
+    --msg-radius: 14px;
+    --msg-radius-sm: 9px;
+    --msg-density-row: 54px;
+    --msg-density-gap: 3px;
+    --msg-density-pad: 10px;
+    --msg-scroll-w: 4px;
+  }
+
+  .sv-msg[data-density="compact"] {
+    --msg-density-row: 46px;
+    --msg-density-gap: 2px;
+    --msg-density-pad: 8px;
+  }
+
+  .sv-msg[data-density="spacious"] {
+    --msg-density-row: 64px;
+    --msg-density-gap: 6px;
+    --msg-density-pad: 13px;
+  }
+
+  .sv-msg .sv-msg-row {
+    padding-inline: var(--msg-density-pad);
+    padding-bottom: calc(var(--msg-density-gap) * 2);
+  }
+
+  .sv-msg .sv-msg-row-continues {
+    padding-bottom: var(--msg-density-gap);
+  }
+
+  .sv-msg .sv-msg-conversation-row {
+    min-height: var(--msg-density-row);
+    padding-block: calc(var(--msg-density-gap) * 2);
+  }
+
+  /* ---------------------------------------------------------------- surface */
+
+  /*
+   * Do NOT set `position` here — panels/windows use Tailwind `fixed`, and a
+   * competing `relative` silently wins on equal specificity, collapsing them
+   * into the zero-height `.sv-msg` wrapper (FAB appears to do nothing).
+   */
+  .sv-msg-surface {
+    isolation: isolate;
+    background: var(--msg-glass);
+    box-shadow: var(--msg-elev-rest), var(--msg-bevel);
+    border-radius: var(--msg-radius);
+  }
+
+  /* backdrop-filter is expensive — only glass surfaces in focus get it */
+  .sv-msg-surface[data-glass="on"] {
+    -webkit-backdrop-filter: var(--msg-glass-filter);
+    backdrop-filter: var(--msg-glass-filter);
+  }
+
+  .sv-msg-surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: var(--msg-grain);
+    opacity: 0.02;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /*
+   * Only lift non-positioned content above the grain overlay. Forcing
+   * `position: relative` on EVERY child overrode Tailwind `absolute`/`fixed`
+   * (settings overlay) — same class of bug as the FAB panel.
+   */
+  .sv-msg-surface > *:not([data-overlay]) {
+    z-index: 1;
+  }
+
+  .sv-msg-surface
+    > *:not([data-overlay]):not([class*="absolute"]):not([class*="fixed"]) {
+    position: relative;
+  }
+
+  /* ----------------------------------------------------------------- window */
+
+  .sv-msg-window-shell {
+    /* Position is a transform, so dragging never triggers layout. */
+    will-change: transform;
+    transition:
+      width var(--duration-fast) var(--ease-out-quart),
+      height var(--duration-fast) var(--ease-out-quart);
+    contain: layout paint;
+  }
+
+  .sv-msg-window-shell[data-dragging="true"] {
+    transition: none;
+  }
+
+  .sv-msg-window[data-focused="true"] {
+    box-shadow: var(--msg-elev-focus), var(--msg-bevel);
+  }
+
+  .sv-msg-window[data-focused="false"] {
+    filter: saturate(0.94);
+    opacity: 0.975;
+  }
+
+  .sv-msg-window[data-dragging="true"] {
+    box-shadow: var(--msg-elev-drag), var(--msg-bevel);
+    cursor: grabbing;
+  }
+
+  .sv-msg-window[data-fullscreen="true"] {
+    border-radius: var(--msg-radius);
+  }
+
+  .sv-msg-brandline {
+    height: 1px;
+    background: var(--msg-brand-line);
+  }
+
+  /* Title bar — a curved, lacquered green plate with a specular top edge. */
+  .sv-msg-chrome {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 42%),
+      linear-gradient(135deg, #23a026 0%, #19861c 52%, #14701a 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+      0 1px 3px rgba(15, 23, 42, 0.12);
+  }
+
+  .sv-msg-chrome[data-focused="false"] {
+    filter: saturate(0.85) brightness(0.99);
+  }
+
+  .sv-msg-chrome-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.86);
+    transition:
+      background-color var(--duration-fast) var(--ease-default),
+      color var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-chrome-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  .sv-msg-chrome-btn[data-active="true"] {
+    background: rgba(255, 255, 255, 0.26);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .sv-msg-chrome-btn[data-danger="true"]:hover {
+    background: var(--color-error);
+    color: #fff;
+  }
+
+  /* ------------------------------------------------------------ scrollbars */
+
+  /* Hair-thin, brand-tinted, and only visible while the area is hovered. */
+  .sv-msg .sv-scrollbar,
+  .sv-msg-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(25, 134, 28, 0.28) transparent;
+  }
+
+  .sv-msg .sv-scrollbar::-webkit-scrollbar,
+  .sv-msg-thin::-webkit-scrollbar {
+    width: var(--msg-scroll-w);
+    height: var(--msg-scroll-w);
+  }
+
+  .sv-msg .sv-scrollbar::-webkit-scrollbar-track,
+  .sv-msg-thin::-webkit-scrollbar-track {
+    margin: 4px 0;
+    background: transparent;
+  }
+
+  .sv-msg .sv-scrollbar::-webkit-scrollbar-thumb,
+  .sv-msg-thin::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.14);
+    transition: background-color var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg .sv-scrollbar:hover::-webkit-scrollbar-thumb,
+  .sv-msg-thin:hover::-webkit-scrollbar-thumb {
+    background: rgba(25, 134, 28, 0.42);
+  }
+
+  /* ----------------------------------------------------------- scroll edges */
+
+  .sv-msg-scroll {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 12px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 12px),
+      transparent 100%
+    );
+  }
+
+  /* --------------------------------------------------------------- typography */
+
+  .sv-msg-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sv-msg-label {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--color-text-muted);
+  }
+
+  .sv-msg-body {
+    font-size: 13px;
+    line-height: 1.45;
+    max-width: 44ch;
+  }
+
+  /* ------------------------------------------------------------- small parts */
+
+  /* Recessed tray: a faint inner shadow makes it read as carved-in. */
+  .sv-msg-tile {
+    background: linear-gradient(180deg, #ffffff 0%, #fafcfa 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+      0 1px 2px -1px rgba(15, 23, 42, 0.08);
+  }
+
+  /* Raised pill: top highlight + contact shadow. */
+  .sv-msg-chip {
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7f4 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 0 0 1px rgba(15, 23, 42, 0.08),
+      0 1px 2px rgba(15, 23, 42, 0.07);
+    transition:
+      box-shadow var(--duration-fast) var(--ease-default),
+      transform var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-chip:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 0 0 1px rgba(25, 134, 28, 0.24),
+      0 3px 8px -2px rgba(15, 23, 42, 0.14);
+  }
+
+  .sv-msg-info {
+    flex: none;
+    background: linear-gradient(180deg, rgba(248, 250, 248, 0.92), rgba(242, 246, 243, 0.92));
+    box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.06);
+  }
+
+  .sv-msg-info-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(15, 23, 42, 0.06);
+  }
+
+  /* ------------------------------------------------------------------ bubbles */
+
+  .sv-msg-bubble-own {
+    background-image: var(--msg-bubble-own);
+    box-shadow: var(--msg-bubble-shadow-own);
+    color: #fff;
+  }
+
+  .sv-msg-bubble-peer {
+    background-image: var(--msg-bubble-peer);
+    box-shadow: var(--msg-bubble-shadow-peer);
+    color: var(--color-text-primary);
+  }
+
+  .sv-msg-bubble-pending {
+    opacity: 0.68;
+  }
+
+  .sv-msg-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: sv-msg-shimmer 1.4s linear infinite;
+  }
+
+  .sv-msg-flash {
+    animation: sv-msg-flash 1.4s var(--ease-out-quart);
+  }
+
+  /* ----------------------------------------------------------------- composer */
+
+  .sv-msg-composer {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 248, 0.92));
+    box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.06);
+  }
+
+  /* One recessed capsule holds the actions and the text — fewer floating parts. */
+  .sv-msg-composer-field {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 3px 4px;
+    border-radius: var(--msg-radius);
+    background: linear-gradient(180deg, #ffffff 0%, #fcfdfc 100%);
+    box-shadow:
+      inset 0 1px 2px rgba(15, 23, 42, 0.05),
+      inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    transition: box-shadow var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-composer-field:focus-within {
+    box-shadow:
+      inset 0 1px 2px rgba(15, 23, 42, 0.04),
+      inset 0 0 0 1px rgba(25, 134, 28, 0.45),
+      0 0 0 3px rgba(25, 134, 28, 0.12);
+  }
+
+  .sv-msg-composer-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Height is driven by the autosize effect; overflow is toggled with it. */
+    max-height: 108px;
+    padding: 6px 4px;
+    border: 0;
+    background: transparent;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-text-primary);
+    resize: none;
+    outline: none;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.16) transparent;
+  }
+
+  .sv-msg-composer-input::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .sv-msg-composer-input::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sv-msg-composer-input::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.16);
+  }
+
+  .sv-msg-composer-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .sv-msg-composer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    transition:
+      background-color var(--duration-fast) var(--ease-default),
+      color var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-composer-btn:hover {
+    background: rgba(25, 134, 28, 0.08);
+    color: var(--color-primary);
+  }
+
+  .sv-msg-composer-btn[data-active="true"] {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+  }
+
+  /* Send: a domed green button — radial sheen top-left, occlusion bottom. */
+  .sv-msg-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: #fff;
+    background-image:
+      radial-gradient(120% 120% at 30% 12%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 55%),
+      linear-gradient(160deg, #2bb02f 0%, #19861c 55%, #147018 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 1px 2px rgba(20, 112, 24, 0.4),
+      0 6px 14px -6px rgba(20, 112, 24, 0.6);
+    transition:
+      box-shadow var(--duration-fast) var(--ease-default),
+      opacity var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-send:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 2px 4px rgba(20, 112, 24, 0.42),
+      0 10px 20px -8px rgba(20, 112, 24, 0.68);
+  }
+
+  .sv-msg-send:disabled {
+    opacity: 0.38;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  }
+
+  /* --------------------------------------------------------------- typing dots */
+
+  .sv-msg-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-text-muted);
+    animation: sv-msg-dots 1.2s var(--ease-default) infinite;
+  }
+
+  .sv-msg-dot:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+
+  .sv-msg-dot:nth-child(3) {
+    animation-delay: 0.24s;
+  }
+
+  /* ---------------------------------------------------------------- dock rail */
+
+  .sv-msg-dock {
+    position: fixed;
+    right: var(--sv-rail-right);
+    bottom: var(--sv-rail-slot);
+    z-index: 1069;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sv-rail-gap);
+    align-items: flex-end;
+  }
+
+  .sv-msg-dock-bubble {
+    position: relative;
+    height: 42px;
+    border-radius: 999px;
+    background: var(--msg-glass);
+    -webkit-backdrop-filter: var(--msg-glass-filter);
+    backdrop-filter: var(--msg-glass-filter);
+    box-shadow: var(--msg-elev-rest), var(--msg-bevel-sm);
+    transition:
+      box-shadow var(--duration-fast) var(--ease-default),
+      transform var(--duration-fast) var(--ease-default);
+  }
+
+  .sv-msg-dock-bubble:hover {
+    box-shadow: var(--msg-elev-hover), var(--msg-bevel-sm);
+    transform: translateY(-1px);
+  }
+
+  .sv-msg-dock-bubble[data-alert="true"] {
+    animation: sv-msg-bubble-nudge 0.5s var(--ease-out-quart);
+  }
+
+  .sv-msg-dock-bubble[data-alert="true"] .sv-msg-dock-ring {
+    animation: sv-msg-ring-pulse 1.2s var(--ease-out-quart) 2;
+  }
+
+  /* ---------------------------------------------------------------------- FAB */
+
+  .sv-msg-fab {
+    background-image:
+      radial-gradient(120% 120% at 32% 18%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 52%),
+      linear-gradient(160deg, #2bb02f 0%, #19861c 55%, #147018 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.42),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 2px 4px rgba(20, 112, 24, 0.35),
+      0 14px 28px -10px rgba(20, 112, 24, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-msg-dot,
+  .sv-msg-shimmer,
+  .sv-msg-dock-bubble[data-alert="true"],
+  .sv-msg-dock-bubble[data-alert="true"] .sv-msg-dock-ring,
+  .sv-msg-flash {
+    animation: none !important;
+  }
+
+  .sv-msg-window-shell {
+    transition: none;
+  }
+}

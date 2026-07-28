@@ -6,7 +6,7 @@ export type SignalTimeFilter = "" | "today" | "week" | "month";
 export interface SignalFilterParams {
   search?: string;
   category?: SignalCategory | null;
-  showExpired?: boolean;
+  showInactive?: boolean;
   time?: SignalTimeFilter;
   mineOnly?: boolean;
   boostedOnly?: boolean;
@@ -34,6 +34,10 @@ export function filterSignals(signals: Signal[], params: SignalFilterParams): Si
   const coords = params.userCoords;
   const nearMe = params.nearMe && coords;
 
+  if (params.mineOnly && params.currentUserId == null) {
+    return [];
+  }
+
   return signals
     .map((s) => {
       if (!nearMe) return s;
@@ -45,18 +49,18 @@ export function filterSignals(signals: Signal[], params: SignalFilterParams): Si
         if (!s.isResolved) return false;
       } else {
         if (s.isResolved) return false;
-        if (!params.showExpired && !s.isActive) return false;
+        if (!params.showInactive && !s.isActive) return false;
       }
       if (nearMe && (s.distanceKm ?? Infinity) > 15) return false;
-    if (params.category && s.category !== params.category) return false;
-    if (params.mineOnly && params.currentUserId != null && s.authorId !== params.currentUserId) return false;
-    if (params.boostedOnly && !s.hasBoosted) return false;
-    if (params.highPriorityOnly && s.priorityTier !== "high") return false;
-    if (!matchesTime(s.createdAt, params.time ?? "")) return false;
-    if (!search) return true;
-    const haystack = [s.title, s.description, s.authorUsername ?? "", s.categoryLabel]
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(search);
-  });
+      if (params.category && s.category !== params.category) return false;
+      if (params.mineOnly && params.currentUserId != null && s.authorId !== params.currentUserId) return false;
+      if (params.boostedOnly && !s.hasBoosted) return false;
+      if (params.highPriorityOnly && s.priorityTier !== "high") return false;
+      if (!matchesTime(s.createdAt, params.time ?? "")) return false;
+      if (!search) return true;
+      const haystack = [s.title, s.description, s.authorUsername ?? "", s.categoryLabel]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(search);
+    });
 }

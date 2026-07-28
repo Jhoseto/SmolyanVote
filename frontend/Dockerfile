@@ -6,9 +6,12 @@ RUN npm ci
 
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
+# Internal Docker hostname for Next rewrites/SSR only — never bake into browser OAuth URLs.
 ARG API_INTERNAL_URL=http://backend:2662
+# Public origin the browser uses for Google/Facebook OAuth start (Caddy → Spring).
+ARG NEXT_PUBLIC_BACKEND_ORIGIN=https://smolyanvote.com
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
-ENV NEXT_PUBLIC_BACKEND_ORIGIN=$API_INTERNAL_URL
+ENV NEXT_PUBLIC_BACKEND_ORIGIN=$NEXT_PUBLIC_BACKEND_ORIGIN
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1

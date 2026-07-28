@@ -12,7 +12,7 @@ import {
   loadSignalCreateDraft,
   saveSignalCreateDraft,
 } from "../lib/signalCreateDraft";
-import { signalFormSchema, DEFAULT_SIGNAL_EXPIRATION_DAYS, type SignalFormValues } from "../schema";
+import { signalFormSchema, type SignalFormValues } from "../schema";
 import { useCreateSignal } from "./useCreateSignal";
 import type { Signal, SignalCategory } from "../types";
 
@@ -21,7 +21,7 @@ export interface SelectedLocation {
   longitude: number;
 }
 
-/** RHF handles title/description/category/expirationDays; location + image are separate state (map click / dropzone, not text inputs). */
+/** RHF handles title/description/category; location + image are separate state (map click / dropzone). */
 export function useCreateSignalForm(onCreated?: (signal: Signal) => void, options?: { draftEnabled?: boolean }) {
   const draftEnabled = options?.draftEnabled ?? true;
   const toast = useToast();
@@ -35,7 +35,7 @@ export function useCreateSignalForm(onCreated?: (signal: Signal) => void, option
   const form = useForm<SignalFormValues>({
     resolver: zodResolver(signalFormSchema),
     mode: "onChange",
-    defaultValues: { title: "", description: "", category: undefined, expirationDays: DEFAULT_SIGNAL_EXPIRATION_DAYS },
+    defaultValues: { title: "", description: "", category: undefined },
   });
 
   useEffect(() => {
@@ -46,7 +46,6 @@ export function useCreateSignalForm(onCreated?: (signal: Signal) => void, option
         title: draft.title,
         description: draft.description,
         category: draft.category as SignalCategory | undefined,
-        expirationDays: draft.expirationDays as 1 | 3 | 7,
       });
       if (draft.latitude != null && draft.longitude != null) {
         setLocation({ latitude: draft.latitude, longitude: draft.longitude });
@@ -62,14 +61,13 @@ export function useCreateSignalForm(onCreated?: (signal: Signal) => void, option
       title: watched.title ?? "",
       description: watched.description ?? "",
       category: watched.category,
-      expirationDays: watched.expirationDays ?? DEFAULT_SIGNAL_EXPIRATION_DAYS,
       latitude: location?.latitude,
       longitude: location?.longitude,
     });
-  }, [draftEnabled, draftLoaded, watched.title, watched.description, watched.category, watched.expirationDays, location]);
+  }, [draftEnabled, draftLoaded, watched.title, watched.description, watched.category, location]);
 
   function reset() {
-    form.reset({ title: "", description: "", category: undefined, expirationDays: DEFAULT_SIGNAL_EXPIRATION_DAYS });
+    form.reset({ title: "", description: "", category: undefined });
     setLocation(null);
     setImage(null);
     clearSignalCreateDraft();
@@ -92,7 +90,6 @@ export function useCreateSignalForm(onCreated?: (signal: Signal) => void, option
         title: values.title.trim(),
         description: values.description.trim(),
         category: values.category,
-        expirationDays: values.expirationDays,
         latitude: location.latitude,
         longitude: location.longitude,
         image: image ?? undefined,

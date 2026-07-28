@@ -27,7 +27,7 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
             " LOWER(s.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " LOWER(s.description) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
             "(:category IS NULL OR s.category = :category) AND " +
-            "(:showExpired = true OR s.activeUntil IS NULL OR s.activeUntil > :now) AND " +
+            "(:showInactive = true OR s.active = true) AND " +
             "(:timeFilter IS NULL OR s.created >= :timeFilter) AND " +
             "s.latitude >= :minLat AND s.latitude <= :maxLat AND " +
             "s.longitude >= :minLng AND s.longitude <= :maxLng " +
@@ -40,10 +40,9 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
     Page<SignalsEntity> findWithFilters(
             @Param("search") String search,
             @Param("category") SignalsCategory category,
-            @Param("showExpired") boolean showExpired,
+            @Param("showInactive") boolean showInactive,
             @Param("timeFilter") Instant timeFilter,
             @Param("sort") String sort,
-            @Param("now") Instant now,
             @Param("minLat") java.math.BigDecimal minLat,
             @Param("maxLat") java.math.BigDecimal maxLat,
             @Param("minLng") java.math.BigDecimal minLng,

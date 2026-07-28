@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/shared/lib/cn";
+import { applyPriorityTiers } from "../lib/computePriorityLevel";
 import type { Signal } from "../types";
 
 interface SignalsStatsStripProps {
@@ -11,11 +12,12 @@ interface SignalsStatsStripProps {
 
 export function SignalsStatsStrip({ signals, className }: SignalsStatsStripProps) {
   const stats = useMemo(() => {
-    const active = signals.filter((s) => s.isActive && !s.isResolved);
-    const resolved = signals.filter((s) => s.isResolved);
+    const withTiers = applyPriorityTiers(signals);
+    const active = withTiers.filter((s) => s.isActive && !s.isResolved);
+    const resolved = withTiers.filter((s) => s.isResolved);
     const high = active.filter((s) => s.priorityTier === "high");
-    const boosted = signals.filter((s) => s.hasBoosted);
-    return { total: signals.length, active: active.length, resolved: resolved.length, high: high.length, boosted: boosted.length };
+    const boosted = withTiers.filter((s) => s.hasBoosted);
+    return { total: withTiers.length, active: active.length, resolved: resolved.length, high: high.length, boosted: boosted.length };
   }, [signals]);
 
   const items = [

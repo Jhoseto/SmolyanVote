@@ -13,14 +13,34 @@ import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVConversationEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVMessageEntity;
 import smolyanVote.smolyanVote.models.svmessenger.CallHistoryEntity;
+import smolyanVote.smolyanVote.models.svmessenger.MessageType;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessageFlagEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessagePollOptionEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessagePollVoteEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessageReactionEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessengerE2EKeyEntity;
+import smolyanVote.smolyanVote.models.svmessenger.ConversationType;
+import smolyanVote.smolyanVote.models.svmessenger.ParticipantRole;
+import smolyanVote.smolyanVote.models.svmessenger.SVConversationParticipantEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVConversationParticipantRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVConversationRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVMessageFlagRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVMessagePollRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVMessagePollVoteRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVMessengerE2EKeyRepository;
+import smolyanVote.smolyanVote.repositories.svmessenger.SVMessageReactionRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.SVMessageRepository;
 import smolyanVote.smolyanVote.repositories.svmessenger.CallHistoryRepository;
 import smolyanVote.smolyanVote.services.interfaces.FollowService;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVAttachmentDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVParticipantDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVE2EPublicKeyDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVPollDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVReactionSummaryDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.CallHistoryDTO;
@@ -28,8 +48,13 @@ import smolyanVote.smolyanVote.websocket.svmessenger.SVMessengerWebSocketHandler
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -43,8 +68,14 @@ import io.livekit.server.RoomJoin;
 public class SVMessengerServiceImpl implements SVMessengerService {
 
     private final SVConversationRepository conversationRepo;
+    private final SVConversationParticipantRepository participantRepo;
     private final SVMessageRepository messageRepo;
     private final CallHistoryRepository callHistoryRepo;
+    private final SVMessageReactionRepository reactionRepo;
+    private final SVMessageFlagRepository flagRepo;
+    private final SVMessagePollRepository pollRepo;
+    private final SVMessagePollVoteRepository pollVoteRepo;
+    private final SVMessengerE2EKeyRepository e2eKeyRepo;
     private final UserRepository userRepo;
     private final SVMessengerWebSocketHandler webSocketHandler;
     private final FollowService followService;
@@ -64,15 +95,27 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
     public SVMessengerServiceImpl(
             SVConversationRepository conversationRepo,
+            SVConversationParticipantRepository participantRepo,
             SVMessageRepository messageRepo,
             CallHistoryRepository callHistoryRepo,
+            SVMessageReactionRepository reactionRepo,
+            SVMessageFlagRepository flagRepo,
+            SVMessagePollRepository pollRepo,
+            SVMessagePollVoteRepository pollVoteRepo,
+            SVMessengerE2EKeyRepository e2eKeyRepo,
             UserRepository userRepo,
             SVMessengerWebSocketHandler webSocketHandler,
             FollowService followService,
             smolyanVote.smolyanVote.services.interfaces.MobilePushNotificationService pushNotificationService) {
         this.conversationRepo = conversationRepo;
+        this.participantRepo = participantRepo;
         this.messageRepo = messageRepo;
         this.callHistoryRepo = callHistoryRepo;
+        this.reactionRepo = reactionRepo;
+        this.flagRepo = flagRepo;
+        this.pollRepo = pollRepo;
+        this.pollVoteRepo = pollVoteRepo;
+        this.e2eKeyRepo = e2eKeyRepo;
         this.userRepo = userRepo;
         this.webSocketHandler = webSocketHandler;
         this.followService = followService;
@@ -83,22 +126,63 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Override
     @Transactional(readOnly = true)
     public List<SVConversationDTO> getAllConversations(UserEntity currentUser) {
+        return getAllConversations(currentUser, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SVConversationDTO> getAllConversations(UserEntity currentUser, boolean includeGroups) {
         try {
 
             List<SVConversationEntity> conversations = conversationRepo.findAllActiveByUser(currentUser.getId());
 
             // ✅ Mapping вътре в transaction scope
-            return conversations.stream()
+            List<SVConversationDTO> result = conversations.stream()
                     .map(conv -> {
                         UserEntity otherUser = conv.getOtherUser(currentUser);
                         boolean isTyping = isUserTyping(conv.getId(), otherUser.getId());
                         return SVConversationDTO.Mapper.toDTO(conv, currentUser, isTyping);
                     })
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            if (includeGroups) {
+                result.addAll(loadGroupConversations(currentUser));
+                result.sort((a, b) -> {
+                    Instant left = a.getLastMessageTime();
+                    Instant right = b.getLastMessageTime();
+                    if (left == null && right == null) return 0;
+                    if (left == null) return 1;
+                    if (right == null) return -1;
+                    return right.compareTo(left);
+                });
+            }
+
+            return result;
         } catch (Exception e) {
             log.error("Error getting conversations for user {}: {}", currentUser.getId(), e.getMessage(), e);
             throw new RuntimeException("Failed to load conversations", e);
         }
+    }
+
+    private List<SVConversationDTO> loadGroupConversations(UserEntity currentUser) {
+        List<SVConversationEntity> groups = conversationRepo.findActiveGroupsByUser(currentUser.getId());
+        if (groups.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = groups.stream().map(SVConversationEntity::getId).toList();
+        Map<Long, List<SVConversationParticipantEntity>> rosterByConversation =
+                participantRepo.findActiveByConversations(ids).stream()
+                        .collect(Collectors.groupingBy(p -> p.getConversation().getId()));
+
+        return groups.stream()
+                .map(group -> SVConversationDTO.Mapper.toGroupDTO(
+                        group,
+                        currentUser,
+                        rosterByConversation.getOrDefault(group.getId(), List.of()),
+                        isAnyoneTyping(group.getId(), currentUser.getId())))
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     // ✅ FIX: readOnly=true
@@ -109,8 +193,16 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-            if (!conversation.isParticipant(currentUser)) {
+            if (!hasAccess(conversation, currentUser)) {
                 throw new IllegalArgumentException("Access denied to this conversation");
+            }
+
+            if (conversation.isGroup()) {
+                return SVConversationDTO.Mapper.toGroupDTO(
+                        conversation,
+                        currentUser,
+                        participantRepo.findActiveByConversation(conversationId),
+                        isAnyoneTyping(conversationId, currentUser.getId()));
             }
 
             UserEntity otherUser = conversation.getOtherUser(currentUser);
@@ -174,13 +266,27 @@ public class SVMessengerServiceImpl implements SVMessengerService {
      */
     @Transactional
     public SVMessageDTO sendMessage(Long conversationId, String text, UserEntity sender, Long parentMessageId) {
+        return sendMessage(conversationId, text, sender, parentMessageId, null, null);
+    }
+
+    /**
+     * Send message with an optional attachment (image, file or voice note).
+     * Text may be blank when an attachment is present.
+     */
+    @Transactional
+    public SVMessageDTO sendMessage(Long conversationId, String text, UserEntity sender, Long parentMessageId,
+            String messageType, SVAttachmentDTO attachment) {
         try {
+            boolean hasAttachment = attachment != null && attachment.getUrl() != null
+                    && !attachment.getUrl().isBlank();
+            String body = text == null ? "" : text.trim();
+
             // Validation
-            if (text == null || text.trim().isEmpty()) {
+            if (body.isEmpty() && !hasAttachment) {
                 throw new IllegalArgumentException("Message cannot be empty");
             }
 
-            if (text.length() > 3000) {
+            if (body.length() > 3000) {
                 throw new IllegalArgumentException("Съобщението е твърде дълго (максимум 3000 символа)");
             }
 
@@ -188,12 +294,20 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-            if (!conversation.isParticipant(sender)) {
+            if (!hasAccess(conversation, sender)) {
                 throw new IllegalArgumentException("Access denied");
             }
 
             // Create message
-            SVMessageEntity message = new SVMessageEntity(conversation, sender, text.trim());
+            SVMessageEntity message = new SVMessageEntity(conversation, sender, body);
+            message.setMessageType(resolveMessageType(messageType, attachment));
+
+            if (hasAttachment) {
+                message.setAttachmentUrl(attachment.getUrl());
+                message.setAttachmentName(attachment.getName());
+                message.setAttachmentSize(attachment.getSize());
+                message.setAttachmentMime(attachment.getMime());
+            }
 
             // Set parent message if this is a reply
             if (parentMessageId != null) {
@@ -210,42 +324,50 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
             message = messageRepo.save(message);
 
+            String preview = body.isEmpty()
+                    ? attachmentPreview(message.getMessageType())
+                    : (body.startsWith("§E2E1§") ? "🔒 Криптирано съобщение" : body);
+
             // Update conversation
-            conversation.setLastMessagePreview(truncateText(text, 2900));
+            conversation.setLastMessagePreview(truncateText(preview, 2900));
             conversation.setUpdatedAt(LocalDateTime.now());
 
-            UserEntity otherUser = conversation.getOtherUser(sender);
+            List<UserEntity> recipients = recipientsOf(conversation, sender);
 
-            // ✅ Ако разговорът е бил hidden за получателя, го un-hide-ваме автоматично
-            // Защото когато някой ти пише, разговорът трябва да се покаже в твоя списък
-            if (conversation.isHiddenForUser(otherUser)) {
-                conversation.unhideForUser(otherUser);
+            if (conversation.isGroup()) {
+                // Групите държат unread и hidden в participants таблицата.
+                participantRepo.incrementUnreadForOthers(conversationId, sender.getId());
+                participantRepo.unhideForAll(conversationId);
+            } else {
+                for (UserEntity recipient : recipients) {
+                    // ✅ Ако разговорът е бил hidden за получателя, го un-hide-ваме автоматично
+                    // Защото когато някой ти пише, разговорът трябва да се покаже в твоя списък
+                    if (conversation.isHiddenForUser(recipient)) {
+                        conversation.unhideForUser(recipient);
+                    }
+                    conversation.incrementUnreadFor(recipient);
+                }
             }
-
-            conversation.incrementUnreadFor(otherUser);
 
             conversationRepo.save(conversation);
 
             // Convert to DTO
             SVMessageDTO messageDTO = SVMessageDTO.Mapper.toDTO(message);
 
-            // ✅ FACEBOOK MESSENGER STYLE: Изпращане на съобщението до И двамата (sender и
-            // recipient)
-            // Това гарантира реално време синхронизация на всички устройства (web и mobile)
-            String recipientPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
-                    ? otherUser.getEmail().toLowerCase()
-                    : otherUser.getUsername().toLowerCase();
-            String senderPrincipal = sender.getEmail() != null && !sender.getEmail().isBlank()
-                    ? sender.getEmail().toLowerCase()
-                    : sender.getUsername().toLowerCase();
+            // ✅ FACEBOOK MESSENGER STYLE: Изпращане на съобщението до всички участници
+            // (включително изпращача) за реално време синхронизация на всички устройства
+            String senderPrincipal = principalOf(sender);
 
-            // 1. Изпращане до получателя (за реално време получаване)
-            boolean recipientReceived = false;
-            try {
-                webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
-                recipientReceived = true;
-            } catch (Exception e) {
-                log.warn("WebSocket message failed for recipient {}: {}", recipientPrincipal, e.getMessage());
+            // 1. Изпращане до получателите (за реално време получаване)
+            boolean anyRecipientReceived = false;
+            for (UserEntity recipient : recipients) {
+                String recipientPrincipal = principalOf(recipient);
+                try {
+                    webSocketHandler.sendPrivateMessageToUsername(recipientPrincipal, messageDTO);
+                    anyRecipientReceived = true;
+                } catch (Exception e) {
+                    log.warn("WebSocket message failed for recipient {}: {}", recipientPrincipal, e.getMessage());
+                }
             }
 
             // 2. Изпращане до изпращача (за реално време синхронизация на всички негови
@@ -256,8 +378,8 @@ public class SVMessengerServiceImpl implements SVMessengerService {
                 log.error("WebSocket message failed for sender {}", senderPrincipal, e);
             }
 
-            // 3. Маркиране като delivered ако recipient е получил съобщението
-            if (recipientReceived) {
+            // 3. Маркиране като delivered ако поне един получател е взел съобщението
+            if (anyRecipientReceived) {
                 message.markAsDelivered();
                 messageRepo.save(message);
                 messageDTO.setIsDelivered(true);
@@ -279,18 +401,27 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // или не)
             // Това гарантира че потребителят получава нотификация дори ако е offline или в
             // background
-            try {
-                String senderName = sender.getRealName() != null && !sender.getRealName().isBlank()
-                        ? sender.getRealName()
-                        : sender.getUsername();
-                String messagePreview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
-                pushNotificationService.sendNewMessageNotification(
-                        otherUser.getId(),
-                        senderName,
-                        messagePreview,
-                        conversationId);
-            } catch (Exception pushError) {
-                log.error("❌ Failed to send push notification: {}", pushError.getMessage());
+            String senderName = sender.getRealName() != null && !sender.getRealName().isBlank()
+                    ? sender.getRealName()
+                    : sender.getUsername();
+            String pushTitle = conversation.isGroup()
+                    ? senderName + " · " + conversation.getTitle()
+                    : senderName;
+            String messagePreview = preview.length() > 100 ? preview.substring(0, 100) + "..." : preview;
+
+            for (UserEntity recipient : recipients) {
+                if (isMutedFor(conversation, recipient)) {
+                    continue;
+                }
+                try {
+                    pushNotificationService.sendNewMessageNotification(
+                            recipient.getId(),
+                            pushTitle,
+                            messagePreview,
+                            conversationId);
+                } catch (Exception pushError) {
+                    log.error("❌ Failed to send push notification: {}", pushError.getMessage());
+                }
             }
 
             return messageDTO;
@@ -301,6 +432,356 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         }
     }
 
+    /** Falls back to the mime type when the client doesn't say what it sent. */
+    private MessageType resolveMessageType(String requested, SVAttachmentDTO attachment) {
+        if (requested != null && !requested.isBlank()) {
+            try {
+                return MessageType.valueOf(requested.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                // fall through to mime sniffing
+            }
+        }
+        if (attachment == null || attachment.getUrl() == null || attachment.getUrl().isBlank()) {
+            return MessageType.TEXT;
+        }
+        String mime = attachment.getMime() == null ? "" : attachment.getMime();
+        if (mime.startsWith("image/")) return MessageType.IMAGE;
+        if (mime.startsWith("audio/")) return MessageType.AUDIO;
+        return MessageType.FILE;
+    }
+
+    // ========== REACTIONS / PIN / STAR / FORWARD ==========
+
+    /** Batch-loads reactions and pin/star flags so a page costs three queries, not N. */
+    private void enrichWithReactionsAndFlags(List<SVMessageDTO> messages, UserEntity currentUser) {
+        if (messages.isEmpty()) return;
+
+        List<Long> ids = messages.stream().map(SVMessageDTO::getId).collect(Collectors.toList());
+        Map<Long, List<SVReactionSummaryDTO>> byMessage = summariseReactions(ids, currentUser);
+        Set<Long> pinned = new HashSet<>(flagRepo.findFlaggedMessageIds(
+                currentUser.getId(), SVMessageFlagEntity.Kind.PINNED, ids));
+        Set<Long> starred = new HashSet<>(flagRepo.findFlaggedMessageIds(
+                currentUser.getId(), SVMessageFlagEntity.Kind.STARRED, ids));
+
+        List<Long> pollMessageIds = messages.stream()
+                .filter(dto -> MessageType.POLL.name().equals(dto.getMessageType()))
+                .map(SVMessageDTO::getId)
+                .collect(Collectors.toList());
+        Map<Long, SVPollDTO> polls = pollMessageIds.isEmpty()
+                ? Map.of()
+                : summarisePolls(pollMessageIds, currentUser);
+
+        for (SVMessageDTO dto : messages) {
+            dto.setReactions(byMessage.getOrDefault(dto.getId(), List.of()));
+            dto.setIsPinned(pinned.contains(dto.getId()));
+            dto.setIsStarred(starred.contains(dto.getId()));
+            dto.setPoll(polls.get(dto.getId()));
+        }
+    }
+
+    private Map<Long, SVPollDTO> summarisePolls(List<Long> messageIds, UserEntity currentUser) {
+        Map<Long, Integer> votesByOption = new HashMap<>();
+        Map<Long, Long> myOptionByMessage = new HashMap<>();
+
+        for (SVMessagePollVoteEntity vote : pollVoteRepo.findByMessageIds(messageIds)) {
+            votesByOption.merge(vote.getOption().getId(), 1, Integer::sum);
+            if (vote.getUser().getId().equals(currentUser.getId())) {
+                myOptionByMessage.put(vote.getMessageId(), vote.getOption().getId());
+            }
+        }
+
+        Map<Long, List<SVPollDTO.Option>> optionsByMessage = new LinkedHashMap<>();
+        Map<Long, String> questionByMessage = new HashMap<>();
+        for (SVMessagePollOptionEntity option : pollRepo.findByMessageIds(messageIds)) {
+            Long messageId = option.getMessage().getId();
+            questionByMessage.putIfAbsent(messageId, option.getMessage().getMessageText());
+            optionsByMessage.computeIfAbsent(messageId, k -> new ArrayList<>())
+                    .add(new SVPollDTO.Option(option.getId(), option.getOptionText(),
+                            votesByOption.getOrDefault(option.getId(), 0)));
+        }
+
+        Map<Long, SVPollDTO> result = new HashMap<>();
+        optionsByMessage.forEach((messageId, options) -> {
+            int total = options.stream().mapToInt(SVPollDTO.Option::getVotes).sum();
+            result.put(messageId, new SVPollDTO(
+                    questionByMessage.get(messageId), options, total, myOptionByMessage.get(messageId)));
+        });
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public SVMessageDTO createPoll(Long conversationId, String question, List<String> options,
+                                   UserEntity sender) {
+        List<String> cleaned = options == null ? List.of()
+                : options.stream()
+                        .filter(option -> option != null && !option.isBlank())
+                        .map(option -> option.trim().length() > 120 ? option.trim().substring(0, 120) : option.trim())
+                        .distinct()
+                        .collect(Collectors.toList());
+        if (cleaned.size() < 2 || cleaned.size() > 4) {
+            throw new IllegalArgumentException("Анкетата трябва да има между 2 и 4 различни опции");
+        }
+
+        SVMessageDTO created = sendMessage(conversationId, question, sender, null,
+                MessageType.POLL.name(), null);
+
+        SVMessageEntity message = messageRepo.findById(created.getId())
+                .orElseThrow(() -> new IllegalStateException("Poll message vanished"));
+        for (int i = 0; i < cleaned.size(); i++) {
+            pollRepo.save(new SVMessagePollOptionEntity(message, cleaned.get(i), i));
+        }
+        pollRepo.flush();
+
+        created.setPoll(summarisePolls(List.of(created.getId()), sender).get(created.getId()));
+        return created;
+    }
+
+    @Override
+    @Transactional
+    public SVPollDTO votePoll(Long optionId, UserEntity currentUser) {
+        SVMessagePollOptionEntity option = pollRepo.findById(optionId)
+                .orElseThrow(() -> new IllegalArgumentException("Опцията не съществува"));
+        SVMessageEntity message = option.getMessage();
+        SVConversationEntity conversation = message.getConversation();
+        if (!hasAccess(conversation, currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        pollVoteRepo.findByMessageIdAndUserId(message.getId(), currentUser.getId())
+                .ifPresentOrElse(existing -> {
+                    if (existing.getOption().getId().equals(optionId)) {
+                        pollVoteRepo.delete(existing);
+                    } else {
+                        existing.setOption(option);
+                        pollVoteRepo.save(existing);
+                    }
+                }, () -> pollVoteRepo.save(new SVMessagePollVoteEntity(option, currentUser)));
+        pollVoteRepo.flush();
+
+        SVPollDTO forCaller = summarisePolls(List.of(message.getId()), currentUser).get(message.getId());
+
+        UserEntity otherUser = conversation.getOtherUser(currentUser);
+        if (otherUser != null) {
+            SVPollDTO forPeer = summarisePolls(List.of(message.getId()), otherUser).get(message.getId());
+            try {
+                webSocketHandler.sendPollUpdate(principalOf(otherUser), conversation.getId(),
+                        message.getId(), forPeer);
+            } catch (Exception e) {
+                log.warn("Failed to broadcast poll update for message {}: {}", message.getId(), e.getMessage());
+            }
+        }
+
+        return forCaller;
+    }
+
+    private Map<Long, List<SVReactionSummaryDTO>> summariseReactions(List<Long> messageIds, UserEntity currentUser) {
+        if (messageIds.isEmpty()) return Map.of();
+
+        Map<Long, Map<String, List<String>>> grouped = new LinkedHashMap<>();
+        Map<Long, Set<String>> mine = new HashMap<>();
+
+        for (SVMessageReactionEntity reaction : reactionRepo.findByMessageIds(messageIds)) {
+            Long messageId = reaction.getMessage().getId();
+            grouped.computeIfAbsent(messageId, k -> new LinkedHashMap<>())
+                    .computeIfAbsent(reaction.getEmoji(), k -> new ArrayList<>())
+                    .add(reaction.getUser().getUsername());
+            if (reaction.getUser().getId().equals(currentUser.getId())) {
+                mine.computeIfAbsent(messageId, k -> new HashSet<>()).add(reaction.getEmoji());
+            }
+        }
+
+        Map<Long, List<SVReactionSummaryDTO>> result = new HashMap<>();
+        grouped.forEach((messageId, emojis) -> {
+            Set<String> own = mine.getOrDefault(messageId, Set.of());
+            List<SVReactionSummaryDTO> summaries = emojis.entrySet().stream()
+                    .map(entry -> new SVReactionSummaryDTO(
+                            entry.getKey(),
+                            entry.getValue().size(),
+                            entry.getValue(),
+                            own.contains(entry.getKey())))
+                    .collect(Collectors.toList());
+            result.put(messageId, summaries);
+        });
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public List<SVReactionSummaryDTO> toggleReaction(Long messageId, String emoji, UserEntity currentUser) {
+        String normalized = emoji == null ? "" : emoji.trim();
+        if (normalized.isEmpty() || normalized.length() > 16) {
+            throw new IllegalArgumentException("Невалидна реакция");
+        }
+
+        SVMessageEntity message = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        SVConversationEntity conversation = message.getConversation();
+        if (!hasAccess(conversation, currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        reactionRepo.findByMessageIdAndUserIdAndEmoji(messageId, currentUser.getId(), normalized)
+                .ifPresentOrElse(
+                        reactionRepo::delete,
+                        () -> reactionRepo.save(new SVMessageReactionEntity(message, currentUser, normalized)));
+        reactionRepo.flush();
+
+        List<SVReactionSummaryDTO> forCaller =
+                summariseReactions(List.of(messageId), currentUser).getOrDefault(messageId, List.of());
+
+        broadcastReactions(currentUser, conversation.getId(), messageId, forCaller);
+        // "reactedByMe" е различно за всеки, затова обобщаваме поотделно за всеки получател.
+        for (UserEntity peer : recipientsOf(conversation, currentUser)) {
+            List<SVReactionSummaryDTO> forPeer =
+                    summariseReactions(List.of(messageId), peer).getOrDefault(messageId, List.of());
+            broadcastReactions(peer, conversation.getId(), messageId, forPeer);
+        }
+
+        return forCaller;
+    }
+
+    private void broadcastReactions(UserEntity recipient, Long conversationId, Long messageId,
+                                    List<SVReactionSummaryDTO> reactions) {
+        try {
+            webSocketHandler.sendReactionUpdate(principalOf(recipient), conversationId, messageId, reactions);
+        } catch (Exception e) {
+            log.warn("Failed to broadcast reaction for message {}: {}", messageId, e.getMessage());
+        }
+    }
+
+    private String principalOf(UserEntity user) {
+        return user.getEmail() != null && !user.getEmail().isBlank()
+                ? user.getEmail().toLowerCase()
+                : user.getUsername().toLowerCase();
+    }
+
+    @Override
+    @Transactional
+    public boolean toggleFlag(Long messageId, UserEntity currentUser, SVMessageFlagEntity.Kind kind) {
+        SVMessageEntity message = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        if (!hasAccess(message.getConversation(), currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        var existing = flagRepo.findByMessageIdAndUserIdAndKind(messageId, currentUser.getId(), kind);
+        if (existing.isPresent()) {
+            flagRepo.delete(existing.get());
+            return false;
+        }
+        flagRepo.save(new SVMessageFlagEntity(message, currentUser, kind));
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SVMessageDTO> getFlaggedMessages(Long conversationId, UserEntity currentUser,
+                                                 SVMessageFlagEntity.Kind kind) {
+        List<SVMessageFlagEntity> flags = conversationId == null
+                ? flagRepo.findAllForUser(currentUser.getId(), kind)
+                : flagRepo.findByConversation(conversationId, currentUser.getId(), kind);
+
+        List<SVMessageDTO> dtos = flags.stream()
+                .map(flag -> SVMessageDTO.Mapper.toDTO(flag.getMessage()))
+                .collect(Collectors.toList());
+        enrichWithReactionsAndFlags(dtos, currentUser);
+        return dtos;
+    }
+
+    @Override
+    @Transactional
+    public SVMessageDTO forwardMessage(Long messageId, Long targetConversationId, UserEntity currentUser) {
+        SVMessageEntity source = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        if (!hasAccess(source.getConversation(), currentUser)) {
+            throw new IllegalArgumentException("Access denied to the source conversation");
+        }
+
+        SVAttachmentDTO attachment = source.getAttachmentUrl() == null ? null
+                : new SVAttachmentDTO(source.getAttachmentUrl(), source.getAttachmentName(),
+                        source.getAttachmentSize(), source.getAttachmentMime());
+
+        SVMessageDTO forwarded = sendMessage(targetConversationId, source.getMessageText(), currentUser, null,
+                source.getMessageType() == null ? null : source.getMessageType().name(), attachment);
+
+        messageRepo.findById(forwarded.getId()).ifPresent(entity -> {
+            entity.setIsForwarded(true);
+            messageRepo.save(entity);
+        });
+        forwarded.setIsForwarded(true);
+        return forwarded;
+    }
+
+    // ========== GLOBAL SEARCH / MUTE ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SVMessageDTO> searchMessages(String query, int page, int size, UserEntity currentUser) {
+        String needle = query == null ? "" : query.trim();
+        if (needle.length() < 2) {
+            return Page.empty();
+        }
+
+        Pageable pageable = PageRequest.of(page, Math.min(size, 50));
+        Page<SVMessageDTO> results = messageRepo
+                .searchAcrossConversations(currentUser.getId(), needle, pageable)
+                .map(SVMessageDTO.Mapper::toDTO);
+        enrichWithReactionsAndFlags(results.getContent(), currentUser);
+        return results;
+    }
+
+    @Override
+    @Transactional
+    public boolean toggleMute(Long conversationId, UserEntity currentUser) {
+        SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        if (!hasAccess(conversation, currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        if (conversation.isGroup()) {
+            SVConversationParticipantEntity me = participantRepo
+                    .findByConversationAndUser(conversationId, currentUser.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Access denied"));
+            me.setMuted(!Boolean.TRUE.equals(me.getMuted()));
+            participantRepo.save(me);
+            return me.getMuted();
+        }
+        boolean muted = conversation.toggleMuteForUser(currentUser);
+        conversationRepo.save(conversation);
+        return muted;
+    }
+
+    @Override
+    @Transactional
+    public SVE2EPublicKeyDTO upsertE2EPublicKey(UserEntity user, String publicJwk) {
+        if (publicJwk == null || publicJwk.isBlank() || publicJwk.length() > 4000) {
+            throw new IllegalArgumentException("Невалиден публичен ключ");
+        }
+        SVMessengerE2EKeyEntity entity = e2eKeyRepo.findByUserId(user.getId())
+                .orElseGet(() -> new SVMessengerE2EKeyEntity(user, publicJwk));
+        entity.setPublicJwk(publicJwk.trim());
+        e2eKeyRepo.save(entity);
+        return new SVE2EPublicKeyDTO(user.getId(), entity.getPublicJwk());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SVE2EPublicKeyDTO getE2EPublicKey(Long userId) {
+        return e2eKeyRepo.findByUserId(userId)
+                .map(key -> new SVE2EPublicKeyDTO(userId, key.getPublicJwk()))
+                .orElse(null);
+    }
+
+    private String attachmentPreview(MessageType type) {
+        return switch (type) {
+            case IMAGE -> "📷 Снимка";
+            case AUDIO -> "🎤 Гласово съобщение";
+            case FILE -> "📎 Файл";
+            default -> "";
+        };
+    }
+
     // ✅ FIX: readOnly + proper pagination
     @Override
     @Transactional(readOnly = true)
@@ -309,7 +790,7 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-            if (!conversation.isParticipant(currentUser)) {
+            if (!hasAccess(conversation, currentUser)) {
                 throw new IllegalArgumentException("Access denied");
             }
 
@@ -323,7 +804,9 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             Page<SVMessageEntity> messagesPage = messageRepo.findByConversationId(conversationId, pageable);
 
             // Map inside transaction
-            return messagesPage.map(SVMessageDTO.Mapper::toDTO);
+            Page<SVMessageDTO> dtoPage = messagesPage.map(SVMessageDTO.Mapper::toDTO);
+            enrichWithReactionsAndFlags(dtoPage.getContent(), currentUser);
+            return dtoPage;
 
         } catch (Exception e) {
             log.error("Error getting messages: {}", e.getMessage(), e);
@@ -342,30 +825,24 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-            if (!conversation.isParticipant(reader)) {
+            if (!hasAccess(conversation, reader)) {
                 throw new IllegalArgumentException("Access denied");
             }
 
             messageRepo.markAllAsRead(conversationId, reader.getId(), LocalDateTime.now());
-            conversationRepo.resetUnreadCount(conversationId, reader.getId());
+            if (conversation.isGroup()) {
+                participantRepo.resetUnread(conversationId, reader.getId());
+            } else {
+                conversationRepo.resetUnreadCount(conversationId, reader.getId());
+            }
 
             // Send bulk read receipt (по principal name - нормализирано на lowercase)
-            UserEntity otherUser = conversation.getOtherUser(reader);
-            if (otherUser != null) {
+            for (UserEntity recipient : recipientsOf(conversation, reader)) {
                 try {
-                    String otherPrincipal = otherUser.getEmail() != null && !otherUser.getEmail().isBlank()
-                            ? otherUser.getEmail().toLowerCase()
-                            : otherUser.getUsername().toLowerCase();
-                    if (otherPrincipal != null && !otherPrincipal.isBlank()) {
-                        webSocketHandler.sendBulkReadReceipt(otherPrincipal, conversationId);
-                    } else {
-                        // Skip - other user has no valid principal name
-                    }
+                    webSocketHandler.sendBulkReadReceipt(principalOf(recipient), conversationId);
                 } catch (Exception e) {
                     log.error("Failed to send read receipt", e);
                 }
-            } else {
-                // Skip - other user is null
             }
 
         } catch (Exception e) {
@@ -405,13 +882,50 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Override
     @Transactional
     public void markMessageAsRead(Long messageId, UserEntity reader) {
-        // Implementation
+        SVMessageEntity message = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        SVConversationEntity conversation = message.getConversation();
+
+        if (!hasAccess(conversation, reader)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        if (message.getSender().getId().equals(reader.getId()) || Boolean.TRUE.equals(message.getIsRead())) {
+            return;
+        }
+
+        LocalDateTime readAt = LocalDateTime.now();
+        messageRepo.markAsRead(messageId, readAt);
+
+        try {
+            webSocketHandler.sendReadReceipt(principalOf(message.getSender()), messageId, conversation.getId());
+        } catch (Exception e) {
+            log.warn("Failed to send read receipt for message {}: {}", messageId, e.getMessage());
+        }
     }
 
+    /**
+     * Изтриването е строго едностранно: разговорът изчезва само от списъка на
+     * текущия потребител. Нищо не се маха от базата — насрещната страна вижда
+     * цялата кореспонденция, а историята остава непокътната за одит.
+     */
     @Override
     @Transactional
     public void deleteConversation(Long conversationId, UserEntity currentUser) {
-        // Implementation
+        SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+        if (!hasAccess(conversation, currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        if (conversation.isGroup()) {
+            leaveGroup(conversationId, currentUser);
+            return;
+        }
+
+        conversation.hideForUser(currentUser);
+        conversation.resetUnreadFor(currentUser);
+        conversationRepo.save(conversation);
     }
 
     @Override
@@ -421,8 +935,17 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         SVConversationEntity conversation = conversationRepo.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-        if (!conversation.isParticipant(currentUser)) {
+        if (!hasAccess(conversation, currentUser)) {
             throw new IllegalArgumentException("User is not participant in this conversation");
+        }
+
+        if (conversation.isGroup()) {
+            participantRepo.findByConversationAndUser(conversationId, currentUser.getId())
+                    .ifPresent(participant -> {
+                        participant.setHidden(true);
+                        participantRepo.save(participant);
+                    });
+            return;
         }
 
         // ✅ FIX: Едностранно hiding - само за текущия потребител
@@ -434,22 +957,314 @@ public class SVMessengerServiceImpl implements SVMessengerService {
     @Override
     @Transactional
     public void deleteMessage(Long messageId, UserEntity currentUser) {
-        // Implementation
+        SVMessageEntity message = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+
+        if (!message.getSender().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Може да триете само своите съобщения");
+        }
+
+        messageRepo.softDelete(messageId);
+        reactionRepo.deleteByMessageId(messageId);
+
+        broadcastMessageMutation(message.getConversation(), currentUser, Map.of(
+                "type", "MESSAGE_DELETED",
+                "conversationId", message.getConversation().getId(),
+                "messageId", messageId));
     }
 
     @Override
     @Transactional
     public SVMessageDTO editMessage(Long messageId, String newText, UserEntity currentUser) {
-        // Implementation
-        return null;
+        String body = newText == null ? "" : newText.trim();
+        if (body.isEmpty()) {
+            throw new IllegalArgumentException("Съобщението не може да е празно");
+        }
+        if (body.length() > 3000) {
+            throw new IllegalArgumentException("Съобщението е твърде дълго (максимум 3000 символа)");
+        }
+
+        SVMessageEntity message = messageRepo.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+
+        if (!message.getSender().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Може да редактирате само своите съобщения");
+        }
+        if (Boolean.TRUE.equals(message.getIsDeleted())) {
+            throw new IllegalArgumentException("Изтрито съобщение не може да се редактира");
+        }
+
+        LocalDateTime editedAt = LocalDateTime.now();
+        messageRepo.editMessage(messageId, body, editedAt);
+
+        message.setMessageText(body);
+        message.setIsEdited(true);
+        message.setEditedAt(editedAt);
+
+        SVConversationEntity conversation = message.getConversation();
+        // Ако това е последното съобщение, обновяваме и preview-то на разговора.
+        List<SVMessageEntity> last = messageRepo.findLastMessage(conversation.getId(), PageRequest.of(0, 1));
+        if (!last.isEmpty() && last.get(0).getId().equals(messageId)) {
+            conversation.setLastMessagePreview(truncateText(body, 2900));
+            conversationRepo.save(conversation);
+        }
+
+        SVMessageDTO dto = SVMessageDTO.Mapper.toDTO(message);
+        broadcastMessageMutation(conversation, currentUser, Map.of(
+                "type", "MESSAGE_EDITED",
+                "conversationId", conversation.getId(),
+                "message", dto));
+        return dto;
+    }
+
+    /** Pushes an edit/delete event to every participant, including other devices of the actor. */
+    private void broadcastMessageMutation(SVConversationEntity conversation, UserEntity actor, Map<String, Object> payload) {
+        List<UserEntity> audience = new ArrayList<>(recipientsOf(conversation, actor));
+        audience.add(actor);
+        for (UserEntity user : audience) {
+            try {
+                webSocketHandler.sendMessageMutation(principalOf(user), payload);
+            } catch (Exception e) {
+                log.warn("Failed to broadcast message mutation: {}", e.getMessage());
+            }
+        }
+    }
+
+    // ========== ГРУПОВИ РАЗГОВОРИ ==========
+
+    @Override
+    @Transactional
+    public SVConversationDTO createGroup(UserEntity creator, String title, List<Long> memberIds, String imageUrl) {
+        String name = title == null ? "" : title.trim();
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("Заглавието е задължително");
+        }
+
+        Set<Long> uniqueMembers = new java.util.LinkedHashSet<>(memberIds == null ? List.of() : memberIds);
+        uniqueMembers.remove(creator.getId());
+        if (uniqueMembers.isEmpty()) {
+            throw new IllegalArgumentException("Изберете поне един участник");
+        }
+        if (uniqueMembers.size() > 99) {
+            throw new IllegalArgumentException("Групата може да има най-много 100 участници");
+        }
+
+        List<UserEntity> members = userRepo.findAllById(uniqueMembers);
+        if (members.size() != uniqueMembers.size()) {
+            throw new IllegalArgumentException("Част от избраните потребители не съществуват");
+        }
+
+        SVConversationEntity group = SVConversationEntity.newGroup(creator, name);
+        group.setImageUrl(imageUrl);
+        group = conversationRepo.save(group);
+
+        List<SVConversationParticipantEntity> roster = new ArrayList<>();
+        roster.add(new SVConversationParticipantEntity(group, creator, ParticipantRole.OWNER));
+        for (UserEntity member : members) {
+            roster.add(new SVConversationParticipantEntity(group, member, ParticipantRole.MEMBER));
+        }
+        participantRepo.saveAll(roster);
+
+        notifyGroupChanged(group, roster);
+        return SVConversationDTO.Mapper.toGroupDTO(group, creator, roster, false);
+    }
+
+    @Override
+    @Transactional
+    public SVConversationDTO updateGroup(Long conversationId, UserEntity currentUser, String title, String imageUrl) {
+        SVConversationEntity group = requireGroup(conversationId);
+        requireManager(conversationId, currentUser);
+
+        if (title != null && !title.isBlank()) {
+            group.setTitle(title.trim());
+        }
+        if (imageUrl != null) {
+            group.setImageUrl(imageUrl.isBlank() ? null : imageUrl);
+        }
+        conversationRepo.save(group);
+
+        List<SVConversationParticipantEntity> roster = participantRepo.findActiveByConversation(conversationId);
+        notifyGroupChanged(group, roster);
+        return SVConversationDTO.Mapper.toGroupDTO(group, currentUser, roster, false);
+    }
+
+    @Override
+    @Transactional
+    public SVConversationDTO addGroupMembers(Long conversationId, UserEntity currentUser, List<Long> memberIds) {
+        SVConversationEntity group = requireGroup(conversationId);
+        requireManager(conversationId, currentUser);
+
+        List<SVConversationParticipantEntity> roster = participantRepo.findActiveByConversation(conversationId);
+        Set<Long> present = roster.stream().map(p -> p.getUser().getId()).collect(Collectors.toSet());
+
+        for (Long memberId : new java.util.LinkedHashSet<>(memberIds == null ? List.<Long>of() : memberIds)) {
+            if (present.contains(memberId)) {
+                continue;
+            }
+            UserEntity user = userRepo.findById(memberId)
+                    .orElseThrow(() -> new IllegalArgumentException("Потребителят не съществува"));
+
+            // Ако е бил в групата и я е напуснал, просто го активираме отново.
+            SVConversationParticipantEntity participant = participantRepo
+                    .findByConversationAndUser(conversationId, memberId)
+                    .orElseGet(() -> new SVConversationParticipantEntity(group, user, ParticipantRole.MEMBER));
+            participant.setLeftAt(null);
+            participant.setHidden(false);
+            participant.setUnreadCount(0);
+            participantRepo.save(participant);
+        }
+
+        List<SVConversationParticipantEntity> updated = participantRepo.findActiveByConversation(conversationId);
+        if (updated.size() > 100) {
+            throw new IllegalArgumentException("Групата може да има най-много 100 участници");
+        }
+
+        notifyGroupChanged(group, updated);
+        return SVConversationDTO.Mapper.toGroupDTO(group, currentUser, updated, false);
+    }
+
+    @Override
+    @Transactional
+    public SVConversationDTO removeGroupMember(Long conversationId, UserEntity currentUser, Long memberId) {
+        SVConversationEntity group = requireGroup(conversationId);
+        requireManager(conversationId, currentUser);
+
+        SVConversationParticipantEntity target = participantRepo
+                .findByConversationAndUser(conversationId, memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Участникът не е в групата"));
+
+        if (target.getRole() == ParticipantRole.OWNER) {
+            throw new IllegalArgumentException("Собственикът на групата не може да бъде премахнат");
+        }
+
+        target.setLeftAt(LocalDateTime.now());
+        participantRepo.save(target);
+
+        List<SVConversationParticipantEntity> roster = participantRepo.findActiveByConversation(conversationId);
+        notifyGroupChanged(group, roster);
+        notifyGroupChanged(group, List.of(target));
+        return SVConversationDTO.Mapper.toGroupDTO(group, currentUser, roster, false);
+    }
+
+    @Override
+    @Transactional
+    public void leaveGroup(Long conversationId, UserEntity currentUser) {
+        SVConversationEntity group = requireGroup(conversationId);
+
+        SVConversationParticipantEntity me = participantRepo
+                .findByConversationAndUser(conversationId, currentUser.getId())
+                .filter(SVConversationParticipantEntity::isActive)
+                .orElseThrow(() -> new IllegalArgumentException("Не сте участник в тази група"));
+
+        me.setLeftAt(LocalDateTime.now());
+        participantRepo.save(me);
+
+        List<SVConversationParticipantEntity> roster = participantRepo.findActiveByConversation(conversationId);
+
+        // Собственикът предава правата на най-стария администратор или член.
+        if (me.getRole() == ParticipantRole.OWNER && !roster.isEmpty()) {
+            SVConversationParticipantEntity heir = roster.stream()
+                    .min(java.util.Comparator.comparing(SVConversationParticipantEntity::getJoinedAt))
+                    .orElseThrow();
+            heir.setRole(ParticipantRole.OWNER);
+            participantRepo.save(heir);
+        }
+
+        notifyGroupChanged(group, roster);
+        notifyGroupChanged(group, List.of(me));
+    }
+
+    @Override
+    @Transactional
+    public SVConversationDTO setGroupRole(Long conversationId, UserEntity currentUser, Long memberId, String role) {
+        SVConversationEntity group = requireGroup(conversationId);
+
+        SVConversationParticipantEntity me = participantRepo
+                .findByConversationAndUser(conversationId, currentUser.getId())
+                .filter(SVConversationParticipantEntity::isActive)
+                .orElseThrow(() -> new IllegalArgumentException("Access denied"));
+        if (me.getRole() != ParticipantRole.OWNER) {
+            throw new IllegalArgumentException("Само собственикът може да променя роли");
+        }
+
+        ParticipantRole target;
+        try {
+            target = ParticipantRole.valueOf(role == null ? "" : role.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Невалидна роля");
+        }
+        if (target == ParticipantRole.OWNER) {
+            throw new IllegalArgumentException("Групата може да има само един собственик");
+        }
+
+        SVConversationParticipantEntity participant = participantRepo
+                .findByConversationAndUser(conversationId, memberId)
+                .filter(SVConversationParticipantEntity::isActive)
+                .orElseThrow(() -> new IllegalArgumentException("Участникът не е в групата"));
+        if (participant.getRole() == ParticipantRole.OWNER) {
+            throw new IllegalArgumentException("Ролята на собственика не може да се променя");
+        }
+
+        participant.setRole(target);
+        participantRepo.save(participant);
+
+        List<SVConversationParticipantEntity> roster = participantRepo.findActiveByConversation(conversationId);
+        notifyGroupChanged(group, roster);
+        return SVConversationDTO.Mapper.toGroupDTO(group, currentUser, roster, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SVParticipantDTO> getGroupParticipants(Long conversationId, UserEntity currentUser) {
+        requireGroup(conversationId);
+        if (!isParticipant(conversationId, currentUser)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+        return participantRepo.findActiveByConversation(conversationId).stream()
+                .map(SVParticipantDTO::from)
+                .toList();
+    }
+
+    private SVConversationEntity requireGroup(Long conversationId) {
+        SVConversationEntity conversation = conversationRepo.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        if (!conversation.isGroup()) {
+            throw new IllegalArgumentException("Разговорът не е група");
+        }
+        return conversation;
+    }
+
+    private void requireManager(Long conversationId, UserEntity user) {
+        boolean allowed = participantRepo.findByConversationAndUser(conversationId, user.getId())
+                .filter(SVConversationParticipantEntity::isActive)
+                .map(SVConversationParticipantEntity::canManage)
+                .orElse(false);
+        if (!allowed) {
+            throw new IllegalArgumentException("Нямате права да управлявате тази група");
+        }
+    }
+
+    /** Tells every listed member to refetch their conversation list. */
+    private void notifyGroupChanged(SVConversationEntity group, List<SVConversationParticipantEntity> audience) {
+        Map<String, Object> payload = Map.of(
+                "type", "GROUP_UPDATED",
+                "conversationId", group.getId());
+        for (SVConversationParticipantEntity participant : audience) {
+            try {
+                webSocketHandler.sendMessageMutation(principalOf(participant.getUser()), payload);
+            } catch (Exception e) {
+                log.warn("Failed to notify group member: {}", e.getMessage());
+            }
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public Long getTotalUnreadCount(UserEntity user) {
         try {
-            Long count = conversationRepo.getTotalUnreadCount(user.getId());
-            return count != null ? count : 0L;
+            Long direct = conversationRepo.getTotalUnreadCount(user.getId());
+            Long groups = participantRepo.getTotalGroupUnread(user.getId());
+            return (direct != null ? direct : 0L) + (groups != null ? groups : 0L);
         } catch (Exception e) {
             log.error("Error getting unread count: {}", e.getMessage());
             return 0L;
@@ -458,28 +1273,43 @@ public class SVMessengerServiceImpl implements SVMessengerService {
 
     @Override
     @Transactional(readOnly = true)
-    public Integer getUnreadCount(Long conversationId, UserEntity user) {
-        SVConversationEntity conversation = conversationRepo.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-        return conversation.getUnreadCountFor(user);
+    public boolean isParticipant(Long conversationId, UserEntity user) {
+        return conversationRepo.findById(conversationId)
+                .map(conversation -> hasAccess(conversation, user))
+                .orElse(false);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Long getMessageCount(Long conversationId) {
-        return messageRepo.countByConversation(conversationId);
+    /**
+     * Membership check that understands both shapes: DIRECT chats use the legacy
+     * user1/user2 columns, groups use the participants table.
+     */
+    private boolean hasAccess(SVConversationEntity conversation, UserEntity user) {
+        if (conversation.isGroup()) {
+            return participantRepo.findByConversationAndUser(conversation.getId(), user.getId())
+                    .filter(SVConversationParticipantEntity::isActive)
+                    .isPresent();
+        }
+        return conversation.isParticipant(user);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Long getConversationCount(UserEntity user) {
-        return conversationRepo.countActiveByUser(user.getId());
+    /** Everyone who should receive a new message in this conversation, minus the sender. */
+    private List<UserEntity> recipientsOf(SVConversationEntity conversation, UserEntity sender) {
+        if (conversation.isGroup()) {
+            return participantRepo.findActiveByConversation(conversation.getId()).stream()
+                    .map(SVConversationParticipantEntity::getUser)
+                    .filter(u -> !u.getId().equals(sender.getId()))
+                    .toList();
+        }
+        return List.of(conversation.getOtherUser(sender));
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public boolean conversationExists(Long userId1, Long userId2) {
-        return conversationRepo.existsBetweenUsers(userId1, userId2);
+    private boolean isMutedFor(SVConversationEntity conversation, UserEntity user) {
+        if (conversation.isGroup()) {
+            return participantRepo.findByConversationAndUser(conversation.getId(), user.getId())
+                    .map(p -> Boolean.TRUE.equals(p.getMuted()))
+                    .orElse(false);
+        }
+        return conversation.isMutedForUser(user);
     }
 
     @Override
@@ -522,6 +1352,17 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         }
 
         return true;
+    }
+
+    /** True when anyone other than {@code exceptUserId} is currently typing in the conversation. */
+    private boolean isAnyoneTyping(Long conversationId, Long exceptUserId) {
+        Map<Long, LocalDateTime> conversationTyping = typingStatuses.get(conversationId);
+        if (conversationTyping == null) {
+            return false;
+        }
+        return conversationTyping.keySet().stream()
+                .filter(id -> !id.equals(exceptUserId))
+                .anyMatch(id -> isUserTyping(conversationId, id));
     }
 
     @Override
@@ -622,25 +1463,6 @@ public class SVMessengerServiceImpl implements SVMessengerService {
         return text.substring(0, maxLength) + "...";
     }
 
-    /**
-     * Маркирай съобщение като доставено
-     * Извиква се автоматично когато WebSocket успешно достави съобщението
-     */
-    @Transactional
-    @Override
-    public void markMessageAsDelivered(Long messageId) {
-        try {
-            SVMessageEntity message = messageRepo.findById(messageId)
-                    .orElseThrow(() -> new IllegalArgumentException("Message not found"));
-
-            message.markAsDelivered();
-            messageRepo.save(message);
-
-        } catch (Exception e) {
-            log.error("Error marking message as delivered: {}", e.getMessage(), e);
-        }
-    }
-
     // ========== VOICE CALLS ==========
 
     @Override
@@ -649,6 +1471,10 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Валидирай че conversation съществува и user е participant
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+            if (conversation.isGroup()) {
+                throw new IllegalArgumentException("Обажданията в групови чатове още не се поддържат");
+            }
 
             if (!conversation.isParticipant(currentUser)) {
                 throw new IllegalArgumentException("User is not a participant in this conversation");
@@ -810,6 +1636,10 @@ public class SVMessengerServiceImpl implements SVMessengerService {
             // Validate user is participant
             SVConversationEntity conversation = conversationRepo.findById(conversationId)
                     .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+            if (conversation.isGroup()) {
+                return List.of();
+            }
 
             if (!conversation.isParticipant(currentUser)) {
                 throw new IllegalArgumentException("User is not a participant in this conversation");

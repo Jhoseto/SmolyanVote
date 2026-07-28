@@ -10,13 +10,7 @@ public class SignalsDto {
     private String title;
     private String description;
     private SignalsCategory category;
-    private Integer expirationDays;
-    private Instant activeUntil;
-
-    // НОВИ ПОЛЕТА ЗА БЪЛГАРСКИ ИМЕНА
     private String categoryBG;
-    
-    // Helper поле за показване на активност
     private Boolean isActive;
 
     private BigDecimal latitude;
@@ -49,13 +43,6 @@ public class SignalsDto {
     public SignalsCategory getCategory() { return category; }
     public void setCategory(SignalsCategory category) { this.category = category; }
 
-    public Integer getExpirationDays() { return expirationDays; }
-    public void setExpirationDays(Integer expirationDays) { this.expirationDays = expirationDays; }
-
-    public Instant getActiveUntil() { return activeUntil; }
-    public void setActiveUntil(Instant activeUntil) { this.activeUntil = activeUntil; }
-
-    // НОВИ GETTERS/SETTERS
     public String getCategoryBG() { return categoryBG; }
     public void setCategoryBG(String categoryBG) { this.categoryBG = categoryBG; }
 

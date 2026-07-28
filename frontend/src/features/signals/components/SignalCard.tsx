@@ -140,7 +140,7 @@ export function SignalCard({ signal, isSelected, onSelect, compact }: SignalCard
                 )}
                 {!signal.isActive && !signal.isResolved && (
                   <span className="rounded-full border border-white/20 bg-black/45 px-2 py-0.5 text-[0.6rem] font-semibold text-white/90 backdrop-blur-md">
-                    Изтекъл
+                    Неактивен
                   </span>
                 )}
                 {signal.isActive && signal.priorityTier ? (
@@ -238,13 +238,7 @@ export function SignalCard({ signal, isSelected, onSelect, compact }: SignalCard
                       : `${signal.distanceKm.toFixed(1)} km`}
                   </span>
                 )}
-                {!compact && signal.isActive && signal.activeUntil && (
-                  <span className="inline-flex items-center gap-1">
-                    <i className="bi bi-hourglass-split" />
-                    до {formatRelativeDate(signal.activeUntil)}
-                  </span>
-                )}
-                {!compact && signal.isResolved && signal.resolvedByUsername && (
+                {signal.isResolved && signal.resolvedByUsername && (
                   <span className="max-w-[8rem] truncate text-right" title={signal.resolvedByUsername}>
                     от {signal.resolvedByUsername}
                   </span>

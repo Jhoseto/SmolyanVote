@@ -9,11 +9,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessageFlagEntity;
 import smolyanVote.smolyanVote.repositories.UserRepository;
+import smolyanVote.smolyanVote.services.interfaces.ImageCloudinaryService;
 import smolyanVote.smolyanVote.services.interfaces.SVMessengerService;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.*;
-import java.util.List;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,13 +31,19 @@ import java.util.Map;
 @Slf4j
 public class SVMessengerController {
     
+    /** 20 MB — matches the Cloudinary free-tier per-file limit. */
+    private static final long MAX_ATTACHMENT_BYTES = 20L * 1024 * 1024;
+
     private final SVMessengerService messengerService;
     private final UserRepository userRepository;
+    private final ImageCloudinaryService imageCloudinaryService;
     
     public SVMessengerController(SVMessengerService messengerService, 
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  ImageCloudinaryService imageCloudinaryService) {
         this.messengerService = messengerService;
         this.userRepository = userRepository;
+        this.imageCloudinaryService = imageCloudinaryService;
     }
     
     // ========== CSRF TOKEN ==========
@@ -76,11 +84,14 @@ public class SVMessengerController {
      * Response: List<SVConversationDTO>
      */
     @GetMapping("/conversations")
-    public ResponseEntity<List<SVConversationDTO>> getAllConversations(Authentication auth) {
+    public ResponseEntity<List<SVConversationDTO>> getAllConversations(
+            @RequestParam(defaultValue = "false") boolean includeGroups,
+            Authentication auth) {
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
-            List<SVConversationDTO> conversations = messengerService.getAllConversations(currentUser);
+            List<SVConversationDTO> conversations =
+                    messengerService.getAllConversations(currentUser, includeGroups);
             
             return ResponseEntity.ok(conversations);
         } catch (Exception e) {
@@ -182,7 +193,7 @@ public class SVMessengerController {
     
     /**
      * DELETE /api/svmessenger/conversations/{id}
-     * Изтрий разговор (soft delete)
+     * Скрий разговора само за текущия потребител. Нищо не се маха от базата.
      * 
      * Response: { "success": true }
      */
@@ -284,12 +295,21 @@ public class SVMessengerController {
         
         try {
             UserEntity currentUser = getCurrentUser(auth);
+            SVAttachmentDTO attachment = request.getAttachmentUrl() == null ? null
+                    : new SVAttachmentDTO(
+                            request.getAttachmentUrl(),
+                            request.getAttachmentName(),
+                            request.getAttachmentSize(),
+                            request.getAttachmentMime());
+
             SVMessageDTO message = ((smolyanVote.smolyanVote.services.serviceImpl.SVMessengerServiceImpl) messengerService)
                     .sendMessage(
                             request.getConversationId(),
                             request.getText(),
                             currentUser,
-                            request.getParentMessageId()
+                            request.getParentMessageId(),
+                            request.getMessageType(),
+                            attachment
                     );
             
             return ResponseEntity.ok(message);
@@ -302,6 +322,385 @@ public class SVMessengerController {
         }
     }
     
+    /**
+     * POST /api/svmessenger/messages/upload
+     * Качва прикачен файл в Cloudinary и връща метаданните, с които клиентът
+     * после извиква /messages/send.
+     *
+     * Response: { url, name, size, mime }
+     */
+    @PostMapping("/messages/upload")
+    public ResponseEntity<?> uploadAttachment(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("conversationId") Long conversationId,
+            Authentication auth) {
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Липсва файл"));
+            }
+            if (file.getSize() > MAX_ATTACHMENT_BYTES) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Файлът е твърде голям (максимум 20 MB)"));
+            }
+            if (!messengerService.isParticipant(conversationId, currentUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Няма достъп"));
+            }
+
+            String url = imageCloudinaryService.saveMessengerAttachment(file, conversationId);
+
+            return ResponseEntity.ok(new SVAttachmentDTO(
+                    url,
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    file.getContentType()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error uploading messenger attachment", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Качването не успя"));
+        }
+    }
+
+    /**
+     * POST /api/svmessenger/messages/{id}/reactions
+     * Слага или маха емоджи реакция.
+     *
+     * Body: { "emoji": "👍" }
+     * Response: [{ emoji, count, usernames, reactedByMe }]
+     */
+    @PostMapping("/messages/{id}/reactions")
+    public ResponseEntity<?> toggleReaction(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.toggleReaction(id, body.get("emoji"), currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error toggling reaction on message {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Реакцията не беше запазена"));
+        }
+    }
+
+    /**
+     * POST /api/svmessenger/messages/{id}/pin | /star
+     * Response: { "active": true }
+     */
+    @PostMapping("/messages/{id}/pin")
+    public ResponseEntity<?> togglePin(@PathVariable Long id, Authentication auth) {
+        return toggleFlag(id, auth, SVMessageFlagEntity.Kind.PINNED);
+    }
+
+    @PostMapping("/messages/{id}/star")
+    public ResponseEntity<?> toggleStar(@PathVariable Long id, Authentication auth) {
+        return toggleFlag(id, auth, SVMessageFlagEntity.Kind.STARRED);
+    }
+
+    private ResponseEntity<?> toggleFlag(Long messageId, Authentication auth, SVMessageFlagEntity.Kind kind) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            boolean active = messengerService.toggleFlag(messageId, currentUser, kind);
+            return ResponseEntity.ok(Map.of("active", active));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error toggling {} on message {}", kind, messageId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Действието не беше запазено"));
+        }
+    }
+
+    /**
+     * GET /api/svmessenger/messages/pinned?conversationId=1
+     * GET /api/svmessenger/messages/starred
+     */
+    @GetMapping("/messages/pinned")
+    public ResponseEntity<?> getPinned(@RequestParam(required = false) Long conversationId, Authentication auth) {
+        return flagged(conversationId, auth, SVMessageFlagEntity.Kind.PINNED);
+    }
+
+    @GetMapping("/messages/starred")
+    public ResponseEntity<?> getStarred(@RequestParam(required = false) Long conversationId, Authentication auth) {
+        return flagged(conversationId, auth, SVMessageFlagEntity.Kind.STARRED);
+    }
+
+    private ResponseEntity<?> flagged(Long conversationId, Authentication auth, SVMessageFlagEntity.Kind kind) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.getFlaggedMessages(conversationId, currentUser, kind));
+        } catch (Exception e) {
+            log.error("Error loading {} messages", kind, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Зареждането не успя"));
+        }
+    }
+
+    /**
+     * POST /api/svmessenger/messages/{id}/forward
+     * Body: { "conversationId": 7 }
+     */
+    @PostMapping("/messages/{id}/forward")
+    public ResponseEntity<?> forwardMessage(
+            @PathVariable Long id,
+            @RequestBody Map<String, Long> body,
+            Authentication auth) {
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            Long target = body.get("conversationId");
+            if (target == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Липсва разговор"));
+            }
+            return ResponseEntity.ok(messengerService.forwardMessage(id, target, currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error forwarding message {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Препращането не успя"));
+        }
+    }
+
+    /**
+     * GET /api/svmessenger/messages/search?q=…&page=0&size=20
+     * Търси във всички разговори на потребителя.
+     */
+    @GetMapping("/messages/search")
+    public ResponseEntity<?> searchMessages(
+            @RequestParam("q") String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.searchMessages(query, page, size, currentUser));
+        } catch (Exception e) {
+            log.error("Error searching messages", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Търсенето не успя"));
+        }
+    }
+
+    /**
+     * PUT /api/svmessenger/conversations/{id}/mute
+     * Response: { "muted": true }
+     */
+    @PutMapping("/conversations/{id}/mute")
+    public ResponseEntity<?> toggleMute(@PathVariable Long id, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(Map.of("muted", messengerService.toggleMute(id, currentUser)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error toggling mute for conversation {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Действието не успя"));
+        }
+    }
+
+    // ========== ГРУПОВИ РАЗГОВОРИ ==========
+
+    /**
+     * POST /api/svmessenger/groups
+     * Създава нова група с текущия потребител като собственик.
+     */
+    @PostMapping("/groups")
+    public ResponseEntity<?> createGroup(@Valid @RequestBody SVCreateGroupRequest request, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.createGroup(
+                    currentUser, request.getTitle(), request.getMemberIds(), request.getImageUrl()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error creating group", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Групата не беше създадена"));
+        }
+    }
+
+    /** PUT /api/svmessenger/groups/{id} — преименуване и смяна на снимка. */
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<?> updateGroup(@PathVariable Long id,
+                                         @Valid @RequestBody SVUpdateGroupRequest request,
+                                         Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.updateGroup(
+                    id, currentUser, request.getTitle(), request.getImageUrl()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error updating group {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Промяната не беше запазена"));
+        }
+    }
+
+    /** GET /api/svmessenger/groups/{id}/participants */
+    @GetMapping("/groups/{id}/participants")
+    public ResponseEntity<?> getGroupParticipants(@PathVariable Long id, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.getGroupParticipants(id, currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error loading participants for group {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Участниците не бяха заредени"));
+        }
+    }
+
+    /** POST /api/svmessenger/groups/{id}/participants — body: { "memberIds": [1,2] } */
+    @PostMapping("/groups/{id}/participants")
+    public ResponseEntity<?> addGroupMembers(@PathVariable Long id,
+                                             @RequestBody Map<String, List<Long>> body,
+                                             Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.addGroupMembers(id, currentUser, body.get("memberIds")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error adding members to group {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Участниците не бяха добавени"));
+        }
+    }
+
+    /** DELETE /api/svmessenger/groups/{id}/participants/{userId} */
+    @DeleteMapping("/groups/{id}/participants/{userId}")
+    public ResponseEntity<?> removeGroupMember(@PathVariable Long id,
+                                               @PathVariable Long userId,
+                                               Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.removeGroupMember(id, currentUser, userId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error removing member {} from group {}", userId, id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Участникът не беше премахнат"));
+        }
+    }
+
+    /** POST /api/svmessenger/groups/{id}/leave */
+    @PostMapping("/groups/{id}/leave")
+    public ResponseEntity<?> leaveGroup(@PathVariable Long id, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            messengerService.leaveGroup(id, currentUser);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error leaving group {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Напускането не успя"));
+        }
+    }
+
+    /** PUT /api/svmessenger/groups/{id}/participants/{userId}/role — body: { "role": "ADMIN" } */
+    @PutMapping("/groups/{id}/participants/{userId}/role")
+    public ResponseEntity<?> setGroupRole(@PathVariable Long id,
+                                          @PathVariable Long userId,
+                                          @RequestBody Map<String, String> body,
+                                          Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.setGroupRole(id, currentUser, userId, body.get("role")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error changing role in group {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ролята не беше променена"));
+        }
+    }
+
+    /**
+     * PUT /api/svmessenger/e2e/keys — публикува ECDH публичния ключ на устройството.
+     * Body: { "publicJwk": "{...}" }
+     */
+    @PutMapping("/e2e/keys")
+    public ResponseEntity<?> upsertE2EKey(@RequestBody Map<String, String> body, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.upsertE2EPublicKey(currentUser, body.get("publicJwk")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error publishing E2E key", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ключът не беше запазен"));
+        }
+    }
+
+    /** GET /api/svmessenger/e2e/keys/{userId} */
+    @GetMapping("/e2e/keys/{userId}")
+    public ResponseEntity<?> getE2EKey(@PathVariable Long userId, Authentication auth) {
+        try {
+            getCurrentUser(auth);
+            SVE2EPublicKeyDTO key = messengerService.getE2EPublicKey(userId);
+            if (key == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(key);
+        } catch (Exception e) {
+            log.error("Error loading E2E key for user {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ключът не беше зареден"));
+        }
+    }
+
+    /**
+     * POST /api/svmessenger/messages/poll
+     * Създава бърза анкета в разговора.
+     */
+    @PostMapping("/messages/poll")
+    public ResponseEntity<?> createPoll(@Valid @RequestBody SVCreatePollRequest request, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.createPoll(
+                    request.getConversationId(), request.getQuestion(), request.getOptions(), currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error creating poll", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Анкетата не беше създадена"));
+        }
+    }
+
+    /**
+     * POST /api/svmessenger/messages/poll/{optionId}/vote
+     */
+    @PostMapping("/messages/poll/{optionId}/vote")
+    public ResponseEntity<?> votePoll(@PathVariable Long optionId, Authentication auth) {
+        try {
+            UserEntity currentUser = getCurrentUser(auth);
+            return ResponseEntity.ok(messengerService.votePoll(optionId, currentUser));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error voting in poll option {}", optionId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Гласуването не успя"));
+        }
+    }
+
     /**
      * PUT /api/svmessenger/messages/{id}/read
      * Маркирай съобщение като прочетено

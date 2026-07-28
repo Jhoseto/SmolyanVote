@@ -23,7 +23,7 @@ function errorMessage(error: unknown): string {
 }
 
 /** RHF + Zod contact form (ports v1 `/contact` — honeypot + timestamp anti-spam, no reload). */
-export function useContactForm() {
+export function useContactForm(options?: { onSuccess?: () => void }) {
   // Lazy initializer keeps `Date.now()` out of the render body proper. Stays
   // fixed for the hook's lifetime — a later submit only ever measures *more*
   // elapsed time against it, so the "too fast" bot heuristic stays valid.
@@ -45,6 +45,7 @@ export function useContactForm() {
     });
     toast.success(response.message);
     form.reset();
+    options?.onSuccess?.();
   };
 
   const submit = form.handleSubmit(submitValid);

@@ -8,8 +8,6 @@ function mockSignal(overrides: Partial<Signal> & Pick<Signal, "id">): Signal {
     description: "Test description long enough",
     category: "LIGHTING",
     categoryLabel: "Осветление",
-    expirationDays: 7,
-    activeUntil: null,
     isActive: true,
     latitude: 41.5,
     longitude: 24.7,
@@ -49,45 +47,50 @@ describe("filterSignals", () => {
     }),
   ];
 
-  it("hides expired when showExpired is false", () => {
-    const result = filterSignals(base, { showExpired: false });
+  it("hides inactive when showInactive is false", () => {
+    const result = filterSignals(base, { showInactive: false });
     expect(result.map((s) => s.id)).toEqual([1, 3]);
   });
 
   it("filters by category", () => {
-    const result = filterSignals(base, { category: "PARKING", showExpired: true });
+    const result = filterSignals(base, { category: "PARKING", showInactive: true });
     expect(result.map((s) => s.id)).toEqual([2]);
   });
 
   it("filters mineOnly by currentUserId", () => {
-    const result = filterSignals(base, { mineOnly: true, currentUserId: 1, showExpired: true });
+    const result = filterSignals(base, { mineOnly: true, currentUserId: 1, showInactive: true });
     expect(result.map((s) => s.id)).toEqual([1]);
   });
 
+  it("returns empty when mineOnly without user", () => {
+    const result = filterSignals(base, { mineOnly: true, showInactive: true });
+    expect(result).toEqual([]);
+  });
+
   it("filters boostedOnly", () => {
-    const result = filterSignals(base, { boostedOnly: true, showExpired: true });
+    const result = filterSignals(base, { boostedOnly: true, showInactive: true });
     expect(result.map((s) => s.id)).toEqual([3]);
   });
 
   it("filters highPriorityOnly", () => {
-    const result = filterSignals(base, { highPriorityOnly: true, showExpired: true });
+    const result = filterSignals(base, { highPriorityOnly: true, showInactive: true });
     expect(result.map((s) => s.id)).toEqual([3]);
   });
 
   it("matches search in title and author", () => {
-    const result = filterSignals(base, { search: "ivan", showExpired: true });
+    const result = filterSignals(base, { search: "ivan", showInactive: true });
     expect(result.map((s) => s.id)).toEqual([1]);
   });
 
   it("filters resolvedOnly", () => {
     const withResolved = [...base, mockSignal({ id: 4, isResolved: true, isActive: false, title: "Решен" })];
-    const result = filterSignals(withResolved, { resolvedOnly: true, showExpired: true });
+    const result = filterSignals(withResolved, { resolvedOnly: true, showInactive: true });
     expect(result.map((s) => s.id)).toEqual([4]);
   });
 
   it("hides resolved from default list", () => {
     const withResolved = [...base, mockSignal({ id: 4, isResolved: true, title: "Решен" })];
-    const result = filterSignals(withResolved, { showExpired: true });
+    const result = filterSignals(withResolved, { showInactive: true });
     expect(result.map((s) => s.id)).not.toContain(4);
   });
 });

@@ -20,6 +20,7 @@ import smolyanVote.smolyanVote.models.enums.UserRoleDefaults;
 import smolyanVote.smolyanVote.models.enums.UserStatusEnum;
 import smolyanVote.smolyanVote.repositories.UserRepository;
 import smolyanVote.smolyanVote.services.interfaces.ActivityLogService;
+import smolyanVote.smolyanVote.services.support.OAuthAvatarUrls;
 
 import java.time.Instant;
 import java.util.*;
@@ -92,10 +93,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             }
 
             // Винаги обновяваме данните от OAuth провайдъра (username и realName)
-            updateUserFromOAuth2(user, oAuth2UserInfo);
+            updateUserFromOAuth2(user, oAuth2UserInfo, userRequest);
         } else {
             // Създаване на нов потребител
-            user = createNewOAuth2User(oAuth2UserInfo, authProvider);
+            user = createNewOAuth2User(oAuth2UserInfo, authProvider, userRequest);
             isNewUser = true;
         }
 
@@ -143,7 +144,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         };
     }
 
-    private UserEntity createNewOAuth2User(OAuth2UserInfo oAuth2UserInfo, AuthProvider authProvider) {
+    private UserEntity createNewOAuth2User(
+            OAuth2UserInfo oAuth2UserInfo, AuthProvider authProvider, OAuth2UserRequest userRequest) {
         UserEntity user = new UserEntity();
 
         String normalizedEmail = oAuth2UserInfo.getEmail().toLowerCase().trim();
@@ -165,7 +167,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .setRole(UserRole.USER)
                 .setPassword(null); // OAuth потребителите нямат парола
 
-        oauthAvatarSyncService.applyProviderAvatar(user, oAuth2UserInfo.getImageUrl());
+        applyAvatar(user, oAuth2UserInfo, userRequest);
 
         user.setCreated(Instant.now());
         user.setModified(Instant.now());
@@ -173,15 +175,29 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return user;
     }
 
-    private void updateUserFromOAuth2(UserEntity user, OAuth2UserInfo oAuth2UserInfo) {
+    private void updateUserFromOAuth2(
+            UserEntity user, OAuth2UserInfo oAuth2UserInfo, OAuth2UserRequest userRequest) {
         // Винаги обновяваме realName от провайдъра
         if (oAuth2UserInfo.getName() != null && !oAuth2UserInfo.getName().isEmpty()) {
             user.setRealName(oAuth2UserInfo.getName());
         }
 
-        oauthAvatarSyncService.applyProviderAvatar(user, oAuth2UserInfo.getImageUrl());
+        applyAvatar(user, oAuth2UserInfo, userRequest);
 
         user.setModified(Instant.now());
+    }
+
+    private void applyAvatar(UserEntity user, OAuth2UserInfo info, OAuth2UserRequest userRequest) {
+        String accessToken = null;
+        try {
+            if (userRequest.getAccessToken() != null) {
+                accessToken = userRequest.getAccessToken().getTokenValue();
+            }
+        } catch (Exception ignored) {
+            // rare — continue without token
+        }
+        // Facebook needs the user access token to resolve a real photo URL.
+        oauthAvatarSyncService.applyProviderAvatar(user, info.getImageUrl(), accessToken);
     }
 
     /**
@@ -367,7 +383,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         @Override
         public String getImageUrl() {
-            return (String) attributes.get("picture");
+            return OAuthAvatarUrls.upgrade((String) attributes.get("picture"));
         }
     }
 
@@ -393,17 +409,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         @Override
         public String getImageUrl() {
+            // Prefer the CDN URL from Graph (already sized when user-info requests
+            // picture.width/height). Unauthenticated /picture?width=… redirects are
+            // unreliable for app-scoped IDs and often yield no usable image.
             String fromPicture = extractPictureUrlFromAttributes();
             if (fromPicture != null && !fromPicture.isEmpty()) {
-                return fromPicture;
+                return OAuthAvatarUrls.upgrade(fromPicture);
             }
-
-            String facebookId = getId();
-            if (facebookId != null && !facebookId.isEmpty()) {
-                return "https://graph.facebook.com/" + facebookId + "/picture?type=large";
-            }
-
-            return null;
+            return OAuthAvatarUrls.facebookGraphAvatar(getId());
         }
 
         private String extractPictureUrlFromAttributes() {

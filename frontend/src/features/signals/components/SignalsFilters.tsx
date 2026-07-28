@@ -3,7 +3,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { useAuth } from "@/shared/lib/authContext";
+import { useRequireAuth } from "@/shared/hooks/useRequireAuth";
+import { useToast } from "@/shared/hooks/useToast";
 import { useSignalsFilters } from "../hooks/useSignalsFilters";
+import { useGeolocation } from "../hooks/useGeolocation";
 import { SIGNAL_CATEGORIES } from "../data/categories";
 
 const selectClass =
@@ -35,18 +39,21 @@ interface SignalsFiltersProps {
 function FilterChip({
   active,
   onClick,
+  disabled,
   children,
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  disabled?: boolean;
+  children: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-pill)] px-3 text-xs font-semibold transition-all",
+        "inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-pill)] px-3 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
         active
           ? "bg-[image:var(--gradient-primary)] text-white shadow-[0_4px_12px_rgba(13,110,253,0.28)]"
           : "border border-border-default/40 bg-white text-[color:var(--color-text-secondary)] hover:border-primary/25 hover:bg-primary-50/50",
@@ -68,6 +75,10 @@ export function SignalsFilters({
   const [filters, setFilters] = useSignalsFilters();
   const [searchInput, setSearchInput] = useState(filters.search);
   const debouncedSearch = useDebounce(searchInput, 300);
+  const { user } = useAuth();
+  const requireAuth = useRequireAuth();
+  const toast = useToast();
+  const geo = useGeolocation(filters.nearMe);
 
   useEffect(() => {
     if (debouncedSearch !== filters.search) {
@@ -76,10 +87,21 @@ export function SignalsFilters({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (!filters.nearMe || geo.isLoading || !geo.error) return;
+    toast.error(geo.error);
+    setFilters({ nearMe: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.nearMe, geo.error, geo.isLoading]);
+
   const hasActiveFilters =
     !!filters.search ||
     !!filters.category ||
-    filters.showExpired ||
+    filters.showInactive ||
     filters.sort !== "newest" ||
     !!filters.time ||
     filters.mineOnly ||
@@ -93,7 +115,7 @@ export function SignalsFilters({
     setFilters({
       search: null,
       category: null,
-      showExpired: false,
+      showInactive: false,
       sort: "newest",
       time: null,
       mineOnly: false,
@@ -104,8 +126,23 @@ export function SignalsFilters({
     });
   }
 
+  async function handleMineOnly() {
+    if (!filters.mineOnly && !(await requireAuth("да видиш само твоите сигнали"))) return;
+    setFilters({ mineOnly: !filters.mineOnly });
+  }
+
+  async function handleShareFilters() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Линкът с филтрите е копиран.");
+    } catch {
+      toast.error("Не успяхме да копираме линка.");
+    }
+  }
+
   return (
     <div
+      id="signals-filters"
       className={cn(
         "flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border-default/30 bg-white/80 p-4 shadow-[0_4px_24px_rgba(15,23,42,0.04)] backdrop-blur-sm",
         className,
@@ -118,16 +155,28 @@ export function SignalsFilters({
             <strong className="font-semibold text-[color:var(--color-text-heading)]">{filteredCount}</strong> от{" "}
             <strong className="font-semibold text-[color:var(--color-text-heading)]">{totalCount}</strong> сигнала
           </p>
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-text-muted)] hover:text-[color:var(--color-error)]"
-            >
-              <i className="bi bi-x-circle" />
-              Изчисти
-            </button>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={handleShareFilters}
+                className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-text-muted)] hover:text-primary"
+              >
+                <i className="bi bi-link-45deg" />
+                Сподели
+              </button>
+            ) : null}
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--color-text-muted)] hover:text-[color:var(--color-error)]"
+              >
+                <i className="bi bi-x-circle" />
+                Изчисти
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -174,11 +223,11 @@ export function SignalsFilters({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <FilterChip active={filters.showExpired} onClick={() => setFilters({ showExpired: !filters.showExpired })}>
-          <i className="bi bi-clock-history" />
-          Изтекли
+        <FilterChip active={filters.showInactive} onClick={() => setFilters({ showInactive: !filters.showInactive })}>
+          <i className="bi bi-eye-slash" />
+          Неактивни
         </FilterChip>
-        <FilterChip active={filters.mineOnly} onClick={() => setFilters({ mineOnly: !filters.mineOnly })}>
+        <FilterChip active={filters.mineOnly} onClick={handleMineOnly} disabled={!user && !filters.mineOnly}>
           <i className="bi bi-person" />
           Моите
         </FilterChip>
@@ -190,7 +239,10 @@ export function SignalsFilters({
           <i className="bi bi-exclamation-circle" />
           Висок приоритет
         </FilterChip>
-        <FilterChip active={filters.resolvedOnly} onClick={() => setFilters({ resolvedOnly: !filters.resolvedOnly, showExpired: false })}>
+        <FilterChip
+          active={filters.resolvedOnly}
+          onClick={() => setFilters({ resolvedOnly: !filters.resolvedOnly, showInactive: false })}
+        >
           <i className="bi bi-check-circle" />
           Решени
         </FilterChip>

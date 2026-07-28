@@ -14,7 +14,7 @@ export function useSignalsFilters() {
     {
       search: parseAsString.withDefault(""),
       category: parseAsStringEnum<SignalCategory>(CATEGORY_OPTIONS),
-      showExpired: parseAsBoolean.withDefault(false),
+      showInactive: parseAsBoolean.withDefault(false),
       sort: parseAsStringEnum<SignalSortOption>(SORT_OPTIONS).withDefault("newest"),
       time: parseAsStringEnum<SignalTimeFilter>(TIME_OPTIONS).withDefault(""),
       mineOnly: parseAsBoolean.withDefault(false),

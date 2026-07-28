@@ -2,8 +2,8 @@
 
 import { useContactForm } from "../hooks/useContactForm";
 
-export function ContactForm() {
-  const { form, onSubmit } = useContactForm();
+export function ContactForm({ onSuccess }: { onSuccess?: () => void }) {
+  const { form, onSubmit } = useContactForm({ onSuccess });
   const {
     register,
     formState: { errors, isSubmitting },

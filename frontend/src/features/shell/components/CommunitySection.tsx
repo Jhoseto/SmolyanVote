@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Container } from "@/shared/ui";
+import { CommunityContactButton } from "./CommunityContactButton";
 
 /** "Платформата се изгражда от хората за хората" — v1 decorative BG. */
 export function CommunitySection() {
@@ -32,13 +32,7 @@ export function CommunitySection() {
             по-полезна за всички? Вашите идеи са основата, върху която изграждаме
             SmolyanVote.
           </p>
-          <Link
-            href="/contacts"
-            className="btn-brand mt-8 inline-flex items-center gap-2 rounded-[8px] px-7 py-3 font-semibold shadow-[var(--shadow-md)] transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[var(--shadow-lg)]"
-          >
-            <i className="bi bi-envelope" />
-            Изпратете предложение
-          </Link>
+          <CommunityContactButton />
         </div>
       </Container>
     </section>

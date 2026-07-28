@@ -50,6 +50,21 @@ function isValidImageUrl(imageUrl?: string | null): boolean {
   return !DEFAULT_AVATAR_MARKERS.some((marker) => trimmed.includes(marker));
 }
 
+/** Retina delivery for Cloudinary — no g_auto (requires a paid addon; 404s without it). */
+function deliveryUrl(imageUrl: string, size: number): string {
+  if (!imageUrl.includes("res.cloudinary.com") || !imageUrl.includes("/upload/")) {
+    return imageUrl;
+  }
+  if (/\/upload\/[^/]+,/.test(imageUrl)) {
+    return imageUrl;
+  }
+  const px = Math.max(96, Math.round(size * 2));
+  return imageUrl.replace(
+    "/upload/",
+    `/upload/c_fill,g_face,w_${px},h_${px},f_auto,q_auto:best/`,
+  );
+}
+
 interface AvatarProps {
   username: string;
   imageUrl?: string | null;
@@ -74,11 +89,12 @@ export function Avatar({ username, imageUrl, size = 40, className }: AvatarProps
     return (
       // eslint-disable-next-line @next/next/no-img-element -- user-supplied remote URLs, not optimizable statically
       <img
-        src={imageUrl ?? undefined}
+        src={deliveryUrl(imageUrl ?? "", size)}
         alt={username}
         onError={() => setImageFailed(true)}
         className={cn("shrink-0 rounded-full object-cover", className)}
         style={{ width: size, height: size }}
+        decoding="async"
       />
     );
   }

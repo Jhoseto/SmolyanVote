@@ -29,10 +29,10 @@ export const LANGUAGE_LABELS: Record<Language, { native: string; flag: string }>
     el: { native: "Гръцки", flag: "gr" },
     tr: { native: "Турски", flag: "tr" },
     ru: { native: "Руски", flag: "ru" },
-    de: { native: "Германски", flag: "de" },
+    de: { native: "Немски", flag: "de" },
     fr: { native: "Френски", flag: "fr" },
     es: { native: "Испански", flag: "es" },
-    iw: { native: "Еврейски", flag: "il" },
+    iw: { native: "Иврит", flag: "il" },
     "zh-CN": { native: "Китайски", flag: "cn" },
   };
 
@@ -88,7 +88,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
   bg: {
     nav: {
       home: "Начало",
-      about: "За нас",
+      about: "Философия",
       vote: "Гласувай",
       publications: "Публикации",
       signals: "Карта/Сигнали",
@@ -108,7 +108,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       nav: {
         events: "Гласувания",
         publications: "Публикации",
-        about: "За нас",
+        about: "Философия",
         faq: "FAQ",
       },
       participateHeading: "Участвай",
@@ -136,7 +136,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
   en: {
     nav: {
       home: "Home",
-      about: "About",
+      about: "Philosophy",
       vote: "Vote",
       publications: "Publications",
       signals: "Map/Signals",

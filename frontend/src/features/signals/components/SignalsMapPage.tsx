@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { Button, Container, Skeleton } from "@/shared/ui";
+import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/shared/lib/authContext";
 import { useConfirm } from "@/shared/hooks/useConfirm";
 import { useToast } from "@/shared/hooks/useToast";
@@ -15,6 +16,7 @@ import { useDerivedSignals } from "../hooks/useDerivedSignals";
 import { useSignalDetailModal } from "../hooks/useSignalDetailModal";
 import { useAdminQuickModerate } from "../hooks/useAdminQuickModerate";
 import { useDeleteSignal } from "../hooks/useDeleteSignal";
+import { hasSignalCreateDraft } from "../lib/signalCreateDraft";
 import { SignalsFilters } from "./SignalsFilters";
 import { SignalsLanesSection } from "./SignalsLanesSection";
 import { SignalsListPanel } from "./SignalsListPanel";
@@ -23,6 +25,7 @@ import { CreateSignalModal } from "./CreateSignalModal";
 import { SignalsInfoPanel } from "./SignalsInfoPanel";
 import { SignalsStatsStrip } from "./SignalsStatsStrip";
 import { SignalsCategoryChips } from "./SignalsCategoryChips";
+import type { Signal } from "../types";
 
 const SignalsMap = dynamic(
   () => import("./SignalsMap").then((m) => m.SignalsMap),
@@ -32,7 +35,6 @@ const SignalsMap = dynamic(
   },
 );
 
-
 interface SignalsMapPageProps {
   reportSlot?: (signalId: number) => ReactNode;
   commentsSlot?: (id: number) => ReactNode;
@@ -41,16 +43,11 @@ interface SignalsMapPageProps {
 export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps) {
   const [filters] = useSignalsFilters();
   const { data: dataset, isPending, isError, refetch } = useSignalsDataset();
-  // Memoized so `useDerivedSignals` only recomputes (and hands the map a fresh
-  // array) when a filter value actually changes — otherwise every unrelated
-  // re-render (opening a modal, focusing a marker, etc.) produced a brand new
-  // `signals` reference, which cascaded into rebuilding the map's clustering
-  // index and needlessly tearing down/recreating every cluster marker.
   const derivedParams = useMemo(
     () => ({
       search: filters.search || undefined,
       category: filters.category ?? undefined,
-      showExpired: filters.showExpired,
+      showInactive: filters.showInactive,
       sort: filters.sort,
       time: filters.time || undefined,
       mineOnly: filters.mineOnly,
@@ -62,7 +59,7 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
     [
       filters.search,
       filters.category,
-      filters.showExpired,
+      filters.showInactive,
       filters.sort,
       filters.time,
       filters.mineOnly,
@@ -86,11 +83,13 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
   const [focusSignalId, setFocusSignalId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [adminQuickMode, setAdminQuickMode] = useState(false);
+  const [showDraftBanner, setShowDraftBanner] = useState(() => hasSignalCreateDraft());
 
   const isAdmin = user?.role === "ADMIN";
 
   async function handleCreateClick() {
     if (!(await requireAuth("да подадеш сигнал"))) return;
+    setShowDraftBanner(false);
     setCreateOpen(true);
   }
 
@@ -102,6 +101,11 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
   function handleNavigate(id: number) {
     open(id);
     setFocusSignalId(id);
+  }
+
+  function handleCreated(signal: Signal) {
+    handleSelect(signal.id);
+    refetch();
   }
 
   async function handleAdminQuickDelete(id: number) {
@@ -144,9 +148,44 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
         )}
       </div>
 
+      {showDraftBanner && canInteract ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-primary/20 bg-primary-50/70 px-4 py-3 text-sm text-[color:var(--color-text-secondary)]">
+          <span>
+            <i className="bi bi-pencil-square mr-1.5 text-primary" />
+            Имате незавършен чернова на сигнал.
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowDraftBanner(false)}>
+              Скрий
+            </Button>
+            <Button size="sm" onClick={handleCreateClick}>
+              Продължи
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {dataset && dataset.length > 0 ? <SignalsStatsStrip signals={dataset} /> : null}
 
       <SignalsInfoPanel />
+
+      <nav className="sticky top-[var(--header-height,56px)] z-20 -mx-1 flex gap-1 overflow-x-auto rounded-[var(--radius-lg)] border border-border-default/25 bg-white/95 p-1 shadow-[0_4px_20px_rgba(15,23,42,0.06)] backdrop-blur-md">
+        {[
+          { href: "#signals-filters", label: "Филтри", icon: "bi-funnel" },
+          { href: "#signals-map", label: "Карта", icon: "bi-map" },
+          { href: "#signals-lanes", label: "Ленти", icon: "bi-grid-3x3-gap" },
+          { href: "#signals-list", label: "Списък", icon: "bi-list-ul" },
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-2 text-xs font-semibold text-[color:var(--color-text-secondary)] transition-colors hover:bg-primary-50 hover:text-primary"
+          >
+            <i className={cn("bi", item.icon)} />
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
       <SignalsFilters
         totalCount={dataset?.length ?? 0}
@@ -158,7 +197,7 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
 
       <SignalsCategoryChips dataset={dataset} />
 
-      <div className="relative">
+      <div id="signals-map" className="relative scroll-mt-24">
         <SignalsMap
           signals={signals}
           onMarkerClick={handleSelect}
@@ -179,7 +218,9 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
         )}
       </div>
 
-      <SignalsLanesSection signals={signals} onSelect={handleSelect} selectedId={openId} />
+      <div id="signals-lanes" className="scroll-mt-24">
+        <SignalsLanesSection signals={signals} onSelect={handleSelect} selectedId={openId} />
+      </div>
 
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-gradient-to-r from-transparent via-black/[0.08] to-transparent" />
@@ -189,15 +230,17 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
         <span className="h-px flex-1 bg-gradient-to-r from-transparent via-black/[0.08] to-transparent" />
       </div>
 
-      <SignalsListPanel
-        signals={signals}
-        isPending={isPending}
-        isError={isError}
-        onRetry={() => refetch()}
-        onRefresh={() => refetch()}
-        onSelect={handleSelect}
-        selectedId={openId}
-      />
+      <div id="signals-list" className="scroll-mt-24">
+        <SignalsListPanel
+          signals={signals}
+          isPending={isPending}
+          isError={isError}
+          onRetry={() => refetch()}
+          onRefresh={() => refetch()}
+          onSelect={handleSelect}
+          selectedId={openId}
+        />
+      </div>
 
       <SignalDetailModal
         id={openId}
@@ -209,7 +252,7 @@ export function SignalsMapPage({ reportSlot, commentsSlot }: SignalsMapPageProps
         commentsSlot={commentsSlot}
       />
 
-      <CreateSignalModal open={createOpen} onClose={() => setCreateOpen(false)} dataset={dataset} />
+      <CreateSignalModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} dataset={dataset} />
     </Container>
   );
 }

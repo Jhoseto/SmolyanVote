@@ -15,14 +15,18 @@ import {
   applyReadReceipt,
   bumpUnreadTotal,
   patchConversationPreview,
+  patchMessage,
   upsertMessage,
 } from "../lib/cacheUpdates";
+import { isE2ECiphertext } from "../lib/e2eCrypto";
 import type {
   CallSignal,
   Conversation,
   DeliveryReceipt,
   Message,
   OnlineStatusEvent,
+  Poll,
+  ReactionSummary,
   ReadReceipt,
   TypingStatus,
 } from "../types";
@@ -69,8 +73,28 @@ export function useMessengerRealtime(): void {
       clearSubs();
 
       const msgSub = stompClient.subscribe("/user/queue/svmessenger-messages", (frame) => {
-        const raw = parseJson<Message & { type?: string; conversationId?: number }>(frame);
+        const raw = parseJson<
+          Message & {
+            type?: string;
+            conversationId?: number;
+            messageId?: number;
+            reactions?: ReactionSummary[];
+            poll?: Poll;
+          }
+        >(frame);
         if (!raw) return;
+
+        if (raw.type === "POLL_UPDATED" && raw.conversationId && raw.messageId) {
+          patchMessage(queryClient, raw.conversationId, raw.messageId, { poll: raw.poll ?? null });
+          return;
+        }
+
+        if (raw.type === "REACTION_UPDATED" && raw.conversationId && raw.messageId) {
+          patchMessage(queryClient, raw.conversationId, raw.messageId, {
+            reactions: raw.reactions ?? [],
+          });
+          return;
+        }
 
         if (raw.type === "CALL_HISTORY_UPDATED" && raw.conversationId) {
           void queryClient.invalidateQueries({
@@ -92,6 +116,9 @@ export function useMessengerRealtime(): void {
           void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
         } else if (!isOwn && !focused) {
           bumpUnreadTotal(queryClient, 1);
+          const preview = isE2ECiphertext(message.text)
+            ? "🔒 Криптирано съобщение"
+            : message.text;
           queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (old) => {
             if (!old) return old;
             return old
@@ -100,7 +127,7 @@ export function useMessengerRealtime(): void {
                   ? {
                       ...c,
                       unreadCount: (c.unreadCount ?? 0) + 1,
-                      lastMessage: message.text,
+                      lastMessage: preview,
                       lastMessageTime: message.sentAt,
                     }
                   : c,
@@ -111,11 +138,24 @@ export function useMessengerRealtime(): void {
                 return tb - ta;
               });
           });
-          messengerSounds.playMessage();
-          notifyBrowser(message.senderUsername, message.text, `msg-${message.conversationId}`);
+          const muted = list.find((c) => c.id === message.conversationId)?.isMuted ?? false;
+          if (!muted) {
+            messengerSounds.playMessage();
+            notifyBrowser(message.senderUsername, preview, `msg-${message.conversationId}`);
+            useMessengerUiStore.getState().setQuickReply({
+              conversationId: message.conversationId,
+              senderName: message.senderUsername,
+              senderAvatar: message.senderImageUrl,
+              text: preview,
+              receivedAt: Date.now(),
+            });
+          }
         } else {
+          const preview = isE2ECiphertext(message.text)
+            ? "🔒 Криптирано съобщение"
+            : message.text;
           patchConversationPreview(queryClient, message.conversationId, {
-            lastMessage: message.text,
+            lastMessage: preview,
             lastMessageTime: message.sentAt,
             unreadCount: 0,
           });
@@ -156,7 +196,7 @@ export function useMessengerRealtime(): void {
         queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (old) => {
           if (!old) return old;
           return old.map((c) =>
-            c.otherUser.id === event.userId
+            c.otherUser?.id === event.userId
               ? { ...c, otherUser: { ...c.otherUser, isOnline: !!event.isOnline } }
               : c,
           );

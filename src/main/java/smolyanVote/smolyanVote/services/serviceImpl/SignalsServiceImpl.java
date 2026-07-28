@@ -114,13 +114,12 @@ public class SignalsServiceImpl implements SignalsService {
     @Override
     @Transactional
     @LogActivity(action = ActivityActionEnum.CREATE_SIGNAL, entityType = ActivityTypeEnum.SIGNAL,
-            details = "Title: {title}, Category: {category}, ExpirationDays: {expirationDays}", includeTitle = true, includeText = true)
-
+            details = "Title: {title}, Category: {category}", includeTitle = true, includeText = true)
     public SignalsEntity create(String title, String description, SignalsCategory category,
-                                Integer expirationDays, BigDecimal latitude, BigDecimal longitude,
+                                BigDecimal latitude, BigDecimal longitude,
                                 MultipartFile image, UserEntity author) {
 
-        SignalsEntity signal = new SignalsEntity(title, description, category, expirationDays,
+        SignalsEntity signal = new SignalsEntity(title, description, category,
                 latitude, longitude, author);
 
         signalsRepository.save(signal);
@@ -154,22 +153,17 @@ public class SignalsServiceImpl implements SignalsService {
     //@LogActivity - manual Log try/catch logic
 
     public SignalsEntity update(SignalsEntity signal, String title, String description,
-                                SignalsCategory category, Integer expirationDays, MultipartFile image,
+                                SignalsCategory category, MultipartFile image,
                                 boolean removeImage) {
 
         // Запазваме старите данни ПРЕДИ промяната
         String oldTitle = signal.getTitle();
         SignalsCategory oldCategory = signal.getCategory();
-        Integer oldExpirationDays = signal.getExpirationDays();
 
         // Задаваме новите данни
         signal.setTitle(title);
         signal.setDescription(description);
         signal.setCategory(category);
-        signal.setExpirationDays(expirationDays);
-        if (expirationDays != null) {
-            signal.setActiveUntil(Instant.now().plus(expirationDays, ChronoUnit.DAYS));
-        }
         signal.setModified(Instant.now());
 
         if (removeImage) {
@@ -194,11 +188,11 @@ public class SignalsServiceImpl implements SignalsService {
 
         // Activity logging for admin log panel СЛЕД успешната промяна
         try {
-            String details = String.format("Old: \"%s\" (%s, %d дни) → New: \"%s\" (%s, %d дни)",
+            String details = String.format("Old: \"%s\" (%s) → New: \"%s\" (%s)",
                     oldTitle.length() > 50 ? oldTitle.substring(0, 50) + "..." : oldTitle,
-                    oldCategory.name(), oldExpirationDays,
+                    oldCategory.name(),
                     title.length() > 50 ? title.substring(0, 50) + "..." : title,
-                    category.name(), expirationDays);
+                    category.name());
 
             activityLogService.logActivity(ActivityActionEnum.EDIT_SIGNAL, userService.getCurrentUser(),
                     "SIGNAL", signal.getId(), details, null, null);
@@ -211,9 +205,12 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional
-    public SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, UserEntity admin) {
+    public SignalsEntity moderate(SignalsEntity signal, String adminNotes, boolean markResolved, Boolean markActive, UserEntity admin) {
         if (adminNotes != null) {
             signal.setAdminNotes(adminNotes.trim().isEmpty() ? null : adminNotes.trim());
+        }
+        if (markActive != null) {
+            signal.setActive(markActive);
         }
         boolean wasResolved = signal.getResolvedBy() != null;
         signal.setResolvedBy(markResolved ? admin : null);
@@ -227,6 +224,26 @@ public class SignalsServiceImpl implements SignalsService {
                     "/signals/" + signal.getId(),
                     "bi-check-circle-fill");
             notificationService.notifySignalSubscribers(signal, admin, "SIGNAL_RESOLVED",
+                    "Сигналът „" + signal.getTitle() + "“ бе отбелязан като решен.");
+        }
+        return signal;
+    }
+
+    @Override
+    @Transactional
+    public SignalsEntity setResolved(SignalsEntity signal, boolean markResolved, UserEntity user) {
+        boolean wasResolved = signal.getResolvedBy() != null;
+        signal.setResolvedBy(markResolved ? user : null);
+        signal.setModified(Instant.now());
+        signalsRepository.save(signal);
+
+        if (markResolved && !wasResolved) {
+            notificationService.broadcastGlobalActivity(
+                    "Сигналът е решен",
+                    "„" + signal.getTitle() + "“ бе отбелязан като решен",
+                    "/signals/" + signal.getId(),
+                    "bi-check-circle-fill");
+            notificationService.notifySignalSubscribers(signal, user, "SIGNAL_RESOLVED",
                     "Сигналът „" + signal.getTitle() + "“ бе отбелязан като решен.");
         }
         return signal;
@@ -302,7 +319,7 @@ public class SignalsServiceImpl implements SignalsService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SignalsEntity> findWithFilters(String search, String category, boolean showExpired,
+    public Page<SignalsEntity> findWithFilters(String search, String category, boolean showInactive,
                                                String timeFilter, String sort, Pageable pageable) {
 
         SignalsCategory categoryEnum = parseCategory(category);
@@ -310,8 +327,6 @@ public class SignalsServiceImpl implements SignalsService {
 
         String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         String cleanSort = (sort != null && !sort.trim().isEmpty()) ? sort : "newest";
-
-        Instant now = Instant.now();
         
         // Граници на област Смолян (актуализирани според точния полигон)
         java.math.BigDecimal minLat = new java.math.BigDecimal("41.336");
@@ -320,8 +335,8 @@ public class SignalsServiceImpl implements SignalsService {
         java.math.BigDecimal maxLng = new java.math.BigDecimal("25.168");
         
         try {
-            Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, showExpired,
-                    timeFilterDate, cleanSort, now, minLat, maxLat, minLng, maxLng, pageable);
+            Page<SignalsEntity> results = signalsRepository.findWithFilters(cleanSearch, categoryEnum, showInactive,
+                    timeFilterDate, cleanSort, minLat, maxLat, minLng, maxLng, pageable);
 
             // Принудително зареждане на author за всички сигнали
             results.getContent().forEach(signal -> {
@@ -332,15 +347,14 @@ public class SignalsServiceImpl implements SignalsService {
 
             return results;
         } catch (Exception e) {
-            // Fallback: Ако query-то не работи (напр. колоната active_until не съществува още),
-            // използваме по-просто query без филтър за activeUntil
-            System.err.println("Warning: Error in findWithFilters, using fallback query: " + e.getMessage());
+            System.err.println("Warning: findWithFilters failed, using location-bounds fallback: " + e.getMessage());
             e.printStackTrace();
-            
-            // Fallback query без activeUntil филтър, но с филтър за границите на област Смолян
-            // Актуализирани граници: lat: 41.336 - 41.926, lng: 24.318 - 25.168
+
             List<SignalsEntity> allSignals = signalsRepository.findByLocationBounds(
-                    41.336, 41.926, 24.318, 25.168);
+                            41.336, 41.926, 24.318, 25.168)
+                    .stream()
+                    .filter(s -> showInactive || s.isActive())
+                    .toList();
             // Конвертираме в Page
             int start = (int) pageable.getOffset();
             int end = Math.min((start + pageable.getPageSize()), allSignals.size());
@@ -572,6 +586,23 @@ public class SignalsServiceImpl implements SignalsService {
         if (auth == null) return false;
         UserEntity currentUser = userService.getCurrentUser();
         return currentUser != null && "ADMIN".equals(currentUser.getRole().name());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canSetResolvedStatus(SignalsEntity signal, Authentication auth) {
+        if (auth == null || signal == null) return false;
+
+        UserEntity currentUser = userService.getCurrentUser();
+        if (currentUser == null) return false;
+
+        if ("ADMIN".equals(currentUser.getRole().name())) return true;
+
+        if (signal.getAuthor() != null) {
+            signal.getAuthor().getId();
+            return signal.getAuthor().getId().equals(currentUser.getId());
+        }
+        return false;
     }
 
     // ====== ПОТРЕБИТЕЛСКИ СИГНАЛИ ======

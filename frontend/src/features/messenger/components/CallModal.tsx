@@ -17,14 +17,10 @@ interface CallModalProps {
 export function CallModal({ callState, currentCall, onAccept, onReject, onEnd }: CallModalProps) {
   if (!currentCall || callState === "idle" || callState === "connected") return null;
 
-  const name =
-    currentCall.conversation?.otherUser.fullName ||
-    currentCall.conversation?.otherUser.username ||
-    currentCall.callerName ||
-    "Потребител";
-  const avatar =
-    currentCall.conversation?.otherUser.imageUrl || currentCall.callerAvatar || null;
-  const username = currentCall.conversation?.otherUser.username || name;
+  const peer = currentCall.conversation?.otherUser;
+  const name = peer?.fullName || peer?.username || currentCall.callerName || "Потребител";
+  const avatar = peer?.imageUrl || currentCall.callerAvatar || null;
+  const username = peer?.username || name;
 
   return (
     <div className="fixed inset-0 z-[1150] flex items-center justify-center bg-black/50 p-4">

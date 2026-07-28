@@ -3,9 +3,14 @@ package smolyanVote.smolyanVote.services.interfaces;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.UserEntity;
+import smolyanVote.smolyanVote.models.svmessenger.SVMessageFlagEntity;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVCallTokenResponse;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVConversationDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVMessageDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVParticipantDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVE2EPublicKeyDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVPollDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVReactionSummaryDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.SVUserMinimalDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.svmessenger.CallHistoryDTO;
 
@@ -26,6 +31,25 @@ public interface SVMessengerService {
      * @return List от ConversationDTO
      */
     List<SVConversationDTO> getAllConversations(UserEntity currentUser);
+
+    /** Same list, optionally including the user's group conversations. */
+    List<SVConversationDTO> getAllConversations(UserEntity currentUser, boolean includeGroups);
+
+    // ========== ГРУПОВИ РАЗГОВОРИ ==========
+
+    SVConversationDTO createGroup(UserEntity creator, String title, List<Long> memberIds, String imageUrl);
+
+    SVConversationDTO updateGroup(Long conversationId, UserEntity currentUser, String title, String imageUrl);
+
+    SVConversationDTO addGroupMembers(Long conversationId, UserEntity currentUser, List<Long> memberIds);
+
+    SVConversationDTO removeGroupMember(Long conversationId, UserEntity currentUser, Long memberId);
+
+    void leaveGroup(Long conversationId, UserEntity currentUser);
+
+    SVConversationDTO setGroupRole(Long conversationId, UserEntity currentUser, Long memberId, String role);
+
+    List<SVParticipantDTO> getGroupParticipants(Long conversationId, UserEntity currentUser);
     
     /**
      * Вземи конкретен разговор по ID
@@ -46,11 +70,58 @@ public interface SVMessengerService {
      * @throws IllegalArgumentException ако otherUserId == currentUser.id
      */
     SVConversationDTO startOrGetConversation(UserEntity currentUser, Long otherUserId);
-    
+
     /**
-     * Провери дали съществува разговор между двама users
+     * Провери дали user участва в разговора — използва се преди качване на файл.
      */
-    boolean conversationExists(Long userId1, Long userId2);
+    boolean isParticipant(Long conversationId, UserEntity user);
+
+    /**
+     * Слага или маха емоджи реакция и връща обобщението за текущия потребител.
+     */
+    List<SVReactionSummaryDTO> toggleReaction(Long messageId, String emoji, UserEntity currentUser);
+
+    /**
+     * Закача или запазва съобщение. Връща новото състояние (true = включено).
+     */
+    boolean toggleFlag(Long messageId, UserEntity currentUser, SVMessageFlagEntity.Kind kind);
+
+    /**
+     * Закачените или запазените съобщения. `conversationId == null` връща всички.
+     */
+    List<SVMessageDTO> getFlaggedMessages(Long conversationId, UserEntity currentUser,
+                                          SVMessageFlagEntity.Kind kind);
+
+    /**
+     * Препраща съобщение в друг разговор, запазвайки прикачения файл.
+     */
+    SVMessageDTO forwardMessage(Long messageId, Long targetConversationId, UserEntity currentUser);
+
+    /**
+     * Създава бърза анкета в разговора (2–4 опции).
+     */
+    SVMessageDTO createPoll(Long conversationId, String question, List<String> options, UserEntity sender);
+
+    /**
+     * Гласува за опция. Повторно гласуване за същата опция маха гласа.
+     */
+    SVPollDTO votePoll(Long optionId, UserEntity currentUser);
+
+    /**
+     * Търсене във всички разговори на потребителя.
+     */
+    Page<SVMessageDTO> searchMessages(String query, int page, int size, UserEntity currentUser);
+
+    /**
+     * Заглушава или отглушава разговор. Връща новото състояние.
+     */
+    boolean toggleMute(Long conversationId, UserEntity currentUser);
+
+    /** Публикува или обновява ECDH публичния ключ на потребителя. */
+    SVE2EPublicKeyDTO upsertE2EPublicKey(UserEntity user, String publicJwk);
+
+    /** Връща публичния ключ на потребител, или null ако още няма. */
+    SVE2EPublicKeyDTO getE2EPublicKey(Long userId);
     
     /**
      * Изтрий разговор (soft delete)
@@ -136,25 +207,6 @@ public interface SVMessengerService {
      */
     Long getTotalUnreadCount(UserEntity user);
     
-    /**
-     * Брой непрочетени съобщения в конкретен разговор
-     * 
-     * @param conversationId ID на разговора
-     * @param user Потребителят
-     * @return Брой непрочетени
-     */
-    Integer getUnreadCount(Long conversationId, UserEntity user);
-    
-    /**
-     * Общ брой съобщения в разговор
-     */
-    Long getMessageCount(Long conversationId);
-    
-    /**
-     * Брой активни разговори за user
-     */
-    Long getConversationCount(UserEntity user);
-    
     // ========== TYPING STATUS ==========
     
     /**
@@ -195,9 +247,6 @@ public interface SVMessengerService {
      * @return List от UserMinimalDTO (само следвани)
      */
     List<SVUserMinimalDTO> searchFollowingUsers(String query, UserEntity currentUser);
-
-    @Transactional
-    void markMessageAsDelivered(Long messageId);
 
     @Transactional
     void markAllUndeliveredAsDeliveredForUser(UserEntity user);

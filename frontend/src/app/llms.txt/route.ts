@@ -23,7 +23,8 @@ SmolyanVote е местна социална и civic платформа: пуб
 Използвайте стабилния URL \`/publications/{id}\` за конкретна публикация. Заглавието, авторът и датата са в HTML и JSON-LD (SocialMediaPosting). Не разчитайте само на \`?openModal=\` query параметри — те са за UI, не за каноничен адрес.
 
 ## Контакт
-- Сайт: https://smolyanvote.com/contacts
+- Имейл: smolyanvote@gmail.com
+- Форма за контакт: https://smolyanvote.com/?contact=1
 - Организация: SmolyanVote
 `;
 

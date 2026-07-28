@@ -78,10 +78,6 @@ public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long
         int softDelete(@Param("messageId") Long messageId);
 
         @Modifying
-        @Query("UPDATE SVMessageEntity m SET m.isDeleted = true WHERE m.conversation.id = :conversationId")
-        int softDeleteAllInConversation(@Param("conversationId") Long conversationId);
-
-        @Modifying
         @Query("UPDATE SVMessageEntity m SET " +
                         "m.messageText = :newText, " +
                         "m.isEdited = true, " +
@@ -109,6 +105,23 @@ public interface SVMessageRepository extends JpaRepository<SVMessageEntity, Long
                         "ORDER BY m.sentAt DESC")
         List<SVMessageEntity> searchInConversation(@Param("conversationId") Long conversationId,
                         @Param("query") String query);
+
+        @Query(value = "SELECT m FROM SVMessageEntity m " +
+                        "LEFT JOIN FETCH m.sender " +
+                        "WHERE m.conversation IN (" +
+                        "   SELECT c FROM SVConversationEntity c WHERE " +
+                        "   (c.user1.id = :userId OR c.user2.id = :userId) AND c.isDeleted = false" +
+                        ") AND LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
+                        "m.isDeleted = false " +
+                        "ORDER BY m.sentAt DESC",
+                        countQuery = "SELECT COUNT(m) FROM SVMessageEntity m WHERE m.conversation IN (" +
+                                        "   SELECT c FROM SVConversationEntity c WHERE " +
+                                        "   (c.user1.id = :userId OR c.user2.id = :userId) AND c.isDeleted = false" +
+                                        ") AND LOWER(m.messageText) LIKE LOWER(CONCAT('%', :query, '%')) AND " +
+                                        "m.isDeleted = false")
+        Page<SVMessageEntity> searchAcrossConversations(@Param("userId") Long userId,
+                        @Param("query") String query,
+                        Pageable pageable);
 
         @Modifying
         @Query("UPDATE SVMessageEntity m SET " +

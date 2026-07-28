@@ -68,6 +68,23 @@ public class SVMessageEntity {
     @JoinColumn(name = "parent_message_id")
     private SVMessageEntity parentMessage;
 
+    // Attachments — populated for IMAGE / FILE / AUDIO messages.
+    // Schema is created by Hibernate (spring.jpa.hibernate.ddl-auto=update).
+    @Column(name = "attachment_url", length = 512)
+    private String attachmentUrl;
+
+    @Column(name = "attachment_name", length = 255)
+    private String attachmentName;
+
+    @Column(name = "attachment_size")
+    private Long attachmentSize;
+
+    @Column(name = "attachment_mime", length = 100)
+    private String attachmentMime;
+
+    @Column(name = "is_forwarded", nullable = false)
+    private Boolean isForwarded = false;
+
     public void markAsRead() {
         if (!this.isRead) {
             this.isRead = true;
@@ -96,6 +113,7 @@ public class SVMessageEntity {
         if (isRead == null) isRead = false;
         if (isDeleted == null) isDeleted = false;
         if (isEdited == null) isEdited = false;
+        if (isForwarded == null) isForwarded = false;
         if (messageType == null) messageType = MessageType.TEXT;
     }
 

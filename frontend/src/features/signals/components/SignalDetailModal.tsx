@@ -21,6 +21,7 @@ import { SignalEditForm } from "./SignalEditForm";
 import { DeleteSignalButton } from "./DeleteSignalButton";
 import { PriorityBadge } from "./PriorityBadge";
 import { SignalAdminSection } from "./SignalAdminSection";
+import { SignalAuthorResolveSection } from "./SignalAuthorResolveSection";
 import { SignalModalShell } from "./SignalModalShell";
 import { SignalSubscribeButton } from "./SignalSubscribeButton";
 import { SignalReportResolvedButton } from "./SignalReportResolvedButton";
@@ -278,7 +279,7 @@ export function SignalDetailModal({
                             signal.isResolved ? "bg-blue-500" : signal.isActive ? "bg-emerald-500" : "bg-slate-400",
                           )}
                         />
-                        {signal.isResolved ? "Решен" : signal.isActive ? "Активен" : "Изтекъл"}
+                        {signal.isResolved ? "Решен" : signal.isActive ? "Активен" : "Неактивен"}
                       </span>
                       {signal.isActive && signal.priorityTier ? <PriorityBadge tier={signal.priorityTier} size="md" /> : null}
                       {signal.resolvedReportCount > 0 && !signal.isResolved ? (
@@ -410,7 +411,9 @@ export function SignalDetailModal({
                     </div>
                   ) : null}
 
-                  {isAdmin ? <SignalAdminSection signal={signal} onDeleted={onClose} /> : null}
+                  {signal.isOwner && !isAdmin ? <SignalAuthorResolveSection signal={signal} /> : null}
+
+                  {isAdmin ? <SignalAdminSection key={signal.id} signal={signal} onDeleted={onClose} /> : null}
                 </div>
               </div>
             </div>

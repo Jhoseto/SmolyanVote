@@ -34,7 +34,7 @@ export function BackToTop() {
       aria-label="Връщане в началото"
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      className={`fixed bottom-6 right-6 z-[1070] flex h-11 w-11 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-lg)] transition-all duration-300 ${
+      className={`sv-back-to-top fixed bottom-[var(--sv-rail-slot)] right-[var(--sv-rail-right)] z-[1070] flex h-11 w-11 items-center justify-center rounded-full bg-[image:var(--gradient-primary)] text-white shadow-[var(--shadow-lg)] transition-all duration-300 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
       }`}
     >

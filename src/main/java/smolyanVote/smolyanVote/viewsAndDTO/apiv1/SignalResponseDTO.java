@@ -9,7 +9,7 @@ import java.time.Instant;
  * {@code GET/POST/PUT /api/v1/signals} — typed response for the Next.js signals map.
  */
 public record SignalResponseDTO(Long id, String title, String description, String category, String categoryLabel,
-                                  Integer expirationDays, Instant activeUntil, boolean isActive,
+                                  boolean isActive,
                                   double latitude, double longitude, String imageUrl,
                                   Long authorId, String authorUsername, String authorImageUrl,
                                   Instant createdAt, Instant modifiedAt,
@@ -38,7 +38,7 @@ public record SignalResponseDTO(Long id, String title, String description, Strin
         return new SignalResponseDTO(
                 signal.getId(), signal.getTitle(), signal.getDescription(),
                 signal.getCategory().name(), signal.getCategory().getDisplayName(),
-                signal.getExpirationDays(), signal.getActiveUntil(), signal.isActive(),
+                signal.isActive(),
                 signal.getLatitude() != null ? signal.getLatitude().doubleValue() : 0,
                 signal.getLongitude() != null ? signal.getLongitude().doubleValue() : 0,
                 signal.getImageUrl(),

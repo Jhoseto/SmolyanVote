@@ -220,18 +220,11 @@ export function PublicationDetailModal({
                 </button>
               )}
 
-              {linkMetadata?.type === "youtube" && linkMetadata.embedUrl ? (
-                <div className="aspect-video w-full overflow-hidden rounded-[var(--radius-md)] bg-black">
-                  <iframe
-                    src={linkMetadata.embedUrl}
-                    title={linkMetadata.title ?? "YouTube видео"}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : (
-                linkMetadata && <LinkPreviewCard metadata={linkMetadata} />
+              {linkMetadata && (
+                <LinkPreviewCard
+                  metadata={linkMetadata}
+                  inlinePlay={linkMetadata.type === "youtube" ? "always" : undefined}
+                />
               )}
 
               <div className="flex flex-wrap items-center gap-3 border-t border-border-default/60 pt-3 text-xs text-[color:var(--color-text-muted)]">

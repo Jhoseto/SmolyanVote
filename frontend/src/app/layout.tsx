@@ -135,7 +135,7 @@ const ORGANIZATION_JSON_LD = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
-    url: `${SITE_URL}/contacts`,
+    email: "smolyanvote@gmail.com",
     availableLanguage: ["Bulgarian", "English"],
   },
 };

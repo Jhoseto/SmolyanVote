@@ -69,6 +69,15 @@
   --navbar-height: 72px;
   --navbar-offset: var(--navbar-height);
 
+  /* Bottom-right rail — shared slot contract for MessengerFab, BackToTop and
+     the minimized-chat dock. Without this the FAB and BackToTop overlap. */
+  --sv-rail-right: 1.5rem;
+  --sv-rail-bottom: 1.5rem;
+  --sv-rail-gap: 0.75rem;
+  --sv-fab-size: 3.5rem;
+  /* First free slot above the FAB — taken by BackToTop *or* the chat dock. */
+  --sv-rail-slot: calc(var(--sv-rail-bottom) + var(--sv-fab-size) + var(--sv-rail-gap));
+
   /* Motion (DESIGN_BRIEF §9) */
   --duration-fast: 180ms;
   --duration-normal: 300ms;
@@ -453,6 +462,19 @@ body {
 /* Reserve space for the global podcast dock on non-/podcast routes */
 html.podcast-dock-active body {
   padding-bottom: 6.5rem;
+}
+
+/* Lift the whole bottom-right rail above the podcast dock while it plays. */
+html.podcast-dock-active {
+  --sv-rail-bottom: 8rem;
+}
+
+/* The slot above the FAB is shared: minimized chat bubbles win over BackToTop.
+   `sv-chats-docked` is toggled on <html> by MessengerDock, mirroring the
+   `podcast-dock-active` pattern so shared/ui never imports from features/. */
+html.sv-chats-docked .sv-back-to-top {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* --- Sonner toasts — SmolyanVote premium --- */

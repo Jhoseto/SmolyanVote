@@ -6,13 +6,12 @@ import { applyPriorityTiers } from "../lib/computePriorityLevel";
 import { filterSignals } from "../lib/filterSignals";
 import { sortSignals } from "../lib/sortSignals";
 import { useGeolocation } from "./useGeolocation";
-import type { Signal, SignalSortOption, SignalTimeFilter } from "../types";
-import type { SignalCategory } from "../types";
+import type { Signal, SignalCategory, SignalSortOption, SignalTimeFilter } from "../types";
 
 export interface DerivedSignalsParams {
   search?: string;
   category?: SignalCategory | null;
-  showExpired?: boolean;
+  showInactive?: boolean;
   sort?: SignalSortOption;
   time?: SignalTimeFilter;
   mineOnly?: boolean;
@@ -34,7 +33,7 @@ export function useDerivedSignals(dataset: Signal[] | undefined, params: Derived
     const filtered = filterSignals(withTiers, {
       search: params.search,
       category: params.category,
-      showExpired: params.showExpired,
+      showInactive: params.showInactive,
       time: params.time,
       mineOnly: params.mineOnly,
       boostedOnly: params.boostedOnly,

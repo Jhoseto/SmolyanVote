@@ -2,16 +2,25 @@
 
 import { useEffect } from "react";
 import { useMessengerRealtime } from "../hooks/useMessengerRealtime";
+import { useMessengerShortcuts } from "../hooks/useMessengerShortcuts";
+import { usePublishE2EKey } from "../hooks/useE2EKeys";
 import { setCallSignalHandler, useCallController } from "../hooks/useCallController";
+import { useAuth } from "@/shared/lib/authContext";
 import { useMessengerUiStore } from "../store/messengerUiStore";
+import { useMessengerPrefsStore } from "../store/messengerPrefsStore";
+import { useIsDesktopMessenger } from "../lib/isDesktopMessenger";
 import { MessengerFab } from "./MessengerFab";
 import { MessengerPanel } from "./MessengerPanel";
 import { DownloadModal } from "./DownloadModal";
 import { FloatingChatWindow } from "./FloatingChatWindow";
-import { Taskbar } from "./Taskbar";
+import { MessengerDock } from "./MessengerDock";
+import { CommandPalette } from "./CommandPalette";
+import { QuickReplyToast } from "./QuickReplyToast";
+import { ShareToChatDialog } from "./ShareToChatDialog";
 import { CallModal } from "./CallModal";
 import { AudioDeviceSelector } from "./AudioDeviceSelector";
 import { ConnectionBanner } from "./ConnectionBanner";
+import "./messenger-desktop.css";
 
 /**
  * App-wide messenger shell (MODERN_FRONTEND_PLAN.md Фаза 8) — mounted in
@@ -19,10 +28,17 @@ import { ConnectionBanner } from "./ConnectionBanner";
  */
 export function MessengerRoot() {
   useMessengerRealtime();
+  const { user } = useAuth();
+  usePublishE2EKey(Boolean(user), user?.id);
 
   const activeChats = useMessengerUiStore((s) => s.activeChats);
   const setDownloadModalOpen = useMessengerUiStore((s) => s.setDownloadModalOpen);
+  const reflowWindows = useMessengerUiStore((s) => s.reflowWindows);
+  const density = useMessengerPrefsStore((s) => s.density);
+  const isDesktop = useIsDesktopMessenger();
   const call = useCallController();
+
+  useMessengerShortcuts(isDesktop);
 
   useEffect(() => {
     setCallSignalHandler(call.handleIncomingSignal);
@@ -37,24 +53,38 @@ export function MessengerRoot() {
     return () => window.removeEventListener("sv:open-download-modal", onOpenDownload);
   }, [setDownloadModalOpen]);
 
+  useEffect(() => {
+    let frame = 0;
+    function onResize() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(reflowWindows);
+    }
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [reflowWindows]);
+
   return (
-    <>
+    <div className="sv-msg" data-density={density}>
       <MessengerFab />
       <MessengerPanel />
       <ConnectionBanner />
       <DownloadModal />
-      <Taskbar />
+      <MessengerDock />
+      <QuickReplyToast />
+      {isDesktop && <CommandPalette />}
+      <ShareToChatDialog />
 
-      {activeChats.map((chat) => (
-        <FloatingChatWindow
-          key={chat.conversationId}
-          conversationId={chat.conversationId}
-          position={chat.position}
-          zIndex={chat.zIndex}
-          isMinimized={chat.isMinimized}
-          onStartCall={(id, isVideo) => void call.startCall(id, isVideo)}
-        />
-      ))}
+      {isDesktop &&
+        activeChats.map((chat) => (
+          <FloatingChatWindow
+            key={chat.conversationId}
+            chat={chat}
+            onStartCall={(id, isVideo) => void call.startCall(id, isVideo)}
+          />
+        ))}
 
       <CallModal
         callState={call.callState}
@@ -70,6 +100,6 @@ export function MessengerRoot() {
         onComplete={call.onDeviceSelectorComplete}
         onCancel={call.onDeviceSelectorCancel}
       />
-    </>
+    </div>
   );
 }

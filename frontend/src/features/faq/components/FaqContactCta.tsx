@@ -1,5 +1,7 @@
-import Link from "next/link";
+"use client";
+
 import { Container } from "@/shared/ui";
+import { ContactTrigger } from "@/features/contacts";
 
 export function FaqContactCta() {
   return (
@@ -19,13 +21,10 @@ export function FaqContactCta() {
             <i className="bi bi-envelope" />
             Изпрати имейл
           </a>
-          <Link
-            href="/contacts"
-            className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[image:var(--gradient-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition-all hover:shadow-[var(--shadow-lg)]"
-          >
-            <i className="bi bi-telephone" />
-            Контакти
-          </Link>
+          <ContactTrigger className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[image:var(--gradient-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition-all hover:shadow-[var(--shadow-lg)]">
+            <i className="bi bi-chat-dots" />
+            Форма за контакт
+          </ContactTrigger>
         </div>
       </Container>
     </section>

@@ -6,8 +6,11 @@ import lombok.NoArgsConstructor;
 import smolyanVote.smolyanVote.models.UserEntity;
 import smolyanVote.smolyanVote.models.svmessenger.SVConversationEntity;
 
+import smolyanVote.smolyanVote.models.svmessenger.SVConversationParticipantEntity;
+
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 
 /**
  * DTO за един разговор
@@ -24,7 +27,19 @@ public class SVConversationDTO {
     private Instant lastMessageTime;
     private Integer unreadCount;
     private Boolean isTyping;
+    /** Заглушен ли е разговорът за текущия потребител. */
+    private Boolean isMuted;
     private Instant createdAt;
+
+    /** DIRECT или GROUP. Старите клиенти игнорират полето и виждат само DIRECT. */
+    private String type;
+    /** Само за групи. */
+    private String title;
+    private String imageUrl;
+    private List<SVParticipantDTO> participants;
+    private Integer participantCount;
+    /** Ролята на текущия потребител в групата: OWNER / ADMIN / MEMBER. */
+    private String myRole;
     
     // ========== INNER MAPPER CLASS ==========
     
@@ -49,6 +64,7 @@ public class SVConversationDTO {
             
             SVConversationDTO dto = new SVConversationDTO();
             dto.setId(conversation.getId());
+            dto.setType(conversation.getConversationType().name());
             
             // Определи "other user"
             UserEntity otherUser = conversation.getOtherUser(currentUser);
@@ -63,6 +79,7 @@ public class SVConversationDTO {
             
             // Typing status
             dto.setIsTyping(isTyping);
+            dto.setIsMuted(conversation.isMutedForUser(currentUser));
             
             // Created timestamp
             dto.setCreatedAt(conversation.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
@@ -76,6 +93,47 @@ public class SVConversationDTO {
         public static SVConversationDTO toDTO(SVConversationEntity conversation, 
                                                UserEntity currentUser) {
             return toDTO(conversation, currentUser, false);
+        }
+
+        /**
+         * Group conversations have no "other user"; identity comes from the title
+         * and the participant roster instead.
+         */
+        public static SVConversationDTO toGroupDTO(SVConversationEntity conversation,
+                                                   UserEntity currentUser,
+                                                   List<SVConversationParticipantEntity> participants,
+                                                   boolean isTyping) {
+            if (conversation == null || currentUser == null) {
+                return null;
+            }
+
+            SVConversationDTO dto = new SVConversationDTO();
+            dto.setId(conversation.getId());
+            dto.setType(conversation.getConversationType().name());
+            dto.setTitle(conversation.getTitle());
+            dto.setImageUrl(conversation.getImageUrl());
+            dto.setLastMessage(conversation.getLastMessagePreview());
+            dto.setLastMessageTime(conversation.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant());
+            dto.setCreatedAt(conversation.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
+            dto.setIsTyping(isTyping);
+
+            List<SVConversationParticipantEntity> roster = participants == null ? List.of() : participants;
+            dto.setParticipants(roster.stream().map(SVParticipantDTO::from).toList());
+            dto.setParticipantCount(roster.size());
+
+            roster.stream()
+                    .filter(p -> p.getUser().getId().equals(currentUser.getId()))
+                    .findFirst()
+                    .ifPresent(me -> {
+                        dto.setMyRole(me.getRole().name());
+                        dto.setUnreadCount(me.getUnreadCount());
+                        dto.setIsMuted(Boolean.TRUE.equals(me.getMuted()));
+                    });
+
+            if (dto.getUnreadCount() == null) dto.setUnreadCount(0);
+            if (dto.getIsMuted() == null) dto.setIsMuted(false);
+
+            return dto;
         }
     }
 }

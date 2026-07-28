@@ -285,4 +285,85 @@ public class SVMessengerWebSocketHandler {
                      participantPrincipalName, e.getMessage(), e);
         }
     }
+
+    /**
+     * Изпраща произволно съобщение-събитие (редакция, изтриване, промяна в група)
+     * по същия канал, по който пътуват и новите съобщения.
+     */
+    public void sendMessageMutation(String principalName, Map<String, Object> payload) {
+        if (principalName == null || principalName.isBlank() || payload == null) {
+            return;
+        }
+
+        try {
+            Map<String, Object> update = new HashMap<>(payload);
+            update.put("timestamp", Instant.now());
+
+            messagingTemplate.convertAndSendToUser(
+                    principalName,
+                    "/queue/svmessenger-messages",
+                    update
+            );
+        } catch (Exception e) {
+            log.error("Failed to send message mutation to principal {}: {}", principalName, e.getMessage());
+        }
+    }
+
+    /**
+     * Изпраща обновена реакция върху съобщение. Клиентът пре-рендира само
+     * съответното мехурче, без да презарежда страницата със съобщения.
+     */
+    public void sendReactionUpdate(String principalName, Long conversationId, Long messageId,
+                                   Object reactions) {
+        if (principalName == null || principalName.isBlank() || messageId == null) {
+            log.error("Invalid reaction update parameters: principalName={}, messageId={}",
+                     principalName, messageId);
+            return;
+        }
+
+        try {
+            Map<String, Object> update = new HashMap<>();
+            update.put("type", "REACTION_UPDATED");
+            update.put("conversationId", conversationId);
+            update.put("messageId", messageId);
+            update.put("reactions", reactions);
+            update.put("timestamp", Instant.now());
+
+            messagingTemplate.convertAndSendToUser(
+                    principalName,
+                    "/queue/svmessenger-messages",
+                    update
+            );
+        } catch (Exception e) {
+            log.error("Failed to send reaction update to principal {}: {}",
+                     principalName, e.getMessage(), e);
+        }
+    }
+
+    /** Резултатите от чат анкета се обновяват на живо у отсрещната страна. */
+    public void sendPollUpdate(String principalName, Long conversationId, Long messageId, Object poll) {
+        if (principalName == null || principalName.isBlank() || messageId == null) {
+            log.error("Invalid poll update parameters: principalName={}, messageId={}",
+                     principalName, messageId);
+            return;
+        }
+
+        try {
+            Map<String, Object> update = new HashMap<>();
+            update.put("type", "POLL_UPDATED");
+            update.put("conversationId", conversationId);
+            update.put("messageId", messageId);
+            update.put("poll", poll);
+            update.put("timestamp", Instant.now());
+
+            messagingTemplate.convertAndSendToUser(
+                    principalName,
+                    "/queue/svmessenger-messages",
+                    update
+            );
+        } catch (Exception e) {
+            log.error("Failed to send poll update to principal {}: {}",
+                     principalName, e.getMessage(), e);
+        }
+    }
 }

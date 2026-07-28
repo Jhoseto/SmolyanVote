@@ -13,7 +13,6 @@ function toFormData(payload: CreateSignalPayload | UpdateSignalPayload): FormDat
   form.append("title", payload.title);
   form.append("description", payload.description);
   form.append("category", payload.category);
-  form.append("expirationDays", String(payload.expirationDays));
   if ("latitude" in payload) {
     form.append("latitude", String(payload.latitude));
     form.append("longitude", String(payload.longitude));
@@ -29,6 +28,7 @@ function toModerateForm(payload: ModerateSignalPayload): FormData {
   const form = new FormData();
   if (payload.adminNotes != null) form.append("adminNotes", payload.adminNotes);
   form.append("markResolved", String(payload.markResolved));
+  if (payload.markActive != null) form.append("markActive", String(payload.markActive));
   return form;
 }
 
@@ -52,6 +52,15 @@ export const signalsApi = {
 
   moderate: (id: number, payload: ModerateSignalPayload) =>
     apiClient.putForm<Signal>(`/api/v1/signals/${id}/moderate`, { body: toModerateForm(payload) }),
+
+  setResolved: (id: number, markResolved: boolean) =>
+    apiClient.putForm<Signal>(`/api/v1/signals/${id}/resolve`, {
+      body: (() => {
+        const form = new FormData();
+        form.append("markResolved", String(markResolved));
+        return form;
+      })(),
+    }),
 
   remove: (id: number) => apiClient.delete<ApiMessageResponse>(`/api/v1/signals/${id}`),
 

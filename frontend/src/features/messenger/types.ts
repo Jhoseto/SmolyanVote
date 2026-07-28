@@ -10,15 +10,36 @@ export interface MessengerUser {
   bio: string | null;
 }
 
-/** Mirrors backend `SVConversationDTO`. */
+export type ConversationType = "DIRECT" | "GROUP";
+
+export type ParticipantRole = "OWNER" | "ADMIN" | "MEMBER";
+
+/** Mirrors backend `SVParticipantDTO`. */
+export interface Participant {
+  user: MessengerUser;
+  role: ParticipantRole;
+}
+
+/**
+ * Mirrors backend `SVConversationDTO`. Group conversations carry `title` and
+ * `participants` instead of `otherUser`, so always branch on `type`.
+ */
 export interface Conversation {
   id: number;
-  otherUser: MessengerUser;
+  /** Absent for group conversations. */
+  otherUser?: MessengerUser | null;
   lastMessage: string | null;
   lastMessageTime: string | null;
   unreadCount: number;
   isTyping: boolean;
+  isMuted?: boolean;
   createdAt: string;
+  type?: ConversationType;
+  title?: string | null;
+  imageUrl?: string | null;
+  participants?: Participant[] | null;
+  participantCount?: number | null;
+  myRole?: ParticipantRole | null;
 }
 
 /** Mirrors backend `SVMessageDTO`. */
@@ -39,6 +60,45 @@ export interface Message {
   editedAt: string | null;
   parentMessageId: number | null;
   parentMessageText: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentSize?: number | null;
+  attachmentMime?: string | null;
+  reactions?: ReactionSummary[] | null;
+  isPinned?: boolean | null;
+  isStarred?: boolean | null;
+  isForwarded?: boolean | null;
+  poll?: Poll | null;
+  /** Client-only: set on optimistic bubbles until the server echo arrives. */
+  clientId?: string;
+  sendState?: "pending" | "failed";
+  /** Client-only: local object URL shown while the attachment uploads. */
+  localPreviewUrl?: string;
+  uploadProgress?: number;
+}
+
+/** Mirrors backend `SVReactionSummaryDTO`. */
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+  usernames: string[];
+  reactedByMe: boolean;
+}
+
+/** Mirrors backend `SVPollDTO` — in-chat quick poll. */
+export interface Poll {
+  question: string;
+  options: { id: number; text: string; votes: number }[];
+  totalVotes: number;
+  myOptionId: number | null;
+}
+
+/** Mirrors backend `SVAttachmentDTO`. */
+export interface AttachmentUpload {
+  url: string;
+  name: string | null;
+  size: number | null;
+  mime: string | null;
 }
 
 /** Spring `Page<SVMessageDTO>` JSON shape. */
@@ -148,7 +208,10 @@ export type CallUiState = "idle" | "outgoing" | "incoming" | "connected";
 export interface ActiveChatWindow {
   conversationId: number;
   isMinimized: boolean;
+  /** Top-left of the card. The size is fixed and derived, never stored. */
   position: { x: number; y: number };
+  /** Fullscreen replaces the fixed card footprint with the whole viewport. */
+  maximized: boolean;
   zIndex: number;
 }
 

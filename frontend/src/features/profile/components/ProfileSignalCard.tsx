@@ -30,7 +30,7 @@ export function ProfileSignalCard({ signal }: { signal: ProfileSignalItem }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/35 px-2.5 py-1 text-[0.68rem] font-semibold text-white backdrop-blur-md">
             <i className="bi bi-tag" />
-            {signal.isActive ? signal.categoryLabel : "Изтекъл"}
+            {signal.isActive ? signal.categoryLabel : "Неактивен"}
           </span>
         </div>
 

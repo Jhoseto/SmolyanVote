@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
@@ -22,9 +22,16 @@ export function SignalAdminSection({ signal, onDeleted }: SignalAdminSectionProp
   const queryClient = useQueryClient();
   const [adminNotes, setAdminNotes] = useState(signal.adminNotes ?? "");
   const [markResolved, setMarkResolved] = useState(signal.isResolved);
+  const [markActive, setMarkActive] = useState(signal.isActive);
+
+  useEffect(() => {
+    setAdminNotes(signal.adminNotes ?? "");
+    setMarkResolved(signal.isResolved);
+    setMarkActive(signal.isActive);
+  }, [signal.id, signal.adminNotes, signal.isResolved, signal.isActive]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: () => signalsApi.moderate(signal.id, { adminNotes, markResolved }),
+    mutationFn: () => signalsApi.moderate(signal.id, { adminNotes, markResolved, markActive }),
     onSuccess: (updated) => {
       patchSignalCaches(queryClient, signal.id, updated);
       toast.success("Модерацията е запазена.");
@@ -57,6 +64,16 @@ export function SignalAdminSection({ signal, onDeleted }: SignalAdminSectionProp
           placeholder="Административни бележки…"
           className={cn(signalFieldClass, "border-amber-200/60 focus:border-amber-400 focus:ring-amber-200/40")}
         />
+
+        <label className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-amber-200/50 bg-amber-50/50 px-3 py-2.5 text-sm font-medium text-amber-950">
+          <input
+            type="checkbox"
+            checked={markActive}
+            onChange={(e) => setMarkActive(e.target.checked)}
+            className="accent-amber-600"
+          />
+          Активен на платформата
+        </label>
 
         <label className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-amber-200/50 bg-amber-50/50 px-3 py-2.5 text-sm font-medium text-amber-950">
           <input

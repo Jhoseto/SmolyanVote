@@ -308,7 +308,8 @@ public class MobileAuthController {
 
             // Създаване или обновяване на user
             AuthProvider authProvider = "google".equals(provider) ? AuthProvider.GOOGLE : AuthProvider.FACEBOOK;
-            UserEntity user = mobileOAuthService.processOAuthUser(userInfo, authProvider);
+            String providerToken = "facebook".equals(provider) ? request.getAccessToken() : null;
+            UserEntity user = mobileOAuthService.processOAuthUser(userInfo, authProvider, providerToken);
 
             // Проверка за статус
             if (user.getStatus().equals(UserStatusEnum.PENDING_ACTIVATION)) {

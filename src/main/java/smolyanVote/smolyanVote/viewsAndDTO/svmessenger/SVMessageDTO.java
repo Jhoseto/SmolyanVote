@@ -33,6 +33,21 @@ public class SVMessageDTO {
     private Long parentMessageId;
     private String parentMessageText; // Preview of parent message
 
+    // Attachment payload — non-null for IMAGE / FILE / AUDIO messages
+    private String attachmentUrl;
+    private String attachmentName;
+    private Long attachmentSize;
+    private String attachmentMime;
+
+    // Reactions aggregated per emoji, plus the emoji the caller reacted with
+    private java.util.List<SVReactionSummaryDTO> reactions;
+    private Boolean isPinned;
+    private Boolean isStarred;
+    private Boolean isForwarded;
+
+    /** Non-null само за messageType = POLL. */
+    private SVPollDTO poll;
+
     // ========== INNER MAPPER CLASS ==========
 
     /**
@@ -67,6 +82,12 @@ public class SVMessageDTO {
             dto.setEditedAt(message.getEditedAt() != null ?
                     message.getEditedAt().atZone(ZoneId.systemDefault()).toInstant() : null);
             
+            dto.setAttachmentUrl(message.getAttachmentUrl());
+            dto.setAttachmentName(message.getAttachmentName());
+            dto.setAttachmentSize(message.getAttachmentSize());
+            dto.setAttachmentMime(message.getAttachmentMime());
+            dto.setIsForwarded(Boolean.TRUE.equals(message.getIsForwarded()));
+
             // Parent message info for replies
             if (message.getParentMessage() != null) {
                 dto.setParentMessageId(message.getParentMessage().getId());

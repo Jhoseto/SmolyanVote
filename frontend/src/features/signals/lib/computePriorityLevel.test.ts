@@ -7,8 +7,6 @@ function mockSignal(overrides: Partial<Signal> & Pick<Signal, "id" | "category" 
     title: "Test",
     description: "Test description long enough",
     categoryLabel: "Test",
-    expirationDays: 7,
-    activeUntil: null,
     isActive: true,
     latitude: 41.5,
     longitude: 24.7,
@@ -56,7 +54,7 @@ describe("computePriorityLevels", () => {
     expect(tiers.get(1)).toBe("low");
   });
 
-  it("skips expired signals in percentile pool", () => {
+  it("skips inactive signals in percentile pool", () => {
     const withTiers = applyPriorityTiers([
       mockSignal({ id: 1, category: "OTHER", priorityBoostCount: 5, isActive: false }),
       mockSignal({ id: 2, category: "OTHER", priorityBoostCount: 1 }),
