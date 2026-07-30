@@ -114,7 +114,7 @@ public class ApplicationSecurityConfiguration {
                                                 // Public /api/v1 read endpoints for the new Next.js frontend
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/stats/**",
                                                                 "/api/v1/events/**", "/api/v1/publications/**",
-                                                                "/api/v1/signals/**")
+                                                                "/api/v1/signals/**", "/api/v1/monitor/**")
                                                 .permitAll()
                                                 // Коментари — публично четене за гости (сигнали/публикации са public)
                                                 .requestMatchers(HttpMethod.GET, "/api/comments/**")

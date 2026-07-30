@@ -90,6 +90,13 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	val trustStore = rootProject.file("config/jvm/cacerts-with-avast")
+	if (trustStore.exists()) {
+		jvmArgs(
+			"-Djavax.net.ssl.trustStore=${trustStore.absolutePath}",
+			"-Djavax.net.ssl.trustStorePassword=changeit",
+		)
+	}
 }
 
 // Фиксиране на SLF4J конфликта

@@ -41,6 +41,7 @@ export interface ShellDictionary {
     home: string;
     about: string;
     vote: string;
+    monitor: string;
     publications: string;
     signals: string;
     podcast: string;
@@ -90,6 +91,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Начало",
       about: "Философия",
       vote: "Гласувай",
+      monitor: "Граждански монитор",
       publications: "Публикации",
       signals: "Карта/Сигнали",
       podcast: "Podcast",
@@ -138,6 +140,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Home",
       about: "Philosophy",
       vote: "Vote",
+      monitor: "Citizen Monitor",
       publications: "Publications",
       signals: "Map/Signals",
       podcast: "Podcast",
@@ -186,6 +189,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Αρχική",
       about: "Σχετικά",
       vote: "Ψήφισε",
+      monitor: "Πολίτης Monitor",
       publications: "Δημοσιεύσεις",
       signals: "Χάρτης/Σήματα",
       podcast: "Podcast",
@@ -234,6 +238,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Ana Sayfa",
       about: "Hakkımızda",
       vote: "Oy Ver",
+      monitor: "Vatandaş Monitör",
       publications: "Yayınlar",
       signals: "Harita/Sinyaller",
       podcast: "Podcast",
@@ -282,6 +287,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Начало",
       about: "О нас",
       vote: "Голосуй",
+      monitor: "Гражданский монитор",
       publications: "Публикации",
       signals: "Карта/Сигналы",
       podcast: "Подкаст",
@@ -330,6 +336,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Start",
       about: "Über uns",
       vote: "Abstimmen",
+      monitor: "Bürger-Monitor",
       publications: "Veröffentlichungen",
       signals: "Karte/Signale",
       podcast: "Podcast",
@@ -378,6 +385,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Accueil",
       about: "À propos",
       vote: "Voter",
+      monitor: "Moniteur citoyen",
       publications: "Publications",
       signals: "Carte/Signaux",
       podcast: "Podcast",
@@ -426,6 +434,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "Inicio",
       about: "Sobre nosotros",
       vote: "Vota",
+      monitor: "Monitor ciudadano",
       publications: "Publicaciones",
       signals: "Mapa/Señales",
       podcast: "Podcast",
@@ -474,6 +483,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "בית",
       about: "עלינו",
       vote: "הצבע",
+      monitor: "מוניטור אזרחי",
       publications: "פרסומים",
       signals: "מפה/אותות",
       podcast: "פודקאסט",
@@ -521,6 +531,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
       home: "首页",
       about: "关于我们",
       vote: "投票",
+      monitor: "公民监督",
       publications: "出版物",
       signals: "地图/信号",
       podcast: "播客",

@@ -72,6 +72,7 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
     // ===== ПО АВТОР =====
 
     Page<SignalsEntity> findByAuthorIdOrderByCreatedDesc(Long authorId, Pageable pageable);
+    List<SignalsEntity> findAllByAuthorId(Long authorId);
     long countByAuthorId(Long authorId);
 
     long countByAuthorIdAndCreatedAfter(Long authorId, Instant since);
@@ -82,7 +83,9 @@ public interface SignalsRepository extends JpaRepository<SignalsEntity, Long> {
     List<SignalsEntity> findPopularSignals(@Param("minLikes") Integer minLikes, Pageable pageable);
 
 
-    @Query("SELECT s FROM SignalsEntity s JOIN FETCH s.author WHERE s.author.id = :authorId ORDER BY s.created DESC")
-    List<SignalsEntity> findAllByAuthorId(@Param("authorId") Long authorId);
-
+    @Query("SELECT s FROM SignalsEntity s WHERE s.active = true AND (" +
+            "LOWER(s.title) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+            "LOWER(s.description) LIKE LOWER(CONCAT('%', :term, '%'))) " +
+            "ORDER BY s.created DESC")
+    List<SignalsEntity> findActiveByTextMatch(@Param("term") String term, Pageable pageable);
 }

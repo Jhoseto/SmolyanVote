@@ -1,0 +1,15 @@
+export { MonitorHomePage } from "./MonitorHomePage";
+export { MonitorProcurementPage } from "./MonitorProcurementPage";
+export { MonitorAnomaliesPage } from "./MonitorAnomaliesPage";
+export { MonitorFlowsPage } from "./MonitorFlowsPage";
+export { MonitorCouncilPage } from "./MonitorCouncilPage";
+export { MonitorConsultationsPage } from "./MonitorConsultationsPage";
+export { MonitorDeadlinesPage } from "./MonitorDeadlinesPage";
+export { MonitorRegionPage } from "./MonitorRegionPage";
+export { MonitorBudgetPage } from "./MonitorBudgetPage";
+export { MonitorEuFundsPage } from "./MonitorEuFundsPage";
+export { MonitorMethodologyPage } from "./MonitorMethodologyPage";
+export { MonitorSearchPage } from "./MonitorSearchPage";
+export { MonitorContractDetailPage } from "./MonitorContractDetailPage";
+export { MonitorDocumentDetailPage } from "./MonitorDocumentDetailPage";
+export { MonitorCompanyPage } from "./MonitorCompanyPage";

@@ -13,6 +13,7 @@ import { NAV_ITEMS } from "../data/navItems";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserMenu } from "./UserMenu";
 import { VoteNavMenu } from "./VoteNavMenu";
+import { MonitorNavMenu } from "./MonitorNavMenu";
 
 interface NavbarProps {
   notificationSlot?: ReactNode;
@@ -80,6 +81,9 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
             {NAV_ITEMS.map((item) => {
               if (item.key === "vote") {
                 return <VoteNavMenu key="vote" label={t.nav.vote} />;
+              }
+              if (item.key === "monitor") {
+                return <MonitorNavMenu key="monitor" label={t.nav.monitor} />;
               }
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
@@ -169,6 +173,17 @@ export function Navbar({ notificationSlot, lang }: NavbarProps) {
                   <div key="vote" className="py-1">
                     <VoteNavMenu
                       label={t.nav.vote}
+                      onNavigate={() => setMobileOpen(false)}
+                      className="w-full [&_button]:w-full [&_button]:justify-start"
+                    />
+                  </div>
+                );
+              }
+              if (item.key === "monitor") {
+                return (
+                  <div key="monitor" className="py-1">
+                    <MonitorNavMenu
+                      label={t.nav.monitor}
                       onNavigate={() => setMobileOpen(false)}
                       className="w-full [&_button]:w-full [&_button]:justify-start"
                     />

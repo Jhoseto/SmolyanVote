@@ -25,8 +25,9 @@ if "%DO_USER%"=="" set "DO_USER=root"
 if "%REMOTE_DIR%"=="" set "REMOTE_DIR=/opt/smolyanvote/server"
 
 set "SSH_TARGET=%DO_USER%@%DO_HOST%"
-set "SSH_OPTS=-o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
+set "SSH_OPTS=-o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=20 -o TCPKeepAlive=yes"
 if defined DO_SSH_KEY set "SSH_OPTS=%SSH_OPTS% -i "%DO_SSH_KEY%""
+if not defined SCP_RETRY_COUNT set "SCP_RETRY_COUNT=3"
 
 set "SKIP_BUILD=0"
 set "BUILD_BACKEND=1"
@@ -84,12 +85,37 @@ echo [upload] Uploading configs...
 scp %SSH_OPTS% "NewServerConfig\docker-compose.prod.yml" "NewServerConfig\post-deploy.sh" "NewServerConfig\Caddyfile" "%SSH_TARGET%:%REMOTE_DIR%/"
 if errorlevel 1 exit /b 1
 
-ssh %SSH_OPTS% %SSH_TARGET% "sed -i 's/\r$//' %REMOTE_DIR%/post-deploy.sh && chmod +x %REMOTE_DIR%/post-deploy.sh && mkdir -p %REMOTE_DIR%/artifacts/frontend"
+if exist "NewServerConfig\.env" (
+  echo [upload] Server .env ^(secrets — GEMINI_API_KEY, DB, etc.^)...
+  call :ScpWithRetry "NewServerConfig\.env" "%SSH_TARGET%:%REMOTE_DIR%/.env.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/.env.part %REMOTE_DIR%/.env && chmod 600 %REMOTE_DIR%/.env"
+  if errorlevel 1 exit /b 1
+) else (
+  echo [WARN] NewServerConfig\.env not found — server keeps existing .env
+)
+
+echo [upload] Monitor scraper sidecar...
+if not exist ".deploy" mkdir ".deploy"
+if exist ".deploy\scraper.tar.gz" del /f /q ".deploy\scraper.tar.gz"
+tar -czf ".deploy\scraper.tar.gz" -C scraper --exclude=node_modules .
+if errorlevel 1 (
+  echo [ERROR] Failed to create scraper archive
+  exit /b 1
+)
+call :ScpWithRetry ".deploy\scraper.tar.gz" "%SSH_TARGET%:%REMOTE_DIR%/scraper.tar.gz.part"
+if errorlevel 1 exit /b 1
+ssh %SSH_OPTS% %SSH_TARGET% "mkdir -p %REMOTE_DIR%/scraper && rm -rf %REMOTE_DIR%/scraper/* && tar -xzf %REMOTE_DIR%/scraper.tar.gz.part -C %REMOTE_DIR%/scraper && mv -f %REMOTE_DIR%/scraper.tar.gz.part %REMOTE_DIR%/scraper.tar.gz && rm -f %REMOTE_DIR%/scraper.tar.gz"
+if errorlevel 1 exit /b 1
+
+ssh %SSH_OPTS% %SSH_TARGET% "sed -i 's/\r$//' %REMOTE_DIR%/post-deploy.sh && chmod +x %REMOTE_DIR%/post-deploy.sh && mkdir -p %REMOTE_DIR%/artifacts/frontend && rm -f %REMOTE_DIR%/artifacts/app.jar.part %REMOTE_DIR%/artifacts/frontend.tar.gz.part"
 if errorlevel 1 exit /b 1
 
 if "%BUILD_BACKEND%"=="1" (
-  echo [upload] Backend JAR...
-  scp %SSH_OPTS% ".deploy\artifacts\app.jar" "%SSH_TARGET%:%REMOTE_DIR%/artifacts/app.jar"
+  echo [upload] Backend JAR ^(~167 MB — keep connection open; retries on drop^)...
+  call :ScpWithRetry ".deploy\artifacts\app.jar" "%SSH_TARGET%:%REMOTE_DIR%/artifacts/app.jar.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/artifacts/app.jar.part %REMOTE_DIR%/artifacts/app.jar"
   if errorlevel 1 exit /b 1
 )
 
@@ -106,7 +132,9 @@ if "%BUILD_FRONTEND%"=="1" (
     echo [ERROR] Failed to create .deploy\frontend.tar.gz
     exit /b 1
   )
-  scp %SSH_OPTS% ".deploy\frontend.tar.gz" "%SSH_TARGET%:%REMOTE_DIR%/artifacts/frontend.tar.gz"
+  call :ScpWithRetry ".deploy\frontend.tar.gz" "%SSH_TARGET%:%REMOTE_DIR%/artifacts/frontend.tar.gz.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/artifacts/frontend.tar.gz.part %REMOTE_DIR%/artifacts/frontend.tar.gz"
   if errorlevel 1 exit /b 1
   ssh %SSH_OPTS% %SSH_TARGET% "rm -rf %REMOTE_DIR%/artifacts/frontend && mkdir -p %REMOTE_DIR%/artifacts/frontend && tar -xzf %REMOTE_DIR%/artifacts/frontend.tar.gz -C %REMOTE_DIR%/artifacts/frontend && rm -f %REMOTE_DIR%/artifacts/frontend.tar.gz"
   if errorlevel 1 (
@@ -127,6 +155,8 @@ echo Tips for faster deploys:
 echo   deploy.bat --backend-only    ^(Java changes only, ~30s build + upload^)
 echo   deploy.bat --frontend-only   ^(UI changes only, ~2-4 min build + upload^)
 echo   deploy.bat --skip-build      ^(re-upload last build, no compile^)
+echo.
+echo If a large upload drops mid-transfer, re-run with --skip-build ^(build already done^).
 echo.
 exit /b 0
 
@@ -217,3 +247,21 @@ if errorlevel 8 exit /b 1
 
 echo       ^> .deploy\artifacts\frontend\
 exit /b 0
+
+:ScpWithRetry
+rem Usage: call :ScpWithRetry "local\path" "user@host:remote/path"
+set "SCP_LOCAL=%~1"
+set "SCP_REMOTE=%~2"
+set "SCP_TRY=0"
+:ScpWithRetryAttempt
+set /a SCP_TRY+=1
+echo       attempt !SCP_TRY!/%SCP_RETRY_COUNT%...
+scp %SSH_OPTS% -C "%SCP_LOCAL%" "%SCP_REMOTE%"
+if not errorlevel 1 exit /b 0
+if !SCP_TRY! lss %SCP_RETRY_COUNT% (
+  echo [upload] Transfer interrupted — retrying in 8s...
+  timeout /t 8 /nobreak >nul
+  goto ScpWithRetryAttempt
+)
+echo [ERROR] Upload failed after %SCP_RETRY_COUNT% attempts: %SCP_LOCAL%
+exit /b 1

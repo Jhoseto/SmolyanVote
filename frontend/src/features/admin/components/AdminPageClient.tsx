@@ -16,6 +16,7 @@ import { ModerationInboxPanel } from "./ModerationInboxPanel";
 import { ModerationPanel } from "./ModerationPanel";
 import { ContentPanel } from "./ContentPanel";
 import { PodcastAdminPanel } from "./PodcastAdminPanel";
+import { MonitorAdminPanel } from "./MonitorAdminPanel";
 import { EventsAdminPanel } from "./EventsAdminPanel";
 import { SubscriptionsPanel } from "./SubscriptionsPanel";
 
@@ -35,6 +36,7 @@ const TABS: { id: AdminTab; label: string; icon: string }[] = [
   { id: "reports", label: "Репорти", icon: "bi-flag" },
   { id: "content", label: "Съдържание", icon: "bi-collection" },
   { id: "podcast", label: "Подкаст", icon: "bi-mic" },
+  { id: "monitor", label: "Граждански монитор", icon: "bi-shield-check" },
   { id: "events", label: "Събития", icon: "bi-calendar-event" },
   { id: "moderation", label: "Profanity", icon: "bi-shield-check" },
   { id: "activity", label: "Активност", icon: "bi-activity" },
@@ -140,6 +142,7 @@ export function AdminPageClient() {
       {tab === "reports" && <ReportsPanel enabled />}
       {tab === "content" && <ContentPanel enabled />}
       {tab === "podcast" && <PodcastAdminPanel enabled />}
+      {tab === "monitor" && <MonitorAdminPanel enabled />}
       {tab === "events" && <EventsAdminPanel enabled />}
       {tab === "moderation" && <ModerationPanel enabled />}
       {tab === "activity" && <ActivityPanel enabled />}

@@ -1,0 +1,21 @@
+.monitor-mobile .monitor-mobile-tabbar {
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.monitor-mobile nav[aria-label="Секции на монитора"] {
+  scrollbar-width: none;
+}
+
+.monitor-mobile nav[aria-label="Секции на монитора"]::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .monitor-mobile h1 {
+    font-size: clamp(1.45rem, 5vw, 1.75rem) !important;
+  }
+
+  .monitor-mobile .grid.gap-3.md\\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}

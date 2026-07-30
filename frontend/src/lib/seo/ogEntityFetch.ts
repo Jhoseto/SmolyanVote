@@ -93,8 +93,8 @@ type VotePayload = {
   imageUrls?: string[];
 };
 
-function voteCard(kind: Exclude<OgShareKind, "publication">, data: VotePayload | null): OgShareCardInput {
-  const fallbackTitle: Record<Exclude<OgShareKind, "publication">, string> = {
+function voteCard(kind: Exclude<OgShareKind, "publication" | "monitor">, data: VotePayload | null): OgShareCardInput {
+  const fallbackTitle: Record<Exclude<OgShareKind, "publication" | "monitor">, string> = {
     event: "Гласуване в Смолян",
     referendum: "Референдум в Смолян",
     multipoll: "Анкета в Смолян",
@@ -136,4 +136,62 @@ export async function fetchReferendumOg(id: string): Promise<OgShareCardInput> {
 
 export async function fetchMultipollOg(id: string): Promise<OgShareCardInput> {
   return voteCard("multipoll", await fetchJson<VotePayload>(`/api/v1/events/multipoll/${id}`));
+}
+
+function formatEurOg(value: number | null | undefined): string {
+  if (value == null) return "";
+  return new Intl.NumberFormat("bg-BG", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export async function fetchMonitorContractOg(id: string): Promise<OgShareCardInput> {
+  const data = await fetchJson<{
+    subject?: string;
+    shortSummary?: string | null;
+    amountEur?: number | null;
+    authorityName?: string | null;
+    contractorName?: string | null;
+    riskScore?: number | null;
+  }>(`/api/v1/monitor/contract/${id}`);
+
+  if (!data) {
+    return { kind: "monitor", title: "Договор — Смолян", meta: "Граждански монитор" };
+  }
+
+  const title = requireTitle(data.subject, "Договор — Смолян");
+  const metaParts = [
+    data.amountEur != null ? formatEurOg(data.amountEur) : null,
+    data.authorityName?.trim(),
+    data.riskScore != null && data.riskScore >= 40 ? `Risk ${data.riskScore}` : null,
+  ].filter(Boolean);
+
+  return {
+    kind: "monitor",
+    title,
+    subtitle: excerpt(data.shortSummary, title, 90),
+    meta: metaParts.length > 0 ? metaParts.join(" · ") : "Граждански монитор · Смолян",
+  };
+}
+
+export async function fetchMonitorDocumentOg(id: string): Promise<OgShareCardInput> {
+  const data = await fetchJson<{
+    title?: string;
+    shortSummary?: string | null;
+    documentType?: string;
+  }>(`/api/v1/monitor/document/${id}`);
+
+  if (!data) {
+    return { kind: "monitor", title: "Документ — Смолян", meta: "Граждански монитор" };
+  }
+
+  const title = requireTitle(data.title, "Документ — Смолян");
+  return {
+    kind: "monitor",
+    title,
+    subtitle: excerpt(data.shortSummary, title, 90),
+    meta: data.documentType ? `${data.documentType} · Смолян` : "Граждански монитор · Смолян",
+  };
 }

@@ -1,0 +1,247 @@
+export interface RiskBadge {
+  code: string;
+  label: string;
+  tooltip?: string | null;
+}
+
+export interface MonitorSearchSuggestion {
+  id: string;
+  itemType: string;
+  title: string;
+  subtitle: string | null;
+}
+
+export interface MonitorOverview {
+  spentYtdEur: number;
+  contractCount: number;
+  flaggedCount: number;
+  documentCount: number;
+  newDocumentsThisWeek: number;
+  dataFreshness: string | null;
+}
+
+export interface MonitorFeedItem {
+  id: string;
+  itemType: "contract" | "document" | string;
+  title: string;
+  shortSummary: string | null;
+  category: string | null;
+  riskScore: number | null;
+  riskFlags: RiskBadge[];
+  amountEur: number | null;
+  date: string | null;
+  sourceUrl: string | null;
+  publishedAt: string | null;
+}
+
+export interface MonitorPage<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface MonitorContractDetail {
+  id: number;
+  sigmaId: string;
+  subject: string;
+  shortSummary: string | null;
+  authorityName: string | null;
+  contractorName: string | null;
+  contractorEik: string | null;
+  sectorCode: string | null;
+  procedureType: string | null;
+  signedAt: string | null;
+  amountEur: number | null;
+  originalAmountEur: number | null;
+  estimatedValueEur: number | null;
+  publicationDate: string | null;
+  euFunded: boolean;
+  bidsReceived: number | null;
+  riskScore: number | null;
+  riskFlags: RiskBadge[];
+  sourceUrl: string | null;
+  regionScope: string;
+  relatedSignalsCount: number;
+  relatedSignals: MonitorRelatedSignal[];
+  amendments: MonitorAmendment[];
+}
+
+export interface MonitorAmendment {
+  id: number;
+  amendedAt: string | null;
+  previousAmountEur: number | null;
+  newAmountEur: number | null;
+  deltaEur: number | null;
+  changeDescription: string | null;
+  changeReason: string | null;
+  sourceUrl: string | null;
+}
+
+export interface MonitorDocumentDetail {
+  id: number;
+  documentType: string;
+  title: string;
+  shortSummary: string | null;
+  aiCategory: string | null;
+  impactScore: number | null;
+  amount: number | null;
+  companyName: string | null;
+  deadlineDate: string | null;
+  publishedAt: string | null;
+  sourceUrl: string | null;
+}
+
+export interface MonitorProcurementStats {
+  monthlySpend: { year: number; month: number; amountEur: number; count: number }[];
+  yearlySpend: { year: number; amountEur: number; count: number }[];
+  sectorBreakdown: { sectorCode: string; amountEur: number; count: number }[];
+  topCompanies: { eik: string; name: string; amountEur: number; contractCount: number }[];
+}
+
+export interface MonitorFlows {
+  nodes: { id: string; label: string; type: string }[];
+  links: { source: string; target: string; valueEur: number; count: number }[];
+}
+
+export type MonitorTab =
+  | "all"
+  | "procurement"
+  | "anomalies"
+  | "flows"
+  | "council"
+  | "consultations"
+  | "deadlines"
+  | "region"
+  | "budget"
+  | "eu-funds"
+  | "methodology";
+
+export interface MonitorCompetition {
+  singleBidderSharePercent: number;
+  hhiIndex: number;
+  competitionLabel: string;
+  bySector: {
+    sectorCode: string;
+    hhiIndex: number;
+    contractCount: number;
+    topContractorName: string;
+  }[];
+}
+
+export interface MonitorCompanyDetail {
+  eik: string;
+  name: string;
+  totalWonEur: number;
+  contractCount: number;
+  compositeRiskScore: number | null;
+  recentContracts: MonitorFeedItem[];
+  legalForm: string | null;
+  registeredAddress: string | null;
+  managersSummary: string | null;
+  registryStatus: string | null;
+  registryFetchedAt: string | null;
+}
+
+export interface MonitorBudget {
+  year: number;
+  municipality: string;
+  totalPlannedEur: number;
+  totalExecutedEur: number;
+  rows: {
+    id: string;
+    label: string;
+    plannedEur: number;
+    executedEur: number;
+    executionPercent: number;
+  }[];
+  sourceUrl: string | null;
+}
+
+export interface MonitorEuFunds {
+  totalEur: number;
+  projectCount: number;
+  projects: {
+    contractId: number;
+    title: string;
+    municipality: string;
+    contractorName: string | null;
+    amountEur: number;
+    signedAt: string | null;
+    sourceUrl: string | null;
+  }[];
+  dataNote: string;
+}
+
+export interface MonitorCouncilorCard {
+  id: number;
+  fullName: string;
+  roleLabel: string | null;
+  party: string | null;
+  mandatePeriod: string | null;
+  zpokonpiChecked: boolean;
+  zpokonpiNote: string | null;
+  sourceUrl: string | null;
+  zpokonpiPortalUrl: string;
+}
+
+export interface MonitorConnections {
+  nodes: {
+    id: string;
+    label: string;
+    type: "authority" | "contractor" | string;
+    totalEur: number;
+    linkCount: number;
+  }[];
+  links: {
+    source: string;
+    target: string;
+    valueEur: number;
+    contractCount: number;
+  }[];
+}
+
+export interface MonitorRegionalComparison {
+  municipalities: {
+    eik: string;
+    name: string;
+    totalSpentEur: number;
+    contractCount: number;
+    avgBidsReceived: number | null;
+    singleBidderSharePercent: number;
+  }[];
+}
+
+export interface MonitorCouncilStats {
+  totalDocuments: number;
+  byType: {
+    type: string;
+    label: string;
+    count: number;
+    latestDate: string | null;
+    latestTitle: string | null;
+  }[];
+}
+
+export interface MonitorRelatedSignal {
+  id: number;
+  title: string;
+  category: string | null;
+  snippet: string | null;
+}
+
+export interface MonitorIngestionStatus {
+  sigmaStatus: string;
+  sigmaLastRun: string | null;
+  sigmaRecordsProcessed: number | null;
+  sigmaMessage: string | null;
+  eopStatus: string;
+  eopLastRun: string | null;
+  eopRecordsProcessed: number | null;
+  eopMessage: string | null;
+  scrapeStatus: string;
+  scrapeLastRun: string | null;
+  contractCount: number;
+  documentCount: number;
+}

@@ -1,5 +1,6 @@
 export { Navbar } from "./components/Navbar";
 export { VoteNavMenu } from "./components/VoteNavMenu";
+export { MonitorNavMenu } from "./components/MonitorNavMenu";
 export { Footer } from "./components/Footer";
 export { Hero } from "./components/Hero";
 export { TitleSection } from "./components/TitleSection";

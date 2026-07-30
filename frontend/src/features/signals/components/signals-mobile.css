@@ -1,0 +1,116 @@
+.signals-mobile {
+  --signals-mobile-top: 3.25rem;
+  --signals-mobile-tabs: 2.75rem;
+  --signals-mobile-chrome: calc(var(--header-height, 56px) + var(--signals-mobile-top) + var(--signals-mobile-tabs));
+  --signals-mobile-fab-offset: calc(var(--sv-rail-bottom, 1rem) + env(safe-area-inset-bottom, 0px));
+  --signals-peek-height: 168px;
+}
+
+.signals-mobile-root {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--header-height, 56px));
+  background: linear-gradient(180deg, rgba(25, 134, 28, 0.04) 0%, transparent 10rem);
+}
+
+.signals-mobile-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.signals-mobile-map-pane {
+  position: absolute;
+  inset: 0;
+}
+
+.signals-mobile-list-pane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: white;
+}
+
+.signals-mobile-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--signals-mobile-fab-offset) + var(--signals-peek-height, 0px));
+  z-index: 30;
+  transition: bottom 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.signals-mobile-fab--list-tab {
+  --signals-peek-height: 0px;
+}
+
+.signals-peek-sheet {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem 1rem 0 0;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(16px);
+}
+
+.signals-peek-sheet__header {
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+  padding: 0.4rem 0.75rem 0.5rem;
+  user-select: none;
+}
+
+.signals-peek-sheet__header:active {
+  cursor: grabbing;
+}
+
+.signals-peek-sheet__grab {
+  width: 2.5rem;
+  height: 0.25rem;
+  margin: 0 auto 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.signals-peek-sheet__scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--signals-mobile-fab-offset) + 3.5rem);
+  -webkit-overflow-scrolling: touch;
+}
+
+.signals-mobile-map-chips {
+  position: absolute;
+  left: 0.75rem;
+  right: 4.5rem;
+  top: 0.75rem;
+  z-index: 12;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+.signals-mobile-map-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.signals-mobile-stats .scrollbar-none,
+.signals-mobile-quick-filters .scrollbar-none {
+  scrollbar-width: none;
+}
+
+.signals-mobile-stats .scrollbar-none::-webkit-scrollbar,
+.signals-mobile-quick-filters .scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

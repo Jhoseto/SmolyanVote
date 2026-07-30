@@ -8,8 +8,27 @@ $root = Split-Path -Parent $PSScriptRoot
 $destDir = Join-Path $root "config\jvm"
 $destCacerts = Join-Path $destDir "cacerts-with-avast"
 
-$javaHome = (java -XshowSettings:properties -version 2>&1 | Select-String "^\s*java\.home\s*=").ToString()
-$javaHome = ($javaHome -split "=", 2)[1].Trim()
+if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin\keytool.exe"))) {
+    $javaHome = $env:JAVA_HOME
+} else {
+    $candidates = @(
+        "C:\Program Files\Java\jdk-17",
+        "C:\Program Files\Eclipse Adoptium\jdk-17*",
+        "C:\Program Files\Microsoft\jdk-17*"
+    )
+    $javaHome = $null
+    foreach ($pattern in $candidates) {
+        $hit = Get-Item $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($hit -and (Test-Path (Join-Path $hit.FullName "bin\keytool.exe"))) {
+            $javaHome = $hit.FullName
+            break
+        }
+    }
+    if (-not $javaHome) {
+        $javaExe = (Get-Command java -ErrorAction Stop).Source
+        $javaHome = Split-Path (Split-Path $javaExe -Parent) -Parent
+    }
+}
 $keytool = Join-Path $javaHome "bin\keytool.exe"
 $srcCacerts = Join-Path $javaHome "lib\security\cacerts"
 
@@ -20,7 +39,8 @@ New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 Copy-Item -Force $srcCacerts $destCacerts
 
 $cerPath = Join-Path $env:TEMP "sv-avast-web-shield-root.cer"
-$hostName = "oauth2.googleapis.com"
+# Use a site the monitor actually calls — oauth2 alone can miss the current Avast root.
+$hostName = "sigma.midt.bg"
 $tcp = New-Object System.Net.Sockets.TcpClient($hostName, 443)
 $ssl = New-Object System.Net.Security.SslStream($tcp.GetStream(), $false, ({ $true }))
 $ssl.AuthenticateAsClient($hostName)

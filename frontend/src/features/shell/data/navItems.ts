@@ -3,7 +3,7 @@ import type { ShellDictionary } from "@/lib/i18n/locales";
 export interface NavItem {
   key: keyof Pick<
     ShellDictionary["nav"],
-    "home" | "about" | "vote" | "publications" | "signals" | "podcast"
+    "home" | "about" | "vote" | "publications" | "signals" | "podcast" | "monitor"
   >;
   href: string;
   icon: string; // Bootstrap Icons class (v1 parity)
@@ -13,6 +13,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { key: "home", href: "/", icon: "bi-house-door" },
   { key: "vote", href: "/events", icon: "bi-hand-index-thumb" },
+  { key: "monitor", href: "/monitor", icon: "bi-shield-check" },
   { key: "publications", href: "/publications", icon: "bi-chat-square-text" },
   { key: "signals", href: "/signals", icon: "bi-geo-alt-fill" },
   { key: "podcast", href: "/podcast", icon: "bi-broadcast" },

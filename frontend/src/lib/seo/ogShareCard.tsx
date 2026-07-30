@@ -5,7 +5,7 @@ import { join } from "node:path";
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = "image/png";
 
-export type OgShareKind = "publication" | "event" | "referendum" | "multipoll";
+export type OgShareKind = "publication" | "event" | "referendum" | "multipoll" | "monitor";
 
 export interface OgShareCardInput {
   kind: OgShareKind;
@@ -20,6 +20,7 @@ const KIND_LABEL: Record<OgShareKind, string> = {
   event: "Гласуване",
   referendum: "Референдум",
   multipoll: "Анкета",
+  monitor: "Монитор",
 };
 
 const GOLD = "#D4B973";

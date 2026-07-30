@@ -13,7 +13,7 @@ export { useSignalsFilters } from "./hooks/useSignalsFilters";
 export { useSignalsDataset } from "./hooks/useSignalsDataset";
 export { useDerivedSignals } from "./hooks/useDerivedSignals";
 export { useSignalDetail, signalDetailQueryKey } from "./hooks/useSignalDetail";
-export { useSignalDetailModal } from "./hooks/useSignalDetailModal";
+export { useSignalsPageController } from "./hooks/useSignalsPageController";
 export { useCreateSignal } from "./hooks/useCreateSignal";
 export { useCreateSignalForm, type SelectedLocation } from "./hooks/useCreateSignalForm";
 export { useUpdateSignal } from "./hooks/useUpdateSignal";

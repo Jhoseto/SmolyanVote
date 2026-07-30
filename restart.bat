@@ -64,6 +64,8 @@ if not exist "%ROOT%config\jvm\cacerts-with-avast" (
 ) else (
   echo [truststore] Using config\jvm\cacerts-with-avast
 )
+rem Refresh Avast MITM root from sigma.midt.bg so SIGMA/EOP HTTPS keeps working locally.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\setup-local-truststore.ps1" >nul 2>&1
 echo.
 
 rem --- Ensure frontend dependencies are installed ---
@@ -119,6 +121,7 @@ echo   Docs: docs\CUTOVER.md
 echo   Order: backend first, then frontend after :%BACKEND_PORT% is up.
 echo   Backend  ready when you see Started ... in the backend window.
 echo   Frontend ready when you see Ready / Local on port %FRONTEND_PORT%.
+echo   Scraper  optional: cd scraper ^&^& npm start  ^(port 3099 — needed for smolyan.bg scrape^)
 echo   Browser opens after both servers are listening.
 echo.
 pause

@@ -57,6 +57,9 @@ VIRTUAL_MAJOR_ENV_SETUP.md
 config/jvm/cacerts-with-avast
 config/jvm/*.cer
 
+# Backend log file (logging.file.name)
+logs/
+
 # Droplet server configs + secrets (upload manually to /opt/smolyanvote/server/)
 NewServerConfig/
 deploy.local.env

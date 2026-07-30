@@ -194,10 +194,190 @@ export type AdminTab =
   | "inbox"
   | "content"
   | "podcast"
+  | "monitor"
   | "events"
   | "moderation"
   | "activity"
   | "subscriptions";
+
+export interface MonitorIngestionStatus {
+  sigmaStatus: string;
+  sigmaLastRun: string | null;
+  sigmaRecordsProcessed: number | null;
+  sigmaMessage: string | null;
+  eopStatus: string;
+  eopLastRun: string | null;
+  eopRecordsProcessed: number | null;
+  eopMessage: string | null;
+  scrapeStatus: string;
+  scrapeLastRun: string | null;
+  contractCount: number;
+  documentCount: number;
+}
+
+/**
+ * A background ingestion job. Imports take minutes, so triggers answer with the job
+ * state and the panel polls until it reaches SUCCESS or FAILED.
+ */
+export interface MonitorJobState {
+  key: string;
+  label: string;
+  status: "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | "BUSY";
+  message: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface MonitorAdminIngestionLog {
+  id: number;
+  ingestionType: string;
+  status: string;
+  startedAt: string;
+  finishedAt: string | null;
+  recordsProcessed: number | null;
+  message: string | null;
+}
+
+export interface MonitorAdminDocument {
+  id: number;
+  title: string;
+  documentType: string;
+  shortSummary: string | null;
+  sourceUrl: string | null;
+  contentHash: string | null;
+  publishedAt: string | null;
+  fetchedAt: string | null;
+  aiPending: boolean;
+  hasRawContent: boolean;
+}
+
+export interface MonitorAdminAiStats {
+  pendingCount: number;
+  totalDocuments: number;
+  geminiConfigured: boolean;
+  geminiModel: string;
+}
+
+export interface MonitorAdminRawDocument {
+  id: number;
+  title: string;
+  rawContent: string | null;
+  sourceUrl: string | null;
+  contentHash: string | null;
+}
+
+export interface MonitorAdminContract {
+  id: number;
+  sigmaId: string;
+  unp: string | null;
+  subject: string;
+  authorityName: string | null;
+  authorityEik: string;
+  contractorName: string | null;
+  contractorEik: string | null;
+  sectorCode: string | null;
+  procedureType: string | null;
+  signedAt: string | null;
+  amountEur: number | null;
+  originalAmountEur: number | null;
+  estimatedValueEur: number | null;
+  publicationDate: string | null;
+  euFunded: boolean;
+  bidsReceived: number | null;
+  riskScore: number | null;
+  sourceUrl: string | null;
+}
+
+export interface MonitorContractUpdateRequest {
+  subject: string;
+  authorityName: string | null;
+  authorityEik: string;
+  contractorName: string | null;
+  contractorEik: string | null;
+  sectorCode: string | null;
+  procedureType: string | null;
+  signedAt: string | null;
+  amountEur: number | null;
+  euFunded: boolean;
+  bidsReceived: number | null;
+  sourceUrl: string | null;
+}
+
+export interface MonitorAdminCompany {
+  id: number;
+  eik: string;
+  name: string;
+  consortium: boolean;
+  totalWonEur: number | null;
+  contractCount: number | null;
+  compositeRiskScore: number | null;
+  legalForm: string | null;
+  registeredAddress: string | null;
+  managersSummary: string | null;
+  registryStatus: string | null;
+  foundedAt: string | null;
+}
+
+export interface MonitorCompanyUpdateRequest {
+  name: string;
+  consortium: boolean;
+  legalForm: string | null;
+  registeredAddress: string | null;
+  managersSummary: string | null;
+}
+
+export interface MonitorAdminCouncilor {
+  id: number;
+  fullName: string;
+  roleLabel: string | null;
+  party: string | null;
+  mandatePeriod: string | null;
+  zpokonpiChecked: boolean;
+  zpokonpiNote: string | null;
+  sourceUrl: string | null;
+  zpokonpiPortalUrl: string;
+}
+
+export interface MonitorCouncilorRequest {
+  fullName: string;
+  roleLabel: string | null;
+  party: string | null;
+  mandatePeriod: string | null;
+  zpokonpiChecked: boolean;
+  zpokonpiNote: string | null;
+  sourceUrl: string | null;
+}
+
+export interface MonitorBudgetLine {
+  id: number;
+  categoryKey: string;
+  label: string;
+  plannedEur: number;
+  executedEur: number;
+  cpvPrefix: string | null;
+  budgetYear: number;
+  sortOrder: number;
+}
+
+export interface MonitorBudgetLineRequest {
+  categoryKey: string;
+  label: string;
+  plannedEur: number;
+  cpvPrefix: string | null;
+  budgetYear?: number;
+  sortOrder?: number;
+}
+
+export interface MonitorSchedulerSettings {
+  schedulerEnabled: boolean;
+  sigmaEnabled: boolean;
+  eopEnabled: boolean;
+  scrapeEnabled: boolean;
+  aiBatchEnabled: boolean;
+  eopDays: number;
+  eopMaxDays: number;
+  aiBatchLimit: number;
+}
 
 export interface HealthAlert {
   level: "critical" | "warning" | "info";
