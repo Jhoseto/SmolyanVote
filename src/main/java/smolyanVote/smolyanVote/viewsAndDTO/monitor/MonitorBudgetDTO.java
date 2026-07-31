@@ -9,7 +9,10 @@ public record MonitorBudgetDTO(
         BigDecimal totalPlannedEur,
         BigDecimal totalExecutedEur,
         List<BudgetRowDTO> rows,
-        String sourceUrl
+        String sourceUrl,
+        /** Planned figures are maintained for Община Смолян only; elsewhere only spend is real. */
+        boolean plannedAvailable,
+        String note
 ) {
     public record BudgetRowDTO(
             String id,

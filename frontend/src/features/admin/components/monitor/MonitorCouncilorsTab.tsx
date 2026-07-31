@@ -126,8 +126,11 @@ export function MonitorCouncilorsTab({ enabled }: { enabled: boolean }) {
               ))}
               {(councilorsQ.data ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-[color:var(--color-text-muted)]">
-                    Няма профили — пуснете sync или добавете ръчно
+                  <td colSpan={6} className="px-3 py-6 text-center text-[0.82rem] text-[color:var(--color-text-muted)]">
+                    Няма профили. Първо:{" "}
+                    <code className="text-[0.78rem]">setup-session.bat</code> →{" "}
+                    <code className="text-[0.78rem]">start-scraper.bat</code> → Ingestion →{" "}
+                    <strong>Sync съветници</strong>. Или добавете ръчно.
                   </td>
                 </tr>
               )}

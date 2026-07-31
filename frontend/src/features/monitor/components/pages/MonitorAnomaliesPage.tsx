@@ -1,21 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EmptyState, LogoLoader } from "@/shared/ui";
+import { LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
-import { MonitorInsightCard } from "../MonitorInsightCard";
+import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
 import { MonitorMobileShell } from "../MonitorMobileShell";
+import { useMonitorAuthority } from "../MonitorAuthorityProvider";
 import { useMonitorOverview } from "../../hooks/useMonitorOverview";
 import type { MonitorFeedItem } from "../../types";
 
 export function MonitorAnomaliesPage() {
+  const { authority } = useMonitorAuthority();
   const { overview, loading: overviewLoading } = useMonitorOverview();
   const [items, setItems] = useState<MonitorFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    monitorApi.anomalies(0, 30).then((p) => setItems(p.items)).finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    monitorApi
+      .anomalies(0, 30, authority)
+      .then((p) => {
+        if (!cancelled) setItems(p.items);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authority]);
 
   return (
     <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Аномалии и риск">
@@ -24,14 +38,16 @@ export function MonitorAnomaliesPage() {
       </p>
       {loading ? (
         <LogoLoader label="Зареждане…" />
-      ) : items.length === 0 ? (
-        <EmptyState icon="bi-shield-check" title="Няма flagged договори" description="Добър знак — или липсват данни." />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {items.map((item) => (
-            <MonitorInsightCard key={item.id} item={item} showFlags />
-          ))}
-        </div>
+        <MonitorFilteredFeedGrid
+          items={items}
+          showFlags
+          emptyIcon="bi-shield-check"
+          emptyTitle="Няма flagged договори"
+          emptyDescription="Добър знак — или липсват данни."
+          controlOptions={{ itemType: false }}
+          initialFilters={{ sort: "risk-desc", minRisk: 40 }}
+        />
       )}
     </MonitorMobileShell>
   );

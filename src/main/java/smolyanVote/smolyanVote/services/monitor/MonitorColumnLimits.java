@@ -18,6 +18,7 @@ final class MonitorColumnLimits {
     static final int SECTOR_CODE = 8;
     static final int PROCEDURE_TYPE = 128;
     static final int SHORT_SUMMARY = 280;
+    static final int INSIGHT_WHY = 500;
     static final int SOURCE_URL = 1000;
     static final int EOP_NOTICE_ID = 64;
     static final int CHANGE_REASON = 500;

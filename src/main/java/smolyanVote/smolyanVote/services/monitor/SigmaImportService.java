@@ -43,6 +43,7 @@ public class SigmaImportService {
     private final MonitorCompanyRepository companyRepository;
     private final MonitorIngestionRunService runService;
     private final MonitorRiskService riskService;
+    private final MonitorInsightEnrichmentService insightEnrichmentService;
     private final EopImportService eopImportService;
     private final MonitorCompanyAggregateService aggregateService;
     private final TransactionTemplate authorityTransaction;
@@ -52,6 +53,7 @@ public class SigmaImportService {
             MonitorCompanyRepository companyRepository,
             MonitorIngestionRunService runService,
             MonitorRiskService riskService,
+            MonitorInsightEnrichmentService insightEnrichmentService,
             EopImportService eopImportService,
             MonitorCompanyAggregateService aggregateService,
             PlatformTransactionManager transactionManager) {
@@ -60,6 +62,7 @@ public class SigmaImportService {
         this.companyRepository = companyRepository;
         this.runService = runService;
         this.riskService = riskService;
+        this.insightEnrichmentService = insightEnrichmentService;
         this.eopImportService = eopImportService;
         this.aggregateService = aggregateService;
         this.authorityTransaction = new TransactionTemplate(transactionManager);
@@ -109,6 +112,13 @@ public class SigmaImportService {
             } catch (Exception ex) {
                 log.error("SIGMA risk scoring failed", ex);
                 failures.add("Риск скоринг: " + MonitorIngestionRunService.describe(ex));
+            }
+            try {
+                int enriched = insightEnrichmentService.enrichAllContracts();
+                log.info("SIGMA insight enrichment: {} contracts updated", enriched);
+            } catch (Exception ex) {
+                log.error("SIGMA insight enrichment failed", ex);
+                failures.add("Анализ на договори: " + MonitorIngestionRunService.describe(ex));
             }
             try {
                 aggregateService.refreshFromAllContracts();
@@ -209,8 +219,7 @@ public class SigmaImportService {
         entity.setRegionScope(MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(rowAuthorityEik.trim())
                 ? MonitorRegionScope.SMOLYAN_CITY
                 : MonitorRegionScope.OBLAST_SMOLYAN);
-        entity.setSourceUrl(MonitorColumnLimits.clamp(
-                MonitorRegionalConfig.SIGMA_BASE_URL + "/contracts/" + sigmaId, MonitorColumnLimits.SOURCE_URL));
+        entity.setSourceUrl(null);
         entity.setFetchedAt(context.fetchedAt());
         if (isNew) {
             entity.setOriginalAmountEur(entity.getAmountEur());

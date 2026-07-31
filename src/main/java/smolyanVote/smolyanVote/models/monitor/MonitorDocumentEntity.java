@@ -67,6 +67,15 @@ public class MonitorDocumentEntity extends BaseEntity {
     @Column(name = "content_hash", length = 64)
     private String contentHash;
 
+    @Column(name = "ai_analysis", columnDefinition = "TEXT")
+    private String aiAnalysis;
+
+    @Column(name = "insight_why", length = 500)
+    private String insightWhy;
+
+    @Column(name = "pdf_urls", columnDefinition = "TEXT")
+    private String pdfUrlsJson;
+
     public MonitorSource getSource() {
         return source;
     }
@@ -193,5 +202,29 @@ public class MonitorDocumentEntity extends BaseEntity {
 
     public void setContentHash(String contentHash) {
         this.contentHash = contentHash;
+    }
+
+    public String getAiAnalysis() {
+        return aiAnalysis;
+    }
+
+    public void setAiAnalysis(String aiAnalysis) {
+        this.aiAnalysis = aiAnalysis;
+    }
+
+    public String getInsightWhy() {
+        return insightWhy;
+    }
+
+    public void setInsightWhy(String insightWhy) {
+        this.insightWhy = insightWhy;
+    }
+
+    public String getPdfUrlsJson() {
+        return pdfUrlsJson;
+    }
+
+    public void setPdfUrlsJson(String pdfUrlsJson) {
+        this.pdfUrlsJson = pdfUrlsJson;
     }
 }

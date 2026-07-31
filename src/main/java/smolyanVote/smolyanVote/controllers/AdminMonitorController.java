@@ -13,6 +13,7 @@ import smolyanVote.smolyanVote.models.monitor.MonitorIngestionRunEntity;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorDocumentRepository;
 import smolyanVote.smolyanVote.services.monitor.EopImportService;
 import smolyanVote.smolyanVote.services.monitor.MonitorAdminService;
+import smolyanVote.smolyanVote.services.monitor.MonitorAiAnalysisService;
 import smolyanVote.smolyanVote.services.monitor.MonitorAiService;
 import smolyanVote.smolyanVote.services.monitor.MonitorBudgetAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCompanyAdminService;
@@ -21,9 +22,11 @@ import smolyanVote.smolyanVote.services.monitor.MonitorContractAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCouncilorAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCouncilorSyncService;
 import smolyanVote.smolyanVote.services.monitor.MonitorIngestionRunService;
+import smolyanVote.smolyanVote.services.monitor.MonitorInsightEnrichmentService;
 import smolyanVote.smolyanVote.services.monitor.MonitorJobLauncher;
 import smolyanVote.smolyanVote.services.monitor.MonitorOcrService;
 import smolyanVote.smolyanVote.services.monitor.MonitorService;
+import smolyanVote.smolyanVote.services.monitor.MonitorScope;
 import smolyanVote.smolyanVote.services.monitor.MonitorSettingsService;
 import smolyanVote.smolyanVote.services.monitor.SigmaImportService;
 import smolyanVote.smolyanVote.services.monitor.SmolyanBgScraperService;
@@ -55,6 +58,8 @@ public class AdminMonitorController {
     private final SigmaImportService sigmaImportService;
     private final SmolyanBgScraperService scraperService;
     private final MonitorAiService aiService;
+    private final MonitorInsightEnrichmentService insightEnrichmentService;
+    private final MonitorAiAnalysisService aiAnalysisService;
     private final MonitorCompanyEnrichmentService enrichmentService;
     private final MonitorDocumentRepository documentRepository;
     private final EopImportService eopImportService;
@@ -74,6 +79,8 @@ public class AdminMonitorController {
             SigmaImportService sigmaImportService,
             SmolyanBgScraperService scraperService,
             MonitorAiService aiService,
+            MonitorInsightEnrichmentService insightEnrichmentService,
+            MonitorAiAnalysisService aiAnalysisService,
             MonitorCompanyEnrichmentService enrichmentService,
             MonitorDocumentRepository documentRepository,
             EopImportService eopImportService,
@@ -91,6 +98,8 @@ public class AdminMonitorController {
         this.sigmaImportService = sigmaImportService;
         this.scraperService = scraperService;
         this.aiService = aiService;
+        this.insightEnrichmentService = insightEnrichmentService;
+        this.aiAnalysisService = aiAnalysisService;
         this.enrichmentService = enrichmentService;
         this.documentRepository = documentRepository;
         this.eopImportService = eopImportService;
@@ -217,8 +226,33 @@ public class AdminMonitorController {
     public ResponseEntity<Map<String, Object>> processAiBatch(
             @RequestParam(defaultValue = "25") int limit) {
         int capped = Math.min(limit, 100);
-        return launched(jobLauncher.launch("AI", "AI batch", () ->
-                MonitorJobLauncher.JobResult.ok("AI: обработени " + aiService.processPendingBatch(capped) + " документа")));
+        return launched(jobLauncher.launch("AI", "AI batch", () -> {
+            MonitorAiService.AiBatchResult result = aiService.processPendingBatch(capped);
+            return MonitorJobLauncher.JobResult.ok(result.summaryMessage());
+        }));
+    }
+
+    @PostMapping("/ai/regional-report")
+    public ResponseEntity<Map<String, Object>> generateRegionalReport(
+            @RequestParam(required = false) String authority) {
+        MonitorScope scope = MonitorScope.of(authority);
+        return launched(jobLauncher.launch("AI_REPORT", "AI доклад", () -> {
+            var report = aiAnalysisService.generateRegionalReport(scope);
+            if (!report.aiGenerated()) {
+                return MonitorJobLauncher.JobResult.failed(
+                        "AI доклад не е генериран — проверете GEMINI_API_KEY и backend.log");
+            }
+            return MonitorJobLauncher.JobResult.ok("AI доклад готов — "
+                    + report.conclusions().size() + " заключения");
+        }));
+    }
+
+    @PostMapping("/enrich-insights")
+    public ResponseEntity<Map<String, Object>> enrichInsights() {
+        return launched(jobLauncher.launch("ENRICH", "Обогати анализи", () -> {
+            int updated = insightEnrichmentService.enrichAllContracts();
+            return MonitorJobLauncher.JobResult.ok("Анализ: обновени " + updated + " договора (без Gemini)");
+        }));
     }
 
     @PostMapping("/enrichment/trade-register")
@@ -244,7 +278,7 @@ public class AdminMonitorController {
                     new Step("EOP", () -> summarize(eopImportService.importRecentDays(7))),
                     new Step("scrape", () -> summarize(scraperService.scrapeAll())),
                     new Step("OCR", () -> ocrService.processBatch(10) + " документа"),
-                    new Step("AI", () -> aiService.processPendingBatch(50) + " документа"),
+                    new Step("AI", () -> aiService.processPendingBatch(50).summaryMessage()),
                     new Step("Търговски регистър", () -> enrichmentService.enrichBatch(50) + " фирми"),
                     new Step("съветници", () -> councilorSyncService.syncFromScraper().message()));
 
@@ -272,8 +306,12 @@ public class AdminMonitorController {
     public ResponseEntity<Map<String, Object>> ingestDocuments(
             @RequestBody List<smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorScrapedDocumentDTO> documents) {
         int count = scraperService.ingestDocuments(documents);
-        int ai = aiService.processPendingBatch(50);
-        return ResponseEntity.ok(Map.of("ingested", count, "aiProcessed", ai));
+        MonitorAiService.AiBatchResult ai = aiService.processPendingBatch(50);
+        return ResponseEntity.ok(Map.of(
+                "ingested", count,
+                "aiProcessed", ai.total(),
+                "aiDocuments", ai.documents(),
+                "aiContracts", ai.contracts()));
     }
 
     @PostMapping("/ai/reprocess/{documentId}")

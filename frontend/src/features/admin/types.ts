@@ -252,8 +252,10 @@ export interface MonitorAdminDocument {
 }
 
 export interface MonitorAdminAiStats {
-  pendingCount: number;
+  pendingDocuments: number;
+  pendingContracts: number;
   totalDocuments: number;
+  totalContracts: number;
   geminiConfigured: boolean;
   geminiModel: string;
 }

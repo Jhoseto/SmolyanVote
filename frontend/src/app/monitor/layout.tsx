@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import { MonitorAuthorityProvider } from "@/features/monitor/components/MonitorAuthorityProvider";
 
 export const metadata: Metadata = {
   title: "SmolyanVote — Граждански монитор",
@@ -18,5 +20,11 @@ export const metadata: Metadata = {
 };
 
 export default function MonitorLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // The municipality filter lives in the URL, and reading search params during a static
+  // render requires a Suspense boundary — one here covers every monitor tab.
+  return (
+    <Suspense>
+      <MonitorAuthorityProvider>{children}</MonitorAuthorityProvider>
+    </Suspense>
+  );
 }

@@ -16,6 +16,8 @@ public record MonitorFeedItemDTO(
         BigDecimal amountEur,
         LocalDate date,
         String sourceUrl,
-        Instant publishedAt
+        Instant publishedAt,
+        String registryTitle,
+        String concernType
 ) {
 }

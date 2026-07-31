@@ -10,6 +10,17 @@ public record MonitorFlowsDTO(
     public record FlowNodeDTO(String id, String label, String type) {
     }
 
-    public record FlowLinkDTO(String source, String target, BigDecimal valueEur, long count) {
+    public record FlowLinkDTO(
+            String source,
+            String target,
+            BigDecimal valueEur,
+            long count,
+            int flaggedCount,
+            String concernLabel,
+            String citizenHint,
+            int contractsWithSubcontractor,
+            String subcontractorName,
+            String subcontractorEik,
+            BigDecimal subcontractingTotalEur) {
     }
 }

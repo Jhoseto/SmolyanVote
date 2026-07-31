@@ -26,7 +26,7 @@ export function MonitorKpiStrip({ overview, loading, className }: MonitorKpiStri
     },
     {
       icon: "bi-exclamation-triangle",
-      label: "Flagged",
+      label: "С рискови сигнали",
       value: loading ? "…" : String(overview?.flaggedCount ?? 0),
       tone: "text-amber-600",
     },

@@ -40,6 +40,22 @@ public class MonitorContractEntity extends BaseEntity {
     @Column(name = "contractor_kind", length = 32)
     private String contractorKind;
 
+    /** Declared in EOP when the winner uses a subcontractor (one level — no full chain in open data). */
+    @Column(name = "has_subcontractors", nullable = false)
+    private boolean hasSubcontractors;
+
+    @Column(name = "subcontractor_name", length = 500)
+    private String subcontractorName;
+
+    @Column(name = "subcontractor_eik", length = 20)
+    private String subcontractorEik;
+
+    @Column(name = "subcontracting_percent", precision = 8, scale = 2)
+    private BigDecimal subcontractingPercent;
+
+    @Column(name = "subcontracting_amount_eur", precision = 18, scale = 2)
+    private BigDecimal subcontractingAmountEur;
+
     @Column(name = "sector_code", length = 8)
     private String sectorCode;
 
@@ -76,8 +92,19 @@ public class MonitorContractEntity extends BaseEntity {
     @Column(name = "risk_flags_json", columnDefinition = "TEXT")
     private String riskFlagsJson;
 
+    /** Full AI accountability analysis — paragraphs with evidence, not a headline. */
+    @Column(name = "ai_analysis", columnDefinition = "TEXT")
+    private String aiAnalysis;
+
     @Column(name = "short_summary", length = 280)
     private String shortSummary;
+
+    /** Plain-language „Защо е важно“ — rule-based or Gemini. */
+    @Column(name = "insight_why", length = 500)
+    private String insightWhy;
+
+    @Column(name = "gemini_refined", nullable = false)
+    private boolean geminiRefined = false;
 
     @Column(name = "ai_category", length = 64)
     private String aiCategory;
@@ -157,6 +184,46 @@ public class MonitorContractEntity extends BaseEntity {
 
     public void setContractorKind(String contractorKind) {
         this.contractorKind = contractorKind;
+    }
+
+    public boolean isHasSubcontractors() {
+        return hasSubcontractors;
+    }
+
+    public void setHasSubcontractors(boolean hasSubcontractors) {
+        this.hasSubcontractors = hasSubcontractors;
+    }
+
+    public String getSubcontractorName() {
+        return subcontractorName;
+    }
+
+    public void setSubcontractorName(String subcontractorName) {
+        this.subcontractorName = subcontractorName;
+    }
+
+    public String getSubcontractorEik() {
+        return subcontractorEik;
+    }
+
+    public void setSubcontractorEik(String subcontractorEik) {
+        this.subcontractorEik = subcontractorEik;
+    }
+
+    public BigDecimal getSubcontractingPercent() {
+        return subcontractingPercent;
+    }
+
+    public void setSubcontractingPercent(BigDecimal subcontractingPercent) {
+        this.subcontractingPercent = subcontractingPercent;
+    }
+
+    public BigDecimal getSubcontractingAmountEur() {
+        return subcontractingAmountEur;
+    }
+
+    public void setSubcontractingAmountEur(BigDecimal subcontractingAmountEur) {
+        this.subcontractingAmountEur = subcontractingAmountEur;
     }
 
     public String getSectorCode() {
@@ -247,12 +314,36 @@ public class MonitorContractEntity extends BaseEntity {
         this.riskFlagsJson = riskFlagsJson;
     }
 
+    public String getAiAnalysis() {
+        return aiAnalysis;
+    }
+
+    public void setAiAnalysis(String aiAnalysis) {
+        this.aiAnalysis = aiAnalysis;
+    }
+
     public String getShortSummary() {
         return shortSummary;
     }
 
     public void setShortSummary(String shortSummary) {
         this.shortSummary = shortSummary;
+    }
+
+    public String getInsightWhy() {
+        return insightWhy;
+    }
+
+    public void setInsightWhy(String insightWhy) {
+        this.insightWhy = insightWhy;
+    }
+
+    public boolean isGeminiRefined() {
+        return geminiRefined;
+    }
+
+    public void setGeminiRefined(boolean geminiRefined) {
+        this.geminiRefined = geminiRefined;
     }
 
     public String getAiCategory() {

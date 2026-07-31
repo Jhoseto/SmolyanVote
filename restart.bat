@@ -121,7 +121,7 @@ echo   Docs: docs\CUTOVER.md
 echo   Order: backend first, then frontend after :%BACKEND_PORT% is up.
 echo   Backend  ready when you see Started ... in the backend window.
 echo   Frontend ready when you see Ready / Local on port %FRONTEND_PORT%.
-echo   Scraper  optional: cd scraper ^&^& npm start  ^(port 3099 — needed for smolyan.bg scrape^)
+  echo   Scraper  optional: start-scraper.bat  ^(port 3099 — ObS, obssuzhdania, smolyan.bg^)
 echo   Browser opens after both servers are listening.
 echo.
 pause

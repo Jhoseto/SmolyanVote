@@ -11,11 +11,11 @@ public class MonitorScraperProperties {
     private String url = "http://localhost:3099";
 
     /** Max documents per listing section per scrape run */
-    private int maxDocumentsPerSection = 40;
+    private int maxDocumentsPerSection = 200;
 
     private int connectTimeoutMs = 15_000;
 
-    /** Full scrape can take several minutes */
+    /** Parallel scrape target ~5 min; allow headroom for ingest + council sync */
     private int readTimeoutMs = 600_000;
 
     public String getUrl() {

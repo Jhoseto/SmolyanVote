@@ -204,6 +204,7 @@ public class EopImportService {
         entity.setAuthorityEik(buyerEik.trim());
         entity.setContractorName(MonitorColumnLimits.clamp(text(row, "supplierName"), MonitorColumnLimits.CONTRACTOR_NAME));
         entity.setContractorEik(MonitorColumnLimits.clamp(text(row, "supplierRegisterNumber"), MonitorColumnLimits.EIK));
+        applySubcontractorFields(entity, row);
         // EOP publishes full CPV codes ("45233142-6"); sector_code only holds the division.
         entity.setSectorCode(cpvDivision(text(row, "tenderMainCpv")));
         entity.setProcedureType(MonitorColumnLimits.clamp(text(row, "procedureType"), MonitorColumnLimits.PROCEDURE_TYPE));
@@ -228,7 +229,56 @@ public class EopImportService {
         }
         contractRepository.save(entity);
         upsertCompany(entity);
+        upsertSubcontractorCompany(entity);
         return true;
+    }
+
+    private void applySubcontractorFields(MonitorContractEntity entity, JsonNode row) {
+        String subName = MonitorColumnLimits.clamp(text(row, "subcontractorName"), MonitorColumnLimits.CONTRACTOR_NAME);
+        String subEik = MonitorColumnLimits.clamp(text(row, "subcontractorRegistryNumber"), MonitorColumnLimits.EIK);
+        boolean declared = parseYesNo(row, "hasSubcontractors") || subName != null || subEik != null;
+        entity.setHasSubcontractors(declared);
+        entity.setSubcontractorName(subName);
+        entity.setSubcontractorEik(subEik);
+        entity.setSubcontractingPercent(parsePercent(text(row, "subcontractingPercent")));
+        entity.setSubcontractingAmountEur(toEur(text(row, "subcontractingAmount"), text(row, "contractCurrency")));
+    }
+
+    private void upsertSubcontractorCompany(MonitorContractEntity contract) {
+        String eik = contract.getSubcontractorEik();
+        if (eik == null || eik.isBlank()) {
+            return;
+        }
+        MonitorCompanyEntity company = companyRepository.findByEik(eik.trim())
+                .orElseGet(MonitorCompanyEntity::new);
+        company.setEik(eik.trim());
+        if (contract.getSubcontractorName() != null && !contract.getSubcontractorName().isBlank()) {
+            company.setName(contract.getSubcontractorName().trim());
+        } else if (company.getName() == null) {
+            company.setName("ЕИК " + eik.trim());
+        }
+        companyRepository.save(company);
+    }
+
+    private static BigDecimal parsePercent(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.trim().replace(" ", "").replace(",", ".");
+        try {
+            return new BigDecimal(normalized);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static boolean parseYesNo(JsonNode row, String field) {
+        String v = text(row, field);
+        if (v == null) {
+            return false;
+        }
+        String lower = v.toLowerCase();
+        return "да".equals(lower) || "yes".equals(lower) || "1".equals(v) || "true".equals(lower);
     }
 
     private boolean importAnnex(JsonNode row, LocalDate day) {

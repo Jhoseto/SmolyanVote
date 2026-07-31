@@ -4,6 +4,13 @@ export interface RiskBadge {
   tooltip?: string | null;
 }
 
+export interface MonitorMunicipality {
+  eik: string;
+  name: string;
+  /** Council decisions, consultations and deadlines are scraped for Смолян only. */
+  hasScrapedDocuments: boolean;
+}
+
 export interface MonitorSearchSuggestion {
   id: string;
   itemType: string;
@@ -32,6 +39,53 @@ export interface MonitorFeedItem {
   date: string | null;
   sourceUrl: string | null;
   publishedAt: string | null;
+  registryTitle?: string | null;
+  concernType?: string | null;
+}
+
+export interface MonitorBriefingTheme {
+  code: string;
+  label: string;
+  count: number;
+  amountEur: number;
+  explanation: string;
+}
+
+export interface MonitorAiFinding {
+  title: string;
+  body: string;
+  severity: string;
+}
+
+export interface MonitorAiReport {
+  executiveSummary: string | null;
+  moneyLeaks: MonitorAiFinding[];
+  irregularities: MonitorAiFinding[];
+  conclusions: string[];
+  watchNext: string[];
+  generatedAt: string | null;
+  aiGenerated: boolean;
+}
+
+export interface MonitorBriefingChartPoint {
+  label: string;
+  count: number;
+  amountEur: number | null;
+  color: string;
+}
+
+export interface MonitorBriefing {
+  headline: string;
+  narrative: string;
+  flaggedCount: number;
+  flaggedAmountEur: number;
+  spentYtdEur: number;
+  themes: MonitorBriefingTheme[];
+  topConcerns: MonitorFeedItem[];
+  aiReport: MonitorAiReport;
+  riskChart: MonitorBriefingChartPoint[];
+  councilChart: MonitorBriefingChartPoint[];
+  recentDocuments: MonitorFeedItem[];
 }
 
 export interface MonitorPage<T> {
@@ -45,11 +99,19 @@ export interface MonitorPage<T> {
 export interface MonitorContractDetail {
   id: number;
   sigmaId: string;
+  unp: string | null;
   subject: string;
   shortSummary: string | null;
   authorityName: string | null;
+  authorityEik: string | null;
   contractorName: string | null;
   contractorEik: string | null;
+  contractorKind: string | null;
+  hasSubcontractors: boolean;
+  subcontractorName: string | null;
+  subcontractorEik: string | null;
+  subcontractingPercent: number | null;
+  subcontractingAmountEur: number | null;
   sectorCode: string | null;
   procedureType: string | null;
   signedAt: string | null;
@@ -61,11 +123,18 @@ export interface MonitorContractDetail {
   bidsReceived: number | null;
   riskScore: number | null;
   riskFlags: RiskBadge[];
-  sourceUrl: string | null;
+  aiCategory: string | null;
+  impactScore: number | null;
   regionScope: string;
+  dataSource: string;
+  fetchedAt: string | null;
   relatedSignalsCount: number;
   relatedSignals: MonitorRelatedSignal[];
   amendments: MonitorAmendment[];
+  insightHeadline?: string | null;
+  whyItMatters?: string | null;
+  concernType?: string | null;
+  aiAnalysis?: string | null;
 }
 
 export interface MonitorAmendment {
@@ -91,6 +160,8 @@ export interface MonitorDocumentDetail {
   deadlineDate: string | null;
   publishedAt: string | null;
   sourceUrl: string | null;
+  aiAnalysis?: string | null;
+  insightWhy?: string | null;
 }
 
 export interface MonitorProcurementStats {
@@ -102,7 +173,19 @@ export interface MonitorProcurementStats {
 
 export interface MonitorFlows {
   nodes: { id: string; label: string; type: string }[];
-  links: { source: string; target: string; valueEur: number; count: number }[];
+  links: {
+    source: string;
+    target: string;
+    valueEur: number;
+    count: number;
+    flaggedCount: number;
+    concernLabel: string | null;
+    citizenHint: string | null;
+    contractsWithSubcontractor: number;
+    subcontractorName: string | null;
+    subcontractorEik: string | null;
+    subcontractingTotalEur: number | null;
+  }[];
 }
 
 export type MonitorTab =
@@ -137,6 +220,9 @@ export interface MonitorCompanyDetail {
   contractCount: number;
   compositeRiskScore: number | null;
   recentContracts: MonitorFeedItem[];
+  subcontractorRoleCount: number;
+  subcontractorRoleTotalEur: number | null;
+  subcontractorRoles: MonitorFeedItem[];
   legalForm: string | null;
   registeredAddress: string | null;
   managersSummary: string | null;
@@ -157,6 +243,9 @@ export interface MonitorBudget {
     executionPercent: number;
   }[];
   sourceUrl: string | null;
+  /** False for municipalities without a curated plan — only executed spend is real. */
+  plannedAvailable: boolean;
+  note: string | null;
 }
 
 export interface MonitorEuFunds {
@@ -193,6 +282,8 @@ export interface MonitorConnections {
     type: "authority" | "contractor" | string;
     totalEur: number;
     linkCount: number;
+    flaggedCount: number;
+    citizenHint: string | null;
   }[];
   links: {
     source: string;

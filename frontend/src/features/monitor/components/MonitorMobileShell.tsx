@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import { cn } from "@/shared/lib/cn";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 import { MonitorPageShell } from "./MonitorPageShell";
 import "./monitor-mobile.css";
 
@@ -54,6 +55,7 @@ const MOBILE_TABS = [
 export function MonitorMobileShell(props: MonitorMobileShellProps) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
+  const { withAuthority } = useMonitorAuthority();
 
   return (
     <div className={cn(isMobile && "monitor-mobile pb-[calc(4.5rem+env(safe-area-inset-bottom))]")}>
@@ -69,7 +71,7 @@ export function MonitorMobileShell(props: MonitorMobileShellProps) {
               return (
                 <Link
                   key={tab.href}
-                  href={tab.href}
+                  href={withAuthority(tab.href)}
                   className={cn(
                     "flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2.5 text-[0.62rem] font-medium transition",
                     active ? "text-primary" : "text-[color:var(--color-text-muted)]",

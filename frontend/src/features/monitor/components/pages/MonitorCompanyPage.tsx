@@ -7,13 +7,15 @@ import { EmptyState, LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { formatEur } from "../../lib/format";
 import { MonitorConnectionsGraph } from "../MonitorConnectionsGraph";
-import { MonitorInsightCard } from "../MonitorInsightCard";
+import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
 import { RiskBadgeChip } from "../MonitorKpiStrip";
+import { useMonitorAuthority } from "../MonitorAuthorityProvider";
 import type { MonitorCompanyDetail, MonitorConnections } from "../../types";
 
 export function MonitorCompanyPage() {
   const params = useParams();
   const eik = String(params.eik || "");
+  const { withAuthority } = useMonitorAuthority();
   const [company, setCompany] = useState<MonitorCompanyDetail | null>(null);
   const [connections, setConnections] = useState<MonitorConnections | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export function MonitorCompanyPage() {
   return (
     <div className="pb-16 pt-[calc(var(--navbar-height)+1.5rem)]">
       <div className="mx-auto max-w-3xl space-y-6 px-4">
-        <Link href="/monitor/procurement" className="text-[0.85rem] text-primary hover:underline">
+        <Link href={withAuthority("/monitor/procurement")} className="text-[0.85rem] text-primary hover:underline">
           ← Поръчки
         </Link>
         <header>
@@ -91,10 +93,35 @@ export function MonitorCompanyPage() {
 
         <MonitorConnectionsGraph connections={connections} title="Връзки на фирмата" compact />
 
-        <section className="grid gap-3">
-          {company.recentContracts.map((item) => (
-            <MonitorInsightCard key={item.id} item={item} />
-          ))}
+        {company.subcontractorRoleCount > 0 && (
+          <section className="rounded-[var(--radius-lg)] border border-blue-200/50 bg-blue-50/40 p-4">
+            <h2 className="font-display text-[1rem] font-semibold text-[color:var(--color-text-heading)]">
+              Като подизпълнител
+            </h2>
+            <p className="mt-1 text-[0.82rem] text-[color:var(--color-text-muted)]">
+              {company.subcontractorRoleCount} декларации в EOP
+              {company.subcontractorRoleTotalEur != null
+                ? ` · общо ${formatEur(company.subcontractorRoleTotalEur)}`
+                : ""}
+              . Парите отиват първо към изпълнителя, после — декларирано към тази фирма.
+            </p>
+            <div className="mt-3">
+              <MonitorFilteredFeedGrid
+                items={company.subcontractorRoles}
+                controlOptions={{ itemType: false }}
+                initialFilters={{ sort: "amount-desc" }}
+              />
+            </div>
+          </section>
+        )}
+
+        <section>
+          <h2 className="mb-3 font-display text-[1rem] font-semibold">Последни договори</h2>
+          <MonitorFilteredFeedGrid
+            items={company.recentContracts}
+            controlOptions={{ itemType: false }}
+            initialFilters={{ sort: "amount-desc" }}
+          />
         </section>
       </div>
     </div>

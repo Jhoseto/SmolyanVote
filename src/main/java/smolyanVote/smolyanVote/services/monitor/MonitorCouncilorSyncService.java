@@ -15,8 +15,10 @@ import smolyanVote.smolyanVote.models.monitor.MonitorCouncilorEntity;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorCouncilorRepository;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class MonitorCouncilorSyncService {
@@ -79,7 +81,16 @@ public class MonitorCouncilorSyncService {
         if (json == null || json.isBlank()) {
             return List.of();
         }
-        JsonNode members = objectMapper.readTree(json).path("councilors");
+        JsonNode root = objectMapper.readTree(json);
+        if (root.hasNonNull("error")) {
+            String msg = root.path("error").asText("Council scrape failed");
+            if ("CLOUDFLARE_BLOCKED".equals(root.path("code").asText(""))) {
+                throw new IllegalStateException(
+                        msg + " — пуснете setup-session.bat в scraper/ и Sync съветници отново.");
+            }
+            throw new IllegalStateException(msg);
+        }
+        JsonNode members = root.path("councilors");
         if (!members.isArray()) {
             return List.of();
         }
@@ -96,21 +107,24 @@ public class MonitorCouncilorSyncService {
         }
 
         int updated = 0;
+        Set<String> scrapedNames = new HashSet<>();
         for (CouncilorRow row : rows) {
             if (row.name() == null || row.name().isBlank()) {
                 continue;
             }
             String name = row.name().trim();
+            scrapedNames.add(name.toLowerCase());
             MonitorCouncilorEntity entity = byName.computeIfAbsent(
                     name.toLowerCase(), key -> new MonitorCouncilorEntity());
-            entity.setFullName(name);
-            entity.setRoleLabel(row.role() != null ? row.role().trim() : "Съветник");
-            if (row.party() != null && !row.party().isBlank()) {
-                entity.setParty(row.party().trim());
+            entity.setFullName(clamp(name, 200));
+            entity.setRoleLabel(clamp(row.role() != null ? row.role() : "Съветник", 120));
+            String party = sanitizeParty(row.party());
+            if (party != null) {
+                entity.setParty(party);
             }
-            entity.setMandatePeriod(row.mandate() != null ? row.mandate() : "2023–2027");
+            entity.setMandatePeriod(clamp(row.mandate() != null ? row.mandate() : "2023–2027", 64));
             if (row.sourceUrl() != null) {
-                entity.setSourceUrl(row.sourceUrl());
+                entity.setSourceUrl(clamp(row.sourceUrl(), 1000));
             }
             if (!entity.isZpokonpiChecked()) {
                 entity.setZpokonpiNote("Кръстосана проверка с декларации по ЗПКОНПИ — предстои.");
@@ -118,7 +132,50 @@ public class MonitorCouncilorSyncService {
             councilorRepository.save(entity);
             updated++;
         }
+
+        if (scrapedNames.size() >= 10) {
+            for (MonitorCouncilorEntity existing : councilorRepository.findAll()) {
+                String key = existing.getFullName() != null ? existing.getFullName().trim().toLowerCase() : "";
+                if (!key.isEmpty() && !scrapedNames.contains(key)) {
+                    councilorRepository.delete(existing);
+                }
+            }
+        }
+
         return updated;
+    }
+
+    private static String clamp(String value, int maxLen) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim().replaceAll("\\s+", " ");
+        if (trimmed.length() <= maxLen) {
+            return trimmed;
+        }
+        return trimmed.substring(0, maxLen).trim();
+    }
+
+    /** Party from inline page text can be an entire paragraph — keep a short label only. */
+    private static String sanitizeParty(String party) {
+        if (party == null || party.isBlank()) {
+            return null;
+        }
+        String trimmed = party.trim().replaceAll("\\s+", " ");
+        if (trimmed.length() > 80) {
+            int cut = trimmed.indexOf(';');
+            if (cut < 0) {
+                cut = trimmed.indexOf(" – ");
+            }
+            if (cut < 0) {
+                cut = trimmed.indexOf(" - ");
+            }
+            if (cut > 0 && cut < trimmed.length()) {
+                trimmed = trimmed.substring(0, cut).trim();
+            }
+        }
+        trimmed = clamp(trimmed, 120);
+        return trimmed != null && trimmed.length() >= 2 ? trimmed : null;
     }
 
     private record CouncilorRow(String name, String role, String party, String mandate, String sourceUrl) {

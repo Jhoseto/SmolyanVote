@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.monitor.MonitorDocumentEntity;
 import smolyanVote.smolyanVote.models.monitor.MonitorIngestionRunEntity;
+import smolyanVote.smolyanVote.repositories.monitor.MonitorContractRepository;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorDocumentRepository;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorIngestionRunRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminAiStatsDTO;
@@ -17,14 +18,17 @@ import java.util.List;
 public class MonitorAdminService {
 
     private final MonitorDocumentRepository documentRepository;
+    private final MonitorContractRepository contractRepository;
     private final MonitorIngestionRunRepository ingestionRunRepository;
     private final MonitorGeminiClient geminiClient;
 
     public MonitorAdminService(
             MonitorDocumentRepository documentRepository,
+            MonitorContractRepository contractRepository,
             MonitorIngestionRunRepository ingestionRunRepository,
             MonitorGeminiClient geminiClient) {
         this.documentRepository = documentRepository;
+        this.contractRepository = contractRepository;
         this.ingestionRunRepository = ingestionRunRepository;
         this.geminiClient = geminiClient;
     }
@@ -53,10 +57,14 @@ public class MonitorAdminService {
 
     @Transactional(readOnly = true)
     public MonitorAdminAiStatsDTO getAiStats() {
-        long pending = documentRepository.findPendingAiProcessing(PageRequest.of(0, 1_000)).size();
+        long pendingDocs = documentRepository.findPendingAiProcessing(PageRequest.of(0, 1_000)).size();
+        long pendingContracts = contractRepository.countPendingContractAiProcessing(
+                MonitorRiskService.FLAG_THRESHOLD);
         return new MonitorAdminAiStatsDTO(
-                pending,
+                pendingDocs,
+                pendingContracts,
                 documentRepository.count(),
+                contractRepository.count(),
                 geminiClient.isConfigured(),
                 geminiClient.modelName());
     }

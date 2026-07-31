@@ -3,12 +3,19 @@ package smolyanVote.smolyanVote.controllers.apiv1;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import smolyanVote.smolyanVote.services.monitor.MonitorNotFoundException;
+import smolyanVote.smolyanVote.services.monitor.MonitorScope;
 import smolyanVote.smolyanVote.services.monitor.MonitorService;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.*;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Public monitor API.
+ *
+ * <p>Most endpoints take an optional {@code authority} EIK — the municipality picked in the
+ * filter above the tabs. Omitting it means the whole oblast, and so does an unknown value.
+ */
 @RestController
 @RequestMapping("/api/v1/monitor")
 public class MonitorController {
@@ -19,9 +26,15 @@ public class MonitorController {
         this.monitorService = monitorService;
     }
 
+    @GetMapping("/municipalities")
+    public ResponseEntity<List<MonitorMunicipalityDTO>> municipalities() {
+        return ResponseEntity.ok(monitorService.getMunicipalities());
+    }
+
     @GetMapping("/overview")
-    public ResponseEntity<MonitorOverviewDTO> overview() {
-        return ResponseEntity.ok(monitorService.getOverview());
+    public ResponseEntity<MonitorOverviewDTO> overview(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getOverview(MonitorScope.of(authority)));
     }
 
     @GetMapping("/feed")
@@ -29,60 +42,76 @@ public class MonitorController {
             @RequestParam(defaultValue = "") String category,
             @RequestParam(defaultValue = "all") String type,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(monitorService.getFeed(category, type, page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "risk") String sort,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getFeed(category, type, page, size, sort, MonitorScope.of(authority)));
+    }
+
+    @GetMapping("/briefing")
+    public ResponseEntity<MonitorBriefingDTO> briefing(@RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getBriefing(MonitorScope.of(authority)));
     }
 
     @GetMapping("/feed/weekly")
-    public ResponseEntity<List<MonitorFeedItemDTO>> weeklyHighlights() {
-        return ResponseEntity.ok(monitorService.getWeeklyHighlights());
+    public ResponseEntity<List<MonitorFeedItemDTO>> weeklyHighlights(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getWeeklyHighlights(MonitorScope.of(authority)));
     }
 
     @GetMapping("/search")
     public ResponseEntity<MonitorPageDTO<MonitorFeedItemDTO>> search(
             @RequestParam(defaultValue = "") String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(monitorService.search(q, page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.search(q, page, size, MonitorScope.of(authority)));
     }
 
     @GetMapping("/search/suggest")
     public ResponseEntity<List<MonitorSearchSuggestionDTO>> searchSuggest(
             @RequestParam(defaultValue = "") String q,
-            @RequestParam(defaultValue = "8") int limit) {
-        return ResponseEntity.ok(monitorService.searchSuggest(q, limit));
+            @RequestParam(defaultValue = "8") int limit,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.searchSuggest(q, limit, MonitorScope.of(authority)));
     }
 
     @GetMapping("/procurement/stats")
-    public ResponseEntity<MonitorProcurementStatsDTO> procurementStats() {
-        return ResponseEntity.ok(monitorService.getProcurementStats());
+    public ResponseEntity<MonitorProcurementStatsDTO> procurementStats(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getProcurementStats(MonitorScope.of(authority)));
     }
 
     @GetMapping("/procurement/anomalies")
     public ResponseEntity<MonitorPageDTO<MonitorFeedItemDTO>> anomalies(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(monitorService.getAnomalies(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getAnomalies(page, size, MonitorScope.of(authority)));
     }
 
     @GetMapping("/procurement/flows")
-    public ResponseEntity<MonitorFlowsDTO> flows() {
-        return ResponseEntity.ok(monitorService.getFlows());
+    public ResponseEntity<MonitorFlowsDTO> flows(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getFlows(MonitorScope.of(authority)));
     }
 
     @GetMapping("/procurement/competition")
-    public ResponseEntity<MonitorCompetitionDTO> competition() {
-        return ResponseEntity.ok(monitorService.getCompetition());
+    public ResponseEntity<MonitorCompetitionDTO> competition(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getCompetition(MonitorScope.of(authority)));
     }
 
+    /** Deliberately unscoped: the whole point of the view is to compare the municipalities. */
     @GetMapping("/procurement/regional-comparison")
     public ResponseEntity<MonitorRegionalComparisonDTO> regionalComparison() {
         return ResponseEntity.ok(monitorService.getRegionalComparison());
     }
 
     @GetMapping("/connections")
-    public ResponseEntity<MonitorConnectionsDTO> connections() {
-        return ResponseEntity.ok(monitorService.getConnections());
+    public ResponseEntity<MonitorConnectionsDTO> connections(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getConnections(MonitorScope.of(authority)));
     }
 
     @GetMapping("/company/{eik}/connections")
@@ -100,28 +129,33 @@ public class MonitorController {
     }
 
     @GetMapping("/council/timeline")
-    public ResponseEntity<List<MonitorFeedItemDTO>> councilTimeline() {
-        return ResponseEntity.ok(monitorService.getCouncilTimeline());
+    public ResponseEntity<List<MonitorFeedItemDTO>> councilTimeline(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getCouncilTimeline(MonitorScope.of(authority)));
     }
 
     @GetMapping("/council/stats")
-    public ResponseEntity<MonitorCouncilStatsDTO> councilStats() {
-        return ResponseEntity.ok(monitorService.getCouncilStats());
+    public ResponseEntity<MonitorCouncilStatsDTO> councilStats(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getCouncilStats(MonitorScope.of(authority)));
     }
 
     @GetMapping("/council/councilors")
-    public ResponseEntity<List<MonitorCouncilorCardDTO>> councilors() {
-        return ResponseEntity.ok(monitorService.getCouncilors());
+    public ResponseEntity<List<MonitorCouncilorCardDTO>> councilors(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getCouncilors(MonitorScope.of(authority)));
     }
 
     @GetMapping("/budget")
-    public ResponseEntity<MonitorBudgetDTO> budget() {
-        return ResponseEntity.ok(monitorService.getBudget());
+    public ResponseEntity<MonitorBudgetDTO> budget(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getBudget(MonitorScope.of(authority)));
     }
 
     @GetMapping("/eu-funds")
-    public ResponseEntity<MonitorEuFundsDTO> euFunds() {
-        return ResponseEntity.ok(monitorService.getEuFunds());
+    public ResponseEntity<MonitorEuFundsDTO> euFunds(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getEuFunds(MonitorScope.of(authority)));
     }
 
     @GetMapping("/contract/{id}")
@@ -152,22 +186,25 @@ public class MonitorController {
     }
 
     @GetMapping("/deadlines")
-    public ResponseEntity<List<MonitorFeedItemDTO>> deadlines() {
-        return ResponseEntity.ok(monitorService.getDeadlines());
+    public ResponseEntity<List<MonitorFeedItemDTO>> deadlines(
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getDeadlines(MonitorScope.of(authority)));
     }
 
     @GetMapping("/council")
     public ResponseEntity<MonitorPageDTO<MonitorFeedItemDTO>> council(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(monitorService.getCouncilDocuments(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getCouncilDocuments(page, size, MonitorScope.of(authority)));
     }
 
     @GetMapping("/consultations")
     public ResponseEntity<MonitorPageDTO<MonitorFeedItemDTO>> consultations(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(monitorService.getConsultations(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getConsultations(page, size, MonitorScope.of(authority)));
     }
 
     @GetMapping("/categories")

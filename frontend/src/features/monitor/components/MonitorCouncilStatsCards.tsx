@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatDate } from "../lib/format";
 import type { MonitorCouncilStats } from "../types";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorCouncilStatsCardsProps {
   stats: MonitorCouncilStats | null;
@@ -17,6 +18,7 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 export function MonitorCouncilStatsCards({ stats, loading }: MonitorCouncilStatsCardsProps) {
+  const { withAuthority } = useMonitorAuthority();
   if (loading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -63,7 +65,7 @@ export function MonitorCouncilStatsCards({ stats, loading }: MonitorCouncilStats
         ))}
       </div>
       <Link
-        href="/monitor/consultations"
+        href={withAuthority("/monitor/consultations")}
         className="inline-flex text-[0.82rem] font-medium text-primary hover:underline"
       >
         Виж всички обсъждания →

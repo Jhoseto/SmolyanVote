@@ -13,8 +13,9 @@ public record MonitorConnectionsDTO(
             String label,
             String type,
             BigDecimal totalEur,
-            int linkCount
-    ) {
+            int linkCount,
+            int flaggedCount,
+            String citizenHint) {
     }
 
     public record ConnectionLinkDTO(

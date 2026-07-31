@@ -25,7 +25,7 @@ public class SmolyanBgScraperService {
 
     private final MonitorIngestionRunService runService;
     private final MonitorDocumentIngestService ingestService;
-    private final MonitorAiService aiService;
+    private final MonitorCouncilorSyncService councilorSyncService;
     private final MonitorScraperProperties scraperProperties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -33,12 +33,12 @@ public class SmolyanBgScraperService {
     public SmolyanBgScraperService(
             MonitorIngestionRunService runService,
             MonitorDocumentIngestService ingestService,
-            MonitorAiService aiService,
+            MonitorCouncilorSyncService councilorSyncService,
             MonitorScraperProperties scraperProperties,
             ObjectMapper objectMapper) {
         this.runService = runService;
         this.ingestService = ingestService;
-        this.aiService = aiService;
+        this.councilorSyncService = councilorSyncService;
         this.scraperProperties = scraperProperties;
         this.objectMapper = objectMapper;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -52,10 +52,18 @@ public class SmolyanBgScraperService {
         MonitorIngestionRunEntity run = runService.start(MonitorIngestionType.SMOLYAN_BG);
         try {
             List<MonitorScrapedDocumentDTO> documents = fetchFromSidecar();
+            if (documents.isEmpty()) {
+                throw new IllegalStateException(
+                        "smolyan.bg върна 0 документа. Рестартирайте start-scraper.bat, проверете: cd scraper && npm run probe");
+            }
             int processed = ingestService.ingestBatch(documents);
-            int aiProcessed = aiService.processPendingBatch(50);
+            MonitorCouncilorSyncService.SyncResult council = councilorSyncService.syncFromScraper();
+            String councilPart = council.ok() && council.updated() > 0
+                    ? ", " + council.updated() + " съветници"
+                    : council.ok() ? "" : ", съветници: " + council.message();
             return runService.succeed(run.getId(), processed,
-                    "smolyan.bg: " + processed + " документа, " + aiProcessed + " обработени с AI");
+                    "smolyan.bg: " + processed + " документа" + councilPart
+                            + " — AI: пуснете «AI batch» отделно");
         } catch (Exception ex) {
             log.error("smolyan.bg scrape failed", ex);
             return runService.fail(run.getId(), 0, MonitorIngestionRunService.describe(ex));
@@ -83,6 +91,16 @@ public class SmolyanBgScraperService {
         }
 
         JsonNode root = objectMapper.readTree(json);
+        if (root.hasNonNull("error")) {
+            String code = root.path("code").asText("");
+            String hint = root.path("hint").asText("");
+            String msg = root.path("error").asText("Scrape failed");
+            if ("CLOUDFLARE_BLOCKED".equals(code) || "SESSION_MISSING".equals(code) || "ZERO_DOCUMENTS".equals(code)) {
+                throw new IllegalStateException(
+                        msg + (hint.isBlank() ? "" : " — " + hint));
+            }
+            throw new IllegalStateException(msg);
+        }
         JsonNode docs = root.path("documents");
         if (!docs.isArray()) {
             return List.of();

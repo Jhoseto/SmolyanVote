@@ -37,14 +37,26 @@ public class MonitorDeepDataService {
         this.budgetAdminService = budgetAdminService;
     }
 
+    /**
+     * Spend per budget category for the selected municipality.
+     *
+     * <p>Planned lines are curated for Община Смолян only, so for the other municipalities
+     * the plan column is dropped and the page shows executed spend alone — comparing their
+     * spending against Smolyan's plan would be meaningless.
+     */
     @Transactional
-    public MonitorBudgetDTO getSmolyanBudget() {
-        int year = MonitorBudgetConfig.BUDGET_YEAR;
+    public MonitorBudgetDTO getBudget(MonitorScope scope) {
+        String authorityFilter = scope.authorityFilter();
+        boolean wholeOblast = scope.isWholeOblast();
+        boolean plannedAvailable = wholeOblast
+                || MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(scope.authorityEik());
+        String municipalityLabel = scope.label();
+
+        int year = resolveBudgetYear(authorityFilter);
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        List<MonitorContractEntity> contracts = contractRepository.findAll().stream()
-                .filter(c -> MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(c.getAuthorityEik()))
+        List<MonitorContractEntity> contracts = contractRepository.findAllInScope(authorityFilter).stream()
                 .filter(c -> c.getSignedAt() != null && !c.getSignedAt().isBefore(from) && !c.getSignedAt().isAfter(to))
                 .filter(c -> c.getAmountEur() != null)
                 .toList();
@@ -63,7 +75,9 @@ public class MonitorDeepDataService {
         for (MonitorBudgetLineEntity line : lines) {
             BigDecimal executed = executedByCategory.getOrDefault(line.getCategoryKey(), BigDecimal.ZERO)
                     .setScale(2, RoundingMode.HALF_UP);
-            BigDecimal planned = line.getPlannedEur() != null ? line.getPlannedEur() : BigDecimal.ZERO;
+            BigDecimal planned = plannedAvailable && line.getPlannedEur() != null
+                    ? line.getPlannedEur()
+                    : BigDecimal.ZERO;
             totalPlanned = totalPlanned.add(planned);
             totalExecuted = totalExecuted.add(executed);
             double pct = planned.signum() > 0
@@ -72,18 +86,68 @@ public class MonitorDeepDataService {
             rows.add(new MonitorBudgetDTO.BudgetRowDTO(line.getCategoryKey(), line.getLabel(), planned, executed, pct));
         }
 
+        String note = buildBudgetNote(year, wholeOblast, plannedAvailable, totalExecuted, contracts.size());
+
         return new MonitorBudgetDTO(
                 year,
-                MonitorRegionalConfig.AUTHORITY_LABELS.get(MonitorRegionalConfig.SMOLYAN_CITY_EIK),
+                municipalityLabel,
                 totalPlanned,
                 totalExecuted,
                 rows,
-                "https://smolyan.bg");
+                plannedAvailable ? "https://smolyan.bg" : MonitorRegionalConfig.SIGMA_BASE_URL,
+                plannedAvailable,
+                note);
+    }
+
+    private int resolveBudgetYear(String authorityFilter) {
+        int current = MonitorBudgetConfig.budgetYear();
+        LocalDate from = LocalDate.of(current, 1, 1);
+        LocalDate to = LocalDate.of(current, 12, 31);
+        boolean hasCurrentYear = contractRepository.findAllInScope(authorityFilter).stream()
+                .anyMatch(c -> c.getSignedAt() != null && c.getAmountEur() != null
+                        && !c.getSignedAt().isBefore(from) && !c.getSignedAt().isAfter(to));
+        if (hasCurrentYear) {
+            return current;
+        }
+        List<Integer> years = contractRepository.findYearsWithSpend(authorityFilter);
+        return years.isEmpty() ? current : years.get(0);
+    }
+
+    private static String buildBudgetNote(
+            int year,
+            boolean wholeOblast,
+            boolean plannedAvailable,
+            BigDecimal totalExecuted,
+            int contractCount) {
+        if (contractCount == 0) {
+            return "Няма подписани договори в SIGMA/EOP за " + year + " г. в избрания обхват. "
+                    + "Стартирайте SIGMA import или сменете общината.";
+        }
+        if (wholeOblast && plannedAvailable) {
+            return "Планът е индикативен за Община Смолян; изпълнението е сумирано за цялата област Смолян за "
+                    + year + " г. (" + contractCount + " договора, "
+                    + formatMillions(totalExecuted) + ").";
+        }
+        if (!plannedAvailable) {
+            return "Планови редове имаме само за Община Смолян. Тук виждате реално изпълнение от договори за "
+                    + year + " г.";
+        }
+        return "Изпълнението е от " + contractCount + " договора, подписани през " + year + " г.";
+    }
+
+    private static String formatMillions(BigDecimal eur) {
+        if (eur == null || eur.signum() == 0) {
+            return "0 €";
+        }
+        if (eur.compareTo(new BigDecimal("1000000")) >= 0) {
+            return eur.divide(new BigDecimal("1000000"), 1, RoundingMode.HALF_UP) + " млн €";
+        }
+        return eur.setScale(0, RoundingMode.HALF_UP) + " €";
     }
 
     @Transactional(readOnly = true)
-    public MonitorEuFundsDTO getEuFunds() {
-        List<MonitorContractEntity> euContracts = contractRepository.findAll().stream()
+    public MonitorEuFundsDTO getEuFunds(MonitorScope scope) {
+        List<MonitorContractEntity> euContracts = contractRepository.findAllInScope(scope.authorityFilter()).stream()
                 .filter(MonitorContractEntity::isEuFunded)
                 .filter(c -> MonitorRegionalConfig.isRegionalAuthority(c.getAuthorityEik()))
                 .filter(c -> c.getAmountEur() != null)
@@ -113,8 +177,15 @@ public class MonitorDeepDataService {
                 "Данни от SIGMA/EOP (договори с eu_funded=1). Пълна ISUN интеграция — планирана за v2.");
     }
 
+    /**
+     * Councillor profiles are synced from smolyan.bg, so they describe ОбС Смолян. The other
+     * municipalities have no such source — an empty list beats showing somebody else's council.
+     */
     @Transactional(readOnly = true)
-    public List<MonitorCouncilorCardDTO> getCouncilors() {
+    public List<MonitorCouncilorCardDTO> getCouncilors(MonitorScope scope) {
+        if (!scope.includesScrapedSources()) {
+            return List.of();
+        }
         return councilorRepository.findAll().stream()
                 .map(c -> new MonitorCouncilorCardDTO(
                         c.getId(),

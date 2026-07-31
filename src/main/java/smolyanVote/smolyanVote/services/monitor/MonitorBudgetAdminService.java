@@ -35,9 +35,14 @@ public class MonitorBudgetAdminService {
     @Transactional
     public List<MonitorBudgetLineEntity> getOrSeedLines(int year) {
         List<MonitorBudgetLineEntity> lines = budgetLineRepository.findByBudgetYearOrderBySortOrderAsc(year);
-        if (!lines.isEmpty()) {
-            return lines;
+        if (lines.isEmpty()) {
+            return seedDefaults(year);
         }
+        backfillZeroPlannedFromConfig(lines);
+        return lines;
+    }
+
+    private List<MonitorBudgetLineEntity> seedDefaults(int year) {
         int order = 0;
         for (MonitorBudgetConfig.BudgetLine line : MonitorBudgetConfig.PLANNED_LINES) {
             MonitorBudgetLineEntity entity = new MonitorBudgetLineEntity();
@@ -50,6 +55,26 @@ public class MonitorBudgetAdminService {
             budgetLineRepository.save(entity);
         }
         return budgetLineRepository.findByBudgetYearOrderBySortOrderAsc(year);
+    }
+
+    private void backfillZeroPlannedFromConfig(List<MonitorBudgetLineEntity> lines) {
+        Map<String, MonitorBudgetConfig.BudgetLine> defaults = new HashMap<>();
+        for (MonitorBudgetConfig.BudgetLine line : MonitorBudgetConfig.PLANNED_LINES) {
+            defaults.put(line.id(), line);
+        }
+        for (MonitorBudgetLineEntity entity : lines) {
+            if (entity.getPlannedEur() != null && entity.getPlannedEur().signum() > 0) {
+                continue;
+            }
+            MonitorBudgetConfig.BudgetLine def = defaults.get(entity.getCategoryKey());
+            if (def != null && def.plannedEur() != null) {
+                entity.setPlannedEur(def.plannedEur());
+                if (entity.getLabel() == null || entity.getLabel().isBlank()) {
+                    entity.setLabel(def.label());
+                }
+                budgetLineRepository.save(entity);
+            }
+        }
     }
 
     @Transactional(readOnly = true)

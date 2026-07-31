@@ -42,6 +42,15 @@ public interface MonitorDocumentRepository extends JpaRepository<MonitorDocument
     @Query("SELECT d FROM MonitorDocumentEntity d WHERE d.rawContent IS NOT NULL AND (d.shortSummary IS NULL OR d.shortSummary = '') ORDER BY d.created DESC")
     List<MonitorDocumentEntity> findPendingAiProcessing(Pageable pageable);
 
+    @Query("SELECT d FROM MonitorDocumentEntity d WHERE d.rawContent IS NOT NULL "
+            + "AND (d.aiAnalysis IS NULL OR d.aiAnalysis = '') "
+            + "ORDER BY d.impactScore DESC, d.publishedAt DESC")
+    List<MonitorDocumentEntity> findPendingDeepAnalysis(Pageable pageable);
+
+    @Query("SELECT d FROM MonitorDocumentEntity d WHERE d.impactScore IS NOT NULL "
+            + "ORDER BY d.impactScore DESC, d.publishedAt DESC")
+    Page<MonitorDocumentEntity> findByImpactDesc(Pageable pageable);
+
     @Query("SELECT d FROM MonitorDocumentEntity d WHERE " +
             "(d.rawContent IS NULL OR LENGTH(d.rawContent) < 80) " +
             "AND LOWER(d.sourceUrl) LIKE '%.pdf%' ORDER BY d.created DESC")

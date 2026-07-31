@@ -39,7 +39,7 @@ public class GeminiProperties {
         String model = api.getModel();
         if (model == null || model.isBlank() || model.startsWith("${")) {
             String envModel = System.getenv("GEMINI_MODEL");
-            model = (envModel != null && !envModel.isBlank()) ? envModel : "gemini-2.5-flash-lite";
+            model = (envModel != null && !envModel.isBlank()) ? envModel : "gemini-2.5-flash";
         }
         return model.trim();
     }
@@ -58,9 +58,9 @@ public class GeminiProperties {
 
         /**
          * Batch-friendly model for summaries and translation.
-         * Override with GEMINI_MODEL in .env (e.g. gemini-2.5-flash-lite).
+         * Override with GEMINI_MODEL in .env (e.g. gemini-2.5-flash).
          */
-        private String model = "gemini-2.5-flash-lite";
+        private String model = "gemini-2.5-flash";
 
         public String getKey() {
             return key;

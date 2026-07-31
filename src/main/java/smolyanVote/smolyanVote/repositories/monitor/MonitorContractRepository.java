@@ -92,6 +92,15 @@ public interface MonitorContractRepository extends JpaRepository<MonitorContract
 
     List<MonitorContractEntity> findByContractorEikOrderBySignedAtDesc(String contractorEik, Pageable pageable);
 
+    List<MonitorContractEntity> findBySubcontractorEikOrderBySignedAtDesc(String subcontractorEik, Pageable pageable);
+
+    @Query("SELECT COUNT(c) FROM MonitorContractEntity c WHERE c.subcontractorEik = :eik")
+    long countBySubcontractorEik(@Param("eik") String eik);
+
+    @Query("SELECT COALESCE(SUM(c.subcontractingAmountEur), 0) FROM MonitorContractEntity c "
+            + "WHERE c.subcontractorEik = :eik AND c.subcontractingAmountEur IS NOT NULL")
+    BigDecimal sumSubcontractingAmountBySubcontractorEik(@Param("eik") String eik);
+
     @Query("SELECT c FROM MonitorContractEntity c WHERE c.bidsReceived IS NOT NULL "
             + "AND (:authorityEik IS NULL OR c.authorityEik = :authorityEik)")
     List<MonitorContractEntity> findAllWithBids(@Param("authorityEik") String authorityEik);
@@ -120,4 +129,26 @@ public interface MonitorContractRepository extends JpaRepository<MonitorContract
 
     @Query("SELECT COUNT(c) FROM MonitorContractEntity c WHERE c.authorityEik = :eik AND c.bidsReceived IS NOT NULL")
     long countWithBidsByAuthority(@Param("eik") String eik);
+
+    @Query("SELECT COALESCE(SUM(c.amountEur), 0) FROM MonitorContractEntity c WHERE c.riskScore IS NOT NULL "
+            + "AND c.riskScore >= :minScore AND (:authorityEik IS NULL OR c.authorityEik = :authorityEik)")
+    BigDecimal sumFlaggedAmount(@Param("minScore") int minScore, @Param("authorityEik") String authorityEik);
+
+    @Query("SELECT DISTINCT YEAR(c.signedAt) FROM MonitorContractEntity c "
+            + "WHERE c.signedAt IS NOT NULL AND c.amountEur IS NOT NULL "
+            + "AND (:authorityEik IS NULL OR c.authorityEik = :authorityEik) "
+            + "ORDER BY YEAR(c.signedAt) DESC")
+    List<Integer> findYearsWithSpend(@Param("authorityEik") String authorityEik);
+
+    @Query("SELECT COUNT(c) FROM MonitorContractEntity c WHERE "
+            + "c.riskScore IS NOT NULL AND c.riskScore >= :minRisk "
+            + "AND (c.aiAnalysis IS NULL OR c.aiAnalysis = '')")
+    long countPendingContractAiProcessing(@Param("minRisk") int minRisk);
+
+    @Query("SELECT c FROM MonitorContractEntity c WHERE "
+            + "c.riskScore IS NOT NULL AND c.riskScore >= :minRisk "
+            + "AND (c.aiAnalysis IS NULL OR c.aiAnalysis = '') "
+            + "ORDER BY c.riskScore DESC, c.signedAt DESC")
+    List<MonitorContractEntity> findPendingContractAiProcessing(
+            @Param("minRisk") int minRisk, Pageable pageable);
 }

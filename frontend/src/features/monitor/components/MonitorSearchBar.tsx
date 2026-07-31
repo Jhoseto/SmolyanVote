@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { monitorApi } from "../api";
 import type { MonitorSearchSuggestion } from "../types";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorSearchBarProps {
   className?: string;
@@ -20,6 +21,7 @@ export function MonitorSearchBar({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { authority, withAuthority } = useMonitorAuthority();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -33,38 +35,41 @@ export function MonitorSearchBar({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  const fetchSuggest = useCallback((term: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (term.trim().length < 2) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      setLoading(true);
-      monitorApi
-        .searchSuggest(term.trim())
-        .then((items) => {
-          setSuggestions(items);
-          setOpen(items.length > 0);
-        })
-        .finally(() => setLoading(false));
-    }, 280);
-  }, []);
+  const fetchSuggest = useCallback(
+    (term: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (term.trim().length < 2) {
+        setSuggestions([]);
+        setOpen(false);
+        return;
+      }
+      debounceRef.current = setTimeout(() => {
+        setLoading(true);
+        monitorApi
+          .searchSuggest(term.trim(), 8, authority)
+          .then((items) => {
+            setSuggestions(items);
+            setOpen(items.length > 0);
+          })
+          .finally(() => setLoading(false));
+      }, 280);
+    },
+    [authority],
+  );
 
   function submit(e?: React.FormEvent) {
     e?.preventDefault();
     const trimmed = q.trim();
     if (!trimmed) return;
     setOpen(false);
-    router.push(`/monitor/search?q=${encodeURIComponent(trimmed)}`);
+    router.push(withAuthority(`/monitor/search?q=${encodeURIComponent(trimmed)}`));
   }
 
   function pick(s: MonitorSearchSuggestion) {
     setOpen(false);
     const href =
       s.itemType === "contract" ? `/monitor/contract/${s.id}` : `/monitor/document/${s.id}`;
-    router.push(href);
+    router.push(withAuthority(href));
   }
 
   return (

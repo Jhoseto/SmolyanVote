@@ -1,8 +1,10 @@
 package smolyanVote.smolyanVote.viewsAndDTO.monitor;
 
 public record MonitorAdminAiStatsDTO(
-        long pendingCount,
+        long pendingDocuments,
+        long pendingContracts,
         long totalDocuments,
+        long totalContracts,
         boolean geminiConfigured,
         String geminiModel
 ) {

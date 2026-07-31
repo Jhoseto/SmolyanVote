@@ -1,0 +1,29 @@
+# Replace smolyanvote.com with your domain. TLS via Caddy automatic HTTPS.
+
+smolyanvote.com {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy backend:2662
+	}
+	handle /admin/api/* {
+		reverse_proxy backend:2662
+	}
+	handle /ws* {
+		reverse_proxy backend:2662
+	}
+	handle /oauth2/* {
+		reverse_proxy backend:2662
+	}
+	handle /login/oauth2/* {
+		reverse_proxy backend:2662
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+www.smolyanvote.com {
+	redir https://smolyanvote.com{uri} permanent
+}

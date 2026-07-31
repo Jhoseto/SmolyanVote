@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { formatDate, formatEur } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
 import { RiskBadgeChip } from "./MonitorKpiStrip";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorDetailSheetProps {
   item: MonitorFeedItem | null;
@@ -12,11 +13,14 @@ interface MonitorDetailSheetProps {
 }
 
 export function MonitorDetailSheet({ item, onClose }: MonitorDetailSheetProps) {
-  const href =
-    item?.itemType === "contract"
-      ? `/monitor/contract/${item.id}`
-      : item ? `/monitor/document/${item.id}` : "#";
-
+  const { withAuthority } = useMonitorAuthority();
+  const href = item
+    ? withAuthority(
+        item.itemType === "contract"
+          ? `/monitor/contract/${item.id}`
+          : `/monitor/document/${item.id}`,
+      )
+    : "#";
   return (
     <AnimatePresence>
       {item && (
@@ -89,7 +93,7 @@ export function MonitorDetailSheet({ item, onClose }: MonitorDetailSheetProps) {
               >
                 Пълен детайл
               </Link>
-              {item.sourceUrl && (
+              {item.itemType !== "contract" && item.sourceUrl && (
                 <a
                   href={item.sourceUrl}
                   target="_blank"

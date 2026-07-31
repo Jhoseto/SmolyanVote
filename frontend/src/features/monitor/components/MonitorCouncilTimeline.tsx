@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatDate } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorCouncilTimelineProps {
   items: MonitorFeedItem[];
@@ -10,6 +11,7 @@ interface MonitorCouncilTimelineProps {
 }
 
 export function MonitorCouncilTimeline({ items, loading }: MonitorCouncilTimelineProps) {
+  const { withAuthority } = useMonitorAuthority();
   if (loading) {
     return (
       <div className="space-y-4">
@@ -50,7 +52,7 @@ export function MonitorCouncilTimeline({ items, loading }: MonitorCouncilTimelin
             </p>
           )}
           <Link
-            href={`/monitor/document/${item.id}`}
+            href={withAuthority(`/monitor/document/${item.id}`)}
             className="mt-2 inline-flex text-[0.78rem] font-medium text-primary hover:underline"
           >
             Виж детайли →

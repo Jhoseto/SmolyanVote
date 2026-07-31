@@ -6,10 +6,12 @@ import { cn } from "@/shared/lib/cn";
 import { Container } from "@/shared/ui";
 import type { MonitorTab } from "../types";
 import { MonitorKpiStrip } from "./MonitorKpiStrip";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
+import { MonitorMunicipalityFilter } from "./MonitorMunicipalityFilter";
 import type { MonitorOverview } from "../types";
 
 const TABS: { id: MonitorTab; href: string; label: string; icon: string }[] = [
-  { id: "all", href: "/monitor", label: "Всичко", icon: "bi-grid" },
+  { id: "all", href: "/monitor", label: "Анализ", icon: "bi-grid" },
   { id: "procurement", href: "/monitor/procurement", label: "Поръчки", icon: "bi-basket" },
   { id: "anomalies", href: "/monitor/anomalies", label: "Аномалии", icon: "bi-exclamation-diamond" },
   { id: "flows", href: "/monitor/flows", label: "Потоци", icon: "bi-diagram-3" },
@@ -38,6 +40,7 @@ export function MonitorPageShell({
   title,
 }: MonitorPageShellProps) {
   const pathname = usePathname();
+  const { authority, label, withAuthority } = useMonitorAuthority();
 
   return (
     <div className="pb-16 pt-[calc(var(--navbar-height)+1.5rem)]">
@@ -50,9 +53,13 @@ export function MonitorPageShell({
             {title ?? "Прозрачност за Смолян и региона"}
           </h1>
           <p className="max-w-2xl text-[0.95rem] text-[color:var(--color-text-secondary)]">
-            Поръчки, решения и разходи на община Смолян — структурирани, проверими, на прост език.
+            {authority
+              ? `Поръчки, решения и разходи на ${label} — структурирани, проверими, на прост език.`
+              : "Поръчки, решения и разходи в област Смолян — структурирани, проверими, на прост език."}
           </p>
         </header>
+
+        <MonitorMunicipalityFilter />
 
         {showKpi && <MonitorKpiStrip overview={overview ?? null} loading={overviewLoading} />}
 
@@ -68,7 +75,7 @@ export function MonitorPageShell({
             return (
               <Link
                 key={tab.id}
-                href={tab.href}
+                href={withAuthority(tab.href)}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[0.8rem] font-medium transition",
                   active

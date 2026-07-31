@@ -167,15 +167,24 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
         >
           <i className={cn("bi", aiStatsQ.data.geminiConfigured ? "bi-check-circle" : "bi-exclamation-triangle")} />
           <span>
-            Gemini: {aiStatsQ.data.geminiConfigured ? "конфигуриран" : "липсва GEMINI_API_KEY — fallback резюмета"}
+            Gemini: {aiStatsQ.data.geminiConfigured ? "конфигуриран" : "липсва GEMINI_API_KEY — без пълен AI доклад"}
             {aiStatsQ.data.geminiConfigured && (
               <span className="text-[color:var(--color-text-muted)]"> · модел {aiStatsQ.data.geminiModel}</span>
             )}
           </span>
           <span className="text-[color:var(--color-text-muted)]">·</span>
           <span>
-            <strong>{aiStatsQ.data.pendingCount}</strong> документа чакат AI
+            <strong>{aiStatsQ.data.pendingDocuments}</strong> документа
+            · <strong>{aiStatsQ.data.pendingContracts.toLocaleString("bg-BG")}</strong> без AI анализ
           </span>
+          {aiStatsQ.data.geminiModel.includes("flash-lite") && (
+            <>
+              <span className="text-[color:var(--color-text-muted)]">·</span>
+              <span className="font-medium text-red-800">
+                Моделът {aiStatsQ.data.geminiModel} е deprecated — сменете на gemini-2.5-flash в .env
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -244,9 +253,25 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
             onClick={() => start(() => adminMonitorApi.triggerScrape())}
           />
           <ActionButton
+            icon="bi-file-earmark-text"
+            label="SmolyanVote синтезиран доклад (регион)"
+            description="Пълен синтез: парите, нередностите, заключения"
+            loading={isJobActive(jobFor("AI_REPORT"))}
+            disabled={busy}
+            onClick={() => start(() => adminMonitorApi.generateRegionalReport())}
+          />
+          <ActionButton
+            icon="bi-lightbulb"
+            label="Обогати анализи"
+            description="Rule-based заглавия (без Gemini, мигновено)"
+            loading={isJobActive(jobFor("ENRICH"))}
+            disabled={busy}
+            onClick={() => start(() => adminMonitorApi.enrichInsights())}
+          />
+          <ActionButton
             icon="bi-stars"
             label={`AI batch (${aiBatchLimit})`}
-            description="Gemini резюмета"
+            description="Пълен AI анализ по договори (риск ≥ 40)"
             loading={isJobActive(jobFor("AI"))}
             disabled={busy}
             onClick={() => start(() => adminMonitorApi.processAiBatch(aiBatchLimit))}

@@ -2,24 +2,32 @@
 
 import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
+import { concernLabel } from "../lib/concernLabels";
 import { formatDate, formatEur } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
 import { RiskBadgeChip } from "./MonitorKpiStrip";
+import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorInsightCardProps {
   item: MonitorFeedItem;
   className?: string;
-  /** Mobile: open bottom sheet instead of navigating immediately */
   onPreview?: () => void;
-  /** Show risk flag chips under summary */
   showFlags?: boolean;
 }
 
-export function MonitorInsightCard({ item, className, onPreview, showFlags }: MonitorInsightCardProps) {
-  const href =
+export function MonitorInsightCard({
+  item,
+  className,
+  onPreview,
+  showFlags = item.itemType === "contract",
+}: MonitorInsightCardProps) {
+  const { withAuthority } = useMonitorAuthority();
+  const href = withAuthority(
     item.itemType === "contract"
       ? `/monitor/contract/${item.id}`
-      : `/monitor/document/${item.id}`;
+      : `/monitor/document/${item.id}`,
+  );
+  const concern = item.concernType ? concernLabel(item.concernType) : null;
 
   return (
     <article
@@ -45,7 +53,12 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            {item.category && (
+            {concern && (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[0.68rem] font-semibold text-amber-900">
+                {concern}
+              </span>
+            )}
+            {item.category && !concern && (
               <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[0.68rem] font-medium text-primary">
                 {item.category}
               </span>
@@ -56,8 +69,20 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
             {item.title}
           </h3>
           {item.shortSummary && (
-            <p className="mt-1 line-clamp-2 text-[0.8rem] leading-relaxed text-[color:var(--color-text-secondary)]">
-              {item.shortSummary}
+            <div className="mt-1.5">
+              {item.shortSummary !== item.title && (
+                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-amber-800/90">
+                  Защо е важно
+                </p>
+              )}
+              <p className="line-clamp-3 text-[0.82rem] leading-relaxed text-[color:var(--color-text-secondary)]">
+                {item.shortSummary}
+              </p>
+            </div>
+          )}
+          {item.registryTitle && item.registryTitle !== item.title && (
+            <p className="mt-1 line-clamp-1 text-[0.68rem] text-[color:var(--color-text-muted)]" title={item.registryTitle}>
+              Регистър: {item.registryTitle}
             </p>
           )}
           {showFlags && item.riskFlags.length > 0 && (
@@ -65,7 +90,7 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
               {item.riskFlags.map((f) => (
                 <span
                   key={f.code}
-                  className="rounded-full bg-amber-50 px-2 py-0.5 text-[0.65rem] font-medium text-amber-900"
+                  className="rounded-full bg-red-50 px-2 py-0.5 text-[0.65rem] font-medium text-red-900"
                   title={f.tooltip ?? f.label}
                 >
                   {f.label}
@@ -74,7 +99,7 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
             </div>
           )}
         </div>
-        {item.amountEur != null && (
+        {item.amountEur != null && item.amountEur > 0 && (
           <p className="shrink-0 text-right font-display text-[1rem] font-bold tabular-nums text-primary">
             {formatEur(item.amountEur)}
           </p>
@@ -86,7 +111,7 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
           {formatDate(item.date ?? item.publishedAt)}
         </span>
         <div className="flex items-center gap-2">
-          {item.sourceUrl && (
+          {item.itemType !== "contract" && item.sourceUrl && (
             <a
               href={item.sourceUrl}
               target="_blank"
@@ -102,7 +127,7 @@ export function MonitorInsightCard({ item, className, onPreview, showFlags }: Mo
             className="rounded-full bg-primary-50 px-3 py-1 text-[0.72rem] font-medium text-primary transition group-hover:bg-primary group-hover:text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            Виж детайли
+            Виж анализа
           </Link>
         </div>
       </div>

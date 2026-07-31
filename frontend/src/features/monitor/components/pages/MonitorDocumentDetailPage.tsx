@@ -7,12 +7,14 @@ import { EmptyState, LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { formatDate, formatEur } from "../../lib/format";
 import { MonitorShareButton } from "../MonitorShareButton";
+import { useMonitorAuthority } from "../MonitorAuthorityProvider";
 import type { MonitorDocumentDetail } from "../../types";
 
 export function MonitorDocumentDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const invalidId = !Number.isFinite(id);
+  const { withAuthority } = useMonitorAuthority();
   const [doc, setDoc] = useState<MonitorDocumentDetail | null>(null);
   const [loading, setLoading] = useState(!invalidId);
   const [error, setError] = useState(invalidId);
@@ -49,7 +51,7 @@ export function MonitorDocumentDetailPage() {
     <div className="pb-16 pt-[calc(var(--navbar-height)+1.5rem)]">
       <div className="mx-auto max-w-3xl px-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/monitor" className="text-[0.85rem] text-primary hover:underline">
+          <Link href={withAuthority("/monitor")} className="text-[0.85rem] text-primary hover:underline">
             ← Монитор
           </Link>
           <MonitorShareButton title={doc.title} />
@@ -58,9 +60,28 @@ export function MonitorDocumentDetailPage() {
           <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[0.68rem] font-medium text-primary">
             {doc.documentType}
           </span>
-          <h1 className="font-display text-[1.35rem] font-bold leading-snug">{doc.title}</h1>
-          {doc.shortSummary && (
-            <p className="text-[0.95rem] text-[color:var(--color-text-secondary)]">{doc.shortSummary}</p>
+          <h1 className="font-display text-[1.35rem] font-bold leading-snug">
+            {doc.shortSummary && doc.shortSummary !== doc.title ? doc.shortSummary : doc.title}
+          </h1>
+          {doc.insightWhy && (
+            <p className="text-[0.92rem] leading-relaxed text-[color:var(--color-text-secondary)]">
+              {doc.insightWhy}
+            </p>
+          )}
+          {doc.aiAnalysis && (
+            <div className="rounded-[var(--radius-md)] border border-primary/25 bg-primary-50/50 px-4 py-4">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-primary">
+                SMOLYANVOTE Анализ за данъкоплатеца
+              </p>
+              <p className="mt-2 whitespace-pre-line text-[0.9rem] leading-relaxed text-[color:var(--color-text-secondary)]">
+                {doc.aiAnalysis}
+              </p>
+            </div>
+          )}
+          {!doc.aiAnalysis && doc.shortSummary && doc.shortSummary !== doc.title && (
+            <p className="text-[0.88rem] text-[color:var(--color-text-muted)]">
+              Официално заглавие: {doc.title}
+            </p>
           )}
         </header>
 

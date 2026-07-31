@@ -50,7 +50,7 @@ const ANALYSIS_ITEMS = [
     href: "/monitor/flows",
     icon: "bi-diagram-3",
     title: "Парични потоци",
-    description: "Sankey диаграма",
+    description: "Общини → фирми, топ суми",
   },
   {
     href: "/monitor/region",

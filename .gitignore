@@ -65,3 +65,7 @@ NewServerConfig/
 deploy.local.env
 NewServerConfig/deploy.local.env
 .deploy/
+
+# smolyan.bg Cloudflare session cookies (generate via setup-session.bat)
+scraper/storage-state.json
+scraper/.chrome-profile/

@@ -29,6 +29,9 @@ set "SSH_OPTS=-o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o Server
 if defined DO_SSH_KEY set "SSH_OPTS=%SSH_OPTS% -i "%DO_SSH_KEY%""
 if not defined SCP_RETRY_COUNT set "SCP_RETRY_COUNT=3"
 
+rem Server configs from tracked deploy/; secrets from NewServerConfig/.env only
+set "DEPLOY_CONFIG=deploy"
+
 set "SKIP_BUILD=0"
 set "BUILD_BACKEND=1"
 set "BUILD_FRONTEND=1"
@@ -51,9 +54,22 @@ if not exist "gradlew.bat" (
   echo [ERROR] gradlew.bat not found. Run deploy.bat from the repo root.
   exit /b 1
 )
+if not exist "%DEPLOY_CONFIG%\docker-compose.prod.yml" (
+  echo [ERROR] Missing %DEPLOY_CONFIG%\docker-compose.prod.yml
+  exit /b 1
+)
+if not exist "scraper\Dockerfile" (
+  echo [ERROR] Missing scraper\Dockerfile — monitor sidecar required for production.
+  exit /b 1
+)
+if not exist "scraper\package.json" (
+  echo [ERROR] Missing scraper\package.json
+  exit /b 1
+)
 
 echo.
 echo === SmolyanVote deploy to %SSH_TARGET% ===
+echo   Config source: %DEPLOY_CONFIG%\
 echo   Local build: Gradle + npm ^(no Docker needed on this PC^)
 if "%BUILD_BACKEND%"=="0" echo   Scope: frontend only
 if "%BUILD_FRONTEND%"=="0" echo   Scope: backend only
@@ -81,8 +97,8 @@ if "%SKIP_BUILD%"=="0" (
 )
 
 echo.
-echo [upload] Uploading configs...
-scp %SSH_OPTS% "NewServerConfig\docker-compose.prod.yml" "NewServerConfig\post-deploy.sh" "NewServerConfig\Caddyfile" "%SSH_TARGET%:%REMOTE_DIR%/"
+echo [upload] Uploading configs from %DEPLOY_CONFIG%...
+scp %SSH_OPTS% "%DEPLOY_CONFIG%\docker-compose.prod.yml" "%DEPLOY_CONFIG%\post-deploy.sh" "%DEPLOY_CONFIG%\Caddyfile" "%SSH_TARGET%:%REMOTE_DIR%/"
 if errorlevel 1 exit /b 1
 
 if exist "NewServerConfig\.env" (
@@ -93,6 +109,22 @@ if exist "NewServerConfig\.env" (
   if errorlevel 1 exit /b 1
 ) else (
   echo [WARN] NewServerConfig\.env not found — server keeps existing .env
+)
+
+if exist "NewServerConfig\firebase-service-account.json" (
+  echo [upload] Firebase service account...
+  call :ScpWithRetry "NewServerConfig\firebase-service-account.json" "%SSH_TARGET%:%REMOTE_DIR%/firebase-service-account.json.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/firebase-service-account.json.part %REMOTE_DIR%/firebase-service-account.json && chmod 600 %REMOTE_DIR%/firebase-service-account.json"
+  if errorlevel 1 exit /b 1
+) else if exist "firebase-service-account.json" (
+  echo [upload] Firebase service account ^(repo root^)...
+  call :ScpWithRetry "firebase-service-account.json" "%SSH_TARGET%:%REMOTE_DIR%/firebase-service-account.json.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/firebase-service-account.json.part %REMOTE_DIR%/firebase-service-account.json && chmod 600 %REMOTE_DIR%/firebase-service-account.json"
+  if errorlevel 1 exit /b 1
+) else (
+  echo [WARN] firebase-service-account.json not found — push notifications may not work until uploaded
 )
 
 echo [upload] Monitor scraper sidecar...
@@ -107,6 +139,16 @@ call :ScpWithRetry ".deploy\scraper.tar.gz" "%SSH_TARGET%:%REMOTE_DIR%/scraper.t
 if errorlevel 1 exit /b 1
 ssh %SSH_OPTS% %SSH_TARGET% "mkdir -p %REMOTE_DIR%/scraper && rm -rf %REMOTE_DIR%/scraper/* && tar -xzf %REMOTE_DIR%/scraper.tar.gz.part -C %REMOTE_DIR%/scraper && mv -f %REMOTE_DIR%/scraper.tar.gz.part %REMOTE_DIR%/scraper.tar.gz && rm -f %REMOTE_DIR%/scraper.tar.gz"
 if errorlevel 1 exit /b 1
+
+if exist "scraper\storage-state.json" (
+  echo [upload] smolyan.bg Cloudflare session ^(storage-state.json^)...
+  call :ScpWithRetry "scraper\storage-state.json" "%SSH_TARGET%:%REMOTE_DIR%/scraper/storage-state.json.part"
+  if errorlevel 1 exit /b 1
+  ssh %SSH_OPTS% %SSH_TARGET% "mv -f %REMOTE_DIR%/scraper/storage-state.json.part %REMOTE_DIR%/scraper/storage-state.json && chmod 600 %REMOTE_DIR%/scraper/storage-state.json"
+  if errorlevel 1 exit /b 1
+) else (
+  echo [WARN] scraper\storage-state.json missing — run setup-session.bat before smolyan.bg scrape works
+)
 
 ssh %SSH_OPTS% %SSH_TARGET% "sed -i 's/\r$//' %REMOTE_DIR%/post-deploy.sh && chmod +x %REMOTE_DIR%/post-deploy.sh && mkdir -p %REMOTE_DIR%/artifacts/frontend && rm -f %REMOTE_DIR%/artifacts/app.jar.part %REMOTE_DIR%/artifacts/frontend.tar.gz.part"
 if errorlevel 1 exit /b 1
@@ -150,6 +192,8 @@ if errorlevel 1 exit /b 1
 
 echo.
 echo Deploy complete: http://%DO_HOST%/
+echo   Monitor: http://%DO_HOST%/monitor
+echo   After first deploy: Admin -^> Monitor -^> Ingestion -^> run SIGMA import (~5 min)
 echo.
 echo Tips for faster deploys:
 echo   deploy.bat --backend-only    ^(Java changes only, ~30s build + upload^)

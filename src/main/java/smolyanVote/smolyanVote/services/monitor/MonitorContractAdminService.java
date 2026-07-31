@@ -36,6 +36,7 @@ public class MonitorContractAdminService {
         int cappedSize = Math.min(Math.max(size, 1), 100);
         Page<MonitorContractEntity> result = contractRepository.search(
                 search == null ? "" : search.trim(),
+                null,
                 PageRequest.of(Math.max(page, 0), cappedSize));
         return result.map(this::toDto);
     }

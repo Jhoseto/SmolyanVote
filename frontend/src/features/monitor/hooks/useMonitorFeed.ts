@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { monitorApi } from "../api";
+import { useMonitorAuthority } from "../components/MonitorAuthorityProvider";
 import type { MonitorFeedItem } from "../types";
 
 export function useMonitorFeed(options?: { type?: string; category?: string }) {
+  const { authority } = useMonitorAuthority();
   const [items, setItems] = useState<MonitorFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     monitorApi
-      .feed({ type: options?.type, category: options?.category, size: 30 })
+      .feed({ type: options?.type, category: options?.category, size: 30 }, authority)
       .then((page) => {
         if (!cancelled) setItems(page.items);
       })
@@ -25,7 +28,7 @@ export function useMonitorFeed(options?: { type?: string; category?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [options?.type, options?.category]);
+  }, [options?.type, options?.category, authority]);
 
   return { items, loading, error };
 }

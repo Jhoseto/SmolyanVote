@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { MonitorCouncilorCard } from "../types";
 
 interface MonitorCouncilorCardsProps {
@@ -7,7 +8,43 @@ interface MonitorCouncilorCardsProps {
   loading?: boolean;
 }
 
+type CouncilorSort = "name-asc" | "name-desc" | "party-asc";
+
 export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorCardsProps) {
+  const [search, setSearch] = useState("");
+  const [party, setParty] = useState("");
+  const [sort, setSort] = useState<CouncilorSort>("name-asc");
+
+  const parties = useMemo(() => {
+    return [...new Set(councilors.map((c) => c.party).filter(Boolean))].sort((a, b) =>
+      (a ?? "").localeCompare(b ?? "", "bg"),
+    ) as string[];
+  }, [councilors]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = councilors.filter((c) => {
+      if (party && c.party !== party) return false;
+      if (q) {
+        const hay = `${c.fullName} ${c.roleLabel ?? ""} ${c.party ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      switch (sort) {
+        case "name-desc":
+          return b.fullName.localeCompare(a.fullName, "bg");
+        case "party-asc":
+          return (a.party ?? "").localeCompare(b.party ?? "", "bg") || a.fullName.localeCompare(b.fullName, "bg");
+        case "name-asc":
+        default:
+          return a.fullName.localeCompare(b.fullName, "bg");
+      }
+    });
+    return list;
+  }, [councilors, search, party, sort]);
+
   if (loading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -20,6 +57,8 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
 
   if (councilors.length === 0) return null;
 
+  const active = search || party || sort !== "name-asc";
+
   return (
     <section className="space-y-4">
       <div>
@@ -28,8 +67,60 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
           Статистики и връзка към декларации по ЗПКОНПИ — без dump на документи.
         </p>
       </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-border-default/30 bg-white/90 p-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Търси съветник…"
+          className="h-9 min-w-[10rem] flex-1 rounded-full border border-border-default/40 px-3 text-[0.82rem] outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
+        />
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as CouncilorSort)}
+          className="h-9 rounded-full border border-border-default/40 px-3 text-[0.78rem] font-medium"
+        >
+          <option value="name-asc">Име (А–Я)</option>
+          <option value="name-desc">Име (Я–А)</option>
+          <option value="party-asc">По партия</option>
+        </select>
+        {parties.length > 0 && (
+          <select
+            value={party}
+            onChange={(e) => setParty(e.target.value)}
+            className="h-9 rounded-full border border-border-default/40 px-3 text-[0.78rem] font-medium"
+          >
+            <option value="">Всички партии</option>
+            {parties.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        )}
+        {active && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setParty("");
+              setSort("name-asc");
+            }}
+            className="text-[0.76rem] font-medium text-primary"
+          >
+            Изчисти
+          </button>
+        )}
+        <span className="w-full text-[0.72rem] text-[color:var(--color-text-muted)]">
+          {filtered.length === councilors.length
+            ? `${councilors.length} съветника`
+            : `${filtered.length} от ${councilors.length} съветника`}
+        </span>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {councilors.map((c) => (
+        {filtered.map((c) => (
           <article
             key={c.id}
             className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4"

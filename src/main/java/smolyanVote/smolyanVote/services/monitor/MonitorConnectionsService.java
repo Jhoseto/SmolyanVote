@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.monitor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,11 @@ public class MonitorConnectionsService {
     private static final int TOP_CONTRACTORS = 12;
 
     private final MonitorContractRepository contractRepository;
+    private final ObjectMapper objectMapper;
 
-    public MonitorConnectionsService(MonitorContractRepository contractRepository) {
+    public MonitorConnectionsService(MonitorContractRepository contractRepository, ObjectMapper objectMapper) {
         this.contractRepository = contractRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -32,6 +35,7 @@ public class MonitorConnectionsService {
         List<MonitorContractEntity> contracts = contractRepository.findAllInScope(scope.authorityFilter());
         Map<String, BigDecimal> contractorTotals = new HashMap<>();
         Map<String, String> contractorLabels = new HashMap<>();
+        Map<String, List<MonitorContractEntity>> contractorContracts = new HashMap<>();
 
         for (MonitorContractEntity c : contracts) {
             if (c.getAmountEur() == null || c.getContractorEik() == null) {
@@ -40,6 +44,7 @@ public class MonitorConnectionsService {
             String id = "co:" + c.getContractorEik();
             contractorLabels.putIfAbsent(id, c.getContractorName() != null ? c.getContractorName() : c.getContractorEik());
             contractorTotals.merge(id, c.getAmountEur(), BigDecimal::add);
+            contractorContracts.computeIfAbsent(id, k -> new ArrayList<>()).add(c);
         }
 
         Set<String> topContractorIds = contractorTotals.entrySet().stream()
@@ -89,12 +94,20 @@ public class MonitorConnectionsService {
                     String label = id.startsWith("auth:")
                             ? authorityLabels.getOrDefault(id, id)
                             : contractorLabels.getOrDefault(id, id);
+                    if (id.startsWith("auth:")) {
+                        return new MonitorConnectionsDTO.ConnectionNodeDTO(
+                                id, label, "authority", total, nodeLinkCounts.getOrDefault(id, 0), 0, null);
+                    }
+                    MonitorFlowHintBuilder.FlowHint hint = MonitorFlowHintBuilder.forContracts(
+                            contractorContracts.getOrDefault(id, List.of()), objectMapper);
                     return new MonitorConnectionsDTO.ConnectionNodeDTO(
                             id,
                             label,
-                            id.startsWith("auth:") ? "authority" : "contractor",
+                            "contractor",
                             total,
-                            nodeLinkCounts.getOrDefault(id, 0));
+                            nodeLinkCounts.getOrDefault(id, 0),
+                            hint.flaggedCount(),
+                            hint.citizenHint());
                 })
                 .sorted(Comparator.comparing(MonitorConnectionsDTO.ConnectionNodeDTO::totalEur).reversed())
                 .toList();
@@ -110,9 +123,10 @@ public class MonitorConnectionsService {
         return new MonitorConnectionsDTO(nodes, links);
     }
 
+    /** A company's ties are shown across the whole oblast — that is the point of the view. */
     @Transactional(readOnly = true)
     public MonitorConnectionsDTO buildCompanyConnections(String contractorEik) {
-        MonitorConnectionsDTO full = buildConnectionsGraph();
+        MonitorConnectionsDTO full = buildConnectionsGraph(MonitorScope.WHOLE_OBLAST);
         String companyId = "co:" + contractorEik.trim();
         List<MonitorConnectionsDTO.ConnectionLinkDTO> links = full.links().stream()
                 .filter(l -> l.source().equals(companyId) || l.target().equals(companyId))

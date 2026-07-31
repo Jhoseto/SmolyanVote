@@ -20,9 +20,16 @@ public class GeminiStartupLogger {
     @PostConstruct
     void logStatus() {
         if (geminiProperties.isConfigured()) {
+            String model = geminiProperties.resolvedModel();
             log.info(
                     "Gemini API ready — model={} (override via GEMINI_MODEL / gemini.api.model)",
-                    geminiProperties.resolvedModel());
+                    model);
+            if (model.contains("flash-lite")) {
+                log.warn(
+                        "Gemini model {} is deprecated for new API keys (404). "
+                                + "Set GEMINI_MODEL=gemini-2.5-flash in .env and restart.",
+                        model);
+            }
         } else {
             log.warn(
                     "Gemini API key missing — set GEMINI_API_KEY in src/main/resources/.env or server .env. "

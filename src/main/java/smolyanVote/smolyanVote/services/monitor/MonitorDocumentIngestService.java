@@ -1,5 +1,6 @@
 package smolyanVote.smolyanVote.services.monitor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import smolyanVote.smolyanVote.models.enums.MonitorDocumentType;
@@ -8,7 +9,10 @@ import smolyanVote.smolyanVote.models.monitor.MonitorDocumentEntity;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorDocumentRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorScrapedDocumentDTO;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -16,12 +20,15 @@ public class MonitorDocumentIngestService {
 
     private final MonitorDocumentRepository documentRepository;
     private final DocumentArchiveService archiveService;
+    private final ObjectMapper objectMapper;
 
     public MonitorDocumentIngestService(
             MonitorDocumentRepository documentRepository,
-            DocumentArchiveService archiveService) {
+            DocumentArchiveService archiveService,
+            ObjectMapper objectMapper) {
         this.documentRepository = documentRepository;
         this.archiveService = archiveService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -51,6 +58,23 @@ public class MonitorDocumentIngestService {
             entity.setPublishedAt(item.publishedAt());
             entity.setFetchedAt(Instant.now());
 
+            if (item.amount() != null) {
+                entity.setAmount(item.amount());
+            }
+            if (item.companyName() != null && !item.companyName().isBlank()) {
+                entity.setCompanyName(item.companyName().trim());
+            }
+            if (item.deadlineDate() != null) {
+                entity.setDeadlineDate(LocalDate.ofInstant(item.deadlineDate(), ZoneId.of("Europe/Sofia")));
+            }
+            if (item.pdfUrls() != null && !item.pdfUrls().isEmpty()) {
+                try {
+                    entity.setPdfUrlsJson(objectMapper.writeValueAsString(item.pdfUrls()));
+                } catch (Exception ignored) {
+                    /* keep prior */
+                }
+            }
+
             String hash = MonitorHashUtil.sha256(item.rawContent() != null ? item.rawContent() : item.title());
             entity.setContentHash(hash);
 
@@ -64,6 +88,8 @@ public class MonitorDocumentIngestService {
                 entity.setShortSummary(null);
                 entity.setAiCategory(null);
                 entity.setImpactScore(null);
+                entity.setAiAnalysis(null);
+                entity.setInsightWhy(null);
                 documentRepository.save(entity);
             }
 

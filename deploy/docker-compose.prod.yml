@@ -1,0 +1,100 @@
+# Production stack — deployed via deploy.bat to REMOTE_DIR (default /opt/smolyanvote/server)
+# Requires .env on the server (DB_PASSWORD, GEMINI_API_KEY, etc.)
+
+services:
+  backend:
+    image: eclipse-temurin:17-jre-jammy
+    working_dir: /app
+    volumes:
+      - ./artifacts/app.jar:/app/app.jar:ro
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    command: ["java", "-jar", "/app/app.jar"]
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Europe/Sofia
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xms256m -Xmx768m}
+      MONITOR_SCRAPER_URL: http://scraper:3099
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      MONITOR_INGESTION_SCHEDULER_ENABLED: ${MONITOR_INGESTION_SCHEDULER_ENABLED:-true}
+      MONITOR_INGESTION_SIGMA_ENABLED: ${MONITOR_INGESTION_SIGMA_ENABLED:-true}
+      MONITOR_INGESTION_EOP_ENABLED: ${MONITOR_INGESTION_EOP_ENABLED:-true}
+      MONITOR_INGESTION_SCRAPE_ENABLED: ${MONITOR_INGESTION_SCRAPE_ENABLED:-true}
+      MONITOR_INGESTION_AI_BATCH_ENABLED: ${MONITOR_INGESTION_AI_BATCH_ENABLED:-true}
+    ports:
+      - "127.0.0.1:2662:2662"
+    depends_on:
+      scraper:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/2662'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  frontend:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    volumes:
+      - ./artifacts/frontend:/app:ro
+    command: ["node", "server.js"]
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      TZ: Europe/Sofia
+      API_INTERNAL_URL: http://backend:2662
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/monitor').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3099"
+      TZ: Europe/Sofia
+      MONITOR_SCRAPER_STORAGE_STATE: /app/storage-state.json
+    volumes:
+      - ./scraper/storage-state.json:/app/storage-state.json:ro
+    ports:
+      - "127.0.0.1:3099:3099"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:3099/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    mem_limit: 1g
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -48,6 +48,14 @@ export const adminMonitorApi = {
   processAiBatch: (limit = 25) =>
     apiClient.post<MonitorJobState>(`/admin/api/monitor/ai/process-batch?limit=${limit}`),
 
+  enrichInsights: () =>
+    apiClient.post<MonitorJobState>("/admin/api/monitor/enrich-insights"),
+
+  generateRegionalReport: (authority?: string) =>
+    apiClient.post<MonitorJobState>(
+      `/admin/api/monitor/ai/regional-report${authority ? `?authority=${encodeURIComponent(authority)}` : ""}`,
+    ),
+
   reprocessDocument: (documentId: number) =>
     apiClient.post<{ status: string }>(`/admin/api/monitor/ai/reprocess/${documentId}`),
 

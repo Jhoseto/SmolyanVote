@@ -15,6 +15,7 @@ public record MonitorDocumentDetailDTO(
         String companyName,
         LocalDate deadlineDate,
         Instant publishedAt,
-        String sourceUrl
-) {
+        String sourceUrl,
+        String aiAnalysis,
+        String insightWhy) {
 }

@@ -47,6 +47,7 @@ public class MonitorService {
     private final MonitorSignalsLinkService signalsLinkService;
     private final MonitorDeepDataService deepDataService;
     private final MonitorAmendmentRepository amendmentRepository;
+    private final MonitorAiAnalysisService aiAnalysisService;
     private final ObjectMapper objectMapper;
 
     public MonitorService(
@@ -59,6 +60,7 @@ public class MonitorService {
             MonitorSignalsLinkService signalsLinkService,
             MonitorDeepDataService deepDataService,
             MonitorAmendmentRepository amendmentRepository,
+            MonitorAiAnalysisService aiAnalysisService,
             ObjectMapper objectMapper) {
         this.contractRepository = contractRepository;
         this.documentRepository = documentRepository;
@@ -69,19 +71,21 @@ public class MonitorService {
         this.signalsLinkService = signalsLinkService;
         this.deepDataService = deepDataService;
         this.amendmentRepository = amendmentRepository;
+        this.aiAnalysisService = aiAnalysisService;
         this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
-    public MonitorOverviewDTO getOverview() {
+    public MonitorOverviewDTO getOverview(MonitorScope scope) {
         LocalDate yearStart = LocalDate.of(LocalDate.now().getYear(), 1, 1);
         LocalDate yearEnd = LocalDate.of(LocalDate.now().getYear(), 12, 31);
-        BigDecimal spentYtd = contractRepository.sumAmountBetween(yearStart, yearEnd);
-        long contracts = contractRepository.count();
-        long flagged = contractRepository.countAnomalies(MonitorRiskService.FLAG_THRESHOLD);
-        long documents = documentRepository.count();
+        String authorityEik = scope.authorityFilter();
+        BigDecimal spentYtd = contractRepository.sumAmountBetween(yearStart, yearEnd, authorityEik);
+        long contracts = contractRepository.countInScope(authorityEik);
+        long flagged = contractRepository.countAnomalies(MonitorRiskService.FLAG_THRESHOLD, authorityEik);
         Instant weekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
-        long newDocs = documentRepository.countByCreatedAfter(weekAgo);
+        long documents = scope.includesScrapedSources() ? documentRepository.count() : 0L;
+        long newDocs = scope.includesScrapedSources() ? documentRepository.countByCreatedAfter(weekAgo) : 0L;
 
         Instant freshness = latest(
                 contractRepository.findLatestFetchedAt(),
@@ -97,44 +101,236 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorPageDTO<MonitorFeedItemDTO> getFeed(String category, String type, int page, int size) {
+    public MonitorPageDTO<MonitorFeedItemDTO> getFeed(
+            String category, String type, int page, int size, String sort, MonitorScope scope) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
+        String authority = scope.authorityFilter();
 
-        List<MonitorFeedItemDTO> combined = new ArrayList<>();
-
-        if (type == null || type.isBlank() || "all".equalsIgnoreCase(type) || "contract".equalsIgnoreCase(type)) {
-            Page<MonitorContractEntity> contracts = contractRepository.findAll(
-                    PageRequest.of(0, 200, org.springframework.data.domain.Sort.by("signedAt").descending()));
-            for (MonitorContractEntity c : contracts) {
-                combined.add(toFeedItem(c));
+        if ("document".equalsIgnoreCase(type)) {
+            if (!scope.includesScrapedSources()) {
+                return MonitorPageDTO.of(List.of(), page, size, 0);
             }
-        }
-
-        if (type == null || type.isBlank() || "all".equalsIgnoreCase(type) || "document".equalsIgnoreCase(type)) {
             Page<MonitorDocumentEntity> docs = documentRepository.findAll(
-                    PageRequest.of(0, 200, org.springframework.data.domain.Sort.by("publishedAt").descending()));
-            for (MonitorDocumentEntity d : docs) {
-                combined.add(toFeedItem(d));
-            }
+                    PageRequest.of(page, size, org.springframework.data.domain.Sort.by("publishedAt").descending()));
+            List<MonitorFeedItemDTO> items = docs.getContent().stream().map(this::toFeedItem).toList();
+            return MonitorPageDTO.of(items, page, size, docs.getTotalElements());
         }
 
-        if (category != null && !category.isBlank() && !"all".equalsIgnoreCase(category)) {
-            combined.removeIf(item -> item.category() == null || !category.equalsIgnoreCase(item.category()));
-        }
+        org.springframework.data.domain.Sort contractSort = "newest".equalsIgnoreCase(sort)
+                ? org.springframework.data.domain.Sort.by("signedAt").descending()
+                : org.springframework.data.domain.Sort.by("riskScore").descending()
+                        .and(org.springframework.data.domain.Sort.by("signedAt").descending());
 
-        combined.sort(Comparator
-                .comparing(MonitorFeedItemDTO::date, Comparator.nullsLast(Comparator.reverseOrder()))
-                .thenComparing(MonitorFeedItemDTO::publishedAt, Comparator.nullsLast(Comparator.reverseOrder())));
-
-        long total = combined.size();
-        int from = Math.min(page * size, combined.size());
-        int to = Math.min(from + size, combined.size());
-        return MonitorPageDTO.of(combined.subList(from, to), page, size, total);
+        Page<MonitorContractEntity> contracts = contractRepository.findAllInScope(
+                authority, PageRequest.of(page, size, contractSort));
+        List<MonitorFeedItemDTO> items = contracts.getContent().stream()
+                .map(this::toFeedItem)
+                .filter(item -> matchesCategory(item, category))
+                .toList();
+        return MonitorPageDTO.of(items, page, size, contracts.getTotalElements());
     }
 
     @Transactional(readOnly = true)
-    public MonitorPageDTO<MonitorFeedItemDTO> search(String q, int page, int size) {
+    public MonitorBriefingDTO getBriefing(MonitorScope scope) {
+        String authority = scope.authorityFilter();
+        LocalDate yearStart = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+        LocalDate yearEnd = LocalDate.of(LocalDate.now().getYear(), 12, 31);
+        BigDecimal spentYtd = contractRepository.sumAmountBetween(yearStart, yearEnd, authority);
+        long flagged = contractRepository.countAnomalies(MonitorRiskService.FLAG_THRESHOLD, authority);
+        BigDecimal flaggedAmount = contractRepository.sumFlaggedAmount(MonitorRiskService.FLAG_THRESHOLD, authority);
+
+        Page<MonitorContractEntity> topFlagged = contractRepository.findAnomalies(
+                MonitorRiskService.FLAG_THRESHOLD,
+                authority,
+                PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("riskScore").descending()
+                        .and(org.springframework.data.domain.Sort.by("signedAt").descending())));
+
+        List<MonitorFeedItemDTO> topConcerns = topFlagged.getContent().stream().map(this::toFeedItem).toList();
+
+        Map<String, ThemeAccumulator> themeMap = new LinkedHashMap<>();
+        Page<MonitorContractEntity> flaggedPage = contractRepository.findAnomalies(
+                MonitorRiskService.FLAG_THRESHOLD, authority, PageRequest.of(0, 400));
+        for (MonitorContractEntity c : flaggedPage.getContent()) {
+            MonitorInsightBuilder.ContractInsight insight = MonitorInsightBuilder.build(c, objectMapper);
+            String code = insight.concernType() != null ? insight.concernType() : "OTHER";
+            themeMap.computeIfAbsent(code, ThemeAccumulator::new)
+                    .add(c.getAmountEur());
+        }
+
+        List<MonitorBriefingThemeDTO> themes = themeMap.values().stream()
+                .sorted((a, b) -> Long.compare(b.count, a.count))
+                .limit(5)
+                .map(t -> new MonitorBriefingThemeDTO(
+                        t.code,
+                        MonitorInsightBuilder.concernLabel(t.code),
+                        t.count,
+                        t.amount,
+                        themeExplanation(t.code)))
+                .toList();
+
+        String headline = flagged > 0
+                ? flagged + " поръчки с рискови сигнали в областта"
+                : "Преглед на общинските разходи в област Смолян";
+
+        String narrative = buildBriefingNarrative(
+                flagged, flaggedAmount, spentYtd, themes, scope);
+
+        MonitorAiReportDTO aiReport = aiAnalysisService.loadLatestReport(scope);
+        if (aiReport.aiGenerated() && aiReport.executiveSummary() != null) {
+            narrative = aiReport.executiveSummary();
+        }
+
+        List<MonitorBriefingChartPointDTO> riskChart = themes.stream()
+                .map(t -> new MonitorBriefingChartPointDTO(
+                        t.label(),
+                        t.count(),
+                        t.amountEur(),
+                        themeColor(t.code())))
+                .toList();
+
+        List<MonitorBriefingChartPointDTO> councilChart = buildCouncilChart();
+
+        List<MonitorFeedItemDTO> recentDocuments = documentRepository
+                .findByImpactDesc(PageRequest.of(0, 6))
+                .getContent()
+                .stream()
+                .map(this::toFeedItem)
+                .toList();
+
+        return new MonitorBriefingDTO(
+                headline,
+                narrative,
+                flagged,
+                flaggedAmount != null ? flaggedAmount : BigDecimal.ZERO,
+                spentYtd != null ? spentYtd : BigDecimal.ZERO,
+                themes,
+                topConcerns,
+                aiReport,
+                riskChart,
+                councilChart,
+                recentDocuments);
+    }
+
+    private List<MonitorBriefingChartPointDTO> buildCouncilChart() {
+        List<MonitorBriefingChartPointDTO> points = new ArrayList<>();
+        for (MonitorDocumentType type : List.of(
+                MonitorDocumentType.COUNCIL_DECISION,
+                MonitorDocumentType.COUNCIL_PROTOCOL,
+                MonitorDocumentType.COUNCIL_AGENDA,
+                MonitorDocumentType.PUBLIC_CONSULTATION)) {
+            long count = documentRepository.countByDocumentType(type);
+            if (count > 0) {
+                points.add(new MonitorBriefingChartPointDTO(
+                        councilTypeLabel(type),
+                        count,
+                        null,
+                        councilTypeColor(type)));
+            }
+        }
+        return points;
+    }
+
+    private static String themeColor(String code) {
+        return switch (code != null ? code : "OTHER") {
+            case "LOW_COMPETITION" -> "#dc2626";
+            case "OVERPRICE" -> "#ea580c";
+            case "FRAGMENTATION" -> "#ca8a04";
+            case "GOVERNANCE" -> "#7c3aed";
+            default -> "#64748b";
+        };
+    }
+
+    private static String councilTypeColor(MonitorDocumentType type) {
+        return switch (type) {
+            case COUNCIL_DECISION -> "#2563eb";
+            case COUNCIL_PROTOCOL -> "#0891b2";
+            case COUNCIL_AGENDA -> "#059669";
+            case PUBLIC_CONSULTATION -> "#d97706";
+            default -> "#94a3b8";
+        };
+    }
+
+    private static String buildBriefingNarrative(
+            long flagged,
+            BigDecimal flaggedAmount,
+            BigDecimal spentYtd,
+            List<MonitorBriefingThemeDTO> themes,
+            MonitorScope scope) {
+        if (flagged == 0) {
+            return scope.authorityFilter() != null
+                    ? "За избраната община няма активирани рискови индикатори над прага. "
+                            + "Прегледайте поръчките по дата или сменете общината."
+                    : "Системата следи " + (spentYtd != null ? formatMillions(spentYtd) : "разходите")
+                            + " YTD. Засега няма поръчки над прага на внимание — "
+                            + "фокусирайте се върху най-големите договори в таб Поръчки.";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("От ").append(formatMillions(spentYtd != null ? spentYtd : BigDecimal.ZERO))
+                .append(" похарчени тази година, ")
+                .append(formatMillions(flaggedAmount != null ? flaggedAmount : BigDecimal.ZERO))
+                .append(" са в поръчки с рискови индикатори (слаба конкуренция, раздробяване, ръст от анекси и др.). ");
+        if (!themes.isEmpty()) {
+            MonitorBriefingThemeDTO top = themes.get(0);
+            sb.append("Най-често: ").append(top.label().toLowerCase())
+                    .append(" (").append(top.count()).append(" случая). ");
+        }
+        sb.append("Това не е обвинение — показваме факти и индикатори, за да решите къде да копаете по-дълбоко.");
+        return sb.toString();
+    }
+
+    private static String themeExplanation(String code) {
+        return switch (code) {
+            case "SINGLE_BID", "LARGE_SINGLE_BID" -> "Парите отиват при един изпълнител без реална конкуренция.";
+            case "FRAGMENTATION" -> "Много малки поръчки към една фирма — възможен обход на по-строги процедури.";
+            case "ABOVE_TYPICAL" -> "Стойности далеч над медианата за същия сектор в региона.";
+            case "AMENDMENT_GROWTH" -> "Договорите нарастват след подписване — следете анексите.";
+            case "REPEAT_WINNER" -> "Едни и същи фирми доминират в сектор — концентрация на пари.";
+            default -> "Комбинация от правила за прозрачност и конкуренция.";
+        };
+    }
+
+    private static String formatMillions(BigDecimal eur) {
+        if (eur == null || eur.signum() == 0) {
+            return "0 €";
+        }
+        if (eur.compareTo(new BigDecimal("1000000")) >= 0) {
+            return eur.divide(new BigDecimal("1000000"), 1, RoundingMode.HALF_UP) + " млн €";
+        }
+        return eur.setScale(0, RoundingMode.HALF_UP) + " €";
+    }
+
+    private static boolean matchesCategory(MonitorFeedItemDTO item, String category) {
+        if (category == null || category.isBlank() || "all".equalsIgnoreCase(category)) {
+            return true;
+        }
+        return item.category() != null && category.equalsIgnoreCase(item.category());
+    }
+
+    private static final class ThemeAccumulator {
+        final String code;
+        long count;
+        BigDecimal amount = BigDecimal.ZERO;
+
+        ThemeAccumulator(String code) {
+            this.code = code;
+        }
+
+        void add(BigDecimal eur) {
+            count++;
+            if (eur != null) {
+                amount = amount.add(eur);
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public MonitorPageDTO<MonitorFeedItemDTO> getFeed(String category, String type, int page, int size, MonitorScope scope) {
+        return getFeed(category, type, page, size, "risk", scope);
+    }
+
+    @Transactional(readOnly = true)
+    public MonitorPageDTO<MonitorFeedItemDTO> search(String q, int page, int size, MonitorScope scope) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
         if (q == null || q.isBlank()) {
@@ -142,11 +338,14 @@ public class MonitorService {
         }
 
         List<MonitorFeedItemDTO> combined = new ArrayList<>();
-        Page<MonitorContractEntity> contracts = contractRepository.search(q, PageRequest.of(0, 100));
+        Page<MonitorContractEntity> contracts = contractRepository.search(
+                q, scope.authorityFilter(), PageRequest.of(0, 100));
         combined.addAll(contracts.getContent().stream().map(this::toFeedItem).toList());
 
-        Page<MonitorDocumentEntity> docs = documentRepository.search(q, PageRequest.of(0, 100));
-        combined.addAll(docs.getContent().stream().map(this::toFeedItem).toList());
+        if (scope.includesScrapedSources()) {
+            Page<MonitorDocumentEntity> docs = documentRepository.search(q, PageRequest.of(0, 100));
+            combined.addAll(docs.getContent().stream().map(this::toFeedItem).toList());
+        }
 
         combined.sort(Comparator
                 .comparing((MonitorFeedItemDTO i) -> i.date(), Comparator.nullsLast(Comparator.reverseOrder()))
@@ -159,21 +358,21 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public List<MonitorSearchSuggestionDTO> searchSuggest(String q, int limit) {
+    public List<MonitorSearchSuggestionDTO> searchSuggest(String q, int limit, MonitorScope scope) {
         if (q == null || q.isBlank()) {
             return List.of();
         }
         int capped = Math.min(Math.max(limit, 1), 12);
         List<MonitorSearchSuggestionDTO> out = new ArrayList<>();
 
-        contractRepository.search(q, PageRequest.of(0, capped)).getContent().forEach(c -> out.add(
+        contractRepository.search(q, scope.authorityFilter(), PageRequest.of(0, capped)).getContent().forEach(c -> out.add(
                 new MonitorSearchSuggestionDTO(
                         String.valueOf(c.getId()),
                         "contract",
                         truncate(c.getSubject(), 80),
                         c.getContractorName())));
 
-        if (out.size() < capped) {
+        if (out.size() < capped && scope.includesScrapedSources()) {
             documentRepository.search(q, PageRequest.of(0, capped - out.size())).getContent().forEach(d -> out.add(
                     new MonitorSearchSuggestionDTO(
                             String.valueOf(d.getId()),
@@ -185,42 +384,33 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public List<MonitorFeedItemDTO> getWeeklyHighlights() {
-        Instant weekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
-        LocalDate weekStart = LocalDate.now().minusDays(7);
+    public List<MonitorFeedItemDTO> getWeeklyHighlights(MonitorScope scope) {
+        Page<MonitorContractEntity> flagged = contractRepository.findAnomalies(
+                MonitorRiskService.FLAG_THRESHOLD,
+                scope.authorityFilter(),
+                PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("riskScore").descending()
+                        .and(org.springframework.data.domain.Sort.by("signedAt").descending())));
+        List<MonitorFeedItemDTO> items = new ArrayList<>(flagged.getContent().stream().map(this::toFeedItem).toList());
 
-        List<ScoredItem> scored = new ArrayList<>();
-
-        for (MonitorContractEntity c : contractRepository.findAll()) {
-            if (c.getSignedAt() == null || c.getSignedAt().isBefore(weekStart)) {
-                continue;
+        if (items.size() < 5 && scope.includesScrapedSources()) {
+            Instant weekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+            for (MonitorDocumentEntity d : documentRepository.findAll()) {
+                Instant published = d.getPublishedAt();
+                if (published != null && !published.isBefore(weekAgo)) {
+                    items.add(toFeedItem(d));
+                    if (items.size() >= 5) {
+                        break;
+                    }
+                }
             }
-            int impact = (c.getRiskScore() != null ? c.getRiskScore() : 0) * 2;
-            if (c.getAmountEur() != null) {
-                impact += Math.min(50, c.getAmountEur().divide(new BigDecimal("10000"), 0, RoundingMode.HALF_UP).intValue());
-            }
-            scored.add(new ScoredItem(toFeedItem(c), impact));
         }
-
-        for (MonitorDocumentEntity d : documentRepository.findAll()) {
-            Instant published = d.getPublishedAt();
-            if (published == null || published.isBefore(weekAgo)) {
-                continue;
-            }
-            int impact = d.getImpactScore() != null ? d.getImpactScore() * 10 : 5;
-            scored.add(new ScoredItem(toFeedItem(d), impact));
-        }
-
-        return scored.stream()
-                .sorted(Comparator.comparingInt(ScoredItem::score).reversed())
-                .limit(5)
-                .map(ScoredItem::item)
-                .toList();
+        return items.stream().limit(5).toList();
     }
 
     @Transactional(readOnly = true)
-    public MonitorProcurementStatsDTO getProcurementStats() {
-        List<MonitorProcurementStatsDTO.ChartPointDTO> monthly = contractRepository.monthlySpend().stream()
+    public MonitorProcurementStatsDTO getProcurementStats(MonitorScope scope) {
+        String authorityEik = scope.authorityFilter();
+        List<MonitorProcurementStatsDTO.ChartPointDTO> monthly = contractRepository.monthlySpend(authorityEik).stream()
                 .map(row -> new MonitorProcurementStatsDTO.ChartPointDTO(
                         ((Number) row[0]).intValue(),
                         ((Number) row[1]).intValue(),
@@ -228,14 +418,14 @@ public class MonitorService {
                         ((Number) row[3]).longValue()))
                 .toList();
 
-        List<MonitorProcurementStatsDTO.SectorSpendDTO> sectors = contractRepository.spendBySector().stream()
+        List<MonitorProcurementStatsDTO.SectorSpendDTO> sectors = contractRepository.spendBySector(authorityEik).stream()
                 .map(row -> new MonitorProcurementStatsDTO.SectorSpendDTO(
                         (String) row[0],
                         (BigDecimal) row[1],
                         ((Number) row[2]).longValue()))
                 .toList();
 
-        List<MonitorProcurementStatsDTO.YearlySpendDTO> yearly = contractRepository.yearlySpend().stream()
+        List<MonitorProcurementStatsDTO.YearlySpendDTO> yearly = contractRepository.yearlySpend(authorityEik).stream()
                 .map(row -> new MonitorProcurementStatsDTO.YearlySpendDTO(
                         ((Number) row[0]).intValue(),
                         (BigDecimal) row[1],
@@ -243,7 +433,7 @@ public class MonitorService {
                 .toList();
 
         List<MonitorProcurementStatsDTO.TopCompanyDTO> top = contractRepository
-                .topContractors(PageRequest.of(0, 20)).stream()
+                .topContractors(authorityEik, PageRequest.of(0, 20)).stream()
                 .map(row -> new MonitorProcurementStatsDTO.TopCompanyDTO(
                         (String) row[0],
                         (String) row[1],
@@ -255,24 +445,25 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorPageDTO<MonitorFeedItemDTO> getAnomalies(int page, int size) {
+    public MonitorPageDTO<MonitorFeedItemDTO> getAnomalies(int page, int size, MonitorScope scope) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
         Page<MonitorContractEntity> anomalies = contractRepository.findAnomalies(
-                MonitorRiskService.FLAG_THRESHOLD, PageRequest.of(page, size));
+                MonitorRiskService.FLAG_THRESHOLD, scope.authorityFilter(), PageRequest.of(page, size));
         List<MonitorFeedItemDTO> items = anomalies.getContent().stream().map(this::toFeedItem).toList();
         return MonitorPageDTO.of(items, page, size, anomalies.getTotalElements());
     }
 
     @Transactional(readOnly = true)
-    public MonitorFlowsDTO getFlows() {
-        List<MonitorContractEntity> contracts = contractRepository.findAll();
+    public MonitorFlowsDTO getFlows(MonitorScope scope) {
+        List<MonitorContractEntity> contracts = contractRepository.findAllInScope(scope.authorityFilter());
         Map<String, BigDecimal> authorityTotals = new HashMap<>();
         Map<String, String> authorityLabels = new HashMap<>();
         Map<String, BigDecimal> contractorTotals = new HashMap<>();
         Map<String, String> contractorLabels = new HashMap<>();
         Map<String, Long> linkCounts = new HashMap<>();
         Map<String, BigDecimal> linkValues = new HashMap<>();
+        Map<String, List<MonitorContractEntity>> linkContracts = new HashMap<>();
 
         for (MonitorContractEntity c : contracts) {
             if (c.getAmountEur() == null) {
@@ -290,6 +481,7 @@ public class MonitorService {
             String linkKey = authId + "->" + contractorId;
             linkCounts.merge(linkKey, 1L, Long::sum);
             linkValues.merge(linkKey, c.getAmountEur(), BigDecimal::add);
+            linkContracts.computeIfAbsent(linkKey, k -> new ArrayList<>()).add(c);
         }
 
         Set<String> nodeIds = new HashSet<>();
@@ -306,8 +498,27 @@ public class MonitorService {
         List<MonitorFlowsDTO.FlowLinkDTO> links = linkValues.entrySet().stream()
                 .map(e -> {
                     String[] parts = e.getKey().split("->");
+                    String authId = parts[0];
+                    List<MonitorContractEntity> grouped = linkContracts.getOrDefault(e.getKey(), List.of());
+                    MonitorFlowHintBuilder.FlowHint hint = MonitorFlowHintBuilder.forLinkContracts(
+                            grouped,
+                            e.getValue(),
+                            authorityTotals.get(authId),
+                            objectMapper);
+                    MonitorSubcontractorHelper.LinkSubcontractSummary sub =
+                            MonitorSubcontractorHelper.summarizeLink(grouped);
                     return new MonitorFlowsDTO.FlowLinkDTO(
-                            parts[0], parts[1], e.getValue(), linkCounts.getOrDefault(e.getKey(), 0L));
+                            parts[0],
+                            parts[1],
+                            e.getValue(),
+                            linkCounts.getOrDefault(e.getKey(), 0L),
+                            hint.flaggedCount(),
+                            hint.concernLabel(),
+                            hint.citizenHint(),
+                            sub.contractsWithSubcontractor(),
+                            sub.subcontractorName(),
+                            sub.subcontractorEik(),
+                            sub.subcontractingTotalEur());
                 })
                 .toList();
 
@@ -322,13 +533,23 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorConnectionsDTO getConnections() {
-        return connectionsService.buildConnectionsGraph();
+    public MonitorConnectionsDTO getConnections(MonitorScope scope) {
+        return connectionsService.buildConnectionsGraph(scope);
     }
 
     @Transactional(readOnly = true)
     public MonitorConnectionsDTO getCompanyConnections(String eik) {
         return connectionsService.buildCompanyConnections(eik);
+    }
+
+    /** Options for the municipality filter, in the order the region is usually listed. */
+    public List<MonitorMunicipalityDTO> getMunicipalities() {
+        return MonitorRegionalConfig.AUTHORITY_LABELS.entrySet().stream()
+                .map(entry -> new MonitorMunicipalityDTO(
+                        entry.getKey(),
+                        entry.getValue(),
+                        MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(entry.getKey())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -357,7 +578,10 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorCouncilStatsDTO getCouncilStats() {
+    public MonitorCouncilStatsDTO getCouncilStats(MonitorScope scope) {
+        if (!scope.includesScrapedSources()) {
+            return new MonitorCouncilStatsDTO(0L, List.of());
+        }
         List<MonitorCouncilStatsDTO.CouncilTypeCardDTO> cards = new ArrayList<>();
         for (MonitorDocumentType type : List.of(
                 MonitorDocumentType.COUNCIL_DECISION,
@@ -385,18 +609,18 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorBudgetDTO getBudget() {
-        return deepDataService.getSmolyanBudget();
+    public MonitorBudgetDTO getBudget(MonitorScope scope) {
+        return deepDataService.getBudget(scope);
     }
 
     @Transactional(readOnly = true)
-    public MonitorEuFundsDTO getEuFunds() {
-        return deepDataService.getEuFunds();
+    public MonitorEuFundsDTO getEuFunds(MonitorScope scope) {
+        return deepDataService.getEuFunds(scope);
     }
 
     @Transactional(readOnly = true)
-    public List<MonitorCouncilorCardDTO> getCouncilors() {
-        return deepDataService.getCouncilors();
+    public List<MonitorCouncilorCardDTO> getCouncilors(MonitorScope scope) {
+        return deepDataService.getCouncilors(scope);
     }
 
     @Transactional(readOnly = true)
@@ -407,16 +631,22 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public List<MonitorFeedItemDTO> getDeadlines() {
+    public List<MonitorFeedItemDTO> getDeadlines(MonitorScope scope) {
+        if (!scope.includesScrapedSources()) {
+            return List.of();
+        }
         return documentRepository.findUpcomingDeadlines(LocalDate.now(), PageRequest.of(0, 20)).stream()
                 .map(this::toFeedItem)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public MonitorPageDTO<MonitorFeedItemDTO> getCouncilDocuments(int page, int size) {
+    public MonitorPageDTO<MonitorFeedItemDTO> getCouncilDocuments(int page, int size, MonitorScope scope) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
+        if (!scope.includesScrapedSources()) {
+            return MonitorPageDTO.of(List.of(), page, size, 0);
+        }
         List<MonitorDocumentType> types = List.of(
                 MonitorDocumentType.COUNCIL_DECISION,
                 MonitorDocumentType.COUNCIL_PROTOCOL,
@@ -427,9 +657,12 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorPageDTO<MonitorFeedItemDTO> getConsultations(int page, int size) {
+    public MonitorPageDTO<MonitorFeedItemDTO> getConsultations(int page, int size, MonitorScope scope) {
         page = Math.max(0, page);
         size = Math.min(Math.max(1, size), 50);
+        if (!scope.includesScrapedSources()) {
+            return MonitorPageDTO.of(List.of(), page, size, 0);
+        }
         Page<MonitorDocumentEntity> docs = documentRepository.findByTypes(
                 List.of(MonitorDocumentType.PUBLIC_CONSULTATION), PageRequest.of(page, size));
         List<MonitorFeedItemDTO> items = docs.getContent().stream().map(this::toFeedItem).toList();
@@ -437,8 +670,8 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorCompetitionDTO getCompetition() {
-        return competitionService.computeRegionalCompetition();
+    public MonitorCompetitionDTO getCompetition(MonitorScope scope) {
+        return competitionService.computeRegionalCompetition(scope);
     }
 
     @Transactional(readOnly = true)
@@ -450,6 +683,13 @@ public class MonitorService {
                 .stream()
                 .map(this::toFeedItem)
                 .toList();
+        long subRoleCount = contractRepository.countBySubcontractorEik(eik.trim());
+        BigDecimal subRoleTotal = contractRepository.sumSubcontractingAmountBySubcontractorEik(eik.trim());
+        List<MonitorFeedItemDTO> subRoles = contractRepository
+                .findBySubcontractorEikOrderBySignedAtDesc(eik.trim(), PageRequest.of(0, 10))
+                .stream()
+                .map(this::toSubcontractorFeedItem)
+                .toList();
         return new MonitorCompanyDetailDTO(
                 company.getEik(),
                 company.getName(),
@@ -457,6 +697,9 @@ public class MonitorService {
                 company.getContractCount() != null ? company.getContractCount() : 0,
                 company.getCompositeRiskScore(),
                 recent,
+                (int) subRoleCount,
+                subRoleTotal != null && subRoleTotal.signum() > 0 ? subRoleTotal : null,
+                subRoles,
                 company.getLegalForm(),
                 company.getRegisteredAddress(),
                 company.getManagersSummary(),
@@ -465,7 +708,10 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public List<MonitorFeedItemDTO> getCouncilTimeline() {
+    public List<MonitorFeedItemDTO> getCouncilTimeline(MonitorScope scope) {
+        if (!scope.includesScrapedSources()) {
+            return List.of();
+        }
         List<MonitorDocumentType> types = List.of(
                 MonitorDocumentType.COUNCIL_DECISION,
                 MonitorDocumentType.COUNCIL_PROTOCOL,
@@ -503,33 +749,73 @@ public class MonitorService {
     }
 
     private MonitorFeedItemDTO toFeedItem(MonitorContractEntity c) {
+        MonitorInsightBuilder.ContractInsight insight = MonitorInsightBuilder.build(c, objectMapper);
         return new MonitorFeedItemDTO(
                 String.valueOf(c.getId()),
                 "contract",
-                truncate(c.getSubject(), 120),
-                c.getShortSummary(),
-                c.getAiCategory() != null ? c.getAiCategory() : mapSectorLabel(c.getSectorCode()),
+                insight.headline(),
+                insight.whyItMatters(),
+                insight.category(),
                 c.getRiskScore(),
                 parseRiskFlags(c.getRiskFlagsJson()),
                 c.getAmountEur(),
                 c.getSignedAt(),
-                c.getSourceUrl(),
-                c.getFetchedAt());
+                null,
+                c.getFetchedAt(),
+                truncate(c.getSubject(), 200),
+                insight.concernType());
+    }
+
+    /** Feed row when the company appears as a declared subcontractor (EOP). */
+    private MonitorFeedItemDTO toSubcontractorFeedItem(MonitorContractEntity c) {
+        String main = c.getContractorName() != null ? c.getContractorName().trim() : "изпълнител";
+        String authority = c.getAuthorityName() != null ? c.getAuthorityName().trim() : "община";
+        String amount = c.getSubcontractingAmountEur() != null
+                ? formatEurShort(c.getSubcontractingAmountEur())
+                : formatEurShort(c.getAmountEur());
+        String headline = "Подизпълнител при " + main + " — " + amount;
+        String why = authority + " → " + main + ". Деклариран подизпълнител по данни от EOP"
+                + (c.getSubcontractingPercent() != null ? " (" + c.getSubcontractingPercent().stripTrailingZeros().toPlainString() + "%)." : ".");
+        return new MonitorFeedItemDTO(
+                String.valueOf(c.getId()),
+                "contract",
+                headline,
+                why,
+                "Подизпълнител",
+                c.getRiskScore(),
+                parseRiskFlags(c.getRiskFlagsJson()),
+                c.getSubcontractingAmountEur() != null ? c.getSubcontractingAmountEur() : c.getAmountEur(),
+                c.getSignedAt(),
+                null,
+                c.getFetchedAt(),
+                truncate(c.getSubject(), 200),
+                "SUBCONTRACTOR");
+    }
+
+    private static String formatEurShort(BigDecimal amount) {
+        if (amount == null) {
+            return "—";
+        }
+        return amount.setScale(0, RoundingMode.HALF_UP) + " €";
     }
 
     private MonitorFeedItemDTO toFeedItem(MonitorDocumentEntity d) {
         return new MonitorFeedItemDTO(
                 String.valueOf(d.getId()),
                 "document",
-                truncate(d.getTitle(), 120),
-                d.getShortSummary(),
+                d.getShortSummary() != null && !d.getShortSummary().isBlank()
+                        ? truncate(d.getShortSummary(), 120)
+                        : truncate(d.getTitle(), 120),
+                d.getInsightWhy() != null ? d.getInsightWhy() : d.getShortSummary(),
                 d.getAiCategory() != null ? d.getAiCategory() : d.getDocumentType().name(),
                 null,
                 List.of(),
                 d.getAmount(),
                 d.getDeadlineDate(),
                 d.getSourceUrl(),
-                d.getPublishedAt());
+                d.getPublishedAt(),
+                truncate(d.getTitle(), 200),
+                null);
     }
 
     private MonitorContractDetailDTO toContractDetail(MonitorContractEntity c) {
@@ -538,14 +824,23 @@ public class MonitorService {
                 .stream()
                 .map(this::toAmendmentDto)
                 .toList();
+        MonitorInsightBuilder.ContractInsight insight = MonitorInsightBuilder.build(c, objectMapper);
         return new MonitorContractDetailDTO(
                 c.getId(),
                 c.getSigmaId(),
+                c.getUnp(),
                 c.getSubject(),
                 c.getShortSummary(),
                 c.getAuthorityName(),
+                c.getAuthorityEik(),
                 c.getContractorName(),
                 c.getContractorEik(),
+                c.getContractorKind(),
+                MonitorSubcontractorHelper.hasDeclaredSubcontractor(c),
+                c.getSubcontractorName(),
+                c.getSubcontractorEik(),
+                c.getSubcontractingPercent(),
+                c.getSubcontractingAmountEur(),
                 c.getSectorCode(),
                 c.getProcedureType(),
                 c.getSignedAt(),
@@ -557,11 +852,25 @@ public class MonitorService {
                 c.getBidsReceived(),
                 c.getRiskScore(),
                 parseRiskFlags(c.getRiskFlagsJson()),
-                c.getSourceUrl(),
+                c.getAiCategory(),
+                c.getImpactScore(),
                 c.getRegionScope().name(),
+                resolveDataSource(c.getSigmaId()),
+                c.getFetchedAt(),
                 relatedSignals.size(),
                 relatedSignals,
-                amendments);
+                amendments,
+                insight.headline(),
+                c.getInsightWhy() != null ? c.getInsightWhy() : insight.whyItMatters(),
+                insight.concernType(),
+                c.getAiAnalysis());
+    }
+
+    private static String resolveDataSource(String sigmaId) {
+        if (sigmaId != null && sigmaId.startsWith("eop:")) {
+            return "EOP";
+        }
+        return "SIGMA";
     }
 
     private MonitorAmendmentDTO toAmendmentDto(MonitorAmendmentEntity a) {
@@ -588,7 +897,9 @@ public class MonitorService {
                 d.getCompanyName(),
                 d.getDeadlineDate(),
                 d.getPublishedAt(),
-                d.getSourceUrl());
+                d.getSourceUrl(),
+                d.getAiAnalysis(),
+                d.getInsightWhy());
     }
 
     private List<RiskBadgeDTO> parseRiskFlags(String json) {

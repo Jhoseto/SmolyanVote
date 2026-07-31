@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.services.monitor;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
 
 /**
  * Planned municipal budget lines for Община Смолян (indicative, from публични бюджетни данни).
@@ -10,7 +11,12 @@ import java.util.Map;
  */
 public final class MonitorBudgetConfig {
 
-    public static final int BUDGET_YEAR = 2026;
+    /** Defaults and admin UI — runtime year follows the calendar. */
+    public static final int BUDGET_YEAR = LocalDate.now().getYear();
+
+    public static int budgetYear() {
+        return LocalDate.now().getYear();
+    }
 
     public static final List<BudgetLine> PLANNED_LINES = List.of(
             new BudgetLine("infrastructure", "Инфраструктура и строителство", new BigDecimal("8500000"), "45"),
