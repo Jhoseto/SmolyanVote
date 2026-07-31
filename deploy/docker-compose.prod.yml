@@ -25,7 +25,7 @@ services:
       - "127.0.0.1:2662:2662"
     depends_on:
       scraper:
-        condition: service_healthy
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/2662'"]
@@ -72,11 +72,11 @@ services:
       - "127.0.0.1:3099:3099"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:3099/health || exit 1"]
-      interval: 30s
+      test: ["CMD", "node", "healthcheck.mjs"]
+      interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 45s
+      retries: 8
+      start_period: 30s
     mem_limit: 1g
 
   caddy:

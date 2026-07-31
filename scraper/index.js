@@ -198,7 +198,7 @@ function startServer() {
     res.end("Not found");
   });
 
-  server.listen(PORT, () => {
+  server.listen(PORT, "0.0.0.0", () => {
     console.log(`[monitor-scraper] Listening on http://localhost:${PORT}`);
     console.log(
       "[monitor-scraper] GET /health  GET /session-status  POST /discover  POST /scrape?maxPerSection=80",
@@ -206,4 +206,7 @@ function startServer() {
   });
 }
 
-runCli();
+runCli().catch((err) => {
+  console.error("[monitor-scraper] Fatal startup:", err);
+  process.exit(1);
+});

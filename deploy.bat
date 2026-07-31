@@ -130,9 +130,11 @@ if exist "NewServerConfig\firebase-service-account.json" (
 echo [upload] Monitor scraper sidecar...
 if not exist ".deploy" mkdir ".deploy"
 if exist ".deploy\scraper.tar.gz" del /f /q ".deploy\scraper.tar.gz"
-tar -czf ".deploy\scraper.tar.gz" -C scraper --exclude=node_modules .
+rem .chrome-profile is local dev Chrome (locked cache.db) — never deploy; prod uses storage-state.json
+tar -czf ".deploy\scraper.tar.gz" -C scraper --exclude=node_modules --exclude=.chrome-profile --exclude=test-results --exclude=playwright-report .
 if errorlevel 1 (
   echo [ERROR] Failed to create scraper archive
+  echo        Close Chrome from setup-session.bat if .chrome-profile is locked, then retry.
   exit /b 1
 )
 call :ScpWithRetry ".deploy\scraper.tar.gz" "%SSH_TARGET%:%REMOTE_DIR%/scraper.tar.gz.part"
