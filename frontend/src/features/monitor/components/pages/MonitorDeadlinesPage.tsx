@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
 import { MonitorMobileShell } from "../MonitorMobileShell";
@@ -32,11 +31,14 @@ export function MonitorDeadlinesPage() {
   }, [authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Срокове">
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="Срокове"
+      contentLoading={loading && hasScrapedDocuments}
+    >
       {!hasScrapedDocuments ? (
         <EmptyStateNoScrape label={label} />
-      ) : loading ? (
-        <LogoLoader label="Зареждане…" />
       ) : (
         <MonitorFilteredFeedGrid
           items={items}

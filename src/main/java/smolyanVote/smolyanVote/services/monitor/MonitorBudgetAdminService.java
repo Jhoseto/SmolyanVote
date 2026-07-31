@@ -145,8 +145,11 @@ public class MonitorBudgetAdminService {
         Map<String, BigDecimal> executedByCategory = new HashMap<>();
         contractRepository.findAll().stream()
                 .filter(c -> MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(c.getAuthorityEik()))
-                .filter(c -> c.getSignedAt() != null && !c.getSignedAt().isBefore(from) && !c.getSignedAt().isAfter(to))
-                .filter(c -> c.getAmountEur() != null)
+                .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
+                .filter(c -> {
+                    LocalDate signed = MonitorContractDates.effectiveSignedDate(c);
+                    return signed != null && !signed.isBefore(from) && !signed.isAfter(to);
+                })
                 .forEach(c -> {
                     String category = mapCpvToCategory(c.getSectorCode());
                     executedByCategory.merge(category, c.getAmountEur(), BigDecimal::add);

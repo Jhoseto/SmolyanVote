@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { EmptyState, LogoLoader } from "@/shared/ui";
+import { EmptyState } from "@/shared/ui";
 import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import { monitorApi } from "../../api";
 import { MonitorBriefingPanel } from "../MonitorBriefingPanel";
@@ -55,13 +55,22 @@ export function MonitorHomePage() {
   }, [authority, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const isInitialLoad = loading && briefing === null;
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading}>
+    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} contentLoading={isInitialLoad}>
       <MonitorSearchBar className="max-w-xl" />
-      <MonitorBriefingPanel briefing={briefing} loading={loading && !briefing} />
+      <MonitorBriefingPanel briefing={briefing} loading={false} />
 
-      <section className="mt-8 space-y-4">
+      <section className="relative mt-8 space-y-4">
+        {loading && !isInitialLoad && (
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center rounded-[var(--radius-lg)] bg-white/75 backdrop-blur-[1px]"
+            aria-busy="true"
+          >
+            <span className="text-[0.85rem] font-medium text-[color:var(--color-text-muted)]">Зареждане…</span>
+          </div>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-[1.1rem] font-semibold text-[color:var(--color-text-heading)]">
@@ -79,9 +88,7 @@ export function MonitorHomePage() {
           </Link>
         </div>
 
-        {loading ? (
-          <LogoLoader label="Зареждане…" />
-        ) : items.length === 0 ? (
+        {items.length === 0 ? (
           <EmptyState
             icon="bi-inbox"
             title="Няма данни"

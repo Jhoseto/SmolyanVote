@@ -48,7 +48,12 @@ export function MonitorCouncilPage() {
   }, [authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Общински съвет">
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="Общински съвет"
+      contentLoading={loading && hasScrapedDocuments}
+    >
       {!hasScrapedDocuments ? (
         <EmptyState
           icon="bi-building"
@@ -57,13 +62,13 @@ export function MonitorCouncilPage() {
         />
       ) : (
         <>
-          <MonitorCouncilStatsCards stats={stats} loading={loading} />
+          <MonitorCouncilStatsCards stats={stats} loading={false} />
           <section className="mt-8">
-            <MonitorCouncilorCards councilors={councilors} loading={loading} />
+            <MonitorCouncilorCards councilors={councilors} loading={false} />
           </section>
           <section className="mt-8 space-y-4">
             <h2 className="font-display text-[1rem] font-semibold">Хронология</h2>
-            {!loading && items.length > 0 && (
+            {items.length > 0 && (
               <MonitorListControls
                 filters={filters}
                 onChange={patch}
@@ -75,7 +80,7 @@ export function MonitorCouncilPage() {
                 options={{ itemType: false, risk: false, amount: false }}
               />
             )}
-            <MonitorCouncilTimeline items={filtered} loading={loading} />
+            <MonitorCouncilTimeline items={filtered} loading={false} />
           </section>
         </>
       )}

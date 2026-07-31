@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
 import { MonitorMobileShell } from "../MonitorMobileShell";
@@ -32,14 +31,16 @@ export function MonitorAnomaliesPage() {
   }, [authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Аномалии и риск">
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="Аномалии и риск"
+      contentLoading={loading}
+    >
       <p className="text-[0.9rem] text-[color:var(--color-text-secondary)]">
         Договори с risk score ≥ 40 — единствена оферта, необичайно висока стойност, повтарящ се победител.
       </p>
-      {loading ? (
-        <LogoLoader label="Зареждане…" />
-      ) : (
-        <MonitorFilteredFeedGrid
+      <MonitorFilteredFeedGrid
           items={items}
           showFlags
           emptyIcon="bi-shield-check"
@@ -47,8 +48,7 @@ export function MonitorAnomaliesPage() {
           emptyDescription="Добър знак — или липсват данни."
           controlOptions={{ itemType: false }}
           initialFilters={{ sort: "risk-desc", minRisk: 40 }}
-        />
-      )}
+      />
     </MonitorMobileShell>
   );
 }

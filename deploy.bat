@@ -98,7 +98,7 @@ if "%SKIP_BUILD%"=="0" (
 
 echo.
 echo [upload] Uploading configs from %DEPLOY_CONFIG%...
-scp %SSH_OPTS% "%DEPLOY_CONFIG%\docker-compose.prod.yml" "%DEPLOY_CONFIG%\post-deploy.sh" "%DEPLOY_CONFIG%\Caddyfile" "%SSH_TARGET%:%REMOTE_DIR%/"
+scp %SSH_OPTS% "%DEPLOY_CONFIG%\docker-compose.prod.yml" "%DEPLOY_CONFIG%\post-deploy.sh" "%DEPLOY_CONFIG%\Caddyfile" "%DEPLOY_CONFIG%\smolyanvote.service" "%SSH_TARGET%:%REMOTE_DIR%/"
 if errorlevel 1 exit /b 1
 
 if exist "NewServerConfig\.env" (

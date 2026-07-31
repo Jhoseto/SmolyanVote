@@ -1,6 +1,11 @@
 # Replace smolyanvote.com with your domain. TLS via Caddy automatic HTTPS.
+# IP: HTTP serves the app; HTTPS uses self-signed cert until DNS + Let's Encrypt.
 
-smolyanvote.com {
+{
+	auto_https disable_redirects
+}
+
+(app) {
 	encode gzip
 
 	handle /api/* {
@@ -22,6 +27,24 @@ smolyanvote.com {
 	handle {
 		reverse_proxy frontend:3000
 	}
+}
+
+:80 {
+	@domain host smolyanvote.com www.smolyanvote.com
+	handle @domain {
+		redir https://{host}{uri} permanent
+	}
+
+	import app
+}
+
+https://161.35.69.206 {
+	tls internal
+	import app
+}
+
+smolyanvote.com {
+	import app
 }
 
 www.smolyanvote.com {

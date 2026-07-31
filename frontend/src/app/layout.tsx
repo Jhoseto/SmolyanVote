@@ -131,7 +131,12 @@ const ORGANIZATION_JSON_LD = {
     "@type": "AdministrativeArea",
     name: "Област Смолян",
   },
-  sameAs: ["https://facebook.com/smolyanvote", "https://twitter.com/smolyanvote"],
+  sameAs: [
+    "https://facebook.com/smolyanvote",
+    "https://www.instagram.com/smolyanvote/",
+    "https://www.youtube.com/@SmolyanVote",
+    "https://twitter.com/smolyanvote",
+  ],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",

@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 import { Container } from "@/shared/ui";
 import type { MonitorTab } from "../types";
 import { MonitorKpiStrip } from "./MonitorKpiStrip";
+import { MonitorTabLoader } from "./MonitorTabLoader";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 import { MonitorMunicipalityFilter } from "./MonitorMunicipalityFilter";
 import type { MonitorOverview } from "../types";
@@ -30,6 +31,9 @@ interface MonitorPageShellProps {
   overviewLoading?: boolean;
   showKpi?: boolean;
   title?: string;
+  /** Replaces tab body with brand loader while fetching tab data. */
+  contentLoading?: boolean;
+  loadingLabel?: string;
 }
 
 export function MonitorPageShell({
@@ -38,6 +42,8 @@ export function MonitorPageShell({
   overviewLoading,
   showKpi = true,
   title,
+  contentLoading = false,
+  loadingLabel,
 }: MonitorPageShellProps) {
   const pathname = usePathname();
   const { authority, label, withAuthority } = useMonitorAuthority();
@@ -90,7 +96,7 @@ export function MonitorPageShell({
           })}
         </nav>
 
-        {children}
+        {contentLoading ? <MonitorTabLoader label={loadingLabel} /> : children}
       </Container>
     </div>
   );

@@ -70,6 +70,18 @@ fi
 
 docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 
+# Drop legacy compose project containers (same dir, old project name "smolyanvote").
+for legacy in smolyanvote-frontend smolyanvote-backend smolyanvote-caddy; do
+  docker rm -f "${legacy}" 2>/dev/null || true
+done
+
+if [[ -f smolyanvote.service ]]; then
+  cp smolyanvote.service /etc/systemd/system/smolyanvote.service
+  systemctl daemon-reload
+  systemctl enable smolyanvote.service >/dev/null 2>&1 || true
+  echo "[boot] systemd smolyanvote.service enabled (docker compose up on reboot)"
+fi
+
 echo "[health] Waiting for services..."
 sleep 8
 
@@ -116,7 +128,7 @@ fi
 
 echo ""
 echo "=== Граждански монитор — първи deploy ==="
-echo "  1. Отворете https://smolyanvote.com/monitor (или http://YOUR_IP/monitor)"
+echo "  1. Отворете http://YOUR_IP/monitor (или https://smolyanvote.com/monitor след DNS)"
 echo "  2. Влезте като admin → /admin?tab=monitor → Ingestion"
 echo "  3. Пуснете „Пълен pipeline“ или поне SIGMA import (отнема ~5 мин)"
 echo "  4. По график: SIGMA 04:00, EOP 05:00, scrape 06:00, AI 06:30 (Europe/Sofia)"

@@ -57,8 +57,11 @@ public class MonitorDeepDataService {
         LocalDate to = LocalDate.of(year, 12, 31);
 
         List<MonitorContractEntity> contracts = contractRepository.findAllInScope(authorityFilter).stream()
-                .filter(c -> c.getSignedAt() != null && !c.getSignedAt().isBefore(from) && !c.getSignedAt().isAfter(to))
-                .filter(c -> c.getAmountEur() != null)
+                .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
+                .filter(c -> {
+                    LocalDate signed = MonitorContractDates.effectiveSignedDate(c);
+                    return signed != null && !signed.isBefore(from) && !signed.isAfter(to);
+                })
                 .toList();
 
         Map<String, BigDecimal> executedByCategory = new HashMap<>();
@@ -101,16 +104,20 @@ public class MonitorDeepDataService {
 
     private int resolveBudgetYear(String authorityFilter) {
         int current = MonitorBudgetConfig.budgetYear();
-        LocalDate from = LocalDate.of(current, 1, 1);
-        LocalDate to = LocalDate.of(current, 12, 31);
-        boolean hasCurrentYear = contractRepository.findAllInScope(authorityFilter).stream()
-                .anyMatch(c -> c.getSignedAt() != null && c.getAmountEur() != null
-                        && !c.getSignedAt().isBefore(from) && !c.getSignedAt().isAfter(to));
+        List<MonitorContractEntity> inScope = contractRepository.findAllInScope(authorityFilter).stream()
+                .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
+                .toList();
+
+        boolean hasCurrentYear = inScope.stream().anyMatch(c -> MonitorContractDates.effectiveYear(c) == current);
         if (hasCurrentYear) {
             return current;
         }
-        List<Integer> years = contractRepository.findYearsWithSpend(authorityFilter);
-        return years.isEmpty() ? current : years.get(0);
+
+        return inScope.stream()
+                .mapToInt(MonitorContractDates::effectiveYear)
+                .filter(y -> y > 0)
+                .max()
+                .orElse(current);
     }
 
     private static String buildBudgetNote(
@@ -120,8 +127,9 @@ public class MonitorDeepDataService {
             BigDecimal totalExecuted,
             int contractCount) {
         if (contractCount == 0) {
-            return "Няма подписани договори в SIGMA/EOP за " + year + " г. в избрания обхват. "
-                    + "Стартирайте SIGMA import или сменете общината.";
+            return "Няма договори със стойност за " + year + " г. в избрания обхват. "
+                    + "Стартирайте SIGMA import или сменете общината. "
+                    + "Плановите редове по-долу са индикативни за Община Смолян.";
         }
         if (wholeOblast && plannedAvailable) {
             return "Планът е индикативен за Община Смолян; изпълнението е сумирано за цялата област Смолян за "

@@ -18,23 +18,35 @@ interface MonitorBudgetChartProps {
   loading?: boolean;
 }
 
+function num(value: number | string | null | undefined): number {
+  if (value == null) return 0;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function MonitorBudgetChart({ budget, loading }: MonitorBudgetChartProps) {
   if (loading) {
     return <div className="h-72 animate-pulse rounded-[var(--radius-lg)] bg-[color:var(--color-surface-muted)]" />;
   }
-  if (!budget) return null;
+  if (!budget) {
+    return (
+      <p className="rounded-[var(--radius-md)] border border-dashed border-border-default/50 bg-white/80 p-8 text-center text-[0.9rem] text-[color:var(--color-text-muted)]">
+        Няма данни за бюджета.
+      </p>
+    );
+  }
+
+  const totalPlanned = num(budget.totalPlannedEur);
+  const totalExecuted = num(budget.totalExecutedEur);
 
   const chartRows = budget.rows.map((r) => ({
     name: r.label.replace(" и ", " & "),
-    planned: Number(r.plannedEur),
-    executed: Number(r.executedEur),
+    planned: num(r.plannedEur),
+    executed: num(r.executedEur),
   }));
 
   const hasAnyBar = chartRows.some((r) => r.planned > 0 || r.executed > 0);
-  const execPct =
-    budget.totalPlannedEur > 0
-      ? Math.round((budget.totalExecutedEur / budget.totalPlannedEur) * 100)
-      : 0;
+  const execPct = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -47,12 +59,12 @@ export function MonitorBudgetChart({ budget, loading }: MonitorBudgetChartProps)
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat
           label={budget.plannedAvailable ? "Планирано (Смолян)" : "Планирано"}
-          value={budget.plannedAvailable ? formatEur(budget.totalPlannedEur) : "—"}
+          value={budget.plannedAvailable ? formatEur(totalPlanned) : "—"}
         />
-        <Stat label="Изпълнено (SIGMA)" value={formatEur(budget.totalExecutedEur)} />
+        <Stat label="Изпълнено (SIGMA)" value={formatEur(totalExecuted)} />
         <Stat
           label="Изпълнение"
-          value={budget.plannedAvailable && budget.totalPlannedEur > 0 ? `${execPct}%` : "—"}
+          value={budget.plannedAvailable && totalPlanned > 0 ? `${execPct}%` : "—"}
         />
       </div>
 

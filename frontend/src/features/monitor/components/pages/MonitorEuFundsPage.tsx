@@ -31,8 +31,13 @@ export function MonitorEuFundsPage() {
   }, [authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="ЕС фондове">
-      <MonitorEuFundsPanel data={data} loading={loading} />
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="ЕС фондове"
+      contentLoading={loading}
+    >
+      <MonitorEuFundsPanel data={data} loading={false} />
     </MonitorMobileShell>
   );
 }

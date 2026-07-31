@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EmptyState, LogoLoader } from "@/shared/ui";
+import { EmptyState } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { MonitorCompetitionPanel } from "../MonitorCompetitionPanel";
 import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
@@ -47,22 +47,40 @@ export function MonitorProcurementPage() {
   }, [authority, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const isInitialLoad = loading && stats === null;
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Поръчки и договори">
-      <MonitorProcurementCharts stats={stats} loading={loading} />
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="Поръчки и договори"
+      contentLoading={isInitialLoad}
+    >
+      <MonitorProcurementCharts stats={stats} loading={false} />
       <section className="mt-6">
-        <MonitorCompetitionPanel data={competition} loading={loading} />
+        <MonitorCompetitionPanel data={competition} loading={false} />
       </section>
-      <section className="mt-6 space-y-3">
+      <section className="relative mt-6 space-y-3">
+        {loading && !isInitialLoad && (
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center rounded-[var(--radius-lg)] bg-white/75 backdrop-blur-[1px]"
+            aria-busy="true"
+          >
+            <span className="text-[0.85rem] font-medium text-[color:var(--color-text-muted)]">Зареждане…</span>
+          </div>
+        )}
         <div>
           <h2 className="font-display text-[1rem] font-semibold">Анализ по договори</h2>
           <p className="text-[0.78rem] text-[color:var(--color-text-muted)]">
             {total.toLocaleString("bg-BG")} договора · подредени по риск за данъкоплатеца
           </p>
         </div>
-        {loading ? (
-          <LogoLoader label="Зареждане…" />
+        {items.length === 0 ? (
+          <EmptyState
+            icon="bi-basket"
+            title="Няма договори"
+            description="Пуснете SIGMA import."
+          />
         ) : (
           <>
             <MonitorFilteredFeedGrid

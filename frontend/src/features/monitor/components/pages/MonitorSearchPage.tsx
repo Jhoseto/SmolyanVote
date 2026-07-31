@@ -2,12 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { EmptyState, LogoLoader } from "@/shared/ui";
+import { EmptyState } from "@/shared/ui";
 import { monitorApi } from "../../api";
 import { useMonitorOverview } from "../../hooks/useMonitorOverview";
 import type { MonitorFeedItem } from "../../types";
 import { MonitorFilteredFeedGrid } from "../MonitorFilteredFeedGrid";
 import { MonitorMobileShell } from "../MonitorMobileShell";
+import { MonitorTabLoader } from "../MonitorTabLoader";
 import { useMonitorAuthority } from "../MonitorAuthorityProvider";
 
 function MonitorSearchContent() {
@@ -39,11 +40,15 @@ function MonitorSearchContent() {
   }, [q, authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title={`Търсене: ${q || "…"}`}>
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title={`Търсене: ${q || "…"}`}
+      contentLoading={Boolean(q.trim()) && loading}
+      loadingLabel="Търсене…"
+    >
       {!q.trim() ? (
         <EmptyState icon="bi-search" title="Въведете дума за търсене" />
-      ) : loading ? (
-        <LogoLoader label="Търсене…" />
       ) : (
         <MonitorFilteredFeedGrid
           items={items}
@@ -58,7 +63,7 @@ function MonitorSearchContent() {
 
 export function MonitorSearchPage() {
   return (
-    <Suspense fallback={<LogoLoader label="Зареждане…" />}>
+    <Suspense fallback={<MonitorTabLoader />}>
       <MonitorSearchContent />
     </Suspense>
   );

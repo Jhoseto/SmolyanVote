@@ -75,6 +75,7 @@ export interface ShellDictionary {
       cookies: string;
     };
     contactHeading: string;
+    contactHint: string;
     contactCta: string;
     location: string;
     newsletterTitle: string;
@@ -126,6 +127,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Cookies политика",
       },
       contactHeading: "Контакти",
+      contactHint: "Въпроси, идеи и обратна връзка",
       contactCta: "Свържи се с нас",
       location: "Смолян, България",
       newsletterTitle: "Бюлетин",
@@ -175,6 +177,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Cookie Policy",
       },
       contactHeading: "Contacts",
+      contactHint: "Questions, ideas and feedback",
       contactCta: "Contact us",
       location: "Smolyan, Bulgaria",
       newsletterTitle: "Newsletter",
@@ -224,6 +227,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Πολιτική Cookies",
       },
       contactHeading: "Επικοινωνία",
+      contactHint: "Ερωτήσεις, ιδέες και σχόλια",
       contactCta: "Επικοινωνήστε μαζί μας",
       location: "Σμόλιαν, Βουλγαρία",
       newsletterTitle: "Ενημερωτικό δελτίο",
@@ -273,6 +277,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Çerez Politikası",
       },
       contactHeading: "İletişim",
+      contactHint: "Sorular, fikirler ve geri bildirim",
       contactCta: "Bize ulaşın",
       location: "Smolyan, Bulgaristan",
       newsletterTitle: "Bülten",
@@ -322,6 +327,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Политика Cookies",
       },
       contactHeading: "Контакты",
+      contactHint: "Вопросы, идеи и обратная связь",
       contactCta: "Связаться с нами",
       location: "Смолян, Болгария",
       newsletterTitle: "Рассылка",
@@ -371,6 +377,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Cookie-Richtlinie",
       },
       contactHeading: "Kontakte",
+      contactHint: "Fragen, Ideen und Feedback",
       contactCta: "Kontaktieren Sie uns",
       location: "Smolyan, Bulgarien",
       newsletterTitle: "Newsletter",
@@ -420,6 +427,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Politique de cookies",
       },
       contactHeading: "Contacts",
+      contactHint: "Questions, idées et retours",
       contactCta: "Contactez-nous",
       location: "Smolyan, Bulgarie",
       newsletterTitle: "Newsletter",
@@ -469,6 +477,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Política de cookies",
       },
       contactHeading: "Contactos",
+      contactHint: "Preguntas, ideas y comentarios",
       contactCta: "Contáctanos",
       location: "Smolyan, Bulgaria",
       newsletterTitle: "Boletín",
@@ -517,6 +526,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "מדיניות עוגיות",
       },
       contactHeading: "צור קשר",
+      contactHint: "שאלות, רעיונות ומשוב",
       contactCta: "צור קשר איתנו",
       location: "סמולין, בולגריה",
       newsletterTitle: "ניוזלטר",
@@ -565,6 +575,7 @@ export const shellMessages: Record<Language, ShellDictionary> = {
         cookies: "Cookie 政策",
       },
       contactHeading: "联系方式",
+      contactHint: "问题、建议和反馈",
       contactCta: "联系我们",
       location: "斯莫扬，保加利亚",
       newsletterTitle: "通讯",

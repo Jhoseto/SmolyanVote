@@ -34,7 +34,12 @@ export function MonitorFlowsPage() {
   }, [authority]);
 
   return (
-    <MonitorMobileShell overview={overview} overviewLoading={overviewLoading} title="Парични потоци">
+    <MonitorMobileShell
+      overview={overview}
+      overviewLoading={overviewLoading}
+      title="Парични потоци"
+      contentLoading={loading}
+    >
       <p className="mb-6 text-[0.9rem] leading-relaxed text-[color:var(--color-text-muted)]">
         Вижте <strong>кои общини плащат на кои фирми</strong> и кои изпълнители получават най-много
         обществени поръчки в област Смолян — данни от SIGMA/EOP, без сурови регистри.
@@ -42,8 +47,8 @@ export function MonitorFlowsPage() {
         обяснява <strong>индикатори</strong>, не обвинения.
       </p>
       <div className="space-y-8">
-        <MonitorFlowsChart flows={flows} loading={loading} />
-        <MonitorConnectionsGraph connections={connections} loading={loading} />
+        <MonitorFlowsChart flows={flows} loading={false} />
+        <MonitorConnectionsGraph connections={connections} loading={false} />
       </div>
     </MonitorMobileShell>
   );

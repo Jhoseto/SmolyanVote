@@ -14,6 +14,8 @@ interface MonitorMobileShellProps {
   overviewLoading?: boolean;
   title?: string;
   showKpi?: boolean;
+  contentLoading?: boolean;
+  loadingLabel?: string;
 }
 
 const MOBILE_TABS = [
