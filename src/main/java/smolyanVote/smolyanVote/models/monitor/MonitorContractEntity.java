@@ -68,6 +68,14 @@ public class MonitorContractEntity extends BaseEntity {
     @Column(name = "amount_eur", precision = 18, scale = 2)
     private BigDecimal amountEur;
 
+    /** Source currency before EUR normalization — EUR, BGN, or UNKNOWN. */
+    @Column(name = "original_currency", length = 8)
+    private String originalCurrency;
+
+    /** Admin-facing note when currency was inferred or missing at import. */
+    @Column(name = "currency_warning", length = 280)
+    private String currencyWarning;
+
     /** Value at first import (signing) — never overwritten by later re-imports/amendments. Used for growth-via-amendments risk check. */
     @Column(name = "original_amount_eur", precision = 18, scale = 2)
     private BigDecimal originalAmountEur;
@@ -121,6 +129,10 @@ public class MonitorContractEntity extends BaseEntity {
 
     @Column(name = "fetched_at")
     private java.time.Instant fetchedAt;
+
+    /** Local enrichments (risk/AI) schema version — SIGMA raw fields may come from proxy on detail reads. */
+    @Column(name = "enrichment_version")
+    private Integer enrichmentVersion = 1;
 
     public String getSigmaId() {
         return sigmaId;
@@ -258,6 +270,22 @@ public class MonitorContractEntity extends BaseEntity {
         this.amountEur = amountEur;
     }
 
+    public String getOriginalCurrency() {
+        return originalCurrency;
+    }
+
+    public void setOriginalCurrency(String originalCurrency) {
+        this.originalCurrency = originalCurrency;
+    }
+
+    public String getCurrencyWarning() {
+        return currencyWarning;
+    }
+
+    public void setCurrencyWarning(String currencyWarning) {
+        this.currencyWarning = currencyWarning;
+    }
+
     public boolean isEuFunded() {
         return euFunded;
     }
@@ -384,5 +412,13 @@ public class MonitorContractEntity extends BaseEntity {
 
     public void setFetchedAt(java.time.Instant fetchedAt) {
         this.fetchedAt = fetchedAt;
+    }
+
+    public Integer getEnrichmentVersion() {
+        return enrichmentVersion;
+    }
+
+    public void setEnrichmentVersion(Integer enrichmentVersion) {
+        this.enrichmentVersion = enrichmentVersion;
     }
 }

@@ -31,10 +31,16 @@ public class MonitorGeminiClient {
     private final GeminiProperties geminiProperties;
     private final OkHttpClient client;
     private final ObjectMapper objectMapper;
+    private final MonitorApiThrottle geminiThrottle;
+
+    /** Set after 401/403 — avoids hammering a blocked API until backend restart. */
+    private volatile boolean accessBlocked;
+    private volatile String accessBlockedReason;
 
     public MonitorGeminiClient(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.geminiProperties = geminiProperties;
         this.objectMapper = objectMapper;
+        this.geminiThrottle = new MonitorApiThrottle(geminiProperties.geminiMinRequestIntervalMs());
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(180, TimeUnit.SECONDS)
@@ -43,6 +49,19 @@ public class MonitorGeminiClient {
 
     public boolean isConfigured() {
         return geminiProperties.isConfigured();
+    }
+
+    /** Key present and API not permanently blocked this session. */
+    public boolean isAvailable() {
+        return isConfigured() && !accessBlocked;
+    }
+
+    public boolean isAccessBlocked() {
+        return accessBlocked;
+    }
+
+    public String accessBlockedReason() {
+        return accessBlockedReason;
     }
 
     public String modelName() {
@@ -362,6 +381,8 @@ public class MonitorGeminiClient {
         return generate(prompt, 1024);
     }
 
+    private static final int MAX_RATE_LIMIT_RETRIES = 3;
+
     private String generate(String prompt, int maxOutputTokens) throws IOException {
         ObjectNode root = objectMapper.createObjectNode();
         ArrayNode contents = root.putArray("contents");
@@ -372,31 +393,67 @@ public class MonitorGeminiClient {
         generationConfig.put("maxOutputTokens", maxOutputTokens);
         generationConfig.put("responseMimeType", "application/json");
 
-        RequestBody body = RequestBody.create(
-                objectMapper.writeValueAsString(root),
-                MediaType.get("application/json; charset=utf-8"));
-
+        String payload = objectMapper.writeValueAsString(root);
+        RequestBody body = RequestBody.create(payload, MediaType.get("application/json; charset=utf-8"));
         Request request = new Request.Builder()
                 .url(geminiProperties.generateContentEndpoint())
                 .post(body)
                 .build();
 
-        try (Response response = client.newCall(request).execute()) {
-            String model = geminiProperties.resolvedModel();
-            if (!response.isSuccessful()) {
-                String err = response.body() != null ? response.body().string() : "";
-                throw new IOException("Gemini API " + response.code() + " (" + model + "): " + err);
-            }
-            String responseBody = response.body().string();
-            JsonNode candidates = objectMapper.readTree(responseBody).path("candidates");
-            if (candidates.isArray() && !candidates.isEmpty()) {
-                JsonNode parts = candidates.get(0).path("content").path("parts");
-                if (parts.isArray() && !parts.isEmpty()) {
-                    return parts.get(0).path("text").asText("").trim();
-                }
-            }
-            return "";
+        String model = geminiProperties.resolvedModel();
+        if (accessBlocked) {
+            throw new MonitorGeminiAccessException(403,
+                    accessBlockedReason != null ? accessBlockedReason : "Gemini API access blocked");
         }
+        for (int attempt = 0; attempt < MAX_RATE_LIMIT_RETRIES; attempt++) {
+            geminiThrottle.awaitSlot();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.code() == 429) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    long delayMs = MonitorApiThrottle.parseRetryDelayMs(err, 60_000L);
+                    log.warn(
+                            "Gemini rate limit on {} — retry in {}s (attempt {}/{})",
+                            model,
+                            delayMs / 1000,
+                            attempt + 1,
+                            MAX_RATE_LIMIT_RETRIES);
+                    if (attempt < MAX_RATE_LIMIT_RETRIES - 1) {
+                        MonitorApiThrottle.sleepQuietly(delayMs);
+                        continue;
+                    }
+                    throw new MonitorRateLimitException(
+                            "gemini",
+                            delayMs,
+                            "Gemini API 429 (" + model + "): " + err);
+                }
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    int code = response.code();
+                    if (code == 403 || code == 401) {
+                        blockAccess(code, model, err);
+                    }
+                    throw new IOException("Gemini API " + code + " (" + model + "): " + err);
+                }
+                String responseBody = response.body().string();
+                JsonNode candidates = objectMapper.readTree(responseBody).path("candidates");
+                if (candidates.isArray() && !candidates.isEmpty()) {
+                    JsonNode parts = candidates.get(0).path("content").path("parts");
+                    if (parts.isArray() && !parts.isEmpty()) {
+                        return parts.get(0).path("text").asText("").trim();
+                    }
+                }
+                return "";
+            }
+        }
+        throw new IOException("Gemini API failed after rate-limit retries (" + model + ")");
+    }
+
+    private void blockAccess(int code, String model, String err) {
+        String message = "Gemini API " + code + " (" + model + "): " + err;
+        accessBlocked = true;
+        accessBlockedReason = message;
+        log.error("Gemini access blocked for this session — AI batch jobs will stop: {}", message);
+        throw new MonitorGeminiAccessException(code, message);
     }
 
     private MonitorAiResult parseAiResult(String text) {

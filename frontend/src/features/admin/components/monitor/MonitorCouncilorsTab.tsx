@@ -8,6 +8,7 @@ import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { adminMonitorApi } from "../../api/monitorAdmin";
 import type { MonitorAdminCouncilor, MonitorCouncilorRequest } from "../../types";
+import { zpokonpiStatusLabel } from "@/features/monitor/utils/zpokonpiStatus";
 
 const EMPTY_FORM: MonitorCouncilorRequest = {
   fullName: "",
@@ -63,6 +64,12 @@ export function MonitorCouncilorsTab({ enabled }: { enabled: boolean }) {
     onError: (e) => toast.error(errorMessage(e, "Изтриването неуспешно")),
   });
 
+  const verifyZpokonpiMut = useMutation({
+    mutationFn: () => adminMonitorApi.verifyZpokonpi(),
+    onSuccess: () => toast.success("ЗПКОНПИ проверката е стартирана — вижте Ingestion jobs"),
+    onError: (e) => toast.error(errorMessage(e, "Стартирането неуспешно")),
+  });
+
   function confirmDelete(c: MonitorAdminCouncilor) {
     if (window.confirm(`Изтриване на "${c.fullName}"?`)) {
       deleteMut.mutate(c.id);
@@ -71,16 +78,27 @@ export function MonitorCouncilorsTab({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-[0.95rem] font-semibold">Общински съветници</h3>
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="rounded-full bg-primary px-4 py-2 text-[0.8rem] font-medium text-white"
-        >
-          <i className="bi bi-plus-lg mr-1" />
-          Нов профил
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={verifyZpokonpiMut.isPending}
+            onClick={() => verifyZpokonpiMut.mutate()}
+            className="rounded-full border border-border-default/40 px-4 py-2 text-[0.8rem] font-medium"
+          >
+            <i className="bi bi-shield-check mr-1" />
+            Провери ЗПКОНПИ
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="rounded-full bg-primary px-4 py-2 text-[0.8rem] font-medium text-white"
+          >
+            <i className="bi bi-plus-lg mr-1" />
+            Нов профил
+          </button>
+        </div>
       </div>
 
       {councilorsQ.isLoading ? (
@@ -106,15 +124,9 @@ export function MonitorCouncilorsTab({ enabled }: { enabled: boolean }) {
                   <td className="px-3 py-2 text-[color:var(--color-text-secondary)]">{c.party ?? "—"}</td>
                   <td className="px-3 py-2 text-[color:var(--color-text-muted)]">{c.mandatePeriod ?? "—"}</td>
                   <td className="px-3 py-2">
-                    {c.zpokonpiChecked ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.68rem] font-medium text-emerald-800">
-                        Проверен
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-800">
-                        Предстои
-                      </span>
-                    )}
+                    <span className="rounded-full bg-[color:var(--color-surface-muted)] px-2 py-0.5 text-[0.68rem] font-medium">
+                      {zpokonpiStatusLabel(c.zpokonpiStatus ?? (c.zpokonpiChecked ? "OK" : "PENDING"))}
+                    </span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1.5">

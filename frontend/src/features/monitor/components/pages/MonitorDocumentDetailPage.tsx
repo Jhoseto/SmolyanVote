@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { EmptyState, LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
-import { formatDate, formatEur } from "../../lib/format";
+import { formatDate, formatDocumentAmount } from "../../lib/format";
 import { MonitorShareButton } from "../MonitorShareButton";
 import { useMonitorAuthority } from "../MonitorAuthorityProvider";
+import "../monitor-ui.css";
 import type { MonitorDocumentDetail } from "../../types";
 
 export function MonitorDocumentDetailPage() {
@@ -88,7 +89,10 @@ export function MonitorDocumentDetailPage() {
         <dl className="mt-8 grid gap-3 sm:grid-cols-2">
           <Fact label="Публикуван" value={formatDate(doc.publishedAt)} />
           <Fact label="Краен срок" value={formatDate(doc.deadlineDate)} />
-          <Fact label="Сума" value={doc.amount != null ? formatEur(doc.amount) : null} />
+          <Fact
+            label="Сума"
+            value={formatDocumentAmount(doc.amount, doc.amountCurrency, doc.amountEur)}
+          />
           <Fact label="Фирма" value={doc.companyName} />
         </dl>
 
@@ -97,7 +101,7 @@ export function MonitorDocumentDetailPage() {
             href={doc.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[0.9rem] font-medium text-white"
+            className="monitor-cta-primary mt-8 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.9rem] font-medium"
           >
             Виж оригинала ↗
           </a>

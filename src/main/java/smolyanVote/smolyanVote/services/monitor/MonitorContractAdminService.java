@@ -106,6 +106,8 @@ public class MonitorContractAdminService {
                 c.getProcedureType(),
                 c.getSignedAt(),
                 c.getAmountEur(),
+                c.getOriginalCurrency(),
+                c.getCurrencyWarning(),
                 c.getOriginalAmountEur(),
                 c.getEstimatedValueEur(),
                 c.getPublicationDate(),

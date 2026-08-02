@@ -5,6 +5,8 @@ import java.util.List;
 
 public record MonitorBudgetDTO(
         int year,
+        int yearTo,
+        List<Integer> availableYears,
         String municipality,
         BigDecimal totalPlannedEur,
         BigDecimal totalExecutedEur,
@@ -12,7 +14,11 @@ public record MonitorBudgetDTO(
         String sourceUrl,
         /** Planned figures are maintained for Община Смолян only; elsewhere only spend is real. */
         boolean plannedAvailable,
-        String note
+        int contractCount,
+        String dataBasis,
+        String note,
+        /** Adopted ObS budget for Община Смолян when available for the selected year. */
+        MonitorOfficialBudgetDTO officialBudget
 ) {
     public record BudgetRowDTO(
             String id,

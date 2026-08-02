@@ -30,7 +30,6 @@ import java.util.Optional;
 public class EopImportService {
 
     private static final Logger log = LoggerFactory.getLogger(EopImportService.class);
-    private static final BigDecimal BGN_TO_EUR = new BigDecimal("1.95583");
 
     private final EopBucketClient bucketClient;
     private final MonitorContractRepository contractRepository;
@@ -210,7 +209,9 @@ public class EopImportService {
         entity.setProcedureType(MonitorColumnLimits.clamp(text(row, "procedureType"), MonitorColumnLimits.PROCEDURE_TYPE));
         entity.setSignedAt(parseDate(text(row, "contractDate"), text(row, "publicationDate")));
         entity.setPublicationDate(parseDate(text(row, "publicationDate"), null));
-        entity.setAmountEur(toEur(text(row, "contractValue"), text(row, "contractCurrency")));
+        String contractCurrency = text(row, "contractCurrency");
+        entity.setAmountEur(toEur(text(row, "contractValue"), contractCurrency));
+        applyContractCurrency(entity, contractCurrency, text(row, "contractValue"));
         entity.setEstimatedValueEur(toEur(text(row, "estimatedValue"), text(row, "currency")));
         entity.setEuFunded(parseBool(row, "isEuFunded"));
         entity.setBidsReceived(parseInt(row, "offersCount"));
@@ -408,12 +409,29 @@ public class EopImportService {
         String normalized = value.trim().replace(" ", "").replace(",", ".");
         try {
             BigDecimal amount = new BigDecimal(normalized);
-            if ("BGN".equalsIgnoreCase(currency)) {
-                return amount.divide(BGN_TO_EUR, 2, RoundingMode.HALF_UP);
-            }
-            return amount.setScale(2, RoundingMode.HALF_UP);
+            return MonitorCurrencyUtil.toEur(amount, currency);
         } catch (NumberFormatException ex) {
             return null;
+        }
+    }
+
+    private static void applyContractCurrency(MonitorContractEntity entity, String currencyRaw, String valueRaw) {
+        String normalized = MonitorCurrencyUtil.normalizeEopCurrency(currencyRaw);
+        if (normalized != null) {
+            entity.setOriginalCurrency(normalized);
+            entity.setCurrencyWarning(null);
+            return;
+        }
+        if (valueRaw == null || valueRaw.isBlank()) {
+            entity.setOriginalCurrency(null);
+            entity.setCurrencyWarning(null);
+            return;
+        }
+        entity.setOriginalCurrency("UNKNOWN");
+        if (currencyRaw == null || currencyRaw.isBlank()) {
+            entity.setCurrencyWarning("EOP: липсва contractCurrency — сумата е записана като EUR без потвърждение");
+        } else {
+            entity.setCurrencyWarning("EOP: неразпозната валута «" + currencyRaw.trim() + "»");
         }
     }
 

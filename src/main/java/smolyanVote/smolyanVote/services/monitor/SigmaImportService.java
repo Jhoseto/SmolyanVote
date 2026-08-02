@@ -6,8 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import smolyanVote.smolyanVote.models.enums.MonitorIngestionStatus;
 import smolyanVote.smolyanVote.models.enums.MonitorIngestionType;
 import smolyanVote.smolyanVote.models.enums.MonitorRegionScope;
@@ -16,10 +14,10 @@ import smolyanVote.smolyanVote.models.monitor.MonitorContractEntity;
 import smolyanVote.smolyanVote.models.monitor.MonitorIngestionRunEntity;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorCompanyRepository;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorContractRepository;
+import smolyanVote.smolyanVote.config.SigmaProxyProperties;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -33,12 +31,8 @@ public class SigmaImportService {
     private static final Logger log = LoggerFactory.getLogger(SigmaImportService.class);
 
     /** sigma.midt.bg answers 429 when the eight municipalities are requested back to back. */
-    private static final long AUTHORITY_PAUSE_MS = 1500;
-    private static final int MAX_FETCH_ATTEMPTS = 4;
-    private static final long RETRY_BASE_DELAY_MS = 3000;
-    private static final int TOO_MANY_REQUESTS = 429;
+    private static final int ENRICHMENT_VERSION = 1;
 
-    private final RestTemplate restTemplate;
     private final MonitorContractRepository contractRepository;
     private final MonitorCompanyRepository companyRepository;
     private final MonitorIngestionRunService runService;
@@ -46,6 +40,9 @@ public class SigmaImportService {
     private final MonitorInsightEnrichmentService insightEnrichmentService;
     private final EopImportService eopImportService;
     private final MonitorCompanyAggregateService aggregateService;
+    private final MonitorContractDateBackfillService contractDateBackfillService;
+    private final SigmaProxyService sigmaProxyService;
+    private final SigmaProxyProperties sigmaProxyProperties;
     private final TransactionTemplate authorityTransaction;
 
     public SigmaImportService(
@@ -56,8 +53,10 @@ public class SigmaImportService {
             MonitorInsightEnrichmentService insightEnrichmentService,
             EopImportService eopImportService,
             MonitorCompanyAggregateService aggregateService,
+            MonitorContractDateBackfillService contractDateBackfillService,
+            SigmaProxyService sigmaProxyService,
+            SigmaProxyProperties sigmaProxyProperties,
             PlatformTransactionManager transactionManager) {
-        this.restTemplate = new RestTemplate();
         this.contractRepository = contractRepository;
         this.companyRepository = companyRepository;
         this.runService = runService;
@@ -65,6 +64,9 @@ public class SigmaImportService {
         this.insightEnrichmentService = insightEnrichmentService;
         this.eopImportService = eopImportService;
         this.aggregateService = aggregateService;
+        this.contractDateBackfillService = contractDateBackfillService;
+        this.sigmaProxyService = sigmaProxyService;
+        this.sigmaProxyProperties = sigmaProxyProperties;
         this.authorityTransaction = new TransactionTemplate(transactionManager);
         this.authorityTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -78,28 +80,61 @@ public class SigmaImportService {
      */
     public MonitorIngestionRunEntity importRegionalContracts() {
         MonitorIngestionRunEntity run = runService.start(MonitorIngestionType.SIGMA);
+        RefreshResult result = refreshRegionalContracts(false);
+        MonitorIngestionStatus status;
+        if (result.failures().isEmpty()) {
+            status = MonitorIngestionStatus.SUCCESS;
+        } else {
+            status = result.processed() > 0 ? MonitorIngestionStatus.PARTIAL : MonitorIngestionStatus.FAILED;
+        }
+        StringBuilder message = new StringBuilder("SIGMA: " + result.processed() + " договора");
+        if (result.changed() > 0) {
+            message.append(", ").append(result.changed()).append(" променени/нови");
+        }
+        if (result.skippedRows() > 0) {
+            message.append(", ").append(result.skippedRows()).append(" пропуснати реда");
+        }
+        if (!result.failures().isEmpty()) {
+            message.append(" | Грешки: ").append(String.join("; ", result.failures()));
+        }
+        return runService.finish(run.getId(), status, result.processed(), message.toString());
+    }
 
+    public record RefreshResult(int processed, int changed, int skippedRows, List<String> failures) {
+    }
+
+    /**
+     * Fetches CSV via {@link SigmaProxyService}, upserts only new/changed rows, re-scores deltas.
+     */
+    public RefreshResult refreshRegionalContracts(boolean bypassCache) {
         int processed = 0;
+        int changed = 0;
         int skippedRows = 0;
         List<String> failures = new ArrayList<>();
+        List<Long> changedContractIds = new ArrayList<>();
         boolean first = true;
 
         for (String eik : MonitorRegionalConfig.AUTHORITY_LABELS.keySet()) {
+            MonitorJobCancellation.check();
             if (!first) {
-                pause(AUTHORITY_PAUSE_MS);
+                pause(sigmaProxyProperties.getAuthorityPauseMs());
             }
             first = false;
             String label = MonitorRegionalConfig.labelForAuthority(eik, eik);
             try {
-                String csv = fetchCsv(eik);
+                String csv = fetchCsv(eik, bypassCache);
                 if (csv == null || csv.isBlank()) {
                     continue;
                 }
                 AuthorityResult result = authorityTransaction.execute(status -> importForAuthority(eik, csv));
                 if (result != null) {
                     processed += result.imported();
+                    changed += result.changed();
                     skippedRows += result.skipped();
+                    changedContractIds.addAll(result.changedContractIds());
                 }
+            } catch (MonitorJobCancelledException ex) {
+                throw ex;
             } catch (Exception ex) {
                 log.error("SIGMA import failed for {}", label, ex);
                 failures.add(label + ": " + MonitorIngestionRunService.describe(ex));
@@ -108,13 +143,29 @@ public class SigmaImportService {
 
         if (processed > 0) {
             try {
-                riskService.scoreAllContracts();
+                int datesFixed = contractDateBackfillService.backfillSignedDatesFromUnp();
+                log.info("SIGMA contract date backfill: {} rows updated from UNP", datesFixed);
+            } catch (Exception ex) {
+                log.error("SIGMA contract date backfill failed", ex);
+                failures.add("Дати на договори: " + MonitorIngestionRunService.describe(ex));
+            }
+            try {
+                if (!changedContractIds.isEmpty()) {
+                    for (Long id : changedContractIds) {
+                        contractRepository.findById(id).ifPresent(riskService::scoreContract);
+                    }
+                    log.info("SIGMA risk scoring: {} changed contracts", changedContractIds.size());
+                } else {
+                    riskService.scoreAllContracts();
+                }
             } catch (Exception ex) {
                 log.error("SIGMA risk scoring failed", ex);
                 failures.add("Риск скоринг: " + MonitorIngestionRunService.describe(ex));
             }
             try {
-                int enriched = insightEnrichmentService.enrichAllContracts();
+                int enriched = changedContractIds.isEmpty()
+                        ? insightEnrichmentService.enrichAllContracts()
+                        : insightEnrichmentService.enrichContracts(changedContractIds);
                 log.info("SIGMA insight enrichment: {} contracts updated", enriched);
             } catch (Exception ex) {
                 log.error("SIGMA insight enrichment failed", ex);
@@ -128,54 +179,50 @@ public class SigmaImportService {
             }
         }
 
-        StringBuilder message = new StringBuilder("SIGMA: " + processed + " договора");
-        if (skippedRows > 0) {
-            message.append(", ").append(skippedRows).append(" пропуснати реда");
-        }
-        if (!failures.isEmpty()) {
-            message.append(" | Грешки: ").append(String.join("; ", failures));
-        }
-
-        MonitorIngestionStatus status;
-        if (failures.isEmpty()) {
-            status = MonitorIngestionStatus.SUCCESS;
-        } else {
-            status = processed > 0 ? MonitorIngestionStatus.PARTIAL : MonitorIngestionStatus.FAILED;
-        }
-        return runService.finish(run.getId(), status, processed, message.toString());
+        return new RefreshResult(processed, changed, skippedRows, failures);
     }
 
-    private record AuthorityResult(int imported, int skipped) {
+    private record AuthorityResult(int imported, int changed, int skipped, List<Long> changedContractIds) {
+    }
+
+    private record RowResult(boolean imported, boolean changed, Long contractId) {
     }
 
     private AuthorityResult importForAuthority(String authorityEik, String csv) {
         List<String[]> rows = MonitorCsvParser.parseRows(csv);
         if (rows.size() <= 1) {
-            return new AuthorityResult(0, 0);
+            return new AuthorityResult(0, 0, 0, List.of());
         }
 
         String[] header = normalizeHeader(rows.get(0));
         Map<String, Integer> idx = indexHeader(header);
-        // A municipality has ~200-300 contracts; loading them (and the company list) once keeps
-        // the import to a handful of round trips instead of four per row.
         ImportContext context = new ImportContext(
                 indexBySigmaId(contractRepository.findAllByAuthorityEik(authorityEik)),
                 indexByEik(companyRepository.findAll()),
                 Instant.now());
 
         int count = 0;
+        int changed = 0;
         int skipped = 0;
+        List<Long> changedIds = new ArrayList<>();
         for (int i = 1; i < rows.size(); i++) {
             try {
-                if (importRow(rows.get(i), idx, context)) {
+                RowResult rowResult = importRow(rows.get(i), idx, context);
+                if (rowResult.imported()) {
                     count++;
+                    if (rowResult.changed()) {
+                        changed++;
+                        if (rowResult.contractId() != null) {
+                            changedIds.add(rowResult.contractId());
+                        }
+                    }
                 }
             } catch (Exception ex) {
                 skipped++;
                 log.warn("SIGMA row {} skipped for {}: {}", i, authorityEik, ex.getMessage());
             }
         }
-        return new AuthorityResult(count, skipped);
+        return new AuthorityResult(count, changed, skipped, changedIds);
     }
 
     private record ImportContext(
@@ -184,22 +231,23 @@ public class SigmaImportService {
             Instant fetchedAt) {
     }
 
-    private boolean importRow(String[] row, Map<String, Integer> idx, ImportContext context) {
+    private RowResult importRow(String[] row, Map<String, Integer> idx, ImportContext context) {
         if (row.length == 0) {
-            return false;
+            return new RowResult(false, false, null);
         }
         String rowAuthorityEik = cell(row, idx, "authority_eik");
         if (!MonitorRegionalConfig.isRegionalAuthority(rowAuthorityEik)) {
-            return false;
+            return new RowResult(false, false, null);
         }
         String sigmaId = MonitorColumnLimits.clampIdentifier(cell(row, idx, "id"), MonitorColumnLimits.SIGMA_ID);
         if (sigmaId == null) {
-            return false;
+            return new RowResult(false, false, null);
         }
 
         MonitorContractEntity known = context.contractsBySigmaId().get(sigmaId);
         boolean isNew = known == null;
         MonitorContractEntity entity = isNew ? new MonitorContractEntity() : known;
+        String beforeSignature = isNew ? null : sigmaFieldSignature(entity);
         BigDecimal previousAmount = entity.getAmountEur();
 
         entity.setSigmaId(sigmaId);
@@ -212,8 +260,10 @@ public class SigmaImportService {
         entity.setContractorKind(MonitorColumnLimits.clamp(cell(row, idx, "kind"), MonitorColumnLimits.CONTRACTOR_KIND));
         entity.setSectorCode(MonitorColumnLimits.clamp(cell(row, idx, "sector_code"), MonitorColumnLimits.SECTOR_CODE));
         entity.setProcedureType(MonitorColumnLimits.clamp(cell(row, idx, "procedure"), MonitorColumnLimits.PROCEDURE_TYPE));
-        entity.setSignedAt(parseDate(cell(row, idx, "signed_at")));
+        entity.setSignedAt(resolveSignedDate(cell(row, idx, "signed_at"), entity.getUnp()));
         entity.setAmountEur(parseDecimal(cell(row, idx, "value_eur")));
+        entity.setOriginalCurrency("EUR");
+        entity.setCurrencyWarning(null);
         entity.setEuFunded(parseBoolean(cell(row, idx, "eu_funded")));
         entity.setBidsReceived(parseInteger(cell(row, idx, "bids_received")));
         entity.setRegionScope(MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(rowAuthorityEik.trim())
@@ -225,6 +275,12 @@ public class SigmaImportService {
             entity.setOriginalAmountEur(entity.getAmountEur());
         }
 
+        boolean changed = isNew || !sigmaFieldSignature(entity).equals(beforeSignature);
+        if (!changed) {
+            return new RowResult(true, false, entity.getId());
+        }
+
+        entity.setEnrichmentVersion(ENRICHMENT_VERSION);
         if (entity.getShortSummary() == null || entity.getShortSummary().isBlank()) {
             entity.setShortSummary(MonitorColumnLimits.clamp(entity.getSubject(), MonitorColumnLimits.SHORT_SUMMARY));
         }
@@ -236,30 +292,35 @@ public class SigmaImportService {
             eopImportService.recordAmountChangeAmendment(entity, previousAmount, entity.getAmountEur(), "SIGMA re-import");
         }
         upsertCompany(entity, context.companiesByEik());
-        return true;
+        return new RowResult(true, true, entity.getId());
     }
 
-    /** Retries on 429/5xx — the SIGMA export throttles aggressively. */
-    private String fetchCsv(String authorityEik) {
-        String url = MonitorRegionalConfig.SIGMA_CONTRACTS_CSV + "?authority=" + authorityEik;
-        for (int attempt = 1; ; attempt++) {
-            try {
-                byte[] bytes = restTemplate.getForObject(url, byte[].class);
-                if (bytes == null || bytes.length == 0) {
-                    return null;
-                }
-                return new String(bytes, StandardCharsets.UTF_8);
-            } catch (HttpStatusCodeException ex) {
-                boolean retryable = ex.getStatusCode().value() == TOO_MANY_REQUESTS
-                        || ex.getStatusCode().is5xxServerError();
-                if (!retryable || attempt >= MAX_FETCH_ATTEMPTS) {
-                    throw ex;
-                }
-                log.warn("SIGMA {} attempt {}/{} got {} — retrying",
-                        authorityEik, attempt, MAX_FETCH_ATTEMPTS, ex.getStatusCode());
-                pause(RETRY_BASE_DELAY_MS * attempt);
-            }
+    private static String sigmaFieldSignature(MonitorContractEntity entity) {
+        return String.join("|",
+                nullSafe(entity.getUnp()),
+                nullSafe(entity.getSubject()),
+                nullSafe(entity.getAuthorityName()),
+                nullSafe(entity.getContractorName()),
+                nullSafe(entity.getContractorEik()),
+                nullSafe(entity.getSectorCode()),
+                nullSafe(entity.getProcedureType()),
+                entity.getSignedAt() != null ? entity.getSignedAt().toString() : "",
+                entity.getAmountEur() != null ? entity.getAmountEur().toPlainString() : "",
+                String.valueOf(entity.isEuFunded()),
+                entity.getBidsReceived() != null ? entity.getBidsReceived().toString() : "");
+    }
+
+    private static String nullSafe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String fetchCsv(String authorityEik, boolean bypassCache) {
+        SigmaProxyService.CachedCsv cached = sigmaProxyService.getContractsCsv(authorityEik, bypassCache);
+        String body = cached.body();
+        if (body == null || body.isBlank()) {
+            return null;
         }
+        return body;
     }
 
     private static void pause(long millis) {
@@ -344,11 +405,25 @@ public class SigmaImportService {
         return value.trim();
     }
 
+    private static LocalDate resolveSignedDate(String signedAtRaw, String unp) {
+        LocalDate parsed = parseDate(signedAtRaw);
+        if (parsed != null) {
+            return parsed;
+        }
+        return MonitorContractDates.dateFromUnp(unp);
+    }
+
     private static LocalDate parseDate(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return LocalDate.parse(value.trim());
+        String trimmed = value.trim();
+        try {
+            return LocalDate.parse(trimmed);
+        } catch (Exception ignored) {
+            // SIGMA usually uses ISO; tolerate blank/unexpected without failing the row.
+        }
+        return null;
     }
 
     private static BigDecimal parseDecimal(String value) {

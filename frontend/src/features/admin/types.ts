@@ -219,10 +219,39 @@ export interface MonitorIngestionStatus {
  * A background ingestion job. Imports take minutes, so triggers answer with the job
  * state and the panel polls until it reaches SUCCESS or FAILED.
  */
+export interface MonitorDataQualityReport {
+  contractsTotal: number;
+  sigmaContracts: number;
+  eopContracts: number;
+  missingSignedAt: number;
+  missingOriginalCurrency: number;
+  currencyWarnings: number;
+  documentsWithAmountMissingCurrency: number;
+  alerts: string[];
+}
+
+export interface MonitorSigmaSpotCheck {
+  sampled: number;
+  matched: number;
+  mismatched: number;
+  notInSigma: number;
+  sigmaFetchErrors: number;
+  message: string;
+  rows: {
+    sigmaId: string;
+    unp: string | null;
+    authorityEik: string;
+    localAmountEur: number | null;
+    sigmaAmountEur: number | null;
+    match: boolean;
+    note: string;
+  }[];
+}
+
 export interface MonitorJobState {
   key: string;
   label: string;
-  status: "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | "BUSY";
+  status: "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELLED" | "BUSY";
   message: string | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -258,6 +287,8 @@ export interface MonitorAdminAiStats {
   totalContracts: number;
   geminiConfigured: boolean;
   geminiModel: string;
+  geminiAccessBlocked?: boolean;
+  geminiAccessMessage?: string | null;
 }
 
 export interface MonitorAdminRawDocument {
@@ -281,6 +312,8 @@ export interface MonitorAdminContract {
   procedureType: string | null;
   signedAt: string | null;
   amountEur: number | null;
+  originalCurrency: string | null;
+  currencyWarning: string | null;
   originalAmountEur: number | null;
   estimatedValueEur: number | null;
   publicationDate: string | null;
@@ -336,6 +369,8 @@ export interface MonitorAdminCouncilor {
   mandatePeriod: string | null;
   zpokonpiChecked: boolean;
   zpokonpiNote: string | null;
+  zpokonpiStatus: string | null;
+  zpokonpiRegisterUrl: string | null;
   sourceUrl: string | null;
   zpokonpiPortalUrl: string;
 }

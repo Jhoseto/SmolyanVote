@@ -178,7 +178,7 @@ export function MonitorNavMenu({
                 <Link
                   href="/monitor"
                   onClick={handleNav}
-                  className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-primary)] px-4 py-2.5 text-[0.85rem] font-medium text-white shadow-[0_4px_14px_rgba(25,134,28,0.25)]"
+                  className="btn-brand mt-4 inline-flex items-center justify-center gap-2 rounded-[var(--radius-pill)] px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-md)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
                 >
                   Отвори монитора
                   <i className="bi bi-arrow-right" />

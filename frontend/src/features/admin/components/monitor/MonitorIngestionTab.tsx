@@ -8,6 +8,7 @@ import { useToast } from "@/shared/hooks/useToast";
 import { errorMessage } from "@/shared/lib/errorMessage";
 import { adminMonitorApi } from "../../api/monitorAdmin";
 import type { MonitorJobState } from "../../types";
+import { MonitorDataQualityPanel } from "./MonitorDataQualityPanel";
 
 const isJobActive = (job?: MonitorJobState) =>
   job?.status === "QUEUED" || job?.status === "RUNNING";
@@ -67,6 +68,9 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
       } else if (job.status === "FAILED") {
         toast.error(job.message ?? `${job.label} е неуспешен`);
         settled = true;
+      } else if (job.status === "CANCELLED") {
+        toast.warning(job.message ?? `${job.label} е спрян`);
+        settled = true;
       }
     }
     if (settled) refreshData();
@@ -86,6 +90,43 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
     onError: (e) => toast.error(errorMessage(e, "Задачата не стартира")),
   });
 
+  const cancelJobMut = useMutation({
+    mutationFn: (key: string) => adminMonitorApi.cancelIngestionJob(key),
+    onSuccess: (result) => {
+      if (result.accepted) {
+        toast.warning(result.message ?? "Задачата се спира…");
+      } else {
+        toast.info(result.message ?? "Няма активна задача");
+      }
+      refreshData();
+      void jobsQ.refetch();
+    },
+    onError: (e) => toast.error(errorMessage(e, "Спирането не успя")),
+  });
+
+  const cancelAllMut = useMutation({
+    mutationFn: () => adminMonitorApi.cancelAllIngestionJobs(),
+    onSuccess: (result) => {
+      toast.warning(result.message);
+      refreshData();
+      void jobsQ.refetch();
+    },
+    onError: (e) => toast.error(errorMessage(e, "Спирането не успя")),
+  });
+
+  const cancelLogMut = useMutation({
+    mutationFn: (id: number) => adminMonitorApi.cancelIngestionLog(id),
+    onSuccess: (result) => {
+      if (result.accepted) {
+        toast.warning(result.message ?? "Логът е маркиран като спрян");
+        refreshData();
+      } else {
+        toast.info(result.message ?? "Логът не е активен");
+      }
+    },
+    onError: (e) => toast.error(errorMessage(e, "Спирането не успя")),
+  });
+
   const start = useCallback(
     (startFn: () => Promise<MonitorJobState>) => launchMut.mutate({ start: startFn }),
     [launchMut],
@@ -94,7 +135,7 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
   function retryIngestion(ingestionType: string) {
     const t = ingestionType.toUpperCase();
     if (t.includes("SIGMA")) {
-      start(() => adminMonitorApi.triggerSigma());
+      start(() => adminMonitorApi.refreshSigmaCache());
     } else if (t.includes("EOP")) {
       start(() => adminMonitorApi.triggerEop(7));
     } else if (t.includes("SMOLYAN") || t.includes("SCRAPE")) {
@@ -105,6 +146,8 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
   }
 
   const busy = launchMut.isPending;
+  const stopping = cancelJobMut.isPending || cancelAllMut.isPending || cancelLogMut.isPending;
+  const hasActiveJobs = jobs.some(isJobActive);
 
   if (statusQ.isLoading) {
     return <Skeleton className="h-96 w-full rounded-[var(--radius-lg)]" />;
@@ -160,16 +203,36 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
         <div
           className={cn(
             "flex flex-wrap items-center gap-3 rounded-[var(--radius-lg)] border px-4 py-3 text-[0.85rem]",
-            aiStatsQ.data.geminiConfigured
-              ? "border-emerald-200 bg-emerald-50/80 text-emerald-900"
-              : "border-amber-200 bg-amber-50/80 text-amber-900",
+            aiStatsQ.data.geminiAccessBlocked
+              ? "border-red-200 bg-red-50/80 text-red-900"
+              : aiStatsQ.data.geminiConfigured
+                ? "border-emerald-200 bg-emerald-50/80 text-emerald-900"
+                : "border-amber-200 bg-amber-50/80 text-amber-900",
           )}
         >
-          <i className={cn("bi", aiStatsQ.data.geminiConfigured ? "bi-check-circle" : "bi-exclamation-triangle")} />
+          <i
+            className={cn(
+              "bi",
+              aiStatsQ.data.geminiAccessBlocked
+                ? "bi-x-octagon"
+                : aiStatsQ.data.geminiConfigured
+                  ? "bi-check-circle"
+                  : "bi-exclamation-triangle",
+            )}
+          />
           <span>
-            Gemini: {aiStatsQ.data.geminiConfigured ? "конфигуриран" : "липсва GEMINI_API_KEY — без пълен AI доклад"}
-            {aiStatsQ.data.geminiConfigured && (
-              <span className="text-[color:var(--color-text-muted)]"> · модел {aiStatsQ.data.geminiModel}</span>
+            {aiStatsQ.data.geminiAccessBlocked ? (
+              <>
+                Gemini: достъп отказан (403) — AI batch е спрян. Проверете GEMINI_API_KEY и Google Cloud
+                проекта, след което рестартирайте backend.
+              </>
+            ) : (
+              <>
+                Gemini: {aiStatsQ.data.geminiConfigured ? "конфигуриран" : "липсва GEMINI_API_KEY — без пълен AI доклад"}
+                {aiStatsQ.data.geminiConfigured && (
+                  <span className="text-[color:var(--color-text-muted)]"> · модел {aiStatsQ.data.geminiModel}</span>
+                )}
+              </>
             )}
           </span>
           <span className="text-[color:var(--color-text-muted)]">·</span>
@@ -191,11 +254,26 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
       {/* Background jobs */}
       {jobs.length > 0 && (
         <section className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4">
-          <h3 className="mb-1 font-display text-[0.95rem] font-semibold">Задачи</h3>
-          <p className="mb-3 text-[0.78rem] text-[color:var(--color-text-muted)]">
-            Импортите се изпълняват на сървъра — SIGMA отнема няколко минути. Може да
-            затворите панела, работата продължава.
-          </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="font-display text-[0.95rem] font-semibold">Задачи</h3>
+              <p className="text-[0.78rem] text-[color:var(--color-text-muted)]">
+                Импортите се изпълняват на сървъра — SIGMA cache refresh отнема ~1–2 мин. Може да
+                затворите панела, работата продължава.
+              </p>
+            </div>
+            {hasActiveJobs && (
+              <button
+                type="button"
+                disabled={stopping}
+                onClick={() => cancelAllMut.mutate()}
+                className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[0.78rem] font-semibold text-red-800 hover:bg-red-100 disabled:opacity-40"
+              >
+                <i className={cn("bi bi-stop-circle mr-1", stopping && "animate-pulse")} />
+                Спри всички
+              </button>
+            )}
+          </div>
           <ul className="space-y-2">
             {jobs.map((job) => (
               <li
@@ -207,9 +285,11 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
                     "bi",
                     isJobActive(job)
                       ? "bi-arrow-repeat animate-spin text-blue-700"
-                      : job.status === "FAILED"
-                        ? "bi-x-circle text-red-700"
-                        : "bi-check-circle text-emerald-700",
+                      : job.status === "CANCELLED"
+                        ? "bi-stop-circle text-amber-700"
+                        : job.status === "FAILED"
+                          ? "bi-x-circle text-red-700"
+                          : "bi-check-circle text-emerald-700",
                   )}
                 />
                 <span className="font-medium">{job.label}</span>
@@ -225,6 +305,17 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
                 >
                   {job.message ?? "—"}
                 </span>
+                {isJobActive(job) && (
+                  <button
+                    type="button"
+                    disabled={stopping}
+                    onClick={() => cancelJobMut.mutate(job.key)}
+                    className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[0.72rem] font-medium text-red-800 hover:bg-red-100 disabled:opacity-40"
+                  >
+                    <i className="bi bi-stop-circle mr-1" />
+                    Спри
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -237,12 +328,12 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
         <div className="flex flex-wrap gap-2">
           <ActionButton
             icon="bi-cloud-download"
-            label="SIGMA import"
-            description="Договори от sigma.midt.bg (~4 мин)"
+            label="SIGMA cache refresh"
+            description="Обнови кеш от sigma.midt.bg (~1–2 мин, diff import)"
             loading={isJobActive(jobFor("SIGMA"))}
             disabled={busy}
             primary
-            onClick={() => start(() => adminMonitorApi.triggerSigma())}
+            onClick={() => start(() => adminMonitorApi.refreshSigmaCache())}
           />
           <ActionButton
             icon="bi-globe2"
@@ -319,7 +410,7 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
           <ActionButton
             icon="bi-lightning-charge"
             label="Пълен pipeline"
-            description="SIGMA → EOP → scrape → OCR → AI → TR → съветници"
+            description="SIGMA cache → EOP → scrape → OCR → AI → TR → съветници"
             loading={isJobActive(jobFor("PIPELINE"))}
             disabled={busy}
             onClick={() => start(() => adminMonitorApi.triggerPipeline())}
@@ -368,7 +459,7 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
                   <th className="px-3 py-2">Старт</th>
                   <th className="px-3 py-2">Записи</th>
                   <th className="px-3 py-2">Съобщение</th>
-                  <th className="px-3 py-2 text-right">Retry</th>
+                  <th className="px-3 py-2 text-right">Действие</th>
                 </tr>
               </thead>
               <tbody>
@@ -386,10 +477,21 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
                       {log.message ?? "—"}
                     </td>
                     <td className="px-3 py-2 text-right">
+                      {log.status.toUpperCase() === "RUNNING" && (
+                        <button
+                          type="button"
+                          disabled={stopping}
+                          onClick={() => cancelLogMut.mutate(log.id)}
+                          className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[0.72rem] font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-40"
+                        >
+                          <i className="bi bi-stop-circle mr-1" />
+                          Спри
+                        </button>
+                      )}
                       {["FAILED", "PARTIAL"].includes(log.status.toUpperCase()) && (
                         <button
                           type="button"
-                          disabled={busy}
+                          disabled={busy || stopping}
                           onClick={() => retryIngestion(log.ingestionType)}
                           className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[0.72rem] font-medium text-red-800 hover:bg-red-100 disabled:opacity-40"
                         >
@@ -412,6 +514,8 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
           </div>
         )}
       </section>
+
+      <MonitorDataQualityPanel enabled={enabled} />
     </div>
   );
 }
@@ -494,7 +598,7 @@ export function StatusBadge({ status }: { status: string }) {
       ? "bg-emerald-100 text-emerald-800"
       : s === "RUNNING" || s === "QUEUED"
         ? "bg-blue-100 text-blue-800"
-        : s === "PARTIAL" || s === "BUSY"
+        : s === "PARTIAL" || s === "BUSY" || s === "CANCELLED"
           ? "bg-amber-100 text-amber-800"
           : s === "FAILED"
             ? "bg-red-100 text-red-800"

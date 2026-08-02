@@ -84,6 +84,34 @@ export function MonitorMethodologyPage() {
           </p>
         </CollapsibleSection>
 
+        <CollapsibleSection title="Валути и суми" defaultOpen>
+          <ul className="list-inside list-disc space-y-2 text-[0.9rem]">
+            <li>
+              <strong>Договори (SIGMA / EOP):</strong> всички суми в графиките и таблиците са в{" "}
+              <strong>евро (€)</strong>. SIGMA публикува <code>value_eur</code> директно — без
+              допълнителна конверсия. EOP записи в лева се преизчисляват с фиксирания курс{" "}
+              <strong>1 € = 1,95583 лв.</strong> (официален BNB курс).
+            </li>
+            <li>
+              <strong>Официален бюджет на ОбС:</strong> приетите и изпълнените суми са в{" "}
+              <strong>лева</strong> от решения на съвета; € е само <em>индикативен</em> еквивалент
+              по същия курс.
+            </li>
+            <li>
+              <strong>CPV модул (~18 млн. €):</strong> индикативна аналитична рамка по 5 сектора —
+              не е официален бюджет на общината.
+            </li>
+            <li>
+              <strong>Документи от smolyan.bg:</strong> сумата се извлича от текста с маркирана валута
+              (лв. / €). Ако валутата не може да се определи, сумата <em>не</em> се показва като €.
+            </li>
+          </ul>
+          <p className="mt-3 text-[0.78rem] text-[color:var(--color-text-muted)]">
+            При несъответствие винаги проверете първоизточника (линк „Виж оригинала"). Мониторът не
+            замества официални регистри.
+          </p>
+        </CollapsibleSection>
+
         <CollapsibleSection title="Източници">
           <ul className="list-inside list-disc text-[0.9rem]">
             <li>SIGMA (sigma.midt.bg) — договори по authority_eik за 8-те общини</li>

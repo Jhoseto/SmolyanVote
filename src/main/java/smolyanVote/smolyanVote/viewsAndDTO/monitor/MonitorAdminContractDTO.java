@@ -16,6 +16,8 @@ public record MonitorAdminContractDTO(
         String procedureType,
         LocalDate signedAt,
         BigDecimal amountEur,
+        String originalCurrency,
+        String currencyWarning,
         BigDecimal originalAmountEur,
         BigDecimal estimatedValueEur,
         LocalDate publicationDate,

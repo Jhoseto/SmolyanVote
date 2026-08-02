@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { formatDate } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
+import { MonitorDetailLink } from "./MonitorDetailLink";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorCouncilTimelineProps {
@@ -51,12 +51,12 @@ export function MonitorCouncilTimeline({ items, loading }: MonitorCouncilTimelin
               {item.shortSummary}
             </p>
           )}
-          <Link
+          <MonitorDetailLink
             href={withAuthority(`/monitor/document/${item.id}`)}
             className="mt-2 inline-flex text-[0.78rem] font-medium text-primary hover:underline"
           >
             Виж детайли →
-          </Link>
+          </MonitorDetailLink>
         </li>
       ))}
     </ol>

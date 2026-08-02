@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MonitorJobLauncher {
 
     private static final Logger log = LoggerFactory.getLogger(MonitorJobLauncher.class);
+    private static final String CANCELLED_MESSAGE = "Спрян от администратор";
 
     public enum JobStatus {
         /** Waiting for another job to finish. */
@@ -38,6 +40,7 @@ public class MonitorJobLauncher {
         RUNNING,
         SUCCESS,
         FAILED,
+        CANCELLED,
         /** Not accepted — the same job is already queued or running. */
         BUSY
     }
@@ -62,6 +65,9 @@ public class MonitorJobLauncher {
         }
     }
 
+    public record CancelResult(boolean accepted, String message) {
+    }
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "monitor-ingestion");
         thread.setDaemon(true);
@@ -70,6 +76,9 @@ public class MonitorJobLauncher {
 
     /** Last known state per job key — running jobs and the outcome of finished ones. */
     private final Map<String, JobState> states = new ConcurrentHashMap<>();
+
+    /** In-flight executor tasks — used to interrupt a running job. */
+    private final Map<String, Future<?>> futures = new ConcurrentHashMap<>();
 
     /** Accepted but not yet finished jobs; anything beyond the first has to wait its turn. */
     private final AtomicInteger pending = new AtomicInteger();
@@ -87,6 +96,8 @@ public class MonitorJobLauncher {
                     current.startedAt(), null);
         }
 
+        MonitorJobCancellation.clear(key);
+
         boolean waiting = pending.incrementAndGet() > 1;
         JobState accepted = new JobState(key, label,
                 waiting ? JobStatus.QUEUED : JobStatus.RUNNING,
@@ -95,9 +106,11 @@ public class MonitorJobLauncher {
         states.put(key, accepted);
 
         try {
-            executor.submit(() -> runJob(key, label, job));
+            Future<?> future = executor.submit(() -> runJob(key, label, job));
+            futures.put(key, future);
         } catch (RuntimeException ex) {
             pending.decrementAndGet();
+            futures.remove(key);
             states.put(key, new JobState(key, label, JobStatus.FAILED,
                     "Задачата не беше приета: " + MonitorIngestionRunService.describe(ex),
                     accepted.startedAt(), Instant.now()));
@@ -107,22 +120,93 @@ public class MonitorJobLauncher {
         return accepted;
     }
 
+    /**
+     * Stops a queued or running job. Running work is interrupted; DB ingestion logs
+     * are closed separately by the controller.
+     */
+    public CancelResult cancel(String key) {
+        JobState current = states.get(key);
+        if (current == null || !isPending(current.status())) {
+            return new CancelResult(false, "Няма активна задача „" + key + "“.");
+        }
+
+        MonitorJobCancellation.request(key);
+        Future<?> future = futures.get(key);
+        if (future != null) {
+            future.cancel(true);
+        }
+
+        Instant now = Instant.now();
+        states.put(key, new JobState(key, current.label(), JobStatus.CANCELLED,
+                CANCELLED_MESSAGE, current.startedAt(), now));
+        log.info("Monitor job {} cancel requested", key);
+        return new CancelResult(true, current.label() + " — спиране…");
+    }
+
+    /** Cancels every queued or running job. */
+    public int cancelAll() {
+        List<String> keys = states.values().stream()
+                .filter(state -> isPending(state.status()))
+                .map(JobState::key)
+                .distinct()
+                .toList();
+        int count = 0;
+        for (String key : keys) {
+            if (cancel(key).accepted()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public boolean hasPendingJobs() {
+        return states.values().stream().anyMatch(state -> isPending(state.status()));
+    }
+
     private void runJob(String key, String label, Callable<JobResult> job) {
         Instant startedAt = Instant.now();
-        states.put(key, new JobState(key, label, JobStatus.RUNNING, label + " се изпълнява…", startedAt, null));
+        boolean cancelled = false;
         try {
+            if (MonitorJobCancellation.isRequested(key)) {
+                cancelled = true;
+                return;
+            }
+
+            states.put(key, new JobState(key, label, JobStatus.RUNNING, label + " се изпълнява…", startedAt, null));
+            MonitorJobCancellation.begin(key);
             JobResult result = job.call();
+
+            if (MonitorJobCancellation.isRequested(key) || Thread.currentThread().isInterrupted()) {
+                cancelled = true;
+                return;
+            }
+
             String message = result == null || result.message() == null || result.message().isBlank()
                     ? label + " завърши."
                     : result.message();
             JobStatus status = result != null && !result.ok() ? JobStatus.FAILED : JobStatus.SUCCESS;
             states.put(key, new JobState(key, label, status, message, startedAt, Instant.now()));
+        } catch (MonitorJobCancelledException ex) {
+            cancelled = true;
         } catch (Exception ex) {
-            log.error("Monitor job {} failed", key, ex);
-            states.put(key, new JobState(key, label, JobStatus.FAILED,
-                    MonitorIngestionRunService.describe(ex), startedAt, Instant.now()));
+            if (MonitorJobCancellation.isRequested(key) || Thread.currentThread().isInterrupted()) {
+                cancelled = true;
+            } else {
+                log.error("Monitor job {} failed", key, ex);
+                states.put(key, new JobState(key, label, JobStatus.FAILED,
+                        MonitorIngestionRunService.describe(ex), startedAt, Instant.now()));
+            }
         } finally {
+            MonitorJobCancellation.end();
+            MonitorJobCancellation.clear(key);
+            futures.remove(key);
             pending.decrementAndGet();
+            if (cancelled) {
+                states.put(key, new JobState(key, label, JobStatus.CANCELLED,
+                        CANCELLED_MESSAGE, startedAt, Instant.now()));
+                Thread.interrupted();
+                log.info("Monitor job {} cancelled", key);
+            }
         }
     }
 
@@ -144,6 +228,7 @@ public class MonitorJobLauncher {
 
     @PreDestroy
     void shutdown() {
+        cancelAll();
         executor.shutdownNow();
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {

@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import smolyanVote.smolyanVote.config.MonitorIngestionProperties;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,26 +25,36 @@ public class MonitorTradeRegisterClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final MonitorApiThrottle throttle;
 
-    public MonitorTradeRegisterClient(ObjectMapper objectMapper) {
+    public MonitorTradeRegisterClient(ObjectMapper objectMapper, MonitorIngestionProperties ingestionProperties) {
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
+        this.throttle = new MonitorApiThrottle(ingestionProperties.getTradeRegisterDelayMs());
     }
 
-    public TradeRegisterProfile fetchProfile(String eik) {
+    public TradeRegisterResponse fetchProfile(String eik) {
         if (eik == null || !eik.matches("\\d{9,13}")) {
-            return null;
+            return TradeRegisterResponse.notFound();
         }
+        throttle.awaitSlot();
         try {
             String body = restTemplate.getForObject(BASE_URL + eik.trim(), String.class);
             if (body == null || body.isBlank()) {
-                return null;
+                return TradeRegisterResponse.notFound();
             }
             JsonNode root = objectMapper.readTree(body);
-            return parseProfile(root);
+            return TradeRegisterResponse.ok(parseProfile(root));
+        } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode().value() == 429) {
+                log.warn("Trade register rate limit for EIK {} — stop batch and retry later", eik);
+                return TradeRegisterResponse.blocked();
+            }
+            log.warn("Trade register lookup failed for EIK {}: {}", eik, ex.getMessage());
+            return TradeRegisterResponse.notFound();
         } catch (Exception ex) {
             log.warn("Trade register lookup failed for EIK {}: {}", eik, ex.getMessage());
-            return null;
+            return TradeRegisterResponse.notFound();
         }
     }
 
@@ -152,6 +164,21 @@ public class MonitorTradeRegisterClient {
             return value;
         }
         return value.substring(0, max - 3) + "...";
+    }
+
+    public record TradeRegisterResponse(TradeRegisterProfile profile, boolean blockedByRateLimit) {
+
+        public static TradeRegisterResponse ok(TradeRegisterProfile profile) {
+            return new TradeRegisterResponse(profile, false);
+        }
+
+        public static TradeRegisterResponse notFound() {
+            return new TradeRegisterResponse(null, false);
+        }
+
+        public static TradeRegisterResponse blocked() {
+            return new TradeRegisterResponse(null, true);
+        }
     }
 
     public record TradeRegisterProfile(

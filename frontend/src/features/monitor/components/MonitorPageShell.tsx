@@ -10,6 +10,8 @@ import { MonitorTabLoader } from "./MonitorTabLoader";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 import { MonitorMunicipalityFilter } from "./MonitorMunicipalityFilter";
 import type { MonitorOverview } from "../types";
+import { monitorSegmentClass } from "../lib/monitorSegmentStyles";
+import "./monitor-ui.css";
 
 const TABS: { id: MonitorTab; href: string; label: string; icon: string }[] = [
   { id: "all", href: "/monitor", label: "Анализ", icon: "bi-grid" },
@@ -47,6 +49,7 @@ export function MonitorPageShell({
 }: MonitorPageShellProps) {
   const pathname = usePathname();
   const { authority, label, withAuthority } = useMonitorAuthority();
+  const showMunicipalityFilter = !pathname.startsWith("/monitor/council");
 
   return (
     <div className="pb-16 pt-[calc(var(--navbar-height)+1.5rem)]">
@@ -65,7 +68,7 @@ export function MonitorPageShell({
           </p>
         </header>
 
-        <MonitorMunicipalityFilter />
+        {showMunicipalityFilter && <MonitorMunicipalityFilter />}
 
         {showKpi && <MonitorKpiStrip overview={overview ?? null} loading={overviewLoading} />}
 
@@ -82,12 +85,11 @@ export function MonitorPageShell({
               <Link
                 key={tab.id}
                 href={withAuthority(tab.href)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[0.8rem] font-medium transition",
-                  active
-                    ? "bg-primary text-white shadow-[0_4px_14px_rgba(25,134,28,0.25)]"
-                    : "bg-white/80 text-[color:var(--color-text-secondary)] hover:bg-primary-50 hover:text-primary",
-                )}
+                className={monitorSegmentClass(active, {
+                  variant: "standalone",
+                  className:
+                    "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[0.8rem] font-medium",
+                })}
               >
                 <i className={cn("bi", tab.icon)} />
                 {tab.label}

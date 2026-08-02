@@ -47,6 +47,8 @@ public record MonitorContractDetailDTO(
         String insightHeadline,
         String whyItMatters,
         String concernType,
-        String aiAnalysis
+        String aiAnalysis,
+        String sigmaUrl,
+        Instant sigmaRefreshedAt
 ) {
 }

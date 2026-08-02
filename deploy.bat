@@ -193,8 +193,11 @@ ssh %SSH_OPTS% %SSH_TARGET% "bash %REMOTE_DIR%/post-deploy.sh"
 if errorlevel 1 exit /b 1
 
 echo.
-echo Deploy complete: http://%DO_HOST%/
-echo   Monitor: http://%DO_HOST%/monitor
+echo Deploy complete:
+echo   HTTP (IP):  http://%DO_HOST%/
+echo   HTTPS:      https://161-35-69-206.sslip.io/
+echo   Monitor:    https://161-35-69-206.sslip.io/monitor
+echo   Note: https://%DO_HOST% fails in Chrome ^(no SSL for raw IP^) — use sslip.io or http:// IP
 echo   After first deploy: Admin -^> Monitor -^> Ingestion -^> run SIGMA import (~5 min)
 echo.
 echo Tips for faster deploys:

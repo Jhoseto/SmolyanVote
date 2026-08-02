@@ -8,6 +8,8 @@ public record MonitorCouncilorCardDTO(
         String mandatePeriod,
         boolean zpokonpiChecked,
         String zpokonpiNote,
+        String zpokonpiStatus,
+        String zpokonpiRegisterUrl,
         String sourceUrl,
         String zpokonpiPortalUrl
 ) {

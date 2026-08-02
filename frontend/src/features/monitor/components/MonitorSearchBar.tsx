@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import { monitorApi } from "../api";
 import type { MonitorSearchSuggestion } from "../types";
+import { openMonitorDetail } from "./MonitorDetailLink";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorSearchBarProps {
@@ -69,7 +70,7 @@ export function MonitorSearchBar({
     setOpen(false);
     const href =
       s.itemType === "contract" ? `/monitor/contract/${s.id}` : `/monitor/document/${s.id}`;
-    router.push(withAuthority(href));
+    openMonitorDetail(withAuthority(href));
   }
 
   return (

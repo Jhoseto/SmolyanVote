@@ -50,11 +50,18 @@ function parseBgDate(text) {
 
 function extractStructuredFields(text) {
   if (!text) return {};
-  const amountMatch = text.match(/(\d[\d\s.,]{2,})\s*(?:лв\.?|BGN|EUR|€|евро)/i);
+  const amountMatch = text.match(/(\d[\d\s.,]{2,})\s*(лв\.?|BGN|бгн|евро|EUR|€)/i);
   let amount = null;
+  let amountCurrency = null;
   if (amountMatch) {
     const n = parseFloat(amountMatch[1].replace(/\s/g, "").replace(",", "."));
     if (!Number.isNaN(n)) amount = n;
+    const unit = amountMatch[2].toLowerCase();
+    if (unit.startsWith("лв") || unit === "bgn" || unit === "бгн") {
+      amountCurrency = "BGN";
+    } else {
+      amountCurrency = "EUR";
+    }
   }
   const deadlineMatch = text.match(
     /(?:краен\s+срок|до\s+дата|подаване\s+до|срок\s*[:\-–])\s*(\d{1,2}[./]\d{1,2}[./]\d{4})/i,
@@ -64,6 +71,7 @@ function extractStructuredFields(text) {
   );
   return {
     amount,
+    amountCurrency,
     deadlineDate: deadlineMatch ? parseBgDate(deadlineMatch[1]) : null,
     companyName: companyMatch ? companyMatch[1].trim().split(/\n/)[0].slice(0, 200) : null,
   };
@@ -194,6 +202,7 @@ async function scrapePage(page, target) {
     publishedAt: parseBgDate(data.dateText),
     pdfUrls: data.pdfLinks ?? [],
     amount: structured.amount,
+    amountCurrency: structured.amountCurrency,
     deadlineDate: structured.deadlineDate,
     companyName: structured.companyName,
     discoveredOn: target.foundOn || null,

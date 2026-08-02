@@ -12,9 +12,11 @@ import type {
   MonitorCompanyUpdateRequest,
   MonitorContractUpdateRequest,
   MonitorCouncilorRequest,
+  MonitorDataQualityReport,
   MonitorIngestionStatus,
   MonitorJobState,
   MonitorSchedulerSettings,
+  MonitorSigmaSpotCheck,
   PageResponse,
 } from "../types";
 
@@ -37,7 +39,25 @@ export const adminMonitorApi = {
 
   ingestionJobs: () => apiClient.get<MonitorJobState[]>("/admin/api/monitor/ingestion/jobs"),
 
+  cancelIngestionJob: (key: string) =>
+    apiClient.post<{ accepted: boolean; message: string; logsClosed: number }>(
+      `/admin/api/monitor/ingestion/jobs/${encodeURIComponent(key)}/cancel`,
+    ),
+
+  cancelAllIngestionJobs: () =>
+    apiClient.post<{ jobsCancelled: number; logsClosed: number; message: string }>(
+      "/admin/api/monitor/ingestion/jobs/cancel-all",
+    ),
+
+  cancelIngestionLog: (id: number) =>
+    apiClient.post<{ accepted: boolean; message: string }>(
+      `/admin/api/monitor/ingestion/logs/${id}/cancel`,
+    ),
+
   triggerSigma: () => apiClient.post<MonitorJobState>("/admin/api/monitor/ingestion/trigger-sigma"),
+
+  refreshSigmaCache: () =>
+    apiClient.post<MonitorJobState>("/admin/api/monitor/ingestion/refresh-sigma-cache"),
 
   triggerScrape: () =>
     apiClient.post<MonitorJobState>("/admin/api/monitor/ingestion/trigger-scrape"),
@@ -70,6 +90,22 @@ export const adminMonitorApi = {
 
   syncCouncilors: () =>
     apiClient.post<MonitorJobState>("/admin/api/monitor/ingestion/sync-councilors"),
+
+  verifyZpokonpi: (authority?: string) =>
+    apiClient.post<MonitorJobState>(
+      `/admin/api/monitor/ingestion/verify-zpokonpi${authority ? `?authority=${encodeURIComponent(authority)}` : ""}`,
+    ),
+
+  dataQualityReport: () =>
+    apiClient.get<MonitorDataQualityReport>("/admin/api/monitor/integrity/report"),
+
+  repairIntegrity: () =>
+    apiClient.post<MonitorJobState>("/admin/api/monitor/integrity/repair"),
+
+  sigmaSpotCheck: (sample = 25) =>
+    apiClient.post<MonitorSigmaSpotCheck>(
+      `/admin/api/monitor/integrity/sigma-spot-check?sample=${sample}`,
+    ),
 
   deleteDocument: (id: number) =>
     apiClient.delete<{ status: string }>(`/admin/api/monitor/documents/${id}`),

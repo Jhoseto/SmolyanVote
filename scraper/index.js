@@ -6,6 +6,7 @@ import http from "node:http";
 import { hasChromeProfile, hasStorageState, probeSession, sessionStatus, cloudflareSetupHint } from "./lib/browser.js";
 import { runDiscover, runScrape } from "./lib/scrape.js";
 import { runCouncilScrape } from "./lib/scrape-council.js";
+import { fetchPages } from "./lib/fetch-pages.js";
 
 const PORT = Number(process.env.PORT || 3099);
 const args = process.argv.slice(2);
@@ -161,6 +162,34 @@ function startServer() {
       } finally {
         scraping = false;
       }
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/fetch-pages") {
+      if (scraping) {
+        res.writeHead(409, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Job already in progress" }));
+        return;
+      }
+      scraping = true;
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
+      req.on("end", async () => {
+        try {
+          const payload = body ? JSON.parse(body) : {};
+          const urls = Array.isArray(payload.urls) ? payload.urls : [];
+          const pages = await fetchPages(urls);
+          res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+          res.end(JSON.stringify({ pages, count: pages.length }));
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err.message || "fetch-pages failed", pages: [] }));
+        } finally {
+          scraping = false;
+        }
+      });
       return;
     }
 

@@ -14,6 +14,7 @@ public record MonitorScrapedDocumentDTO(
         Instant publishedAt,
         List<String> pdfUrls,
         BigDecimal amount,
+        String amountCurrency,
         Instant deadlineDate,
         String companyName
 ) {
@@ -24,6 +25,6 @@ public record MonitorScrapedDocumentDTO(
             String title,
             String rawContent,
             Instant publishedAt) {
-        this(sourceId, sourceUrl, documentType, title, rawContent, publishedAt, null, null, null, null);
+        this(sourceId, sourceUrl, documentType, title, rawContent, publishedAt, null, null, null, null, null);
     }
 }

@@ -12,6 +12,8 @@ public record MonitorDocumentDetailDTO(
         String aiCategory,
         Integer impactScore,
         BigDecimal amount,
+        String amountCurrency,
+        BigDecimal amountEur,
         String companyName,
         LocalDate deadlineDate,
         Instant publishedAt,

@@ -128,7 +128,8 @@ fi
 
 echo ""
 echo "=== Граждански монитор — първи deploy ==="
-echo "  1. Отворете http://YOUR_IP/monitor (или https://smolyanvote.com/monitor след DNS)"
+echo "  1. Отворете https://161-35-69-206.sslip.io/monitor (или http://YOUR_IP/monitor)"
+echo "     Chrome: https://RAW_IP не работи — използвайте sslip.io или http://"
 echo "  2. Влезте като admin → /admin?tab=monitor → Ingestion"
 echo "  3. Пуснете „Пълен pipeline“ или поне SIGMA import (отнема ~5 мин)"
 echo "  4. По график: SIGMA 04:00, EOP 05:00, scrape 06:00, AI 06:30 (Europe/Sofia)"

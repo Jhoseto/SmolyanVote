@@ -52,6 +52,10 @@ public class GeminiProperties {
                 + resolvedApiKey();
     }
 
+    public long geminiMinRequestIntervalMs() {
+        return api.getMinRequestIntervalMs();
+    }
+
     public static class Api {
         /** Populated from GEMINI_API_KEY in .env / environment. */
         private String key = "";
@@ -61,6 +65,9 @@ public class GeminiProperties {
          * Override with GEMINI_MODEL in .env (e.g. gemini-2.5-flash).
          */
         private String model = "gemini-2.5-flash";
+
+        /** Min gap between generateContent calls — free tier flash is 5 RPM. */
+        private long minRequestIntervalMs = 13_000L;
 
         public String getKey() {
             return key;
@@ -76,6 +83,14 @@ public class GeminiProperties {
 
         public void setModel(String model) {
             this.model = model;
+        }
+
+        public long getMinRequestIntervalMs() {
+            return minRequestIntervalMs;
+        }
+
+        public void setMinRequestIntervalMs(long minRequestIntervalMs) {
+            this.minRequestIntervalMs = minRequestIntervalMs;
         }
     }
 

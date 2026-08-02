@@ -1,5 +1,6 @@
-# Replace smolyanvote.com with your domain. TLS via Caddy automatic HTTPS.
-# IP: HTTP serves the app; HTTPS uses self-signed cert until DNS + Let's Encrypt.
+# Production Caddy.
+# Use https://161-35-69-206.sslip.io until smolyanvote.com DNS exists.
+# Raw IP HTTPS fails on Windows Chrome (no SNI) — use sslip.io or http://161.35.69.206
 
 {
 	auto_https disable_redirects
@@ -29,24 +30,20 @@
 	}
 }
 
+# HTTP by IP or hostname (no TLS redirect).
 :80 {
-	@domain host smolyanvote.com www.smolyanvote.com
-	handle @domain {
-		redir https://{host}{uri} permanent
-	}
-
 	import app
 }
 
-https://161.35.69.206 {
-	tls internal
+# HTTPS with real cert (Let's Encrypt) — works in Chrome on Windows.
+161-35-69-206.sslip.io {
 	import app
 }
 
-smolyanvote.com {
-	import app
-}
-
-www.smolyanvote.com {
-	redir https://smolyanvote.com{uri} permanent
-}
+# --- After smolyanvote.com DNS A → this server, uncomment: ---
+# smolyanvote.com {
+# 	import app
+# }
+# www.smolyanvote.com {
+# 	redir https://smolyanvote.com{uri} permanent
+# }

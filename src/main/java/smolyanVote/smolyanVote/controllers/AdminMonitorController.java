@@ -19,6 +19,7 @@ import smolyanVote.smolyanVote.services.monitor.MonitorBudgetAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCompanyAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCompanyEnrichmentService;
 import smolyanVote.smolyanVote.services.monitor.MonitorContractAdminService;
+import smolyanVote.smolyanVote.services.monitor.MonitorContractDateBackfillService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCouncilorAdminService;
 import smolyanVote.smolyanVote.services.monitor.MonitorCouncilorSyncService;
 import smolyanVote.smolyanVote.services.monitor.MonitorIngestionRunService;
@@ -28,20 +29,28 @@ import smolyanVote.smolyanVote.services.monitor.MonitorOcrService;
 import smolyanVote.smolyanVote.services.monitor.MonitorService;
 import smolyanVote.smolyanVote.services.monitor.MonitorScope;
 import smolyanVote.smolyanVote.services.monitor.MonitorSettingsService;
-import smolyanVote.smolyanVote.services.monitor.SigmaImportService;
+import smolyanVote.smolyanVote.services.monitor.MonitorDataQualityService;
+import smolyanVote.smolyanVote.services.monitor.MonitorSigmaSpotCheckService;
+import smolyanVote.smolyanVote.services.monitor.MonitorZpokonpiVerificationService;
+import smolyanVote.smolyanVote.services.monitor.SigmaRefreshService;
 import smolyanVote.smolyanVote.services.monitor.SmolyanBgScraperService;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminAiStatsDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminCompanyDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminContractDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminDocumentDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminIngestionLogDTO;
+import smolyanVote.smolyanVote.services.monitor.MonitorOfficialBudgetService;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorOfficialBudgetDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorOfficialBudgetRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorBudgetLineDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorBudgetLineRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorCompanyUpdateRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorContractUpdateRequest;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorCouncilorCardDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorCouncilorRequest;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorDataQualityReportDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorIngestionStatusDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorSigmaSpotCheckDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorSchedulerSettingsDTO;
 
 import java.util.HashMap;
@@ -55,7 +64,7 @@ public class AdminMonitorController {
 
     private final MonitorAdminService monitorAdminService;
     private final MonitorService monitorService;
-    private final SigmaImportService sigmaImportService;
+    private final SigmaRefreshService sigmaRefreshService;
     private final SmolyanBgScraperService scraperService;
     private final MonitorAiService aiService;
     private final MonitorInsightEnrichmentService insightEnrichmentService;
@@ -70,13 +79,19 @@ public class AdminMonitorController {
     private final MonitorCompanyAdminService companyAdminService;
     private final MonitorCouncilorAdminService councilorAdminService;
     private final MonitorBudgetAdminService budgetAdminService;
+    private final MonitorOfficialBudgetService officialBudgetService;
+    private final MonitorContractDateBackfillService contractDateBackfillService;
     private final MonitorSettingsService settingsService;
     private final MonitorJobLauncher jobLauncher;
+    private final MonitorIngestionRunService ingestionRunService;
+    private final MonitorZpokonpiVerificationService zpokonpiVerificationService;
+    private final MonitorDataQualityService dataQualityService;
+    private final MonitorSigmaSpotCheckService sigmaSpotCheckService;
 
     public AdminMonitorController(
             MonitorAdminService monitorAdminService,
             MonitorService monitorService,
-            SigmaImportService sigmaImportService,
+            SigmaRefreshService sigmaRefreshService,
             SmolyanBgScraperService scraperService,
             MonitorAiService aiService,
             MonitorInsightEnrichmentService insightEnrichmentService,
@@ -91,11 +106,17 @@ public class AdminMonitorController {
             MonitorCompanyAdminService companyAdminService,
             MonitorCouncilorAdminService councilorAdminService,
             MonitorBudgetAdminService budgetAdminService,
+            MonitorOfficialBudgetService officialBudgetService,
+            MonitorContractDateBackfillService contractDateBackfillService,
             MonitorSettingsService settingsService,
-            MonitorJobLauncher jobLauncher) {
+            MonitorJobLauncher jobLauncher,
+            MonitorIngestionRunService ingestionRunService,
+            MonitorZpokonpiVerificationService zpokonpiVerificationService,
+            MonitorDataQualityService dataQualityService,
+            MonitorSigmaSpotCheckService sigmaSpotCheckService) {
         this.monitorAdminService = monitorAdminService;
         this.monitorService = monitorService;
-        this.sigmaImportService = sigmaImportService;
+        this.sigmaRefreshService = sigmaRefreshService;
         this.scraperService = scraperService;
         this.aiService = aiService;
         this.insightEnrichmentService = insightEnrichmentService;
@@ -110,8 +131,14 @@ public class AdminMonitorController {
         this.companyAdminService = companyAdminService;
         this.councilorAdminService = councilorAdminService;
         this.budgetAdminService = budgetAdminService;
+        this.officialBudgetService = officialBudgetService;
+        this.contractDateBackfillService = contractDateBackfillService;
         this.settingsService = settingsService;
         this.jobLauncher = jobLauncher;
+        this.ingestionRunService = ingestionRunService;
+        this.zpokonpiVerificationService = zpokonpiVerificationService;
+        this.dataQualityService = dataQualityService;
+        this.sigmaSpotCheckService = sigmaSpotCheckService;
     }
 
     private static ResponseEntity<Map<String, Object>> launched(MonitorJobLauncher.JobState state) {
@@ -183,10 +210,63 @@ public class AdminMonitorController {
         return ResponseEntity.ok(jobLauncher.snapshot().stream().map(AdminMonitorController::jobBody).toList());
     }
 
+    @PostMapping("/ingestion/jobs/{key}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelIngestionJob(@PathVariable String key) {
+        MonitorJobLauncher.CancelResult result = jobLauncher.cancel(key);
+        int logsClosed = ingestionRunService.cancelRunningLogs(
+                MonitorIngestionRunService.ingestionTypeForJobKey(key));
+        Map<String, Object> body = new HashMap<>();
+        body.put("accepted", result.accepted());
+        body.put("message", result.message());
+        body.put("logsClosed", logsClosed);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/ingestion/jobs/cancel-all")
+    public ResponseEntity<Map<String, Object>> cancelAllIngestionJobs() {
+        int jobsCancelled = jobLauncher.cancelAll();
+        int logsClosed = ingestionRunService.cancelRunningLogs(null);
+        return ResponseEntity.ok(Map.of(
+                "jobsCancelled", jobsCancelled,
+                "logsClosed", logsClosed,
+                "message", jobsCancelled + logsClosed > 0
+                        ? "Спиране заявено за активни задачи"
+                        : "Няма активни задачи"));
+    }
+
+    @PostMapping("/ingestion/logs/{id}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelIngestionLog(@PathVariable Long id) {
+        var run = ingestionRunService.findById(id);
+        if (run == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "accepted", false,
+                    "message", "Логът не съществува"));
+        }
+        if (run.getStatus() != MonitorIngestionStatus.RUNNING) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "accepted", false,
+                    "message", "Логът не е активен"));
+        }
+        String jobKey = MonitorIngestionRunService.jobKeyForIngestionType(run.getIngestionType());
+        if (jobKey != null && jobLauncher.isPending(jobKey)) {
+            jobLauncher.cancel(jobKey);
+        }
+        ingestionRunService.cancelRunningLog(id);
+        return ResponseEntity.ok(Map.of(
+                "accepted", true,
+                "message", "Ingestion логът е маркиран като спрян"));
+    }
+
     @PostMapping("/ingestion/trigger-sigma")
     public ResponseEntity<Map<String, Object>> triggerSigma() {
-        return launched(jobLauncher.launch("SIGMA", "SIGMA импорт",
-                () -> runResult(sigmaImportService.importRegionalContracts())));
+        return launched(jobLauncher.launch("SIGMA", "SIGMA cache refresh",
+                () -> runResult(sigmaRefreshService.refreshRegionalCache())));
+    }
+
+    @PostMapping("/ingestion/refresh-sigma-cache")
+    public ResponseEntity<Map<String, Object>> refreshSigmaCache() {
+        return launched(jobLauncher.launch("SIGMA", "SIGMA cache refresh",
+                () -> runResult(sigmaRefreshService.refreshRegionalCache())));
     }
 
     @PostMapping("/ingestion/trigger-scrape")
@@ -220,6 +300,37 @@ public class AdminMonitorController {
             var result = councilorSyncService.syncFromScraper();
             return new MonitorJobLauncher.JobResult(result.ok(), result.message());
         }));
+    }
+
+    @PostMapping("/ingestion/verify-zpokonpi")
+    public ResponseEntity<Map<String, Object>> verifyZpokonpi(
+            @RequestParam(required = false) String authority) {
+        return launched(jobLauncher.launch("ZPKONPI", "ЗПКОНПИ проверка", () -> {
+            var summary = authority != null && !authority.isBlank()
+                    ? zpokonpiVerificationService.verifyAuthority(authority.trim())
+                    : zpokonpiVerificationService.verifyAll();
+            return MonitorJobLauncher.JobResult.ok(summary.message());
+        }));
+    }
+
+    @GetMapping("/integrity/report")
+    public MonitorDataQualityReportDTO dataQualityReport() {
+        return dataQualityService.buildReport();
+    }
+
+    @PostMapping("/integrity/repair")
+    public ResponseEntity<Map<String, Object>> repairIntegrity() {
+        return launched(jobLauncher.launch("INTEGRITY", "Integrity repair", () -> {
+            int signed = contractDateBackfillService.backfillSignedDatesFromUnp();
+            int currencies = dataQualityService.backfillContractCurrencies();
+            return MonitorJobLauncher.JobResult.ok(
+                    "Integrity: " + signed + " дати от UNP, " + currencies + " валути backfill");
+        }));
+    }
+
+    @PostMapping("/integrity/sigma-spot-check")
+    public MonitorSigmaSpotCheckDTO sigmaSpotCheck(@RequestParam(defaultValue = "25") int sample) {
+        return sigmaSpotCheckService.runSpotCheck(sample);
     }
 
     @PostMapping("/ai/process-batch")
@@ -257,8 +368,8 @@ public class AdminMonitorController {
 
     @PostMapping("/enrichment/trade-register")
     public ResponseEntity<Map<String, Object>> enrichTradeRegister(
-            @RequestParam(defaultValue = "25") int limit) {
-        int capped = Math.min(limit, 100);
+            @RequestParam(defaultValue = "10") int limit) {
+        int capped = Math.min(limit, ingestionProperties.getTradeRegisterBatchLimit());
         return launched(jobLauncher.launch("TRADE_REGISTER", "Търговски регистър", () ->
                 MonitorJobLauncher.JobResult.ok("Търговски регистър: обновени "
                         + enrichmentService.enrichBatch(capped) + " фирми")));
@@ -274,12 +385,13 @@ public class AdminMonitorController {
             record Step(String label, java.util.concurrent.Callable<String> action) {
             }
             List<Step> steps = List.of(
-                    new Step("SIGMA", () -> summarize(sigmaImportService.importRegionalContracts())),
+                    new Step("SIGMA", () -> summarize(sigmaRefreshService.refreshRegionalCache())),
                     new Step("EOP", () -> summarize(eopImportService.importRecentDays(7))),
                     new Step("scrape", () -> summarize(scraperService.scrapeAll())),
                     new Step("OCR", () -> ocrService.processBatch(10) + " документа"),
-                    new Step("AI", () -> aiService.processPendingBatch(50).summaryMessage()),
-                    new Step("Търговски регистър", () -> enrichmentService.enrichBatch(50) + " фирми"),
+                    new Step("AI", () -> aiService.processPendingBatch(ingestionProperties.getAiBatchLimit()).summaryMessage()),
+                    new Step("Търговски регистър", () -> enrichmentService.enrichBatch(
+                            ingestionProperties.getTradeRegisterBatchLimit()) + " фирми"),
                     new Step("съветници", () -> councilorSyncService.syncFromScraper().message()));
 
             for (Step step : steps) {
@@ -306,7 +418,7 @@ public class AdminMonitorController {
     public ResponseEntity<Map<String, Object>> ingestDocuments(
             @RequestBody List<smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorScrapedDocumentDTO> documents) {
         int count = scraperService.ingestDocuments(documents);
-        MonitorAiService.AiBatchResult ai = aiService.processPendingBatch(50);
+        MonitorAiService.AiBatchResult ai = aiService.processPendingBatch(ingestionProperties.getAiBatchLimit());
         return ResponseEntity.ok(Map.of(
                 "ingested", count,
                 "aiProcessed", ai.total(),
@@ -424,6 +536,29 @@ public class AdminMonitorController {
     }
 
     // ---- Budget lines ------------------------------------------------------
+
+    @PostMapping("/backfill-contract-dates")
+    public ResponseEntity<Map<String, Object>> backfillContractDates() {
+        int updated = contractDateBackfillService.backfillSignedDatesFromUnp();
+        return ResponseEntity.ok(Map.of("status", "OK", "updated", updated));
+    }
+
+    @GetMapping(value = "/official-budgets", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MonitorOfficialBudgetDTO>> listOfficialBudgets() {
+        return ResponseEntity.ok(officialBudgetService.listAll());
+    }
+
+    @PutMapping(value = "/official-budgets", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<MonitorOfficialBudgetDTO> upsertOfficialBudget(
+            @RequestBody MonitorOfficialBudgetRequest request) {
+        return ResponseEntity.ok(officialBudgetService.upsert(request));
+    }
+
+    @DeleteMapping("/official-budgets/{id}")
+    public ResponseEntity<Map<String, Object>> deleteOfficialBudget(@PathVariable Long id) {
+        officialBudgetService.delete(id);
+        return ResponseEntity.ok(Map.of("status", "OK"));
+    }
 
     @GetMapping(value = "/budget-lines", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<MonitorBudgetLineDTO>> listBudgetLines(

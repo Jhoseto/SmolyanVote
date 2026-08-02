@@ -2,18 +2,24 @@
 
 import { useMemo, useState } from "react";
 import type { MonitorCouncilorCard } from "../types";
+import { compareCouncilorsByHierarchy } from "../utils/councilorRoleRank";
+import { zpokonpiStatusClass, zpokonpiStatusLabel } from "../utils/zpokonpiStatus";
+import { MONITOR_OBLAST_LABEL, useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 interface MonitorCouncilorCardsProps {
   councilors: MonitorCouncilorCard[];
+  municipalityLabel: string;
   loading?: boolean;
 }
 
-type CouncilorSort = "name-asc" | "name-desc" | "party-asc";
+type CouncilorSort = "hierarchy" | "name-asc" | "name-desc" | "party-asc";
 
-export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorCardsProps) {
+export function MonitorCouncilorCards({ councilors, municipalityLabel, loading }: MonitorCouncilorCardsProps) {
+  const { authority, municipalities, setAuthority } = useMonitorAuthority();
   const [search, setSearch] = useState("");
   const [party, setParty] = useState("");
-  const [sort, setSort] = useState<CouncilorSort>("name-asc");
+  const [sort, setSort] = useState<CouncilorSort>("hierarchy");
+  const municipalitiesReady = municipalities.length > 0;
 
   const parties = useMemo(() => {
     return [...new Set(councilors.map((c) => c.party).filter(Boolean))].sort((a, b) =>
@@ -33,6 +39,8 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
     });
     list = [...list].sort((a, b) => {
       switch (sort) {
+        case "hierarchy":
+          return compareCouncilorsByHierarchy(a, b);
         case "name-desc":
           return b.fullName.localeCompare(a.fullName, "bg");
         case "party-asc":
@@ -57,23 +65,37 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
 
   if (councilors.length === 0) return null;
 
-  const active = search || party || sort !== "name-asc";
+  const active = search || party || sort !== "hierarchy";
 
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="font-display text-[1rem] font-semibold">Профили — ОбС Смолян</h2>
+        <h2 className="font-display text-[1rem] font-semibold">Профили — {municipalityLabel}</h2>
         <p className="text-[0.82rem] text-[color:var(--color-text-muted)]">
-          Статистики и връзка към декларации по ЗПКОНПИ — без dump на документи.
+          Кмет, председател и състав на общинския съвет (мандат 2023–2027) с връзка към декларации по ЗПКОНПИ.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-border-default/30 bg-white/90 p-3">
+        <select
+          value={authority ?? ""}
+          disabled={!municipalitiesReady}
+          onChange={(e) => setAuthority(e.target.value || null)}
+          aria-label="Община"
+          className="h-9 min-w-[11rem] rounded-full border border-border-default/40 bg-white px-3 text-[0.78rem] font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 disabled:opacity-60"
+        >
+          <option value="">{MONITOR_OBLAST_LABEL} (всички)</option>
+          {municipalities.map((m) => (
+            <option key={m.eik} value={m.eik}>
+              {m.name}
+            </option>
+          ))}
+        </select>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Търси съветник…"
+          placeholder="Търси по име…"
           className="h-9 min-w-[10rem] flex-1 rounded-full border border-border-default/40 px-3 text-[0.82rem] outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
         />
         <select
@@ -81,6 +103,7 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
           onChange={(e) => setSort(e.target.value as CouncilorSort)}
           className="h-9 rounded-full border border-border-default/40 px-3 text-[0.78rem] font-medium"
         >
+          <option value="hierarchy">По йерархия</option>
           <option value="name-asc">Име (А–Я)</option>
           <option value="name-desc">Име (Я–А)</option>
           <option value="party-asc">По партия</option>
@@ -105,7 +128,7 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
             onClick={() => {
               setSearch("");
               setParty("");
-              setSort("name-asc");
+              setSort("hierarchy");
             }}
             className="text-[0.76rem] font-medium text-primary"
           >
@@ -114,8 +137,8 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
         )}
         <span className="w-full text-[0.72rem] text-[color:var(--color-text-muted)]">
           {filtered.length === councilors.length
-            ? `${councilors.length} съветника`
-            : `${filtered.length} от ${councilors.length} съветника`}
+            ? `${councilors.length} профила`
+            : `${filtered.length} от ${councilors.length} профила`}
         </span>
       </div>
 
@@ -129,6 +152,11 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
             {c.roleLabel && (
               <p className="mt-0.5 text-[0.8rem] font-medium text-primary">{c.roleLabel}</p>
             )}
+            <span
+              className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[0.68rem] font-medium ${zpokonpiStatusClass(c.zpokonpiStatus)}`}
+            >
+              {zpokonpiStatusLabel(c.zpokonpiStatus)}
+            </span>
             <dl className="mt-3 space-y-1 text-[0.78rem]">
               {c.party && (
                 <div>
@@ -151,20 +179,24 @@ export function MonitorCouncilorCards({ councilors, loading }: MonitorCouncilorC
                   rel="noopener noreferrer"
                   className="text-[0.72rem] text-primary hover:underline"
                 >
-                  smolyan.bg ↗
+                  Източник ↗
                 </a>
               )}
-              <a
-                href={c.zpokonpiPortalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[0.72rem] text-[color:var(--color-text-muted)] hover:text-primary"
-              >
-                ЗПКОНПИ ↗
-              </a>
+              {(c.zpokonpiRegisterUrl || c.zpokonpiPortalUrl) && (
+                <a
+                  href={c.zpokonpiRegisterUrl ?? c.zpokonpiPortalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[0.72rem] text-[color:var(--color-text-muted)] hover:text-primary"
+                >
+                  Регистър ЗПКОНПИ ↗
+                </a>
+              )}
             </div>
-            {c.zpokonpiNote && (
-              <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-[0.72rem] text-amber-900">{c.zpokonpiNote}</p>
+            {c.zpokonpiNote && c.zpokonpiStatus !== "OK" && (
+              <p className={`mt-2 rounded border px-2 py-1 text-[0.72rem] ${zpokonpiStatusClass(c.zpokonpiStatus)}`}>
+                {c.zpokonpiNote}
+              </p>
             )}
           </article>
         ))}

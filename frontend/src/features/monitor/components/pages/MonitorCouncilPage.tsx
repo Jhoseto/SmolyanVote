@@ -28,16 +28,10 @@ export function MonitorCouncilPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      monitorApi.councilTimeline(authority),
-      monitorApi.councilStats(authority),
-      monitorApi.councilors(authority),
-    ])
-      .then(([timeline, councilStats, councilorCards]) => {
-        if (cancelled) return;
-        setItems(timeline);
-        setStats(councilStats);
-        setCouncilors(councilorCards);
+    monitorApi
+      .councilors(authority)
+      .then((councilorCards) => {
+        if (!cancelled) setCouncilors(councilorCards);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,27 +41,41 @@ export function MonitorCouncilPage() {
     };
   }, [authority]);
 
+  useEffect(() => {
+    if (!hasScrapedDocuments) {
+      setItems([]);
+      setStats(null);
+      return;
+    }
+
+    let cancelled = false;
+    Promise.all([monitorApi.councilTimeline(authority), monitorApi.councilStats(authority)])
+      .then(([timeline, councilStats]) => {
+        if (cancelled) return;
+        setItems(timeline);
+        setStats(councilStats);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authority, hasScrapedDocuments]);
+
+  const councilLabel = authority ? label : "Област Смолян";
+
   return (
     <MonitorMobileShell
       overview={overview}
       overviewLoading={overviewLoading}
       title="Общински съвет"
-      contentLoading={loading && hasScrapedDocuments}
+      contentLoading={loading}
     >
-      {!hasScrapedDocuments ? (
-        <EmptyState
-          icon="bi-building"
-          title={`Няма данни от ОбС за ${label}`}
-          description="Решения и съветници се събират от smolyan.bg само за Община Смолян. Поръчките и договорите се филтрират по избраната община."
-        />
-      ) : (
+      <MonitorCouncilorCards councilors={councilors} municipalityLabel={councilLabel} loading={loading} />
+
+      {hasScrapedDocuments ? (
         <>
           <MonitorCouncilStatsCards stats={stats} loading={false} />
-          <section className="mt-8">
-            <MonitorCouncilorCards councilors={councilors} loading={false} />
-          </section>
           <section className="mt-8 space-y-4">
-            <h2 className="font-display text-[1rem] font-semibold">Хронология</h2>
+            <h2 className="font-display text-[1rem] font-semibold">Хронология — {label}</h2>
             {items.length > 0 && (
               <MonitorListControls
                 filters={filters}
@@ -83,6 +91,14 @@ export function MonitorCouncilPage() {
             <MonitorCouncilTimeline items={filtered} loading={false} />
           </section>
         </>
+      ) : (
+        <section className="mt-8">
+          <EmptyState
+            icon="bi-journal-text"
+            title={`Няма хронология от ОбС за ${label}`}
+            description="Решения и протоколи от smolyan.bg се показват само за Община Смолян. Съветниците по-горе са от официални източници за избраната община."
+          />
+        </section>
       )}
     </MonitorMobileShell>
   );

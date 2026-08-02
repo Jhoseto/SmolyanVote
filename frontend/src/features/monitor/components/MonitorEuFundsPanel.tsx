@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatDate, formatEur } from "../lib/format";
 import type { MonitorEuFunds } from "../types";
+import { MonitorDetailLink } from "./MonitorDetailLink";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 
 type EuSort = "amount-desc" | "amount-asc" | "newest" | "oldest" | "title-asc";
@@ -158,12 +158,12 @@ export function MonitorEuFundsPanel({ data, loading }: MonitorEuFundsPanelProps)
             )}
             <div className="mt-3 flex items-center justify-between gap-2">
               <span className="font-display text-[1rem] font-bold text-primary">{formatEur(p.amountEur)}</span>
-              <Link
+              <MonitorDetailLink
                 href={withAuthority(`/monitor/contract/${p.contractId}`)}
                 className="text-[0.78rem] font-medium text-primary hover:underline"
               >
                 Детайли →
-              </Link>
+              </MonitorDetailLink>
             </div>
           </article>
         ))}

@@ -66,7 +66,9 @@ public class MonitorAdminService {
                 documentRepository.count(),
                 contractRepository.count(),
                 geminiClient.isConfigured(),
-                geminiClient.modelName());
+                geminiClient.modelName(),
+                geminiClient.isAccessBlocked(),
+                geminiClient.accessBlockedReason());
     }
 
     private MonitorAdminIngestionLogDTO toLogDto(MonitorIngestionRunEntity run) {

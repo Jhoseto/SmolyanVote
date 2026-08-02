@@ -5,10 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorCouncilorRepository;
 
-/**
- * Legacy placeholder seeds removed — real profiles come from smolyan.bg scraper sync.
- * Empty table is OK; admin UI shows instructions until Sync съветници runs.
- */
+/** Legacy hook — councilors are seeded from {@link MonitorCouncilorSeed} at startup. */
 @Component
 public class MonitorCouncilSeedService {
 
@@ -23,9 +20,7 @@ public class MonitorCouncilSeedService {
     @jakarta.annotation.PostConstruct
     public void logCouncilorState() {
         long count = councilorRepository.count();
-        if (count == 0) {
-            log.info(
-                    "Monitor councilors: none yet — run scraper setup-session, then Admin → Monitor → Sync съветници");
-        }
+        log.info("Monitor councilors: {} profile(s) in database (curated seed, mandate {})", count,
+                MonitorCouncilorSeed.MANDATE);
     }
 }

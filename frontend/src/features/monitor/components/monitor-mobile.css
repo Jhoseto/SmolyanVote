@@ -15,7 +15,7 @@
     font-size: clamp(1.45rem, 5vw, 1.75rem) !important;
   }
 
-  .monitor-mobile .grid.gap-3.md\\:grid-cols-2 {
+  .monitor-mobile [class*="md:grid-cols-2"] {
     grid-template-columns: 1fr;
   }
 }

@@ -57,4 +57,8 @@ public interface MonitorDocumentRepository extends JpaRepository<MonitorDocument
     List<MonitorDocumentEntity> findOcrCandidates(Pageable pageable);
 
     MonitorDocumentEntity findFirstByDocumentTypeOrderByPublishedAtDesc(MonitorDocumentType documentType);
+
+    List<MonitorDocumentEntity> findByAmountIsNotNullAndAmountCurrencyIsNull();
+
+    long countByAmountIsNotNullAndAmountCurrencyIsNull();
 }

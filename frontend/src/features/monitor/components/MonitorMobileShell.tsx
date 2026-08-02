@@ -6,7 +6,9 @@ import { useIsMobile } from "@/shared/hooks/useMediaQuery";
 import { cn } from "@/shared/lib/cn";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 import { MonitorPageShell } from "./MonitorPageShell";
+import { monitorSegmentClass } from "../lib/monitorSegmentStyles";
 import "./monitor-mobile.css";
+import "./monitor-ui.css";
 
 interface MonitorMobileShellProps {
   children: React.ReactNode;
@@ -75,8 +77,11 @@ export function MonitorMobileShell(props: MonitorMobileShellProps) {
                   key={tab.href}
                   href={withAuthority(tab.href)}
                   className={cn(
-                    "flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2.5 text-[0.62rem] font-medium transition",
-                    active ? "text-primary" : "text-[color:var(--color-text-muted)]",
+                    "mx-0.5 flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-[0.62rem] font-medium",
+                    monitorSegmentClass(active, {
+                      className: active ? "py-2" : undefined,
+                    }),
+                    !active && "text-[color:var(--color-text-muted)]",
                   )}
                 >
                   <i className={cn("bi text-[1.15rem]", tab.icon, active && "scale-110")} />

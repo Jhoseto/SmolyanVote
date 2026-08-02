@@ -14,7 +14,7 @@ export function MonitorKpiStrip({ overview, loading, className }: MonitorKpiStri
   const items = [
     {
       icon: "bi-cash-stack",
-      label: "Похарчено YTD",
+      label: `Похарчено през ${new Date().getFullYear()} г.`,
       value: loading ? "…" : formatEur(overview?.spentYtdEur ?? 0),
       tone: "text-primary",
     },

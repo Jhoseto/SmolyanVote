@@ -6,10 +6,18 @@ import java.util.Map;
 import java.time.LocalDate;
 
 /**
- * Planned municipal budget lines for Община Смолян (indicative, from публични бюджетни данни).
- * Executed amounts are computed live from SIGMA contracts.
+ * Indicative CPV-sector framework for Община Смолян — NOT the full adopted municipal budget.
+ * Executed amounts are computed live from SIGMA/EOP contracts grouped by CPV prefix.
  */
 public final class MonitorBudgetConfig {
+
+    public static final String ANALYTICAL_MODULE_DISCLAIMER =
+            "Това не е официалният общински бюджет. Планът е индикативна рамка за избрани CPV сектори; "
+                    + "изпълнението е сума от договори в SIGMA/ЦАИС ЕОП за същия обхват.";
+
+    public static final String DATA_BASIS =
+            "Изпълнение: договори от SIGMA/ЦАИС ЕОП, групирани по CPV (45*, 90*, 80*, 85*, останалото → администрация). "
+                    + "План: административно поддържани индикативни стойности — не целият бюджет на общината.";
 
     /** Defaults and admin UI — runtime year follows the calendar. */
     public static final int BUDGET_YEAR = LocalDate.now().getYear();
@@ -30,6 +38,15 @@ public final class MonitorBudgetConfig {
             "90", "environment",
             "80", "education",
             "85", "social");
+
+    /** Maps SIGMA CPV sector code to a budget category key. */
+    public static String categoryForCpv(String sectorCode) {
+        if (sectorCode == null || sectorCode.length() < 2) {
+            return "administration";
+        }
+        String prefix = sectorCode.substring(0, 2);
+        return CPV_PREFIX_TO_CATEGORY.getOrDefault(prefix, "administration");
+    }
 
     private MonitorBudgetConfig() {
     }

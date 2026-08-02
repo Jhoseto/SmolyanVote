@@ -46,6 +46,8 @@ dependencies {
 	implementation ("io.micrometer:micrometer-registry-prometheus")
 	implementation ("org.springframework.retry:spring-retry")
 	implementation ("org.springframework:spring-aspects")
+	implementation("org.springframework.boot:spring-boot-starter-cache")
+	implementation("com.github.ben-manes.caffeine:caffeine")
 
 
 	implementation("me.paulschwarz:spring-dotenv:4.0.0")

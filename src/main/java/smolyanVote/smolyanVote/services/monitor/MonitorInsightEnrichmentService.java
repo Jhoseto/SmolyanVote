@@ -37,6 +37,22 @@ public class MonitorInsightEnrichmentService {
         return updated;
     }
 
+    @Transactional
+    public int enrichContracts(List<Long> contractIds) {
+        if (contractIds == null || contractIds.isEmpty()) {
+            return 0;
+        }
+        int updated = 0;
+        for (Long id : contractIds) {
+            MonitorContractEntity contract = contractRepository.findById(id).orElse(null);
+            if (contract != null && enrichContract(contract)) {
+                contractRepository.save(contract);
+                updated++;
+            }
+        }
+        return updated;
+    }
+
     /** Returns true if the row was changed. */
     public boolean enrichContract(MonitorContractEntity contract) {
         MonitorInsightBuilder.ContractInsight insight =

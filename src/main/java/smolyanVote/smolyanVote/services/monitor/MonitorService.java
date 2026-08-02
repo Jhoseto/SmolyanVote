@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -49,6 +50,7 @@ public class MonitorService {
     private final MonitorAmendmentRepository amendmentRepository;
     private final MonitorAiAnalysisService aiAnalysisService;
     private final ObjectMapper objectMapper;
+    private final SigmaProxyService sigmaProxyService;
 
     public MonitorService(
             MonitorContractRepository contractRepository,
@@ -61,7 +63,8 @@ public class MonitorService {
             MonitorDeepDataService deepDataService,
             MonitorAmendmentRepository amendmentRepository,
             MonitorAiAnalysisService aiAnalysisService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SigmaProxyService sigmaProxyService) {
         this.contractRepository = contractRepository;
         this.documentRepository = documentRepository;
         this.companyRepository = companyRepository;
@@ -73,6 +76,7 @@ public class MonitorService {
         this.amendmentRepository = amendmentRepository;
         this.aiAnalysisService = aiAnalysisService;
         this.objectMapper = objectMapper;
+        this.sigmaProxyService = sigmaProxyService;
     }
 
     @Transactional(readOnly = true)
@@ -526,10 +530,26 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorContractDetailDTO getContract(Long id) {
+    public MonitorContractDetailDTO getContract(Long id, boolean fresh) {
         MonitorContractEntity c = contractRepository.findById(id)
                 .orElseThrow(() -> new MonitorNotFoundException("Договорът не е намерен."));
-        return toContractDetail(c);
+        Instant sigmaRefreshedAt = c.getFetchedAt();
+        if (c.getSigmaId() != null && !c.getSigmaId().startsWith("eop:")) {
+            Optional<SigmaProxyService.CachedJson> cachedJson =
+                    sigmaProxyService.getContractJson(c.getSigmaId(), fresh);
+            if (cachedJson.isPresent()) {
+                SigmaContractJsonOverlay.Overlay overlay = SigmaContractJsonOverlay.fromJson(
+                        cachedJson.get().body(), cachedJson.get().fetchedAt());
+                SigmaContractJsonOverlay.apply(c, overlay);
+                sigmaRefreshedAt = cachedJson.get().fetchedAt();
+            }
+        }
+        return toContractDetail(c, sigmaRefreshedAt);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonitorOfficialBudgetTrendPointDTO> getOfficialBudgetTrend() {
+        return deepDataService.getOfficialBudgetTrend();
     }
 
     @Transactional(readOnly = true)
@@ -609,8 +629,12 @@ public class MonitorService {
     }
 
     @Transactional(readOnly = true)
-    public MonitorBudgetDTO getBudget(MonitorScope scope) {
-        return deepDataService.getBudget(scope);
+    public MonitorBudgetDTO getBudget(
+            MonitorScope scope,
+            Integer year,
+            Integer yearFrom,
+            Integer yearTo) {
+        return deepDataService.getBudget(scope, year, yearFrom, yearTo);
     }
 
     @Transactional(readOnly = true)
@@ -818,13 +842,14 @@ public class MonitorService {
                 null);
     }
 
-    private MonitorContractDetailDTO toContractDetail(MonitorContractEntity c) {
+    private MonitorContractDetailDTO toContractDetail(MonitorContractEntity c, Instant sigmaRefreshedAt) {
         List<MonitorRelatedSignalDTO> relatedSignals = signalsLinkService.findRelatedSignals(c, 10);
         List<MonitorAmendmentDTO> amendments = amendmentRepository.findByContractIdOrderByAmendedAtDesc(c.getId())
                 .stream()
                 .map(this::toAmendmentDto)
                 .toList();
         MonitorInsightBuilder.ContractInsight insight = MonitorInsightBuilder.build(c, objectMapper);
+        String sigmaUrl = resolveSigmaUrl(c.getSigmaId());
         return new MonitorContractDetailDTO(
                 c.getId(),
                 c.getSigmaId(),
@@ -863,7 +888,16 @@ public class MonitorService {
                 insight.headline(),
                 c.getInsightWhy() != null ? c.getInsightWhy() : insight.whyItMatters(),
                 insight.concernType(),
-                c.getAiAnalysis());
+                c.getAiAnalysis(),
+                sigmaUrl,
+                sigmaRefreshedAt);
+    }
+
+    private static String resolveSigmaUrl(String sigmaId) {
+        if (sigmaId == null || sigmaId.isBlank() || sigmaId.startsWith("eop:")) {
+            return null;
+        }
+        return MonitorRegionalConfig.SIGMA_BASE_URL + "/contracts/" + sigmaId;
     }
 
     private static String resolveDataSource(String sigmaId) {
@@ -886,6 +920,11 @@ public class MonitorService {
     }
 
     private MonitorDocumentDetailDTO toDocumentDetail(MonitorDocumentEntity d) {
+        String currency = d.getAmountCurrency();
+        BigDecimal amountEur = null;
+        if (d.getAmount() != null && currency != null) {
+            amountEur = MonitorCurrencyUtil.toEur(d.getAmount(), currency);
+        }
         return new MonitorDocumentDetailDTO(
                 d.getId(),
                 d.getDocumentType().name(),
@@ -894,6 +933,8 @@ public class MonitorService {
                 d.getAiCategory(),
                 d.getImpactScore(),
                 d.getAmount(),
+                currency,
+                amountEur,
                 d.getCompanyName(),
                 d.getDeadlineDate(),
                 d.getPublishedAt(),

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   Bar,
   BarChart,
@@ -11,6 +12,13 @@ import {
 } from "recharts";
 import { formatEur } from "../lib/format";
 import type { MonitorRegionalComparison } from "../types";
+import {
+  MONITOR_CHART,
+  MonitorChartCard,
+  MonitorChartDefs,
+  createPremiumBarShape,
+  eurTooltipItem,
+} from "./charts";
 
 interface MonitorRegionalComparisonChartProps {
   data: MonitorRegionalComparison | null;
@@ -21,14 +29,16 @@ export function MonitorRegionalComparisonChart({
   data,
   loading,
 }: MonitorRegionalComparisonChartProps) {
+  const prefix = useId().replace(/:/g, "");
+
   if (loading) {
-    return <div className="h-72 animate-pulse rounded-[var(--radius-lg)] bg-[color:var(--color-surface-muted)]" />;
+    return <div className="h-72 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 shadow-inner" />;
   }
 
   const rows = data?.municipalities ?? [];
   if (rows.length === 0) {
     return (
-      <p className="rounded-[var(--radius-lg)] border border-dashed border-border-default/50 bg-white/80 p-8 text-center text-[0.9rem] text-[color:var(--color-text-muted)]">
+      <p className="rounded-2xl border border-dashed border-border-default/50 bg-white/80 p-8 text-center text-[0.9rem] text-[color:var(--color-text-muted)]">
         Няма данни за сравнение. Разширете SIGMA import с повече общини от област Смолян.
       </p>
     );
@@ -43,29 +53,37 @@ export function MonitorRegionalComparisonChart({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4">
-        <h3 className="mb-3 font-display text-[0.95rem] font-semibold">Разходи по община</h3>
-        <ResponsiveContainer width="100%" height={Math.max(220, chartRows.length * 48)}>
-          <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 16 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" tickFormatter={(v) => formatEur(Number(v))} />
-            <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 12 }} />
-            <Tooltip formatter={(v) => formatEur(Number(v))} />
-            <Bar dataKey="spent" fill="#19861c" radius={[0, 4, 4, 0]} />
+      <MonitorChartCard title="Разходи по община">
+        <ResponsiveContainer width="100%" height={Math.max(240, chartRows.length * 52)}>
+          <BarChart data={chartRows} layout="vertical" margin={{ left: 8, right: 20, top: 4, bottom: 4 }}>
+            <MonitorChartDefs prefix={prefix} />
+            <CartesianGrid {...MONITOR_CHART.gridVertical} />
+            <XAxis
+              type="number"
+              tick={MONITOR_CHART.axisTick}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => formatEur(Number(v))}
+            />
+            <YAxis type="category" dataKey="name" width={96} tick={MONITOR_CHART.axisTick} axisLine={false} tickLine={false} />
+            <Tooltip {...MONITOR_CHART.tooltip} formatter={(v) => eurTooltipItem(v, "Разходи")} />
+            <Bar
+              dataKey="spent"
+              name="Разходи"
+              shape={createPremiumBarShape(prefix, { orientation: "horizontal", fillKey: "bar-green" })}
+            />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </MonitorChartCard>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((row) => (
           <article
             key={row.eik}
-            className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4"
+            className="rounded-2xl border border-white/70 bg-gradient-to-br from-white via-white to-slate-50/90 p-4 shadow-[0_6px_24px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.95)] transition-shadow hover:shadow-[0_10px_32px_rgba(25,134,28,0.08)]"
           >
             <h4 className="font-display text-[0.9rem] font-semibold">{row.name}</h4>
-            <p className="mt-1 font-display text-[1.1rem] font-bold text-primary">
-              {formatEur(row.totalSpentEur)}
-            </p>
+            <p className="mt-1 font-display text-[1.15rem] font-bold text-primary">{formatEur(row.totalSpentEur)}</p>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-[0.78rem]">
               <div>
                 <dt className="text-[color:var(--color-text-muted)]">Договори</dt>

@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatDate, formatEur } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
+import { MonitorDetailLink } from "./MonitorDetailLink";
 import { RiskBadgeChip } from "./MonitorKpiStrip";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
+import "./monitor-ui.css";
 
 interface MonitorDetailSheetProps {
   item: MonitorFeedItem | null;
@@ -86,13 +87,13 @@ export function MonitorDetailSheet({ item, onClose }: MonitorDetailSheetProps) {
               {formatDate(item.date ?? item.publishedAt)}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link
+              <MonitorDetailLink
                 href={href}
-                className="rounded-full bg-primary px-4 py-2 text-[0.85rem] font-medium text-white"
+                className="monitor-cta-primary rounded-full px-4 py-2 text-[0.85rem] font-medium"
                 onClick={onClose}
               >
                 Пълен детайл
-              </Link>
+              </MonitorDetailLink>
               {item.itemType !== "contract" && item.sourceUrl && (
                 <a
                   href={item.sourceUrl}

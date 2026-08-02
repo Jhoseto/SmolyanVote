@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorBudgetLineRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +36,42 @@ public class MonitorBudgetAdminService {
     @Transactional
     public List<MonitorBudgetLineEntity> getOrSeedLines(int year) {
         List<MonitorBudgetLineEntity> lines = budgetLineRepository.findByBudgetYearOrderBySortOrderAsc(year);
-        if (lines.isEmpty()) {
-            return seedDefaults(year);
+        if (lines.isEmpty() && year == MonitorBudgetConfig.budgetYear()) {
+            lines = seedDefaults(year);
         }
-        backfillZeroPlannedFromConfig(lines);
+        if (lines.isEmpty() && year == MonitorBudgetConfig.budgetYear()) {
+            lines = virtualDefaults(year);
+        }
+        if (lines.isEmpty() && MonitorBudgetPlanSeed.supportsIndicativePlan(year)) {
+            lines = MonitorBudgetPlanSeed.virtualScaledLines(year);
+        }
+        if (!lines.isEmpty()) {
+            backfillZeroPlannedFromConfig(lines);
+        }
         return lines;
+    }
+
+    /** Category labels for charts — no auto-seeded plan amounts for arbitrary years. */
+    @Transactional(readOnly = true)
+    public List<MonitorBudgetLineEntity> getCategoryTemplate() {
+        return virtualDefaults(MonitorBudgetConfig.budgetYear());
+    }
+
+    /** In-memory fallback when DB seed fails (e.g. first request before migration). */
+    private List<MonitorBudgetLineEntity> virtualDefaults(int year) {
+        List<MonitorBudgetLineEntity> virtual = new ArrayList<>();
+        int order = 0;
+        for (MonitorBudgetConfig.BudgetLine line : MonitorBudgetConfig.PLANNED_LINES) {
+            MonitorBudgetLineEntity entity = new MonitorBudgetLineEntity();
+            entity.setCategoryKey(line.id());
+            entity.setLabel(line.label());
+            entity.setPlannedEur(line.plannedEur());
+            entity.setCpvPrefix(line.cpvPrefix());
+            entity.setBudgetYear(year);
+            entity.setSortOrder(order++);
+            virtual.add(entity);
+        }
+        return virtual;
     }
 
     private List<MonitorBudgetLineEntity> seedDefaults(int year) {
@@ -58,21 +90,27 @@ public class MonitorBudgetAdminService {
     }
 
     private void backfillZeroPlannedFromConfig(List<MonitorBudgetLineEntity> lines) {
+        if (lines.isEmpty()) {
+            return;
+        }
         Map<String, MonitorBudgetConfig.BudgetLine> defaults = new HashMap<>();
         for (MonitorBudgetConfig.BudgetLine line : MonitorBudgetConfig.PLANNED_LINES) {
             defaults.put(line.id(), line);
         }
+        BigDecimal scale = MonitorBudgetPlanSeed.scaleFactor(lines.get(0).getBudgetYear());
         for (MonitorBudgetLineEntity entity : lines) {
             if (entity.getPlannedEur() != null && entity.getPlannedEur().signum() > 0) {
                 continue;
             }
             MonitorBudgetConfig.BudgetLine def = defaults.get(entity.getCategoryKey());
             if (def != null && def.plannedEur() != null) {
-                entity.setPlannedEur(def.plannedEur());
+                entity.setPlannedEur(def.plannedEur().multiply(scale).setScale(2, RoundingMode.HALF_UP));
                 if (entity.getLabel() == null || entity.getLabel().isBlank()) {
                     entity.setLabel(def.label());
                 }
-                budgetLineRepository.save(entity);
+                if (entity.getId() != null) {
+                    budgetLineRepository.save(entity);
+                }
             }
         }
     }
@@ -140,29 +178,16 @@ public class MonitorBudgetAdminService {
     }
 
     private Map<String, BigDecimal> computeExecutedByCategory(int year) {
-        LocalDate from = LocalDate.of(year, 1, 1);
-        LocalDate to = LocalDate.of(year, 12, 31);
         Map<String, BigDecimal> executedByCategory = new HashMap<>();
         contractRepository.findAll().stream()
                 .filter(c -> MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(c.getAuthorityEik()))
                 .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
-                .filter(c -> {
-                    LocalDate signed = MonitorContractDates.effectiveSignedDate(c);
-                    return signed != null && !signed.isBefore(from) && !signed.isAfter(to);
-                })
+                .filter(c -> MonitorContractDates.inCalendarYear(c, year))
                 .forEach(c -> {
-                    String category = mapCpvToCategory(c.getSectorCode());
+                    String category = MonitorBudgetConfig.categoryForCpv(c.getSectorCode());
                     executedByCategory.merge(category, c.getAmountEur(), BigDecimal::add);
                 });
         return executedByCategory;
-    }
-
-    private static String mapCpvToCategory(String sectorCode) {
-        if (sectorCode == null || sectorCode.length() < 2) {
-            return "administration";
-        }
-        String prefix = sectorCode.substring(0, 2);
-        return MonitorBudgetConfig.CPV_PREFIX_TO_CATEGORY.getOrDefault(prefix, "administration");
     }
 
     private MonitorBudgetLineDTO toDto(MonitorBudgetLineEntity l, BigDecimal executed) {

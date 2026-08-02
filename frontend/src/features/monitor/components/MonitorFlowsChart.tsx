@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MonitorDetailLink } from "./MonitorDetailLink";
 import { useMemo } from "react";
 import { cn } from "@/shared/lib/cn";
 import { formatEur } from "../lib/format";
@@ -77,7 +78,7 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
   const maxLink = topLinks[0]?.valueEur ?? 1;
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4 md:p-5">
+    <div className="rounded-2xl border border-white/70 bg-gradient-to-br from-white via-white to-slate-50/95 p-4 shadow-[0_8px_32px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.95)] md:p-5">
       <h3 className="font-display text-[1rem] font-semibold text-[color:var(--color-text-heading)]">
         Кой получава парите на общините?
       </h3>
@@ -132,12 +133,12 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
                   </td>
                   <td className="py-2.5 pr-3">
                     {eik && eik !== "unknown" ? (
-                      <Link
+                      <MonitorDetailLink
                         href={withAuthority(`/monitor/company/${eik}`)}
                         className="font-medium text-primary hover:underline"
                       >
                         {contractor}
-                      </Link>
+                      </MonitorDetailLink>
                     ) : (
                       contractor
                     )}
@@ -151,12 +152,12 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
                     {(link.contractsWithSubcontractor ?? 0) > 0 ? (
                       <>
                         {link.subcontractorEik ? (
-                          <Link
+                          <MonitorDetailLink
                             href={withAuthority(`/monitor/company/${link.subcontractorEik}`)}
                             className="font-medium text-primary hover:underline"
                           >
                             {link.subcontractorName ?? `ЕИК ${link.subcontractorEik}`}
-                          </Link>
+                          </MonitorDetailLink>
                         ) : (
                           <span className="font-medium">{link.subcontractorName ?? "Деклариран"}</span>
                         )}
@@ -173,9 +174,9 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
                   </td>
                   <td className="py-2.5 pr-3 text-right font-semibold tabular-nums">{formatEur(link.valueEur)}</td>
                   <td className="py-2.5">
-                    <div className="h-2 overflow-hidden rounded-full bg-[color:var(--color-surface-muted)]">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-200/80 shadow-inner">
                       <div
-                        className="h-full rounded-full bg-primary"
+                        className="relative h-full rounded-full bg-gradient-to-r from-emerald-700 via-primary to-emerald-400 shadow-[0_2px_8px_rgba(25,134,28,0.35),inset_0_1px_0_rgba(255,255,255,0.35)]"
                         style={{ width: `${Math.max(pct, 4)}%` }}
                       />
                     </div>

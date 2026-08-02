@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/shared/lib/cn";
+import { monitorSegmentClass } from "../lib/monitorSegmentStyles";
+import "./monitor-ui.css";
 import {
   MONITOR_AMOUNT_THRESHOLDS,
   MONITOR_DATE_RANGE_LABELS,
@@ -229,10 +231,10 @@ function TypeChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1.5 text-[0.76rem] font-semibold transition",
-        active
-          ? "bg-primary text-white shadow-sm"
-          : "border border-border-default/40 bg-white text-[color:var(--color-text-secondary)] hover:bg-primary-50/50",
+        monitorSegmentClass(active, {
+          className: "rounded-full px-3 py-1.5 text-[0.76rem] font-semibold",
+        }),
+        !active && "border border-border-default/40 bg-white hover:bg-primary-50/50",
       )}
     >
       {label}

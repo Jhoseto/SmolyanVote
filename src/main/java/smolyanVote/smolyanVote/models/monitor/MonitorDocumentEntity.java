@@ -49,6 +49,10 @@ public class MonitorDocumentEntity extends BaseEntity {
     @Column(name = "amount", precision = 18, scale = 2)
     private BigDecimal amount;
 
+    /** Original currency from smolyan.bg text — BGN or EUR; null when unknown. */
+    @Column(name = "amount_currency", length = 8)
+    private String amountCurrency;
+
     @Column(name = "company_name", length = 500)
     private String companyName;
 
@@ -154,6 +158,14 @@ public class MonitorDocumentEntity extends BaseEntity {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public String getAmountCurrency() {
+        return amountCurrency;
+    }
+
+    public void setAmountCurrency(String amountCurrency) {
+        this.amountCurrency = amountCurrency;
     }
 
     public String getCompanyName() {

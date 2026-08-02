@@ -1,0 +1,59 @@
+/* Active segment pills — white label on brand green (overrides link inherit / heading color). */
+.monitor-segment-active {
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(25, 134, 28, 0.25);
+}
+
+.monitor-segment-active:hover,
+.monitor-segment-active:focus-visible {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.monitor-segment-inactive-standalone {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
+}
+
+.monitor-segment-inactive-standalone:hover {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary);
+}
+
+.monitor-segment-inactive-muted {
+  color: var(--color-text-muted);
+}
+
+.monitor-segment-inactive-muted:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Solid primary CTAs — white label (links inherit parent color). */
+.monitor-cta-primary {
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.monitor-cta-primary:hover,
+.monitor-cta-primary:focus-visible {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Card footer pills — light green default, solid green + white on card/hover. */
+.monitor-card-cta {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.group:hover .monitor-card-cta,
+.monitor-card-cta:hover,
+.monitor-card-cta:focus-visible {
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}

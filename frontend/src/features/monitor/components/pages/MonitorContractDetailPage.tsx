@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { MonitorDetailLink } from "../MonitorDetailLink";
 import { useParams } from "next/navigation";
 import { EmptyState, LogoLoader } from "@/shared/ui";
 import { monitorApi } from "../../api";
@@ -134,8 +135,29 @@ export function MonitorContractDetailPage() {
             <Fact label="УНП (уникален номер на процедура)" value={contract.unp} />
             <Fact label="Регионален обхват" value={regionScopeLabel(contract.regionScope)} />
             <Fact label="Източник на данните" value={dataSourceLabel(contract.dataSource)} />
-            <Fact label="Последно обновяване" value={formatInstant(contract.fetchedAt)} />
+            <Fact
+              label="Последно обновяване"
+              value={formatInstant(contract.sigmaRefreshedAt ?? contract.fetchedAt)}
+            />
           </FactGrid>
+          {contract.sigmaUrl && (
+            <p className="mt-3 text-[0.82rem]">
+              <a
+                href={contract.sigmaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+              >
+                <i className="bi bi-box-arrow-up-right" aria-hidden />
+                Виж в SIGMA (sigma.midt.bg)
+              </a>
+              {contract.sigmaRefreshedAt && (
+                <span className="ml-2 text-[0.78rem] text-[color:var(--color-text-muted)]">
+                  Данни от кеш: {formatInstant(contract.sigmaRefreshedAt)}
+                </span>
+              )}
+            </p>
+          )}
         </DetailSection>
 
         <DetailSection title="Възложител">
@@ -323,9 +345,9 @@ function Fact({
         }
       >
         {href && value ? (
-          <Link href={href} className="text-primary hover:underline">
+          <MonitorDetailLink href={href} className="text-primary hover:underline">
             {display}
-          </Link>
+          </MonitorDetailLink>
         ) : (
           display
         )}

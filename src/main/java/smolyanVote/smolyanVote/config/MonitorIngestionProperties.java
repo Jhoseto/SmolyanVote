@@ -14,6 +14,7 @@ public class MonitorIngestionProperties {
     private boolean eopEnabled = true;
     private boolean scrapeEnabled = true;
     private boolean aiBatchEnabled = true;
+    private boolean zpokonpiEnabled = true;
 
     /** Days to import on scheduled EOP runs. */
     private int eopDays = 7;
@@ -22,7 +23,13 @@ public class MonitorIngestionProperties {
     private int eopMaxDays = 30;
 
     /** Documents processed per scheduled AI batch after scrape. */
-    private int aiBatchLimit = 25;
+    private int aiBatchLimit = 5;
+
+    /** Firms enriched per trade-register batch (pipeline / admin). */
+    private int tradeRegisterBatchLimit = 10;
+
+    /** Min gap between trade-register API calls — portal returns 429 on bursts. */
+    private long tradeRegisterDelayMs = 2_000L;
 
     public boolean isSchedulerEnabled() {
         return schedulerEnabled;
@@ -64,6 +71,14 @@ public class MonitorIngestionProperties {
         this.aiBatchEnabled = aiBatchEnabled;
     }
 
+    public boolean isZpokonpiEnabled() {
+        return zpokonpiEnabled;
+    }
+
+    public void setZpokonpiEnabled(boolean zpokonpiEnabled) {
+        this.zpokonpiEnabled = zpokonpiEnabled;
+    }
+
     public int getEopDays() {
         return eopDays;
     }
@@ -86,5 +101,21 @@ public class MonitorIngestionProperties {
 
     public void setAiBatchLimit(int aiBatchLimit) {
         this.aiBatchLimit = aiBatchLimit;
+    }
+
+    public int getTradeRegisterBatchLimit() {
+        return tradeRegisterBatchLimit;
+    }
+
+    public void setTradeRegisterBatchLimit(int tradeRegisterBatchLimit) {
+        this.tradeRegisterBatchLimit = tradeRegisterBatchLimit;
+    }
+
+    public long getTradeRegisterDelayMs() {
+        return tradeRegisterDelayMs;
+    }
+
+    public void setTradeRegisterDelayMs(long tradeRegisterDelayMs) {
+        this.tradeRegisterDelayMs = tradeRegisterDelayMs;
     }
 }

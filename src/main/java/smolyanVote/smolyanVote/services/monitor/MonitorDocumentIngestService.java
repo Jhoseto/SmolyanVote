@@ -61,6 +61,14 @@ public class MonitorDocumentIngestService {
             if (item.amount() != null) {
                 entity.setAmount(item.amount());
             }
+            if (item.amountCurrency() != null && !item.amountCurrency().isBlank()) {
+                entity.setAmountCurrency(MonitorCurrencyUtil.normalizeCurrencyToken(item.amountCurrency()));
+            } else if (item.rawContent() != null) {
+                String detected = MonitorCurrencyUtil.detectCurrencyFromText(item.rawContent());
+                if (detected != null) {
+                    entity.setAmountCurrency(detected);
+                }
+            }
             if (item.companyName() != null && !item.companyName().isBlank()) {
                 entity.setCompanyName(item.companyName().trim());
             }

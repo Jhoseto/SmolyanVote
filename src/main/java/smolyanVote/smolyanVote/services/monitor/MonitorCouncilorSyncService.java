@@ -117,6 +117,7 @@ public class MonitorCouncilorSyncService {
             MonitorCouncilorEntity entity = byName.computeIfAbsent(
                     name.toLowerCase(), key -> new MonitorCouncilorEntity());
             entity.setFullName(clamp(name, 200));
+            entity.setAuthorityEik(MonitorRegionalConfig.SMOLYAN_CITY_EIK);
             entity.setRoleLabel(clamp(row.role() != null ? row.role() : "Съветник", 120));
             String party = sanitizeParty(row.party());
             if (party != null) {
@@ -134,7 +135,8 @@ public class MonitorCouncilorSyncService {
         }
 
         if (scrapedNames.size() >= 10) {
-            for (MonitorCouncilorEntity existing : councilorRepository.findAll()) {
+            for (MonitorCouncilorEntity existing : councilorRepository.findByAuthorityEikOrderByFullNameAsc(
+                    MonitorRegionalConfig.SMOLYAN_CITY_EIK)) {
                 String key = existing.getFullName() != null ? existing.getFullName().trim().toLowerCase() : "";
                 if (!key.isEmpty() && !scrapedNames.contains(key)) {
                     councilorRepository.delete(existing);

@@ -11,6 +11,7 @@ import smolyanVote.smolyanVote.models.monitor.MonitorIngestionRunEntity;
 import smolyanVote.smolyanVote.repositories.monitor.MonitorIngestionRunRepository;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Bookkeeping for ingestion runs.
@@ -24,11 +25,75 @@ public class MonitorIngestionRunService {
 
     private static final Logger log = LoggerFactory.getLogger(MonitorIngestionRunService.class);
     private static final int MESSAGE_LIMIT = 4000;
+    private static final String ADMIN_CANCEL_MESSAGE = "Спрян от администратор";
 
     private final MonitorIngestionRunRepository repository;
 
     public MonitorIngestionRunService(MonitorIngestionRunRepository repository) {
         this.repository = repository;
+    }
+
+    @Transactional(readOnly = true)
+    public MonitorIngestionRunEntity findById(Long id) {
+        return repository.findById(id).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonitorIngestionRunEntity> findRunning() {
+        return repository.findByStatus(MonitorIngestionStatus.RUNNING);
+    }
+
+    /** Marks RUNNING ingestion logs as failed — used when a background job is cancelled. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int cancelRunningLogs(MonitorIngestionType type) {
+        int count = 0;
+        for (MonitorIngestionRunEntity run : repository.findByStatus(MonitorIngestionStatus.RUNNING)) {
+            if (type != null && run.getIngestionType() != type) {
+                continue;
+            }
+            finish(run.getId(), MonitorIngestionStatus.FAILED,
+                    run.getRecordsProcessed() != null ? run.getRecordsProcessed() : 0,
+                    ADMIN_CANCEL_MESSAGE);
+            count++;
+        }
+        return count;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean cancelRunningLog(Long runId) {
+        MonitorIngestionRunEntity run = repository.findById(runId).orElse(null);
+        if (run == null || run.getStatus() != MonitorIngestionStatus.RUNNING) {
+            return false;
+        }
+        finish(run.getId(), MonitorIngestionStatus.FAILED,
+                run.getRecordsProcessed() != null ? run.getRecordsProcessed() : 0,
+                ADMIN_CANCEL_MESSAGE);
+        return true;
+    }
+
+    public static MonitorIngestionType ingestionTypeForJobKey(String jobKey) {
+        if (jobKey == null) {
+            return null;
+        }
+        return switch (jobKey.toUpperCase()) {
+            case "SIGMA" -> MonitorIngestionType.SIGMA;
+            case "EOP" -> MonitorIngestionType.EOP;
+            case "SCRAPE" -> MonitorIngestionType.SMOLYAN_BG;
+            case "AI" -> MonitorIngestionType.AI_BATCH;
+            default -> null;
+        };
+    }
+
+    public static String jobKeyForIngestionType(MonitorIngestionType type) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case SIGMA -> "SIGMA";
+            case EOP -> "EOP";
+            case SMOLYAN_BG -> "SCRAPE";
+            case AI_BATCH -> "AI";
+        };
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   Bar,
   BarChart,
@@ -10,6 +11,12 @@ import {
   YAxis,
 } from "recharts";
 import type { MonitorCompetition } from "../types";
+import {
+  MONITOR_CHART,
+  MonitorChartCard,
+  MonitorChartDefs,
+  createPremiumBarShape,
+} from "./charts";
 
 interface MonitorCompetitionPanelProps {
   data: MonitorCompetition | null;
@@ -17,8 +24,10 @@ interface MonitorCompetitionPanelProps {
 }
 
 export function MonitorCompetitionPanel({ data, loading }: MonitorCompetitionPanelProps) {
+  const prefix = useId().replace(/:/g, "");
+
   if (loading) {
-    return <div className="h-48 animate-pulse rounded-[var(--radius-lg)] bg-[color:var(--color-surface-muted)]" />;
+    return <div className="h-48 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 shadow-inner" />;
   }
   if (!data) return null;
 
@@ -29,7 +38,7 @@ export function MonitorCompetitionPanel({ data, loading }: MonitorCompetitionPan
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <div className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4 lg:col-span-1">
+      <div className="rounded-2xl border border-white/70 bg-gradient-to-br from-white via-white to-emerald-50/30 p-4 shadow-[0_8px_32px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.95)] lg:col-span-1">
         <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-[color:var(--color-text-muted)]">
           Регионална конкуренция
         </p>
@@ -50,18 +59,22 @@ export function MonitorCompetitionPanel({ data, loading }: MonitorCompetitionPan
           HHI &gt; 2500 = висока концентрация. Данни само за област Смолян.
         </p>
       </div>
-      <div className="rounded-[var(--radius-lg)] border border-border-default/35 bg-white/95 p-4 lg:col-span-2">
-        <h3 className="mb-3 font-display text-[0.9rem] font-semibold">HHI по CPV сектор</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Bar dataKey="hhi" fill="#19861c" radius={[4, 4, 0, 0]} />
+      <MonitorChartCard title="HHI по CPV сектор" className="lg:col-span-2">
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <MonitorChartDefs prefix={prefix} />
+            <CartesianGrid {...MONITOR_CHART.grid} />
+            <XAxis dataKey="name" tick={MONITOR_CHART.axisTickSmall} axisLine={MONITOR_CHART.axisLine} tickLine={false} />
+            <YAxis tick={MONITOR_CHART.axisTickSmall} axisLine={false} tickLine={false} />
+            <Tooltip {...MONITOR_CHART.tooltip} formatter={(v) => [`${Math.round(Number(v))}`, "HHI индекс"]} />
+            <Bar
+              dataKey="hhi"
+              name="HHI индекс"
+              shape={createPremiumBarShape(prefix, { orientation: "vertical", fillKey: "bar-green" })}
+            />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </MonitorChartCard>
     </div>
   );
 }

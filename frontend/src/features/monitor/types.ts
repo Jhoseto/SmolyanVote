@@ -135,6 +135,8 @@ export interface MonitorContractDetail {
   whyItMatters?: string | null;
   concernType?: string | null;
   aiAnalysis?: string | null;
+  sigmaUrl?: string | null;
+  sigmaRefreshedAt?: string | null;
 }
 
 export interface MonitorAmendment {
@@ -156,6 +158,8 @@ export interface MonitorDocumentDetail {
   aiCategory: string | null;
   impactScore: number | null;
   amount: number | null;
+  amountCurrency: string | null;
+  amountEur: number | null;
   companyName: string | null;
   deadlineDate: string | null;
   publishedAt: string | null;
@@ -232,6 +236,8 @@ export interface MonitorCompanyDetail {
 
 export interface MonitorBudget {
   year: number;
+  yearTo: number;
+  availableYears: number[];
   municipality: string;
   totalPlannedEur: number;
   totalExecutedEur: number;
@@ -243,9 +249,52 @@ export interface MonitorBudget {
     executionPercent: number;
   }[];
   sourceUrl: string | null;
-  /** False for municipalities without a curated plan — only executed spend is real. */
+  /** True only when plan vs execution comparison is shown (Smolyan, current year). */
   plannedAvailable: boolean;
+  contractCount: number;
+  dataBasis: string | null;
   note: string | null;
+  officialBudget: MonitorOfficialBudget | null;
+}
+
+export interface MonitorOfficialBudget {
+  year: number;
+  municipality: string;
+  adoptedTotalBgn: number;
+  adoptedTotalEur: number | null;
+  executedTotalBgn: number | null;
+  executedTotalEur: number | null;
+  executionPercent: number | null;
+  executionAsOf: string | null;
+  rows: {
+    id: string;
+    label: string;
+    adoptedBgn: number;
+    adoptedEur: number | null;
+    executedBgn: number | null;
+    executedEur: number | null;
+    executionPercent: number | null;
+  }[];
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  note: string | null;
+  citizenAssessment?: MonitorCitizenAssessment | null;
+}
+
+export interface MonitorCitizenAssessment {
+  headline: string;
+  verdict: "positive" | "mixed" | "negative" | "pending" | string;
+  successes: string[];
+  concerns: string[];
+  citizenImpact: string;
+}
+
+export interface MonitorOfficialBudgetTrendPoint {
+  year: number;
+  adoptedTotalBgn: number;
+  executedTotalBgn: number | null;
+  executionPercent: number | null;
+  yoyAdoptedPercent: number | null;
 }
 
 export interface MonitorEuFunds {
@@ -263,6 +312,14 @@ export interface MonitorEuFunds {
   dataNote: string;
 }
 
+export type MonitorZpokonpiStatus =
+  | "OK"
+  | "ROSTER_ONLY"
+  | "WARNING"
+  | "NOT_FOUND"
+  | "UNAVAILABLE"
+  | "PENDING";
+
 export interface MonitorCouncilorCard {
   id: number;
   fullName: string;
@@ -271,6 +328,8 @@ export interface MonitorCouncilorCard {
   mandatePeriod: string | null;
   zpokonpiChecked: boolean;
   zpokonpiNote: string | null;
+  zpokonpiStatus: MonitorZpokonpiStatus | string | null;
+  zpokonpiRegisterUrl: string | null;
   sourceUrl: string | null;
   zpokonpiPortalUrl: string;
 }

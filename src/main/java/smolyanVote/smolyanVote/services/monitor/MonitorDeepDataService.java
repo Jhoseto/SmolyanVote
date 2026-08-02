@@ -10,6 +10,8 @@ import smolyanVote.smolyanVote.repositories.monitor.MonitorCouncilorRepository;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorBudgetDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorCouncilorCardDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorEuFundsDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorOfficialBudgetDTO;
+import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorOfficialBudgetTrendPointDTO;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 @Service
 public class MonitorDeepDataService {
@@ -27,14 +30,25 @@ public class MonitorDeepDataService {
     private final MonitorContractRepository contractRepository;
     private final MonitorCouncilorRepository councilorRepository;
     private final MonitorBudgetAdminService budgetAdminService;
+    private final MonitorOfficialBudgetService officialBudgetService;
+    private final SigmaBudgetAggregationService sigmaBudgetAggregationService;
 
     public MonitorDeepDataService(
             MonitorContractRepository contractRepository,
             MonitorCouncilorRepository councilorRepository,
-            MonitorBudgetAdminService budgetAdminService) {
+            MonitorBudgetAdminService budgetAdminService,
+            MonitorOfficialBudgetService officialBudgetService,
+            SigmaBudgetAggregationService sigmaBudgetAggregationService) {
         this.contractRepository = contractRepository;
         this.councilorRepository = councilorRepository;
         this.budgetAdminService = budgetAdminService;
+        this.officialBudgetService = officialBudgetService;
+        this.sigmaBudgetAggregationService = sigmaBudgetAggregationService;
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonitorOfficialBudgetTrendPointDTO> getOfficialBudgetTrend() {
+        return officialBudgetService.getTrend();
     }
 
     /**
@@ -45,102 +59,249 @@ public class MonitorDeepDataService {
      * spending against Smolyan's plan would be meaningless.
      */
     @Transactional
-    public MonitorBudgetDTO getBudget(MonitorScope scope) {
+    public MonitorBudgetDTO getBudget(MonitorScope scope, Integer year, Integer yearFrom, Integer yearTo) {
         String authorityFilter = scope.authorityFilter();
         boolean wholeOblast = scope.isWholeOblast();
         boolean plannedAvailable = wholeOblast
                 || MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(scope.authorityEik());
         String municipalityLabel = scope.label();
 
-        int year = resolveBudgetYear(authorityFilter);
-        LocalDate from = LocalDate.of(year, 1, 1);
-        LocalDate to = LocalDate.of(year, 12, 31);
+        List<Integer> availableYears = collectAvailableYears(authorityFilter);
+        int[] resolved = resolveYearRange(year, yearFrom, yearTo, authorityFilter, availableYears);
+        int fromYear = resolved[0];
+        int toYear = resolved[1];
 
         List<MonitorContractEntity> contracts = contractRepository.findAllInScope(authorityFilter).stream()
                 .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
-                .filter(c -> {
-                    LocalDate signed = MonitorContractDates.effectiveSignedDate(c);
-                    return signed != null && !signed.isBefore(from) && !signed.isAfter(to);
-                })
+                .filter(c -> MonitorContractDates.inYearRange(c, fromYear, toYear))
                 .toList();
 
         Map<String, BigDecimal> executedByCategory = new HashMap<>();
         for (MonitorContractEntity c : contracts) {
-            String category = mapCpvToCategory(c.getSectorCode());
+            String category = MonitorBudgetConfig.categoryForCpv(c.getSectorCode());
             executedByCategory.merge(category, c.getAmountEur(), BigDecimal::add);
         }
 
-        List<MonitorBudgetLineEntity> lines = budgetAdminService.getOrSeedLines(year);
+        BigDecimal totalExecuted = executedByCategory.values().stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        boolean singleYear = fromYear == toYear;
+        boolean showPlan = plannedAvailable
+                && singleYear
+                && MonitorBudgetPlanSeed.supportsIndicativePlan(fromYear);
+
+        Map<String, BigDecimal> plannedByCategory = showPlan
+                ? plannedByCategoryForYear(fromYear)
+                : Map.of();
+        List<MonitorBudgetLineEntity> templateLines = budgetAdminService.getCategoryTemplate();
         List<MonitorBudgetDTO.BudgetRowDTO> rows = new ArrayList<>();
         BigDecimal totalPlanned = BigDecimal.ZERO;
-        BigDecimal totalExecuted = BigDecimal.ZERO;
 
-        for (MonitorBudgetLineEntity line : lines) {
+        for (MonitorBudgetLineEntity line : templateLines) {
             BigDecimal executed = executedByCategory.getOrDefault(line.getCategoryKey(), BigDecimal.ZERO)
                     .setScale(2, RoundingMode.HALF_UP);
-            BigDecimal planned = plannedAvailable && line.getPlannedEur() != null
-                    ? line.getPlannedEur()
+            BigDecimal planned = showPlan
+                    ? plannedByCategory.getOrDefault(line.getCategoryKey(), BigDecimal.ZERO)
                     : BigDecimal.ZERO;
             totalPlanned = totalPlanned.add(planned);
-            totalExecuted = totalExecuted.add(executed);
             double pct = planned.signum() > 0
                     ? executed.multiply(BigDecimal.valueOf(100)).divide(planned, 1, RoundingMode.HALF_UP).doubleValue()
                     : 0.0;
             rows.add(new MonitorBudgetDTO.BudgetRowDTO(line.getCategoryKey(), line.getLabel(), planned, executed, pct));
         }
 
-        String note = buildBudgetNote(year, wholeOblast, plannedAvailable, totalExecuted, contracts.size());
+        String note = buildBudgetNote(fromYear, toYear, wholeOblast, showPlan, totalExecuted, contracts.size());
+        note = appendSigmaProcurementNote(note, scope, fromYear, toYear, totalExecuted);
+
+        MonitorOfficialBudgetDTO officialBudget = resolveOfficialBudget(scope, fromYear, toYear);
 
         return new MonitorBudgetDTO(
-                year,
+                fromYear,
+                toYear,
+                availableYears,
                 municipalityLabel,
                 totalPlanned,
                 totalExecuted,
                 rows,
                 plannedAvailable ? "https://smolyan.bg" : MonitorRegionalConfig.SIGMA_BASE_URL,
-                plannedAvailable,
-                note);
+                showPlan,
+                contracts.size(),
+                MonitorBudgetConfig.DATA_BASIS,
+                note,
+                officialBudget);
     }
 
-    private int resolveBudgetYear(String authorityFilter) {
-        int current = MonitorBudgetConfig.budgetYear();
-        List<MonitorContractEntity> inScope = contractRepository.findAllInScope(authorityFilter).stream()
-                .filter(c -> c.getAmountEur() != null && c.getAmountEur().signum() > 0)
-                .toList();
+    private MonitorOfficialBudgetDTO resolveOfficialBudget(MonitorScope scope, int fromYear, int toYear) {
+        if (fromYear != toYear) {
+            return null;
+        }
+        if (!scope.isWholeOblast() && !MonitorRegionalConfig.SMOLYAN_CITY_EIK.equals(scope.authorityEik())) {
+            return null;
+        }
+        return officialBudgetService.getOrSeedForYear(fromYear);
+    }
 
-        boolean hasCurrentYear = inScope.stream().anyMatch(c -> MonitorContractDates.effectiveYear(c) == current);
-        if (hasCurrentYear) {
-            return current;
+    private Map<String, BigDecimal> plannedByCategoryForYear(int year) {
+        Map<String, BigDecimal> plannedByCategory = new HashMap<>();
+        for (MonitorBudgetLineEntity line : budgetAdminService.getOrSeedLines(year)) {
+            if (line.getPlannedEur() != null && line.getPlannedEur().signum() > 0) {
+                plannedByCategory.put(line.getCategoryKey(), line.getPlannedEur());
+            }
+        }
+        return plannedByCategory;
+    }
+
+    private int[] resolveYearRange(
+            Integer year,
+            Integer yearFrom,
+            Integer yearTo,
+            String authorityFilter,
+            List<Integer> availableYears) {
+        if (year != null) {
+            return new int[] { year, year };
+        }
+        if (yearFrom != null && yearTo != null) {
+            int from = Math.min(yearFrom, yearTo);
+            int to = Math.max(yearFrom, yearTo);
+            return new int[] { from, to };
+        }
+        if (yearFrom != null) {
+            return new int[] { yearFrom, yearFrom };
+        }
+        if (yearTo != null) {
+            return new int[] { yearTo, yearTo };
+        }
+        int auto = resolveBudgetYear(authorityFilter, availableYears);
+        return new int[] { auto, auto };
+    }
+
+    private static final int MIN_SELECTABLE_BUDGET_YEAR = 2010;
+    private static final int SELECTABLE_YEAR_LOOKBACK = 12;
+
+    private List<Integer> collectAvailableYears(String authorityFilter) {
+        TreeSet<Integer> years = new TreeSet<>((a, b) -> Integer.compare(b, a));
+        int current = MonitorBudgetConfig.budgetYear();
+        int earliestFromData = current;
+
+        for (Integer y : contractRepository.findYearsWithSpend(authorityFilter)) {
+            if (y != null && y >= MIN_SELECTABLE_BUDGET_YEAR && y <= current + 1) {
+                years.add(y);
+                earliestFromData = Math.min(earliestFromData, y);
+            }
         }
 
-        return inScope.stream()
-                .mapToInt(MonitorContractDates::effectiveYear)
-                .filter(y -> y > 0)
-                .max()
-                .orElse(current);
+        for (MonitorContractEntity c : contractRepository.findAllInScope(authorityFilter)) {
+            if (c.getAmountEur() == null || c.getAmountEur().signum() <= 0) {
+                continue;
+            }
+            int y = MonitorContractDates.budgetSpendYear(c);
+            if (y >= MIN_SELECTABLE_BUDGET_YEAR && y <= current + 1) {
+                years.add(y);
+                earliestFromData = Math.min(earliestFromData, y);
+            }
+        }
+
+        int rangeStart = Math.min(earliestFromData, current - SELECTABLE_YEAR_LOOKBACK);
+        rangeStart = Math.max(rangeStart, MIN_SELECTABLE_BUDGET_YEAR);
+        for (int y = current; y >= rangeStart; y--) {
+            years.add(y);
+        }
+
+        return new ArrayList<>(years);
+    }
+
+    private int resolveBudgetYear(String authorityFilter, List<Integer> availableYears) {
+        int current = MonitorBudgetConfig.budgetYear();
+        Map<Integer, BigDecimal> spendByYear = new HashMap<>();
+        for (MonitorContractEntity c : contractRepository.findAllInScope(authorityFilter)) {
+            if (c.getAmountEur() == null || c.getAmountEur().signum() <= 0) {
+                continue;
+            }
+            int y = MonitorContractDates.budgetSpendYear(c);
+            if (y > 0) {
+                spendByYear.merge(y, c.getAmountEur(), BigDecimal::add);
+            }
+        }
+        BigDecimal currentSpend = spendByYear.getOrDefault(current, BigDecimal.ZERO);
+        if (currentSpend.signum() > 0) {
+            return current;
+        }
+        return spendByYear.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(availableYears.isEmpty() ? current : availableYears.get(0));
     }
 
     private static String buildBudgetNote(
-            int year,
+            int yearFrom,
+            int yearTo,
             boolean wholeOblast,
-            boolean plannedAvailable,
+            boolean showPlan,
             BigDecimal totalExecuted,
             int contractCount) {
+        String period = yearFrom == yearTo
+                ? yearFrom + " г."
+                : yearFrom + "–" + yearTo + " г.";
         if (contractCount == 0) {
-            return "Няма договори със стойност за " + year + " г. в избрания обхват. "
-                    + "Стартирайте SIGMA import или сменете общината. "
-                    + "Плановите редове по-долу са индикативни за Община Смолян.";
+            return "Няма договори със стойност и известна дата за " + period + " в избрания обхват. "
+                    + "Пуснете SIGMA import от Admin → Monitor или изберете друга година.";
         }
-        if (wholeOblast && plannedAvailable) {
-            return "Планът е индикативен за Община Смолян; изпълнението е сумирано за цялата област Смолян за "
-                    + year + " г. (" + contractCount + " договора, "
+        if (!showPlan && yearFrom == yearTo) {
+            return contractCount + " договора за " + period + " ("
+                    + formatMillions(totalExecuted)
+                    + "). Индикативен CPV план е наличен за Община Смолян "
+                    + MonitorOfficialBudgetSeed.FIRST_YEAR + "–" + MonitorBudgetConfig.budgetYear()
+                    + " г.; за други общини — само изпълнение.";
+        }
+        if (wholeOblast && showPlan) {
+            return "Планът е индикативен за Община Смолян; изпълнението е сумирано за цялата област за "
+                    + period + " (" + contractCount + " договора, "
                     + formatMillions(totalExecuted) + ").";
         }
-        if (!plannedAvailable) {
-            return "Планови редове имаме само за Община Смолян. Тук виждате реално изпълнение от договори за "
-                    + year + " г.";
+        if (!showPlan) {
+            return contractCount + " договора за периода " + period + " — "
+                    + formatMillions(totalExecuted)
+                    + ". Без сравнение с план (многогодишен период или община без индикативна рамка).";
         }
-        return "Изпълнението е от " + contractCount + " договора, подписани през " + year + " г.";
+        return contractCount + " договора за " + period + ", "
+                + formatMillions(totalExecuted)
+                + " изпълнение по CPV сектори спрямо индикативен план (мащабиран по приет ObS бюджет за "
+                + yearFrom + " г., не официален общински бюджет).";
+    }
+
+    private String appendSigmaProcurementNote(
+            String note,
+            MonitorScope scope,
+            int fromYear,
+            int toYear,
+            BigDecimal localTotal) {
+        if (fromYear != toYear) {
+            return note;
+        }
+        String authorityEik = scope.isWholeOblast()
+                ? MonitorRegionalConfig.SMOLYAN_CITY_EIK
+                : scope.authorityEik();
+        if (authorityEik == null || !MonitorRegionalConfig.isRegionalAuthority(authorityEik)) {
+            return note;
+        }
+        try {
+            SigmaBudgetAggregationService.YearAggregation sigma =
+                    sigmaBudgetAggregationService.aggregateYear(authorityEik, fromYear, false);
+            if (sigma.contractCount() == 0) {
+                return note;
+            }
+            String sigmaLine = " SIGMA CSV (" + sigma.contractCount() + " дог., "
+                    + formatMillions(sigma.totalEur()) + ", кеш "
+                    + (sigma.cacheRefreshedAt() != null ? sigma.cacheRefreshedAt() : "—") + ").";
+            if (localTotal != null && sigma.totalEur() != null
+                    && localTotal.subtract(sigma.totalEur()).abs().compareTo(new BigDecimal("100")) > 0) {
+                sigmaLine += " Локална база: " + formatMillions(localTotal) + ".";
+            }
+            return note + sigmaLine;
+        } catch (Exception ex) {
+            return note;
+        }
     }
 
     private static String formatMillions(BigDecimal eur) {
@@ -191,10 +352,10 @@ public class MonitorDeepDataService {
      */
     @Transactional(readOnly = true)
     public List<MonitorCouncilorCardDTO> getCouncilors(MonitorScope scope) {
-        if (!scope.includesScrapedSources()) {
-            return List.of();
-        }
-        return councilorRepository.findAll().stream()
+        List<MonitorCouncilorEntity> rows = scope.isWholeOblast()
+                ? councilorRepository.findAllByOrderByFullNameAsc()
+                : councilorRepository.findByAuthorityEikOrderByFullNameAsc(scope.authorityEik());
+        return rows.stream()
                 .map(c -> new MonitorCouncilorCardDTO(
                         c.getId(),
                         c.getFullName(),
@@ -203,17 +364,13 @@ public class MonitorDeepDataService {
                         c.getMandatePeriod(),
                         c.isZpokonpiChecked(),
                         c.getZpokonpiNote(),
+                        c.getZpokonpiStatus(),
+                        c.getZpokonpiRegisterUrl(),
                         c.getSourceUrl(),
                         ZPKONPI_PORTAL))
+                .sorted((a, b) -> MonitorCouncilorRoleOrder.compare(
+                        a.roleLabel(), b.roleLabel(), a.fullName(), b.fullName()))
                 .toList();
-    }
-
-    private static String mapCpvToCategory(String sectorCode) {
-        if (sectorCode == null || sectorCode.length() < 2) {
-            return "administration";
-        }
-        String prefix = sectorCode.substring(0, 2);
-        return MonitorBudgetConfig.CPV_PREFIX_TO_CATEGORY.getOrDefault(prefix, "administration");
     }
 
     private static String truncate(String value, int max) {

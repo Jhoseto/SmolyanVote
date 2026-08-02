@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { cn } from "@/shared/lib/cn";
 import { concernLabel } from "../lib/concernLabels";
 import { formatDate, formatEur } from "../lib/format";
 import type { MonitorFeedItem } from "../types";
+import { MonitorDetailLink } from "./MonitorDetailLink";
 import { RiskBadgeChip } from "./MonitorKpiStrip";
 import { useMonitorAuthority } from "./MonitorAuthorityProvider";
+import "./monitor-ui.css";
 
 interface MonitorInsightCardProps {
   item: MonitorFeedItem;
@@ -122,13 +123,13 @@ export function MonitorInsightCard({
               Оригинал ↗
             </a>
           )}
-          <Link
+          <MonitorDetailLink
             href={href}
-            className="rounded-full bg-primary-50 px-3 py-1 text-[0.72rem] font-medium text-primary transition group-hover:bg-primary group-hover:text-white"
+            className="monitor-card-cta rounded-full px-3 py-1 text-[0.72rem] font-medium"
             onClick={(e) => e.stopPropagation()}
           >
             Виж анализа
-          </Link>
+          </MonitorDetailLink>
         </div>
       </div>
     </article>

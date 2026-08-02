@@ -52,19 +52,34 @@ public class MonitorAiService {
         documentRepository.save(doc);
     }
 
-    @Transactional
+    /** No transaction — Gemini HTTP must not hold a JDBC connection open. */
     public AiBatchResult processPendingBatch(int limit) {
+        if (geminiClient.isAccessBlocked()) {
+            log.warn("AI batch skipped — Gemini access blocked: {}", geminiClient.accessBlockedReason());
+            return new AiBatchResult(0, 0, geminiClient.accessBlockedReason());
+        }
         int docs = processPendingDocuments(limit);
+        if (geminiClient.isAccessBlocked()) {
+            return new AiBatchResult(docs, 0, geminiClient.accessBlockedReason());
+        }
         int contracts = processPendingContracts(Math.max(5, limit / 2));
-        return new AiBatchResult(docs, contracts);
+        return new AiBatchResult(docs, contracts, null);
     }
 
-    public record AiBatchResult(int documents, int contracts) {
+    public record AiBatchResult(int documents, int contracts, String blockedReason) {
+
+        public AiBatchResult(int documents, int contracts) {
+            this(documents, contracts, null);
+        }
+
         public int total() {
             return documents + contracts;
         }
 
         public String summaryMessage() {
+            if (blockedReason != null && !blockedReason.isBlank()) {
+                return "AI: спряно — Gemini отказа достъп (403). Проверете GEMINI_API_KEY / Google Cloud проект.";
+            }
             if (documents == 0 && contracts == 0) {
                 return "AI: 0 анализа — проверете GEMINI_API_KEY и backend.log";
             }
@@ -72,7 +87,6 @@ public class MonitorAiService {
         }
     }
 
-    @Transactional
     public int processPendingDocuments(int limit) {
         List<MonitorDocumentEntity> pending = documentRepository
                 .findPendingDeepAnalysis(PageRequest.of(0, limit));
@@ -81,12 +95,33 @@ public class MonitorAiService {
         }
         int count = 0;
         for (MonitorDocumentEntity doc : pending) {
+            MonitorJobCancellation.check();
+            if (geminiClient.isAccessBlocked()) {
+                log.warn("AI batch stopped — Gemini access blocked after {} document(s)", count);
+                break;
+            }
             try {
                 if (applyDocumentAi(doc)) {
                     documentRepository.save(doc);
                     count++;
                 }
+            } catch (MonitorGeminiAccessException ex) {
+                log.warn("AI batch stopped — Gemini access denied after {} document(s)", count);
+                break;
+            } catch (MonitorRateLimitException ex) {
+                log.warn("AI batch stopped — Gemini rate limit after {} document(s)", count);
+                break;
+            } catch (MonitorJobCancelledException ex) {
+                throw ex;
             } catch (Exception ex) {
+                if (MonitorGeminiAccessException.isAccessDeniedMessage(ex.getMessage())) {
+                    log.warn("AI batch stopped — Gemini access denied after {} document(s)", count);
+                    break;
+                }
+                if (MonitorRateLimitException.isRateLimitMessage(ex.getMessage())) {
+                    log.warn("AI batch stopped — Gemini rate limit after {} document(s)", count);
+                    break;
+                }
                 log.warn("AI batch failed for document {}: {}", doc.getId(), ex.getMessage());
             }
         }
@@ -94,21 +129,41 @@ public class MonitorAiService {
     }
 
     /** High-risk contracts first — full Gemini analysis when configured. */
-    @Transactional
     public int processPendingContracts(int limit) {
-        if (!geminiClient.isConfigured()) {
+        if (!geminiClient.isAvailable()) {
             return 0;
         }
         List<MonitorContractEntity> pending = contractRepository.findPendingContractAiProcessing(
                 MonitorRiskService.FLAG_THRESHOLD, PageRequest.of(0, limit));
         int count = 0;
         for (MonitorContractEntity contract : pending) {
+            MonitorJobCancellation.check();
+            if (geminiClient.isAccessBlocked()) {
+                log.warn("AI batch stopped — Gemini access blocked after {} contract(s)", count);
+                break;
+            }
             try {
                 if (applyContractAi(contract)) {
                     contractRepository.save(contract);
                     count++;
                 }
+            } catch (MonitorGeminiAccessException ex) {
+                log.warn("AI batch stopped — Gemini access denied after {} contract(s)", count);
+                break;
+            } catch (MonitorRateLimitException ex) {
+                log.warn("AI batch stopped — Gemini rate limit after {} contract(s)", count);
+                break;
+            } catch (MonitorJobCancelledException ex) {
+                throw ex;
             } catch (Exception ex) {
+                if (MonitorGeminiAccessException.isAccessDeniedMessage(ex.getMessage())) {
+                    log.warn("AI batch stopped — Gemini access denied after {} contract(s)", count);
+                    break;
+                }
+                if (MonitorRateLimitException.isRateLimitMessage(ex.getMessage())) {
+                    log.warn("AI batch stopped — Gemini rate limit after {} contract(s)", count);
+                    break;
+                }
                 log.warn("AI batch failed for contract {}: {}", contract.getId(), ex.getMessage());
             }
         }
@@ -123,6 +178,9 @@ public class MonitorAiService {
         if (analysisService.analyzeDocument(doc)) {
             return true;
         }
+        if (geminiClient.isAccessBlocked()) {
+            return false;
+        }
         applyAiShallow(doc);
         return doc.getShortSummary() != null && !doc.getShortSummary().isBlank();
     }
@@ -136,7 +194,7 @@ public class MonitorAiService {
             return;
         }
 
-        if (geminiClient.isConfigured()) {
+        if (geminiClient.isAvailable()) {
             try {
                 MonitorGeminiClient.MonitorAiResult result = geminiClient.summarizeDocument(doc.getTitle(), raw);
                 if (result != null && result.shortSummary() != null) {
@@ -145,7 +203,12 @@ public class MonitorAiService {
                     doc.setImpactScore(result.impactScore());
                     return;
                 }
+            } catch (MonitorGeminiAccessException ex) {
+                throw ex;
             } catch (Exception ex) {
+                if (MonitorGeminiAccessException.isAccessDeniedMessage(ex.getMessage())) {
+                    throw new MonitorGeminiAccessException(403, ex.getMessage());
+                }
                 log.warn("Gemini failed for document {}: {}", doc.getId(), ex.getMessage());
             }
         }

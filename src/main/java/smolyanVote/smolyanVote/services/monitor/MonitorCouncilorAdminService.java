@@ -73,6 +73,8 @@ public class MonitorCouncilorAdminService {
                 c.getMandatePeriod(),
                 c.isZpokonpiChecked(),
                 c.getZpokonpiNote(),
+                c.getZpokonpiStatus(),
+                c.getZpokonpiRegisterUrl(),
                 c.getSourceUrl(),
                 ZPKONPI_PORTAL);
     }

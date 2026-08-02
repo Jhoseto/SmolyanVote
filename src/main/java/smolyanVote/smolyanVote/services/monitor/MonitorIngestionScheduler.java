@@ -12,39 +12,42 @@ public class MonitorIngestionScheduler {
     private static final Logger log = LoggerFactory.getLogger(MonitorIngestionScheduler.class);
 
     private final MonitorIngestionProperties properties;
-    private final SigmaImportService sigmaImportService;
+    private final SigmaRefreshService sigmaRefreshService;
     private final EopImportService eopImportService;
     private final SmolyanBgScraperService scraperService;
     private final MonitorAiService aiService;
     private final MonitorAiAnalysisService aiAnalysisService;
     private final MonitorJobLauncher jobLauncher;
+    private final MonitorZpokonpiVerificationService zpokonpiVerificationService;
 
     public MonitorIngestionScheduler(
             MonitorIngestionProperties properties,
-            SigmaImportService sigmaImportService,
+            SigmaRefreshService sigmaRefreshService,
             EopImportService eopImportService,
             SmolyanBgScraperService scraperService,
             MonitorAiService aiService,
             MonitorAiAnalysisService aiAnalysisService,
-            MonitorJobLauncher jobLauncher) {
+            MonitorJobLauncher jobLauncher,
+            MonitorZpokonpiVerificationService zpokonpiVerificationService) {
         this.properties = properties;
-        this.sigmaImportService = sigmaImportService;
+        this.sigmaRefreshService = sigmaRefreshService;
         this.eopImportService = eopImportService;
         this.scraperService = scraperService;
         this.aiService = aiService;
         this.aiAnalysisService = aiAnalysisService;
         this.jobLauncher = jobLauncher;
+        this.zpokonpiVerificationService = zpokonpiVerificationService;
     }
 
-    /** Daily SIGMA import at 04:00 Sofia — regional whitelist only. */
-    @Scheduled(cron = "0 0 4 * * *", zone = "Europe/Sofia")
+    /** SIGMA cache refresh every 6h at 04:00 Sofia — diff import, regional whitelist only. */
+    @Scheduled(cron = "0 0 4,10,16,22 * * *", zone = "Europe/Sofia")
     public void scheduledSigmaImport() {
         if (!properties.isSchedulerEnabled() || !properties.isSigmaEnabled()) {
             return;
         }
-        log.info("Queueing scheduled SIGMA import for oblast Smolyan");
-        jobLauncher.launch("SIGMA", "SIGMA импорт (по график)", () -> {
-            var run = sigmaImportService.importRegionalContracts();
+        log.info("Queueing scheduled SIGMA cache refresh for oblast Smolyan");
+        jobLauncher.launch("SIGMA", "SIGMA cache refresh (по график)", () -> {
+            var run = sigmaRefreshService.refreshRegionalCache();
             return MonitorJobLauncher.JobResult.ok(run == null ? "" : run.getMessage());
         });
     }
@@ -101,5 +104,16 @@ public class MonitorIngestionScheduler {
                     : "AI доклад неуспешен — проверете GEMINI_API_KEY";
             return MonitorJobLauncher.JobResult.ok(msg);
         });
+    }
+
+    /** Weekly ZPKONPI cross-check for all regional councilor profiles — Sunday 08:00 Sofia. */
+    @Scheduled(cron = "0 0 8 * * SUN", zone = "Europe/Sofia")
+    public void scheduledZpokonpiVerification() {
+        if (!properties.isSchedulerEnabled() || !properties.isZpokonpiEnabled()) {
+            return;
+        }
+        log.info("Queueing scheduled ZPKONPI verification for oblast Smolyan councilors");
+        jobLauncher.launch("ZPKONPI", "ЗПКОНПИ проверка (по график)", () ->
+                MonitorJobLauncher.JobResult.ok(zpokonpiVerificationService.verifyAll().message()));
     }
 }

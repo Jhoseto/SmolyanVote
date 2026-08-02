@@ -6,6 +6,8 @@ public record MonitorAdminAiStatsDTO(
         long totalDocuments,
         long totalContracts,
         boolean geminiConfigured,
-        String geminiModel
+        String geminiModel,
+        boolean geminiAccessBlocked,
+        String geminiAccessMessage
 ) {
 }

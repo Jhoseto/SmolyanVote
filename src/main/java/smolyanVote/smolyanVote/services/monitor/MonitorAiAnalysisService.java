@@ -48,9 +48,8 @@ public class MonitorAiAnalysisService {
         return entity.map(this::toDto).orElse(MonitorAiReportDTO.empty());
     }
 
-    @Transactional
     public MonitorAiReportDTO generateRegionalReport(MonitorScope scope) {
-        if (!geminiClient.isConfigured()) {
+        if (!geminiClient.isAvailable()) {
             return MonitorAiReportDTO.empty();
         }
         try {
@@ -63,16 +62,17 @@ public class MonitorAiAnalysisService {
             MonitorAiReportDTO dto = toDto(result, Instant.now());
             persistReport(scope, dto);
             return dto;
+        } catch (MonitorGeminiAccessException | MonitorRateLimitException ex) {
+            throw ex;
         } catch (Exception ex) {
             log.warn("Regional AI report failed: {}", ex.getMessage());
             return MonitorAiReportDTO.empty();
         }
     }
 
-    /** Returns true when a full analysis was stored on the document row. */
-    @Transactional
+    /** Gemini HTTP runs outside a DB transaction to avoid connection leaks. */
     public boolean analyzeDocument(MonitorDocumentEntity document) {
-        if (!geminiClient.isConfigured()) {
+        if (!geminiClient.isAvailable()) {
             return false;
         }
         try {
@@ -84,7 +84,12 @@ public class MonitorAiAnalysisService {
             }
             applyDocumentAnalysis(document, result);
             return true;
+        } catch (MonitorGeminiAccessException | MonitorRateLimitException ex) {
+            throw ex;
         } catch (Exception ex) {
+            if (MonitorGeminiAccessException.isAccessDeniedMessage(ex.getMessage())) {
+                throw new MonitorGeminiAccessException(403, ex.getMessage());
+            }
             log.warn("Deep document analysis failed for {}: {}", document.getId(), ex.getMessage());
             return false;
         }
@@ -112,10 +117,9 @@ public class MonitorAiAnalysisService {
         document.setImpactScore(result.impactScore());
     }
 
-    /** Returns true when a full analysis was stored on the contract row. */
-    @Transactional
+    /** Gemini HTTP runs outside a DB transaction to avoid connection leaks. */
     public boolean analyzeContract(MonitorContractEntity contract) {
-        if (!geminiClient.isConfigured()) {
+        if (!geminiClient.isAvailable()) {
             return false;
         }
         try {
@@ -127,7 +131,12 @@ public class MonitorAiAnalysisService {
             }
             applyDeepAnalysis(contract, result);
             return true;
+        } catch (MonitorGeminiAccessException | MonitorRateLimitException ex) {
+            throw ex;
         } catch (Exception ex) {
+            if (MonitorGeminiAccessException.isAccessDeniedMessage(ex.getMessage())) {
+                throw new MonitorGeminiAccessException(403, ex.getMessage());
+            }
             log.warn("Deep contract analysis failed for {}: {}", contract.getId(), ex.getMessage());
             return false;
         }

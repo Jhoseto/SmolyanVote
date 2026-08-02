@@ -14,6 +14,7 @@ import type {
   MonitorFlows,
   MonitorMunicipality,
   MonitorOverview,
+  MonitorOfficialBudgetTrendPoint,
   MonitorPage,
   MonitorProcurementStats,
   MonitorRegionalComparison,
@@ -86,8 +87,17 @@ export const monitorApi = {
   flows: (authority?: MonitorAuthority) =>
     apiClient.get<MonitorFlows>(url("procurement/flows", authority), anonymous),
 
-  contract: (id: number) =>
-    apiClient.get<MonitorContractDetail>(`/api/v1/monitor/contract/${id}`, anonymous),
+  contract: (id: number, fresh = false) =>
+    apiClient.get<MonitorContractDetail>(
+      `/api/v1/monitor/contract/${id}${fresh ? "?fresh=true" : ""}`,
+      anonymous,
+    ),
+
+  officialBudgetTrend: () =>
+    apiClient.get<MonitorOfficialBudgetTrendPoint[]>(
+      "/api/v1/monitor/official-budget/trend",
+      anonymous,
+    ),
 
   document: (id: number) =>
     apiClient.get<MonitorDocumentDetail>(`/api/v1/monitor/document/${id}`, anonymous),
@@ -135,8 +145,10 @@ export const monitorApi = {
       anonymous,
     ),
 
-  budget: (authority?: MonitorAuthority) =>
-    apiClient.get<MonitorBudget>(url("budget", authority), anonymous),
+  budget: (
+    authority?: MonitorAuthority,
+    years?: { year?: number; yearFrom?: number; yearTo?: number },
+  ) => apiClient.get<MonitorBudget>(url("budget", authority, years), anonymous),
 
   euFunds: (authority?: MonitorAuthority) =>
     apiClient.get<MonitorEuFunds>(url("eu-funds", authority), anonymous),

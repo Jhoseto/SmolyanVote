@@ -24,14 +24,25 @@ public final class MonitorContractDates {
         if (contract.getSignedAt() != null) {
             return contract.getSignedAt();
         }
-        Integer unpYear = yearFromUnp(contract.getUnp());
-        if (unpYear != null) {
-            return LocalDate.of(unpYear, 7, 1);
+        LocalDate fromUnp = dateFromUnp(contract.getUnp());
+        if (fromUnp != null) {
+            return fromUnp;
         }
         if (contract.getFetchedAt() != null) {
             return contract.getFetchedAt().atZone(BULGARIA).toLocalDate();
         }
         return null;
+    }
+
+    /** Date used for budget year bucketing — never uses import/fetched time. */
+    public static LocalDate budgetSpendDate(MonitorContractEntity contract) {
+        if (contract == null) {
+            return null;
+        }
+        if (contract.getSignedAt() != null) {
+            return contract.getSignedAt();
+        }
+        return dateFromUnp(contract.getUnp());
     }
 
     public static int effectiveYear(MonitorContractEntity contract) {
@@ -43,7 +54,42 @@ public final class MonitorContractDates {
         return effectiveYear(contract) == year;
     }
 
-    private static Integer yearFromUnp(String unp) {
+    public static boolean inCalendarYear(MonitorContractEntity contract, int year) {
+        return inYearRange(contract, year, year);
+    }
+
+    /** Whether contract spend falls within an inclusive calendar-year range (budget-safe dates). */
+    public static boolean inYearRange(MonitorContractEntity contract, int yearFrom, int yearTo) {
+        if (contract == null) {
+            return false;
+        }
+        int y = budgetSpendYear(contract);
+        if (y <= 0) {
+            return false;
+        }
+        int from = Math.min(yearFrom, yearTo);
+        int to = Math.max(yearFrom, yearTo);
+        return y >= from && y <= to;
+    }
+
+    /** Calendar year for budget aggregation — signed date, then UNP; never import time. */
+    public static int budgetSpendYear(MonitorContractEntity contract) {
+        LocalDate date = budgetSpendDate(contract);
+        return date != null ? date.getYear() : 0;
+    }
+
+    /** @deprecated Prefer {@link #budgetSpendYear}. */
+    @Deprecated
+    public static int spendYear(MonitorContractEntity contract) {
+        return budgetSpendYear(contract);
+    }
+
+    public static LocalDate dateFromUnp(String unp) {
+        Integer year = yearFromUnp(unp);
+        return year != null ? LocalDate.of(year, 7, 1) : null;
+    }
+
+    static Integer yearFromUnp(String unp) {
         if (unp == null || unp.isBlank()) {
             return null;
         }

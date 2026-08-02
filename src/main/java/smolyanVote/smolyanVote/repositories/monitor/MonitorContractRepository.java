@@ -16,6 +16,22 @@ import java.util.Optional;
 @Repository
 public interface MonitorContractRepository extends JpaRepository<MonitorContractEntity, Long> {
 
+    List<MonitorContractEntity> findBySignedAtIsNull();
+
+    long countBySignedAtIsNull();
+
+    long countByOriginalCurrencyIsNull();
+
+    long countByCurrencyWarningIsNotNull();
+
+    long countBySigmaIdStartingWith(String prefix);
+
+    List<MonitorContractEntity> findByOriginalCurrencyIsNull();
+
+    @Query("SELECT c FROM MonitorContractEntity c WHERE c.sigmaId NOT LIKE 'eop:%' "
+            + "AND c.amountEur IS NOT NULL ORDER BY c.signedAt DESC")
+    List<MonitorContractEntity> findSigmaContractsWithAmount(Pageable pageable);
+
     Optional<MonitorContractEntity> findBySigmaId(String sigmaId);
 
     Optional<MonitorContractEntity> findFirstByUnp(String unp);

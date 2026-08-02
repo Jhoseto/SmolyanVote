@@ -148,8 +148,11 @@ public class MonitorController {
 
     @GetMapping("/budget")
     public ResponseEntity<MonitorBudgetDTO> budget(
-            @RequestParam(required = false) String authority) {
-        return ResponseEntity.ok(monitorService.getBudget(MonitorScope.of(authority)));
+            @RequestParam(required = false) String authority,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer yearFrom,
+            @RequestParam(required = false) Integer yearTo) {
+        return ResponseEntity.ok(monitorService.getBudget(MonitorScope.of(authority), year, yearFrom, yearTo));
     }
 
     @GetMapping("/eu-funds")
@@ -159,12 +162,19 @@ public class MonitorController {
     }
 
     @GetMapping("/contract/{id}")
-    public ResponseEntity<?> contractDetail(@PathVariable Long id) {
+    public ResponseEntity<?> contractDetail(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean fresh) {
         try {
-            return ResponseEntity.ok(monitorService.getContract(id));
+            return ResponseEntity.ok(monitorService.getContract(id, fresh));
         } catch (MonitorNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/official-budget/trend")
+    public ResponseEntity<List<MonitorOfficialBudgetTrendPointDTO>> officialBudgetTrend() {
+        return ResponseEntity.ok(monitorService.getOfficialBudgetTrend());
     }
 
     @GetMapping("/contract/{id}/related-signals")
