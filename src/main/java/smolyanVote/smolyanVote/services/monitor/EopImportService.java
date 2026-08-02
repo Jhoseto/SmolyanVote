@@ -191,8 +191,10 @@ public class EopImportService {
             return false;
         }
         String sigmaId = "eop:" + noticeId;
+        String unp = text(row, "uniqueProcurementNumber");
+        String supplierEik = text(row, "supplierRegisterNumber");
         Optional<MonitorContractEntity> existing = contractRepository.findBySigmaId(sigmaId)
-                .or(() -> findByUnp(text(row, "uniqueProcurementNumber")));
+                .or(() -> findByUnp(unp, supplierEik));
         boolean isNew = existing.isEmpty();
         MonitorContractEntity entity = existing.orElseGet(MonitorContractEntity::new);
 
@@ -231,7 +233,28 @@ public class EopImportService {
         contractRepository.save(entity);
         upsertCompany(entity);
         upsertSubcontractorCompany(entity);
+        propagateSubcontractorFields(row, entity);
         return true;
+    }
+
+    /** Same UNP can map to several SIGMA lots — copy subcontractor facts to sibling rows. */
+    private void propagateSubcontractorFields(JsonNode row, MonitorContractEntity source) {
+        if (!MonitorSubcontractorHelper.hasDeclaredSubcontractor(source)) {
+            return;
+        }
+        String unp = source.getUnp();
+        String contractorEik = source.getContractorEik();
+        if (unp == null || unp.isBlank() || contractorEik == null || contractorEik.isBlank()) {
+            return;
+        }
+        for (MonitorContractEntity sibling : contractRepository.findByUnpAndContractorEik(unp.trim(), contractorEik.trim())) {
+            if (source.getId() != null && source.getId().equals(sibling.getId())) {
+                continue;
+            }
+            applySubcontractorFields(sibling, row);
+            contractRepository.save(sibling);
+            upsertSubcontractorCompany(sibling);
+        }
     }
 
     private void applySubcontractorFields(MonitorContractEntity entity, JsonNode row) {
@@ -296,7 +319,7 @@ public class EopImportService {
         }
 
         String unp = text(row, "uniqueProcurementNumber");
-        MonitorContractEntity contract = findByUnp(unp).orElse(null);
+        MonitorContractEntity contract = findByUnp(unp, null).orElse(null);
 
         MonitorAmendmentEntity amendment = new MonitorAmendmentEntity();
         amendment.setContractId(contract != null ? contract.getId() : null);
@@ -338,11 +361,19 @@ public class EopImportService {
         amendmentRepository.save(amendment);
     }
 
-    private Optional<MonitorContractEntity> findByUnp(String unp) {
+    private Optional<MonitorContractEntity> findByUnp(String unp, String contractorEik) {
         if (unp == null || unp.isBlank()) {
             return Optional.empty();
         }
-        return contractRepository.findFirstByUnp(unp);
+        String normalizedUnp = unp.trim();
+        if (contractorEik != null && !contractorEik.isBlank()) {
+            List<MonitorContractEntity> matched = contractRepository.findByUnpAndContractorEik(
+                    normalizedUnp, contractorEik.trim());
+            if (!matched.isEmpty()) {
+                return Optional.of(matched.get(0));
+            }
+        }
+        return contractRepository.findFirstByUnp(normalizedUnp);
     }
 
     private void upsertCompany(MonitorContractEntity contract) {

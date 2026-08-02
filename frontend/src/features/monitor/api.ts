@@ -12,6 +12,7 @@ import type {
   MonitorDocumentDetail,
   MonitorFeedItem,
   MonitorFlows,
+  MonitorFlowPathDetail,
   MonitorMunicipality,
   MonitorOverview,
   MonitorOfficialBudgetTrendPoint,
@@ -86,6 +87,12 @@ export const monitorApi = {
 
   flows: (authority?: MonitorAuthority) =>
     apiClient.get<MonitorFlows>(url("procurement/flows", authority), anonymous),
+
+  flowPath: (source: string, target: string, authority?: MonitorAuthority) =>
+    apiClient.get<MonitorFlowPathDetail>(
+      url("procurement/flows/path", authority, { source, target }),
+      anonymous,
+    ),
 
   contract: (id: number, fresh = false) =>
     apiClient.get<MonitorContractDetail>(

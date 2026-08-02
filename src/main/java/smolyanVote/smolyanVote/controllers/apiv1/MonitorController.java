@@ -96,6 +96,14 @@ public class MonitorController {
         return ResponseEntity.ok(monitorService.getFlows(MonitorScope.of(authority)));
     }
 
+    @GetMapping("/procurement/flows/path")
+    public ResponseEntity<MonitorFlowPathDetailDTO> flowPath(
+            @RequestParam String source,
+            @RequestParam String target,
+            @RequestParam(required = false) String authority) {
+        return ResponseEntity.ok(monitorService.getFlowPath(MonitorScope.of(authority), source, target));
+    }
+
     @GetMapping("/procurement/competition")
     public ResponseEntity<MonitorCompetitionDTO> competition(
             @RequestParam(required = false) String authority) {

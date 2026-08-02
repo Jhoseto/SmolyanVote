@@ -176,7 +176,7 @@ export interface MonitorProcurementStats {
 }
 
 export interface MonitorFlows {
-  nodes: { id: string; label: string; type: string }[];
+  nodes: { id: string; label: string; type: string; totalEur: number }[];
   links: {
     source: string;
     target: string;
@@ -189,6 +189,47 @@ export interface MonitorFlows {
     subcontractorName: string | null;
     subcontractorEik: string | null;
     subcontractingTotalEur: number | null;
+    topSubcontractors: {
+      eik: string;
+      name: string;
+      valueEur: number;
+      count: number;
+    }[];
+  }[];
+  subLinks: {
+    source: string;
+    target: string;
+    valueEur: number;
+    count: number;
+    subcontractorName: string | null;
+    subcontractorEik: string | null;
+  }[];
+  subcontractorCoverage?: {
+    declaredContracts: number;
+    withAmountEur: number;
+  };
+}
+
+export interface MonitorFlowPathDetail {
+  authority: { eik: string; name: string; nodeId: string };
+  contractor: { eik: string | null; name: string; nodeId: string };
+  totals: {
+    totalEur: number;
+    contractCount: number;
+    subcontractingTotalEur: number | null;
+    contractsWithSubcontractor: number;
+  };
+  contracts: {
+    id: number;
+    subject: string;
+    signedAt: string | null;
+    amountEur: number;
+    subcontractorName: string | null;
+    subcontractorEik: string | null;
+    subcontractingAmountEur: number | null;
+    subcontractingPercent: number | null;
+    concernLabel: string | null;
+    citizenHint: string | null;
   }[];
 }
 

@@ -384,6 +384,14 @@ export function MonitorIngestionTab({ enabled }: { enabled: boolean }) {
             onClick={() => start(() => adminMonitorApi.triggerEop(30))}
           />
           <ActionButton
+            icon="bi-diagram-3"
+            label="Обогати подизпълнители"
+            description="SIGMA JSON → подизпълнител, сума, ЕИК (~15 мин)"
+            loading={isJobActive(jobFor("SUBCONTRACTORS"))}
+            disabled={busy}
+            onClick={() => start(() => adminMonitorApi.enrichSubcontractors(false))}
+          />
+          <ActionButton
             icon="bi-file-earmark-pdf"
             label="OCR batch"
             description="Tesseract за PDF сканове"

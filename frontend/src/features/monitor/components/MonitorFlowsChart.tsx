@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MonitorDetailLink } from "./MonitorDetailLink";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import { formatEur } from "../lib/format";
 import type { MonitorFlows } from "../types";
@@ -11,6 +11,8 @@ import { useMonitorAuthority } from "./MonitorAuthorityProvider";
 interface MonitorFlowsChartProps {
   flows: MonitorFlows | null;
   loading?: boolean;
+  /** When true, table starts collapsed under a disclosure control. */
+  collapsedByDefault?: boolean;
 }
 
 function nodeLabel(flows: MonitorFlows, id: string) {
@@ -33,8 +35,9 @@ function concernBadgeClass(label: string | null | undefined, flaggedCount: numbe
   return "bg-amber-100 text-amber-950";
 }
 
-export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
+export function MonitorFlowsChart({ flows, loading, collapsedByDefault }: MonitorFlowsChartProps) {
   const { withAuthority } = useMonitorAuthority();
+  const [open, setOpen] = useState(!collapsedByDefault);
 
   const { topLinks, totalEur, topContractor } = useMemo(() => {
     if (!flows?.links.length) {
@@ -78,15 +81,29 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
   const maxLink = topLinks[0]?.valueEur ?? 1;
 
   return (
-    <div className="rounded-2xl border border-white/70 bg-gradient-to-br from-white via-white to-slate-50/95 p-4 shadow-[0_8px_32px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.95)] md:p-5">
-      <h3 className="font-display text-[1rem] font-semibold text-[color:var(--color-text-heading)]">
-        Кой получава парите на общините?
-      </h3>
-      <p className="mt-1 text-[0.85rem] leading-relaxed text-[color:var(--color-text-muted)]">
-        Топ 15 връзки <strong>възложител → изпълнител</strong> по обща стойност на договорите в област
-        Смолян. Без технически диаграми — само факти.
-      </p>
+    <details
+      className="rounded-2xl border border-white/70 bg-gradient-to-br from-white via-white to-slate-50/95 shadow-[0_8px_32px_rgba(15,23,42,0.07),inset_0_1px_0_rgba(255,255,255,0.95)] md:p-5"
+      open={open}
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+    >
+      <summary className="cursor-pointer list-none p-4 md:p-0 md:[&::-webkit-details-marker]:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-[1rem] font-semibold text-[color:var(--color-text-heading)]">
+              Детайлен списък (таблица)
+            </h3>
+            <p className="mt-1 text-[0.85rem] leading-relaxed text-[color:var(--color-text-muted)]">
+              Топ 15 връзки <strong>възложител → изпълнител</strong> по обща стойност — допълнение
+              към 3D картата.
+            </p>
+          </div>
+          <span className="shrink-0 text-[0.78rem] font-medium text-primary">
+            {open ? "Скрий" : "Покажи"}
+          </span>
+        </div>
+      </summary>
 
+      <div className="px-4 pb-4 md:px-0 md:pb-0">
       {topContractor && (
         <p className="mt-3 rounded-lg bg-amber-50/80 px-3 py-2 text-[0.82rem] text-amber-950">
           Най-много общински поръчки отиват при{" "}
@@ -203,12 +220,13 @@ export function MonitorFlowsChart({ flows, loading }: MonitorFlowsChartProps) {
 
       <p className="mt-3 text-[0.72rem] text-[color:var(--color-text-muted)]">
         Показани са {formatEur(totalEur)} от най-големите потоци (топ 15). Подизпълнителите са само
-        декларирани в EOP (един ниво) — не пълна верига. Пълният списък — в раздел{" "}
+        декларирани в EOP (един ниво). Пълният списък — в раздел{" "}
         <Link href={withAuthority("/monitor/procurement")} className="text-primary hover:underline">
           Поръчки
         </Link>
         .
       </p>
-    </div>
+      </div>
+    </details>
   );
 }

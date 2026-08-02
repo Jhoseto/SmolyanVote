@@ -461,72 +461,16 @@ public class MonitorService {
     @Transactional(readOnly = true)
     public MonitorFlowsDTO getFlows(MonitorScope scope) {
         List<MonitorContractEntity> contracts = contractRepository.findAllInScope(scope.authorityFilter());
-        Map<String, BigDecimal> authorityTotals = new HashMap<>();
-        Map<String, String> authorityLabels = new HashMap<>();
-        Map<String, BigDecimal> contractorTotals = new HashMap<>();
-        Map<String, String> contractorLabels = new HashMap<>();
-        Map<String, Long> linkCounts = new HashMap<>();
-        Map<String, BigDecimal> linkValues = new HashMap<>();
-        Map<String, List<MonitorContractEntity>> linkContracts = new HashMap<>();
+        return MonitorFlowsGraphBuilder.build(contracts, objectMapper);
+    }
 
-        for (MonitorContractEntity c : contracts) {
-            if (c.getAmountEur() == null) {
-                continue;
-            }
-            String authId = "auth:" + c.getAuthorityEik();
-            authorityLabels.putIfAbsent(authId, c.getAuthorityName() != null ? c.getAuthorityName() : c.getAuthorityEik());
-            authorityTotals.merge(authId, c.getAmountEur(), BigDecimal::add);
-
-            String contractorId = c.getContractorEik() != null ? "co:" + c.getContractorEik() : "co:unknown";
-            contractorLabels.putIfAbsent(contractorId,
-                    c.getContractorName() != null ? c.getContractorName() : "Неизвестен");
-            contractorTotals.merge(contractorId, c.getAmountEur(), BigDecimal::add);
-
-            String linkKey = authId + "->" + contractorId;
-            linkCounts.merge(linkKey, 1L, Long::sum);
-            linkValues.merge(linkKey, c.getAmountEur(), BigDecimal::add);
-            linkContracts.computeIfAbsent(linkKey, k -> new ArrayList<>()).add(c);
+    @Transactional(readOnly = true)
+    public MonitorFlowPathDetailDTO getFlowPath(MonitorScope scope, String source, String target) {
+        if (source == null || source.isBlank() || target == null || target.isBlank()) {
+            throw new MonitorNotFoundException("Липсват параметри source и target.");
         }
-
-        Set<String> nodeIds = new HashSet<>();
-        nodeIds.addAll(authorityTotals.keySet());
-        nodeIds.addAll(contractorTotals.keySet());
-
-        List<MonitorFlowsDTO.FlowNodeDTO> nodes = nodeIds.stream()
-                .map(id -> new MonitorFlowsDTO.FlowNodeDTO(
-                        id,
-                        id.startsWith("auth:") ? authorityLabels.getOrDefault(id, id) : contractorLabels.getOrDefault(id, id),
-                        id.startsWith("auth:") ? "authority" : "contractor"))
-                .toList();
-
-        List<MonitorFlowsDTO.FlowLinkDTO> links = linkValues.entrySet().stream()
-                .map(e -> {
-                    String[] parts = e.getKey().split("->");
-                    String authId = parts[0];
-                    List<MonitorContractEntity> grouped = linkContracts.getOrDefault(e.getKey(), List.of());
-                    MonitorFlowHintBuilder.FlowHint hint = MonitorFlowHintBuilder.forLinkContracts(
-                            grouped,
-                            e.getValue(),
-                            authorityTotals.get(authId),
-                            objectMapper);
-                    MonitorSubcontractorHelper.LinkSubcontractSummary sub =
-                            MonitorSubcontractorHelper.summarizeLink(grouped);
-                    return new MonitorFlowsDTO.FlowLinkDTO(
-                            parts[0],
-                            parts[1],
-                            e.getValue(),
-                            linkCounts.getOrDefault(e.getKey(), 0L),
-                            hint.flaggedCount(),
-                            hint.concernLabel(),
-                            hint.citizenHint(),
-                            sub.contractsWithSubcontractor(),
-                            sub.subcontractorName(),
-                            sub.subcontractorEik(),
-                            sub.subcontractingTotalEur());
-                })
-                .toList();
-
-        return new MonitorFlowsDTO(nodes, links);
+        List<MonitorContractEntity> contracts = contractRepository.findAllInScope(scope.authorityFilter());
+        return MonitorFlowsGraphBuilder.buildPathDetail(contracts, source.trim(), target.trim(), objectMapper);
     }
 
     @Transactional(readOnly = true)

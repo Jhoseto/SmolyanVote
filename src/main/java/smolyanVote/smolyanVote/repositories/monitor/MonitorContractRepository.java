@@ -36,6 +36,10 @@ public interface MonitorContractRepository extends JpaRepository<MonitorContract
 
     Optional<MonitorContractEntity> findFirstByUnp(String unp);
 
+    List<MonitorContractEntity> findAllByUnp(String unp);
+
+    List<MonitorContractEntity> findByUnpAndContractorEik(String unp, String contractorEik);
+
     /** Loaded in one shot by the SIGMA import so re-imports do not issue a query per row. */
     List<MonitorContractEntity> findAllByAuthorityEik(String authorityEik);
 

@@ -3,6 +3,7 @@ package smolyanVote.smolyanVote.services.monitor;
 import smolyanVote.smolyanVote.models.monitor.MonitorContractEntity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,28 @@ public final class MonitorSubcontractorHelper {
         return c.getSubcontractorName() != null && !c.getSubcontractorName().isBlank();
     }
 
+    /**
+     * EOP amount when present; otherwise estimate from contract value × declared percent.
+     * Persist subcontractor fields via SIGMA JSON enrichment or EOP import — CSV alone is not enough.
+     */
+    public static BigDecimal effectiveSubcontractingAmountEur(MonitorContractEntity c) {
+        if (c == null) {
+            return null;
+        }
+        if (c.getSubcontractingAmountEur() != null && c.getSubcontractingAmountEur().signum() > 0) {
+            return c.getSubcontractingAmountEur();
+        }
+        if (c.getSubcontractingPercent() != null
+                && c.getAmountEur() != null
+                && c.getSubcontractingPercent().signum() > 0
+                && c.getAmountEur().signum() > 0) {
+            return c.getAmountEur()
+                    .multiply(c.getSubcontractingPercent())
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+        return null;
+    }
+
     public static LinkSubcontractSummary summarizeLink(List<MonitorContractEntity> contracts) {
         if (contracts == null || contracts.isEmpty()) {
             return new LinkSubcontractSummary(0, null, null, null);
@@ -46,8 +69,9 @@ public final class MonitorSubcontractorHelper {
                 continue;
             }
             withSub++;
-            if (c.getSubcontractingAmountEur() != null) {
-                total = total.add(c.getSubcontractingAmountEur());
+            BigDecimal effective = effectiveSubcontractingAmountEur(c);
+            if (effective != null) {
+                total = total.add(effective);
             }
             String eik = c.getSubcontractorEik();
             if (eik != null && !eik.isBlank()) {

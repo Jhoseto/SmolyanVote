@@ -33,6 +33,7 @@ import smolyanVote.smolyanVote.services.monitor.MonitorDataQualityService;
 import smolyanVote.smolyanVote.services.monitor.MonitorSigmaSpotCheckService;
 import smolyanVote.smolyanVote.services.monitor.MonitorZpokonpiVerificationService;
 import smolyanVote.smolyanVote.services.monitor.SigmaRefreshService;
+import smolyanVote.smolyanVote.services.monitor.SigmaSubcontractorEnrichmentService;
 import smolyanVote.smolyanVote.services.monitor.SmolyanBgScraperService;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminAiStatsDTO;
 import smolyanVote.smolyanVote.viewsAndDTO.monitor.MonitorAdminCompanyDTO;
@@ -72,6 +73,7 @@ public class AdminMonitorController {
     private final MonitorCompanyEnrichmentService enrichmentService;
     private final MonitorDocumentRepository documentRepository;
     private final EopImportService eopImportService;
+    private final SigmaSubcontractorEnrichmentService sigmaSubcontractorEnrichmentService;
     private final MonitorOcrService ocrService;
     private final MonitorCouncilorSyncService councilorSyncService;
     private final MonitorIngestionProperties ingestionProperties;
@@ -99,6 +101,7 @@ public class AdminMonitorController {
             MonitorCompanyEnrichmentService enrichmentService,
             MonitorDocumentRepository documentRepository,
             EopImportService eopImportService,
+            SigmaSubcontractorEnrichmentService sigmaSubcontractorEnrichmentService,
             MonitorOcrService ocrService,
             MonitorCouncilorSyncService councilorSyncService,
             MonitorIngestionProperties ingestionProperties,
@@ -124,6 +127,7 @@ public class AdminMonitorController {
         this.enrichmentService = enrichmentService;
         this.documentRepository = documentRepository;
         this.eopImportService = eopImportService;
+        this.sigmaSubcontractorEnrichmentService = sigmaSubcontractorEnrichmentService;
         this.ocrService = ocrService;
         this.councilorSyncService = councilorSyncService;
         this.ingestionProperties = ingestionProperties;
@@ -281,6 +285,13 @@ public class AdminMonitorController {
         int capped = Math.min(days, ingestionProperties.getEopMaxDays());
         return launched(jobLauncher.launch("EOP", "EOP импорт (" + capped + " дни)",
                 () -> runResult(eopImportService.importRecentDays(capped))));
+    }
+
+    @PostMapping("/ingestion/enrich-subcontractors")
+    public ResponseEntity<Map<String, Object>> enrichSubcontractors(
+            @RequestParam(defaultValue = "false") boolean refreshAll) {
+        return launched(jobLauncher.launch("SUBCONTRACTORS", "Обогати подизпълнители (SIGMA JSON)",
+                () -> runResult(sigmaSubcontractorEnrichmentService.enrichRegionalContracts(refreshAll))));
     }
 
     @PostMapping("/ingestion/ocr-batch")

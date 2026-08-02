@@ -85,6 +85,11 @@ export const adminMonitorApi = {
   triggerEop: (days = 7) =>
     apiClient.post<MonitorJobState>(`/admin/api/monitor/ingestion/trigger-eop?days=${days}`),
 
+  enrichSubcontractors: (refreshAll = false) =>
+    apiClient.post<MonitorJobState>(
+      `/admin/api/monitor/ingestion/enrich-subcontractors?refreshAll=${refreshAll}`,
+    ),
+
   ocrBatch: (limit = 10) =>
     apiClient.post<MonitorJobState>(`/admin/api/monitor/ingestion/ocr-batch?limit=${limit}`),
 
